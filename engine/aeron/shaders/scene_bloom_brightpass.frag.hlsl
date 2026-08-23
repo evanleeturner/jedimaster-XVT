@@ -1,8 +1,9 @@
 /*
  * Bloom bright-pass — first stage of the dual-filter chain.
  *
- * Samples the HDR flight RT at half resolution and extracts pixels
- * above 1.0 into bloom mip0. Curve is a smoothstep gate:
+ * Samples the four HDR flight-RT texels covered by each half-resolution
+ * output texel and extracts values above 1.0 before averaging them into
+ * bloom mip0. Curve is a smoothstep gate:
  *   out = c * smoothstep(thr, thr + knee, br)
  * where `br = max(c.r, c.g, c.b)` so single-channel saturates
  * (pure-red bolt at (3, 0.4, 0.4) has br = 3) still bloom.
@@ -14,9 +15,8 @@
 
 cbuffer BrightPS : register(b0, space3)
 {
-    /* x = threshold (0..1)
-     * y = knee width (0..1, soft ramp half-width)
-     * z, w = unused */
+    /* x, y = threshold and knee width
+     * z, w = inverse source dimensions */
     float4 params;
 };
 
@@ -29,10 +29,8 @@ struct VSOut
     float2 uv       : TEXCOORD0;
 };
 
-float4 main(VSOut input) : SV_Target
+float3 extract_bloom(float3 c, float threshold, float knee)
 {
-    float3 c = g_src.Sample(s_src, input.uv).rgb;
-
     /* Sanitize before the chain: a single NaN/Inf scene pixel (e.g. from a
      * degenerate authored normal) gets box-averaged by the downsample mips
      * and upsampled into a large black square. Drop non-finite samples to
@@ -42,10 +40,25 @@ float4 main(VSOut input) : SV_Target
     if (any(isnan(c)) || any(isinf(c)))
         c = float3(0.0f, 0.0f, 0.0f);
 
-    float thr  = params.x;
-    float knee = max(params.y, 1e-4f);
-
     float br = max(c.r, max(c.g, c.b));
-    float w  = smoothstep(thr, thr + knee, br);
-    return float4(c * w, 1.0f);
+    float w  = smoothstep(threshold, threshold + knee, br);
+    return c * w;
+}
+
+float4 main(VSOut input) : SV_Target
+{
+    float threshold = params.x;
+    float knee = max(params.y, 1e-4f);
+    float2 offset = params.zw * 0.5f;
+
+    float3 bloom =
+        extract_bloom(g_src.Sample(s_src, input.uv + offset * float2(-1.0f, -1.0f)).rgb,
+                      threshold, knee) +
+        extract_bloom(g_src.Sample(s_src, input.uv + offset * float2( 1.0f, -1.0f)).rgb,
+                      threshold, knee) +
+        extract_bloom(g_src.Sample(s_src, input.uv + offset * float2(-1.0f,  1.0f)).rgb,
+                      threshold, knee) +
+        extract_bloom(g_src.Sample(s_src, input.uv + offset * float2( 1.0f,  1.0f)).rgb,
+                      threshold, knee);
+    return float4(bloom * 0.25f, 1.0f);
 }

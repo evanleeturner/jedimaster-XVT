@@ -307,8 +307,9 @@ int AeronSceneBloom_Apply(AeronSceneBloom *b,
     /* --- 1. Bright pass: flight RT → mip0 ----------------------- */
     {
         struct {
-            float params[4];   /* x=threshold, y=knee, z/w unused */
-        } u = { { BLOOM_THRESHOLD, BLOOM_KNEE, 0.0f, 0.0f } };
+            float params[4];   /* xy=threshold/knee, zw=source texel size */
+        } u = { { BLOOM_THRESHOLD, BLOOM_KNEE,
+                  1.0f / (float)rt_w, 1.0f / (float)rt_h } };
         if (!bloom_pass(cmd,
                         b->levels[0].tex, b->levels[0].w, b->levels[0].h,
                         b->brightpass_pipeline,
