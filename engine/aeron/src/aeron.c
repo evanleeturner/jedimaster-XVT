@@ -56,6 +56,12 @@ int Aeron_Init(const AeronConfig* config) {
 					 config && config->app_name ? config->app_name : "aeron");
 	SDL_SetAppMetadata(g_aeron.app_name, NULL, NULL);
 
+#if defined(__APPLE__)
+	if (!SDL_SetHint(SDL_HINT_MAC_OPTION_AS_ALT, "both")) {
+		Aeron_LogWarn("aeron.input", "could not configure macOS Option keys as Alt");
+	}
+#endif
+
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMEPAD)) {
 		Aeron_LogError("aeron", "SDL_Init failed: %s", SDL_GetError());
 		return 0;

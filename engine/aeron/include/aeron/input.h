@@ -219,6 +219,8 @@ typedef struct AeronInputSnapshot {
 	 * key_pressed reports only the initial edge. Consumers emulating DOS
 	 * BIOS-style keyboard queues count repeats through this. */
 	uint8_t                 key_typed[AERON_KEY_COUNT];
+	/* Subset of key_typed whose key event carried the Alt modifier. */
+	uint8_t                 key_alt_typed[AERON_KEY_COUNT];
 	AeronMouseSnapshot      mouse;
 	AeronControllerSnapshot controllers[AERON_CONTROLLER_MAX];
 	char                    text[AERON_TEXT_INPUT_CAPACITY];

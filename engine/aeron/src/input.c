@@ -20,6 +20,7 @@ void Aeron_BeginInputFrame(AeronInputSnapshot* input) {
 	memset(input->key_pressed, 0, sizeof(input->key_pressed));
 	memset(input->key_released, 0, sizeof(input->key_released));
 	memset(input->key_typed, 0, sizeof(input->key_typed));
+	memset(input->key_alt_typed, 0, sizeof(input->key_alt_typed));
 	input->mouse.relative_x             = 0.0f;
 	input->mouse.relative_y             = 0.0f;
 	input->mouse.wheel_x                = 0;
@@ -150,6 +151,9 @@ void Aeron_HandleEvent(const SDL_Event* event) {
 					}
 					if (g_aeron.input.key_typed[scancode] < 255) {
 						g_aeron.input.key_typed[scancode]++;
+					}
+					if ((event->key.mod & SDL_KMOD_ALT) && g_aeron.input.key_alt_typed[scancode] < 255) {
+						g_aeron.input.key_alt_typed[scancode]++;
 					}
 					g_aeron.input.key_down[scancode] = 1;
 				} else {

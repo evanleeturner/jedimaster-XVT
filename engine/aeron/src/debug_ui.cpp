@@ -196,6 +196,7 @@ extern "C" void Aeron_DebugUiFilterInput(AeronInputSnapshot* input) {
 		memset(input->key_pressed, 0, sizeof(input->key_pressed));
 		memset(input->key_released, 0, sizeof(input->key_released));
 		memset(input->key_typed, 0, sizeof(input->key_typed));
+		memset(input->key_alt_typed, 0, sizeof(input->key_alt_typed));
 		input->text[0]     = '\0';
 		input->text_length = 0;
 	}
