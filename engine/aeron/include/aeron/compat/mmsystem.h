@@ -18,6 +18,14 @@ typedef uintptr_t MciDwordPtr;
 #define AERON_WINMMAPI
 #endif
 
+/* On 32-bit Windows matching builds the entry points stay dllimport so
+ * recovered call sites go through the import thunk. */
+#if defined(_WIN32) && defined(_M_IX86) && !defined(AERON_WINMM_COMPAT_IMPLEMENTATION)
+#define AERON_WINMMIMPORT __declspec(dllimport)
+#else
+#define AERON_WINMMIMPORT
+#endif
+
 enum {
 	MMSYSERR_NOERROR            = 0,
 	MMSYSERR_BADDEVICEID        = 2,
@@ -113,12 +121,12 @@ typedef struct AUXCAPSA {
 
 typedef char AeronWinmmAuxCapsSizeCheck[(sizeof(AUXCAPSA) == 48) ? 1 : -1];
 
-MMRESULT AERON_WINMMAPI AeronWinmm_MciSendCommandA(MCIDEVICEID device_id, uint32_t message, MciDwordPtr flags,
-												   MciDwordPtr params);
-uint32_t AERON_WINMMAPI AeronWinmm_AuxGetNumDevs(void);
-MMRESULT AERON_WINMMAPI AeronWinmm_AuxGetDevCapsA(uintptr_t device_id, AUXCAPSA* caps, uint32_t size);
-MMRESULT AERON_WINMMAPI AeronWinmm_AuxGetVolume(uintptr_t device_id, uint32_t* volume);
-MMRESULT AERON_WINMMAPI AeronWinmm_AuxSetVolume(uintptr_t device_id, uint32_t volume);
+AERON_WINMMIMPORT MMRESULT AERON_WINMMAPI mciSendCommandA(MCIDEVICEID device_id, uint32_t message,
+														  MciDwordPtr flags, MciDwordPtr params);
+AERON_WINMMIMPORT uint32_t AERON_WINMMAPI auxGetNumDevs(void);
+AERON_WINMMIMPORT MMRESULT AERON_WINMMAPI auxGetDevCapsA(uintptr_t device_id, AUXCAPSA* caps, uint32_t size);
+AERON_WINMMIMPORT MMRESULT AERON_WINMMAPI auxGetVolume(uintptr_t device_id, uint32_t* volume);
+AERON_WINMMIMPORT MMRESULT AERON_WINMMAPI auxSetVolume(uintptr_t device_id, uint32_t volume);
 
 /* --- WinMM joystick API ---------------------------------------------------
  *
@@ -127,12 +135,6 @@ MMRESULT AERON_WINMMAPI AeronWinmm_AuxSetVolume(uintptr_t device_id, uint32_t vo
  * AeronCompat_SetJoystickSource (aeron/compat/host.h). Recovered game code
  * keeps its original call sites; on 32-bit Windows matching builds the
  * declarations stay dllimport so calls go through the import thunk. */
-
-#if defined(_WIN32) && defined(_M_IX86) && !defined(AERON_WINMM_COMPAT_IMPLEMENTATION)
-#define AERON_WINMMIMPORT __declspec(dllimport)
-#else
-#define AERON_WINMMIMPORT
-#endif
 
 #define JOYERR_NOERROR 0u
 #define JOYERR_PARMS 165u

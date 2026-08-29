@@ -1,3 +1,4 @@
+#define AERON_WINMM_COMPAT_IMPLEMENTATION
 #include "aeron/compat/host.h"
 #include "aeron/compat/mmsystem.h"
 
@@ -358,7 +359,7 @@ static MMRESULT AeronWinmm_Play(MCIDEVICEID device_id, MciDwordPtr flags, MCI_PL
 	return MMSYSERR_NOERROR;
 }
 
-MMRESULT AERON_WINMMAPI AeronWinmm_MciSendCommandA(MCIDEVICEID device_id, uint32_t message, MciDwordPtr flags,
+MMRESULT AERON_WINMMAPI mciSendCommandA(MCIDEVICEID device_id, uint32_t message, MciDwordPtr flags,
 												   MciDwordPtr params_value) {
 	void* params = (void*)(uintptr_t)params_value;
 	switch (message) {
@@ -393,9 +394,9 @@ MMRESULT AERON_WINMMAPI AeronWinmm_MciSendCommandA(MCIDEVICEID device_id, uint32
 	}
 }
 
-uint32_t AERON_WINMMAPI AeronWinmm_AuxGetNumDevs(void) { return g_cd.configured ? 1u : 0u; }
+uint32_t AERON_WINMMAPI auxGetNumDevs(void) { return g_cd.configured ? 1u : 0u; }
 
-MMRESULT AERON_WINMMAPI AeronWinmm_AuxGetDevCapsA(uintptr_t device_id, AUXCAPSA* caps, uint32_t size) {
+MMRESULT AERON_WINMMAPI auxGetDevCapsA(uintptr_t device_id, AUXCAPSA* caps, uint32_t size) {
 	if (!g_cd.configured || device_id != 0)
 		return MMSYSERR_BADDEVICEID;
 	if (!caps || size < sizeof(*caps))
@@ -407,7 +408,7 @@ MMRESULT AERON_WINMMAPI AeronWinmm_AuxGetDevCapsA(uintptr_t device_id, AUXCAPSA*
 	return MMSYSERR_NOERROR;
 }
 
-MMRESULT AERON_WINMMAPI AeronWinmm_AuxGetVolume(uintptr_t device_id, uint32_t* volume) {
+MMRESULT AERON_WINMMAPI auxGetVolume(uintptr_t device_id, uint32_t* volume) {
 	if (!g_cd.configured || device_id != 0)
 		return MMSYSERR_BADDEVICEID;
 	if (!volume)
@@ -418,7 +419,7 @@ MMRESULT AERON_WINMMAPI AeronWinmm_AuxGetVolume(uintptr_t device_id, uint32_t* v
 	return MMSYSERR_NOERROR;
 }
 
-MMRESULT AERON_WINMMAPI AeronWinmm_AuxSetVolume(uintptr_t device_id, uint32_t volume) {
+MMRESULT AERON_WINMMAPI auxSetVolume(uintptr_t device_id, uint32_t volume) {
 	if (!g_cd.configured || device_id != 0)
 		return MMSYSERR_BADDEVICEID;
 	SDL_LockMutex(g_cd.lock);
