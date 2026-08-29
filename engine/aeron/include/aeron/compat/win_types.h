@@ -1,5 +1,5 @@
-#ifndef AERON_DX5_WIN_TYPES_H
-#define AERON_DX5_WIN_TYPES_H
+#ifndef AERON_COMPAT_WIN_TYPES_H
+#define AERON_COMPAT_WIN_TYPES_H
 
 #include <stdint.h>
 

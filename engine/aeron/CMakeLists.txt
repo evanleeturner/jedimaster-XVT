@@ -9,8 +9,7 @@ project(aeron C CXX)
 option(AERON_DEBUG_UI "Build the Dear ImGui debug overlay into aeron" OFF)
 option(AERON_BUILD_TOOLS "Build Aeron asset tools" ${PROJECT_IS_TOP_LEVEL})
 option(AERON_HOST_TOOLS_ONLY "Build only tools that must run on the build host" OFF)
-option(AERON_ENABLE_DX5_COMPAT "Build the DirectDraw/Direct3D 1 compatibility target" OFF)
-option(AERON_ENABLE_WINMM_CD_AUDIO "Build the WinMM CD-audio compatibility target" OFF)
+option(AERON_ENABLE_COMPAT "Build the Win32/DirectX-era API compatibility target" OFF)
 
 find_package(SDL3 3.4 REQUIRED CONFIG COMPONENTS SDL3-shared)
 
@@ -264,7 +263,7 @@ set(AERON_SHADER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/compute_fill_buffer.comp.hlsl
 )
 
-if(AERON_ENABLE_DX5_COMPAT)
+if(AERON_ENABLE_COMPAT)
     list(APPEND AERON_SHADER_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/dx5/aeron_dx5_projected_triangle.vert.hlsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/dx5/aeron_dx5_projected_triangle.frag.hlsl
@@ -406,27 +405,37 @@ target_link_libraries(aeron
 
 add_dependencies(aeron aeron_shaders)
 
-if(AERON_ENABLE_DX5_COMPAT)
-    add_library(aeron_dx5 STATIC
-        src/dx5/config.c
-        src/dx5/ddraw.c
-        src/dx5/d3d.c
-        src/dx5/guids.c
+if(AERON_ENABLE_COMPAT)
+    set(AERON_COMPAT_SOURCES
+        src/compat/config.c
+        src/compat/ddraw.c
+        src/compat/d3d.c
+        src/compat/dinput.c
+        src/compat/dsound.c
+        src/compat/guids.c
+        src/compat/winmm_joystick.c
     )
-    set_target_properties(aeron_dx5 PROPERTIES
+    if(AERON_ENABLE_AUDIO_DECODE)
+        list(APPEND AERON_COMPAT_SOURCES src/compat/winmm_audio.c)
+    endif()
+    add_library(aeron_compat STATIC ${AERON_COMPAT_SOURCES})
+    set_target_properties(aeron_compat PROPERTIES
         C_STANDARD 99
         C_STANDARD_REQUIRED ON
         C_EXTENSIONS OFF
     )
-    target_include_directories(aeron_dx5
+    target_include_directories(aeron_compat
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
-    target_link_libraries(aeron_dx5 PUBLIC aeron)
-    add_dependencies(aeron_dx5 aeron_shaders)
+    target_link_libraries(aeron_compat PUBLIC aeron)
+    if(AERON_ENABLE_AUDIO_DECODE)
+        target_link_libraries(aeron_compat PRIVATE aeron_audio_decode SDL3::SDL3)
+    endif()
+    add_dependencies(aeron_compat aeron_shaders)
     if(MSVC)
-        target_compile_options(aeron_dx5 PRIVATE /W4)
+        target_compile_options(aeron_compat PRIVATE /W4)
     else()
-        target_compile_options(aeron_dx5 PRIVATE -Wall -Wextra -Wpedantic -Wno-deprecated-declarations)
+        target_compile_options(aeron_compat PRIVATE -Wall -Wextra -Wpedantic -Wno-deprecated-declarations)
     endif()
 endif()
 
@@ -477,25 +486,6 @@ if(AERON_ENABLE_AUDIO_DECODE)
         target_compile_options(aeron_audio_decode PRIVATE /W4)
     else()
         target_compile_options(aeron_audio_decode PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
-endif()
-
-if(AERON_ENABLE_WINMM_CD_AUDIO)
-    if(NOT AERON_ENABLE_AUDIO_DECODE)
-        message(FATAL_ERROR "AERON_ENABLE_WINMM_CD_AUDIO requires AERON_ENABLE_AUDIO_DECODE")
-    endif()
-    add_library(aeron_winmm STATIC src/winmm_mci.c)
-    set_target_properties(aeron_winmm PROPERTIES
-        C_STANDARD 99
-        C_STANDARD_REQUIRED ON
-        C_EXTENSIONS OFF
-    )
-    target_include_directories(aeron_winmm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_link_libraries(aeron_winmm PUBLIC aeron PRIVATE aeron_audio_decode SDL3::SDL3)
-    if(MSVC)
-        target_compile_options(aeron_winmm PRIVATE /W4)
-    else()
-        target_compile_options(aeron_winmm PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 endif()
 
@@ -820,8 +810,10 @@ set(AERON_FORMAT_FILES
     include/aeron/time.h
     include/aeron/video.h
     include/aeron/vfs.h
-    include/aeron/winmm/compat.h
-    include/aeron/winmm/mmsystem.h
+    include/aeron/compat/dinput.h
+    include/aeron/compat/dsound.h
+    include/aeron/compat/host.h
+    include/aeron/compat/mmsystem.h
     shaders/fullscreen.frag.hlsl
     shaders/compute_fill.comp.hlsl
     shaders/compute_fill_buffer.comp.hlsl

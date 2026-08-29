@@ -1,4 +1,4 @@
-#include "aeron/dx5/compat.h"
+#include "aeron/compat/host.h"
 
 #include "internal.h"
 

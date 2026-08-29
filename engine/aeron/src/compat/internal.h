@@ -1,5 +1,5 @@
-#ifndef AERON_DX5_INTERNAL_H
-#define AERON_DX5_INTERNAL_H
+#ifndef AERON_COMPAT_INTERNAL_H
+#define AERON_COMPAT_INTERNAL_H
 
 /* Internal shared layout of the DirectDraw/Direct3D shim objects.
  *
@@ -11,8 +11,8 @@
  * that surface's render-target backing. This header is compat-internal only; the
  * recovered game code sees only the public COM vtables in ddraw.h / d3d.h. */
 
-#include "aeron/dx5/d3d.h"
-#include "aeron/dx5/ddraw.h"
+#include "aeron/compat/d3d.h"
+#include "aeron/compat/ddraw.h"
 
 #include "aeron/render.h"
 #include "aeron/surface.h"

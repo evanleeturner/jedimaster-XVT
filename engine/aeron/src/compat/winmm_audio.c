@@ -1,5 +1,5 @@
-#include "aeron/winmm/compat.h"
-#include "aeron/winmm/mmsystem.h"
+#include "aeron/compat/host.h"
+#include "aeron/compat/mmsystem.h"
 
 #include "aeron/audio.h"
 #include "aeron/audio_decode.h"

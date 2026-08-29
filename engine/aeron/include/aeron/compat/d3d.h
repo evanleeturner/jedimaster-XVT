@@ -1,8 +1,8 @@
-#ifndef AERON_DX5_D3D_H
-#define AERON_DX5_D3D_H
+#ifndef AERON_COMPAT_D3D_H
+#define AERON_COMPAT_D3D_H
 
-#include "aeron/dx5/ddraw.h"
-#include "aeron/dx5/win_types.h"
+#include "aeron/compat/ddraw.h"
+#include "aeron/compat/win_types.h"
 
 #include <stdint.h>
 

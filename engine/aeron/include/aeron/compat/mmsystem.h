@@ -1,5 +1,5 @@
-#ifndef AERON_WINMM_MMSYSTEM_H
-#define AERON_WINMM_MMSYSTEM_H
+#ifndef AERON_COMPAT_MMSYSTEM_H
+#define AERON_COMPAT_MMSYSTEM_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -119,6 +119,100 @@ uint32_t AERON_WINMMAPI AeronWinmm_AuxGetNumDevs(void);
 MMRESULT AERON_WINMMAPI AeronWinmm_AuxGetDevCapsA(uintptr_t device_id, AUXCAPSA* caps, uint32_t size);
 MMRESULT AERON_WINMMAPI AeronWinmm_AuxGetVolume(uintptr_t device_id, uint32_t* volume);
 MMRESULT AERON_WINMMAPI AeronWinmm_AuxSetVolume(uintptr_t device_id, uint32_t volume);
+
+/* --- WinMM joystick API ---------------------------------------------------
+ *
+ * Original joyGetNumDevs / joyGetDevCapsA / joyGetPosEx entry points, filled
+ * from the logical controller state registered through
+ * AeronCompat_SetJoystickSource (aeron/compat/host.h). Recovered game code
+ * keeps its original call sites; on 32-bit Windows matching builds the
+ * declarations stay dllimport so calls go through the import thunk. */
+
+#if defined(_WIN32) && defined(_M_IX86) && !defined(AERON_WINMM_COMPAT_IMPLEMENTATION)
+#define AERON_WINMMIMPORT __declspec(dllimport)
+#else
+#define AERON_WINMMIMPORT
+#endif
+
+#define JOYERR_NOERROR 0u
+#define JOYERR_PARMS 165u
+#define JOYERR_UNPLUGGED 167u
+
+/* JOYCAPS.wCaps bits used by the recovered code. */
+#define JOYCAPS_HASZ 0x0001u
+#define JOYCAPS_HASR 0x0002u
+#define JOYCAPS_HASU 0x0004u
+#define JOYCAPS_HASV 0x0008u
+#define JOYCAPS_HASPOV 0x0010u
+
+/* JOYINFOEX.dwFlags bits (which fields joyGetPosEx returns). The shim fills
+ * every axis regardless, so these are accepted and not required. */
+#define JOY_RETURNX 0x00000001u
+#define JOY_RETURNY 0x00000002u
+#define JOY_RETURNZ 0x00000004u
+#define JOY_RETURNR 0x00000008u
+#define JOY_RETURNPOV 0x00000040u
+#define JOY_RETURNBUTTONS 0x00000080u
+#define JOY_RETURNCENTERED 0x00000400u
+#define JOY_RETURNALL 0x000000FFu
+
+/* Centered POV value. */
+#define JOY_POVCENTERED 0xFFFFu
+
+/* joyGetDevCapsA capabilities structure (ANSI). Full Win32 layout so the
+ * recovered code's sizeof/0x194 argument and field offsets match. */
+typedef struct tagJOYCAPSA {
+	uint16_t wMid;
+	uint16_t wPid;
+	char szPname[32];
+	uint32_t wXmin;
+	uint32_t wXmax;
+	uint32_t wYmin;
+	uint32_t wYmax;
+	uint32_t wZmin;
+	uint32_t wZmax;
+	uint32_t wNumButtons;
+	uint32_t wPeriodMin;
+	uint32_t wPeriodMax;
+	uint32_t wRmin;
+	uint32_t wRmax;
+	uint32_t wUmin;
+	uint32_t wUmax;
+	uint32_t wVmin;
+	uint32_t wVmax;
+	uint32_t wCaps;
+	uint32_t wMaxAxes;
+	uint32_t wNumAxes;
+	uint32_t wMaxButtons;
+	char szRegKey[32];
+	char szOEMVxD[260];
+} JOYCAPSA;
+
+/* joyGetPosEx extended position structure. */
+typedef struct joyinfoex_tag {
+	uint32_t dwSize;
+	uint32_t dwFlags;
+	uint32_t dwXpos;
+	uint32_t dwYpos;
+	uint32_t dwZpos;
+	uint32_t dwRpos;
+	uint32_t dwUpos;
+	uint32_t dwVpos;
+	uint32_t dwButtons;
+	uint32_t dwButtonNumber;
+	uint32_t dwPOV;
+	uint32_t dwReserved1;
+	uint32_t dwReserved2;
+} JOYINFOEX;
+
+/* Number of joystick devices (recovered code treats >0 as "devices exist"). */
+AERON_WINMMIMPORT uint32_t AERON_WINMMAPI joyGetNumDevs(void);
+
+/* Fills caps for device uJoyID; JOYERR_NOERROR if present, else an error. */
+AERON_WINMMIMPORT MMRESULT AERON_WINMMAPI joyGetDevCapsA(uint32_t uJoyID, JOYCAPSA* pjc, uint32_t cbjc);
+
+/* Fills the extended position for device uJoyID from the registered source. */
+AERON_WINMMIMPORT MMRESULT AERON_WINMMAPI joyGetPosEx(uint32_t uJoyID, JOYINFOEX* pji);
 
 #ifdef __cplusplus
 }

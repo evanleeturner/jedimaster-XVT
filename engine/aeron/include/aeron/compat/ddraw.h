@@ -1,7 +1,7 @@
-#ifndef AERON_DX5_DDRAW_H
-#define AERON_DX5_DDRAW_H
+#ifndef AERON_COMPAT_DDRAW_H
+#define AERON_COMPAT_DDRAW_H
 
-#include "aeron/dx5/win_types.h"
+#include "aeron/compat/win_types.h"
 
 #include <stdint.h>
 

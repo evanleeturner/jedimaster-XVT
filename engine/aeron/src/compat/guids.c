@@ -1,4 +1,4 @@
-#include "aeron/dx5/d3d.h"
+#include "aeron/compat/d3d.h"
 
 /* DirectDraw/Direct3D compatibility shim — shared COM interface ids.
  *
