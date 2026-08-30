@@ -74,6 +74,7 @@ typedef struct AeronSceneBb3dEntry {
 	float         prev_corners[4][3];
 	float         uv[4][2];
 	float         colors[4][4];
+	float         center_position[3];
 	float         center_color[4];
 	float         anchor[3]; /* LENS: flare source, world space */
 } AeronSceneBb3dEntry;
@@ -472,7 +473,7 @@ int                        AeronSceneStorage_Prepare(struct AeronScene3D* s,
 													AeronCommandBuffer* cmd);
 void                       AeronSceneStorage_Release(struct AeronScene3D* s);
 uint32_t                   AeronSceneStorage_ShadowTableIndex(
-						  const struct AeronScene3D* s, uint16_t encoded_caster);
+										  const struct AeronScene3D* s, uint16_t encoded_caster);
 
 /* clustered_lights.c */
 void AeronSceneClusteredLights_Classify(struct AeronScene3D* s);

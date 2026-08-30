@@ -54,6 +54,14 @@ void AeronScene_AddBillboard(AeronScene3D* s, const AeronSceneBillboardDesc* d) 
 	memcpy(e->corners, d->corners, sizeof e->corners);
 	memcpy(e->uv, d->uv, sizeof e->uv);
 	memcpy(e->colors, d->colors, sizeof e->colors);
+	if (d->center_position) {
+		memcpy(e->center_position, d->center_position, sizeof e->center_position);
+	} else {
+		for (int axis = 0; axis < 3; axis++) {
+			e->center_position[axis] = 0.25f * (d->corners[0][axis] + d->corners[1][axis] +
+												d->corners[2][axis] + d->corners[3][axis]);
+		}
+	}
 	if (d->center_color) {
 		memcpy(e->center_color, d->center_color, sizeof e->center_color);
 	} else {
@@ -314,8 +322,7 @@ static int bb3d_ensure(struct AeronScene3D* s) {
 static void bb3d_emit(Bb3dVert* v, const AeronSceneBb3dEntry* e) {
 	Bb3dVert corner[5]; /* [0] = center */
 	for (int a = 0; a < 3; a++) {
-		corner[0].pos[a] =
-			0.25f * (e->corners[0][a] + e->corners[1][a] + e->corners[2][a] + e->corners[3][a]);
+		corner[0].pos[a]  = e->center_position[a];
 		corner[0].prev[a] = 0.25f * (e->prev_corners[0][a] + e->prev_corners[1][a] + e->prev_corners[2][a] +
 									 e->prev_corners[3][a]);
 	}
@@ -367,8 +374,10 @@ int AeronSceneBb3d_Prepare(struct AeronScene3D* s, AeronCommandBuffer* cmd) {
 		while (cap < need) {
 			cap *= 2u;
 		}
-		s->bb_vb     = Aeron_CreateBuffer(&(AeronBufferDesc) {
-			.size = cap, .usage = AERON_BUFFER_USAGE_VERTEX, .debug_name = "scene.billboards.vertices" });
+		s->bb_vb     = Aeron_CreateBuffer(&(AeronBufferDesc) { .size         = cap,
+															   .usage        = AERON_BUFFER_USAGE_VERTEX,
+															   .memory_usage = AERON_MEMORY_USAGE_DYNAMIC,
+															   .debug_name   = "scene.billboards.vertices" });
 		s->bb_vb_cap = s->bb_vb ? cap : 0;
 	}
 	if (!s->bb_vb || !Aeron_UploadBufferDataCmd(cmd, s->bb_vb, 0, verts, need)) {

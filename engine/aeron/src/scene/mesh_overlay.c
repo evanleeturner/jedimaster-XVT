@@ -168,9 +168,10 @@ int AeronSceneMeshOverlay_Prepare(AeronScene3D* scene, AeronCommandBuffer* comma
 			new_capacity *= 2u;
 		}
 		scene->overlay_vb =
-			Aeron_CreateBuffer(&(AeronBufferDesc) { .size       = new_capacity,
-													.usage      = AERON_BUFFER_USAGE_VERTEX,
-													.debug_name = "scene.mesh_overlays.vertices" });
+			Aeron_CreateBuffer(&(AeronBufferDesc) { .size         = new_capacity,
+													.usage        = AERON_BUFFER_USAGE_VERTEX,
+													.memory_usage = AERON_MEMORY_USAGE_DYNAMIC,
+													.debug_name   = "scene.mesh_overlays.vertices" });
 		scene->overlay_vb_cap = scene->overlay_vb ? new_capacity : 0;
 	}
 	scene->overlay_frame_ready =
