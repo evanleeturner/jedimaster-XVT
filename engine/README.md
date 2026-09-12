@@ -59,7 +59,7 @@ also supported, with configurable axes, deadzones, and button bindings.
 ## Getting started
 
 1. Download the latest package for your platform from
-   [GitHub Releases](https://github.com/elyosh/bop/releases/latest).
+   [GitHub Releases](https://github.com/elyosh/OpenXvT/releases/latest).
 2. Extract or install the package and launch OpenXvT.
 3. Select the main *X-Wing vs. TIE Fighter* installation folder containing
    `BalanceOfPower` when prompted.
