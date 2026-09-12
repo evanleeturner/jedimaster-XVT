@@ -2512,12 +2512,15 @@ void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx, uint16_t
 							g_players[playerIndex].missionStats.ratingPromoPoints += ratingPoints;
 #ifdef XVT_MODERN
 							sprintf(g_flightTextScratchBuffer,
-#else
-							sprintf(g_missionDebugBuffer,
-#endif
 									"Rating points awarded: %d to player: %d Better total: %d\n",
 									ratingPoints, playerIndex,
 									g_players[playerIndex].missionStats.ratingPromoPoints);
+#else
+							sprintf(g_missionDebugBuffer,
+									"Rating points awarded: %d to player: %d Better total: %d\n",
+									ratingPoints, playerIndex,
+									g_players[playerIndex].missionStats.ratingPromoPoints);
+#endif
 						} else {
 							if (minimumRatingAward != 0) {
 								awardRating = 1;
@@ -2536,11 +2539,13 @@ void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx, uint16_t
 							g_players[playerIndex].missionStats.worseRatingPromoPoints += ratingPoints;
 #ifdef XVT_MODERN
 							sprintf(g_flightTextScratchBuffer,
-#else
-							sprintf(g_missionDebugBuffer,
-#endif
 									"Rating points awarded: %d to player: %d Worse total: %d\n", ratingPoints,
 									playerIndex, g_players[playerIndex].missionStats.worseRatingPromoPoints);
+#else
+							sprintf(g_missionDebugBuffer,
+									"Rating points awarded: %d to player: %d Worse total: %d\n", ratingPoints,
+									playerIndex, g_players[playerIndex].missionStats.worseRatingPromoPoints);
+#endif
 						}
 					}
 
