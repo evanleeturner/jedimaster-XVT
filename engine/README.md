@@ -19,6 +19,15 @@ enhancements.
 > [GOG](https://www.gog.com/en/game/star_wars_xwing_vs_tie_fighter) and
 > [Steam](https://store.steampowered.com/app/361690/Star_Wars_X_Wing_Vs_Tie_Fighter_Balance_Of_Power_Campaigns/).
 
+## Multiplayer
+
+Play with up to eight players across Windows, macOS, and Linux. Face off
+in dogfights and team battles, or fly cooperative missions together,
+including the Rebel and Imperial campaigns from *Balance of Power*.
+
+Host or join online games directly from the in-game browser, with no
+external app such as GameRanger required.
+
 ## Graphics
 
 OpenXvT offers classic and modern graphics modes. Classic mode preserves the
