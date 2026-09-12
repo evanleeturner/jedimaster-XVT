@@ -1,0 +1,445 @@
+# OpenXvT shipped defaults. USER/config.yaml recursively overrides these values.
+# Shared scene defaults are loaded from aeron/scene3d_defaults.yaml first.
+# Keep legacy game flags as integers; modern settings use YAML booleans.
+# Renderer distances use native game units. MSAA and FSR are mutually exclusive;
+# selecting FSR makes the effective MSAA sample count 1.
+version: 3
+startup:
+  skip_intro: false
+ui:
+  font: assets/fonts/menu
+paths:
+  game_data: ""
+video:
+  window_mode: "windowed"
+input:
+  mouse_flight: false
+  mouse_sensitivity: 5
+  mouse_invert_y: false
+  keyboard:
+    fire_weapon:
+      - {key: "2", modifiers: [alt]}
+    cycle_weapon_group:
+      - {key: "W"}
+    cycle_weapon_firing_mode:
+      - {key: "X"}
+    fire_countermeasure_or_center_map_target:
+      - {key: "C"}
+    toggle_beam:
+      - {key: "B"}
+    cycle_beam_recharge_rate:
+      - {key: "F8"}
+    cycle_cannon_recharge_rate:
+      - {key: "F9"}
+    cycle_shield_recharge_rate:
+      - {key: "F10"}
+    cycle_shield_mode:
+      - {key: "S"}
+    xfer_cannon_to_shields:
+      - {key: "'"}
+      - {key: "F10", modifiers: [shift]}
+    xfer_shields_to_cannon:
+      - {key: ";"}
+      - {key: "F9", modifiers: [shift]}
+    xfer_all_cannon_to_shields:
+      - {key: "'", modifiers: [shift]}
+    target_roll_modifier: []
+    auto_target:
+      - {key: "1", modifiers: [alt]}
+    target_next:
+      - {key: "T"}
+    target_prev:
+      - {key: "Y"}
+    target_nearest_fighter_or_mine:
+      - {key: "R"}
+    target_my_attacker:
+      - {key: "E"}
+    target_attacker_chain:
+      - {key: "A"}
+    target_newest_craft:
+      - {key: "U"}
+    target_objective:
+      - {key: "O"}
+    target_nearest_hostile_player:
+      - {key: "P"}
+    target_next_player:
+      - {key: "P", modifiers: [shift]}
+    target_incoming_warhead:
+      - {key: "I"}
+    target_next_friendly:
+      - {key: "F1"}
+    target_prev_friendly:
+      - {key: "F2"}
+    target_next_enemy:
+      - {key: "F3"}
+    target_prev_enemy:
+      - {key: "F4"}
+    target_component_next:
+      - {key: ","}
+    target_component_prev:
+      - {key: ",", modifiers: [shift]}
+    target_clear:
+      - {key: "C", modifiers: [alt]}
+    toggle_threat_display_or_zoom_map_target:
+      - {key: "Z"}
+    target_preset_store_1:
+      - {key: "F5", modifiers: [shift]}
+    target_preset_store_2:
+      - {key: "F6", modifiers: [shift]}
+    target_preset_store_3:
+      - {key: "F7", modifiers: [shift]}
+    target_preset_recall_1:
+      - {key: "F5"}
+    target_preset_recall_2:
+      - {key: "F6"}
+    target_preset_recall_3:
+      - {key: "F7"}
+    throttle_up:
+      - {key: "="}
+      - {key: "=", modifiers: [shift]}
+    throttle_down:
+      - {key: "-"}
+    throttle_up_or_track_map_target:
+      - {key: "Keypad +"}
+    throttle_down_or_stop_tracking_map_target:
+      - {key: "Keypad -"}
+    throttle_zero:
+      - {key: "\\"}
+    throttle_one_third:
+      - {key: "["}
+    throttle_two_thirds:
+      - {key: "]"}
+    throttle_full:
+      - {key: "Backspace"}
+    match_speed:
+      - {key: "Return"}
+      - {key: "Keypad Enter"}
+    power_preset_recall_1:
+      - {key: "9"}
+    power_preset_recall_2:
+      - {key: "0"}
+    power_preset_store_1:
+      - {key: "9", modifiers: [shift]}
+    power_preset_store_2:
+      - {key: "0", modifiers: [shift]}
+    toggle_slam:
+      - {key: "N"}
+    toggle_s_foils:
+      - {key: "V"}
+    view_toggle_high_angle:
+      - {key: "Keypad 0"}
+    view_toggle_cockpit:
+      - {key: "."}
+      - {key: "Keypad ."}
+    toggle_external_camera_or_follow_map_target:
+      - {key: "/"}
+      - {key: "Keypad /"}
+    toggle_camera_control_or_stop_following_map_target:
+      - {key: "8", modifiers: [shift]}
+      - {key: "Keypad *"}
+    view_left_shoulder:
+      - {key: "Keypad 1"}
+    view_rear:
+      - {key: "Keypad 2"}
+    view_right_shoulder:
+      - {key: "Keypad 3"}
+    view_left_wing:
+      - {key: "Keypad 4"}
+    view_straight_up:
+      - {key: "Keypad 5"}
+    view_right_wing:
+      - {key: "Keypad 6"}
+    view_left_forward:
+      - {key: "Keypad 7"}
+    view_forward:
+      - {key: "Keypad 8"}
+    view_right_forward:
+      - {key: "Keypad 9"}
+    info_goals:
+      - {key: "G"}
+    info_scoreboard:
+      - {key: "K"}
+    info_messages:
+      - {key: "L"}
+    info_damage:
+      - {key: "D"}
+    info_friendly_craft:
+      - {key: "F"}
+    info_enemy_craft:
+      - {key: "F", modifiers: [shift]}
+    info_previous:
+      - {key: "Left"}
+    info_next:
+      - {key: "Right"}
+    info_scroll_up:
+      - {key: "Up"}
+    info_scroll_down:
+      - {key: "Down"}
+    info_map:
+      - {key: "M"}
+    info_map_autopilot:
+      - {key: "M", modifiers: [shift]}
+    comm_assign_target:
+      - {key: "A", modifiers: [shift]}
+    comm_request_resupply:
+      - {key: "B", modifiers: [shift]}
+    comm_cover_me:
+      - {key: "C", modifiers: [shift]}
+    comm_evade:
+      - {key: "E", modifiers: [shift]}
+    comm_continue_mission:
+      - {key: "G", modifiers: [shift]}
+    comm_head_home:
+      - {key: "H", modifiers: [shift]}
+    comm_ignore_target:
+      - {key: "I", modifiers: [shift]}
+    comm_report_orders:
+      - {key: "R", modifiers: [shift]}
+    comm_reinforcements:
+      - {key: "S", modifiers: [shift]}
+    comm_stop_and_wait:
+      - {key: "W", modifiers: [shift]}
+    chat:
+      - {key: "Tab", modifiers: [shift]}
+    taunt_1:
+      - {key: "1"}
+    taunt_2:
+      - {key: "2"}
+    taunt_3:
+      - {key: "3"}
+    taunt_4:
+      - {key: "4"}
+    hyperspace_or_map_help:
+      - {key: "H"}
+    jump_craft:
+      - {key: "J"}
+    eject:
+      - {key: "E", modifiers: [alt]}
+    confirm_order_or_toggle_map_view:
+      - {key: "Space"}
+    end_mission:
+      - {key: "Q"}
+    leave_observation:
+      - {key: "Q", modifiers: [alt]}
+    pause:
+      - {key: "P", modifiers: [alt]}
+    escape: []
+    cycle_graphics_detail:
+      - {key: "D", modifiers: [alt]}
+    cycle_brightness:
+      - {key: "B", modifiers: [alt]}
+    toggle_interlace:
+      - {key: "I", modifiers: [alt]}
+    show_version:
+      - {key: "V", modifiers: [alt]}
+    toggle_message_logging:
+      - {key: "L", modifiers: [shift]}
+    toggle_system_messages:
+      - {key: "S", modifiers: [alt]}
+    screenshot:
+      - {key: "PrintScreen", modifiers: [alt]}
+      - {key: "PrintScreen", modifiers: [ctrl]}
+  controllers: []
+  gamepad_defaults:
+    axes:
+      yaw: {source: leftx, invert: false, deadzone: 0.08}
+      pitch: {source: lefty, invert: false, deadzone: 0.08}
+      roll: {source: rightx, invert: false, deadzone: 0.08}
+      throttle: {source: none, invert: false}
+    buttons:
+      fire_weapon: [south, {axis: righttrigger, direction: positive, threshold: 0.5}]
+      target_roll_modifier: [east, {axis: lefttrigger, direction: positive, threshold: 0.5}]
+      target_nearest_fighter_or_mine: north
+      target_next: west
+      target_my_attacker: leftshoulder
+      view_toggle_high_angle: rightshoulder
+      throttle_full: dpadup
+      throttle_down: dpaddown
+      match_speed: dpadright
+      target_clear: dpadleft
+      hyperspace_or_map_help: leftstick
+      pause: start
+      escape: back
+      view_forward: rightstick
+network:
+  lobby_url: "https://aeron.rgb-labs.io"
+game:
+  lastpilot: ""
+  single_player:
+    backdrop: 1
+    stardensity: 2
+    debris: 1
+    locallights: 1
+    specular: 1
+    diffuse: 1
+    dither: 1
+    textureres: 2
+    mipmap: 10
+    lod: 10
+    screenres: 2
+    windowsize: 2
+    bpp: 1
+    brightness: 2
+    use_3d_hardware: 1
+    bilinear: 1
+  multiplayer:
+    backdrop: 1
+    stardensity: 2
+    debris: 1
+    locallights: 1
+    specular: 1
+    diffuse: 1
+    dither: 1
+    textureres: 2
+    mipmap: 10
+    lod: 10
+    screenres: 2
+    windowsize: 2
+    bpp: 1
+    brightness: 2
+    use_3d_hardware: 1
+    bilinear: 1
+  server_update_rate: 8
+  sfx_exterior: 1
+  sfx_interior: 1
+  sfx_engine: 1
+  sfx_datapad: 1
+  voice_pilot: 2
+  voice_tactical_officer: 2
+  voice_commander: 1
+  voice_special: 1
+  music: 1
+  sfx_datapad_volume: 9
+  sfx_exterior_volume: 9
+  sfx_interior_volume: 9
+  sfx_engine_volume: 9
+  voice_volume: 9
+  music_volume: 5
+  datapad_music: 1
+  joybutton1: 156
+  joybutton2: 157
+  joybutton3: 114
+  joybutton4: 46
+  joybutton5: 101
+  joybutton6: 105
+  joybutton7: 91
+  joybutton8: 8
+  joybutton9: 13
+  joybutton10: 93
+  joybutton11: 0
+  joybutton12: 0
+  joybutton13: 0
+  joybutton14: 0
+  joybutton15: 0
+  joybutton16: 0
+  joybutton17: 0
+  joybutton18: 0
+  joybutton19: 0
+  joybutton20: 0
+  difficulty: 1
+  collisions: 1
+  craft_jumping: 1
+  random_setup: 0
+  handicapping: 1
+  require_password: 0
+  in_progress_join: 0
+  craft_selection: 1
+  locate_players: 1
+  craft_waves: 1
+  mission_time_limit: 255
+  last_time_limit: 1
+  random_seed: 0
+  password: ""
+  async_flag: 1
+  ai_opponents: 0
+  help_on: 1
+  combat_balance: 0
+  taunt1: "Stay on target!"
+  taunt2: "I can't shake him!"
+  taunt3: "He's history."
+  taunt4: "Woohoo!"
+  continue_sequence: 1
+render:
+  cockpit_undither: true
+  msaa_samples: 2
+  temporal_upscaling:
+    mode: "off"
+    sharpness: 0
+  motion_blur:
+    quality: 2
+    shutter: 0.5
+    camera_blur: true
+    pause_keep_blur: true
+    velocity_viz: false
+    fsr_direct_motion: true
+  # Optional ssao/shadows/tonemap maps override aeron/scene3d_defaults.yaml.
+presentation:
+  vsync_divisor: 1
+  hdr_output: true
+  sdr_gamma: "auto"
+  paper_white_nits: "auto"
+texture_filtering:
+  anisotropic: true
+  max_anisotropy: 8
+models:
+  smooth_angle_degrees: 90
+  opt_emissive_strength: 1.5
+  opt_projectile_emissive_strength: 5
+  engine_emissive_strength: 2.5
+lighting:
+  intensity: 0.8
+  spec_mul: 1
+  wrap: 0
+  spec_geom_adapt: true
+  ambient_r: 0.08
+  ambient_g: 0.08
+  ambient_b: 0.08
+point_lights:
+  enabled: true
+  clustered: true
+  cluster_depth_slices: 24
+  cluster_debug: false
+  scale: 1
+  range_scale: 1
+  min_distance: 64
+  spec_weight: 1
+  diffuse_wrap: 1
+  contrib_cap: 1
+bloom:
+  intensity: 0.5
+skybox:
+  enabled: true
+  mode: "stars"
+  path: "flight/skyboxes/stars.ktx2"
+  exposure: 1
+  star_brightness: 1
+hyperspace_tunnel:
+  travel_speed: 13
+  rotation_speed: -2.3
+  noise_scale: 0.5
+  brightness: 1
+  highlight_strength: 3
+  focal_length: 0.9
+  twist: 0.1
+  cap_radius: 0.001
+  cap_falloff: 30
+  mesh_ambient_strength: 0.7
+  mesh_environment_roughness: 1
+  mesh_key_strength: 0.15
+  dark_color_r: 0
+  dark_color_g: 0
+  dark_color_b: 0
+  body_color_r: 0
+  body_color_g: 0
+  body_color_b: 1
+  highlight_color_r: 0.05
+  highlight_color_g: 0.24
+  highlight_color_b: 0.99
+  cap_color_r: 0.09
+  cap_color_g: 0.28
+  cap_color_b: 1
+effects:
+  explosion_genus_emissive_strength: 2.5
+
+flight:
+  update_rate: unlocked
