@@ -112,13 +112,28 @@ typedef struct XvtRenderSnapshot {
 	uint32_t image_asset_count;
 } XvtRenderSnapshot;
 
+/* Three snapshot slots rotate: the writer filled during a tick, the current (last committed)
+ * and the previous (committed before it). A commit publishes the writer as current and picks
+ * as the next writer the slot that is neither current nor previous.
+ * BeginTick, SetSceneKind and Commit do nothing before Init or after Shutdown. */
+
 /* The application initializes before port startup and shuts down after the
  * port and remaster. All access is confined to the host thread. */
+/* Init clears all slots and initializes render assets, capture and frontend; a second call
+ * before Shutdown does nothing. Shutdown shuts down render assets, resets capture and the scene
+ * kind, and makes Current and Previous return NULL; slot contents are not cleared. */
 void XvtRenderSnapshot_Init(void);
 void XvtRenderSnapshot_Shutdown(void);
 /* BeginTick is idempotent while a tick is open (including paused-frame routing). */
+/* It opens a tick on the writer slot: begins the asset and capture ticks, stamps the tick index
+ * and scene kind, and zeroes the record counts and the flight, camera, map, hyperspace and
+ * cursor flags. Other fields keep what the slot last held. */
 void XvtRenderSnapshot_BeginTick(void);
+/* Sets the scene kind for this and later ticks; it persists until changed. */
 void XvtRenderSnapshot_SetSceneKind(XvtSceneKind kind);
+/* Closes the open tick; does nothing when none is open. Stamps game time, host time, focus
+ * and pause, runs the capture, frontend and asset exports into the writer, then publishes it
+ * and advances the tick index. */
 void XvtRenderSnapshot_Commit(int32_t game_time_ticks, int focused, int paused);
 /* Views stay valid until the next commit; NULL before their first publication. */
 const XvtRenderSnapshot* XvtRenderSnapshot_Current(void);
