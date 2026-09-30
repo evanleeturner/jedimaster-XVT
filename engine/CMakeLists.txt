@@ -368,3 +368,9 @@ else()
 endif()
 
 add_dependencies(format aeron-format)
+
+option(XVT_BUILD_TESTS "Build the unit tests in tests/ (run them with ctest)" OFF)
+if(XVT_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
