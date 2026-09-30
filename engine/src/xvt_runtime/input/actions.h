@@ -3,6 +3,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* Every action a key, controller or mouse can be bound to. Each has a settings-file name, a label for
+ * the player, a category, and the original game's flight key code (FLIGHT_KEY_*), which the input mappings
+ * use to drive the game. */
 typedef enum XvtInputAction {
 	XVT_INPUT_ACTION_NONE,
 	XVT_INPUT_ACTION_FIRE_WEAPON,
@@ -129,11 +132,18 @@ typedef enum XvtInputActionCategory {
 	XVT_INPUT_ACTION_CATEGORY_COUNT
 } XvtInputActionCategory;
 
+/* The action with that settings name, matched exactly; NONE for NULL or an unknown name. */
 XvtInputAction XvtInputActions_FromName(const char* name);
+/* The settings name; "none" out of range. */
 const char* XvtInputActions_ToName(XvtInputAction action);
+/* The label shown to the player; "None" out of range. */
 const char* XvtInputActions_DisplayName(XvtInputAction action);
+/* SYSTEM out of range. */
 XvtInputActionCategory XvtInputActions_Category(XvtInputAction action);
+/* The label shown to the player; "" out of range. */
 const char* XvtInputActions_CategoryName(XvtInputActionCategory category);
+/* true for every action but NONE, CHAT_SEND and CHAT_CANCEL. */
 bool XvtInputActions_KeyboardBindable(XvtInputAction action);
+/* The action's flight key code; 0 out of range. */
 uint16_t XvtInputActions_Key(XvtInputAction action);
 #endif
