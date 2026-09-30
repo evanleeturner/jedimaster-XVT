@@ -15,6 +15,9 @@
 extern "C" {
 #endif
 
+/* The typed settings the program reads, parsed from the resolved settings document (see config.h).
+ * Every value is required; the shipped defaults supply any the player leaves out. */
+
 typedef struct XvtModelSettings {
 	float smooth_angle_degrees;
 	float opt_emissive_strength, opt_projectile_emissive_strength, engine_emissive_strength;
@@ -98,10 +101,20 @@ typedef struct XvtSettings {
 } XvtSettings;
 
 /* Layers game/user render overrides over the required Aeron scene defaults. */
+/* Parses document into *out: every field in the settings table, each of its type and in range (a float
+ * may be written as an integer); the choices flight.update_rate, video.window_mode,
+ * render.temporal_upscaling.mode and skybox.mode; presentation.sdr_gamma (auto, srgb, 2.2 or 2.4) and
+ * paper_white_nits (auto or a positive number); the render block laid over scene_defaults; then the
+ * keyboard, controllers, gamepad defaults and mouse. msaa_samples must be 1, 2, 4 or 8, and the cube
+ * sky mode needs a path. skybox.mode "procedural" is accepted and read as stars. Returns 1; or 0 with
+ * *out unchanged and the first problem in error. */
 int XvtSettings_Parse(const AeronConfigFile* document, const XvtSceneSettings* scene_defaults,
 					  XvtSettings* out, char* error, size_t capacity);
+/* Writes "ROOT/file:line:column: path: message" for the node at path, or for the document root when
+ * path is absent, into error. Returns 0. */
 int XvtSettings_NodeError(const AeronConfigFile* document, const char* path, const char* message, char* error,
 						  size_t capacity);
+/* Writes "ROOT/file:line:column: message" from detail into error. Returns 0. */
 int XvtSettings_FileError(const AeronConfigError* detail, char* error, size_t capacity);
 
 #ifdef __cplusplus
