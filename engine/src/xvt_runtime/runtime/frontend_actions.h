@@ -7,9 +7,18 @@ extern "C" {
 
 enum { XVT_ACTION_COMMON = 1, XVT_ACTION_PILOT, XVT_ACTION_CONFIG, XVT_ACTION_CONCOURSE };
 
+/* One pending frontend action at a time, held by the screen that triggered it (an XVT_ACTION_*
+ * owner, never 0) until that screen finishes it, so a suspended screen can resume the action on a
+ * later frame. */
+
+/* With nothing pending, records owner and action and returns 1 when pressed, else returns 0. With
+ * an action pending, returns 1 only for the same owner and action, and records nothing. */
 int XvtFrontendAction_Trigger(int owner, int action, int pressed);
+/* The action owner holds, or 0. */
 int XvtFrontendAction_Pending(int owner);
+/* Clears the pending action when owner holds it. */
 void XvtFrontendAction_Finish(int owner);
+/* Clears the pending action whoever holds it. */
 void XvtFrontendAction_Reset(void);
 
 #ifdef __cplusplus

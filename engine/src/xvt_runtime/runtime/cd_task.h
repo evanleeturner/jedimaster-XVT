@@ -7,10 +7,25 @@
 extern "C" {
 #endif
 
+/* CD audio timing on the host clock: a stepped volume fade, and outside flight, the resume delay
+ * and end-of-track handling of CD playback. */
+
+/* Replaces any fade with one from from to to (each clamped to 65535). Returns 0 when neither the
+ * CD audio nor the music CD device is open, and 1 otherwise; equal levels start no fade and set no
+ * volume. The volume is not set to from at the start; each step moves it 256, one step every
+ * duration_ms * 256 / distance + 1 milliseconds (1 ms when duration_ms is not positive). The step
+ * count is rounded up, so the fade can end up to 255 past to, clamped to 0 through 65535. */
 int XvtCdTask_BeginFade(unsigned int from, unsigned int to, int duration_ms);
+/* 1 while a fade has steps left. */
 int XvtCdTask_IsFading(void);
+/* Stops the fade, leaving the volume at its last step. */
 void XvtCdTask_Cancel(void);
+/* Applies every fade step now due in one volume change. Outside flight, also resumes suspended CD
+ * playback once its resume tick has passed, and at the end of the current track replays it when
+ * looping or marks playback complete. */
 void XvtCdTask_Tick(void);
+/* Microseconds until the next fade step, and outside flight the resume or track end (1 ms late,
+ * matching Tick's strict comparison); 0 when overdue, UINT64_MAX when nothing is due. */
 uint64_t XvtCdTask_NextWakeDelayUs(void);
 
 #ifdef __cplusplus
