@@ -72,13 +72,47 @@
 #include "xvt_runtime/storage/storage.h"
 #include "xvt_runtime/timing/host_clock.h"
 
+/* Flight entry and loading, run by the flight task's phases: Prepare, CreateDevices, then Globals,
+ * Palette, MissionSetup and Runtime in that order, and Cleanup at the end. The includes give the
+ * runtime files the flight code's globals. */
+
+/* Loads the config and reads the launch options, each found as a substring anywhere in command,
+ * quoted names included: traincourse, nopilot, [no]dinput, [no]sfx, [no]music, [no]voice,
+ * [no]tickcounter, [no]mipmaps, inprogress, newnet, nolauncher, [no]fullscreen, [no]pageflip.
+ * Then splits command in place into 7 arguments at spaces, ~ quoting one, and opens the game
+ * session with them. Returns NetSession_InitGameSession's result, which the flight task reads as
+ * XVT_FLIGHT_NETWORK_PENDING, nonzero success or 0 failure; returns 0 for a NULL command, fewer
+ * than 7 arguments, or a main window that cannot be focused. */
 int XvtFlightEntry_Prepare(char* command);
+/* Applies the single- or multiplayer display and detail settings, opens the flight display, writes
+ * the resolution, color depth and 3D hardware it got back into the config, starts DirectInput
+ * (falling back to none) and the sound engine, and takes the mission file from the arguments.
+ * Returns 0 when the display or sound fails. */
 int XvtFlightEntry_CreateDevices(void);
+/* Shuts down what Prepare and CreateDevices started (sound, DirectInput, the game session with the
+ * network flight, 3D hardware), clears and releases the flight surfaces and palette, and hands
+ * rendering back to the frontend. */
 void XvtFlightEntry_Cleanup(void);
+/* Forgets the flight's memory handles and pool pointers, without freeing them. */
 void XvtFlightLoading_Reset(void);
+/* Resets the flight's globals, the local player slot and the player records, marking the first
+ * session-count players connected. Sets the mission options from the config: difficulty is medium
+ * for multiplayer in a directory from combat engagements on, and a configured value above hard
+ * becomes easy; the time limits and AI opponents come from the config only in multiplayer. Seeds
+ * the game random state from the configured seed in multiplayer and from the clock in single
+ * player. Loads the AI plans. */
 void XvtFlightLoading_Globals(void);
+/* Configures the display for the resolution, loads the flight palette with its color order
+ * reversed and channels scaled to 6 bits, and allocates the global buffers. In 8-bit color, loads
+ * the mission's .pal file into colors 64 through 255, or marks the mission palette for generation
+ * when there is none. */
 void XvtFlightLoading_Palette(void);
+/* Sets the proving grounds craft and level (craft 2, level 4 for traincourse, else none), resets
+ * the flight input, refills the noise table from rand(), and resets the message log and MFD pages. */
 void XvtFlightLoading_MissionSetup(void);
+/* Initializes the mission runtime state; when music is on and the music CD starts, plays the flight
+ * track from one of 4 random start points. In the proving grounds, starts the level, crediting the
+ * points of the levels skipped. */
 void XvtFlightLoading_Runtime(void);
 
 #endif
