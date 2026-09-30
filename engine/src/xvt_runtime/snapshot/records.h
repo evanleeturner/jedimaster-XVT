@@ -4,7 +4,11 @@
 #include "xvt/flight/flight.h"
 #include "xvt/flight/player/player.h"
 
-/* Original 32-bit world records; live game structs stay naturally aligned. */
+/* Original 32-bit world records; live game structs stay naturally aligned.
+ *
+ * Each Xvt* record below is the packed on-image form of a live game struct; the checks after
+ * the pack block pin the six top-level record sizes. The Encode/Decode pairs at the end
+ * translate between the two forms. */
 #pragma pack(push, 1)
 
 typedef struct XvtSnapshotMobileObjectProximityList {
@@ -401,6 +405,15 @@ typedef char xvt_snapshot_size_CraftData[(sizeof(XvtSnapshotCraftData) == 1122) 
 typedef char xvt_snapshot_size_MobileObjectCharData[(sizeof(XvtSnapshotMobileObjectCharData) == 76) ? 1 : -1];
 typedef char xvt_snapshot_size_PlayerData[(sizeof(XvtSnapshotPlayerData) == 1469) ? 1 : -1];
 
+/* Encode fills every byte of record: the listed fields are copied as they are, and each link
+ * to a live object or pool entry becomes its byte offset in the matching record array plus 1
+ * (0 for NULL). Native padding never reaches the record.
+ * Decode writes back the listed fields and turns each link into a pointer into the live array.
+ * Live fields with no record field are left as they are. Decode does not range-check links;
+ * a link outside its array yields an out-of-bounds pointer.
+ * Links: object record -> mobile pool; mobile record -> guidance, craft and character pools;
+ * craft record -> 16 turret objects and one AI object in g_objectTable. Character, player and
+ * mission-state records carry no links. */
 void XvtSnapshot_EncodeObjectRecord(XvtSnapshotObjectRecord* record, const ObjectRecord* live);
 void XvtSnapshot_DecodeObjectRecord(ObjectRecord* live, const XvtSnapshotObjectRecord* record);
 void XvtSnapshot_EncodeMobileObject(XvtSnapshotMobileObject* record, const MobileObject* live);
