@@ -1,0 +1,84 @@
+# openxvt_context_budget.toml — the contextgate config behind
+# OPENXVT-CONTEXT-BUDGET-FINDINGS.md. It lives here, outside the OpenXvT fork,
+# so the fork carries nothing of ours; run it with --root pointed at the fork
+# and --config pointed at this file.
+#
+# [python] and [markdown] are the default table of the playbook's
+# CONTEXT_BUDGET.md; [data] and [config] are the defaults contextgate ships.
+# The [c] rows are a copy of the [python] rows: the playbook has not ruled C
+# its own numbers yet, so they are a stand-in, not doctrine.
+
+[c]
+file_warn_lines = 800
+file_hard_lines = 1200
+function_warn_lines = 80
+function_hard_lines = 120
+orchestrator_warn_lines = 120
+orchestrator_hard_lines = 180
+nesting_warn_depth = 4
+nesting_hard_depth = 6
+orchestrator_name_patterns = ["^run_", "^process_", "^main$", "_pipeline$"]
+
+[python]
+module_warn_lines = 800
+module_hard_lines = 1200
+class_warn_lines = 500
+class_hard_lines = 800
+function_warn_lines = 80
+function_hard_lines = 120
+orchestrator_warn_lines = 120
+orchestrator_hard_lines = 180
+nesting_warn_depth = 4
+nesting_hard_depth = 6
+orchestrator_name_patterns = ["^run_", "^process_", "^main$", "_pipeline$"]
+
+[markdown]
+file_warn_tokens = 8000
+file_hard_tokens = 10600
+section_warn_lines = 150
+section_hard_lines = 250
+codeblock_warn_lines = 60
+codeblock_hard_lines = 80
+root_claude_path = "CLAUDE.md"
+root_claude_warn_lines = 200
+root_claude_hard_lines = 250
+
+[data]
+json_warn_lines = 400
+json_hard_lines = 800
+yaml_warn_lines = 400
+yaml_hard_lines = 800
+
+[config]
+toml_warn_lines = 200
+toml_hard_lines = 400
+ini_warn_lines = 200
+ini_hard_lines = 400
+
+# aeron/ is a git submodule (elyosh/Aeron); when it is checked out it is a
+# separate program and gets its own run.
+[exclude]
+dirs = [".git", "aeron", "build"]
+globs = []
+
+# In scope: the code written for OpenXvT itself.
+[areas.new_code]
+include = [
+    "src/xvt_runtime/**/*.c", "src/xvt_runtime/**/*.h",
+    "src/xvt_remaster/**/*.c", "src/xvt_remaster/**/*.h",
+    "src/xvt_app/**/*.c", "src/xvt_app/**/*.h",
+    "tools/**/*.c", "tools/**/*.h",
+]
+
+# Out of scope: the function-by-function reimplementation of the 1997 binary.
+# Measured for the record; never a to-do list.
+[areas.decompiled]
+include = ["src/xvt/**/*.c", "src/xvt/**/*.h"]
+
+# Everything else the gate has an analyzer for.
+[areas.support]
+include = [
+    "*.md", "**/*.md",
+    "**/*.py",
+    "**/*.json", "**/*.yaml", "**/*.yml", "**/*.toml", "**/*.ini",
+]
