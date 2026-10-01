@@ -2,6 +2,7 @@
 #include "xvt_remaster/assets.h"
 #include "xvt_remaster/config.h"
 #include "xvt_remaster/opt_mesh.h"
+#include "xvt_runtime/log/log.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -49,7 +50,7 @@ static int LoadMesh(AeronCommandBuffer* cmd, MeshEntry* entry) {
 	char error[256];
 	if (!XvtRemasterOptMesh_Build(Aeron_GetVfs(), entry->path, &g_pendingPolicy, &model, error,
 								  sizeof error)) {
-		Aeron_LogError("xvt.remaster", "OPT '%s': %s", entry->path, error);
+		XVT_LOG_ERROR("remaster.opt_failed path=\"%s\" error=\"%s\"", entry->path, error);
 		Aeron_CommandBufferSetFailure(cmd, error);
 		return 0;
 	}
@@ -60,7 +61,7 @@ static int LoadMesh(AeronCommandBuffer* cmd, MeshEntry* entry) {
 	/* Aeron retains mesh slots, rotations, bounds, material variants and engine glows. */
 	Aeron_FlightModelFree(&model);
 	if (!entry->asset.mesh) {
-		Aeron_LogError("xvt.remaster", "OPT '%s': GPU creation failed (%d)", entry->path, status);
+		XVT_LOG_ERROR("remaster.opt_gpu_failed path=\"%s\" status=%d", entry->path, status);
 		Aeron_CommandBufferSetFailure(cmd, "OPT GPU creation failed");
 		return 0;
 	}
@@ -172,8 +173,8 @@ void XvtRemasterShip_CommitSyncBatch(void) {
 		memset(g_pending, 0, sizeof g_pending);
 		g_pendingCount = 0;
 		g_pendingGeneration = UINT64_MAX;
-		Aeron_LogDebug("xvt.remaster", "mesh assets: generation=%llu unique=%u",
-					   (unsigned long long)g_generation, g_count);
+		XVT_LOG_DEBUG("remaster.mesh_assets generation=%llu unique=%u", (unsigned long long)g_generation,
+					  g_count);
 	}
 	g_batchActive = g_batchCompletes = 0;
 }

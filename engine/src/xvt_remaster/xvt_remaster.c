@@ -12,6 +12,7 @@
 #include "xvt_remaster/hud_renderer.h"
 #include "xvt_remaster/preview.h"
 #include "xvt_remaster/view_mode.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_snapshot.h"
 
@@ -25,7 +26,7 @@ int XvtRemaster_Init(void) {
 	if (g_initialized)
 		return 1;
 	if (!Aeron_GetLogicalSize(&width, &height) || width <= 0 || height <= 0) {
-		Aeron_LogError("xvt.remaster", "an initialized Aeron host is required");
+		XVT_LOG_ERROR("remaster.host_missing");
 		return 0;
 	}
 	if (!XvtRemasterConfig_Sync())
@@ -39,7 +40,7 @@ int XvtRemaster_Init(void) {
 	g_frontendSurfacesReleased = 0;
 	XvtRemasterView_Init();
 	g_initialized = 1;
-	Aeron_LogInfo("xvt.remaster", "driver initialized; modern presentation requested");
+	XVT_LOG_INFO("remaster.ready");
 	return 1;
 }
 
@@ -66,7 +67,7 @@ void XvtRemaster_Frame(int32_t delta_us) {
 	if (snapshot->scene_kind != g_lastScene) {
 		XvtRemasterFlight_Invalidate();
 		g_lastScene = snapshot->scene_kind;
-		Aeron_LogDebug("xvt.remaster", "scene %u", g_lastScene);
+		XVT_LOG_DEBUG("remaster.scene kind=%u", g_lastScene);
 	}
 	int width = 0, height = 0;
 	if (!Aeron_GetPresentationPixelSize(&width, &height) || width <= 0 || height <= 0) {
@@ -219,7 +220,7 @@ void XvtRemaster_Shutdown(void) {
 	AeronDx5_SetClassicFlightRenderingSuppressed(0);
 	g_initialized = 0;
 	g_lastScene = XVT_SCENE_NONE;
-	Aeron_LogInfo("xvt.remaster", "driver shut down");
+	XVT_LOG_INFO("remaster.stopped");
 }
 
 struct AeronTexture* XvtRemaster_Output(void) {

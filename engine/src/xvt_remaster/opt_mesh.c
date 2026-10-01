@@ -3,7 +3,7 @@
 #include "aeron/aeron.h"
 #include "aeron/asset/opt_model.h"
 #include "aeron/config_file.h"
-#include "aeron/log.h"
+#include "xvt_runtime/log/log.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -158,8 +158,8 @@ static size_t opt_resolve_alpha_overrides(const char* model_path, AeronOptAlphaO
 		output[count].texture_name = entry->texture;
 		output[count].alpha_mode = entry->mode;
 		output[count].alpha_cutoff = entry->cutoff;
-		Aeron_LogDebug("xvt.remaster", "OPT alpha override: %s %s mode=%d cutoff=%.3g", normalized,
-					   entry->texture, (int)entry->mode, (double)entry->cutoff);
+		XVT_LOG_DEBUG("remaster.alpha_override model=\"%s\" texture=\"%s\" mode=%d cutoff=%.3g", normalized,
+					  entry->texture, (int)entry->mode, (double)entry->cutoff);
 		count++;
 	}
 	return count;

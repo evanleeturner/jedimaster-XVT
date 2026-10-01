@@ -3,6 +3,7 @@
 #include "xvt_remaster/assets.h"
 #include "xvt_remaster/config.h"
 #include "xvt_remaster/undither.h"
+#include "xvt_runtime/log/log.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -139,7 +140,7 @@ static int DecodePart(const XvtOriginal2d* source, const XvtHudPartRequest* requ
 	AeronDecodeError error = { 0 };
 	if (!AeronPnl_DecodeIndexed(record->data, record->size, request->color_mode != XVT_HUD_PART_ORIGINAL,
 								request->key, bitmap, &error)) {
-		Aeron_LogError("xvt.remaster", "cockpit bitmap %u: %s", frame, error.message);
+		XVT_LOG_ERROR("remaster.cockpit_bitmap_failed frame=%u error=\"%s\"", frame, error.message);
 		return 0;
 	}
 	/* Resident LFD coverage already includes the original main-world opening. */
@@ -437,6 +438,6 @@ int XvtHudAssets_Select(const XvtCockpitState* state, const XvtHudLayout* layout
 				g_current = group->views[view];
 				return 1;
 			}
-	Aeron_LogError("xvt.remaster", "cockpit view %u has no prepared resident artwork", state->view.hud_state);
+	XVT_LOG_ERROR("remaster.cockpit_art_missing view=%u", state->view.hud_state);
 	return 0;
 }

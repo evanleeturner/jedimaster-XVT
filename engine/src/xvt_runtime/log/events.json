@@ -17,6 +17,86 @@
       "level": "I",
       "fields": ["exit"],
       "text": "The host stopped with exit code {exit}"
+    },
+    "remaster.alpha_override": {
+      "level": "D",
+      "fields": ["model", "texture", "mode", "cutoff"],
+      "text": "OPT alpha override for {model} {texture}: mode {mode}, cutoff {cutoff}"
+    },
+    "remaster.asset_failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "Loading an original image or texture asset failed: {error}"
+    },
+    "remaster.cockpit_art_missing": {
+      "level": "E",
+      "fields": ["view"],
+      "text": "Cockpit view {view} has no prepared resident artwork"
+    },
+    "remaster.cockpit_bitmap_failed": {
+      "level": "E",
+      "fields": ["frame", "error"],
+      "text": "Cockpit bitmap {frame} failed: {error}"
+    },
+    "remaster.cockpit_prepared": {
+      "level": "D",
+      "fields": ["ms", "width", "height"],
+      "text": "Resident cockpit resources were prepared in {ms} ms at {width}x{height}"
+    },
+    "remaster.config_failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "The remaster configuration could not be applied: {error}"
+    },
+    "remaster.host_missing": {
+      "level": "E",
+      "fields": [],
+      "text": "The modern renderer needs an initialized Aeron host"
+    },
+    "remaster.mesh_assets": {
+      "level": "D",
+      "fields": ["generation", "unique"],
+      "text": "Mesh assets: generation {generation}, {unique} unique"
+    },
+    "remaster.opt_failed": {
+      "level": "E",
+      "fields": ["path", "error"],
+      "text": "OPT {path} failed: {error}"
+    },
+    "remaster.opt_gpu_failed": {
+      "level": "E",
+      "fields": ["path", "status"],
+      "text": "OPT {path}: GPU creation failed with status {status}"
+    },
+    "remaster.opt_init_failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "The OPT mesh loader could not be initialized: {error}"
+    },
+    "remaster.ready": {
+      "level": "I",
+      "fields": [],
+      "text": "The modern renderer is initialized and modern presentation is requested"
+    },
+    "remaster.renderer": {
+      "level": "I",
+      "fields": ["mode"],
+      "text": "The {mode} renderer is requested"
+    },
+    "remaster.scene": {
+      "level": "D",
+      "fields": ["kind"],
+      "text": "Scene kind {kind}"
+    },
+    "remaster.stars_gpu_failed": {
+      "level": "E",
+      "fields": [],
+      "text": "The starfield's GPU resources could not be created"
+    },
+    "remaster.stopped": {
+      "level": "I",
+      "fields": [],
+      "text": "The modern renderer shut down"
     }
   }
 }

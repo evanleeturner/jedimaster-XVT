@@ -1,6 +1,7 @@
 /* XvT star axes with OpenTIE's TIE98 rounded, smoothly projected coverage. */
 #include "xvt_remaster/sky_stars.h"
 #include "aeron/aeron.h"
+#include "xvt_runtime/log/log.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -154,7 +155,7 @@ XvtRemasterSkyStars* XvtRemasterSkyStars_Create(void) {
 		.debug_name = "xvt.sky.stars.instances",
 	});
 	if (!stars->vertex_shader || !stars->fragment_shader || !stars->instances) {
-		Aeron_LogError("xvt.remaster", "starfield: GPU resource creation failed");
+		XVT_LOG_ERROR("remaster.stars_gpu_failed");
 		XvtRemasterSkyStars_Destroy(stars);
 		return NULL;
 	}

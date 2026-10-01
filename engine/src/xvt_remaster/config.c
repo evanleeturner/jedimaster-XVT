@@ -1,6 +1,7 @@
 #include "xvt_remaster/config.h"
 #include "aeron/aeron.h"
 #include "xvt_runtime/config/config.h"
+#include "xvt_runtime/log/log.h"
 #include <stdio.h>
 #include <string.h>
 static XvtRenderSettings g_effective, g_requested;
@@ -86,7 +87,7 @@ int XvtRemasterConfig_Sync(void) {
 			XvtVideoSettings_ApplyTo(&g_video, &next);
 		char error[512];
 		if (!XvtRemasterConfig_Apply(&next, error, sizeof error)) {
-			Aeron_LogError("xvt.remaster", "%s", error);
+			XVT_LOG_ERROR("remaster.config_failed error=\"%s\"", error);
 			return 0;
 		}
 		g_documentGeneration = XvtConfig_Generation();

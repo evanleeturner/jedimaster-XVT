@@ -5,6 +5,7 @@
 #include "xvt_remaster/crt.h"
 #include "xvt_remaster/flight_map.h"
 #include "xvt_remaster/hud_renderer.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include <string.h>
 
@@ -78,7 +79,7 @@ int XvtCockpitLoading_Prepare(const XvtRenderSnapshot* snapshot, int width, int 
 	g_width = width;
 	g_height = height;
 	g_samples = samples;
-	Aeron_LogDebug("xvt.remaster", "resident cockpit resources prepared in %.1f ms (%dx%d)",
-				   (double)(Aeron_NowUs() - started) / 1000.0, width, height);
+	XVT_LOG_DEBUG("remaster.cockpit_prepared ms=%.1f width=%d height=%d",
+				  (double)(Aeron_NowUs() - started) / 1000.0, width, height);
 	return 1;
 }

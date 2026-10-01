@@ -10,6 +10,7 @@
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/input/input_bridge.h"
 #include "xvt_runtime/input/keyboard_mapping.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/movie_task.h"
 #include "xvt_runtime/runtime/presentation.h"
 
@@ -60,7 +61,7 @@ void XvtRemasterView_BeginFrame(const AeronInputSnapshot* in) {
 			g_waitClassic = 1;
 			g_classicSerial = AeronDx5_GetClassicFlightFrameSerial();
 		}
-		Aeron_LogInfo("xvt.remaster", "renderer requested: %s", g_blend.target > 0 ? "modern" : "classic");
+		XVT_LOG_INFO("remaster.renderer mode=\"%s\"", g_blend.target > 0 ? "modern" : "classic");
 	}
 	XvtInput_SuppressRendererTab(g_consumedTab);
 	int width = 0, height = 0;

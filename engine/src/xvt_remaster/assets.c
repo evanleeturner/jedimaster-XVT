@@ -1,6 +1,7 @@
 #include "xvt_remaster/assets.h"
 #include "aeron/aeron.h"
 #include "xvt_remaster/opt_mesh.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -286,7 +287,7 @@ static int Load(AeronCommandBuffer* cmd, const XvtSnapImageAsset* source, const 
 	int ok = texture ? XvtOriginal2d_LoadAct(source->path, &image->decoded, error, sizeof error)
 					 : XvtOriginal2d_Load(source, &image->decoded, error, sizeof error);
 	if (!ok) {
-		Aeron_LogError("xvt.remaster", "%s", error);
+		XVT_LOG_ERROR("remaster.asset_failed error=\"%s\"", error);
 		Aeron_CommandBufferSetFailure(cmd, error);
 		return 0;
 	}
@@ -318,7 +319,7 @@ static int Load(AeronCommandBuffer* cmd, const XvtSnapImageAsset* source, const 
 int XvtRemasterAssets_Init(void) {
 	char error[256];
 	if (!XvtRemasterOptMesh_Init(Aeron_GetVfs(), error, sizeof error)) {
-		Aeron_LogError("xvt.remaster", "%s", error);
+		XVT_LOG_ERROR("remaster.opt_init_failed error=\"%s\"", error);
 		return 0;
 	}
 	return 1;
