@@ -197,6 +197,9 @@ if(NOT MSVC)
 endif()
 
 # The cockpit's snapshot capture: src/xvt_runtime/snapshot/cockpit_*.
+xvt_add_engine_test(test_cockpit_pages test_cockpit_pages.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/cockpit_pages.c")
+add_test(NAME cockpit_pages COMMAND test_cockpit_pages)
 xvt_add_engine_test(test_cockpit_readouts test_cockpit_readouts.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/cockpit_readouts.c")
 add_test(NAME cockpit_readouts COMMAND test_cockpit_readouts)
