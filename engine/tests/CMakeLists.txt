@@ -120,6 +120,9 @@ xvt_add_engine_test(test_flight_controls test_flight_controls.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/flight_controls.c")
 add_test(NAME flight_controls COMMAND test_flight_controls)
 xvt_add_known_failure(test_flight_controls roll_step_fast_rate)
+xvt_add_engine_test(test_input_bridge test_input_bridge.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/input_bridge.c")
+add_test(NAME input_bridge COMMAND test_input_bridge)
 
 # Timing, the orientation hooks, and the remaster's render math.
 
