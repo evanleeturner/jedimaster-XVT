@@ -158,6 +158,62 @@ static int XvtOpt_ResolvePalettes(XvtOptDecode* decode) {
 	return valid;
 }
 
+/* Writes to *size the size of the payload a node of entry's type carries, which can be 0, and returns 1.
+ * Returns 0 for a type with no payload layout here, or for a reference whose name is not a string inside
+ * the file. */
+static int XvtOpt_PayloadSize(XvtOptDecode* decode, const XvtOptEntry* entry, int vertices, int normals,
+							  size_t* size) {
+	switch (entry->type) {
+		case OPT_FACEDATA:
+		case OPT_FACEDATA_15:
+		case OPT_FACEDATA_16:
+		case OPT_FACEDATA_17:
+			*size = 4 + (size_t)entry->param * (decode->version == 0 ? 84 : 100);
+			if (!normals)
+				*size += (size_t)vertices * 12;
+			break;
+		case OPT_TYPE_2:
+		case OPT_ROTSCALE:
+			*size = 48;
+			break;
+		case OPT_MESHVERTS:
+		case OPT_VERTNORMALS:
+			*size = (size_t)entry->param * 12;
+			break;
+		case OPT_TYPE_4:
+		case OPT_TYPE_6:
+		case OPT_TYPE_19:
+			*size = 12;
+			break;
+		case OPT_TYPE_5:
+			*size = 36;
+			break;
+		case OPT_NODEREF:
+			if (!XvtOpt_String(decode, entry->payload))
+				return 0;
+			*size = strlen((const char*)XvtOpt_Address(decode, entry->payload, 1)) + 1;
+			break;
+		case OPT_TYPE_9:
+			*size = (size_t)entry->param * 56;
+			break;
+		case OPT_TEXCOORDS:
+			*size = (size_t)entry->param * 8;
+			break;
+		case OPT_FACEGROUP:
+			*size = (size_t)entry->param * 4;
+			break;
+		case OPT_HARDPOINT:
+			*size = 16;
+			break;
+		case OPT_MESHDESC:
+			*size = 72;
+			break;
+		default:
+			return 0;
+	}
+	return 1;
+}
+
 static int XvtOpt_Visit(XvtOptDecode* decode, uint32_t address, unsigned depth, int* vertices, int* normals) {
 	if (!address)
 		return 1;
@@ -209,54 +265,8 @@ static int XvtOpt_Visit(XvtOptDecode* decode, uint32_t address, unsigned depth, 
 			return 0;
 	} else if (entry->payload) {
 		size_t size = 0;
-		switch (entry->type) {
-			case OPT_FACEDATA:
-			case OPT_FACEDATA_15:
-			case OPT_FACEDATA_16:
-			case OPT_FACEDATA_17:
-				size = 4 + (size_t)entry->param * (decode->version == 0 ? 84 : 100);
-				if (!*normals)
-					size += (size_t)*vertices * 12;
-				break;
-			case OPT_TYPE_2:
-			case OPT_ROTSCALE:
-				size = 48;
-				break;
-			case OPT_MESHVERTS:
-			case OPT_VERTNORMALS:
-				size = (size_t)entry->param * 12;
-				break;
-			case OPT_TYPE_4:
-			case OPT_TYPE_6:
-			case OPT_TYPE_19:
-				size = 12;
-				break;
-			case OPT_TYPE_5:
-				size = 36;
-				break;
-			case OPT_NODEREF:
-				if (!XvtOpt_String(decode, entry->payload))
-					return 0;
-				size = strlen((const char*)XvtOpt_Address(decode, entry->payload, 1)) + 1;
-				break;
-			case OPT_TYPE_9:
-				size = (size_t)entry->param * 56;
-				break;
-			case OPT_TEXCOORDS:
-				size = (size_t)entry->param * 8;
-				break;
-			case OPT_FACEGROUP:
-				size = (size_t)entry->param * 4;
-				break;
-			case OPT_HARDPOINT:
-				size = 16;
-				break;
-			case OPT_MESHDESC:
-				size = 72;
-				break;
-			default:
-				return 0;
-		}
+		if (!XvtOpt_PayloadSize(decode, entry, *vertices, *normals, &size))
+			return 0;
 		if (!XvtOpt_Address(decode, entry->payload, 0))
 			return 0;
 		size_t available = decode->size - (entry->payload - decode->base);
