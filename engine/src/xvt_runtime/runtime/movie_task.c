@@ -15,6 +15,7 @@
 #include "xvt/frontend/frontend_text.h"
 #include "xvt/frontend/movie.h"
 #include "xvt/input/keyboard.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/storage/storage.h"
 
 #include <stdio.h>
@@ -87,7 +88,7 @@ int XvtMovieTask_Begin(const char* name, int synchronize) {
 		found = XvtStorage_ResolveAsset("movies/Flyby1a.smk", g_movie.path, sizeof(g_movie.path));
 	}
 	if (found != 1) {
-		Aeron_LogWarn("xvt.movie", "Cannot open movie '%s'", name);
+		XVT_LOG_WARN("movie.open_failed name=\"%s\"", name);
 		return 2;
 	}
 	g_movie.overlay = calloc(640 * 480, sizeof(uint16_t));
@@ -125,7 +126,7 @@ int XvtMovieTask_Begin(const char* name, int synchronize) {
 	g_movie.active = 1;
 	g_movie.paused = 0;
 	g_movie.result = 0;
-	Aeron_LogInfo("xvt.movie", "Playing %s", g_movie.path);
+	XVT_LOG_INFO("movie.start path=\"%s\"", g_movie.path);
 	return XVT_MOVIE_PENDING;
 }
 
@@ -248,7 +249,8 @@ void XvtMovieTask_Tick(void) {
 	state = Aeron_VideoGetState(g_movie.player);
 	if (state == AERON_VIDEO_ERROR) {
 		if (g_movie.result != 2)
-			Aeron_LogError("xvt.movie", "%s: %s", g_movie.path, Aeron_VideoGetError(g_movie.player));
+			XVT_LOG_ERROR("movie.failed path=\"%s\" error=\"%s\"", g_movie.path,
+						  Aeron_VideoGetError(g_movie.player));
 		g_movie.result = 2;
 	} else {
 		XvtMovieTask_Submit();
@@ -261,7 +263,7 @@ void XvtMovieTask_Tick(void) {
 			g_movie.result = 5;
 		g_movie.active = 0;
 		g_movie.complete = 1;
-		Aeron_LogInfo("xvt.movie", "Finished %s (result %d)", g_movie.name, g_movie.result);
+		XVT_LOG_INFO("movie.stop name=\"%s\" result=%d", g_movie.name, g_movie.result);
 	}
 }
 

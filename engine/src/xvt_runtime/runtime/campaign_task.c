@@ -16,6 +16,7 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/cutscene_task.h"
 #include "xvt_runtime/runtime/movie_task.h"
 #include "xvt_runtime/storage/storage.h"
@@ -70,7 +71,7 @@ int XvtCampaignTask_WaitPacket(int packet_type, int** packet) {
 		/* Preserve the original expected-packet-before-timeout ordering and strict limit. */
 		if ((uint32_t)(now - g_campaign.wait_start) > 30000) {
 			g_campaign.packet_type = NET_PACKET_NONE;
-			Aeron_LogWarn("xvt.campaign", "Timed out waiting for continuation packet %d", packet_type);
+			XVT_LOG_WARN("campaign.packet_timeout type=%d", packet_type);
 			return 0;
 		}
 		if (!candidate)

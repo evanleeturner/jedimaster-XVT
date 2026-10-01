@@ -18,6 +18,11 @@
       "fields": ["exit"],
       "text": "The host stopped with exit code {exit}"
     },
+    "campaign.packet_timeout": {
+      "level": "W",
+      "fields": ["type"],
+      "text": "Timed out waiting for continuation packet type {type}"
+    },
     "dialog.closed": {
       "level": "I",
       "fields": ["result"],
@@ -57,6 +62,26 @@
       "level": "I",
       "fields": [],
       "text": "A flight launch is queued"
+    },
+    "movie.failed": {
+      "level": "E",
+      "fields": ["path", "error"],
+      "text": "Playing the movie {path} failed: {error}"
+    },
+    "movie.open_failed": {
+      "level": "W",
+      "fields": ["name"],
+      "text": "Cannot open the movie {name}"
+    },
+    "movie.start": {
+      "level": "I",
+      "fields": ["path"],
+      "text": "The movie {path} starts playing"
+    },
+    "movie.stop": {
+      "level": "I",
+      "fields": ["name", "result"],
+      "text": "The movie {name} finished with result {result}"
     },
     "network.checksum_queue_full": {
       "level": "E",
