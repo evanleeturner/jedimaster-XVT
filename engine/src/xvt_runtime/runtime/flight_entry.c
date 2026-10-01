@@ -36,24 +36,13 @@ static int g_session;
 static int g_sound;
 static int g_devices;
 
-int XvtFlightEntry_Prepare(char* missionCmdLine) {
+/* Sets the flight's start-up flags: flicker (off when a flicker.txt file exists), laser timing,
+ * the async option and the launch switches. Each switch is found by substring anywhere in the
+ * mission command line, so a pilot or game name containing a switch's word sets it too. */
+static void XvtFlightEntry_ReadLaunchSwitches(char* missionCmdLine) {
 	XvtFile* flickerFile;
-	NetworkTransportType networkType;
-	const char* connectionAddress;
-	int argumentCount;
-	int argumentIndex;
-	int commandLineOffset;
-	int quotedArgument;
 	char* optionMatch;
 
-	g_session = g_sound = g_devices = 0;
-	ModelPreview_FreeResources();
-	g_flightRenderToFrontend = 0;
-	if (missionCmdLine == NULL) {
-		return 0;
-	}
-
-	Config_Load();
 	flickerFile = File_Open("flicker.txt", "r");
 	if (flickerFile != NULL) {
 		File_Close(flickerFile);
@@ -146,6 +135,25 @@ int XvtFlightEntry_Prepare(char* missionCmdLine) {
 	} else if (missionCmdLine[0] == '/' && missionCmdLine[1] == '+') {
 		g_unusedFlightCmdLinePlusSwitchFlag = 1;
 	}
+}
+
+int XvtFlightEntry_Prepare(char* missionCmdLine) {
+	NetworkTransportType networkType;
+	const char* connectionAddress;
+	int argumentCount;
+	int argumentIndex;
+	int commandLineOffset;
+	int quotedArgument;
+
+	g_session = g_sound = g_devices = 0;
+	ModelPreview_FreeResources();
+	g_flightRenderToFrontend = 0;
+	if (missionCmdLine == NULL) {
+		return 0;
+	}
+
+	Config_Load();
+	XvtFlightEntry_ReadLaunchSwitches(missionCmdLine);
 
 	if (Flight_UpdateAndFocusMainWindow() == 0) {
 		return 0;
