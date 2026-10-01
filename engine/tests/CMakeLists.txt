@@ -218,6 +218,8 @@ xvt_add_engine_test(test_cockpit_text test_cockpit_text.c
 add_test(NAME cockpit_text COMMAND test_cockpit_text)
 
 # Snapshot records and the render snapshot: src/xvt_runtime/snapshot/.
+xvt_add_engine_test(test_records test_records.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/records.c")
+add_test(NAME records COMMAND test_records)
 
 # The flight task, its network frame and resync: src/xvt_runtime/runtime/.
 xvt_add_engine_test(test_flight_checkpoint test_flight_checkpoint.c
