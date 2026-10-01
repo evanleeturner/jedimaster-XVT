@@ -117,3 +117,33 @@ size_t XvtLog_FormatLine(char* out, size_t capacity, uint32_t ms_of_day, char le
 	out[used] = 0;
 	return used;
 }
+
+static int XvtLog_IsPathStart(char c) { return c == ' ' || c == '"' || c == '\'' || c == '='; }
+
+static int XvtLog_IsPathBreak(char c) {
+	return c == 0 || c == '/' || c == '\\' || c == ' ' || c == '"' || c == '\'';
+}
+
+size_t XvtLog_ShortenHome(char* out, size_t capacity, const char* text, const char* home,
+						  size_t home_length) {
+	size_t used = 0;
+	size_t i = 0;
+	if (capacity == 0)
+		return 0;
+	if (!text)
+		text = "";
+	if (home_length < 2)
+		home = NULL;
+	while (text[i] && used + 1 < capacity) {
+		/* strncmp returns 0 only when the text holds all home_length bytes, so the byte after them exists. */
+		if (home && (i == 0 || XvtLog_IsPathStart(text[i - 1])) && !strncmp(text + i, home, home_length) &&
+			XvtLog_IsPathBreak(text[i + home_length])) {
+			out[used++] = '~';
+			i += home_length;
+			continue;
+		}
+		out[used++] = text[i++];
+	}
+	out[used] = 0;
+	return used;
+}

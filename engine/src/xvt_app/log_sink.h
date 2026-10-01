@@ -17,9 +17,11 @@ extern "C" {
  *   HH:MM:SS.mmm L event key=value ...
  * in UTC, written to stderr in one call, so lines from different threads never interleave. Lines Aeron
  * or SDL write pass through the same function; an SDL line outside the application category gets the
- * event "sdl". The preferences folder is SDL's for the host's organization and application names, and
- * SDL creates it when it is missing, as Aeron's file system does later. No state of its own: SDL holds
- * the output function, the log header holds the level. */
+ * event "sdl". Every line and the header's three paths write the user's home folder as ~
+ * (XvtLog_ShortenHome), because on most systems that folder's name is the user's name and a log may be
+ * pasted into a public bug report. The preferences folder is SDL's for the host's organization and
+ * application names, and SDL creates it when it is missing, as Aeron's file system does later. State:
+ * the home folder, found once at install; SDL holds the output function, the log header the level. */
 
 /* Installs the writer as described above and returns 1. Returns 0, with nothing changed and a message on
  * stderr, when the option or the environment variable names a level that is not debug, info, warn or

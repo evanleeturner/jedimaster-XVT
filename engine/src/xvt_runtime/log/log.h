@@ -84,6 +84,15 @@ int XvtLog_SplitMessage(const char* message, const char** event, size_t* event_l
  * number of bytes written before the terminator. */
 size_t XvtLog_FormatLine(char* out, size_t capacity, uint32_t ms_of_day, char level, const char* event,
 						 size_t event_length, const char* fields);
+/* Copies text into out with the home folder written as "~", since on most systems the home folder's
+ * name is the user's name. home is the folder's path, home_length bytes, with no trailing separator. A
+ * copy of it is replaced where it starts the text or follows a space, a quote or '=', and ends where the
+ * text ends or before a '/', a '\\', a space or a quote: with home "/Users/ann", "/Users/ann/x" becomes
+ * "~/x", while "/Users/anna" and "/old/Users/ann" stay whole. The match is byte for byte, so a path spelled
+ * in other letter case stays whole too. A NULL home or a home_length under 2 replaces nothing; a NULL
+ * text copies as "". The copy is cut to fit capacity with its terminator; capacity 0 writes nothing.
+ * Returns the number of bytes written before the terminator. */
+size_t XvtLog_ShortenHome(char* out, size_t capacity, const char* text, const char* home, size_t home_length);
 
 #ifdef __cplusplus
 }

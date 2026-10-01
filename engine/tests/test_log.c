@@ -1,8 +1,9 @@
 /* Checks the log header: the level gate evaluates no argument when a line is off; DEBUG switches on at
  * run time in a build that defines NDEBUG, as a release build does (this file refuses to compile
  * without it); level names parse in any letter case; Aeron's "category: text" shape splits into event
- * and fields; and a line formats exactly as the grammar says, cut cleanly when it does not fit. Aeron's
- * log funnel is replaced by a stub that records what it was handed. */
+ * and fields; a line formats exactly as the grammar says, cut cleanly when it does not fit; and the home
+ * folder in a path is written as ~ only where it is a whole folder at the start of a path. Aeron's log
+ * funnel is replaced by a stub that records what it was handed. */
 #include "test_assert.h"
 #include "xvt_runtime/log/log.h"
 
@@ -145,10 +146,50 @@ static void CheckFormat(void) {
 	XVT_ASSERT_INT_EQ(line[0], 'x');
 }
 
+static void CheckShortenHome(void) {
+	static const char home[] = "/Users/ann";
+	const size_t length = sizeof(home) - 1;
+	char out[64];
+	size_t written = XvtLog_ShortenHome(out, sizeof out, "root=\"/Users/ann/Games\"", home, length);
+	XVT_ASSERT_TRUE(!strcmp(out, "root=\"~/Games\""));
+	XVT_ASSERT_INT_EQ(written, strlen(out));
+
+	/* Every copy at a path start is replaced, the whole text included. */
+	XvtLog_ShortenHome(out, sizeof out, "a=/Users/ann/x b=\"/Users/ann\" '/Users/ann'", home, length);
+	XVT_ASSERT_TRUE(!strcmp(out, "a=~/x b=\"~\" '~'"));
+	XvtLog_ShortenHome(out, sizeof out, "/Users/ann", home, length);
+	XVT_ASSERT_TRUE(!strcmp(out, "~"));
+
+	/* A longer name, a deeper path, and other letter case stay whole. */
+	XvtLog_ShortenHome(out, sizeof out, "/Users/anna/x /old/Users/ann/x /USERS/ann/x", home, length);
+	XVT_ASSERT_TRUE(!strcmp(out, "/Users/anna/x /old/Users/ann/x /USERS/ann/x"));
+
+	/* Windows separators. */
+	XvtLog_ShortenHome(out, sizeof out, "path=\"C:\\Users\\ann\\AppData\"", "C:\\Users\\ann", 12);
+	XVT_ASSERT_TRUE(!strcmp(out, "path=\"~\\AppData\""));
+
+	/* No usable home copies the text unchanged; a NULL text copies as "". */
+	XvtLog_ShortenHome(out, sizeof out, "/Users/ann/x", NULL, length);
+	XVT_ASSERT_TRUE(!strcmp(out, "/Users/ann/x"));
+	XvtLog_ShortenHome(out, sizeof out, "/x/y", "/", 1);
+	XVT_ASSERT_TRUE(!strcmp(out, "/x/y"));
+	XVT_ASSERT_INT_EQ(XvtLog_ShortenHome(out, sizeof out, NULL, home, length), 0);
+	XVT_ASSERT_INT_EQ(out[0], 0);
+
+	/* A copy that does not fit is cut with its terminator. */
+	written = XvtLog_ShortenHome(out, 4, "/Users/ann/Games", home, length);
+	XVT_ASSERT_TRUE(!strcmp(out, "~/G"));
+	XVT_ASSERT_INT_EQ(written, 3);
+	out[0] = 'x';
+	XVT_ASSERT_INT_EQ(XvtLog_ShortenHome(out, 0, "/Users/ann", home, length), 0);
+	XVT_ASSERT_INT_EQ(out[0], 'x');
+}
+
 int main(void) {
 	CheckGate();
 	CheckParse();
 	CheckSplit();
 	CheckFormat();
+	CheckShortenHome();
 	return 0;
 }

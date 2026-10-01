@@ -4,10 +4,15 @@
 
 #include <SDL3/SDL.h>
 #include <stdio.h>
+#include <string.h>
 
 /* Aeron formats a message into 1,024 bytes; the line adds the stamp, the level and the category. */
 #define XVT_LOG_SINK_LINE_CAPACITY 1280
 #define XVT_LOG_SINK_PATH_CAPACITY 1024
+
+/* The home folder with no trailing separator, found once at install; empty when SDL cannot name it. */
+static char g_logSinkHome[XVT_LOG_SINK_PATH_CAPACITY];
+static size_t g_logSinkHomeLength;
 
 static SDL_LogPriority XvtLogSink_Priority(AeronLogLevel level) {
 	switch (level) {
@@ -49,8 +54,23 @@ static uint32_t XvtLogSink_MsOfDay(void) {
 		   (uint32_t)stamp.second * 1000u + (uint32_t)(stamp.nanosecond / 1000000);
 }
 
+/* Records the home folder for XvtLog_ShortenHome; a folder too long for the buffer is left unrecorded. */
+static void XvtLogSink_FindHome(void) {
+	const char* home = SDL_GetUserFolder(SDL_FOLDER_HOME);
+	size_t length = home ? strlen(home) : 0;
+	while (length > 0 && (home[length - 1] == '/' || home[length - 1] == '\\'))
+		length--;
+	if (length >= sizeof(g_logSinkHome))
+		length = 0;
+	if (length)
+		memcpy(g_logSinkHome, home, length);
+	g_logSinkHome[length] = 0;
+	g_logSinkHomeLength = length;
+}
+
 static void XvtLogSink_Write(void* userdata, int category, SDL_LogPriority priority, const char* message) {
 	char line[XVT_LOG_SINK_LINE_CAPACITY];
+	char shortened[XVT_LOG_SINK_LINE_CAPACITY];
 	const char* event;
 	size_t event_length;
 	const char* fields;
@@ -63,8 +83,9 @@ static void XvtLogSink_Write(void* userdata, int category, SDL_LogPriority prior
 		event_length = 3;
 		fields = message;
 	}
+	XvtLog_ShortenHome(shortened, sizeof(shortened), fields, g_logSinkHome, g_logSinkHomeLength);
 	XvtLog_FormatLine(line, sizeof(line), XvtLogSink_MsOfDay(), XvtLogSink_Letter(priority), event,
-					  event_length, fields);
+					  event_length, shortened);
 	fputs(line, stderr);
 }
 
@@ -73,6 +94,7 @@ static void XvtLogSink_WriteHeader(const XvtLaunchOptions* options) {
 	SDL_Time now = 0;
 	SDL_DateTime today = { 0 };
 	char resources[XVT_LOG_SINK_PATH_CAPACITY];
+	char shown[3][XVT_LOG_SINK_PATH_CAPACITY];
 	char* user;
 	char* cwd;
 	XvtHostConfig_InitAeron(options, &config);
@@ -84,7 +106,10 @@ static void XvtLogSink_WriteHeader(const XvtLaunchOptions* options) {
 		resources[0] = 0;
 	user = SDL_GetPrefPath(config.org_name, config.app_name);
 	cwd = SDL_GetCurrentDirectory();
-	fprintf(stderr, "= user \"%s\" res \"%s\" cwd \"%s\"\n", user ? user : "", resources, cwd ? cwd : "");
+	XvtLog_ShortenHome(shown[0], sizeof(shown[0]), user, g_logSinkHome, g_logSinkHomeLength);
+	XvtLog_ShortenHome(shown[1], sizeof(shown[1]), resources, g_logSinkHome, g_logSinkHomeLength);
+	XvtLog_ShortenHome(shown[2], sizeof(shown[2]), cwd, g_logSinkHome, g_logSinkHomeLength);
+	fprintf(stderr, "= user \"%s\" res \"%s\" cwd \"%s\"\n", shown[0], shown[1], shown[2]);
 	SDL_free(user);
 	SDL_free(cwd);
 }
@@ -99,6 +124,7 @@ int XvtLogSink_Install(const XvtLaunchOptions* options) {
 		return 0;
 	}
 	XvtLog_SetLevel(level);
+	XvtLogSink_FindHome();
 	SDL_SetLogPriorities(XvtLogSink_Priority(level));
 	SDL_SetLogOutputFunction(XvtLogSink_Write, NULL);
 	XvtLogSink_WriteHeader(options);
