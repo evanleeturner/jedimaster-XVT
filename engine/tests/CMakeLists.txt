@@ -284,6 +284,9 @@ xvt_add_engine_test(test_network_task test_network_task.c
 add_test(NAME network_task COMMAND test_network_task)
 xvt_add_engine_test(test_port test_port.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/port.c")
 add_test(NAME port COMMAND test_port)
+xvt_add_engine_test(test_presentation test_presentation.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/presentation.c")
+add_test(NAME presentation COMMAND test_presentation)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
