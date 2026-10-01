@@ -7,6 +7,7 @@
 #include "xvt/net/net.h"
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/input/input_bridge.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/campaign_task.h"
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/runtime/dialog_task.h"
@@ -75,7 +76,7 @@ int XvtPort_Init(void) {
 	g_quitting = 0;
 	if (!Aeron_GetLogicalSize(&width, &height) || width != XVT_CLASSIC_WIDTH ||
 		height != XVT_CLASSIC_HEIGHT) {
-		Aeron_LogError("xvt.port", "runtime requires an initialized 640x480 Aeron host");
+		XVT_LOG_ERROR("port.host_invalid");
 		g_xvtExitCode = 1;
 		return 0;
 	}
@@ -97,7 +98,7 @@ int XvtPort_Init(void) {
 		return 0;
 	}
 	XvtPort_CommitSnapshot(0);
-	Aeron_LogInfo("xvt.port", "runtime initialized");
+	XVT_LOG_INFO("port.ready");
 	return 1;
 }
 
@@ -111,7 +112,7 @@ void XvtPort_PausedFrame(void) {
 	if (!g_xvtPaused) {
 		g_xvtPaused = 1;
 		Aeron_AudioSetPaused(1);
-		Aeron_LogInfo("xvt.port", "paused");
+		XVT_LOG_INFO("port.paused");
 	}
 	g_xvtRebaseClock = 1;
 	AeronCompat_Update(1);
@@ -149,7 +150,7 @@ void XvtPort_Tick(int32_t delta_us) {
 	if (g_xvtPaused) {
 		g_xvtPaused = 0;
 		Aeron_AudioSetPaused(0);
-		Aeron_LogInfo("xvt.port", "resumed");
+		XVT_LOG_INFO("port.resumed");
 	}
 	/* Capture once per host frame; discard stale edges on startup and resume. */
 	AeronCompat_Update(g_xvtRebaseClock || XvtInput_IsCaptured() || !input || !input->has_focus);
@@ -245,5 +246,5 @@ void XvtPort_Shutdown(void) {
 	g_xvtPaused = 0;
 	g_xvtRebaseClock = 0;
 	g_settingsOpen = g_settingsRequested = 0;
-	Aeron_LogInfo("xvt.port", "runtime shut down");
+	XVT_LOG_INFO("port.stopped");
 }

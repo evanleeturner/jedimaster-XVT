@@ -23,6 +23,31 @@
       "fields": ["error"],
       "text": "Adding newly connected controllers failed: {error}"
     },
+    "port.host_invalid": {
+      "level": "E",
+      "fields": [],
+      "text": "The runtime needs an initialized 640x480 Aeron host"
+    },
+    "port.paused": {
+      "level": "I",
+      "fields": [],
+      "text": "The runtime paused"
+    },
+    "port.ready": {
+      "level": "I",
+      "fields": [],
+      "text": "The runtime is initialized"
+    },
+    "port.resumed": {
+      "level": "I",
+      "fields": [],
+      "text": "The runtime resumed"
+    },
+    "port.stopped": {
+      "level": "I",
+      "fields": [],
+      "text": "The runtime shut down"
+    },
     "remaster.alpha_override": {
       "level": "D",
       "fields": ["model", "texture", "mode", "cutoff"],
