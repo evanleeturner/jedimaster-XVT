@@ -126,6 +126,9 @@ add_test(NAME input_bridge COMMAND test_input_bridge)
 xvt_add_engine_test(test_keyboard_mapping test_keyboard_mapping.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/keyboard_mapping.c")
 add_test(NAME keyboard_mapping COMMAND test_keyboard_mapping)
+xvt_add_engine_test(test_mouse_flight test_mouse_flight.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/mouse_flight.c")
+add_test(NAME mouse_flight COMMAND test_mouse_flight)
 
 # Timing, the orientation hooks, and the remaster's render math.
 
