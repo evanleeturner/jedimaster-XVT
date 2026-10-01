@@ -67,6 +67,10 @@ static float Scale(const XvtSnapObject* o, int32_t ticks) {
 	return fmaxf(.35f, (float)o->throttle / 65535 * (1 - (seed & 15) * .004f) * Power(o));
 }
 
+/* Turns each engine glow of one mesh into a camera-facing quad by the classic renderer's steps, in its
+ * order: articulate, move to view space, cull, build the corners, push them along the look axis, color
+ * and submit. Every step reads the same view-space center and axes, so helpers would each take most of
+ * that frame as arguments and scatter one calculation across the file. */
 static void Submit(AeronScene3D* scene, const AeronSceneMesh* mesh, const float transform[16],
 				   float model_scale, const AeronSceneMeshTable* table, float scale, const float crows[9],
 				   const float cam_pos[3], const XvtEffectFrame* tex) {
