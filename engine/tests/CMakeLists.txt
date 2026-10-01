@@ -220,6 +220,9 @@ add_test(NAME cockpit_text COMMAND test_cockpit_text)
 # Snapshot records and the render snapshot: src/xvt_runtime/snapshot/.
 
 # The flight task, its network frame and resync: src/xvt_runtime/runtime/.
+xvt_add_engine_test(test_flight_messages test_flight_messages.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_messages.c")
+add_test(NAME flight_messages COMMAND test_flight_messages)
 
 # The other runtime tasks: frontend, campaign, movies, dialogs and the network session.
 # The tests that run frontend frames give the frontend a display with no window (test_frontend_display.h); the
