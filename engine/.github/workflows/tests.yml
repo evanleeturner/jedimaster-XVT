@@ -1,0 +1,103 @@
+name: Tests
+
+# Builds the unit tests in tests/ and runs them with ctest, inside the
+# xvt-build stage of packaging/linux/Dockerfile, the image the Linux package
+# is built in. tests/CMakeLists.txt builds every test program with
+# AddressSanitizer and UndefinedBehaviorSanitizer.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  # Every commit on main keeps its own result; a newer push to a pull
+  # request replaces the run for the older one.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    # Named so each step runs with -e and -o pipefail.
+    shell: bash
+
+jobs:
+  linux:
+    name: Linux unit tests
+    runs-on: ubuntu-24.04
+    # A cold cache builds SDL3, FFmpeg and the shader tools from source
+    # before any test; a warm cache skips that.
+    timeout-minutes: 90
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Limit address randomization for the sanitizers
+        # GCC 12's AddressSanitizer, in the Debian build image, crashes at
+        # start on kernels that randomize mmap with more than 28 bits, and a
+        # container shares the runner's kernel setting. The runner image
+        # sets 28 today (actions/runner-images#9491); this step keeps the
+        # job from depending on that.
+        run: |
+          bits="$(sudo sysctl -n vm.mmap_rnd_bits)"
+          echo "vm.mmap_rnd_bits is ${bits}"
+          if [ "${bits}" -gt 28 ]; then
+            sudo sysctl -w vm.mmap_rnd_bits=28
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+
+      - name: Build the build image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          context: .
+          file: packaging/linux/Dockerfile
+          platforms: linux/amd64
+          target: xvt-build
+          load: true
+          tags: openxvt-tests:ci
+          # The package job's cache (scope linux) holds the same dependency
+          # stages, so either cache can spare the long dependency builds.
+          cache-from: |
+            type=gha,scope=tests
+            type=gha,scope=linux
+          # Only pushes to main write the cache; pull requests read it.
+          cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=tests' || '' }}
+
+      - name: Build and run the unit tests
+        env:
+          # The configure line of the image's own game build, as Debug and
+          # with the tests switched on.
+          TEST_SCRIPT: |
+            cmake -S /work/src -B /work/build -G Ninja \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_PREFIX_PATH=/opt/xvt-linux \
+              -DAERON_SHADERCROSS_EXECUTABLE=/opt/xvt-tools/bin/shadercross \
+              -DXVT_BUILD_TOOLS=OFF \
+              -DXVT_ENABLE_ASAN=OFF \
+              -DXVT_ENABLE_UBSAN=OFF \
+              -DXVT_ENABLE_DEBUG_UI=OFF \
+              -DXVT_BUILD_TESTS=ON
+            cmake --build /work/build --target xvt_tests
+            ctest --test-dir /work/build --output-on-failure
+        # The sources are mounted read-only; everything the build writes
+        # lands in a folder outside the checkout.
+        run: |
+          mkdir -p "${RUNNER_TEMP}/tests-build"
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp \
+            --volume "${GITHUB_WORKSPACE}:/work/src:ro" \
+            --volume "${RUNNER_TEMP}/tests-build:/work/build" \
+            openxvt-tests:ci \
+            bash -euo pipefail -c "${TEST_SCRIPT}"
