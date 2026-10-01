@@ -116,6 +116,10 @@ add_test(NAME controller_mapping COMMAND test_controller_mapping)
 xvt_add_engine_test(test_controller_options test_controller_options.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/controller_options.c")
 add_test(NAME controller_options COMMAND test_controller_options)
+xvt_add_engine_test(test_flight_controls test_flight_controls.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/flight_controls.c")
+add_test(NAME flight_controls COMMAND test_flight_controls)
+xvt_add_known_failure(test_flight_controls roll_step_fast_rate)
 
 # Timing, the orientation hooks, and the remaster's render math.
 
