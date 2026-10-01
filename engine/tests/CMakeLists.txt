@@ -223,6 +223,9 @@ add_test(NAME cockpit_text COMMAND test_cockpit_text)
 xvt_add_engine_test(test_flight_messages test_flight_messages.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_messages.c")
 add_test(NAME flight_messages COMMAND test_flight_messages)
+xvt_add_engine_test(test_flight_wire test_flight_wire.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_wire.c")
+add_test(NAME flight_wire COMMAND test_flight_wire)
 
 # The other runtime tasks: frontend, campaign, movies, dialogs and the network session.
 # The tests that run frontend frames give the frontend a display with no window (test_frontend_display.h); the
