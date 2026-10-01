@@ -44,6 +44,16 @@ function(xvt_add_engine_test name)
     target_link_libraries(${name} PRIVATE xvt_core)
 endfunction()
 
+# A check that shows a module breaking its own written promise is kept, not deleted. The test program runs
+# it only when started as "<program> known-failure <check>", and that run is registered as expected to
+# fail, so the rest of the suite stays green while the fault stands. Once the module is fixed the run
+# passes, CTest reports it as a failure, and the check moves back into the program's main run. A program
+# given a check name it does not know returns 0, so a misspelled name also shows up as a failure.
+function(xvt_add_known_failure program check)
+    add_test(NAME ${program}_known_failure_${check} COMMAND ${program} known-failure ${check})
+    set_tests_properties(${program}_known_failure_${check} PROPERTIES WILL_FAIL TRUE)
+endfunction()
+
 xvt_add_test_program(test_harness test_harness.c)
 add_test(NAME harness COMMAND test_harness)
 
