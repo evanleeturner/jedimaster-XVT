@@ -106,6 +106,8 @@ if(NOT MSVC)
 endif()
 
 # Input mapping, capture and flight controls: src/xvt_runtime/input/.
+xvt_add_engine_test(test_actions test_actions.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/actions.c")
+add_test(NAME actions COMMAND test_actions)
 
 # Timing, the orientation hooks, and the remaster's render math.
 
