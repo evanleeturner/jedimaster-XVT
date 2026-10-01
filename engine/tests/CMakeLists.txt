@@ -230,6 +230,11 @@ endif()
 xvt_add_engine_test(test_render_camera test_render_camera.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_camera.c")
 add_test(NAME render_camera COMMAND test_render_camera)
+if(NOT MSVC)
+    xvt_add_engine_test(test_render_cockpit_assets test_render_cockpit_assets.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_cockpit_assets.c")
+    add_test(NAME render_cockpit_assets COMMAND test_render_cockpit_assets)
+endif()
 xvt_add_engine_test(test_render_frontend test_render_frontend.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_frontend.c")
 add_test(NAME render_frontend COMMAND test_render_frontend)
