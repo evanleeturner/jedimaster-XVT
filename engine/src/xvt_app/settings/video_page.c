@@ -5,6 +5,9 @@
 #include "xvt_remaster/hud_assets.h"
 #include <stdio.h>
 
+/* Draws the whole video page against one copy of the settings: every control edits that copy and marks
+ * it changed, and the copy is sent once at the end, only if something changed. The sections stay in one
+ * function so that cycle reads top to bottom instead of passing through a helper per section. */
 static void XvtVideoPage_DrawControls(AeronUiContext* ui) {
 	XvtVideoSettings options;
 	XvtVideoOptions_Get(&options);
