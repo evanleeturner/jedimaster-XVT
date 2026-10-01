@@ -1,7 +1,6 @@
 #include "xvt_app/application.h"
 
 #include "aeron/compat/host.h"
-#include "aeron/log.h"
 #include "xvt_app/log_sink.h"
 #include "xvt_app/settings/settings.h"
 #include "xvt_app/setup.h"
@@ -44,7 +43,7 @@ static void XvtApplication_DiscoverControllers(const AeronInputSnapshot* input) 
 		}
 	}
 	if (!ok && strcmp(previous_error, error))
-		Aeron_LogWarn("xvt.input", "%s", error);
+		XVT_LOG_WARN("input.discovery_failed error=\"%s\"", error);
 	snprintf(previous_error, sizeof previous_error, "%s", ok ? "" : error);
 }
 
@@ -123,19 +122,19 @@ int XvtApplication_Run(const XvtLaunchOptions* options) {
 		if (setup_result == XVT_SETUP_CANCELLED)
 			exit_code = 0;
 		else
-			Aeron_LogError("xvt.setup", "%s", error);
+			XVT_LOG_ERROR("setup.failed error=\"%s\"", error);
 		goto cleanup;
 	}
 	XvtRenderSnapshot_Init();
 	if (!XvtSettingsMenu_Init(&ui, error, sizeof error)) {
-		Aeron_LogError("xvt.settings", "%s", error);
+		XVT_LOG_ERROR("settings.init_failed error=\"%s\"", error);
 		goto cleanup;
 	}
 	if (!XvtRemaster_Init())
 		goto cleanup;
 	AeronWinmmCdAudioDesc cd = { Aeron_GetVfs(), AERON_VFS_ROOT_ASSET, "BalanceOfPower/MUSIC" };
 	if (!AeronWinmm_ConfigureCdAudio(&cd)) {
-		Aeron_LogError("xvt.setup", "Cannot configure installed CD music tracks");
+		XVT_LOG_ERROR("setup.music_failed");
 		goto cleanup;
 	}
 	XvtPort_SetSkipIntro(options->skip_intro || XvtConfig_Settings()->skip_intro);

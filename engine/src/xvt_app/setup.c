@@ -4,6 +4,7 @@
 #include "xvt_app/setup_ui.h"
 #include "xvt_runtime/assets/opt_native.h"
 #include "xvt_runtime/config/config.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/storage/storage.h"
 #include <ctype.h>
 #include <stdio.h>
@@ -275,6 +276,6 @@ XvtSetupResult XvtSetup_Run(const XvtLaunchOptions* options, XvtAppUi* ui, char*
 		snprintf(error, capacity, "Cannot apply video.window_mode.");
 		return XVT_SETUP_ERROR;
 	}
-	Aeron_LogInfo("xvt.setup", "validated XvT installation: %s", selected);
+	XVT_LOG_INFO("setup.installed root=\"%s\"", selected);
 	return XVT_SETUP_SUCCESS;
 }

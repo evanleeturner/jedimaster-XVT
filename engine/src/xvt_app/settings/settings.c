@@ -9,6 +9,7 @@
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/input/controller_mapping.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/flight_task.h"
 #include "xvt_runtime/runtime/port.h"
@@ -87,17 +88,17 @@ void XvtSettingsMenu_FlushForExit(void) {
 		return;
 	char error[1024];
 	if (!XvtVideoOptions_Flush(true, error, sizeof error))
-		Aeron_LogError("xvt.settings", "%s", error);
+		XVT_LOG_ERROR("settings.save_failed part=video error=\"%s\"", error);
 	if (g_menu.open) {
 		if (!XvtKeyboardSettings_Commit(&g_menu.keyboard, error, sizeof error))
-			Aeron_LogError("xvt.settings", "%s", error);
+			XVT_LOG_ERROR("settings.save_failed part=keyboard error=\"%s\"", error);
 		if (!XvtControllerSettings_Commit(&g_menu.controller, error, sizeof error))
-			Aeron_LogError("xvt.settings", "%s", error);
+			XVT_LOG_ERROR("settings.save_failed part=controller error=\"%s\"", error);
 		if (!XvtInstallationPage_Flush(error, sizeof error))
-			Aeron_LogError("xvt.settings", "%s", error);
+			XVT_LOG_ERROR("settings.save_failed part=installation error=\"%s\"", error);
 	}
 	if (!XvtConfig_Save(error, sizeof error))
-		Aeron_LogError("xvt.settings", "%s", error);
+		XVT_LOG_ERROR("settings.save_failed part=config error=\"%s\"", error);
 }
 
 void XvtSettingsMenu_Shutdown(void) {

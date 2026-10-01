@@ -18,6 +18,11 @@
       "fields": ["exit"],
       "text": "The host stopped with exit code {exit}"
     },
+    "input.discovery_failed": {
+      "level": "W",
+      "fields": ["error"],
+      "text": "Adding newly connected controllers failed: {error}"
+    },
     "remaster.alpha_override": {
       "level": "D",
       "fields": ["model", "texture", "mode", "cutoff"],
@@ -97,6 +102,31 @@
       "level": "I",
       "fields": [],
       "text": "The modern renderer shut down"
+    },
+    "settings.init_failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "The settings menu could not start: {error}"
+    },
+    "settings.save_failed": {
+      "level": "E",
+      "fields": ["part", "error"],
+      "text": "Saving the {part} settings at exit failed: {error}"
+    },
+    "setup.failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "Setup failed: {error}"
+    },
+    "setup.installed": {
+      "level": "I",
+      "fields": ["root"],
+      "text": "The XvT installation at {root} is validated"
+    },
+    "setup.music_failed": {
+      "level": "E",
+      "fields": [],
+      "text": "The installed CD music tracks cannot be configured"
     },
     "snapshot.alert_overflow": {
       "level": "E",
