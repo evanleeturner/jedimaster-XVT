@@ -2,6 +2,7 @@
 #include "aeron/aeron.h"
 #include "xvt/flight/flight.h"
 #include "xvt/net/flight_net.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
 #include <string.h>
 
@@ -16,10 +17,9 @@ void XvtFlightTiming_BeginSession(XvtFlightTimingProfile profile) {
 	memset(&g_timing, 0, sizeof g_timing);
 	g_timing.profile = profile;
 	g_timing.unlocked = profile != XVT_FLIGHT_TIMING_NATIVE;
-	Aeron_LogInfo("xvt.flight.timing", "flight timing: %s",
-				  profile == XVT_FLIGHT_TIMING_NETWORK_125 ? "network 125 Hz"
-				  : g_timing.unlocked                      ? "unlocked"
-														   : "native");
+	XVT_LOG_INFO("timing.profile mode=\"%s\"", profile == XVT_FLIGHT_TIMING_NETWORK_125 ? "network125"
+											   : g_timing.unlocked                      ? "unlocked"
+																						: "native");
 }
 
 void XvtFlightTiming_EndSession(void) { memset(&g_timing, 0, sizeof g_timing); }
@@ -47,8 +47,7 @@ void XvtFlightTiming_BeginAdvance(uint16_t elapsed) {
 		g_timing.dropped += total / XVT_REFERENCE_TICKS - 1;
 	/* Report sustained overload without logging every host frame. */
 	if (g_timing.dropped - g_timing.reported >= 256) {
-		Aeron_LogWarn("xvt.flight.timing", "dropped %llu overdue reference periods",
-					  (unsigned long long)g_timing.dropped);
+		XVT_LOG_WARN("timing.periods_dropped count=%llu", (unsigned long long)g_timing.dropped);
 		g_timing.reported = g_timing.dropped;
 	}
 }

@@ -322,6 +322,16 @@
       "level": "W",
       "fields": ["outcome"],
       "text": "Flight timing allocation failed; outcome: {outcome}"
+    },
+    "timing.periods_dropped": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "{count} overdue reference periods were dropped"
+    },
+    "timing.profile": {
+      "level": "I",
+      "fields": ["mode"],
+      "text": "Flight timing runs the {mode} profile"
     }
   }
 }
