@@ -122,7 +122,13 @@ if(NOT MSVC)
     xvt_add_engine_test(test_pilot_port test_pilot_port.c
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/compat/pilot_port.c")
     add_test(NAME pilot_port COMMAND test_pilot_port)
+    xvt_add_engine_test(test_opt_native test_opt_native.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/assets/opt_native.c")
+    add_test(NAME opt_native COMMAND test_opt_native)
 endif()
+xvt_add_engine_test(test_opt_relocate test_opt_relocate.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/assets/opt_relocate.c")
+add_test(NAME opt_relocate COMMAND test_opt_relocate)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
