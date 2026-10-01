@@ -222,6 +222,13 @@ add_test(NAME cockpit_text COMMAND test_cockpit_text)
 # The flight task, its network frame and resync: src/xvt_runtime/runtime/.
 
 # The other runtime tasks: frontend, campaign, movies, dialogs and the network session.
+# The tests that run frontend frames give the frontend a display with no window (test_frontend_display.h); the
+# ones that look up game files by name make a temporary asset folder with POSIX calls (test_asset_folder.h).
+if(NOT MSVC)
+    xvt_add_engine_test(test_campaign_task test_campaign_task.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/campaign_task.c")
+    add_test(NAME campaign_task COMMAND test_campaign_task)
+endif()
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
