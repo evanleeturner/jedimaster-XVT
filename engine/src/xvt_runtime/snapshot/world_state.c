@@ -575,6 +575,34 @@ int XvtSnapshot_BuildPresenceMap(uint8_t* outMap, uint8_t* worldState) {
 	return (int)(outMap - mapStart);
 }
 
+/* Makes one optional block at *cursor match the host's presence bit. Present on both sides: steps
+ * over it and returns 1, so the caller can go on to the blocks nested under it. Present here only:
+ * removes it, closing the gap, and leaves *cursor where it began. Present at the host only: inserts
+ * it zero-filled and steps past it. *end, the end of the image's bytes, moves with every change.
+ * Returns 0 unless both sides have the block. */
+static int XvtSnapshot_MatchBlock(uint8_t** cursor, uint8_t** end, size_t size, int here, int host) {
+	uint8_t* blockStart;
+
+	if (here && host) {
+		*cursor += size;
+		return 1;
+	}
+	if (here) {
+		blockStart = *cursor;
+		*cursor += size;
+		memmove(blockStart, *cursor, (size_t)(*end - *cursor));
+		*cursor = blockStart;
+		*end -= size;
+	} else if (host) {
+		blockStart = *cursor;
+		*cursor += size;
+		memmove(*cursor, blockStart, (size_t)(*end - blockStart));
+		memset(blockStart, 0, (size_t)(*cursor - blockStart));
+		*end += size;
+	}
+	return 0;
+}
+
 void XvtSnapshot_ApplyPresenceMap(const uint8_t* presenceMap) {
 	uint8_t* cursor;
 	uint8_t* end;
@@ -612,127 +640,34 @@ void XvtSnapshot_ApplyPresenceMap(const uint8_t* presenceMap) {
 			}
 
 			objectType = *cursor++;
-			if (objectType != 0) {
-				if ((presence & FLIGHT_WORLDSTATE_HAS_OBJECT) != 0) {
-					const XvtSnapshotObjectRecord* objectState;
-					uint32_t mobilePresent;
+			if (XvtSnapshot_MatchBlock(&cursor, &end, sizeof(XvtSnapshotObjectRecord), objectType != 0,
+									   (presence & FLIGHT_WORLDSTATE_HAS_OBJECT) != 0)) {
+				const XvtSnapshotObjectRecord* objectState;
+				uint32_t mobilePresent;
 
-					objectState = (const XvtSnapshotObjectRecord*)cursor;
-					cursor += sizeof(*objectState);
-					memcpy(&mobilePresent, &objectState->mobj, sizeof(mobilePresent));
-					if (mobilePresent != 0) {
-						if ((presence & FLIGHT_WORLDSTATE_HAS_MOBILE) != 0) {
-							const XvtSnapshotMobileObject* mobileState;
-							uint32_t craftPresent;
-							uint32_t warheadGuidancePresent;
-							uint32_t charDataPresent;
+				objectState = (const XvtSnapshotObjectRecord*)(cursor - sizeof(*objectState));
+				memcpy(&mobilePresent, &objectState->mobj, sizeof(mobilePresent));
+				if (XvtSnapshot_MatchBlock(&cursor, &end, sizeof(XvtSnapshotMobileObject), mobilePresent != 0,
+										   (presence & FLIGHT_WORLDSTATE_HAS_MOBILE) != 0)) {
+					const XvtSnapshotMobileObject* mobileState;
+					uint32_t craftPresent;
+					uint32_t warheadGuidancePresent;
+					uint32_t charDataPresent;
 
-							mobileState = (const XvtSnapshotMobileObject*)cursor;
-							cursor += sizeof(*mobileState);
-							memcpy(&craftPresent, &mobileState->pCraft, sizeof(craftPresent));
-							if (craftPresent != 0) {
-								if ((presence & FLIGHT_WORLDSTATE_HAS_CRAFT) != 0) {
-									cursor += sizeof(XvtSnapshotCraftData);
-								} else {
-									uint8_t* blockStart;
-
-									blockStart = cursor;
-									cursor += sizeof(XvtSnapshotCraftData);
-									memmove(blockStart, cursor, (size_t)(end - cursor));
-									cursor = blockStart;
-									end -= sizeof(XvtSnapshotCraftData);
-								}
-							} else if ((presence & FLIGHT_WORLDSTATE_HAS_CRAFT) != 0) {
-								uint8_t* blockStart;
-
-								blockStart = cursor;
-								cursor += sizeof(XvtSnapshotCraftData);
-								memmove(cursor, blockStart, (size_t)(end - blockStart));
-								memset(blockStart, 0, (size_t)(cursor - blockStart));
-								end += sizeof(XvtSnapshotCraftData);
-							}
-
-							memcpy(&warheadGuidancePresent, &mobileState->pWarheadGuidance,
-								   sizeof(warheadGuidancePresent));
-							if (warheadGuidancePresent != 0) {
-								if ((presence & FLIGHT_WORLDSTATE_HAS_WARHEAD_GUIDANCE) != 0) {
-									cursor += sizeof(WarheadGuidanceState);
-								} else {
-									uint8_t* blockStart;
-
-									blockStart = cursor;
-									cursor += sizeof(WarheadGuidanceState);
-									memmove(blockStart, cursor, (size_t)(end - cursor));
-									cursor = blockStart;
-									end -= sizeof(WarheadGuidanceState);
-								}
-							} else if ((presence & FLIGHT_WORLDSTATE_HAS_WARHEAD_GUIDANCE) != 0) {
-								uint8_t* blockStart;
-
-								blockStart = cursor;
-								cursor += sizeof(WarheadGuidanceState);
-								memmove(cursor, blockStart, (size_t)(end - blockStart));
-								memset(blockStart, 0, (size_t)(cursor - blockStart));
-								end += sizeof(WarheadGuidanceState);
-							}
-
-							memcpy(&charDataPresent, &mobileState->pCharData, sizeof(charDataPresent));
-							if (charDataPresent != 0) {
-								if ((presence & FLIGHT_WORLDSTATE_HAS_CHAR_DATA) != 0) {
-									cursor += sizeof(XvtSnapshotMobileObjectCharData);
-								} else {
-									uint8_t* blockStart;
-
-									blockStart = cursor;
-									cursor += sizeof(XvtSnapshotMobileObjectCharData);
-									memmove(blockStart, cursor, (size_t)(end - cursor));
-									cursor = blockStart;
-									end -= sizeof(XvtSnapshotMobileObjectCharData);
-								}
-							} else if ((presence & FLIGHT_WORLDSTATE_HAS_CHAR_DATA) != 0) {
-								uint8_t* blockStart;
-
-								blockStart = cursor;
-								cursor += sizeof(XvtSnapshotMobileObjectCharData);
-								memmove(cursor, blockStart, (size_t)(end - blockStart));
-								memset(blockStart, 0, (size_t)(cursor - blockStart));
-								end += sizeof(XvtSnapshotMobileObjectCharData);
-							}
-						} else {
-							uint8_t* blockStart;
-
-							blockStart = cursor;
-							cursor += sizeof(XvtSnapshotMobileObject);
-							memmove(blockStart, cursor, (size_t)(end - cursor));
-							end -= sizeof(XvtSnapshotMobileObject);
-							cursor = blockStart;
-						}
-					} else if ((presence & FLIGHT_WORLDSTATE_HAS_MOBILE) != 0) {
-						uint8_t* blockStart;
-
-						blockStart = cursor;
-						cursor += sizeof(XvtSnapshotMobileObject);
-						memmove(cursor, blockStart, (size_t)(end - blockStart));
-						memset(blockStart, 0, (size_t)(cursor - blockStart));
-						end += sizeof(XvtSnapshotMobileObject);
-					}
-				} else {
-					uint8_t* blockStart;
-
-					blockStart = cursor;
-					cursor += sizeof(XvtSnapshotObjectRecord);
-					memmove(blockStart, cursor, (size_t)(end - cursor));
-					end -= sizeof(XvtSnapshotObjectRecord);
-					cursor = blockStart;
+					mobileState = (const XvtSnapshotMobileObject*)(cursor - sizeof(*mobileState));
+					memcpy(&craftPresent, &mobileState->pCraft, sizeof(craftPresent));
+					XvtSnapshot_MatchBlock(&cursor, &end, sizeof(XvtSnapshotCraftData), craftPresent != 0,
+										   (presence & FLIGHT_WORLDSTATE_HAS_CRAFT) != 0);
+					memcpy(&warheadGuidancePresent, &mobileState->pWarheadGuidance,
+						   sizeof(warheadGuidancePresent));
+					XvtSnapshot_MatchBlock(&cursor, &end, sizeof(WarheadGuidanceState),
+										   warheadGuidancePresent != 0,
+										   (presence & FLIGHT_WORLDSTATE_HAS_WARHEAD_GUIDANCE) != 0);
+					memcpy(&charDataPresent, &mobileState->pCharData, sizeof(charDataPresent));
+					XvtSnapshot_MatchBlock(&cursor, &end, sizeof(XvtSnapshotMobileObjectCharData),
+										   charDataPresent != 0,
+										   (presence & FLIGHT_WORLDSTATE_HAS_CHAR_DATA) != 0);
 				}
-			} else if ((presence & FLIGHT_WORLDSTATE_HAS_OBJECT) != 0) {
-				uint8_t* blockStart;
-
-				blockStart = cursor;
-				cursor += sizeof(XvtSnapshotObjectRecord);
-				memmove(cursor, blockStart, (size_t)(end - blockStart));
-				memset(blockStart, 0, (size_t)(cursor - blockStart));
-				end += sizeof(XvtSnapshotObjectRecord);
 			}
 		}
 		++objectIndex;
