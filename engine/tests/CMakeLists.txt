@@ -267,6 +267,9 @@ if(NOT MSVC)
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/movie_task.c")
     add_test(NAME movie_task COMMAND test_movie_task)
 endif()
+xvt_add_engine_test(test_network_browser test_network_browser.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/network_browser.c")
+add_test(NAME network_browser COMMAND test_network_browser)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
