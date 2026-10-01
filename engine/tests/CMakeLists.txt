@@ -152,6 +152,10 @@ add_test(NAME orientation_fixed COMMAND test_orientation_fixed)
 xvt_add_engine_test(test_orientation_hook test_orientation_hook.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/hooks/orientation_hook.c")
 add_test(NAME orientation_hook COMMAND test_orientation_hook)
+xvt_add_engine_test(test_render_math test_render_math.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_remaster/render_math.c")
+target_link_libraries(test_render_math PRIVATE xvt_remaster)
+add_test(NAME render_math COMMAND test_render_math)
 
 # Storage, the compatibility ports, model assets, launch options and the mission dump tool.
 # The tests that read and write files make a fresh temporary folder with POSIX calls (test_temp_folder.h).
