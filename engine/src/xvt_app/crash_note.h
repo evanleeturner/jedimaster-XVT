@@ -18,7 +18,8 @@ extern "C" {
  * On Linux and macOS a handler runs on SIGSEGV, SIGBUS, SIGFPE, SIGILL and SIGABRT, on a stack of its own
  * for the thread that installed it, so a stack overflow on that thread is still reported. It writes
  *   HH:MM:SS.mmm C app.crash_signal signal="SIGSEGV" code=1 addr=0x0
- * (code is the signal's si_code; addr the faulting address it carries), then up to XVT_CRASH_NOTE_FRAMES
+ * (code is the signal's si_code; addr the faulting address it carries, 0 for a signal kill, raise or abort
+ * sent, which carries none), then up to XVT_CRASH_NOTE_FRAMES
  *   HH:MM:SS.mmm C app.crash_frame n=0 module="OpenXvT" offset=0x6bae0
  * lines, the module being the file name of the executable or library holding the frame's address and the
  * offset its distance from that module's load address, which a symbolizer turns into a function with the

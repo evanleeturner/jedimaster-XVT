@@ -357,8 +357,10 @@ static void XvtCrashNote_OnSignal(int signal, siginfo_t* info, void* context) {
 		++slot;
 	if (!g_crashNoteWritten) {
 		g_crashNoteWritten = 1;
+		/* A sent signal carries the sender's process and user ids where a fault carries its address. */
 		XVT_LOG_CRASH("app.crash_signal signal=\"%s\" code=%d addr=%#llx", XvtCrashNote_SignalName(signal),
-					  info ? info->si_code : 0, info ? (unsigned long long)(uintptr_t)info->si_addr : 0ull);
+					  info ? info->si_code : 0,
+					  XvtCrashNote_WasSent(info) ? 0ull : (unsigned long long)(uintptr_t)info->si_addr);
 		XvtCrashNote_WriteFrames(XvtCrashNote_InterruptedAt(context));
 	}
 	/* A signal the program ignored before must still end it, or a fault would repeat forever. */

@@ -295,10 +295,11 @@ static void CheckCrashes(void) {
 	CheckDied(RunCase("divide", path, 0), SIGFPE, path, "C app.crash_signal signal=\"SIGFPE\" code=1 addr=0x",
 			  FAULT_IN_CRASH);
 #endif
-	/* Sent signals do not repeat by themselves; the note sends them again. */
+	/* Sent signals do not repeat by themselves; the note sends them again. They carry no address: addr is 0,
+	 * not the sender's ids that share its place. */
 	CheckDied(RunCase("abort", path, 0), SIGABRT, path, "C app.crash_signal signal=\"SIGABRT\"", 0);
-	CheckDied(RunCase("kill", path, 0), SIGSEGV, path, "C app.crash_signal signal=\"SIGSEGV\" code=0 addr=0x",
-			  0);
+	CheckDied(RunCase("kill", path, 0), SIGSEGV, path,
+			  "C app.crash_signal signal=\"SIGSEGV\" code=0 addr=0x0", 0);
 
 	/* A handler installed before the note still runs after it: here it exits with 42. */
 	int status = RunCase("segv", path, SIGSEGV);
