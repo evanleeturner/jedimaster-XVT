@@ -250,6 +250,9 @@ if(NOT MSVC)
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/frontend_movies.c")
     add_test(NAME frontend_movies COMMAND test_frontend_movies)
 endif()
+xvt_add_engine_test(test_frontend_task test_frontend_task.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/frontend_task.c")
+add_test(NAME frontend_task COMMAND test_frontend_task)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
