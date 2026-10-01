@@ -310,6 +310,77 @@ static unsigned int XvtSnapshot_SumBytes(uint8_t** cursor, int count) {
 	return sum;
 }
 
+/* Sums the bytes of one present slot's records at *cursor: the object, then its mobile, craft,
+ * warhead-guidance and character records when present, leaving out the links and cached motion that
+ * XvtSnapshot_ChecksumImage's comment lists. Moves *cursor past all of them; returns the sum. */
+static unsigned int XvtSnapshot_SumSlotRecords(uint8_t** cursor) {
+	unsigned int sum = 0;
+	int bytesRemaining;
+
+	XvtSnapshotObjectRecord* objectState;
+	int objectDataBytes;
+	uint32_t mobilePresent;
+
+	objectState = (XvtSnapshotObjectRecord*)*cursor;
+	objectDataBytes = sizeof(*objectState) - sizeof(objectState->mobj);
+	do {
+		sum += *(*cursor)++;
+	} while (--objectDataBytes != 0);
+	*cursor = (uint8_t*)(objectState + 1);
+	memcpy(&mobilePresent, &objectState->mobj, sizeof(mobilePresent));
+	if (mobilePresent != 0) {
+		XvtSnapshotMobileObject* mobileState;
+		int mobileDataBytes;
+		uint32_t craftPresent;
+		uint32_t guidancePresent;
+		uint32_t charDataPresent;
+
+		mobileState = (XvtSnapshotMobileObject*)*cursor;
+		mobileDataBytes = sizeof(*mobileState) - sizeof(mobileState->moveVectorDirty) -
+						  sizeof(mobileState->moveX) - sizeof(mobileState->moveY) -
+						  sizeof(mobileState->moveZ) - sizeof(mobileState->orientMatrixDirty) -
+						  sizeof(mobileState->cachedFwdX) - sizeof(mobileState->cachedFwdY) -
+						  sizeof(mobileState->cachedFwdZ) - sizeof(mobileState->cachedSideX) -
+						  sizeof(mobileState->cachedSideY) - sizeof(mobileState->cachedSideZ) -
+						  sizeof(mobileState->cachedUpX) - sizeof(mobileState->cachedUpY) -
+						  sizeof(mobileState->cachedUpZ) - sizeof(mobileState->pWarheadGuidance) -
+						  sizeof(mobileState->pCraft) - sizeof(mobileState->pCharData);
+		do {
+			sum += *(*cursor)++;
+		} while (--mobileDataBytes != 0);
+		*cursor = (uint8_t*)(mobileState + 1);
+		memcpy(&craftPresent, &mobileState->pCraft, sizeof(craftPresent));
+		if (craftPresent != 0) {
+			XvtSnapshotCraftData* craftState;
+			int craftDataBytes;
+
+			craftState = (XvtSnapshotCraftData*)*cursor;
+			craftDataBytes = sizeof(*craftState) - sizeof(craftState->field_3F2) -
+							 sizeof(craftState->turretObjectLinks) -
+							 sizeof(craftState->effectiveAiObjectLink) + 32;
+			do {
+				sum += *(*cursor)++;
+			} while (--craftDataBytes != 0);
+			*cursor = (uint8_t*)(craftState + 1);
+		}
+		memcpy(&guidancePresent, &mobileState->pWarheadGuidance, sizeof(guidancePresent));
+		if (guidancePresent != 0) {
+			bytesRemaining = sizeof(WarheadGuidanceState);
+			do {
+				sum += *(*cursor)++;
+			} while (--bytesRemaining != 0);
+		}
+		memcpy(&charDataPresent, &mobileState->pCharData, sizeof(charDataPresent));
+		if (charDataPresent != 0) {
+			bytesRemaining = sizeof(XvtSnapshotMobileObjectCharData);
+			do {
+				sum += *(*cursor)++;
+			} while (--bytesRemaining != 0);
+		}
+	}
+	return sum;
+}
+
 static void XvtSnapshot_ChecksumPrefix(const uint8_t* image, size_t prefix, unsigned checksums[16],
 									   unsigned lengths[16]) {
 	uint8_t* cursor;
@@ -340,70 +411,8 @@ static void XvtSnapshot_ChecksumPrefix(const uint8_t* image, size_t prefix, unsi
 				uint8_t objectPresent;
 
 				objectPresent = *cursor++;
-				if (objectPresent != 0) {
-					XvtSnapshotObjectRecord* objectState;
-					int objectDataBytes;
-					uint32_t mobilePresent;
-
-					objectState = (XvtSnapshotObjectRecord*)cursor;
-					objectDataBytes = sizeof(*objectState) - sizeof(objectState->mobj);
-					do {
-						checksum += *cursor++;
-					} while (--objectDataBytes != 0);
-					cursor = (uint8_t*)(objectState + 1);
-					memcpy(&mobilePresent, &objectState->mobj, sizeof(mobilePresent));
-					if (mobilePresent != 0) {
-						XvtSnapshotMobileObject* mobileState;
-						int mobileDataBytes;
-						uint32_t craftPresent;
-						uint32_t guidancePresent;
-						uint32_t charDataPresent;
-
-						mobileState = (XvtSnapshotMobileObject*)cursor;
-						mobileDataBytes =
-							sizeof(*mobileState) - sizeof(mobileState->moveVectorDirty) -
-							sizeof(mobileState->moveX) - sizeof(mobileState->moveY) -
-							sizeof(mobileState->moveZ) - sizeof(mobileState->orientMatrixDirty) -
-							sizeof(mobileState->cachedFwdX) - sizeof(mobileState->cachedFwdY) -
-							sizeof(mobileState->cachedFwdZ) - sizeof(mobileState->cachedSideX) -
-							sizeof(mobileState->cachedSideY) - sizeof(mobileState->cachedSideZ) -
-							sizeof(mobileState->cachedUpX) - sizeof(mobileState->cachedUpY) -
-							sizeof(mobileState->cachedUpZ) - sizeof(mobileState->pWarheadGuidance) -
-							sizeof(mobileState->pCraft) - sizeof(mobileState->pCharData);
-						do {
-							checksum += *cursor++;
-						} while (--mobileDataBytes != 0);
-						cursor = (uint8_t*)(mobileState + 1);
-						memcpy(&craftPresent, &mobileState->pCraft, sizeof(craftPresent));
-						if (craftPresent != 0) {
-							XvtSnapshotCraftData* craftState;
-							int craftDataBytes;
-
-							craftState = (XvtSnapshotCraftData*)cursor;
-							craftDataBytes = sizeof(*craftState) - sizeof(craftState->field_3F2) -
-											 sizeof(craftState->turretObjectLinks) -
-											 sizeof(craftState->effectiveAiObjectLink) + 32;
-							do {
-								checksum += *cursor++;
-							} while (--craftDataBytes != 0);
-							cursor = (uint8_t*)(craftState + 1);
-						}
-						memcpy(&guidancePresent, &mobileState->pWarheadGuidance, sizeof(guidancePresent));
-						if (guidancePresent != 0) {
-							bytesRemaining = sizeof(WarheadGuidanceState);
-							do {
-								checksum += *cursor++;
-							} while (--bytesRemaining != 0);
-						}
-						memcpy(&charDataPresent, &mobileState->pCharData, sizeof(charDataPresent));
-						if (charDataPresent != 0) {
-							bytesRemaining = sizeof(XvtSnapshotMobileObjectCharData);
-							do {
-								checksum += *cursor++;
-							} while (--bytesRemaining != 0);
-						}
-					}
-				}
+				if (objectPresent != 0)
+					checksum += XvtSnapshot_SumSlotRecords(&cursor);
 				if (checksumRegionIndex < lastRegion && cursor - regionStart > regionTargetSize) {
 					lengths[checksumRegionIndex] = (unsigned int)(cursor - regionStart);
 					checksums[checksumRegionIndex++] = checksum;
@@ -464,26 +473,8 @@ static void XvtSnapshot_ChecksumPrefix(const uint8_t* image, size_t prefix, unsi
 
 	checksum += XvtSnapshot_SumBytes(&cursor, 4);
 	checksum += *cursor++;
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
+	/* The 20 range dwords: 4 pool sizes, the reserved dword and 15 slot-range bounds. */
+	checksum += XvtSnapshot_SumBytes(&cursor, 20 * 4);
 	checksum += XvtSnapshot_SumBytes(&cursor, 21760);
 	checksum += XvtSnapshot_SumBytes(&cursor, 4);
 	checksum += XvtSnapshot_SumBytes(&cursor, 4);
