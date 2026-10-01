@@ -116,6 +116,12 @@ if(NOT MSVC)
     add_test(NAME file_io COMMAND test_file_io)
     xvt_add_engine_test(test_storage test_storage.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/storage/storage.c")
     add_test(NAME storage COMMAND test_storage)
+    xvt_add_engine_test(test_frontend_file_list_port test_frontend_file_list_port.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/compat/frontend_file_list_port.c")
+    add_test(NAME frontend_file_list_port COMMAND test_frontend_file_list_port)
+    xvt_add_engine_test(test_pilot_port test_pilot_port.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/compat/pilot_port.c")
+    add_test(NAME pilot_port COMMAND test_pilot_port)
 endif()
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
