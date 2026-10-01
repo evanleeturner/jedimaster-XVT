@@ -245,6 +245,11 @@ add_test(NAME frontend_actions COMMAND test_frontend_actions)
 xvt_add_engine_test(test_frontend_cleanup test_frontend_cleanup.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/frontend_cleanup.c")
 add_test(NAME frontend_cleanup COMMAND test_frontend_cleanup)
+if(NOT MSVC)
+    xvt_add_engine_test(test_frontend_movies test_frontend_movies.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/frontend_movies.c")
+    add_test(NAME frontend_movies COMMAND test_frontend_movies)
+endif()
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
