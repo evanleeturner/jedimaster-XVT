@@ -138,20 +138,60 @@
       "fields": [],
       "text": "The checksum continuation queue is exhausted; the mission ends"
     },
+    "network.directory_retry": {
+      "level": "W",
+      "fields": [],
+      "text": "The directory listing failed; hosting registers again"
+    },
+    "network.handshake": {
+      "level": "D",
+      "fields": ["peers"],
+      "text": "The host's sequence status named {peers} peers; the join request was sent"
+    },
+    "network.host_lost": {
+      "level": "W",
+      "fields": ["flight"],
+      "text": "The host left the session; in flight {flight}"
+    },
     "network.input_conflict": {
       "level": "E",
       "fields": ["player", "tick"],
       "text": "Conflicting authoritative input for player slot {player} at tick {tick}"
+    },
+    "network.join_rejected": {
+      "level": "W",
+      "fields": [],
+      "text": "The host refused the join; the frontend shows the reason"
     },
     "network.recovery_needed": {
       "level": "W",
       "fields": [],
       "text": "Flight history or message capacity or continuity was exceeded; state recovery is needed"
     },
+    "network.session_begin": {
+      "level": "I",
+      "fields": ["role", "online"],
+      "text": "A network session started as {role}; online {online}"
+    },
+    "network.session_closed": {
+      "level": "I",
+      "fields": ["phase"],
+      "text": "The network session closed from setup phase {phase}"
+    },
     "network.session_failed": {
       "level": "W",
       "fields": ["phase", "error"],
       "text": "The network session failed in phase {phase} with error {error}"
+    },
+    "network.session_names": {
+      "level": "D",
+      "fields": ["pilot", "game", "rating"],
+      "text": "The session uses pilot name {pilot}, game name {game} and rating {rating}"
+    },
+    "network.session_ready": {
+      "level": "I",
+      "fields": ["role", "online"],
+      "text": "The network session is established as {role}; online {online}"
     },
     "port.host_invalid": {
       "level": "E",

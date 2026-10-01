@@ -95,7 +95,19 @@ AeronDplayDirectoryError XvtNetworkSession_Configure(void) {
 	return error;
 }
 
+static const char* XvtNetworkSession_Role(void) { return g_session.host ? "host" : "join"; }
+
+/* Marks the session established and says so; the three ways in are the online host's registration,
+ * the offline host's roster, and the client's admission. */
+static void XvtNetworkSession_Establish(void) {
+	g_session.phase = SESSION_ESTABLISHED;
+	XVT_LOG_INFO("network.session_ready role=\"%s\" online=%d", XvtNetworkSession_Role(), g_session.online);
+}
+
 void XvtNetworkSession_OnClose(void) {
+	/* Every shutdown calls this, with or without a session; only a session under way is reported. */
+	if (g_session.phase != SESSION_IDLE && g_session.phase != SESSION_FAILED)
+		XVT_LOG_INFO("network.session_closed phase=%d", g_session.phase);
 	XvtFlightNetwork_CloseSession();
 	if (g_session.registered)
 		AeronDplayDirectory_StopHosting();
@@ -155,6 +167,9 @@ static int XvtNetworkSession_Start(const char* info, const char* player, const c
 		g_frontendMissionSessionMode =
 			host ? FRONTEND_MISSION_SESSION_NET_HOST : FRONTEND_MISSION_SESSION_NET_CLIENT;
 	g_session.phase = SESSION_CLOSE;
+	XVT_LOG_INFO("network.session_begin role=\"%s\" online=%d", XvtNetworkSession_Role(), online);
+	XVT_LOG_DEBUG("network.session_names pilot=\"%s\" game=\"%s\" rating=\"%s\"", g_session.player,
+				  g_session.name, g_session.info);
 	return XVT_NETWORK_PENDING;
 }
 
@@ -264,6 +279,7 @@ static int XvtNetworkSession_Handshake(void) {
 		int request[6] = { NET_PACKET_JOIN_REQUEST, FRONTEND_NET_PROTOCOL_VERSION, 0, 0, 0, 0 };
 		memcpy(request + 2, g_gameConfig.password, sizeof(g_gameConfig.password));
 		Net_SendPacketAndFlush(sender, request, sizeof(request));
+		XVT_LOG_DEBUG("network.handshake peers=%u", peers);
 		g_session.phase = SESSION_ADMISSION;
 		return 1;
 	}
@@ -286,7 +302,7 @@ static int XvtNetworkSession_Register(void) {
 		return XvtNetworkSession_Fail(status.error);
 	if (status.state != AERON_DPLAY_DIRECTORY_SUCCEEDED)
 		return XVT_NETWORK_PENDING;
-	g_session.phase = SESSION_ESTABLISHED;
+	XvtNetworkSession_Establish();
 	return 1;
 }
 
@@ -381,7 +397,10 @@ int XvtNetworkSession_Tick(void) {
 				snprintf(g_mpRoster[0].name, sizeof(g_mpRoster[0].name), "%s", g_session.player);
 				g_mpRoster[0].playerId = Net_GetLocalPlayerId();
 				g_mpRoster[0].pilotRating = g_pilotData.rating;
-				g_session.phase = g_session.online ? SESSION_REGISTER : SESSION_ESTABLISHED;
+				if (g_session.online)
+					g_session.phase = SESSION_REGISTER;
+				else
+					XvtNetworkSession_Establish();
 			} else
 				g_session.phase = SESSION_HANDSHAKE;
 			break;
@@ -407,17 +426,22 @@ int XvtNetworkSession_Admission(DPID sender, DPID player) {
 		return 0;
 	AeronDplayDirectory_FinishJoin();
 	g_session.deadline = 0;
-	g_session.phase = SESSION_ESTABLISHED;
+	XvtNetworkSession_Establish();
 	return 1;
 }
 
 void XvtNetworkSession_Reject(void) {
+	XVT_LOG_WARN("network.join_rejected");
 	XvtNetworkSession_Leave();
 	AeronDplayDirectory_FinishJoin();
 	g_session.cancel_join = 0;
 }
 
-void XvtNetworkSession_HostLost(void) { g_session.lost = 1; }
+void XvtNetworkSession_HostLost(void) {
+	if (!g_session.lost)
+		XVT_LOG_WARN("network.host_lost flight=%d", g_session.flight);
+	g_session.lost = 1;
+}
 
 int XvtNetworkSession_IsLost(void) { return g_session.lost; }
 
@@ -478,6 +502,7 @@ void XvtNetworkSession_Service(void) {
 	AeronDplayDirectory_GetHostStatus(&status);
 	uint64_t now = Aeron_NowUs();
 	if (status.state == AERON_DPLAY_DIRECTORY_FAILED && now >= g_session.retry) {
+		XVT_LOG_WARN("network.directory_retry");
 		AeronDplayDirectory_StartHosting(&g_session.instance, &g_session.published);
 		g_session.retry = now + 15000000;
 	}
