@@ -226,6 +226,9 @@ add_test(NAME flight_checkpoint COMMAND test_flight_checkpoint)
 xvt_add_engine_test(test_flight_frame test_flight_frame.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_frame.c")
 add_test(NAME flight_frame COMMAND test_flight_frame)
+xvt_add_engine_test(test_flight_loading test_flight_loading.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_loading.c")
+add_test(NAME flight_loading COMMAND test_flight_loading)
 xvt_add_engine_test(test_flight_messages test_flight_messages.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_messages.c")
 add_test(NAME flight_messages COMMAND test_flight_messages)
