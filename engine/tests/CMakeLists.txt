@@ -220,8 +220,8 @@ add_test(NAME cockpit_text COMMAND test_cockpit_text)
 # Snapshot records and the render snapshot: src/xvt_runtime/snapshot/.
 xvt_add_engine_test(test_records test_records.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/records.c")
 add_test(NAME records COMMAND test_records)
-# The asset registry resolves paths through storage: its test writes the files it registers into a temporary
-# folder made with POSIX calls (test_temp_folder.h).
+# The asset registry, and the cockpit bindings that register through it, resolve paths through storage: their
+# tests write the files they register into a temporary folder made with POSIX calls (test_temp_folder.h).
 if(NOT MSVC)
     xvt_add_engine_test(test_render_assets test_render_assets.c
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_assets.c")
@@ -230,6 +230,9 @@ endif()
 xvt_add_engine_test(test_render_camera test_render_camera.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_camera.c")
 add_test(NAME render_camera COMMAND test_render_camera)
+xvt_add_engine_test(test_render_capture test_render_capture.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_capture.c")
+add_test(NAME render_capture COMMAND test_render_capture)
 if(NOT MSVC)
     xvt_add_engine_test(test_render_cockpit_assets test_render_cockpit_assets.c
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_cockpit_assets.c")
