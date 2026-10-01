@@ -73,6 +73,8 @@ static void DrawHudAfterUpscale(AeronCommandBuffer* cmd, AeronRenderPass* pass, 
 	XvtHudRenderer_Draw(cmd, pass, AeronScene_SceneRt((AeronScene3D*)user));
 }
 
+/* This stays one function because every step for an object reads or changes the same instance, pose
+ * and frame flags; split out, each step would need most of this function's locals passed to it. */
 int XvtRemasterFlight_Render(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s,
 							 const XvtRenderSnapshot* p) {
 	const XvtPreparedFlight* frame = XvtRemasterFlight_Current();
