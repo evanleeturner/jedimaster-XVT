@@ -19,6 +19,7 @@
 #include "xvt/frontend/pilot.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/input/keyboard.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
 
@@ -85,7 +86,8 @@ int XvtLaunchTask_Queue(void) {
 void XvtLaunchTask_Tick(void) {
 	if (g_phase == XVT_LAUNCH_FADE && !XvtCdTask_IsFading()) {
 		g_phase = XVT_LAUNCH_PENDING;
-		Aeron_LogInfo("xvt.launch", "Flight launch queued: %s", g_command);
+		XVT_LOG_INFO("launch.queued");
+		XVT_LOG_DEBUG("launch.command command=\"%s\"", g_command);
 	}
 	if ((g_phase == XVT_LAUNCH_FADE || g_phase == XVT_LAUNCH_PENDING) && Keyboard_PeekChar() == 27) {
 		Keyboard_FlushCharBuffer();

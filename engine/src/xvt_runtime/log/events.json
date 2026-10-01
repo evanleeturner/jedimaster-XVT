@@ -18,10 +18,35 @@
       "fields": ["exit"],
       "text": "The host stopped with exit code {exit}"
     },
+    "dialog.closed": {
+      "level": "I",
+      "fields": ["result"],
+      "text": "The dialog closed with result {result}"
+    },
+    "dialog.opened": {
+      "level": "I",
+      "fields": [],
+      "text": "A dialog opened"
+    },
+    "frontend.ready": {
+      "level": "I",
+      "fields": [],
+      "text": "The frontend is initialized"
+    },
     "input.discovery_failed": {
       "level": "W",
       "fields": ["error"],
       "text": "Adding newly connected controllers failed: {error}"
+    },
+    "launch.command": {
+      "level": "D",
+      "fields": ["command"],
+      "text": "The queued launch command is {command}"
+    },
+    "launch.queued": {
+      "level": "I",
+      "fields": [],
+      "text": "A flight launch is queued"
     },
     "port.host_invalid": {
       "level": "E",

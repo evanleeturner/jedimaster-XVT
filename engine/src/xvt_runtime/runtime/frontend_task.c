@@ -28,6 +28,7 @@
 #include "xvt/frontend/tech_library.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/campaign_task.h"
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/runtime/dialog_task.h"
@@ -86,7 +87,7 @@ int XvtFrontendTask_Init(int skip_intro) {
 	g_startupMode = skip_intro ? 2 : 1;
 	g_nextFrame = XvtTime_GetElapsedUs();
 	g_nextJoystick = g_nextFrame;
-	Aeron_LogInfo("xvt.frontend", "Frontend initialized");
+	XVT_LOG_INFO("frontend.ready");
 	return 1;
 }
 

@@ -12,6 +12,7 @@
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/input/keyboard.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/frontend_task.h"
 #include "xvt_runtime/storage/storage.h"
 
@@ -74,7 +75,7 @@ int XvtDialog_Begin(FrontendScreenUpdateFn update, const RECT* rect) {
 	XvtInput_UpdateMouseCapture(Aeron_InputSnapshot());
 	g_dialog.pushed = 0;
 	FrontendButton_DisableOverlayText();
-	Aeron_LogInfo("xvt.dialog", "Dialog opened");
+	XVT_LOG_INFO("dialog.opened");
 	return XVT_DIALOG_PENDING;
 }
 
@@ -97,7 +98,7 @@ static void XvtDialog_End(void) {
 	g_dialog.active = 0;
 	g_dialog.pushed = 0;
 	g_dialog.complete = 1;
-	Aeron_LogInfo("xvt.dialog", "Dialog completed (%d)", g_dialog.result);
+	XVT_LOG_INFO("dialog.closed result=%d", g_dialog.result);
 }
 
 void XvtDialog_Tick(void) {
