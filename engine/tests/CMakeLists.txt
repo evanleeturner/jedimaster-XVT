@@ -223,6 +223,9 @@ add_test(NAME cockpit_text COMMAND test_cockpit_text)
 xvt_add_engine_test(test_flight_checkpoint test_flight_checkpoint.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_checkpoint.c")
 add_test(NAME flight_checkpoint COMMAND test_flight_checkpoint)
+xvt_add_engine_test(test_flight_frame test_flight_frame.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_frame.c")
+add_test(NAME flight_frame COMMAND test_flight_frame)
 xvt_add_engine_test(test_flight_messages test_flight_messages.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_messages.c")
 add_test(NAME flight_messages COMMAND test_flight_messages)
