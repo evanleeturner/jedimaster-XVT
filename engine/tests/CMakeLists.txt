@@ -229,6 +229,9 @@ add_test(NAME render_frontend COMMAND test_render_frontend)
 xvt_add_engine_test(test_render_hud test_render_hud.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_hud.c")
 add_test(NAME render_hud COMMAND test_render_hud)
+xvt_add_engine_test(test_render_map test_render_map.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_map.c")
+add_test(NAME render_map COMMAND test_render_map)
 xvt_add_engine_test(test_render_snapshot test_render_snapshot.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_snapshot.c")
 add_test(NAME render_snapshot COMMAND test_render_snapshot)
