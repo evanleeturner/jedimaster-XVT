@@ -236,6 +236,9 @@ if(NOT MSVC)
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/cutscene_task.c")
     add_test(NAME cutscene_task COMMAND test_cutscene_task)
 endif()
+xvt_add_engine_test(test_dialog_task test_dialog_task.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/dialog_task.c")
+add_test(NAME dialog_task COMMAND test_dialog_task)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
