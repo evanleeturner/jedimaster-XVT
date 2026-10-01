@@ -139,27 +139,26 @@ static void XvtFlightFrame_InvalidateRemoteTransforms(void) {
 	}
 }
 
-static void XvtFlightFrame_Render(void) {
-	int updateTicks, renderTicks, loopTicks, renderStartTimestamp;
-	char overlayLine[180];
-	g_inputTimestamp += Time_GetFrameDelta();
-	updateTicks = g_inputTimestamp - g_frame.frameStartTimestamp;
-	g_inputTimestamp += Time_GetFrameDelta();
-	{
-		int lagTicks;
+/* Sets the lag indicator (0 to 3) from how far local input time runs past the last server tick,
+ * beyond the clock lead the host allows. */
+static void XvtFlightFrame_UpdateLagIndicator(void) {
+	int lagTicks;
 
-		lagTicks = g_inputTimestamp - g_flightNetClockLeadAllowanceMs - g_serverTickTime;
-		if (lagTicks < LAG_LEVEL_1_TICKS) {
-			g_lagIndicator = 0;
-		} else if (lagTicks < LAG_LEVEL_2_TICKS) {
-			g_lagIndicator = 1;
-		} else if (lagTicks < LAG_LEVEL_3_TICKS) {
-			g_lagIndicator = 2;
-		} else {
-			g_lagIndicator = 3;
-		}
+	lagTicks = g_inputTimestamp - g_flightNetClockLeadAllowanceMs - g_serverTickTime;
+	if (lagTicks < LAG_LEVEL_1_TICKS) {
+		g_lagIndicator = 0;
+	} else if (lagTicks < LAG_LEVEL_2_TICKS) {
+		g_lagIndicator = 1;
+	} else if (lagTicks < LAG_LEVEL_3_TICKS) {
+		g_lagIndicator = 2;
+	} else {
+		g_lagIndicator = 3;
 	}
+}
 
+/* Sets the ping indicator (0 to 3). It stays 0 until a host drop count has been recorded; after
+ * that a drop score rises with each new host packet drop and falls by one per frame. */
+static void XvtFlightFrame_UpdatePingIndicator(void) {
 	if (g_flightPingPrevHostDropCount == 0) {
 		g_pingIndicator = 0;
 	} else {
@@ -183,6 +182,70 @@ static void XvtFlightFrame_Render(void) {
 			--g_flightPingDropScore;
 		}
 	}
+}
+
+/* Formats the update-time histogram into the mission debug buffer one row at a time, each row
+ * overwriting the last: raw counts per bucket, then, once any update has been counted, each
+ * bucket's share in percent. */
+static void XvtFlightFrame_FormatUpdateHistogram(void) {
+	unsigned int histogramTotal;
+	int histogramIndex;
+
+	sprintf(g_missionDebugBuffer,
+			"Raw  0:%2d  1:%2d  2:%2d  3:%2d  4:%2d  5:%2d  6:%2d  7:%2d  8:%2d   9:%2d\n",
+			g_flightUpdateDurationHistogram[0], g_flightUpdateDurationHistogram[1],
+			g_flightUpdateDurationHistogram[2], g_flightUpdateDurationHistogram[3],
+			g_flightUpdateDurationHistogram[4], g_flightUpdateDurationHistogram[5],
+			g_flightUpdateDurationHistogram[6], g_flightUpdateDurationHistogram[7],
+			g_flightUpdateDurationHistogram[8], g_flightUpdateDurationHistogram[9]);
+	sprintf(g_missionDebugBuffer,
+			"Raw 10:%2d 11:%2d 12:%2d 13:%2d 14:%2d 15:%2d 16:%2d 17:%2d 18:%2d >18:%2d\n",
+			g_flightUpdateDurationHistogram[10], g_flightUpdateDurationHistogram[11],
+			g_flightUpdateDurationHistogram[12], g_flightUpdateDurationHistogram[13],
+			g_flightUpdateDurationHistogram[14], g_flightUpdateDurationHistogram[15],
+			g_flightUpdateDurationHistogram[16], g_flightUpdateDurationHistogram[17],
+			g_flightUpdateDurationHistogram[18], g_flightUpdateDurationHistogram[19]);
+
+	histogramTotal = 0;
+	for (histogramIndex = 0; histogramIndex < UPDATE_HISTOGRAM_BUCKETS; ++histogramIndex) {
+		histogramTotal += g_flightUpdateDurationHistogram[histogramIndex];
+	}
+	if (histogramTotal != 0) {
+		sprintf(g_missionDebugBuffer,
+				"Pct  0:%2d  1:%2d  2:%2d  3:%2d  4:%2d  5:%2d  6:%2d  7:%2d  8:%2d   9:%2d\n",
+				100 * g_flightUpdateDurationHistogram[0] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[1] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[2] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[3] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[4] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[5] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[6] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[7] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[8] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[9] / histogramTotal);
+		sprintf(g_missionDebugBuffer,
+				"Pct 10:%2d 11:%2d 12:%2d 13:%2d 14:%2d 15:%2d 16:%2d 17:%2d 18:%2d >18:%2d\n",
+				100 * g_flightUpdateDurationHistogram[10] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[11] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[12] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[13] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[14] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[15] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[16] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[17] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[18] / histogramTotal,
+				100 * g_flightUpdateDurationHistogram[19] / histogramTotal);
+	}
+}
+
+static void XvtFlightFrame_Render(void) {
+	int updateTicks, renderTicks, loopTicks, renderStartTimestamp;
+	char overlayLine[180];
+	g_inputTimestamp += Time_GetFrameDelta();
+	updateTicks = g_inputTimestamp - g_frame.frameStartTimestamp;
+	g_inputTimestamp += Time_GetFrameDelta();
+	XvtFlightFrame_UpdateLagIndicator();
+	XvtFlightFrame_UpdatePingIndicator();
 
 	renderStartTimestamp = g_inputTimestamp;
 	XvtRenderCapture_CompleteNetworkWorld();
@@ -207,8 +270,6 @@ static void XvtFlightFrame_Render(void) {
 		g_flightTickOverlaySampleCount = 0;
 		g_flightTickOverlayWindowTicks = 0;
 	} else {
-		unsigned int histogramTotal;
-		int histogramIndex;
 		int aiProjectileCount;
 		int playerProjectileCount;
 		int objectIndex;
@@ -234,51 +295,7 @@ static void XvtFlightFrame_Render(void) {
 		} else {
 			++g_flightUpdateDurationHistogram[updateTicks];
 		}
-		sprintf(g_missionDebugBuffer,
-				"Raw  0:%2d  1:%2d  2:%2d  3:%2d  4:%2d  5:%2d  6:%2d  7:%2d  8:%2d   9:%2d\n",
-				g_flightUpdateDurationHistogram[0], g_flightUpdateDurationHistogram[1],
-				g_flightUpdateDurationHistogram[2], g_flightUpdateDurationHistogram[3],
-				g_flightUpdateDurationHistogram[4], g_flightUpdateDurationHistogram[5],
-				g_flightUpdateDurationHistogram[6], g_flightUpdateDurationHistogram[7],
-				g_flightUpdateDurationHistogram[8], g_flightUpdateDurationHistogram[9]);
-		sprintf(g_missionDebugBuffer,
-				"Raw 10:%2d 11:%2d 12:%2d 13:%2d 14:%2d 15:%2d 16:%2d 17:%2d 18:%2d >18:%2d\n",
-				g_flightUpdateDurationHistogram[10], g_flightUpdateDurationHistogram[11],
-				g_flightUpdateDurationHistogram[12], g_flightUpdateDurationHistogram[13],
-				g_flightUpdateDurationHistogram[14], g_flightUpdateDurationHistogram[15],
-				g_flightUpdateDurationHistogram[16], g_flightUpdateDurationHistogram[17],
-				g_flightUpdateDurationHistogram[18], g_flightUpdateDurationHistogram[19]);
-
-		histogramTotal = 0;
-		for (histogramIndex = 0; histogramIndex < UPDATE_HISTOGRAM_BUCKETS; ++histogramIndex) {
-			histogramTotal += g_flightUpdateDurationHistogram[histogramIndex];
-		}
-		if (histogramTotal != 0) {
-			sprintf(g_missionDebugBuffer,
-					"Pct  0:%2d  1:%2d  2:%2d  3:%2d  4:%2d  5:%2d  6:%2d  7:%2d  8:%2d   9:%2d\n",
-					100 * g_flightUpdateDurationHistogram[0] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[1] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[2] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[3] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[4] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[5] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[6] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[7] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[8] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[9] / histogramTotal);
-			sprintf(g_missionDebugBuffer,
-					"Pct 10:%2d 11:%2d 12:%2d 13:%2d 14:%2d 15:%2d 16:%2d 17:%2d 18:%2d >18:%2d\n",
-					100 * g_flightUpdateDurationHistogram[10] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[11] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[12] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[13] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[14] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[15] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[16] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[17] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[18] / histogramTotal,
-					100 * g_flightUpdateDurationHistogram[19] / histogramTotal);
-		}
+		XvtFlightFrame_FormatUpdateHistogram();
 
 		aiProjectileCount = 0;
 		playerProjectileCount = 0;
