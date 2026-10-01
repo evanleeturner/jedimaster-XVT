@@ -93,6 +93,16 @@
       "fields": ["local", "players"],
       "text": "The frame loop starts with the local player in slot {local} of {players}"
     },
+    "flight.sync_ack": {
+      "level": "D",
+      "fields": ["phase", "slot", "count"],
+      "text": "Slot {slot} answered in pre-flight phase {phase}; {count} answers so far"
+    },
+    "flight.sync_timeout": {
+      "level": "W",
+      "fields": ["stage", "phase", "count", "expected"],
+      "text": "The pre-flight {stage} wait ran out in phase {phase} with {count} of {expected} answers; the flight does not start"
+    },
     "flight.world": {
       "level": "I",
       "fields": ["players", "mask", "slots", "bytes"],
@@ -163,6 +173,21 @@
       "fields": ["name", "result"],
       "text": "The movie {name} finished with result {result}"
     },
+    "network.batch_dropped": {
+      "level": "D",
+      "fields": ["slot", "reason"],
+      "text": "An input batch from slot {slot} was dropped: {reason}"
+    },
+    "network.batch_received": {
+      "level": "D",
+      "fields": ["slot", "records", "first", "last"],
+      "text": "An input batch from slot {slot} holds {records} records, ticks {first} to {last}"
+    },
+    "network.batch_sent": {
+      "level": "D",
+      "fields": ["records", "left"],
+      "text": "An input batch of {records} records was sent; {left} records wait"
+    },
     "network.checksum": {
       "level": "D",
       "fields": ["tick", "host", "sums", "lengths"],
@@ -208,15 +233,35 @@
       "fields": ["ticks"],
       "text": "Nothing came from the host for {ticks} ticks; the local player leaves"
     },
+    "network.input": {
+      "level": "D",
+      "fields": ["tick", "key", "flags", "x", "y", "r", "mods", "throttle"],
+      "text": "Local input for tick {tick}: key {key}, flags {flags}, axes {x} {y} {r}, modifiers {mods}, throttle {throttle}"
+    },
     "network.input_conflict": {
       "level": "E",
       "fields": ["player", "tick"],
       "text": "Conflicting authoritative input for player slot {player} at tick {tick}"
     },
+    "network.input_rejected": {
+      "level": "D",
+      "fields": ["slot", "tick", "result", "authoritative"],
+      "text": "Input for slot {slot} at tick {tick} was refused ({result}; authoritative {authoritative}); recovery is needed"
+    },
     "network.join_rejected": {
       "level": "W",
       "fields": [],
       "text": "The host refused the join; the frontend shows the reason"
+    },
+    "network.player_left": {
+      "level": "I",
+      "fields": ["slot", "local"],
+      "text": "The player in slot {slot} left the flight; local player {local}"
+    },
+    "network.player_silent": {
+      "level": "W",
+      "fields": ["slot", "ticks"],
+      "text": "The player in slot {slot} sent nothing for {ticks} ticks; the host drops them"
     },
     "network.recovery_needed": {
       "level": "W",
@@ -247,6 +292,21 @@
       "level": "I",
       "fields": ["role", "online"],
       "text": "The network session is established as {role}; online {online}"
+    },
+    "network.world_received": {
+      "level": "D",
+      "fields": ["tick", "mask", "records", "queue"],
+      "text": "The world message for tick {tick} arrived: slot mask {mask} (hex), {records} input records, into the {queue} queue"
+    },
+    "network.world_rejected": {
+      "level": "D",
+      "fields": ["reason"],
+      "text": "A world message was refused ({reason}); recovery is needed"
+    },
+    "network.world_sent": {
+      "level": "D",
+      "fields": ["tick", "mask", "records", "checksum"],
+      "text": "The host sent the world message for tick {tick}: slot mask {mask} (hex), {records} input records, checksum flag {checksum}"
     },
     "port.host_invalid": {
       "level": "E",
