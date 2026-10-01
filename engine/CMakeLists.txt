@@ -242,6 +242,7 @@ set(XVT_RUNTIME_SOURCES
     src/xvt_runtime/timing/reference_motion.c
     src/xvt_runtime/timing/flight_integration.c
     src/xvt_runtime/timing/player_timing.c
+    src/xvt_runtime/log/log.c
 )
 
 add_library(xvt_core STATIC ${XVT_RECOVERED_SOURCES} ${XVT_RUNTIME_SOURCES})

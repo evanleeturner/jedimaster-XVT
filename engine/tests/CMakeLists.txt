@@ -15,8 +15,9 @@ add_custom_target(xvt_tests)
 
 set(XVT_TEST_SANITIZE_OPTIONS -fsanitize=address,undefined -fno-sanitize=alignment)
 
-function(xvt_add_test_program name source)
-    add_executable(${name} "${source}")
+# The arguments after the name are the program's source files.
+function(xvt_add_test_program name)
+    add_executable(${name} ${ARGN})
     target_include_directories(${name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     if(NOT MSVC)
         target_compile_options(${name} PRIVATE
@@ -35,6 +36,15 @@ endfunction()
 
 xvt_add_test_program(test_harness test_harness.c)
 add_test(NAME harness COMMAND test_harness)
+
+# The log header is tested against a stub of Aeron's log funnel, with NDEBUG defined as a release
+# build defines it, to show DEBUG lines still switch on at run time.
+xvt_add_test_program(test_log test_log.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/log/log.c")
+target_include_directories(test_log PRIVATE
+    "${PROJECT_SOURCE_DIR}/src"
+    "${PROJECT_SOURCE_DIR}/aeron/include")
+target_compile_definitions(test_log PRIVATE NDEBUG)
+add_test(NAME log COMMAND test_log)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
