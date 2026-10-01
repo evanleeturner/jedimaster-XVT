@@ -37,6 +37,17 @@ int XvtFlightSim_Resume(void) {
 	return 1;
 }
 
+/* Runs one player's update for this tick, in order:
+ * 1. unless the update is resuming after a pause: return at once if the mission is ending; repair a
+ *    camera focus whose object is gone; read the input; for the local player, act on a function key
+ *    (Alt-P pauses, leaves the update pending and returns 0);
+ * 2. stop when the dormant-region flag is set; for a player in a region session, rebind or retire a
+ *    destroyed craft, then stop;
+ * 3. outside hyperspace, fire while the fire modifier is held, and pick a target when the target
+ *    modifier is tapped;
+ * 4. process the player's actions or chat input, update flight controls and camera, and apply a
+ *    recorded throttle unless the player changed craft during the tick.
+ * It stays one function: each part is short and runs in this order on the same player record. */
 int XvtFlightSim_UpdateEntity(int playerIdx) {
 	enum {
 		PALETTED_BYTES_PER_PIXEL = 1,
@@ -253,6 +264,16 @@ int XvtFlightSim_UpdateEntity(int playerIdx) {
 	return 1;
 }
 
+/* Replays each connected player's input frames up to targetGameTime, or resumes a replay that a
+ * pause interrupted. For each frame that is due:
+ * 1. if the game clock has reached the frame, put the player's craft back to its last lockstep pose
+ *    (or, when the player changed craft, reschedule the frame);
+ * 2. step the player's craft alone to the frame's time, saving its pose and checkpoint;
+ * 3. set the tick length for the frame, load its input into the player's replay slot, and run the
+ *    player's update;
+ * 4. on a confirmed network frame, confirm the prediction; restore the saved clock and tick length.
+ * A pause inside the update saves the replay position and returns 0; otherwise returns 1. It stays
+ * one function: the steps share the frame, the saved clock values and the replay position. */
 int XvtFlightSim_Advance(int targetGameTime) {
 	enum {
 		PLAYER_COUNT = sizeof(g_inputFrameCount) / sizeof(g_inputFrameCount[0]),
