@@ -54,6 +54,8 @@ void XvtRemaster_BeginFrame(const struct AeronInputSnapshot* input) {
 	XvtRemasterView_BeginFrame(input);
 }
 
+/* This stays one function because each step decides from flags the earlier steps set (assets ready,
+ * world needed, frontend replay, HUD dirty, direct), so a split would pass most of them to every piece. */
 void XvtRemaster_Frame(int32_t delta_us) {
 	const XvtRenderSnapshot* snapshot;
 	int assets_ready = 1;
