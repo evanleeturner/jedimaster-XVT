@@ -70,6 +70,14 @@ xvt_add_engine_test(test_world_state test_world_state.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/world_state.c")
 add_test(NAME world_state COMMAND test_world_state)
 
+# Settings and bindings files: src/xvt_runtime/config/.
+
+# Input mapping, capture and flight controls: src/xvt_runtime/input/.
+
+# Timing, the orientation hooks, and the remaster's render math.
+
+# Storage, the compatibility ports, model assets, launch options and the mission dump tool.
+
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
 set_tests_properties(harness_catches_failure PROPERTIES WILL_FAIL TRUE)
