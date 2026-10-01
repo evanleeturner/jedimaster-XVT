@@ -780,10 +780,14 @@ static unsigned int XvtSnapshot_ChecksumPlayerData(const PlayerData* live) {
 	return Flight_ChecksumBufferRotateXor(&record, 0x5BD);
 }
 
-int XvtSnapshot_LiveChecksum(void) {
-	XvtSnapshotFlightMissionState missionState;
-	uint32_t checksum;
-	uint32_t* checksumPtr;
+/* Folds one value into the live checksum: exclusive-or, then rotate left by one bit. */
+static uint32_t XvtSnapshot_MixChecksum(uint32_t checksum, uint32_t value) {
+	return Flight_RotateChecksumLeft(checksum ^ value);
+}
+
+/* Folds every occupied pool record into checksum, pool by pool: character data, mobile records,
+ * main-slot objects, static objects, craft, then warhead guidance. Returns the new checksum. */
+static uint32_t XvtSnapshot_MixPools(uint32_t checksum) {
 	int firstSlot;
 	int charDataIndex;
 	int mobileObjectIndex;
@@ -791,153 +795,128 @@ int XvtSnapshot_LiveChecksum(void) {
 	int staticObjectIndex;
 	int craftIndex;
 	int projectileIndex;
-	int flightGroupIndex;
-	int goalIndex;
-	int playerIndex;
 
-	checksum = 0;
-	checksumPtr = &checksum;
 	firstSlot = g_objectSlotRangeByGenus[16].start;
 	for (charDataIndex = 0; charDataIndex < (int)g_mobileObjectCharDataCount; charDataIndex++) {
 		if (g_objectTable[firstSlot + charDataIndex].objectType != 0) {
-			*checksumPtr ^=
-				XvtSnapshot_ChecksumMobileObjectCharData(&g_mobileObjectCharDataPool[charDataIndex]);
-			checksum = Flight_RotateChecksumLeft(*checksumPtr);
+			checksum = XvtSnapshot_MixChecksum(checksum, XvtSnapshot_ChecksumMobileObjectCharData(
+															 &g_mobileObjectCharDataPool[charDataIndex]));
 		}
 	}
 
 	for (mobileObjectIndex = 0; mobileObjectIndex < g_regionMainObjectSlotEnd - g_regionMainObjectSlotStart;
 		 mobileObjectIndex++) {
 		if (g_objectTable[mobileObjectIndex].objectType != 0) {
-			*checksumPtr ^= XvtSnapshot_ChecksumMobileObject(&g_mobileObjectPoolBase[mobileObjectIndex]);
-			checksum = Flight_RotateChecksumLeft(*checksumPtr);
+			checksum = XvtSnapshot_MixChecksum(
+				checksum, XvtSnapshot_ChecksumMobileObject(&g_mobileObjectPoolBase[mobileObjectIndex]));
 		}
 	}
 	for (objectIndex = 0; objectIndex < g_regionMainObjectSlotEnd - g_regionMainObjectSlotStart;
 		 objectIndex++) {
 		if (g_objectTable[objectIndex].objectType != 0) {
-			*checksumPtr ^= XvtSnapshot_ChecksumObjectRecord(&g_objectTable[objectIndex]);
-			checksum = Flight_RotateChecksumLeft(*checksumPtr);
+			checksum = XvtSnapshot_MixChecksum(checksum,
+											   XvtSnapshot_ChecksumObjectRecord(&g_objectTable[objectIndex]));
 		}
 	}
 	for (staticObjectIndex = g_regionMainObjectSlotEnd;
 		 staticObjectIndex < g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount; staticObjectIndex++) {
 		if (g_objectTable[staticObjectIndex].objectType != 0) {
-			*checksumPtr ^= XvtSnapshot_ChecksumObjectRecord(&g_objectTable[staticObjectIndex]);
-			checksum = Flight_RotateChecksumLeft(*checksumPtr);
+			checksum = XvtSnapshot_MixChecksum(
+				checksum, XvtSnapshot_ChecksumObjectRecord(&g_objectTable[staticObjectIndex]));
 		}
 	}
 
 	firstSlot = g_objectSlotRangeByGenus[0].start;
 	for (craftIndex = 0; craftIndex < g_craftDataPoolCapacity; craftIndex++) {
 		if (g_objectTable[firstSlot + craftIndex].objectType != 0) {
-			*checksumPtr ^= XvtSnapshot_ChecksumCraftData(&g_craftDataPoolBase[craftIndex]);
-			checksum = Flight_RotateChecksumLeft(*checksumPtr);
+			checksum = XvtSnapshot_MixChecksum(
+				checksum, XvtSnapshot_ChecksumCraftData(&g_craftDataPoolBase[craftIndex]));
 		}
 	}
 	firstSlot = g_objectSlotRangeByGenus[6].start;
 	for (projectileIndex = 0; projectileIndex < (int)g_projectileObjectSlotsTotal; projectileIndex++) {
 		if (g_objectTable[firstSlot + projectileIndex].objectType != 0) {
-			*checksumPtr ^= Flight_ChecksumBufferRotateXor(&g_projectileGuidanceStates[projectileIndex], 0xA);
-			checksum = Flight_RotateChecksumLeft(*checksumPtr);
+			checksum = XvtSnapshot_MixChecksum(
+				checksum, Flight_ChecksumBufferRotateXor(&g_projectileGuidanceStates[projectileIndex], 0xA));
 		}
 	}
+	return checksum;
+}
 
-	*checksumPtr ^= Flight_ChecksumBufferRotateXor(&g_missionElapsedClock, sizeof(g_missionElapsedClock));
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= Flight_ChecksumBufferRotateXor(&g_missionCountdownClock, sizeof(g_missionCountdownClock));
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
+int XvtSnapshot_LiveChecksum(void) {
+	XvtSnapshotFlightMissionState missionState;
+	uint32_t checksum;
+	int flightGroupIndex;
+	int goalIndex;
+	int playerIndex;
+
+	checksum = 0;
+	checksum = XvtSnapshot_MixPools(checksum);
+
+	checksum = XvtSnapshot_MixChecksum(
+		checksum, Flight_ChecksumBufferRotateXor(&g_missionElapsedClock, sizeof(g_missionElapsedClock)));
+	checksum = XvtSnapshot_MixChecksum(
+		checksum, Flight_ChecksumBufferRotateXor(&g_missionCountdownClock, sizeof(g_missionCountdownClock)));
 	for (flightGroupIndex = 0; flightGroupIndex < (int16_t)g_missionHeader.numFlightGroups;
 		 flightGroupIndex++) {
-		*checksumPtr ^= Flight_ChecksumBufferRotateXor(&g_missionFgStats[flightGroupIndex], 0x126);
-		checksum = Flight_RotateChecksumLeft(*checksumPtr);
+		checksum = XvtSnapshot_MixChecksum(
+			checksum, Flight_ChecksumBufferRotateXor(&g_missionFgStats[flightGroupIndex], 0x126));
 	}
 
 	XvtSnapshot_EncodeFlightMissionState(&missionState, &g_flightMissionState);
-	*checksumPtr ^= Flight_ChecksumBufferRotateXor(&missionState, sizeof(missionState));
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_nextObjectSignature;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= Flight_ChecksumBufferRotateXor(&g_flightGlobalCountdownTimers, 0x16);
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= (uint32_t)(int16_t)g_missionFileVersion;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= Flight_ChecksumBufferRotateXor(&g_missionHeader, 0xA2);
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
+	checksum = XvtSnapshot_MixChecksum(checksum,
+									   Flight_ChecksumBufferRotateXor(&missionState, sizeof(missionState)));
+	checksum = XvtSnapshot_MixChecksum(checksum, g_nextObjectSignature);
+	checksum = XvtSnapshot_MixChecksum(checksum,
+									   Flight_ChecksumBufferRotateXor(&g_flightGlobalCountdownTimers, 0x16));
+	checksum = XvtSnapshot_MixChecksum(checksum, (uint32_t)(int16_t)g_missionFileVersion);
+	checksum = XvtSnapshot_MixChecksum(checksum, Flight_ChecksumBufferRotateXor(&g_missionHeader, 0xA2));
 	for (flightGroupIndex = 0; flightGroupIndex < (int16_t)g_missionHeader.numFlightGroups;
 		 flightGroupIndex++) {
-		*checksumPtr ^= Flight_ChecksumBufferRotateXor(&g_missionFlightGroups[flightGroupIndex], 0x562);
-		checksum = Flight_RotateChecksumLeft(*checksumPtr);
+		checksum = XvtSnapshot_MixChecksum(
+			checksum, Flight_ChecksumBufferRotateXor(&g_missionFlightGroups[flightGroupIndex], 0x562));
 	}
-	*checksumPtr ^= Flight_ChecksumBufferRotateXor(g_missionMessages, sizeof(g_missionMessages));
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
+	checksum = XvtSnapshot_MixChecksum(
+		checksum, Flight_ChecksumBufferRotateXor(g_missionMessages, sizeof(g_missionMessages)));
 	for (goalIndex = 0; goalIndex < 10; goalIndex++) {
-		*checksumPtr ^=
-			Flight_ChecksumBufferRotateXor(g_missionGlobalGoals[goalIndex], sizeof(g_missionGlobalGoals[0]));
-		checksum = Flight_RotateChecksumLeft(*checksumPtr);
+		checksum = XvtSnapshot_MixChecksum(
+			checksum,
+			Flight_ChecksumBufferRotateXor(g_missionGlobalGoals[goalIndex], sizeof(g_missionGlobalGoals[0])));
 	}
 
-	*checksumPtr ^= g_activeFlightPlayerCount;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_worldStateReservedByte;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_craftDataPoolCapacity;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_mobileObjectCharDataCount;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_projectileObjectSlotsTotal;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_debrisObjectSlotsTotal;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_worldStateReservedDword;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_regionMainObjectSlotStart;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_activeRegionObjectSlotStart;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_activeRegionCraftObjectSlotEnd;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_mobileObjectCharDataSlotStart;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_mobileObjectCharDataSlotEnd;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_projectileObjectSlotStart;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_projectileObjectSlotEnd;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_debrisObjectSlotStart;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_debrisObjectSlotEnd;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_explosionObjectSlotStart;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_explosionObjectSlotEnd;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_localTransientSlotStart;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_localDebrisSlotEnd;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_regionMainObjectSlotEnd;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_regionStaticObjectSlotCount;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= Flight_ChecksumBufferRotateXor(g_planTable, 0x5500);
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_planCount;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= Flight_ChecksumBufferRotateXor(g_planOrderData, 0x1FFFF);
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_unusedWorldStateSerializedDword;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= (uint16_t)g_gameRandStateB;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_flightConfNewNet;
-	checksum = Flight_RotateChecksumLeft(*checksumPtr);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_activeFlightPlayerCount);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_worldStateReservedByte);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_craftDataPoolCapacity);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_mobileObjectCharDataCount);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_projectileObjectSlotsTotal);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_debrisObjectSlotsTotal);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_worldStateReservedDword);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_regionMainObjectSlotStart);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_activeRegionObjectSlotStart);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_activeRegionCraftObjectSlotEnd);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_mobileObjectCharDataSlotStart);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_mobileObjectCharDataSlotEnd);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_projectileObjectSlotStart);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_projectileObjectSlotEnd);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_debrisObjectSlotStart);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_debrisObjectSlotEnd);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_explosionObjectSlotStart);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_explosionObjectSlotEnd);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_localTransientSlotStart);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_localDebrisSlotEnd);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_regionMainObjectSlotEnd);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_regionStaticObjectSlotCount);
+	checksum = XvtSnapshot_MixChecksum(checksum, Flight_ChecksumBufferRotateXor(g_planTable, 0x5500));
+	checksum = XvtSnapshot_MixChecksum(checksum, g_planCount);
+	checksum = XvtSnapshot_MixChecksum(checksum, Flight_ChecksumBufferRotateXor(g_planOrderData, 0x1FFFF));
+	checksum = XvtSnapshot_MixChecksum(checksum, g_unusedWorldStateSerializedDword);
+	checksum = XvtSnapshot_MixChecksum(checksum, (uint16_t)g_gameRandStateB);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_flightConfNewNet);
 
 	for (playerIndex = 0; playerIndex < 8; playerIndex++) {
 		if (g_players[playerIndex].connectedFlag != 0) {
-			*checksumPtr ^= XvtSnapshot_ChecksumPlayerData(&g_players[playerIndex]);
-			checksum = Flight_RotateChecksumLeft(*checksumPtr);
+			checksum =
+				XvtSnapshot_MixChecksum(checksum, XvtSnapshot_ChecksumPlayerData(&g_players[playerIndex]));
 		}
 	}
 	return (int)checksum;
