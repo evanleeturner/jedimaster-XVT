@@ -62,6 +62,17 @@ if(NOT MSVC)
         PASS_REGULAR_EXPRESSION "runtime error: signed integer overflow")
 endif()
 
+# The log catalog (src/xvt_runtime/log/events.json) and the XVT_LOG_* call sites must agree; the
+# check is a Python 3 script, so it is a test only where an interpreter is found.
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME log_catalog
+        COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/log_catalog_check.py"
+                "${PROJECT_SOURCE_DIR}")
+else()
+    message(STATUS "Python 3 was not found; the log catalog check is not added as a test")
+endif()
+
 # UBSan prints and carries on by default; a test must stop at the first report.
 # The timeout turns a hung test into a failure instead of a stalled run.
 get_property(XVT_TEST_NAMES DIRECTORY PROPERTY TESTS)

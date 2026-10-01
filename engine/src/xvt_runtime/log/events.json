@@ -91,7 +91,7 @@
     "input.discovery_failed": {
       "level": "W",
       "fields": ["error"],
-      "text": "Adding newly connected controllers failed: {error}"
+      "text": "Adding newly connected controllers, or saving the updated controller list, failed: {error}"
     },
     "input.queue_full": {
       "level": "W",
