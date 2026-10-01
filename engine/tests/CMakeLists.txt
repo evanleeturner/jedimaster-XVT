@@ -34,6 +34,16 @@ function(xvt_add_test_program name)
     add_dependencies(xvt_tests ${name})
 endfunction()
 
+# A test of one engine module: the arguments after the name are the test's source and the module's own
+# sources, compiled into the test program so the sanitizers watch the code under test. Everything else
+# the module reaches (the recovered game's globals and functions, Aeron) comes from the xvt_core library.
+# The library's copy of the module is never linked in: the test program already defines its symbols.
+# The test sets the game state it needs itself; no game data is read.
+function(xvt_add_engine_test name)
+    xvt_add_test_program(${name} ${ARGN})
+    target_link_libraries(${name} PRIVATE xvt_core)
+endfunction()
+
 xvt_add_test_program(test_harness test_harness.c)
 add_test(NAME harness COMMAND test_harness)
 
@@ -45,6 +55,10 @@ target_include_directories(test_log PRIVATE
     "${PROJECT_SOURCE_DIR}/aeron/include")
 target_compile_definitions(test_log PRIVATE NDEBUG)
 add_test(NAME log COMMAND test_log)
+
+xvt_add_engine_test(test_world_state test_world_state.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/world_state.c")
+add_test(NAME world_state COMMAND test_world_state)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
