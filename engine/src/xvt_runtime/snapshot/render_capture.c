@@ -21,6 +21,7 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/renderer.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_task.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
@@ -398,8 +399,7 @@ void XvtRenderCapture_Presented(int succeeded) {
 	out->flight_valid = 1;
 	out->dropped_records += g_pending.dropped;
 	if (g_pending.dropped && g_pending.dropped != g_lastDropped)
-		Aeron_LogWarn("xvt.snapshot", "main-view capture dropped %u records or unsupported type arrays",
-					  g_pending.dropped);
+		XVT_LOG_WARN("snapshot.records_dropped count=%u", g_pending.dropped);
 	g_lastDropped = g_pending.dropped;
 	g_published = 1;
 	g_pending.sealed = 0;

@@ -4,6 +4,7 @@
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_hud.h"
 #include <string.h>
@@ -62,8 +63,7 @@ void XvtCockpitText_RecordField(XvtCockpitTextFieldId field, const char* text,
 	memset(&next, 0, sizeof next);
 	size_t length = strlen(text);
 	if (length >= sizeof next.caption.text) {
-		Aeron_LogError("xvt.snapshot", "cockpit text field %u exceeds %zu bytes", (unsigned)field,
-					   sizeof next.caption.text);
+		XVT_LOG_ERROR("snapshot.text_overflow field=%u limit=%zu", (unsigned)field, sizeof next.caption.text);
 		return;
 	}
 	memcpy(next.caption.text, text, length + 1);

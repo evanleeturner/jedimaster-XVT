@@ -97,6 +97,61 @@
       "level": "I",
       "fields": [],
       "text": "The modern renderer shut down"
+    },
+    "snapshot.alert_overflow": {
+      "level": "E",
+      "fields": ["line"],
+      "text": "Alert line {line} exceeds the glyph capacity; the capture fails"
+    },
+    "snapshot.asset_unresolved": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "Cannot resolve the loaded asset {path}"
+    },
+    "snapshot.icon_frames_overflow": {
+      "level": "E",
+      "fields": ["path", "count", "limit"],
+      "text": "{path} has {count} icon frames, over the original allocation of {limit}"
+    },
+    "snapshot.page_rows_overflow": {
+      "level": "E",
+      "fields": ["page"],
+      "text": "Cockpit page {page} exceeds the visible row capacity"
+    },
+    "snapshot.page_text_overflow": {
+      "level": "E",
+      "fields": ["page"],
+      "text": "Cockpit page {page} exceeds the snapshot text capacity"
+    },
+    "snapshot.pane_overflow": {
+      "level": "E",
+      "fields": ["pane"],
+      "text": "Message pane {pane} exceeds the glyph capacity; the capture fails"
+    },
+    "snapshot.records_dropped": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "The main-view capture dropped {count} records or unsupported type arrays"
+    },
+    "snapshot.section_nested": {
+      "level": "E",
+      "fields": ["page", "section"],
+      "text": "Cockpit page {page} section {section} opened inside another section"
+    },
+    "snapshot.section_overflow": {
+      "level": "E",
+      "fields": ["page", "section"],
+      "text": "Cockpit page {page} section {section} exceeds the glyph capacity or its allocation failed"
+    },
+    "snapshot.section_retain_failed": {
+      "level": "E",
+      "fields": ["page", "section"],
+      "text": "Cannot retain cockpit page {page} section {section}"
+    },
+    "snapshot.text_overflow": {
+      "level": "E",
+      "fields": ["field", "limit"],
+      "text": "Cockpit text field {field} exceeds {limit} bytes"
     }
   }
 }

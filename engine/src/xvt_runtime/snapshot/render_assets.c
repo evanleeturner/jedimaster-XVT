@@ -3,6 +3,7 @@
 #include "xvt/frontend/front_image.h"
 #include "xvt/frontend/frontend_cursor.h"
 #include "xvt/render/flight_palette.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_cockpit_assets.h"
 #include "xvt_runtime/snapshot/render_hud.h"
 #include "xvt_runtime/storage/storage.h"
@@ -122,7 +123,7 @@ static uint64_t Register(const void* owner, uint16_t handle, const char* path, u
 	if (kind == XVT_IMAGE_BUILTIN_CURSOR)
 		resolved[0] = 0;
 	else if (XvtStorage_ResolveAsset(path, resolved, sizeof resolved) != 1) {
-		Aeron_LogError("xvt.snapshot", "cannot resolve loaded asset '%s'", path ? path : "");
+		XVT_LOG_ERROR("snapshot.asset_unresolved path=\"%s\"", path ? path : "");
 		Aeron_RequestFatalRendererError("loaded asset path resolution");
 		return 0;
 	}

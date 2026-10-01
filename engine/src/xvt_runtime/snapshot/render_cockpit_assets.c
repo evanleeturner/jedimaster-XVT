@@ -6,6 +6,7 @@
 #include "xvt/flight/hud/hud.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #include <string.h>
 
@@ -190,8 +191,8 @@ void XvtRenderAssets_RegisterIcons(const char* path, uint8_t** frames, uint16_t 
 	if (!count)
 		return;
 	if (count > XVT_SNAP_MAP_ICON_FRAMES) {
-		Aeron_LogError("xvt.snapshot", "%s: %u icon frames exceed the original %u-frame allocation", path,
-					   count, XVT_SNAP_MAP_ICON_FRAMES);
+		XVT_LOG_ERROR("snapshot.icon_frames_overflow path=\"%s\" count=%u limit=%u", path, count,
+					  XVT_SNAP_MAP_ICON_FRAMES);
 		Aeron_RequestFatalError("Map asset error", "Loaded map icons exceed the original frame capacity.");
 		return;
 	}

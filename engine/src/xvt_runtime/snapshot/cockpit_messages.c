@@ -4,6 +4,7 @@
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/flight/player/player.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_text.h"
 #include "xvt_runtime/snapshot/render_hud.h"
 #include <string.h>
@@ -187,7 +188,7 @@ void XvtCockpitMessages_RecordGlyph(unsigned character, unsigned advance, unsign
 										 g_messageBuild.origin_y, g_messagePalette, 1))
 			return;
 		if (g_messageBuild.state.glyph_count == XVT_HUD_MESSAGE_GLYPHS) {
-			Aeron_LogError("xvt.snapshot", "message pane %d exceeds glyph capacity", g_messageCapture);
+			XVT_LOG_ERROR("snapshot.pane_overflow pane=%d", g_messageCapture);
 			g_captureFailed = 1;
 			return;
 		}
@@ -199,7 +200,7 @@ void XvtCockpitMessages_RecordGlyph(unsigned character, unsigned advance, unsign
 			return;
 		uint16_t* count = &g_alertBuild.state.glyph_count[g_alertCapture];
 		if (*count == XVT_HUD_ALERT_LINE_GLYPHS) {
-			Aeron_LogError("xvt.snapshot", "alert line %d exceeds glyph capacity", g_alertCapture);
+			XVT_LOG_ERROR("snapshot.alert_overflow line=%d", g_alertCapture);
 			g_captureFailed = 1;
 			return;
 		}

@@ -3,6 +3,7 @@
 #include "aeron/aeron.h"
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_text.h"
 #include "xvt_runtime/snapshot/render_hud.h"
 #include <stdlib.h>
@@ -114,7 +115,7 @@ void XvtCockpitPages_BeginSection(unsigned page, XvtCockpitPageSection section) 
 	if (page >= MFD_PAGE_COUNT || section >= XVT_COCKPIT_PAGE_SECTION_COUNT)
 		return;
 	if (g_capturing) {
-		Aeron_LogError("xvt.snapshot", "nested cockpit page section %u/%u", page, (unsigned)section);
+		XVT_LOG_ERROR("snapshot.section_nested page=%u section=%u", page, (unsigned)section);
 		g_captureFailed = 1;
 		return;
 	}
@@ -172,9 +173,7 @@ void XvtCockpitPages_RecordGlyph(unsigned character, unsigned advance, unsigned 
 									 g_working[g_page].origin_y, g_palette, 1))
 		return;
 	if (!ReserveGlyphs(&g_building, g_building.count + 1)) {
-		Aeron_LogError("xvt.snapshot",
-					   "cockpit page %u section %u exceeds glyph capacity or allocation failed", g_page,
-					   g_section);
+		XVT_LOG_ERROR("snapshot.section_overflow page=%u section=%u", g_page, g_section);
 		g_captureFailed = 1;
 		return;
 	}
@@ -186,7 +185,7 @@ void XvtCockpitPages_RecordRow(uint32_t key, int selected) {
 		return;
 	FinishRow();
 	if (g_building.row_count == XVT_HUD_VISIBLE_ROWS_PER_PAGE) {
-		Aeron_LogError("xvt.snapshot", "cockpit page %u exceeds visible row capacity", g_page);
+		XVT_LOG_ERROR("snapshot.page_rows_overflow page=%u", g_page);
 		g_captureFailed = 1;
 		return;
 	}
@@ -268,7 +267,7 @@ void XvtCockpitPages_Latch(unsigned page) {
 			continue;
 		}
 		if (!ReserveGlyphs(to, from->count)) {
-			Aeron_LogError("xvt.snapshot", "cannot retain cockpit page %u section %u", page, index);
+			XVT_LOG_ERROR("snapshot.section_retain_failed page=%u section=%u", page, index);
 			g_pendingFailed = 1;
 			return;
 		}
@@ -322,7 +321,7 @@ void XvtCockpitPages_Export(XvtCockpitState* state) {
 			const PageSection* section = &content->sections[index];
 			if (section->count > XVT_HUD_PAGE_GLYPH_CAPACITY - store->glyph_count ||
 				section->row_count > XVT_HUD_PAGE_ROW_CAPACITY - store->row_count) {
-				Aeron_LogError("xvt.snapshot", "cockpit page %u exceeds snapshot text capacity", id);
+				XVT_LOG_ERROR("snapshot.page_text_overflow page=%u", id);
 				state->valid = 0;
 				return;
 			}
