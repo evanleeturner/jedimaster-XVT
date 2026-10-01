@@ -1,6 +1,6 @@
 #include "xvt_runtime/assets/opt_native.h"
-#include "aeron/log.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/storage/storage.h"
 #include <limits.h>
 #include <stdlib.h>
@@ -389,7 +389,7 @@ done:
 	free(decode.nodes);
 	free(decode.bytes);
 	if (!handle)
-		Aeron_LogError("xvt.models", "Invalid or unreadable OPT model: %s", path);
+		XVT_LOG_ERROR("models.opt_invalid path=\"%s\"", path);
 	return handle;
 }
 
