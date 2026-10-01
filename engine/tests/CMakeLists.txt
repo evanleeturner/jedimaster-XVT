@@ -110,6 +110,9 @@ xvt_add_engine_test(test_actions test_actions.c "${PROJECT_SOURCE_DIR}/src/xvt_r
 add_test(NAME actions COMMAND test_actions)
 xvt_add_engine_test(test_capture test_capture.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/capture.c")
 add_test(NAME capture COMMAND test_capture)
+xvt_add_engine_test(test_controller_mapping test_controller_mapping.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/controller_mapping.c")
+add_test(NAME controller_mapping COMMAND test_controller_mapping)
 
 # Timing, the orientation hooks, and the remaster's render math.
 
