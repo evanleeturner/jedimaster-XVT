@@ -273,6 +273,9 @@ add_test(NAME network_browser COMMAND test_network_browser)
 xvt_add_engine_test(test_network_dialogs test_network_dialogs.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/network_dialogs.c")
 add_test(NAME network_dialogs COMMAND test_network_dialogs)
+xvt_add_engine_test(test_network_metadata test_network_metadata.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/network_metadata.c")
+add_test(NAME network_metadata COMMAND test_network_metadata)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
