@@ -296,6 +296,7 @@ add_executable(xvt
     src/xvt_app/main.c
     src/xvt_app/application.c
     src/xvt_app/host_config.c
+    src/xvt_app/log_sink.c
     src/xvt_app/setup.c
     src/xvt_app/setup_ui.c
     src/xvt_app/settings/video_options.c

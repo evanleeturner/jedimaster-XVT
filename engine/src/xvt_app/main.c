@@ -21,6 +21,7 @@ int main(int argc, char* argv[]) {
 				"  --pilot-name <basename>     Resolve an import filename collision\n"
 				"  --check-installation       Validate/setup from CLI and exit without a window\n"
 				"  --resource-root <directory> Override packaged resources\n"
+				"  --log-level <level>         Write log lines at debug, info, warn or error (default info)\n"
 				"  --help                      Show this help\n");
 		return valid ? 0 : 2;
 	}

@@ -1,0 +1,22 @@
+{
+  "program": "OpenXvT",
+  "grammar": 1,
+  "line": "HH:MM:SS.mmm L event key=value ...",
+  "events": {
+    "app.ready": {
+      "level": "I",
+      "fields": [],
+      "text": "The host is ready and the frame loop starts"
+    },
+    "app.start": {
+      "level": "I",
+      "fields": ["version"],
+      "text": "OpenXvT {version} is starting"
+    },
+    "app.stop": {
+      "level": "I",
+      "fields": ["exit"],
+      "text": "The host stopped with exit code {exit}"
+    }
+  }
+}

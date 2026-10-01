@@ -2,6 +2,7 @@
 
 #include "aeron/compat/host.h"
 #include "aeron/log.h"
+#include "xvt_app/log_sink.h"
 #include "xvt_app/settings/settings.h"
 #include "xvt_app/setup.h"
 #include "xvt_app/ui.h"
@@ -10,6 +11,7 @@
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/input/controller_mapping.h"
 #include "xvt_runtime/input/keyboard_mapping.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/port.h"
 #include "xvt_runtime/snapshot/render_snapshot.h"
 #include "xvt_runtime/storage/storage.h"
@@ -87,6 +89,8 @@ int XvtApplication_Run(const XvtLaunchOptions* options) {
 	XvtAppUi ui = { 0 };
 	int exit_code = 1;
 	char error[1024] = { 0 };
+	if (!XvtLogSink_Install(options))
+		return 2;
 	if (options->check_installation) {
 		char resource_root[XVT_PATH_CAPACITY];
 		if (!XvtHostConfig_ResolveResourceRoot(options, resource_root, sizeof(resource_root))) {
@@ -107,7 +111,7 @@ int XvtApplication_Run(const XvtLaunchOptions* options) {
 		return success ? 0 : 1;
 	}
 	XvtHostConfig_InitAeron(options, &config);
-	Aeron_LogInfo("xvt.app", "initializing OpenXvT %s host", OPENXVT_VERSION);
+	XVT_LOG_INFO("app.start version=\"%s\"", OPENXVT_VERSION);
 	if (!Aeron_Init(&config)) {
 		/* Aeron unwinds its own partial initialization; shutdown is idempotent. */
 		Aeron_Shutdown();
@@ -136,7 +140,7 @@ int XvtApplication_Run(const XvtLaunchOptions* options) {
 	}
 	XvtPort_SetSkipIntro(options->skip_intro || XvtConfig_Settings()->skip_intro);
 	if (XvtPort_Init()) {
-		Aeron_LogInfo("xvt.app", "host ready");
+		XVT_LOG_INFO("app.ready");
 		exit_code = XvtApplication_FrameLoop();
 	}
 cleanup:
@@ -152,6 +156,6 @@ cleanup:
 	XvtConfig_Shutdown();
 	XvtStorage_Bind(NULL);
 	Aeron_Shutdown();
-	Aeron_LogInfo("xvt.app", "host stopped (exit %d)", exit_code);
+	XVT_LOG_INFO("app.stop exit=%d", exit_code);
 	return exit_code;
 }

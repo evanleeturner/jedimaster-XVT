@@ -17,6 +17,7 @@ typedef struct XvtLaunchOptions {
 	const char* import_config;
 	const char* import_pilot;
 	const char* pilot_name;
+	const char* log_level;
 	int show_help;
 	int setup;
 	int save_config;
@@ -27,10 +28,11 @@ typedef struct XvtLaunchOptions {
 
 /* Launch strings borrow argv for the lifetime of the application. */
 /* Zeroes options, then reads argv from index 1. A flag is matched whole: --help or -h, --setup,
- * --skip-intro, --save-config, --reset-config, --check-installation; a repeat is harmless. A path option
- * (--resource-root, --game-data, --import-config, --import-pilot, --pilot-name) takes its value after '='
- * or from the next argument. Returns 0, with a message on stderr, for an unknown argument, a path option
- * given twice, or a value that is missing, empty or starts with '-'; and after the loop when --pilot-name
+ * --skip-intro, --save-config, --reset-config, --check-installation; a repeat is harmless. A value option
+ * (--resource-root, --game-data, --import-config, --import-pilot, --pilot-name, --log-level) takes its
+ * value after '=' or from the next argument; the value is kept as text, unchecked. Returns 0, with a
+ * message on stderr, for an unknown argument, a value option given twice, or a value that is missing,
+ * empty or starts with '-'; and after the loop when --pilot-name
  * lacks --import-pilot or --setup is combined with --game-data or --check-installation. On 0, options
  * holds what was parsed before the failure. */
 int XvtLaunchOptions_Parse(int argc, char* argv[], XvtLaunchOptions* options);

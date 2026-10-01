@@ -15,11 +15,11 @@ int XvtLaunchOptions_Parse(int argc, char* argv[], XvtLaunchOptions* options) {
 		struct {
 			const char* name;
 			const char** value;
-		} paths[] = { { "--resource-root", &options->resource_root },
-					  { "--game-data", &options->game_data },
-					  { "--import-config", &options->import_config },
-					  { "--import-pilot", &options->import_pilot },
-					  { "--pilot-name", &options->pilot_name } };
+		} paths[] = {
+			{ "--resource-root", &options->resource_root }, { "--game-data", &options->game_data },
+			{ "--import-config", &options->import_config }, { "--import-pilot", &options->import_pilot },
+			{ "--pilot-name", &options->pilot_name },       { "--log-level", &options->log_level }
+		};
 
 		struct {
 			const char* name;
