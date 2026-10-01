@@ -129,6 +129,8 @@ endif()
 xvt_add_engine_test(test_opt_relocate test_opt_relocate.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/assets/opt_relocate.c")
 add_test(NAME opt_relocate COMMAND test_opt_relocate)
+xvt_add_engine_test(test_host_config test_host_config.c "${PROJECT_SOURCE_DIR}/src/xvt_app/host_config.c")
+add_test(NAME host_config COMMAND test_host_config)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
