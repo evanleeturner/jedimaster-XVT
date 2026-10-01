@@ -239,6 +239,9 @@ endif()
 xvt_add_engine_test(test_dialog_task test_dialog_task.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/dialog_task.c")
 add_test(NAME dialog_task COMMAND test_dialog_task)
+xvt_add_engine_test(test_frontend_actions test_frontend_actions.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/frontend_actions.c")
+add_test(NAME frontend_actions COMMAND test_frontend_actions)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
