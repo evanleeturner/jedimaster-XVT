@@ -131,6 +131,21 @@ xvt_add_engine_test(test_mouse_flight test_mouse_flight.c
 add_test(NAME mouse_flight COMMAND test_mouse_flight)
 
 # Timing, the orientation hooks, and the remaster's render math.
+xvt_add_engine_test(test_flight_integration test_flight_integration.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/timing/flight_integration.c")
+add_test(NAME flight_integration COMMAND test_flight_integration)
+xvt_add_engine_test(test_flight_timing test_flight_timing.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/timing/flight_timing.c")
+add_test(NAME flight_timing COMMAND test_flight_timing)
+xvt_add_engine_test(test_host_clock test_host_clock.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/timing/host_clock.c")
+add_test(NAME host_clock COMMAND test_host_clock)
+xvt_add_engine_test(test_player_timing test_player_timing.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/timing/player_timing.c")
+add_test(NAME player_timing COMMAND test_player_timing)
+xvt_add_engine_test(test_reference_motion test_reference_motion.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/timing/reference_motion.c")
+add_test(NAME reference_motion COMMAND test_reference_motion)
 
 # Storage, the compatibility ports, model assets, launch options and the mission dump tool.
 # The tests that read and write files make a fresh temporary folder with POSIX calls (test_temp_folder.h).
