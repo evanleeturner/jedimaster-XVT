@@ -223,6 +223,13 @@ add_test(NAME cockpit_text COMMAND test_cockpit_text)
 xvt_add_engine_test(test_flight_checkpoint test_flight_checkpoint.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_checkpoint.c")
 add_test(NAME flight_checkpoint COMMAND test_flight_checkpoint)
+# The entry test makes a temporary folder with POSIX calls and copies the shipped defaults into it.
+if(NOT MSVC)
+    xvt_add_engine_test(test_flight_entry test_flight_entry.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_entry.c")
+    target_compile_definitions(test_flight_entry PRIVATE XVT_TEST_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME flight_entry COMMAND test_flight_entry)
+endif()
 xvt_add_engine_test(test_flight_frame test_flight_frame.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_frame.c")
 add_test(NAME flight_frame COMMAND test_flight_frame)
