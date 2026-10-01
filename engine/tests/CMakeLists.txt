@@ -196,6 +196,14 @@ if(NOT MSVC)
     add_test(NAME mission_dump COMMAND test_mission_dump)
 endif()
 
+# The cockpit's snapshot capture: src/xvt_runtime/snapshot/cockpit_*.
+
+# Snapshot records and the render snapshot: src/xvt_runtime/snapshot/.
+
+# The flight task, its network frame and resync: src/xvt_runtime/runtime/.
+
+# The other runtime tasks: frontend, campaign, movies, dialogs and the network session.
+
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
 set_tests_properties(harness_catches_failure PROPERTIES WILL_FAIL TRUE)
