@@ -28,6 +28,16 @@
       "fields": [],
       "text": "A dialog opened"
     },
+    "flight.launch": {
+      "level": "I",
+      "fields": [],
+      "text": "The flight launch started"
+    },
+    "flight.phase": {
+      "level": "I",
+      "fields": ["from", "to"],
+      "text": "The flight task moved from phase {from} to phase {to}"
+    },
     "frontend.ready": {
       "level": "I",
       "fields": [],
@@ -232,6 +242,11 @@
       "level": "E",
       "fields": ["field", "limit"],
       "text": "Cockpit text field {field} exceeds {limit} bytes"
+    },
+    "timing.alloc_failed": {
+      "level": "W",
+      "fields": ["outcome"],
+      "text": "Flight timing allocation failed; outcome: {outcome}"
     }
   }
 }

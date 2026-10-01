@@ -1,4 +1,5 @@
 #include "xvt_runtime/config/config.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_checkpoint.h"
 #include "xvt_runtime/runtime/flight_internal.h"
 #include "xvt_runtime/runtime/flight_messages.h"
@@ -53,7 +54,7 @@ int XvtFlightTask_Begin(const char* command) {
 	snprintf(g_flight.command, sizeof(g_flight.command), "%s", command);
 	g_flight.phase = XVT_FLIGHT_PREPARE;
 	XvtFlightSim_Reset();
-	Aeron_LogInfo("xvt.flight", "launch started");
+	XVT_LOG_INFO("flight.launch");
 	return 1;
 }
 
@@ -117,9 +118,8 @@ static int XvtFlightTask_StartWorld(void) {
 		return 0;
 	XvtPlayerTiming_BeginWorld();
 	if (unlocked && (!XvtFlightIntegration_Init(capacity) || !XvtReferenceMotion_Init(capacity))) {
-		Aeron_LogWarn("xvt.flight.timing", "timing allocation failed%s",
-					  profile == XVT_FLIGHT_TIMING_NETWORK_125 ? "; network mission cannot start"
-															   : "; using native flight");
+		XVT_LOG_WARN("timing.alloc_failed outcome=\"%s\"",
+					 profile == XVT_FLIGHT_TIMING_NETWORK_125 ? "mission_blocked" : "native_flight");
 		XvtFlightIntegration_Shutdown();
 		XvtReferenceMotion_Shutdown();
 		if (profile == XVT_FLIGHT_TIMING_NETWORK_125)
@@ -283,7 +283,7 @@ void XvtFlightTask_Tick(void) {
 			break;
 	}
 	if (previous != g_flight.phase)
-		Aeron_LogInfo("xvt.flight", "phase %d -> %d", previous, g_flight.phase);
+		XVT_LOG_INFO("flight.phase from=%d to=%d", previous, g_flight.phase);
 }
 
 int XvtFlightTask_IsActive(void) {
