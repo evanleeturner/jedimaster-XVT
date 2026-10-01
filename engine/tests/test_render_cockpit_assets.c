@@ -386,7 +386,7 @@ static void CheckForget(void) {
 }
 
 /* RegisterFlightFonts registers the micro and small fonts, and the medium one except at 320x240; the
- * definition's font tiers name registered fonts. */
+ * fonts the definition names are registered ones. */
 static void CheckFlightFonts(void) {
 	Fresh();
 	XvtRenderAssets_RegisterFlightFonts();
@@ -395,8 +395,8 @@ static void CheckFlightFonts(void) {
 	uint64_t medium = XvtRenderAssets_ImageId(g_mediumFont);
 	XVT_ASSERT_TRUE(micro != 0 && small != 0 && medium != 0);
 	const XvtCockpitDefinition* d = Definition();
-	for (unsigned tier = 0; tier < XVT_HUD_FONT_TIERS; ++tier) {
-		uint64_t id = d->fonts[tier].asset_id;
+	for (size_t font = 0; font < sizeof d->fonts / sizeof d->fonts[0]; ++font) {
+		uint64_t id = d->fonts[font].asset_id;
 		XVT_ASSERT_TRUE(id == micro || id == small || id == medium);
 	}
 
@@ -408,8 +408,8 @@ static void CheckFlightFonts(void) {
 	XVT_ASSERT_TRUE(micro != 0 && small != 0);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(g_mediumFont), 0);
 	d = Definition();
-	for (unsigned tier = 0; tier < XVT_HUD_FONT_TIERS; ++tier) {
-		uint64_t id = d->fonts[tier].asset_id;
+	for (size_t font = 0; font < sizeof d->fonts / sizeof d->fonts[0]; ++font) {
+		uint64_t id = d->fonts[font].asset_id;
 		XVT_ASSERT_TRUE(id == micro || id == small);
 	}
 }
