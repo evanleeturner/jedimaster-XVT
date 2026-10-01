@@ -97,8 +97,9 @@ void XvtRenderAssets_RegisterLfd(const char* path, uint8_t** entries);
  * when count is 0 or the range leaves the 265 slots. */
 void XvtRenderAssets_RegisterPanel(const char* path, uint16_t first_sprite, uint16_t count, uint16_t skip);
 /* Registers the map icon file and binds icon i to frame i for i below count; icons past count
- * keep their old binding. Does nothing for 0. More than XVT_SNAP_MAP_ICON_FRAMES logs an error
- * and requests a fatal error. */
+ * keep their old binding, except a binding to a source this call retires (the same frames table
+ * registered again with other parameters): retiring a source clears every icon bound to it. Does
+ * nothing for 0. More than XVT_SNAP_MAP_ICON_FRAMES logs an error and requests a fatal error. */
 void XvtRenderAssets_RegisterIcons(const char* path, uint8_t** frames, uint16_t count);
 /* Registers the micro and small software flight fonts, and the medium one except at 320x240. */
 void XvtRenderAssets_RegisterFlightFonts(void);
