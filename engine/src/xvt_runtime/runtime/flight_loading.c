@@ -44,6 +44,41 @@ void XvtFlightLoading_Reset(void) {
 	g_projectileGuidanceStates = NULL;
 }
 
+/* Copies this flight's game rules from the settings into the mission state. Multiplayer combat
+ * engagements always fly at medium difficulty; only multiplayer takes the time limits and the AI
+ * choice from the settings; a combat engagement inside a mission sequence has no random variation. */
+static void XvtFlightLoading_MissionRules(void) {
+	if ((unsigned int)g_pilotData.numHumanPlayersLastMission > 1 &&
+		(unsigned int)g_pilotData.missionDirectoryId >= MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
+		g_flightMissionState.difficulty = GAME_DIFFICULTY_MEDIUM;
+	} else {
+		g_flightMissionState.difficulty = g_gameConfig.difficulty;
+		if (g_flightMissionState.difficulty > GAME_DIFFICULTY_HARD) {
+			g_flightMissionState.difficulty = GAME_DIFFICULTY_EASY;
+		}
+	}
+	g_flightMissionState.collisionsEnabled = g_gameConfig.collisions;
+	g_flightMissionState.craftJumpingEnabled = g_gameConfig.craftJumping;
+	g_flightMissionState.randomVariationEnabled = g_gameConfig.randomSetup;
+	g_flightMissionState.reserved18 = g_gameConfig.battleLengthIndex;
+	g_flightMissionState.locatePlayersEnabled = g_gameConfig.locatePlayers;
+	g_flightMissionState.playerFlightGroupWaveMode = g_gameConfig.craftWaves;
+	if (g_pilotData.numHumanPlayersLastMission > 1) {
+		g_flightMissionState.missionTimeLimitMinutes = g_gameConfig.missionTimeLimit;
+		g_flightMissionState.teamVictoryTimeLimitMinutes = g_gameConfig.lastTeamTimeLimitMinutes;
+		g_flightMissionState.aiOpponentsEnabled = g_gameConfig.aiOpponents;
+	} else {
+		g_flightMissionState.missionTimeLimitMinutes = UINT8_MAX;
+		g_flightMissionState.teamVictoryTimeLimitMinutes = 0;
+		g_flightMissionState.aiOpponentsEnabled = 1;
+	}
+	g_flightMissionState.craftImpactBounceEnabled = 1;
+	if ((unsigned int)g_pilotData.missionDirectoryId >= MISSION_DIRECTORY_COMBAT_ENGAGEMENTS &&
+		g_pilotData.missionSequenceActive == 1) {
+		g_flightMissionState.randomVariationEnabled = 0;
+	}
+}
+
 void XvtFlightLoading_Globals(void) {
 	int16_t abortPlayerIndex, disconnectPlayerIndex, connectPlayerIndex;
 	XvtFlightLoading_Reset();
@@ -84,35 +119,7 @@ void XvtFlightLoading_Globals(void) {
 	g_flightMissionState.connectedPlayerCount = g_activeFlightPlayerCount;
 	g_flightMissionState.maxConnectedPlayerCountThisMission = g_activeFlightPlayerCount;
 
-	if ((unsigned int)g_pilotData.numHumanPlayersLastMission > 1 &&
-		(unsigned int)g_pilotData.missionDirectoryId >= MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
-		g_flightMissionState.difficulty = GAME_DIFFICULTY_MEDIUM;
-	} else {
-		g_flightMissionState.difficulty = g_gameConfig.difficulty;
-		if (g_flightMissionState.difficulty > GAME_DIFFICULTY_HARD) {
-			g_flightMissionState.difficulty = GAME_DIFFICULTY_EASY;
-		}
-	}
-	g_flightMissionState.collisionsEnabled = g_gameConfig.collisions;
-	g_flightMissionState.craftJumpingEnabled = g_gameConfig.craftJumping;
-	g_flightMissionState.randomVariationEnabled = g_gameConfig.randomSetup;
-	g_flightMissionState.reserved18 = g_gameConfig.battleLengthIndex;
-	g_flightMissionState.locatePlayersEnabled = g_gameConfig.locatePlayers;
-	g_flightMissionState.playerFlightGroupWaveMode = g_gameConfig.craftWaves;
-	if (g_pilotData.numHumanPlayersLastMission > 1) {
-		g_flightMissionState.missionTimeLimitMinutes = g_gameConfig.missionTimeLimit;
-		g_flightMissionState.teamVictoryTimeLimitMinutes = g_gameConfig.lastTeamTimeLimitMinutes;
-		g_flightMissionState.aiOpponentsEnabled = g_gameConfig.aiOpponents;
-	} else {
-		g_flightMissionState.missionTimeLimitMinutes = UINT8_MAX;
-		g_flightMissionState.teamVictoryTimeLimitMinutes = 0;
-		g_flightMissionState.aiOpponentsEnabled = 1;
-	}
-	g_flightMissionState.craftImpactBounceEnabled = 1;
-	if ((unsigned int)g_pilotData.missionDirectoryId >= MISSION_DIRECTORY_COMBAT_ENGAGEMENTS &&
-		g_pilotData.missionSequenceActive == 1) {
-		g_flightMissionState.randomVariationEnabled = 0;
-	}
+	XvtFlightLoading_MissionRules();
 
 	if (g_activeFlightPlayerCount != 1) {
 		g_gameRandStateB = (int16_t)g_gameConfig.randomSeed;
