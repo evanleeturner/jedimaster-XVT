@@ -223,6 +223,9 @@ add_test(NAME records COMMAND test_records)
 xvt_add_engine_test(test_render_camera test_render_camera.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_camera.c")
 add_test(NAME render_camera COMMAND test_render_camera)
+xvt_add_engine_test(test_render_frontend test_render_frontend.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_frontend.c")
+add_test(NAME render_frontend COMMAND test_render_frontend)
 xvt_add_engine_test(test_render_hud test_render_hud.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/render_hud.c")
 add_test(NAME render_hud COMMAND test_render_hud)
