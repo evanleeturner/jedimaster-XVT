@@ -197,6 +197,10 @@ if(NOT MSVC)
 endif()
 
 # The cockpit's snapshot capture: src/xvt_runtime/snapshot/cockpit_*.
+xvt_add_engine_test(test_cockpit_capture test_cockpit_capture.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/cockpit_capture.c")
+add_test(NAME cockpit_capture COMMAND test_cockpit_capture)
+xvt_add_known_failure(test_cockpit_capture export_resources_without_panel)
 xvt_add_engine_test(test_cockpit_instruments test_cockpit_instruments.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/cockpit_instruments.c")
 add_test(NAME cockpit_instruments COMMAND test_cockpit_instruments)
