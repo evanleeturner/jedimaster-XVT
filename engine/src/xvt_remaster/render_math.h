@@ -57,8 +57,9 @@ int XvtRenderMath_ProjectWorld(const XvtRenderView* view, const int32_t world[3]
 							   float* depth);
 /* The model matrix that places object's mesh in the scene: its rotation from the cached Q15 rows when the
  * object has a mobile record whose orientation is not dirty, else from its Q16 pitch, yaw and roll as the
- * original computes them; scaled by AERON_OPT_UNITS_PER_METER; translation = world_pos - origin. No
- * argument is checked. */
+ * original computes them, with the rotation's rows taken in the order 0, 2, 1 as the engine reads them
+ * (swapping two axes, so the 3x3 part is mirrored and its determinant is negative); scaled by
+ * AERON_OPT_UNITS_PER_METER; translation = world_pos - origin. No argument is checked. */
 void XvtRenderMath_ObjectMatrix(const XvtSnapObject* object, const int32_t origin[3], float out[16]);
 /* Returns 1 when a frame drawn for previous cannot stand for current: either is NULL, flight_valid
  * differs, the camera record differs in any byte, the object count differs, an object at the same index
