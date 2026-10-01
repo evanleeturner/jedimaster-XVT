@@ -123,6 +123,9 @@ xvt_add_known_failure(test_flight_controls roll_step_fast_rate)
 xvt_add_engine_test(test_input_bridge test_input_bridge.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/input_bridge.c")
 add_test(NAME input_bridge COMMAND test_input_bridge)
+xvt_add_engine_test(test_keyboard_mapping test_keyboard_mapping.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/input/keyboard_mapping.c")
+add_test(NAME keyboard_mapping COMMAND test_keyboard_mapping)
 
 # Timing, the orientation hooks, and the remaster's render math.
 
