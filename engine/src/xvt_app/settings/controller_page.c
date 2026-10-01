@@ -665,6 +665,17 @@ static void XvtControllerSettings_BindingConflictModal(XvtControllerSettings* se
 	}
 }
 
+/* Unbinds every axis in the selected model's profile that another model in candidate already has
+ * bound, so restored gamepad defaults never take an axis away from another controller. */
+static void XvtControllerSettings_ClearAxesUsedByOthers(const XvtControllerOptions* candidate, int model,
+														XvtControllerModel* selected) {
+	for (size_t i = 0; i < candidate->count; ++i)
+		if (i != (size_t)model)
+			for (int axis = 0; axis < XVT_INPUT_AXIS_COUNT; ++axis)
+				if (candidate->models[i].profile.mapping.axes[axis].source >= 0)
+					selected->profile.mapping.axes[axis].source = -1;
+}
+
 static void XvtControllerSettings_RestoreModal(XvtControllerSettings* settings, AeronUiContext* ui,
 											   const XvtSettings* config) {
 	const AeronControllerSnapshot* device =
@@ -686,11 +697,7 @@ static void XvtControllerSettings_RestoreModal(XvtControllerSettings* settings, 
 			XvtControllerOptions_ClearProfile(&selected->profile, device->kind);
 			if (device->kind == AERON_CONTROLLER_KIND_GAMEPAD) {
 				selected->profile = config->gamepad_defaults;
-				for (size_t i = 0; i < candidate.count; ++i)
-					if (i != (size_t)model)
-						for (int axis = 0; axis < XVT_INPUT_AXIS_COUNT; ++axis)
-							if (candidate.models[i].profile.mapping.axes[axis].source >= 0)
-								selected->profile.mapping.axes[axis].source = -1;
+				XvtControllerSettings_ClearAxesUsedByOthers(&candidate, model, selected);
 			}
 			settings->draft = candidate;
 			XvtControllerSettings_ApplyDraft(settings);
