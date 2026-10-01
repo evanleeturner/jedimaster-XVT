@@ -222,6 +222,83 @@ int XvtFlightEntry_Prepare(char* missionCmdLine) {
 									  g_flightInProgressLaunch, connectionAddress);
 }
 
+/* Sets the distance scale for model detail levels from the level-of-detail setting, capped at its
+ * maximum, bent by the configured curve and inverted; clears any forced detail level. */
+static void XvtFlightEntry_ConfigureLodDistance(void) {
+	int lodConfigValue;
+
+	lodConfigValue = g_gameConfig.lod[NetSession_GetPlayerCount() > 1] + LOD_CONFIG_OFFSET;
+	g_lodDistanceScale = (float)lodConfigValue;
+	if (g_lodDistanceScale > g_lodConfigMaxValue) {
+		g_lodDistanceScale = (float)LOD_CONFIG_MAX_VALUE;
+	}
+	g_lodDistanceScale = g_lodDistanceScale * g_lodConfigScaleFactor;
+	g_lodDistanceScale = g_lodDistanceScale * g_lodConfigCurveDouble;
+	if (g_lodDistanceScale > g_lodConfigCurveThreshold) {
+		g_lodDistanceScale = g_lodConfigCurveThreshold / (g_lodConfigCurveDouble - g_lodDistanceScale);
+	}
+	g_forcedLodLevel = 0;
+	g_lodDistanceScale = (float)LOD_CONFIG_CURVE_THRESHOLD_VALUE / g_lodDistanceScale;
+}
+
+/* Turns mipmapping off when the mipmap setting is at its disabled value; otherwise turns it on and
+ * sets the mip distance scale from the setting through the same curve and inversion as the
+ * detail levels. */
+static void XvtFlightEntry_ConfigureMipmaps(void) {
+	int mipmapConfigOption;
+
+	mipmapConfigOption = g_gameConfig.mipmap[NetSession_GetPlayerCount() > 1];
+	if (mipmapConfigOption != MIPMAPPING_DISABLED_VALUE) {
+		int64_t mipmapConfigValue;
+
+		mipmapConfigValue = g_gameConfig.mipmap[NetSession_GetPlayerCount() > 1];
+		g_mipLodScale = (float)mipmapConfigValue;
+		g_mipLodScale = g_mipLodScale * g_mipmapConfigScaleFactor;
+		g_mipLodScale = g_mipLodScale * g_lodConfigCurveDouble;
+		if (g_mipLodScale > g_lodConfigCurveThreshold) {
+			g_mipLodScale = g_lodConfigCurveThreshold / (g_lodConfigCurveDouble - g_mipLodScale);
+		}
+		g_mipmappingEnabled = 1;
+		g_mipLodScale = (float)LOD_CONFIG_CURVE_THRESHOLD_VALUE / g_mipLodScale;
+	} else {
+		g_mipmappingEnabled = 0;
+	}
+}
+
+/* Sets the render size from the screen resolution setting and the window surface size from the
+ * window size setting, then the render target width. */
+static void XvtFlightEntry_ConfigureDisplaySize(void) {
+	switch (g_gameConfig.screenRes[NetSession_GetPlayerCount() > 1]) {
+		case DISPLAY_CONFIG_LOW:
+			width = DISPLAY_WIDTH_LOW;
+			height = DISPLAY_HEIGHT_LOW;
+			break;
+		case DISPLAY_CONFIG_MEDIUM:
+			width = DISPLAY_WIDTH_MEDIUM;
+			height = DISPLAY_HEIGHT_MEDIUM;
+			break;
+		default:
+			width = DISPLAY_WIDTH_HIGH;
+			height = DISPLAY_HEIGHT_HIGH;
+			break;
+	}
+	switch (g_gameConfig.windowSize[NetSession_GetPlayerCount() > 1]) {
+		case DISPLAY_CONFIG_LOW:
+			g_surfaceWidth = DISPLAY_WIDTH_LOW;
+			g_surfaceHeight = DISPLAY_HEIGHT_LOW;
+			break;
+		case DISPLAY_CONFIG_MEDIUM:
+			g_surfaceWidth = WINDOW_WIDTH_MEDIUM;
+			g_surfaceHeight = WINDOW_HEIGHT_MEDIUM;
+			break;
+		default:
+			g_surfaceWidth = DISPLAY_WIDTH_HIGH;
+			g_surfaceHeight = DISPLAY_HEIGHT_HIGH;
+			break;
+	}
+	g_renderTargetWidth = width;
+}
+
 static void XvtFlightEntry_Configure(void) {
 	int brightnessLimit;
 	g_flightBrightnessScaleQ8 =
@@ -270,42 +347,8 @@ static void XvtFlightEntry_Configure(void) {
 		}
 	}
 	NetSession_GetPlayerCount();
-	{
-		int lodConfigValue;
-
-		lodConfigValue = g_gameConfig.lod[NetSession_GetPlayerCount() > 1] + LOD_CONFIG_OFFSET;
-		g_lodDistanceScale = (float)lodConfigValue;
-		if (g_lodDistanceScale > g_lodConfigMaxValue) {
-			g_lodDistanceScale = (float)LOD_CONFIG_MAX_VALUE;
-		}
-		g_lodDistanceScale = g_lodDistanceScale * g_lodConfigScaleFactor;
-		g_lodDistanceScale = g_lodDistanceScale * g_lodConfigCurveDouble;
-		if (g_lodDistanceScale > g_lodConfigCurveThreshold) {
-			g_lodDistanceScale = g_lodConfigCurveThreshold / (g_lodConfigCurveDouble - g_lodDistanceScale);
-		}
-		g_forcedLodLevel = 0;
-		g_lodDistanceScale = (float)LOD_CONFIG_CURVE_THRESHOLD_VALUE / g_lodDistanceScale;
-	}
-	{
-		int mipmapConfigOption;
-
-		mipmapConfigOption = g_gameConfig.mipmap[NetSession_GetPlayerCount() > 1];
-		if (mipmapConfigOption != MIPMAPPING_DISABLED_VALUE) {
-			int64_t mipmapConfigValue;
-
-			mipmapConfigValue = g_gameConfig.mipmap[NetSession_GetPlayerCount() > 1];
-			g_mipLodScale = (float)mipmapConfigValue;
-			g_mipLodScale = g_mipLodScale * g_mipmapConfigScaleFactor;
-			g_mipLodScale = g_mipLodScale * g_lodConfigCurveDouble;
-			if (g_mipLodScale > g_lodConfigCurveThreshold) {
-				g_mipLodScale = g_lodConfigCurveThreshold / (g_lodConfigCurveDouble - g_mipLodScale);
-			}
-			g_mipmappingEnabled = 1;
-			g_mipLodScale = (float)LOD_CONFIG_CURVE_THRESHOLD_VALUE / g_mipLodScale;
-		} else {
-			g_mipmappingEnabled = 0;
-		}
-	}
+	XvtFlightEntry_ConfigureLodDistance();
+	XvtFlightEntry_ConfigureMipmaps();
 	switch (g_gameConfig.textureRes[NetSession_GetPlayerCount() > 1]) {
 		case 0:
 			g_keepFullResTextures = 0;
@@ -353,35 +396,7 @@ static void XvtFlightEntry_Configure(void) {
 			g_ditheringEnabled = 0;
 		}
 	}
-	switch (g_gameConfig.screenRes[NetSession_GetPlayerCount() > 1]) {
-		case DISPLAY_CONFIG_LOW:
-			width = DISPLAY_WIDTH_LOW;
-			height = DISPLAY_HEIGHT_LOW;
-			break;
-		case DISPLAY_CONFIG_MEDIUM:
-			width = DISPLAY_WIDTH_MEDIUM;
-			height = DISPLAY_HEIGHT_MEDIUM;
-			break;
-		default:
-			width = DISPLAY_WIDTH_HIGH;
-			height = DISPLAY_HEIGHT_HIGH;
-			break;
-	}
-	switch (g_gameConfig.windowSize[NetSession_GetPlayerCount() > 1]) {
-		case DISPLAY_CONFIG_LOW:
-			g_surfaceWidth = DISPLAY_WIDTH_LOW;
-			g_surfaceHeight = DISPLAY_HEIGHT_LOW;
-			break;
-		case DISPLAY_CONFIG_MEDIUM:
-			g_surfaceWidth = WINDOW_WIDTH_MEDIUM;
-			g_surfaceHeight = WINDOW_HEIGHT_MEDIUM;
-			break;
-		default:
-			g_surfaceWidth = DISPLAY_WIDTH_HIGH;
-			g_surfaceHeight = DISPLAY_HEIGHT_HIGH;
-			break;
-	}
-	g_renderTargetWidth = width;
+	XvtFlightEntry_ConfigureDisplaySize();
 	g_unusedFlightDisplayBytesPerPixelMirror = g_flight16bppBytesPerPixel;
 	g_unusedFlightDisplayHardware3DMirror = g_useHardware3D;
 }
