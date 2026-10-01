@@ -1,9 +1,9 @@
 #include "xvt_runtime/input/controller_mapping.h"
 #include "aeron/debug.h"
-#include "aeron/log.h"
 #include "xvt/flight/flight_input.h"
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/input/capture.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/flight_task.h"
 #include "xvt_runtime/runtime/port.h"
@@ -39,7 +39,7 @@ static struct {
 static void XvtControllerMapping_QueueKey(uint16_t key) {
 	unsigned next = (g_controller.write + 1) % ACTION_QUEUE_CAPACITY;
 	if (next == g_controller.read) {
-		Aeron_LogWarn("xvt.input", "Controller command queue is full");
+		XVT_LOG_WARN("input.queue_full queue=controller");
 		return;
 	}
 	g_controller.queue[g_controller.write] = key;
@@ -119,7 +119,7 @@ static void XvtControllerMapping_Install(const XvtControllerOptions* options) {
 		options = &empty;
 	char error[128];
 	if (!XvtControllerOptions_Validate(options, error, sizeof error)) {
-		Aeron_LogWarn("xvt.input", "%s", error);
+		XVT_LOG_WARN("input.controller_rejected error=\"%s\"", error);
 		return;
 	}
 	if (XvtControllerOptions_Equals(options, &g_controller.options))
@@ -171,7 +171,7 @@ void XvtControllerMapping_Init(const XvtControllerOptions* options) {
 void XvtControllerMapping_SetOptions(const XvtControllerOptions* options) {
 	char error[128];
 	if (!XvtControllerOptions_Validate(options, error, sizeof error)) {
-		Aeron_LogWarn("xvt.input", "%s", error);
+		XVT_LOG_WARN("input.controller_rejected error=\"%s\"", error);
 		return;
 	}
 	g_controller.pending = *options;
@@ -249,8 +249,8 @@ static void LogUnavailableControls(const XvtControllerModel* model, const AeronC
 			++missing;
 	}
 	if (missing || device->controls_truncated)
-		Aeron_LogWarn("xvt.input", "controller '%s': %d unavailable configured controls%s", device->name,
-					  missing, device->controls_truncated ? ", hardware controls truncated" : "");
+		XVT_LOG_WARN("input.controls_missing controller=\"%s\" missing=%d truncated=%d", device->name,
+					 missing, device->controls_truncated ? 1 : 0);
 }
 
 static void SampleDigital(ControllerInstance* state, const AeronControllerSnapshot* device) {

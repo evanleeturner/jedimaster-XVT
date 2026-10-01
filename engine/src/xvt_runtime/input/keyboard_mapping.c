@@ -1,6 +1,7 @@
 #include "xvt_runtime/input/keyboard_mapping.h"
 
 #include "aeron/aeron.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/port.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,7 +138,7 @@ static void Dispatch(XvtInputAction action, bool down, bool repeat) {
 	}
 	unsigned next = (g_keyboard.write + 1) % 256;
 	if (next == g_keyboard.read) {
-		Aeron_LogWarn("xvt.input", "Keyboard command queue is full");
+		XVT_LOG_WARN("input.queue_full queue=keyboard");
 		return;
 	}
 	g_keyboard.queue[g_keyboard.write] = (uint8_t)XvtInputActions_Key(action);

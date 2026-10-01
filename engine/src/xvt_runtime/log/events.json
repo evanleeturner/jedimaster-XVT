@@ -73,10 +73,30 @@
       "fields": [],
       "text": "The frontend is initialized"
     },
+    "input.capture_failed": {
+      "level": "E",
+      "fields": ["device"],
+      "text": "Cannot capture the flight {device}; the player retries with Ctrl+Alt+M"
+    },
+    "input.controller_rejected": {
+      "level": "W",
+      "fields": ["error"],
+      "text": "The controller options were rejected: {error}"
+    },
+    "input.controls_missing": {
+      "level": "W",
+      "fields": ["controller", "missing", "truncated"],
+      "text": "Controller {controller} lacks {missing} configured controls (hardware list cut: {truncated})"
+    },
     "input.discovery_failed": {
       "level": "W",
       "fields": ["error"],
       "text": "Adding newly connected controllers failed: {error}"
+    },
+    "input.queue_full": {
+      "level": "W",
+      "fields": ["queue"],
+      "text": "The {queue} command queue is full; the command is dropped"
     },
     "launch.command": {
       "level": "D",

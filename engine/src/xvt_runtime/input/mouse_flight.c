@@ -8,6 +8,7 @@
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/input/actions.h"
 #include "xvt_runtime/input/capture.h"
+#include "xvt_runtime/log/log.h"
 #include <math.h>
 #include <stdint.h>
 
@@ -77,7 +78,7 @@ void XvtMouseFlight_Reset(void) {
 static void XvtMouseFlight_QueueKey(uint16_t key) {
 	unsigned next = (g_mouseFlight.write_key + 1) % 16;
 	if (next == g_mouseFlight.read_key) {
-		Aeron_LogWarn("xvt.input", "Mouse command queue is full");
+		XVT_LOG_WARN("input.queue_full queue=mouse");
 		return;
 	}
 	g_mouseFlight.keys[g_mouseFlight.write_key] = key;

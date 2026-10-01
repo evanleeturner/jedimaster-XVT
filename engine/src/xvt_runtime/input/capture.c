@@ -11,6 +11,7 @@
 #include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/input/keyboard_mapping.h"
 #include "xvt_runtime/input/mouse_flight.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/flight_sim.h"
 #include "xvt_runtime/runtime/flight_task.h"
@@ -187,7 +188,7 @@ void XvtInput_UpdateMouseCapture(const AeronInputSnapshot* input) {
 		if (!Aeron_SetRelativeMouseMode(capture) && capture) {
 			g_mouseCaptureFailed = true;
 			g_mouseReleased = true;
-			Aeron_LogError("xvt.input", "Cannot capture flight mouse; retry with Ctrl+Alt+M");
+			XVT_LOG_ERROR("input.capture_failed device=mouse");
 		}
 		XvtMouseFlight_Reset();
 		g_blockedMouse |= input ? input->mouse.buttons : 0;
