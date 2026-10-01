@@ -1,5 +1,6 @@
 #include "xvt_app/log_sink.h"
 
+#include "xvt_app/crash_note.h"
 #include "xvt_app/log_file.h"
 #include "xvt_runtime/log/log.h"
 
@@ -244,6 +245,7 @@ int XvtLogSink_Install(const XvtLaunchOptions* options) {
 	SDL_GetCurrentTime(&start);
 	if (XvtLogSink_ChooseFile(options, start, path, sizeof(path), error, sizeof(error)))
 		g_logSinkFile = XvtLogFile_Open(path, error, sizeof(error));
+	XvtCrashNote_Install(g_logSinkFile);
 	SDL_SetLogPriorities(XvtLogSink_Priority(level));
 	SDL_SetLogOutputFunction(XvtLogSink_Write, NULL);
 	XvtLogSink_WriteHeader(options, start);

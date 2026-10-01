@@ -13,11 +13,16 @@ where the two disagree:
   shape        a format string is not "event key=value ...": the event id is
                not a literal two-part dotted name, a word is not key=value,
                or a text value (%s) is not double-quoted
-  bypass       a call to Aeron_Log* or XvtLog_Write outside the log header
+  bypass       a call to Aeron_Log*, XvtLog_Write or XvtCrashNote_Writef
+               outside the files that define the macros
   catalog      a catalog entry is malformed, or its text names a field the
                entry does not declare
 
-The log header and its source file are not scanned: they define the macros.
+XVT_LOG_DEBUG, XVT_LOG_INFO, XVT_LOG_WARN and XVT_LOG_ERROR write levels D,
+I, W and E; XVT_LOG_CRASH, the crash note's macro, writes level C. The log
+header, its source file and the crash note's header are not scanned: they
+define the macros. The crash note's source file is scanned, since it holds
+the XVT_LOG_CRASH call sites, but may name XvtCrashNote_Writef: it defines it.
 One finding per line, "FAIL <kind> <file>:<line> <detail>", then a summary.
 Exit status 0 when nothing is reported, 1 when something is, 2 when the
 catalog cannot be read.
@@ -35,16 +40,18 @@ from pathlib import Path
 CATALOG = Path("src/xvt_runtime/log/events.json")
 LOG_HEADER = Path("src/xvt_runtime/log/log.h")
 LOG_SOURCE = Path("src/xvt_runtime/log/log.c")
+CRASH_HEADER = Path("src/xvt_app/crash_note.h")
+CRASH_SOURCE = Path("src/xvt_app/crash_note.c")
 SCANNED = ("src/xvt_runtime", "src/xvt_remaster", "src/xvt_app")
 
-LEVEL_LETTERS = {"DEBUG": "D", "INFO": "I", "WARN": "W", "ERROR": "E"}
+LEVEL_LETTERS = {"DEBUG": "D", "INFO": "I", "WARN": "W", "ERROR": "E", "CRASH": "C"}
 
-MACRO_CALL = re.compile(r"\bXVT_LOG_(DEBUG|INFO|WARN|ERROR)\s*\(")
+MACRO_CALL = re.compile(r"\bXVT_LOG_(DEBUG|INFO|WARN|ERROR|CRASH)\s*\(")
 STRING_LITERALS = re.compile(r'\s*(?:"(?:[^"\\]|\\.)*"\s*)+')
 ONE_LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
 BYPASS = re.compile(
     r"\b(?:Aeron_Log(?:Trace|Verbose|Debug|Info|Warn|Error|Critical|Message|MessageV)"
-    r"|XvtLog_Write|XVT_LOG_AT)\s*\("
+    r"|XvtLog_Write|XvtCrashNote_Writef|XVT_LOG_AT)\s*\("
 )
 EVENT_ID = re.compile(r"^[a-z][a-z0-9]*\.[a-z][a-z0-9_]*$")
 FIELD = re.compile(r"^([a-z][a-z0-9_]*)=(.+)$")
@@ -177,7 +184,7 @@ def scan_file(path: Path, root: Path) -> tuple[list[Site], list[Finding]]:
     relative = path.relative_to(root).as_posix()
     sites: list[Site] = []
     findings: list[Finding] = []
-    if path.relative_to(root) in (LOG_HEADER, LOG_SOURCE):
+    if path.relative_to(root) in (LOG_HEADER, LOG_SOURCE, CRASH_HEADER):
         return sites, findings
     for match in MACRO_CALL.finditer(mask):
         where = f"{relative}:{line_of(code, match.start())}"
@@ -199,6 +206,8 @@ def scan_file(path: Path, root: Path) -> tuple[list[Site], list[Finding]]:
     for match in BYPASS.finditer(mask):
         where = f"{relative}:{line_of(code, match.start())}"
         name = match.group(0).rstrip("( \t\n")
+        if name == "XvtCrashNote_Writef" and path.relative_to(root) == CRASH_SOURCE:
+            continue
         findings.append(
             Finding("bypass", where, f"{name} is called outside the log header")
         )
@@ -231,7 +240,7 @@ def load_catalog(root: Path) -> tuple[dict, list[Finding]]:
         text = entry.get("text")
         if level not in LEVEL_LETTERS.values():
             findings.append(
-                Finding("catalog", where, f"{event}: level must be D, I, W or E")
+                Finding("catalog", where, f"{event}: level must be D, I, W, E or C")
             )
         if not isinstance(fields, list) or any(not isinstance(f, str) for f in fields):
             findings.append(

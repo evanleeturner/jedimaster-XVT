@@ -3,6 +3,21 @@
   "grammar": 1,
   "line": "HH:MM:SS.mmm L event key=value ...",
   "events": {
+    "app.crash_exception": {
+      "level": "C",
+      "fields": ["code", "addr"],
+      "text": "The program crashed on Windows exception {code} at address {addr}; the stack's frames follow"
+    },
+    "app.crash_frame": {
+      "level": "C",
+      "fields": ["n", "module", "offset"],
+      "text": "Frame {n} of the crashed stack is at offset {offset} in {module}"
+    },
+    "app.crash_signal": {
+      "level": "C",
+      "fields": ["signal", "code", "addr"],
+      "text": "The program crashed on {signal} (si_code {code}, address {addr}); the stack's frames follow"
+    },
     "app.log_file": {
       "level": "I",
       "fields": ["path"],

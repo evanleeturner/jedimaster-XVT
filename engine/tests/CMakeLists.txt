@@ -188,6 +188,16 @@ if(NOT MSVC)
     target_link_libraries(test_log_file PRIVATE Threads::Threads)
     add_test(NAME log_file COMMAND test_log_file)
 endif()
+# The crash note crashes child processes on purpose, so its test is the one program built without the
+# sanitizers: AddressSanitizer would catch each crash itself and end the child its own way.
+add_executable(test_crash_note test_crash_note.c "${PROJECT_SOURCE_DIR}/src/xvt_app/crash_note.c"
+    "${PROJECT_SOURCE_DIR}/src/xvt_app/log_file.c")
+target_include_directories(test_crash_note PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/src")
+if(NOT MSVC)
+    target_compile_options(test_crash_note PRIVATE -Wall -Wextra -Wpedantic -fno-omit-frame-pointer -g)
+endif()
+add_dependencies(xvt_tests test_crash_note)
+add_test(NAME crash_note COMMAND test_crash_note)
 # The mission dump tool is built here as the top-level build builds it with XVT_BUILD_TOOLS, but with the
 # test flags, and the test runs it on mission files it writes itself.
 if(NOT MSVC)

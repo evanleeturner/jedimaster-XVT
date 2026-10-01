@@ -28,8 +28,9 @@ extern "C" {
  * where the oldest run logs are removed so the newest XVT_LOG_FILE_KEEP remain. The first line after the
  * header names the file (app.log_file), or says why there is none (app.log_file_failed) and the run goes
  * on with stderr only. The file holds DEBUG lines only when the level asks for them, as stderr does.
- * State: the home folder and the log file, found once at install; SDL holds the output function, the
- * log header the level. */
+ * Install also installs the crash note (crash_note.h) on the same file, so a crash ends the log with what
+ * happened and where. State: the home folder and the log file, found once at install; SDL holds the
+ * output function, the log header the level. */
 
 /* Installs the writer and opens the log file as described above, and returns 1. Returns 0, with nothing
  * changed, no file opened and a message on stderr, when the option or the environment variable names a
