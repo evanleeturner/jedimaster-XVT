@@ -22,6 +22,8 @@ int main(int argc, char* argv[]) {
 				"  --check-installation       Validate/setup from CLI and exit without a window\n"
 				"  --resource-root <directory> Override packaged resources\n"
 				"  --log-level <level>         Write log lines at debug, info, warn or error (default info)\n"
+				"  --log-file <path>           Append log lines to this file (default: a new file per run\n"
+				"                              in logs/ beside config.yaml; the newest 10 are kept)\n"
 				"  --help                      Show this help\n");
 		return valid ? 0 : 2;
 	}

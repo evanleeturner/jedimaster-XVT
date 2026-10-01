@@ -3,6 +3,16 @@
   "grammar": 1,
   "line": "HH:MM:SS.mmm L event key=value ...",
   "events": {
+    "app.log_file": {
+      "level": "I",
+      "fields": ["path"],
+      "text": "Log lines also go to the file {path}"
+    },
+    "app.log_file_failed": {
+      "level": "W",
+      "fields": ["path", "error"],
+      "text": "Cannot write the log file {path} ({error}); log lines go to stderr only"
+    },
     "app.ready": {
       "level": "I",
       "fields": [],

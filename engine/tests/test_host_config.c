@@ -30,6 +30,7 @@ static void CheckZeroesOptions(void) {
 	XVT_ASSERT_TRUE(options.resource_root == NULL && options.game_data == NULL);
 	XVT_ASSERT_TRUE(options.import_config == NULL && options.import_pilot == NULL);
 	XVT_ASSERT_TRUE(options.pilot_name == NULL && options.log_level == NULL);
+	XVT_ASSERT_TRUE(options.log_file == NULL);
 	XVT_ASSERT_INT_EQ(options.show_help, 0);
 	XVT_ASSERT_INT_EQ(options.setup, 0);
 	XVT_ASSERT_INT_EQ(options.save_config, 0);
@@ -66,7 +67,7 @@ static void CheckValues(void) {
 	/* After '=' or as the next argument; kept as text, unchecked, borrowed from argv. */
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--resource-root=res", "--game-data", "data dir",
 							"--import-config=x.cfg", "--import-pilot", "p.plt", "--pilot-name=Ace",
-							"--log-level", "loud"),
+							"--log-level", "loud", "--log-file=runs/a.log"),
 					  1);
 	XVT_ASSERT_TRUE(options.resource_root == g_argv[1] + strlen("--resource-root="));
 	XVT_ASSERT_TRUE(options.game_data == g_argv[3]);
@@ -76,6 +77,9 @@ static void CheckValues(void) {
 	XVT_ASSERT_TRUE(options.log_level == g_argv[9]);
 	XVT_ASSERT_INT_EQ(strcmp(options.log_level, "loud"), 0);
 	XVT_ASSERT_INT_EQ(strcmp(options.game_data, "data dir"), 0);
+	XVT_ASSERT_TRUE(options.log_file == g_argv[10] + strlen("--log-file="));
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--log-file", "b.log"), 1);
+	XVT_ASSERT_TRUE(options.log_file == g_argv[2]);
 }
 
 static void CheckValueRefusals(void) {
@@ -86,6 +90,9 @@ static void CheckValueRefusals(void) {
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--game-data", ""), 0);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--game-data", "-x"), 0);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--log-level=-1"), 0);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--log-file"), 0);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--log-file="), 0);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--log-file=a.log", "--log-file=b.log"), 0);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--import-pilot", "--setup"), 0);
 
 	/* A value option given twice, in either spelling. */

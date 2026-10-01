@@ -180,6 +180,14 @@ xvt_add_engine_test(test_opt_relocate test_opt_relocate.c
 add_test(NAME opt_relocate COMMAND test_opt_relocate)
 xvt_add_engine_test(test_host_config test_host_config.c "${PROJECT_SOURCE_DIR}/src/xvt_app/host_config.c")
 add_test(NAME host_config COMMAND test_host_config)
+# The run log file: names, which old files are kept, and the append-only handle under two writing threads.
+if(NOT MSVC)
+    find_package(Threads REQUIRED)
+    xvt_add_test_program(test_log_file test_log_file.c "${PROJECT_SOURCE_DIR}/src/xvt_app/log_file.c")
+    target_include_directories(test_log_file PRIVATE "${PROJECT_SOURCE_DIR}/src")
+    target_link_libraries(test_log_file PRIVATE Threads::Threads)
+    add_test(NAME log_file COMMAND test_log_file)
+endif()
 # The mission dump tool is built here as the top-level build builds it with XVT_BUILD_TOOLS, but with the
 # test flags, and the test runs it on mission files it writes itself.
 if(NOT MSVC)
