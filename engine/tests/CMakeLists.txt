@@ -110,6 +110,13 @@ endif()
 # Timing, the orientation hooks, and the remaster's render math.
 
 # Storage, the compatibility ports, model assets, launch options and the mission dump tool.
+# The tests that read and write files make a fresh temporary folder with POSIX calls (test_temp_folder.h).
+if(NOT MSVC)
+    xvt_add_engine_test(test_file_io test_file_io.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/storage/file_io.c")
+    add_test(NAME file_io COMMAND test_file_io)
+    xvt_add_engine_test(test_storage test_storage.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/storage/storage.c")
+    add_test(NAME storage COMMAND test_storage)
+endif()
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
