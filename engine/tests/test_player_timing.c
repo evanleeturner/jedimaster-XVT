@@ -307,6 +307,15 @@ static void CheckSlew(void) {
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_SLEW_YAW, 4, 1, 8), 0);
 }
 
+/* Known failure slew_int_min: the header promises a step for any difference, and INT_MIN's magnitude
+ * is 2^31, so with 8 ticks the step is -4 * (2^31 / 29). The code takes abs(INT_MIN), which is undefined
+ * behavior, and the sanitizer stops the program there. */
+static void CheckSlewMostNegative(void) {
+	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_elapsedTicks = 8;
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, INT_MIN), -4 * ((INT64_C(1) << 31) / 29));
+}
+
 static void CheckLockHalfLocked(void) {
 	FreshWorld(XVT_FLIGHT_TIMING_NATIVE);
 	g_elapsedTicks = 7;
@@ -710,7 +719,13 @@ static void CheckResetShared(void) {
 	ExpectPosition(position, 60, 0, 0);
 }
 
-int main(void) {
+int main(int argc, char** argv) {
+	/* "known-failure <check>" runs one check the code is known to fail; an unknown name runs nothing. */
+	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
+		if (strcmp(argv[2], "slew_int_min") == 0)
+			CheckSlewMostNegative();
+		return 0;
+	}
 	CheckScale();
 	CheckClearAndReset();
 	CheckEntryFollowsObject();

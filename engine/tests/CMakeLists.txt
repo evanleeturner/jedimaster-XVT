@@ -143,6 +143,7 @@ add_test(NAME host_clock COMMAND test_host_clock)
 xvt_add_engine_test(test_player_timing test_player_timing.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/timing/player_timing.c")
 add_test(NAME player_timing COMMAND test_player_timing)
+xvt_add_known_failure(test_player_timing slew_int_min)
 xvt_add_engine_test(test_reference_motion test_reference_motion.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/timing/reference_motion.c")
 add_test(NAME reference_motion COMMAND test_reference_motion)
