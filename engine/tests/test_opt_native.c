@@ -289,6 +289,75 @@ static void CheckPayloadPastEnd(void) {
 	free(body.bytes);
 }
 
+/* Appends size payload bytes, none of them 0, then 16 filler bytes the payload must not take in, and returns
+ * the payload's address. */
+static uint32_t Payload(Body* body, uint32_t size) {
+	uint32_t payload = Append(body, NULL, size + 16);
+	for (uint32_t i = 0; i < size + 16; ++i)
+		body->bytes[payload - BASE + i] = i < size ? (uint8_t)(0x80 | (i * 7)) : 0xEE;
+	return payload;
+}
+
+/* Reads the body as a file of the given version and checks the payload of its last root, the last node
+ * read: its size bytes are copied from payload in the file, and only zeroed padding follows them before the
+ * copy of the body, which comes last in the block. */
+static void CheckLastPayload(const Body* body, int version, uint32_t payload, uint32_t size) {
+	int read = -9;
+	unsigned nativeSize = 0;
+	WriteModel("case.opt", version, body);
+	uint16_t handle = ReadFile("case.opt", &read, &nativeSize);
+	XVT_ASSERT_TRUE(handle != 0);
+	OptimizedPolyObject* model = Memory_LockHandle(handle);
+	const uint8_t* copied = model->rootNodes[model->rootNodeCount - 1]->param2;
+	const uint8_t* bodyCopy = (const uint8_t*)model + nativeSize - body->size;
+	XVT_ASSERT_TRUE(Inside(model, nativeSize, copied));
+	XVT_ASSERT_TRUE(copied + size <= bodyCopy && (size_t)(bodyCopy - (copied + size)) < sizeof(void*));
+	XVT_ASSERT_INT_EQ(memcmp(copied, body->bytes + (payload - BASE), size), 0);
+	for (const uint8_t* pad = copied + size; pad < bodyCopy; ++pad)
+		XVT_ASSERT_INT_EQ(*pad, 0);
+	Memory_UnlockHandle(handle);
+	Memory_FreeHandle(handle);
+}
+
+static void CheckPayloadSizes(void) {
+	/* The payload size the reader gives each node type, here with a parameter of 3. */
+	static const struct {
+		int32_t type;
+		uint32_t size;
+	} payloads[] = {
+		{ OPT_TYPE_2, 48 },          { OPT_ROTSCALE, 48 },     { OPT_MESHVERTS, 3 * 12 },
+		{ OPT_VERTNORMALS, 3 * 12 }, { OPT_TYPE_4, 12 },       { OPT_TYPE_6, 12 },
+		{ OPT_TYPE_19, 12 },         { OPT_TYPE_5, 36 },       { OPT_TYPE_9, 3 * 56 },
+		{ OPT_TEXCOORDS, 3 * 8 },    { OPT_FACEGROUP, 3 * 4 }, { OPT_HARDPOINT, 16 },
+		{ OPT_MESHDESC, 72 },
+	};
+
+	Body body = { 0 };
+	for (size_t i = 0; i < sizeof payloads / sizeof payloads[0]; ++i) {
+		uint32_t table = Begin(&body, 1);
+		uint32_t payload = Payload(&body, payloads[i].size);
+		Put(&body, table, Node(&body, 0, payloads[i].type, 0, 0, 3, payload));
+		CheckLastPayload(&body, 1, payload, payloads[i].size);
+	}
+
+	/* Face data of 2 faces after a list of 5 vertices: a 4-byte count, then 84 bytes a face in version 0
+	 * files and 100 in later ones, then 12 bytes a vertex unless a list of normals was read before it. */
+	static const int32_t faceTypes[] = { OPT_FACEDATA, OPT_FACEDATA_15, OPT_FACEDATA_16, OPT_FACEDATA_17 };
+	for (int version = 0; version <= 2; ++version)
+		for (size_t t = 0; t < sizeof faceTypes / sizeof faceTypes[0]; ++t)
+			for (uint32_t normals = 0; normals <= 1; ++normals) {
+				uint32_t table = Begin(&body, 2 + normals);
+				Put(&body, table, Node(&body, 0, OPT_MESHVERTS, 0, 0, 5, Payload(&body, 5 * 12)));
+				if (normals)
+					Put(&body, table + 4, Node(&body, 0, OPT_VERTNORMALS, 0, 0, 5, Payload(&body, 5 * 12)));
+				uint32_t size = 4 + 2 * (version == 0 ? 84 : 100) + (normals ? 0 : 5 * 12);
+				uint32_t payload = Payload(&body, size);
+				Put(&body, table + 4 * (1 + normals), Node(&body, 0, faceTypes[t], 0, 0, 2, payload));
+				CheckLastPayload(&body, version, payload, size);
+			}
+	free(body.bytes);
+}
+
 /* Builds a chain of length group nodes, each the only child of the one before, under one root. */
 static void Chain(Body* body, int length) {
 	uint32_t table = Begin(body, 1);
@@ -342,7 +411,8 @@ typedef enum Defect {
 	DEFECT_NAME_OUTSIDE,
 	DEFECT_NAME_UNTERMINATED,
 	DEFECT_PAYLOAD_OUTSIDE,
-	DEFECT_TEXTURE_OUTSIDE
+	DEFECT_TEXTURE_OUTSIDE,
+	DEFECT_REFERENCE_UNTERMINATED
 } Defect;
 
 /* A named group with one vertex child, well formed, then spoiled by one defect. */
@@ -378,6 +448,10 @@ static void Simple(Body* body, Defect defect) {
 			Put(body, verts + 4, OPT_TEXTURE);
 			Put(body, verts + 20, End(body) + 64);
 			break;
+		case DEFECT_REFERENCE_UNTERMINATED:
+			Put(body, verts + 4, OPT_NODEREF);
+			Put(body, verts + 20, Append(body, "abc", 3));
+			break;
 		default:
 			break;
 	}
@@ -401,6 +475,8 @@ static void CheckLinksInsideFile(void) {
 	XVT_ASSERT_INT_EQ(AcceptsSimple(DEFECT_NAME_UNTERMINATED), 0);
 	XVT_ASSERT_INT_EQ(AcceptsSimple(DEFECT_PAYLOAD_OUTSIDE), 0);
 	XVT_ASSERT_INT_EQ(AcceptsSimple(DEFECT_TEXTURE_OUTSIDE), 0);
+	/* A reference node's payload is the name it refers to. */
+	XVT_ASSERT_INT_EQ(AcceptsSimple(DEFECT_REFERENCE_UNTERMINATED), 0);
 }
 
 static void CheckLoad(void) {
@@ -443,6 +519,7 @@ int main(void) {
 	CheckBodySize();
 	CheckRebuild();
 	CheckPayloadPastEnd();
+	CheckPayloadSizes();
 	CheckGraphLimits();
 	CheckLinksInsideFile();
 	CheckLoad();
