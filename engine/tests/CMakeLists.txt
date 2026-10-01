@@ -146,6 +146,12 @@ add_test(NAME player_timing COMMAND test_player_timing)
 xvt_add_engine_test(test_reference_motion test_reference_motion.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/timing/reference_motion.c")
 add_test(NAME reference_motion COMMAND test_reference_motion)
+xvt_add_engine_test(test_orientation_fixed test_orientation_fixed.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/hooks/orientation_fixed.c")
+add_test(NAME orientation_fixed COMMAND test_orientation_fixed)
+xvt_add_engine_test(test_orientation_hook test_orientation_hook.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/hooks/orientation_hook.c")
+add_test(NAME orientation_hook COMMAND test_orientation_hook)
 
 # Storage, the compatibility ports, model assets, launch options and the mission dump tool.
 # The tests that read and write files make a fresh temporary folder with POSIX calls (test_temp_folder.h).
