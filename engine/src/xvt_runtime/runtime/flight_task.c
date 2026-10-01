@@ -178,6 +178,10 @@ static int XvtFlightTask_StartWorld(void) {
 	return 1;
 }
 
+/* Moves the flight one step through its phases per call. A lost session first sends it to cleanup,
+ * and an active resync holds it in place; otherwise the current phase runs one stage (preparation,
+ * session, devices, the loading steps, options, world, start, frames, cleanup, fade) and picks the
+ * next phase. Each change of phase, and the way the flight ended, is logged. */
 void XvtFlightTask_Tick(void) {
 	XvtFlightPhase previous = g_flight.phase;
 	if (XvtNetworkSession_IsLost() && g_flight.phase < XVT_FLIGHT_CLEANUP) {
