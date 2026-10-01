@@ -229,6 +229,9 @@ add_test(NAME flight_messages COMMAND test_flight_messages)
 xvt_add_engine_test(test_flight_prediction test_flight_prediction.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_prediction.c")
 add_test(NAME flight_prediction COMMAND test_flight_prediction)
+xvt_add_engine_test(test_flight_sim test_flight_sim.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_sim.c")
+add_test(NAME flight_sim COMMAND test_flight_sim)
 xvt_add_engine_test(test_flight_wire test_flight_wire.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_wire.c")
 add_test(NAME flight_wire COMMAND test_flight_wire)
