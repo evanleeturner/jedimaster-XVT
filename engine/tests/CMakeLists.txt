@@ -229,6 +229,8 @@ if(NOT MSVC)
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/campaign_task.c")
     add_test(NAME campaign_task COMMAND test_campaign_task)
 endif()
+xvt_add_engine_test(test_cd_task test_cd_task.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/cd_task.c")
+add_test(NAME cd_task COMMAND test_cd_task)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
