@@ -259,6 +259,9 @@ add_test(NAME launch_task COMMAND test_launch_task)
 xvt_add_engine_test(test_mission_dialogs test_mission_dialogs.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/mission_dialogs.c")
 add_test(NAME mission_dialogs COMMAND test_mission_dialogs)
+xvt_add_engine_test(test_movie_sync test_movie_sync.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/movie_sync.c")
+add_test(NAME movie_sync COMMAND test_movie_sync)
 
 xvt_add_test_program(harness_catches_failure harness_catches_failure.c)
 add_test(NAME harness_catches_failure COMMAND harness_catches_failure)
