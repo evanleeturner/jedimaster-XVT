@@ -33,6 +33,26 @@
       "fields": [],
       "text": "A dialog opened"
     },
+    "files.fatal": {
+      "level": "E",
+      "fields": ["message", "path"],
+      "text": "A file operation failed and the program exits: {message} ({path})"
+    },
+    "files.remove_failed": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "Cannot remove the failed output {path}"
+    },
+    "files.save_failed": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "Cannot save {path}"
+    },
+    "files.write_failed": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "Cannot write {path}"
+    },
     "flight.launch": {
       "level": "I",
       "fields": [],

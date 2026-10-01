@@ -1,6 +1,7 @@
 #include "xvt_runtime/storage/storage.h"
 
 #include "aeron/log.h"
+#include "xvt_runtime/log/log.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +28,8 @@ void XvtStorage_Fatal(const char* message, int exit_code) {
 	char detail[XVT_PATH_CAPACITY + 1024];
 	snprintf(detail, sizeof(detail), "%s%s%s", message ? message : "File operation failed",
 			 g_lastPath[0] ? "\n\n" : "", g_lastPath);
-	Aeron_LogError("xvt.files", "%s", detail);
+	XVT_LOG_ERROR("files.fatal message=\"%s\" path=\"%s\"", message ? message : "File operation failed",
+				  g_lastPath);
 	Aeron_FatalError("OpenXvT", detail);
 	exit(exit_code > 0 ? exit_code : EXIT_FAILURE);
 }
@@ -191,7 +193,7 @@ AeronFile* XvtStorage_OpenRoot(AeronVfsRoot root, const char* path, const char* 
 		}
 	}
 	if (!AeronVfs_Open(g_vfs, root, g_lastPath, open_mode, &file) && writable)
-		Aeron_LogError("xvt.files", "Cannot write %s", g_lastPath);
+		XVT_LOG_ERROR("files.write_failed path=\"%s\"", g_lastPath);
 	return file;
 }
 
@@ -257,7 +259,7 @@ int XvtStorage_CloseGlobalStream(AeronFile* stream, int remove_on_error) {
 	if ((failed || close_failed) && remove_on_error &&
 		(g_streamRoot == AERON_VFS_ROOT_USER || g_streamRoot == AERON_VFS_ROOT_TEMP)) {
 		if (!AeronVfs_Remove(g_vfs, g_streamRoot, g_streamPath))
-			Aeron_LogError("xvt.files", "Cannot remove failed output: %s", g_streamPath);
+			XVT_LOG_ERROR("files.remove_failed path=\"%s\"", g_streamPath);
 	}
 	return failed || close_failed;
 }
@@ -269,6 +271,6 @@ int XvtStorage_WriteAtomic(const char* path, const void* data, size_t size) {
 	AeronVfsRoot root = XvtStorage_WritablePath(normalized, resolved, sizeof(resolved));
 	int result = AeronVfs_WriteAllAtomic(g_vfs, root, resolved, data, size);
 	if (!result)
-		Aeron_LogError("xvt.files", "Cannot save %s", resolved);
+		XVT_LOG_ERROR("files.save_failed path=\"%s\"", resolved);
 	return result;
 }
