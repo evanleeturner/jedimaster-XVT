@@ -8,9 +8,9 @@ extern "C" {
 /* Loads the game's OPT model files into one native block and keeps its internal pointers valid. Links
  * in the file are 32-bit addresses from a base the file records. Read checks them against the file and
  * rebuilds the model with native pointers in a zeroed Memory handle: the model header, the root table,
- * then nodes, child tables, payloads and textures, and last a copy of the whole file, which node names
- * point into. The model records its own address in selfMarker, so Relocate can shift every internal
- * pointer when the block moves. */
+ * then nodes, child tables, payloads and textures, and last a copy of the file's body (everything after
+ * its version marker and size), which node names point into. The model records its own address in
+ * selfMarker, so Relocate can shift every internal pointer when the block moves. */
 
 /* For an OPT_NODEREF node: the node its name refers to, looked up with OptModel_ResolveNodeRef on first
  * use and cached in node->param1. A failed lookup returns NULL and is tried again on the next call;
