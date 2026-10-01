@@ -933,6 +933,34 @@ typedef struct XvtSnapshotWorldRanges {
 	int32_t local_start, local_end, main_end, static_count;
 } XvtSnapshotWorldRanges;
 
+/* Returns 1 when the 20 dwords at image_ranges (pool sizes, the reserved dword and the slot-range
+ * bounds) equal this flight's live values, else 0. */
+static int XvtSnapshot_RangesMatchLive(const uint8_t* image_ranges) {
+	XvtSnapshotWorldRanges ranges;
+	memcpy(&ranges, image_ranges, sizeof ranges);
+	const XvtSnapshotWorldRanges expected = { .craft_capacity = g_craftDataPoolCapacity,
+											  .character_count = g_mobileObjectCharDataCount,
+											  .projectile_count = g_projectileObjectSlotsTotal,
+											  .debris_count = g_debrisObjectSlotsTotal,
+											  .reserved = g_worldStateReservedDword,
+											  .main_start = g_regionMainObjectSlotStart,
+											  .active_start = g_activeRegionObjectSlotStart,
+											  .craft_end = g_activeRegionCraftObjectSlotEnd,
+											  .character_start = g_mobileObjectCharDataSlotStart,
+											  .character_end = g_mobileObjectCharDataSlotEnd,
+											  .projectile_start = g_projectileObjectSlotStart,
+											  .projectile_end = g_projectileObjectSlotEnd,
+											  .debris_start = g_debrisObjectSlotStart,
+											  .debris_end = g_debrisObjectSlotEnd,
+											  .explosion_start = g_explosionObjectSlotStart,
+											  .explosion_end = g_explosionObjectSlotEnd,
+											  .local_start = g_localTransientSlotStart,
+											  .local_end = g_localDebrisSlotEnd,
+											  .main_end = g_regionMainObjectSlotEnd,
+											  .static_count = g_regionStaticObjectSlotCount };
+	return memcmp(&ranges, &expected, sizeof ranges) == 0;
+}
+
 static int XvtSnapshot_ValidatePrefix(const uint8_t* image, size_t size,
 									  const XvtFlightCheckpointView* timing) {
 	int network = timing != NULL;
@@ -1040,29 +1068,7 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t* image, size_t size,
 		sizeof(g_laserFireTimestampTrackingEnabled) + XVT_FLIGHT_PLAYERS * sizeof(XvtSnapshotPlayerData);
 	if (left != before_ranges + sizeof(XvtSnapshotWorldRanges) + after_ranges)
 		return 0;
-	XvtSnapshotWorldRanges ranges;
-	memcpy(&ranges, cursor + before_ranges, sizeof ranges);
-	const XvtSnapshotWorldRanges expected = { .craft_capacity = g_craftDataPoolCapacity,
-											  .character_count = g_mobileObjectCharDataCount,
-											  .projectile_count = g_projectileObjectSlotsTotal,
-											  .debris_count = g_debrisObjectSlotsTotal,
-											  .reserved = g_worldStateReservedDword,
-											  .main_start = g_regionMainObjectSlotStart,
-											  .active_start = g_activeRegionObjectSlotStart,
-											  .craft_end = g_activeRegionCraftObjectSlotEnd,
-											  .character_start = g_mobileObjectCharDataSlotStart,
-											  .character_end = g_mobileObjectCharDataSlotEnd,
-											  .projectile_start = g_projectileObjectSlotStart,
-											  .projectile_end = g_projectileObjectSlotEnd,
-											  .debris_start = g_debrisObjectSlotStart,
-											  .debris_end = g_debrisObjectSlotEnd,
-											  .explosion_start = g_explosionObjectSlotStart,
-											  .explosion_end = g_explosionObjectSlotEnd,
-											  .local_start = g_localTransientSlotStart,
-											  .local_end = g_localDebrisSlotEnd,
-											  .main_end = g_regionMainObjectSlotEnd,
-											  .static_count = g_regionStaticObjectSlotCount };
-	return memcmp(&ranges, &expected, sizeof ranges) == 0;
+	return XvtSnapshot_RangesMatchLive(cursor + before_ranges);
 }
 
 static int XvtSnapshot_ReadImage(const uint8_t* image, size_t size, XvtFlightCheckpointView* timing) {
