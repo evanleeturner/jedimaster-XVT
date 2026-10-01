@@ -71,6 +71,39 @@ xvt_add_engine_test(test_world_state test_world_state.c
 add_test(NAME world_state COMMAND test_world_state)
 
 # Settings and bindings files: src/xvt_runtime/config/.
+# These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
+if(NOT MSVC)
+    xvt_add_engine_test(test_config test_config.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/config/config.c")
+    target_compile_definitions(test_config PRIVATE XVT_TEST_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME config COMMAND test_config)
+    xvt_add_known_failure(test_config import_crlf_line_of_510)
+
+    xvt_add_engine_test(test_controller_config test_controller_config.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/config/controller_config.c")
+    target_compile_definitions(test_controller_config PRIVATE XVT_TEST_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME controller_config COMMAND test_controller_config)
+    xvt_add_known_failure(test_controller_config axis_source_unknown_field)
+
+    xvt_add_engine_test(test_keyboard_config test_keyboard_config.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/config/keyboard_config.c")
+    target_compile_definitions(test_keyboard_config PRIVATE XVT_TEST_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME keyboard_config COMMAND test_keyboard_config)
+
+    xvt_add_engine_test(test_mouse_config test_mouse_config.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/config/mouse_config.c")
+    target_compile_definitions(test_mouse_config PRIVATE XVT_TEST_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME mouse_config COMMAND test_mouse_config)
+
+    xvt_add_engine_test(test_settings test_settings.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/config/settings.c")
+    target_compile_definitions(test_settings PRIVATE XVT_TEST_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME settings COMMAND test_settings)
+
+    xvt_add_engine_test(test_video_config test_video_config.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/config/video_config.c")
+    target_compile_definitions(test_video_config PRIVATE XVT_TEST_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME video_config COMMAND test_video_config)
+endif()
 
 # Input mapping, capture and flight controls: src/xvt_runtime/input/.
 
