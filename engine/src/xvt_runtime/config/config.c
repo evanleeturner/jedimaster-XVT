@@ -1,10 +1,10 @@
 #include "xvt_runtime/config/config.h"
 #include "aeron/aeron.h"
 #include "aeron/compat/dplay_directory.h"
-#include "aeron/log.h"
 #include "xvt/net/net.h"
 #include "xvt_runtime/config/controller_config.h"
 #include "xvt_runtime/config/keyboard_config.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/storage/file_io.h"
 #include "xvt_runtime/storage/storage.h"
 #include <ctype.h>
@@ -335,7 +335,7 @@ static int XvtConfig_UpgradeBindings(AeronConfigFile* document, AeronConfigError
 			return 0;
 	}
 	if (AeronConfigFile_Has(document, "input.gamepad_defaults")) {
-		Aeron_LogWarn("xvt.config", "input.gamepad_defaults is shipped-only; ignoring user override");
+		XVT_LOG_WARN("config.override_ignored key=input.gamepad_defaults");
 		if (!AeronConfigFile_Remove(document, "input.gamepad_defaults", detail))
 			return 0;
 	}

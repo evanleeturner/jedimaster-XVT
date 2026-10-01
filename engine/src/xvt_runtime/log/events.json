@@ -23,6 +23,11 @@
       "fields": ["type"],
       "text": "Timed out waiting for continuation packet type {type}"
     },
+    "config.override_ignored": {
+      "level": "W",
+      "fields": ["key"],
+      "text": "The user override of {key} is ignored; only the shipped value applies"
+    },
     "dialog.closed": {
       "level": "I",
       "fields": ["result"],
