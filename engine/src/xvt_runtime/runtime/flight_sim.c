@@ -1,4 +1,5 @@
 #include "xvt_runtime/input/flight_controls.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_checkpoint.h"
 #include "xvt_runtime/runtime/flight_internal.h"
 #include "xvt_runtime/runtime/flight_prediction.h"
@@ -613,8 +614,7 @@ XvtInputInsertStatus XvtFlightHistory_InsertReal(unsigned player, int tick,
 				old->input.axisX != input->axisX || old->input.axisY != input->axisY ||
 				old->input.axisR != input->axisR || old->input.flags != input->flags ||
 				old->input.throttle != input->throttle) {
-				Aeron_LogError("xvt.network", "conflicting authoritative input for player %u at %d", player,
-							   tick);
+				XVT_LOG_ERROR("network.input_conflict player=%u tick=%d", player, tick);
 				return XVT_INPUT_CONFLICT;
 			}
 			old->valid = old->applied = 0;

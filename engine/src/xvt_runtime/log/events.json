@@ -58,6 +58,26 @@
       "fields": [],
       "text": "A flight launch is queued"
     },
+    "network.checksum_queue_full": {
+      "level": "E",
+      "fields": [],
+      "text": "The checksum continuation queue is exhausted; the mission ends"
+    },
+    "network.input_conflict": {
+      "level": "E",
+      "fields": ["player", "tick"],
+      "text": "Conflicting authoritative input for player slot {player} at tick {tick}"
+    },
+    "network.recovery_needed": {
+      "level": "W",
+      "fields": [],
+      "text": "Flight history or message capacity or continuity was exceeded; state recovery is needed"
+    },
+    "network.session_failed": {
+      "level": "W",
+      "fields": ["phase", "error"],
+      "text": "The network session failed in phase {phase} with error {error}"
+    },
     "port.host_invalid": {
       "level": "E",
       "fields": [],

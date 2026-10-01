@@ -1,5 +1,6 @@
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/input/flight_controls.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_checkpoint.h"
 #include "xvt_runtime/runtime/flight_internal.h"
 #include "xvt_runtime/runtime/flight_messages.h"
@@ -39,7 +40,7 @@ static unsigned g_checksum_read, g_checksum_count;
 void XvtResync_DeferChecksum(int sender, const int* packet) {
 	/* Other peers' checksum continuations resume after the current transfer. */
 	if (g_checksum_count == XVT_DEFERRED_CHECKSUMS) {
-		Aeron_LogError("xvt.network", "checksum continuation queue exhausted");
+		XVT_LOG_ERROR("network.checksum_queue_full");
 		g_flightMissionState.missionEndPending = 1;
 		return;
 	}

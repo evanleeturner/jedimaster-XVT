@@ -9,6 +9,7 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/config/config.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/network_metadata.h"
 #include <stdio.h>
@@ -115,7 +116,7 @@ void XvtNetworkSession_Leave(void) { Net_ShutdownDirectPlaySession(); }
 void XvtNetworkSession_Cancel(void) { XvtNetworkSession_Leave(); }
 
 static int XvtNetworkSession_Fail(AeronDplayDirectoryError error) {
-	Aeron_LogWarn("xvt.network", "Session failed in phase %d (error %u)", g_session.phase, (unsigned)error);
+	XVT_LOG_WARN("network.session_failed phase=%d error=%u", g_session.phase, (unsigned)error);
 	XvtNetworkSession_Leave();
 	g_session.error = error;
 	g_session.phase = SESSION_FAILED;

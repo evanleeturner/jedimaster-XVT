@@ -1,5 +1,6 @@
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/input/flight_controls.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_checkpoint.h"
 #include "xvt_runtime/runtime/flight_internal.h"
 #include "xvt_runtime/runtime/flight_messages.h"
@@ -583,7 +584,7 @@ int XvtFlightNetwork_NeedsRecovery(void) { return g_io.recovery; }
 
 void XvtFlightNetwork_RequestRecovery(void) {
 	if (!g_io.recovery)
-		Aeron_LogWarn("xvt.network", "flight history/message capacity or continuity requires state recovery");
+		XVT_LOG_WARN("network.recovery_needed");
 	g_io.recovery = 1;
 }
 
