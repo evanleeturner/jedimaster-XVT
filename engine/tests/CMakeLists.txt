@@ -226,6 +226,9 @@ add_test(NAME flight_checkpoint COMMAND test_flight_checkpoint)
 xvt_add_engine_test(test_flight_messages test_flight_messages.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_messages.c")
 add_test(NAME flight_messages COMMAND test_flight_messages)
+xvt_add_engine_test(test_flight_network test_flight_network.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_network.c")
+add_test(NAME flight_network COMMAND test_flight_network)
 xvt_add_engine_test(test_flight_prediction test_flight_prediction.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_prediction.c")
 add_test(NAME flight_prediction COMMAND test_flight_prediction)
