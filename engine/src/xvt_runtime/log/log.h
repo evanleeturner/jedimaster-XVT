@@ -62,8 +62,9 @@ __attribute__((format(printf, 2, 3))) void XvtLog_Write(AeronLogLevel level, con
 #define XVT_LOG_WARN(...) XVT_LOG_AT(AERON_LOG_WARN, __VA_ARGS__)
 #define XVT_LOG_ERROR(...) XVT_LOG_AT(AERON_LOG_ERROR, __VA_ARGS__)
 
-/* Sets the level every macro compares against. Call once, before the first line, from the thread that
- * starts the program; the macros read it without a lock. */
+/* Sets the level every macro compares against. Call from the thread that starts the program, before the
+ * first line, and later only while no other thread writes lines (the log output function lowers it once
+ * more for a run's last line). The macros read it without a lock. */
 void XvtLog_SetLevel(AeronLogLevel level);
 /* Returns the level in force; INFO until SetLevel is called. */
 AeronLogLevel XvtLog_Level(void);

@@ -1,6 +1,7 @@
 /* Checks the run log file module (xvt_app/log_file.h) against the promises in its header: the run name's
- * shape, which old files a folder keeps, and the append-only handle every line goes through, including two
- * threads writing at once. The file checks run in a temporary folder; nothing is written elsewhere. */
+ * shape, which old files a folder keeps, how a log's end shows the way its run ended, and the append-only
+ * handle every line goes through, including two threads writing at once. The file checks run in a temporary
+ * folder; nothing is written elsewhere. */
 #define _POSIX_C_SOURCE 200809L
 
 #include "test_temp_folder.h"
@@ -87,6 +88,66 @@ static void CheckSelectExpired(void) {
 	XVT_ASSERT_INT_EQ(XvtLogFile_SelectExpired(names, 12, 1), 12);
 	XVT_ASSERT_INT_EQ(XvtLogFile_SelectExpired(names, 12, 0), 12);
 	XVT_ASSERT_INT_EQ(XvtLogFile_SelectExpired(names, 0, 10), 0);
+}
+
+#define HEADER "= OpenXvT run 5efc913e fmt 1 date 2026-10-01 tz utc\n= user \"~/x/\" res \"r\" cwd \"/\"\n"
+
+/* Judges text with XvtLogFile_ReadEnding and checks the verdict and the last event. */
+static void CheckEnding(const char* text, XvtLogFileEnding want, const char* want_last) {
+	char last[64] = "untouched";
+	XvtLogFileEnding ending = XvtLogFile_ReadEnding(text, strlen(text), last, sizeof last);
+	if (ending != want || strcmp(last, want_last)) {
+		fprintf(stderr, "text:\n%s\ngave %d \"%s\", wanted %d \"%s\"\n", text, (int)ending, last, (int)want,
+				want_last);
+		XVT_ASSERT_TRUE(0);
+	}
+}
+
+static void CheckReadEnding(void) {
+	CheckEnding(HEADER "21:22:35.005 I app.log_file path=\"x\"\n21:22:36.000 I app.stop exit=0\n",
+				XVT_LOG_FILE_ENDING_STOPPED, "app.stop");
+	CheckEnding(HEADER "21:22:35.005 I app.ready\n21:22:40.000 D network.input tick=8 key=0\n",
+				XVT_LOG_FILE_ENDING_CUT, "network.input");
+	CheckEnding(
+		HEADER
+		"21:22:35.005 I app.ready\n21:22:40.000 C app.crash_signal signal=\"SIGSEGV\" code=1 addr=0x0\n"
+		"21:22:40.000 C app.crash_frame n=0 module=\"OpenXvT\" offset=0x1a\n",
+		XVT_LOG_FILE_ENDING_CRASHED, "app.crash_frame");
+	CheckEnding(HEADER "21:22:40.000 C app.crash_exception code=0xc0000005 addr=0x0\n",
+				XVT_LOG_FILE_ENDING_CRASHED, "app.crash_exception");
+	/* A crash after the stop line, while the program exits, is still a crash. */
+	CheckEnding(HEADER
+				"21:22:36.000 I app.stop exit=0\n21:22:36.001 C app.crash_signal signal=\"SIGSEGV\" code=1 "
+				"addr=0x8\n",
+				XVT_LOG_FILE_ENDING_CRASHED, "app.crash_signal");
+
+	/* In a log several runs appended to, only the newest run counts. */
+	CheckEnding(HEADER "21:22:36.000 I app.stop exit=0\n" HEADER "21:30:00.000 I app.ready\n",
+				XVT_LOG_FILE_ENDING_CUT, "app.ready");
+	CheckEnding(HEADER "21:22:40.000 C app.crash_signal signal=\"SIGABRT\" code=-6 addr=0x0\n" HEADER
+					   "21:30:00.000 I app.stop exit=0\n",
+				XVT_LOG_FILE_ENDING_STOPPED, "app.stop");
+
+	/* A tail that starts part way through a line: the cut line has no stamp and does not count. */
+	CheckEnding("7.000 I app.stop exit=0\n21:22:38.000 I app.ready\n", XVT_LOG_FILE_ENDING_CUT, "app.ready");
+	CheckEnding("ield=1\n21:22:39.000 I app.stop exit=1\n", XVT_LOG_FILE_ENDING_STOPPED, "app.stop");
+
+	/* A header alone, nothing at all, a last line with no newline, and an event that only starts alike. */
+	CheckEnding(HEADER, XVT_LOG_FILE_ENDING_CUT, "");
+	CheckEnding("", XVT_LOG_FILE_ENDING_NONE, "");
+	CheckEnding(HEADER "21:22:35.005 E files.fatal message=\"Cannot open\" path=\"a\"",
+				XVT_LOG_FILE_ENDING_CUT, "files.fatal");
+	CheckEnding(HEADER "21:22:35.005 I app.stopped\n", XVT_LOG_FILE_ENDING_CUT, "app.stopped");
+
+	/* The last event is cut to the buffer; capacity 0 writes nothing. */
+	char last[8] = "x";
+	XVT_ASSERT_INT_EQ(
+		XvtLogFile_ReadEnding(HEADER "21:22:35.005 I app.ready\n", strlen(HEADER) + 25, last, 5),
+		XVT_LOG_FILE_ENDING_CUT);
+	XVT_ASSERT_INT_EQ(strcmp(last, "app."), 0);
+	strcpy(last, "x");
+	XVT_ASSERT_INT_EQ(XvtLogFile_ReadEnding("", 0, last, 0), XVT_LOG_FILE_ENDING_NONE);
+	XVT_ASSERT_INT_EQ(strcmp(last, "x"), 0);
 }
 
 /* Returns the whole file as a string the caller frees; the check fails when it cannot be read. */
@@ -191,6 +252,7 @@ int main(void) {
 	CheckFormatName();
 	CheckIsRunName();
 	CheckSelectExpired();
+	CheckReadEnding();
 	XvtTest_MakeFolder(folder);
 	CheckOpenWriteAppend(folder);
 	CheckThreadsNeverInterleave(folder);

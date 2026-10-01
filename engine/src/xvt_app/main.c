@@ -1,4 +1,5 @@
 #include "xvt_app/application.h"
+#include "xvt_app/log_sink.h"
 
 #include "aeron/main.h"
 
@@ -27,5 +28,7 @@ int main(int argc, char* argv[]) {
 				"  --help                      Show this help\n");
 		return valid ? 0 : 2;
 	}
-	return XvtApplication_Run(&options);
+	int exit_code = XvtApplication_Run(&options);
+	XvtLogSink_Finish(exit_code);
+	return exit_code;
 }

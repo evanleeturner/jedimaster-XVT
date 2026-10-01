@@ -28,6 +28,11 @@
       "fields": ["path", "error"],
       "text": "Cannot write the log file {path} ({error}); log lines go to stderr only"
     },
+    "app.previous_run": {
+      "level": "W",
+      "fields": ["ended", "last", "file"],
+      "text": "The previous run's log {file} shows it did not end the normal way: it ended {ended}, last writing {last}"
+    },
     "app.ready": {
       "level": "I",
       "fields": [],
@@ -41,7 +46,7 @@
     "app.stop": {
       "level": "I",
       "fields": ["exit"],
-      "text": "The host stopped with exit code {exit}"
+      "text": "The program stops with exit code {exit}; written at every level, as a run's last line"
     },
     "campaign.packet_timeout": {
       "level": "W",

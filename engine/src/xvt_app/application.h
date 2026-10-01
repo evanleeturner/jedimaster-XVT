@@ -34,9 +34,9 @@ extern "C" {
  * xvt.setup, ends the run); skip-intro is set from the option or the setting; the port starts and, when
  * up, logs app.ready and runs the frame loop. Cleanup, in order: the menu flushes for exit and
  * shuts down, then the port, the renderer, the snapshot store and the UI; a nonzero port exit code
- * becomes the result; CD music, config, storage and Aeron shut down; logs app.stop with the exit code.
- * Returns the frame loop's exit code when it ran, 0 for a cancelled setup, 2 for a bad log level,
- * otherwise 1. */
+ * becomes the result; CD music, config, storage and Aeron shut down. Returns the frame loop's exit code
+ * when it ran, 0 for a cancelled setup, 2 for a bad log level, otherwise 1. The caller ends the log with
+ * XvtLogSink_Finish and this result. */
 int XvtApplication_Run(const XvtLaunchOptions* options);
 
 #ifdef __cplusplus

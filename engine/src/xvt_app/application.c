@@ -155,6 +155,5 @@ cleanup:
 	XvtConfig_Shutdown();
 	XvtStorage_Bind(NULL);
 	Aeron_Shutdown();
-	XVT_LOG_INFO("app.stop exit=%d", exit_code);
 	return exit_code;
 }

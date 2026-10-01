@@ -29,14 +29,25 @@ extern "C" {
  * header names the file (app.log_file), or says why there is none (app.log_file_failed) and the run goes
  * on with stderr only. The file holds DEBUG lines only when the level asks for them, as stderr does.
  * Install also installs the crash note (crash_note.h) on the same file, so a crash ends the log with what
- * happened and where. State: the home folder and the log file, found once at install; SDL holds the
- * output function, the log header the level. */
+ * happened and where.
+ *
+ * Every run that ends the normal way ends its log with app.stop (XvtLogSink_Finish). Before this run opens
+ * its file, Install reads the end of the previous run's log (the named file itself, or the newest run log
+ * in the default folder) and, after the header, warns with app.previous_run when that run did not end with
+ * app.stop: ended="crash" when the log holds a crash note, ended="without_stop" when it simply stops (the
+ * run was killed, hung and was ended from outside, lost power, ended by the fatal file error path, or is
+ * still running), with the last event it wrote. State: the home folder, the log file and whether Install
+ * ran, found once at install; SDL holds the output function, the log header the level. */
 
 /* Installs the writer and opens the log file as described above, and returns 1. Returns 0, with nothing
  * changed, no file opened and a message on stderr, when the option or the environment variable names a
  * level that is not debug, info, warn or error in any letter case. An empty environment value counts as
  * unset, for the level and the file alike. */
 int XvtLogSink_Install(const XvtLaunchOptions* options);
+/* Writes the run's last line, app.stop with exit_code, at whatever level is in force: a level above info is
+ * lowered to info for it. Does nothing when Install has not succeeded. Call once, after every other thread
+ * that logs has stopped. */
+void XvtLogSink_Finish(int exit_code);
 
 #ifdef __cplusplus
 }

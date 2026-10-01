@@ -42,6 +42,24 @@ int XvtLogFile_IsRunName(const char* name);
  * not positive. keep 0 counts as 1. */
 size_t XvtLogFile_SelectExpired(const char** names, size_t count, size_t keep);
 
+/* How the newest run in a log ended, judged from the log's last lines. */
+typedef enum XvtLogFileEnding {
+	XVT_LOG_FILE_ENDING_NONE = 0, /* no run in the text: no header and no log line */
+	XVT_LOG_FILE_ENDING_STOPPED,  /* an app.stop line: the run ended the normal way */
+	XVT_LOG_FILE_ENDING_CRASHED,  /* a crash note (crash_note.h) */
+	XVT_LOG_FILE_ENDING_CUT /* neither: killed, hung and ended from outside, lost power, or still running */
+} XvtLogFileEnding;
+
+/* Judges how the newest run in tail ended. tail is the end of a log, length bytes, and may start part way
+ * through a line. Only the lines after its last header line ("= <program> run <id> fmt ...") count, so in
+ * a log that several runs appended to only the newest is judged; with no header in tail, every line counts.
+ * A line counts when it has the line grammar's stamp, "HH:MM:SS.mmm L ", which a line cut at the start of
+ * tail lacks; the last line may lack its newline. A crash note anywhere among the counted lines means
+ * CRASHED, even after an app.stop line; otherwise an app.stop line means STOPPED; otherwise a header or any
+ * counted line means CUT, and nothing means NONE. Writes the event of the last counted line into last_event,
+ * "" when there is none, cut to capacity (0 writes nothing). */
+XvtLogFileEnding XvtLogFile_ReadEnding(const char* tail, size_t length, char* last_event, size_t capacity);
+
 /* Opens path, UTF-8, for appending, and creates it when missing: readable and writable by the owner only
  * on POSIX systems, closed in child processes. The folder must exist. Returns the handle, or
  * XVT_LOG_FILE_NONE with the system's reason written into error (cut to error_capacity; NULL or capacity

@@ -11,12 +11,15 @@
 /* Aeron formats a message into 1,024 bytes; the line adds the stamp, the level and the category. */
 #define XVT_LOG_SINK_LINE_CAPACITY 1280
 #define XVT_LOG_SINK_PATH_CAPACITY 1024
+/* Bytes read from the end of the previous run's log to judge how it ended. */
+#define XVT_LOG_SINK_TAIL_CAPACITY 16384
 
 /* The home folder with no trailing separator, found once at install; empty when SDL cannot name it. */
 static char g_logSinkHome[XVT_LOG_SINK_PATH_CAPACITY];
 static size_t g_logSinkHomeLength;
 /* The run's log file; XVT_LOG_FILE_NONE when none could be opened, and lines then reach stderr only. */
 static XvtLogFileHandle g_logSinkFile = XVT_LOG_FILE_NONE;
+static int g_logSinkInstalled;
 
 static SDL_LogPriority XvtLogSink_Priority(AeronLogLevel level) {
 	switch (level) {
@@ -177,15 +180,23 @@ static int XvtLogSink_DefaultFolder(const XvtLaunchOptions* options, char* out, 
 }
 
 /* Removes the oldest run logs in folder (a path ending in a separator) so that XVT_LOG_FILE_KEEP remain once
- * this run's file is made. Only names of the run-log shape are touched; a file that cannot be removed is
- * left in place. */
-static void XvtLogSink_Prune(const char* folder) {
+ * this run's file is made, and writes the path of the newest one into newest ("" when there is none). Only
+ * names of the run-log shape are touched; a file that cannot be removed is left in place. */
+static void XvtLogSink_Prune(const char* folder, char* newest, size_t capacity) {
 	int count = 0;
 	char** names = SDL_GlobDirectory(folder, "openxvt-*.log", 0, &count);
+	const char* latest = NULL;
+	size_t total = count > 0 ? (size_t)count : 0;
 	size_t expired;
+	newest[0] = 0;
 	if (!names)
 		return;
-	expired = XvtLogFile_SelectExpired((const char**)names, count > 0 ? (size_t)count : 0, XVT_LOG_FILE_KEEP);
+	expired = XvtLogFile_SelectExpired((const char**)names, total, XVT_LOG_FILE_KEEP);
+	for (size_t i = 0; i < total; ++i)
+		if (XvtLogFile_IsRunName(names[i]))
+			latest = names[i];
+	if (latest && (size_t)snprintf(newest, capacity, "%s%s", folder, latest) >= capacity)
+		newest[0] = 0;
 	for (size_t i = 0; i < expired; ++i) {
 		char path[XVT_LOG_SINK_PATH_CAPACITY];
 		int written = snprintf(path, sizeof(path), "%s%s", folder, names[i]);
@@ -197,9 +208,11 @@ static void XvtLogSink_Prune(const char* folder) {
 
 /* Writes the run's log file path into out: the --log-file option, else the OPENXVT_LOG_FILE environment
  * variable when it is nonempty, else a new run name (log_file.h) in the default logs folder, after pruning
- * that folder. Returns 1, or 0 with the reason in error and whatever path is known in out. */
-static int XvtLogSink_ChooseFile(const XvtLaunchOptions* options, SDL_Time start, char* out, size_t capacity,
-								 char* error, size_t error_capacity) {
+ * that folder. Writes the previous run's log into previous: the chosen file itself when it was named, the
+ * newest run log in the folder otherwise, "" when there is none. Returns 1, or 0 with the reason in error
+ * and whatever path is known in out. previous holds capacity bytes, as out does. */
+static int XvtLogSink_ChooseFile(const XvtLaunchOptions* options, SDL_Time start, char* out, char* previous,
+								 size_t capacity, char* error, size_t error_capacity) {
 	const char* chosen = options && options->log_file
 							 ? options->log_file
 							 : SDL_GetEnvironmentVariable(SDL_GetEnvironment(), "OPENXVT_LOG_FILE");
@@ -207,15 +220,18 @@ static int XvtLogSink_ChooseFile(const XvtLaunchOptions* options, SDL_Time start
 	SDL_DateTime when = { 0 };
 	size_t length;
 	out[0] = 0;
+	previous[0] = 0;
 	if (chosen && chosen[0]) {
-		if ((size_t)snprintf(out, capacity, "%s", chosen) < capacity)
+		if ((size_t)snprintf(out, capacity, "%s", chosen) < capacity) {
+			memcpy(previous, out, strlen(out) + 1);
 			return 1;
+		}
 		snprintf(error, error_capacity, "the path is too long");
 		return 0;
 	}
 	if (!XvtLogSink_DefaultFolder(options, out, capacity, error, error_capacity))
 		return 0;
-	XvtLogSink_Prune(out);
+	XvtLogSink_Prune(out, previous, capacity);
 	SDL_TimeToDateTime(start, &when, false);
 	length = strlen(out);
 	if (!XvtLogFile_FormatName(name, sizeof(name), when.year, when.month, when.day, when.hour, when.minute,
@@ -228,11 +244,41 @@ static int XvtLogSink_ChooseFile(const XvtLaunchOptions* options, SDL_Time start
 	return 1;
 }
 
+/* Reads up to the last capacity - 1 bytes of the file at path into out, terminated. Returns the bytes read:
+ * 0 when the file is missing, empty or unreadable. */
+static size_t XvtLogSink_ReadTail(const char* path, char* out, size_t capacity) {
+	SDL_IOStream* stream = path[0] ? SDL_IOFromFile(path, "rb") : NULL;
+	Sint64 size;
+	size_t read = 0;
+	out[0] = 0;
+	if (!stream)
+		return 0;
+	size = SDL_GetIOSize(stream);
+	if (size > 0 && SDL_SeekIO(stream, size > (Sint64)(capacity - 1) ? size - (Sint64)(capacity - 1) : 0,
+							   SDL_IO_SEEK_SET) >= 0)
+		read = SDL_ReadIO(stream, out, capacity - 1);
+	SDL_CloseIO(stream);
+	out[read] = 0;
+	return read;
+}
+
+/* Judges how the run that wrote the log at path ended (log_file.h), writing its last event into last. No
+ * log, or an empty one, is NONE. */
+static XvtLogFileEnding XvtLogSink_JudgePrevious(const char* path, char* last, size_t capacity) {
+	static char tail[XVT_LOG_SINK_TAIL_CAPACITY];
+	size_t length = XvtLogSink_ReadTail(path, tail, sizeof(tail));
+	return XvtLogFile_ReadEnding(tail, length, last, capacity);
+}
+
 int XvtLogSink_Install(const XvtLaunchOptions* options) {
 	AeronLogLevel level = AERON_LOG_INFO;
 	SDL_Time start = 0;
 	char path[XVT_LOG_SINK_PATH_CAPACITY];
+	char previous[XVT_LOG_SINK_PATH_CAPACITY];
 	char error[256] = { 0 };
+	char last[64];
+	XvtLogFileEnding previous_ending;
+	int chosen;
 	const char* name = options && options->log_level
 						   ? options->log_level
 						   : SDL_GetEnvironmentVariable(SDL_GetEnvironment(), "OPENXVT_LOG_LEVEL");
@@ -243,15 +289,34 @@ int XvtLogSink_Install(const XvtLaunchOptions* options) {
 	XvtLog_SetLevel(level);
 	XvtLogSink_FindHome();
 	SDL_GetCurrentTime(&start);
-	if (XvtLogSink_ChooseFile(options, start, path, sizeof(path), error, sizeof(error)))
-		g_logSinkFile = XvtLogFile_Open(path, error, sizeof(error));
-	XvtCrashNote_Install(g_logSinkFile);
+	chosen = XvtLogSink_ChooseFile(options, start, path, previous, sizeof(path), error, sizeof(error));
+	/* The previous run's log is read before this run opens a file, which may be the same file. */
+	previous_ending = XvtLogSink_JudgePrevious(previous, last, sizeof(last));
 	SDL_SetLogPriorities(XvtLogSink_Priority(level));
 	SDL_SetLogOutputFunction(XvtLogSink_Write, NULL);
+	if (chosen)
+		g_logSinkFile = XvtLogFile_Open(path, error, sizeof(error));
+	XvtCrashNote_Install(g_logSinkFile);
 	XvtLogSink_WriteHeader(options, start);
 	if (g_logSinkFile != XVT_LOG_FILE_NONE)
 		XVT_LOG_INFO("app.log_file path=\"%s\"", path);
 	else
 		XVT_LOG_WARN("app.log_file_failed path=\"%s\" error=\"%s\"", path, error);
+	if (previous_ending == XVT_LOG_FILE_ENDING_CRASHED || previous_ending == XVT_LOG_FILE_ENDING_CUT)
+		XVT_LOG_WARN("app.previous_run ended=\"%s\" last=\"%s\" file=\"%s\"",
+					 previous_ending == XVT_LOG_FILE_ENDING_CRASHED ? "crash" : "without_stop", last,
+					 previous);
+	g_logSinkInstalled = 1;
 	return 1;
+}
+
+void XvtLogSink_Finish(int exit_code) {
+	if (!g_logSinkInstalled)
+		return;
+	/* The stop line is written at every level, so a log without one is a run that did not end this way. */
+	if (!XvtLog_Enabled(AERON_LOG_INFO)) {
+		XvtLog_SetLevel(AERON_LOG_INFO);
+		SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
+	}
+	XVT_LOG_INFO("app.stop exit=%d", exit_code);
 }

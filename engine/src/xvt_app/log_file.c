@@ -76,6 +76,86 @@ size_t XvtLogFile_SelectExpired(const char** names, size_t count, size_t keep) {
 	return runs > keep - 1 ? runs - (keep - 1) : 0;
 }
 
+/* Returns 1 when the length bytes at line start with the stamp "HH:MM:SS.mmm L ". */
+static int XvtLogFile_HasStamp(const char* line, size_t length) {
+	static const char shape[] = "99:99:99.999 L ";
+	if (length < sizeof(shape) - 1)
+		return 0;
+	for (size_t i = 0; i + 1 < sizeof(shape); ++i) {
+		char c = line[i];
+		if (shape[i] == '9'   ? !(c >= '0' && c <= '9')
+			: shape[i] == 'L' ? !(c >= 'A' && c <= 'Z')
+							  : c != shape[i])
+			return 0;
+	}
+	return 1;
+}
+
+/* Returns 1 when the length bytes at line are a run's first header line, "= <program> run <id> fmt ...". */
+static int XvtLogFile_IsRunHeader(const char* line, size_t length) {
+	size_t i = 2;
+	if (length < 2 || line[0] != '=' || line[1] != ' ')
+		return 0;
+	while (i < length && line[i] != ' ')
+		++i;
+	return length - i > 5 && !strncmp(line + i, " run ", 5);
+}
+
+/* Returns 1 when the stamped line's event, after the 15-byte stamp, is exactly event. */
+static int XvtLogFile_EventIs(const char* line, size_t length, const char* event) {
+	size_t event_length = strlen(event);
+	return length >= 15 + event_length && !strncmp(line + 15, event, event_length) &&
+		   (length == 15 + event_length || line[15 + event_length] == ' ');
+}
+
+XvtLogFileEnding XvtLogFile_ReadEnding(const char* tail, size_t length, char* last_event, size_t capacity) {
+	const char* runs = tail;
+	const char* last = NULL;
+	size_t last_length = 0;
+	int header = 0;
+	int stopped = 0;
+	int crashed = 0;
+	/* The newest run starts after the last header line in the text. */
+	for (const char* line = tail; line < tail + length;) {
+		const char* end = memchr(line, '\n', (size_t)(tail + length - line));
+		size_t line_length = end ? (size_t)(end - line) : (size_t)(tail + length - line);
+		if (XvtLogFile_IsRunHeader(line, line_length)) {
+			runs = line;
+			header = 1;
+		}
+		if (!end)
+			break;
+		line = end + 1;
+	}
+	for (const char* line = runs; line < tail + length;) {
+		const char* end = memchr(line, '\n', (size_t)(tail + length - line));
+		size_t line_length = end ? (size_t)(end - line) : (size_t)(tail + length - line);
+		if (XvtLogFile_HasStamp(line, line_length)) {
+			last = line;
+			last_length = line_length;
+			stopped |= XvtLogFile_EventIs(line, line_length, "app.stop");
+			crashed |= XvtLogFile_EventIs(line, line_length, "app.crash_signal") ||
+					   XvtLogFile_EventIs(line, line_length, "app.crash_exception");
+		}
+		if (!end)
+			break;
+		line = end + 1;
+	}
+	if (capacity) {
+		size_t used = 0;
+		while (last && 15 + used < last_length && last[15 + used] != ' ' && used + 1 < capacity) {
+			last_event[used] = last[15 + used];
+			++used;
+		}
+		last_event[used] = 0;
+	}
+	if (crashed)
+		return XVT_LOG_FILE_ENDING_CRASHED;
+	if (stopped)
+		return XVT_LOG_FILE_ENDING_STOPPED;
+	return header || last ? XVT_LOG_FILE_ENDING_CUT : XVT_LOG_FILE_ENDING_NONE;
+}
+
 #ifdef _WIN32
 
 static void XvtLogFile_SystemError(char* error, size_t error_capacity) {
