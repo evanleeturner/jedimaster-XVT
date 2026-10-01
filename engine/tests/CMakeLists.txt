@@ -241,6 +241,9 @@ add_test(NAME flight_sim COMMAND test_flight_sim)
 xvt_add_engine_test(test_flight_wire test_flight_wire.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_wire.c")
 add_test(NAME flight_wire COMMAND test_flight_wire)
+xvt_add_engine_test(test_resync_task test_resync_task.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/resync_task.c")
+add_test(NAME resync_task COMMAND test_resync_task)
 
 # The other runtime tasks: frontend, campaign, movies, dialogs and the network session.
 # The tests that run frontend frames give the frontend a display with no window (test_frontend_display.h); the
