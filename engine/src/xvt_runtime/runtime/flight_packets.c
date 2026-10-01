@@ -2,15 +2,76 @@
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/resync_task.h"
 
-static int XvtFlightNetwork_Control(int senderDpid, int* packet) {
-	enum {
-		PLAYER_COUNT = XVT_FLIGHT_PLAYERS,
-		WORLD_STATE_CHUNK_COUNT = XVT_RESYNC_CHUNKS_PER_BATCH,
-		PACKET_CLOCK_PROBE_REPLY_SIZE = 2 * sizeof(int),
-		CLOCK_PROBE_BIAS_MS = 20,
-		CLOCK_PROBE_LIMIT_MS = 472
-	};
+enum {
+	PLAYER_COUNT = XVT_FLIGHT_PLAYERS,
+	WORLD_STATE_CHUNK_COUNT = XVT_RESYNC_CHUNKS_PER_BATCH,
+	PACKET_CLOCK_PROBE_REPLY_SIZE = 2 * sizeof(int),
+	CLOCK_PROBE_BIAS_MS = 20,
+	CLOCK_PROBE_LIMIT_MS = 472
+};
 
+/* Echoes a peer's clock probe back to it, then moves the allowed clock lead halfway (at least 1 ms)
+ * toward the lead the probe asks for, halved for a synchronous game or a small session. */
+static void XvtFlightNetwork_AnswerClockProbe(int senderDpid, const int* packet) {
+	int adjustment;
+	int targetLead;
+
+	g_flightNetScratchPacket.packetType = NET_PACKET_CLOCK_PROBE_REPLY;
+	g_flightNetScratchPacket.payloadDwords[0] = packet[1];
+
+	XvtFlightNetwork_SendPacket(senderDpid, (unsigned int*)&g_flightNetScratchPacket,
+								PACKET_CLOCK_PROBE_REPLY_SIZE);
+	targetLead = packet[2];
+	if (g_asyncFlag == 0 || g_flightNetSmallSessionPlayerThreshold > g_activeFlightPlayerCount) {
+		targetLead >>= 1;
+	}
+	if (g_flightNetClockLeadAllowanceMs < targetLead) {
+		adjustment = (targetLead - g_flightNetClockLeadAllowanceMs) >> 1;
+		if (adjustment == 0) {
+			adjustment = 1;
+		}
+		g_flightNetClockLeadAllowanceMs += adjustment;
+	} else if (g_flightNetClockLeadAllowanceMs > targetLead) {
+		adjustment = (g_flightNetClockLeadAllowanceMs - targetLead) >> 1;
+		if (adjustment == 0) {
+			adjustment = 1;
+		}
+		g_flightNetClockLeadAllowanceMs -= adjustment;
+	}
+}
+
+/* On the host, when a reply carries the probe timestamp last sent, moves the allowed clock lead
+ * halfway (at least 1 ms) toward the probe's round trip plus the clock adjustment so far and a
+ * 20 ms bias, while that total stays under 472 ms. */
+static void XvtFlightNetwork_ApplyClockProbeReply(const int* packet) {
+	if (NetSession_GetLocalPlayerId() == 0 && packet[1] == g_flightNetClockProbeTimestamp) {
+		int adjustment;
+		int targetLead;
+
+		targetLead = g_flightNetClockAdjustAccumTicks;
+		targetLead += g_inputTimestamp;
+		targetLead -= packet[1];
+		targetLead += CLOCK_PROBE_BIAS_MS;
+
+		if (targetLead < CLOCK_PROBE_LIMIT_MS) {
+			if (g_flightNetClockLeadAllowanceMs < targetLead) {
+				adjustment = (targetLead - g_flightNetClockLeadAllowanceMs) >> 1;
+				if (adjustment == 0) {
+					adjustment = 1;
+				}
+				g_flightNetClockLeadAllowanceMs += adjustment;
+			} else if (g_flightNetClockLeadAllowanceMs > targetLead) {
+				adjustment = (g_flightNetClockLeadAllowanceMs - targetLead) >> 1;
+				if (adjustment == 0) {
+					adjustment = 1;
+				}
+				g_flightNetClockLeadAllowanceMs -= adjustment;
+			}
+		}
+	}
+}
+
+static int XvtFlightNetwork_Control(int senderDpid, int* packet) {
 	switch (packet[0]) {
 		case NET_PACKET_PLAYER_DISCONNECTED: {
 			int playerIndex = packet[1];
@@ -91,60 +152,11 @@ static int XvtFlightNetwork_Control(int senderDpid, int* packet) {
 				}
 			}
 			return 0;
-		case NET_PACKET_CLOCK_PROBE: {
-			int adjustment;
-			int targetLead;
-
-			g_flightNetScratchPacket.packetType = NET_PACKET_CLOCK_PROBE_REPLY;
-			g_flightNetScratchPacket.payloadDwords[0] = packet[1];
-
-			XvtFlightNetwork_SendPacket(senderDpid, (unsigned int*)&g_flightNetScratchPacket,
-										PACKET_CLOCK_PROBE_REPLY_SIZE);
-			targetLead = packet[2];
-			if (g_asyncFlag == 0 || g_flightNetSmallSessionPlayerThreshold > g_activeFlightPlayerCount) {
-				targetLead >>= 1;
-			}
-			if (g_flightNetClockLeadAllowanceMs < targetLead) {
-				adjustment = (targetLead - g_flightNetClockLeadAllowanceMs) >> 1;
-				if (adjustment == 0) {
-					adjustment = 1;
-				}
-				g_flightNetClockLeadAllowanceMs += adjustment;
-			} else if (g_flightNetClockLeadAllowanceMs > targetLead) {
-				adjustment = (g_flightNetClockLeadAllowanceMs - targetLead) >> 1;
-				if (adjustment == 0) {
-					adjustment = 1;
-				}
-				g_flightNetClockLeadAllowanceMs -= adjustment;
-			}
+		case NET_PACKET_CLOCK_PROBE:
+			XvtFlightNetwork_AnswerClockProbe(senderDpid, packet);
 			return 0;
-		}
 		case NET_PACKET_CLOCK_PROBE_REPLY:
-			if (NetSession_GetLocalPlayerId() == 0 && packet[1] == g_flightNetClockProbeTimestamp) {
-				int adjustment;
-				int targetLead;
-
-				targetLead = g_flightNetClockAdjustAccumTicks;
-				targetLead += g_inputTimestamp;
-				targetLead -= packet[1];
-				targetLead += CLOCK_PROBE_BIAS_MS;
-
-				if (targetLead < CLOCK_PROBE_LIMIT_MS) {
-					if (g_flightNetClockLeadAllowanceMs < targetLead) {
-						adjustment = (targetLead - g_flightNetClockLeadAllowanceMs) >> 1;
-						if (adjustment == 0) {
-							adjustment = 1;
-						}
-						g_flightNetClockLeadAllowanceMs += adjustment;
-					} else if (g_flightNetClockLeadAllowanceMs > targetLead) {
-						adjustment = (g_flightNetClockLeadAllowanceMs - targetLead) >> 1;
-						if (adjustment == 0) {
-							adjustment = 1;
-						}
-						g_flightNetClockLeadAllowanceMs -= adjustment;
-					}
-				}
-			}
+			XvtFlightNetwork_ApplyClockProbeReply(packet);
 			return 0;
 		default:
 			return 0;
