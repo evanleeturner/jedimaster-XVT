@@ -4,6 +4,11 @@ name: Tests
 # xvt-build stage of packaging/linux/Dockerfile, the image the Linux package
 # is built in. tests/CMakeLists.txt builds every test program with
 # AddressSanitizer and UndefinedBehaviorSanitizer.
+#
+# The crash note's test also runs on Windows, where the crash note has code of
+# its own: it is compiled with the MinGW compiler of packaging/windows/
+# Dockerfile, the one the Windows package is built with, and run on a Windows
+# runner, where it crashes child processes on purpose.
 
 on:
   workflow_dispatch:
@@ -101,3 +106,77 @@ jobs:
             --volume "${RUNNER_TEMP}/tests-build:/work/build" \
             openxvt-tests:ci \
             bash -euo pipefail -c "${TEST_SCRIPT}"
+
+  windows-build:
+    name: Build the crash note test for Windows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+
+      - name: Build the MinGW image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          context: .
+          file: packaging/windows/Dockerfile
+          platforms: linux/amd64
+          target: build-base
+          load: true
+          tags: openxvt-mingw:ci
+          # The Windows package job's cache (scope windows) holds this stage.
+          cache-from: |
+            type=gha,scope=tests-windows
+            type=gha,scope=windows
+          # Only pushes to main write the cache; pull requests read it.
+          cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=tests-windows' || '' }}
+
+      - name: Compile the crash note test
+        # The test needs the crash note, the log file it writes through, and
+        # the test helpers; nothing from Aeron or SDL.
+        run: |
+          mkdir -p "${RUNNER_TEMP}/windows-tests"
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --volume "${GITHUB_WORKSPACE}:/work/src:ro" \
+            --volume "${RUNNER_TEMP}/windows-tests:/work/out" \
+            --workdir /work/src \
+            openxvt-mingw:ci \
+            x86_64-w64-mingw32-gcc-posix -std=c99 -Wall -Wextra -Wpedantic -g \
+              -fno-omit-frame-pointer -Isrc -Itests \
+              tests/test_crash_note.c src/xvt_app/crash_note.c src/xvt_app/log_file.c \
+              -o /work/out/test_crash_note.exe
+
+      - name: Keep the test program for the Windows job
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: windows-crash-note-test
+          path: ${{ runner.temp }}/windows-tests/test_crash_note.exe
+          if-no-files-found: error
+          retention-days: 1
+
+  windows:
+    name: Windows crash note test
+    needs: windows-build
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Fetch the test program
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: windows-crash-note-test
+          path: ${{ runner.temp }}/windows-tests
+
+      - name: Run the crash note test
+        # Each child process crashes on purpose and has Windows error
+        # reporting dialogs switched off; the test reads their exit codes and
+        # the notes they wrote.
+        working-directory: ${{ runner.temp }}/windows-tests
+        run: ./test_crash_note.exe
