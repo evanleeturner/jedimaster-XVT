@@ -413,6 +413,106 @@
       "fields": [],
       "text": "The modern renderer shut down"
     },
+    "resync.batch_sent": {
+      "level": "D",
+      "fields": ["chunks", "offset", "bytes", "final"],
+      "text": "A batch of {chunks} chunks is sent, through byte {offset} of {bytes}; final {final}"
+    },
+    "resync.chunk": {
+      "level": "D",
+      "fields": ["index", "bytes"],
+      "text": "World chunk {index} ({bytes} bytes) is stored and acknowledged"
+    },
+    "resync.decode_failed": {
+      "level": "W",
+      "fields": ["bytes"],
+      "text": "The received world of {bytes} bytes does not decode; the receive restarts"
+    },
+    "resync.done": {
+      "level": "I",
+      "fields": ["terminal"],
+      "text": "The replay after a world restore finished; the mission ended during it: {terminal}"
+    },
+    "resync.gave_up": {
+      "level": "E",
+      "fields": ["restarts"],
+      "text": "Receiving the host's world failed after {restarts} restarts; the local player leaves and the mission ends"
+    },
+    "resync.host_desync": {
+      "level": "E",
+      "fields": [],
+      "text": "The host's own world is out of step and no player can supply one; the mission ends"
+    },
+    "resync.image_mismatch": {
+      "level": "W",
+      "fields": [],
+      "text": "The received world's checksums differ from the host's table; the receive restarts"
+    },
+    "resync.peer_dropped": {
+      "level": "W",
+      "fields": ["slot", "stage"],
+      "text": "The player in slot {slot} stopped answering the world send at the {stage} step, or Escape was pressed; the player is dropped"
+    },
+    "resync.receive_begin": {
+      "level": "I",
+      "fields": ["bytes", "tick"],
+      "text": "This client starts receiving the host's world: {bytes} bytes saved at tick {tick}"
+    },
+    "resync.receive_timeout": {
+      "level": "E",
+      "fields": [],
+      "text": "The host's world stopped arriving; the mission ends"
+    },
+    "resync.request_ignored": {
+      "level": "D",
+      "fields": ["epoch", "expected", "bytes", "sum", "tick"],
+      "text": "A world-send request was ignored: epoch {epoch} or tick {tick} against {expected}, {bytes} bytes against a table sum of {sum}"
+    },
+    "resync.request_timeout": {
+      "level": "E",
+      "fields": [],
+      "text": "The host did not answer the request for its world in time; the mission ends"
+    },
+    "resync.requested": {
+      "level": "I",
+      "fields": ["epoch"],
+      "text": "This client asked the host for its world, holding checksum epoch {epoch}"
+    },
+    "resync.restart": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "Receiving the host's world starts over, restart {count}"
+    },
+    "resync.restored": {
+      "level": "I",
+      "fields": ["tick", "bytes", "epoch"],
+      "text": "The host's world is installed at tick {tick} ({bytes} bytes, epoch {epoch}); buffered messages replay next"
+    },
+    "resync.retry": {
+      "level": "D",
+      "fields": ["stage", "left"],
+      "text": "The {stage} step of a world send is retried; {left} tries left"
+    },
+    "resync.send_begin": {
+      "level": "I",
+      "fields": ["slot", "bytes", "tick"],
+      "text": "The host starts sending its world to slot {slot}: {bytes} bytes saved at tick {tick}"
+    },
+    "resync.send_done": {
+      "level": "I",
+      "fields": ["slot"],
+      "text": "Slot {slot} acknowledged the world the host sent"
+    },
+    "resync.send_failed": {
+      "level": "W",
+      "fields": ["slot", "reason"],
+      "text": "The host cannot send its world to slot {slot}: {reason}"
+    },
+    "resync.send_restart": {
+      "level": "D",
+      "fields": ["slot"],
+      "text": "Slot {slot} asked for the world again during the send; the send starts over"
+    },
     "settings.init_failed": {
       "level": "E",
       "fields": ["error"],
