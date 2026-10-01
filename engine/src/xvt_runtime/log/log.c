@@ -147,3 +147,19 @@ size_t XvtLog_ShortenHome(char* out, size_t capacity, const char* text, const ch
 	out[used] = 0;
 	return used;
 }
+
+size_t XvtLog_FormatHexList(char* out, size_t capacity, const unsigned* values, size_t count) {
+	size_t used = 0;
+	if (capacity == 0)
+		return 0;
+	for (size_t i = 0; i < count; ++i) {
+		char word[16];
+		int length = snprintf(word, sizeof(word), "%s%08x", i ? "," : "", values[i]);
+		if (length < 0 || used + (size_t)length >= capacity)
+			break;
+		memcpy(out + used, word, (size_t)length);
+		used += (size_t)length;
+	}
+	out[used] = 0;
+	return used;
+}

@@ -58,6 +58,26 @@ int XvtFlightTask_Begin(const char* command) {
 	return 1;
 }
 
+/* The flight.end reason for a flight that left the phase from for cleanup. */
+static const char* XvtFlightTask_EndReason(XvtFlightPhase from) {
+	switch (from) {
+		case XVT_FLIGHT_PREPARE:
+		case XVT_FLIGHT_SESSION:
+		case XVT_FLIGHT_DEVICES:
+			return "entry_failed";
+		case XVT_FLIGHT_OPTIONS:
+			return "options_failed";
+		case XVT_FLIGHT_WORLD:
+			return "world_failed";
+		case XVT_FLIGHT_START:
+			return "start_failed";
+		case XVT_FLIGHT_FRAMES:
+			return "frames_ended";
+		default:
+			return "other";
+	}
+}
+
 static void XvtFlightTask_ReleaseMission(int quitting) {
 	if (g_flight.released)
 		return;
@@ -153,12 +173,15 @@ static int XvtFlightTask_StartWorld(void) {
 	}
 	FlightView_RenderStartupFrame();
 	NetSession_StubReturnTrue();
+	XVT_LOG_INFO("flight.world players=%d mask=%02x slots=%zu bytes=%u", g_activeFlightPlayerCount, mask,
+				 capacity, g_worldStateSize);
 	return 1;
 }
 
 void XvtFlightTask_Tick(void) {
 	XvtFlightPhase previous = g_flight.phase;
 	if (XvtNetworkSession_IsLost() && g_flight.phase < XVT_FLIGHT_CLEANUP) {
+		XVT_LOG_INFO("flight.end result=0 reason=\"session_lost\"");
 		XvtResync_Reset();
 		g_flight.result = 0;
 		g_flight.phase = XVT_FLIGHT_CLEANUP;
@@ -198,6 +221,7 @@ void XvtFlightTask_Tick(void) {
 			g_flight.phase = XVT_FLIGHT_MISSION;
 			break;
 		case XVT_FLIGHT_MISSION:
+			XVT_LOG_INFO("flight.mission file=\"%s\"", g_currentMissionFile);
 			FlightSurface_Lock();
 			XvtRenderCapture_BeginMission();
 			Mission_Init(g_currentMissionFile);
@@ -235,9 +259,11 @@ void XvtFlightTask_Tick(void) {
 			int status = FlightNet_SyncPlayerOptionsAndTaunts();
 			if (status == XVT_FLIGHT_NETWORK_PENDING)
 				break;
-			if (status)
+			if (status) {
+				XVT_LOG_INFO("flight.options players=%d cookie=%u", g_activeFlightPlayerCount,
+							 XvtFlightNetwork_Cookie());
 				g_flight.phase = XVT_FLIGHT_WORLD;
-			else {
+			} else {
 				g_flight.optionsFailed = 1;
 				g_flight.phase = XVT_FLIGHT_CLEANUP;
 			}
@@ -254,6 +280,7 @@ void XvtFlightTask_Tick(void) {
 			if (status == XVT_FLIGHT_NETWORK_PENDING)
 				break;
 			if (status) {
+				XVT_LOG_INFO("flight.start local=%d players=%d", g_localPlayer, g_activeFlightPlayerCount);
 				XvtFlightFrame_Begin();
 				g_flight.phase = XVT_FLIGHT_FRAMES;
 			} else
@@ -284,6 +311,10 @@ void XvtFlightTask_Tick(void) {
 	}
 	if (previous != g_flight.phase)
 		XVT_LOG_INFO("flight.phase from=%d to=%d", previous, g_flight.phase);
+	/* A lost session's cleanup ran inside this tick and is reported above; this is every other way in. */
+	if (g_flight.phase == XVT_FLIGHT_CLEANUP && previous != XVT_FLIGHT_CLEANUP)
+		XVT_LOG_INFO("flight.end result=%d reason=\"%s\"", g_flight.result,
+					 XvtFlightTask_EndReason(previous));
 }
 
 int XvtFlightTask_IsActive(void) {

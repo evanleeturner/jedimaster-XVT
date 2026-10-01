@@ -58,15 +58,45 @@
       "fields": ["path"],
       "text": "Cannot write {path}"
     },
+    "flight.end": {
+      "level": "I",
+      "fields": ["result", "reason"],
+      "text": "The flight ends ({reason}); result {result}, where 1 commits the mission results"
+    },
+    "flight.frames_end": {
+      "level": "I",
+      "fields": ["reason", "tick"],
+      "text": "The frame loop ended at game tick {tick}: {reason}"
+    },
     "flight.launch": {
       "level": "I",
       "fields": [],
       "text": "The flight launch started"
     },
+    "flight.mission": {
+      "level": "I",
+      "fields": ["file"],
+      "text": "The mission file {file} loads"
+    },
+    "flight.options": {
+      "level": "I",
+      "fields": ["players", "cookie"],
+      "text": "Options and taunts are agreed for {players} players under mission cookie {cookie}"
+    },
     "flight.phase": {
       "level": "I",
       "fields": ["from", "to"],
       "text": "The flight task moved from phase {from} to phase {to}"
+    },
+    "flight.start": {
+      "level": "I",
+      "fields": ["local", "players"],
+      "text": "The frame loop starts with the local player in slot {local} of {players}"
+    },
+    "flight.world": {
+      "level": "I",
+      "fields": ["players", "mask", "slots", "bytes"],
+      "text": "The flight world started: {players} players, slot mask {mask} (hex), {slots} object slots, {bytes} bytes of saved state"
     },
     "frontend.ready": {
       "level": "I",
@@ -133,15 +163,35 @@
       "fields": ["name", "result"],
       "text": "The movie {name} finished with result {result}"
     },
+    "network.checksum": {
+      "level": "D",
+      "fields": ["tick", "host", "sums", "lengths"],
+      "text": "World checksum at tick {tick} (host {host}): region sums {sums}, region lengths {lengths}"
+    },
     "network.checksum_queue_full": {
       "level": "E",
       "fields": [],
       "text": "The checksum continuation queue is exhausted; the mission ends"
     },
+    "network.confirm": {
+      "level": "D",
+      "fields": ["tick", "queue", "mask", "records", "checksum"],
+      "text": "A world message from the {queue} queue is confirmed at tick {tick}: slot mask {mask} (hex), {records} input records, checksum flag {checksum}"
+    },
+    "network.confirm_gap": {
+      "level": "D",
+      "fields": ["target", "confirmed"],
+      "text": "A world message targets tick {target}, not one message after the confirmed tick {confirmed}; recovery is needed"
+    },
     "network.directory_retry": {
       "level": "W",
       "fields": [],
       "text": "The directory listing failed; hosting registers again"
+    },
+    "network.fell_behind": {
+      "level": "D",
+      "fields": ["input", "server", "adjust"],
+      "text": "The input clock {input} fell behind the server tick {server}; it jumps {adjust} ticks"
     },
     "network.handshake": {
       "level": "D",
@@ -152,6 +202,11 @@
       "level": "W",
       "fields": ["flight"],
       "text": "The host left the session; in flight {flight}"
+    },
+    "network.host_timeout": {
+      "level": "W",
+      "fields": ["ticks"],
+      "text": "Nothing came from the host for {ticks} ticks; the local player leaves"
     },
     "network.input_conflict": {
       "level": "E",

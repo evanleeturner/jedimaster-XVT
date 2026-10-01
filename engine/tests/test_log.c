@@ -1,9 +1,9 @@
 /* Checks the log header: the level gate evaluates no argument when a line is off; DEBUG switches on at
  * run time in a build that defines NDEBUG, as a release build does (this file refuses to compile
  * without it); level names parse in any letter case; Aeron's "category: text" shape splits into event
- * and fields; a line formats exactly as the grammar says, cut cleanly when it does not fit; and the home
- * folder in a path is written as ~ only where it is a whole folder at the start of a path. Aeron's log
- * funnel is replaced by a stub that records what it was handed. */
+ * and fields; a line formats exactly as the grammar says, cut cleanly when it does not fit; the home
+ * folder in a path is written as ~ only where it is a whole folder at the start of a path; and a table
+ * prints as whole hex words. Aeron's log funnel is replaced by a stub that records what it was handed. */
 #include "test_assert.h"
 #include "xvt_runtime/log/log.h"
 
@@ -185,11 +185,31 @@ static void CheckShortenHome(void) {
 	XVT_ASSERT_INT_EQ(out[0], 'x');
 }
 
+static void CheckHexList(void) {
+	static const unsigned values[] = { 0x2au, 0xffffffffu, 0u };
+	char out[32];
+	size_t written = XvtLog_FormatHexList(out, sizeof out, values, 3);
+	XVT_ASSERT_TRUE(!strcmp(out, "0000002a,ffffffff,00000000"));
+	XVT_ASSERT_INT_EQ(written, 26);
+	XVT_ASSERT_INT_EQ(XvtLog_FormatHexList(out, sizeof out, values, 0), 0);
+	XVT_ASSERT_INT_EQ(out[0], 0);
+
+	/* Only whole words: 18 bytes hold two words and the terminator, 17 hold one. */
+	XVT_ASSERT_INT_EQ(XvtLog_FormatHexList(out, 18, values, 3), 17);
+	XVT_ASSERT_TRUE(!strcmp(out, "0000002a,ffffffff"));
+	XVT_ASSERT_INT_EQ(XvtLog_FormatHexList(out, 17, values, 3), 8);
+	XVT_ASSERT_TRUE(!strcmp(out, "0000002a"));
+	out[0] = 'x';
+	XVT_ASSERT_INT_EQ(XvtLog_FormatHexList(out, 0, values, 3), 0);
+	XVT_ASSERT_INT_EQ(out[0], 'x');
+}
+
 int main(void) {
 	CheckGate();
 	CheckParse();
 	CheckSplit();
 	CheckFormat();
 	CheckShortenHome();
+	CheckHexList();
 	return 0;
 }

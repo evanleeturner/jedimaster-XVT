@@ -93,6 +93,11 @@ size_t XvtLog_FormatLine(char* out, size_t capacity, uint32_t ms_of_day, char le
  * text copies as "". The copy is cut to fit capacity with its terminator; capacity 0 writes nothing.
  * Returns the number of bytes written before the terminator. */
 size_t XvtLog_ShortenHome(char* out, size_t capacity, const char* text, const char* home, size_t home_length);
+/* Writes count values into out as eight-digit lowercase hex words joined by commas, "0000002a,ffffffff",
+ * for a field that carries a table; the call site quotes it. Writes only whole words: the first word that
+ * would not fit with the terminator ends the list. capacity 0 writes nothing; count 0 writes "". Returns
+ * the number of bytes written before the terminator. */
+size_t XvtLog_FormatHexList(char* out, size_t capacity, const unsigned* values, size_t count);
 
 #ifdef __cplusplus
 }

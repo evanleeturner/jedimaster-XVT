@@ -1,4 +1,5 @@
 #include "xvt_runtime/input/flight_controls.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_checkpoint.h"
 #include "xvt_runtime/runtime/flight_internal.h"
 #include "xvt_runtime/runtime/flight_messages.h"
@@ -49,6 +50,12 @@ static struct {
 } g_confirm;
 
 extern uint32_t g_lastTickTime;
+
+/* Says why the frame loop ends and returns 1, the frame loop's "flight over". */
+static int XvtFlightFrame_End(const char* reason) {
+	XVT_LOG_INFO("flight.frames_end reason=\"%s\" tick=%d", reason, g_gameTime);
+	return 1;
+}
 
 uint64_t XvtFlightTime_DelayForTicks(unsigned int ticks) {
 	uint64_t now = XvtTime_GetElapsedUs();
@@ -333,6 +340,8 @@ static void XvtFlightFrame_AdjustClock(void) {
 				g_inputTimestamp, g_serverTickTime,
 				g_serverTickTime + g_flightNetClockLeadAllowanceMs - g_inputTimestamp);
 		clockAdjustment = g_serverTickTime + g_flightNetClockLeadAllowanceMs - g_inputTimestamp;
+		XVT_LOG_DEBUG("network.fell_behind input=%d server=%d adjust=%d", g_inputTimestamp, g_serverTickTime,
+					  clockAdjustment);
 		g_inputTimestamp += clockAdjustment;
 		g_flightNetClockAdjustAccumTicks -= clockAdjustment;
 	}
@@ -382,6 +391,15 @@ static int XvtFlightFrame_HasBudget(void) {
 static void XvtFlightFrame_Checksum(void) {
 	Flight_ChecksumWorldState(0, 0);
 	g_flightNetWorldChecksumEpoch = (unsigned)g_serverTickTime;
+	if (XvtLog_Enabled(AERON_LOG_DEBUG)) {
+		enum { REGIONS = sizeof(g_worldChecksum) / sizeof(g_worldChecksum[0]) };
+
+		char sums[REGIONS * 9 + 1], lengths[REGIONS * 9 + 1];
+		XvtLog_FormatHexList(sums, sizeof sums, g_worldChecksum, REGIONS);
+		XvtLog_FormatHexList(lengths, sizeof lengths, g_peerChecksumRegionLengths, REGIONS);
+		XVT_LOG_DEBUG("network.checksum tick=%d host=%d sums=\"%s\" lengths=\"%s\"", g_serverTickTime,
+					  NetSession_GetLocalPlayerId() != 0, sums, lengths);
+	}
 	if (NetSession_GetLocalPlayerId())
 		FlightNet_BroadcastWorldChecksum((const int*)g_worldChecksum, (const int*)g_peerChecksumRegionLengths,
 										 16);
@@ -401,6 +419,7 @@ static XvtFlightReplayResult XvtFlightFrame_Confirm(XvtFlightQueue queue) {
 		if (target <= g_serverTickTime)
 			return XVT_REPLAY_ADVANCED;
 		if (target - g_serverTickTime != XVT_WORLD_MESSAGE_TICKS) {
+			XVT_LOG_DEBUG("network.confirm_gap target=%d confirmed=%d", target, g_serverTickTime);
 			XvtFlightNetwork_RequestRecovery();
 			return XVT_REPLAY_PENDING;
 		}
@@ -451,6 +470,9 @@ static XvtFlightReplayResult XvtFlightFrame_Confirm(XvtFlightQueue queue) {
 	g_serverTickTime = g_gameTime;
 	Sound_FlushQueuedEffects();
 	Flight_SaveWorldState();
+	XVT_LOG_DEBUG("network.confirm tick=%d queue=\"%s\" mask=%02x records=%u checksum=%d", g_serverTickTime,
+				  queue == XVT_QUEUE_REPLAY ? "replay" : "pending", g_confirm.message.mask,
+				  g_confirm.message.count, (g_confirm.message.target_flags & XVT_WORLD_CHECKSUM_FLAG) != 0);
 	if (queue == XVT_QUEUE_PENDING && (g_confirm.message.target_flags & XVT_WORLD_CHECKSUM_FLAG))
 		XvtFlightFrame_Checksum();
 	g_confirm.phase = queue == XVT_QUEUE_REPLAY ? XVT_CONFIRM_IDLE : XVT_CONFIRM_REBUILD;
@@ -472,26 +494,27 @@ void XvtFlightFrame_ResetReplay(void) {
 
 static int XvtFlightFrame_NetworkTick(void) {
 	if (g_confirm.phase == XVT_CONFIRM_TERMINAL)
-		return 1;
+		return XvtFlightFrame_End("mission_ended");
 	XvtFlightFrame_NetworkBudget();
 	if (!g_confirm.suspended && !g_confirm.predicted_suspended) {
 		int elapsed = Time_GetFrameDelta();
 		if ((int64_t)g_inputTimestamp + elapsed >= INT32_MAX - 258) {
 			FlightNet_BroadcastLocalPlayerLeft();
-			return 1;
+			return XvtFlightFrame_End("clock_limit");
 		}
 		g_inputTimestamp += elapsed;
 		if (!NetSession_GetLocalPlayerId())
 			g_flightNetHostTimeoutElapsedMs += elapsed;
 		if (g_flightNetHostTimeoutElapsedMs > HOST_TIMEOUT_TICKS) {
+			XVT_LOG_WARN("network.host_timeout ticks=%d", g_flightNetHostTimeoutElapsedMs);
 			FlightNet_BroadcastPlayerAbort(g_localPlayer);
-			return 1;
+			return XvtFlightFrame_End("host_timeout");
 		}
 		XvtFlightNetwork_FlushInput(g_inputTimestamp);
 		XvtFlightNetwork_FlushWorld();
 		FlightNet_ProcessIncomingPackets();
 		if (!g_players[g_localPlayer].connectedFlag || g_flightNetHostAbortReceived)
-			return 1;
+			return XvtFlightFrame_End(g_flightNetHostAbortReceived ? "host_abort" : "disconnected");
 		if (XvtResync_IsActive())
 			return 0;
 	}
@@ -500,19 +523,19 @@ static int XvtFlightFrame_NetworkTick(void) {
 		if (step == XVT_STEP_PENDING)
 			return 0;
 		if (step == XVT_STEP_TERMINAL)
-			return 1;
+			return XvtFlightFrame_End("mission_ended");
 		g_confirm.predicted_suspended = 0;
 		++g_confirm.steps;
 	}
 	if (XvtFlightNetwork_NeedsRecovery()) {
 		XvtResync_RequestState();
-		return g_flightMissionState.missionEndPending != 0;
+		return g_flightMissionState.missionEndPending ? XvtFlightFrame_End("recovery") : 0;
 	}
 	XvtFlightReplayResult result = XVT_REPLAY_ADVANCED;
 	while (result == XVT_REPLAY_ADVANCED && XvtFlightFrame_HasBudget())
 		result = XvtFlightFrame_Confirm(XVT_QUEUE_PENDING);
 	if (result == XVT_REPLAY_TERMINAL)
-		return 1;
+		return XvtFlightFrame_End("mission_ended");
 	if (g_confirm.phase == XVT_CONFIRM_APPLY || result != XVT_REPLAY_IDLE)
 		return 0;
 	if (Flight_RecountPlayersAndCheckMissionEnd() && g_gameTime == g_serverTickTime) {
@@ -520,12 +543,12 @@ static int XvtFlightFrame_NetworkTick(void) {
 			msg_writeMessageLogFile();
 			g_radioMessageBackupEnabled = 0;
 		}
-		return 1;
+		return XvtFlightFrame_End("mission_complete");
 	}
 	XvtFlightFrame_AdjustClock();
 	if (g_inputTimestamp >= INT32_MAX - 258) {
 		FlightNet_BroadcastLocalPlayerLeft();
-		return 1;
+		return XvtFlightFrame_End("clock_limit");
 	}
 	int target = g_inputTimestamp & ~1;
 	if (g_confirm.phase == XVT_CONFIRM_REBUILD && target < g_confirm.publish_floor)
@@ -541,7 +564,7 @@ static int XvtFlightFrame_NetworkTick(void) {
 		g_flightSimSideEffectsSuppressed = 1;
 		XvtFlightStepResult step = XvtFlightSim_StepToTime(g_gameTime + XVT_NETWORK_STEP_TICKS);
 		if (step == XVT_STEP_TERMINAL)
-			return 1;
+			return XvtFlightFrame_End("mission_ended");
 		if (step == XVT_STEP_PENDING) {
 			g_confirm.predicted_suspended = 1;
 			return 0;
@@ -575,7 +598,7 @@ int XvtFlightFrame_Tick(void) {
 			msg_writeMessageLogFile();
 			g_radioMessageBackupEnabled = 0;
 		}
-		return 1;
+		return XvtFlightFrame_End("mission_complete");
 	}
 	g_frame.frameStartTimestamp = g_inputTimestamp;
 	g_inputTimestamp += Time_GetFrameDelta();
