@@ -67,10 +67,10 @@ void Sound_InsertEffectDefSorted(const SoundEffectDef* effect);
 void Sound_RemoveEffectDef(int soundId);
 int Sound_FindLoadedEffectByName(const char* name);
 int Sound_FindEffectByName(const SoundEffectDef* records, int lastIndex, const char* name);
-int Sound_SetParam(int soundId, int param, int value);
-int Sound_GetParam(int soundId, int param);
+int Sound_SetParam(int flightSoundId, int param, int value);
+int Sound_GetParam(int flightSoundId, int param);
 int Sound_UnusedFourArgStub(int arg1, int arg2, int arg3, int arg4);
-int Sound_StopOldestInstanceById(int soundId);
+int Sound_StopOldestInstanceById(int flightSoundId);
 void nullsub_10(void);
 
 #ifdef __cplusplus

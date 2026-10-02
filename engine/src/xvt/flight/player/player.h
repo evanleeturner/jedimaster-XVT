@@ -45,8 +45,8 @@ struct PlayerHyperspaceRuntime {
 
 struct PlayerSavedCraftSettings {
 	uint16_t throttleSpeed;
-	PowerRechargeLevel laserRedirect;
-	PowerRechargeLevel shieldRedirect;
+	PowerRechargeLevel laserRechargeLevel;
+	PowerRechargeLevel shieldRechargeLevel;
 	PowerRechargeLevel beamLevel;
 	ShieldDistributionMode shieldDistribMode;
 	uint8_t laserLinkMode[2];
@@ -220,7 +220,7 @@ struct RemotePlayerRenderSample {
 	int simStateTimestamp;
 };
 
-struct RemotePlayerSavedRenderPose {
+struct RemotePlayerSavedSimPose {
 	int valid;
 	char gap4[2];
 	int worldX;
@@ -250,7 +250,7 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 void Player_SetTarget(int newTargetObjIdx, int playerIdx);
 uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int playerIdx);
 int16_t USER_calcdeltapitch(int16_t angleQ16, int16_t yawAngleQ16, uint16_t objectIndex, CraftData* craft);
-int16_t Player_CanRadioCommandCraft(int objectIndex);
+int16_t Player_CanRadioCommandCraft(int playerIdx);
 void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId, uint16_t responseIndex,
 									  int playerIdx);
 int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx, int16_t excludedObjIdx);

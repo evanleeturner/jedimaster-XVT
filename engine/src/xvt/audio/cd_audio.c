@@ -314,7 +314,7 @@ int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fa
 	int fadeUp;
 	unsigned int stepDelayMs;
 	uint32_t previousTimeMs;
-	int currentTick;
+	int currentTimeMs;
 	unsigned int nextVolume;
 
 	if (g_frontState.cdAudioMciDeviceId == 0) {
@@ -333,8 +333,8 @@ int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fa
 
 	previousTimeMs = GetTickCount();
 	while (1) {
-		currentTick = GetTickCount();
-		if ((int)(previousTimeMs + stepDelayMs) < currentTick) {
+		currentTimeMs = GetTickCount();
+		if ((int)(previousTimeMs + stepDelayMs) < currentTimeMs) {
 			if (fadeUp != 0) {
 				nextVolume = fromVolume + 256;
 				if (nextVolume > 65535) {
@@ -350,7 +350,7 @@ int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fa
 				}
 			}
 			CDAudio_SetAuxVolume(fromVolume);
-			previousTimeMs = currentTick;
+			previousTimeMs = currentTimeMs;
 		}
 		if (fadeUp != 0) {
 			if (toVolume <= fromVolume) {

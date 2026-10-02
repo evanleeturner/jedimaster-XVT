@@ -218,7 +218,7 @@ int NetSession_ImportRuntimeState(void** dplayInterfaceOut, GUID* appGuidOut, GU
 								  int* stateDwordDOut, int* stateDwordEOut, NetQueuedPacket* recvHistoryOut,
 								  int* recvHistoryCountOut);
 int NetSession_ExportRuntimeState(void** dplayInterface, const void* appGuid, const void* sessionGuid,
-								  int* groupId, int* hostPlayerId, const void* sessionName,
+								  int* groupId, int* hostPlayerId, const void* localPlayerInfo,
 								  const NetQueuedPacket* directPlaySlots, int* recvQueueRead,
 								  int* recvQueueCount, int* recvQueueWrite,
 								  const NetReliablePeerSlot* reliablePeerSlots, int* netSlotCount,

@@ -337,7 +337,7 @@ static void XvtOpt_Expand(XvtOptDecode* decode, uint8_t* native, uint8_t* raw_co
 	}
 }
 
-uint16_t XvtOpt_Read(AeronFile* file, const char* path, int* version, unsigned int* native_size) {
+uint16_t XvtOpt_Read(AeronFile* file, const char* label, int* version, unsigned int* native_size) {
 	XvtOptDecode decode = { 0 };
 	uint8_t header[8];
 	uint16_t handle = 0;
@@ -399,7 +399,7 @@ done:
 	free(decode.nodes);
 	free(decode.bytes);
 	if (!handle)
-		XVT_LOG_ERROR("models.opt_invalid path=\"%s\"", path);
+		XVT_LOG_ERROR("models.opt_invalid path=\"%s\"", label);
 	return handle;
 }
 

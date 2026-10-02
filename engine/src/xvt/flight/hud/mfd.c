@@ -171,7 +171,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 		COCKPIT_OVERLAY_STR_PENALTY = 22,
 	};
 
-	int playerIff;
+	int playerTeam;
 	int totalVisibleGoals;
 	int scrollTop;
 	int lineIndex;
@@ -208,11 +208,11 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 	XvtCockpitPages_SetOrigin(MFD_PAGE_GOALS, left - 2, top - 2);
 #endif
 	totalVisibleGoals = 0;
-	playerIff = (uint16_t)g_players[g_localPlayer].team;
+	playerTeam = (uint16_t)g_players[g_localPlayer].team;
 	for (sectionIdx = 0; sectionIdx < SECTION_COUNT; ++sectionIdx) {
 		g_mfdGoalsLineCounts[sectionIdx] = 0;
 		for (goalType = 0; goalType <= GOAL_TYPE_MAX; ++goalType) {
-			uint16_t globalState = g_flightMissionState.runtime.teamGlobalGoalState[playerIff][goalType];
+			uint16_t globalState = g_flightMissionState.runtime.teamGlobalGoalState[playerTeam][goalType];
 			uint16_t displayState;
 
 			if (globalState != 0 &&
@@ -222,19 +222,19 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 					int teamOrVariable = TEAM_NONE;
 
 					for (triggerIdx = 0; triggerIdx < TRIGGER_COUNT_PER_PAIR; ++triggerIdx) {
-						uint16_t condition = g_missionGlobalGoals[playerIff][goalType]
+						uint16_t condition = g_missionGlobalGoals[playerTeam][goalType]
 												 .triggerPairs[pairIdx]
 												 .triggers[triggerIdx]
 												 .condition;
-						uint16_t variableType = g_missionGlobalGoals[playerIff][goalType]
+						uint16_t variableType = g_missionGlobalGoals[playerTeam][goalType]
 													.triggerPairs[pairIdx]
 													.triggers[triggerIdx]
 													.variableType;
-						uint16_t variable = g_missionGlobalGoals[playerIff][goalType]
+						uint16_t variable = g_missionGlobalGoals[playerTeam][goalType]
 												.triggerPairs[pairIdx]
 												.triggers[triggerIdx]
 												.variable;
-						uint16_t amount = (uint8_t)g_missionGlobalGoals[playerIff][goalType]
+						uint16_t amount = (uint8_t)g_missionGlobalGoals[playerTeam][goalType]
 											  .triggerPairs[pairIdx]
 											  .triggers[triggerIdx]
 											  .amount;
@@ -243,15 +243,15 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 							condition == MISSION_COND_ALWAYS_TRUE) {
 							continue;
 						}
-						if (g_missionGlobalGoals[playerIff][goalType]
+						if (g_missionGlobalGoals[playerTeam][goalType]
 									.triggerPairs[pairIdx]
 									.triggers[triggerIdx + 1]
 									.condition == MISSION_COND_NO_CONDITION &&
-							g_missionGlobalGoals[playerIff][goalType]
+							g_missionGlobalGoals[playerTeam][goalType]
 									.triggerPairs[pairIdx]
 									.triggers[triggerIdx + 1]
 									.variableType == GOAL_TARGET_TEAM) {
-							teamOrVariable = g_missionGlobalGoals[playerIff][goalType]
+							teamOrVariable = g_missionGlobalGoals[playerTeam][goalType]
 												 .triggerPairs[pairIdx]
 												 .triggers[triggerIdx + 1]
 												 .variable;
@@ -270,10 +270,11 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 			displayState = g_mfdGoalsDisplayStateBySectionType[sectionIdx][goalType];
 			for (goalIdx = 0; goalIdx < FLIGHT_GROUP_GOAL_COUNT; ++goalIdx) {
 				for (flightGroupIdx = 0; flightGroupIdx < g_missionHeader.numFlightGroups; ++flightGroupIdx) {
-					if (g_missionFlightGroups[flightGroupIdx].fg.goals[goalIdx].enabledTeams[playerIff] ==
+					if (g_missionFlightGroups[flightGroupIdx].fg.goals[goalIdx].enabledTeams[playerTeam] ==
 							0 ||
 						g_missionFlightGroups[flightGroupIdx].fg.goals[goalIdx].goalKind != goalType ||
-						g_missionFgStats[flightGroupIdx].goalState[8 * playerIff + goalIdx] != displayState) {
+						g_missionFgStats[flightGroupIdx].goalState[8 * playerTeam + goalIdx] !=
+							displayState) {
 						continue;
 					}
 					if (goalType == 2) {
@@ -453,7 +454,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 					continue;
 				}
 				bonusPrefixWidth = 0;
-				globalState = g_flightMissionState.runtime.teamGlobalGoalState[playerIff][goalType];
+				globalState = g_flightMissionState.runtime.teamGlobalGoalState[playerTeam][goalType];
 				if (globalState != 0 &&
 					(globalState == g_mfdGoalsDisplayStateBySectionType[sectionIdx][goalType] ||
 					 globalState == g_mfdGoalsCountAltStateBySectionType[sectionIdx][goalType])) {
@@ -464,19 +465,19 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 
 						for (triggerIdx = 0; triggerIdx < TRIGGER_COUNT_PER_PAIR;
 							 ++triggerIdx, ++triggerOrdinal) {
-							uint16_t condition = g_missionGlobalGoals[playerIff][goalType]
+							uint16_t condition = g_missionGlobalGoals[playerTeam][goalType]
 													 .triggerPairs[pairIdx]
 													 .triggers[triggerIdx]
 													 .condition;
-							uint16_t variableType = g_missionGlobalGoals[playerIff][goalType]
+							uint16_t variableType = g_missionGlobalGoals[playerTeam][goalType]
 														.triggerPairs[pairIdx]
 														.triggers[triggerIdx]
 														.variableType;
-							uint16_t variable = g_missionGlobalGoals[playerIff][goalType]
+							uint16_t variable = g_missionGlobalGoals[playerTeam][goalType]
 													.triggerPairs[pairIdx]
 													.triggers[triggerIdx]
 													.variable;
-							uint16_t amount = (uint8_t)g_missionGlobalGoals[playerIff][goalType]
+							uint16_t amount = (uint8_t)g_missionGlobalGoals[playerTeam][goalType]
 												  .triggerPairs[pairIdx]
 												  .triggers[triggerIdx]
 												  .amount;
@@ -487,15 +488,15 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 								condition == MISSION_COND_ALWAYS_TRUE) {
 								continue;
 							}
-							if (g_missionGlobalGoals[playerIff][goalType]
+							if (g_missionGlobalGoals[playerTeam][goalType]
 										.triggerPairs[pairIdx]
 										.triggers[triggerIdx + 1]
 										.condition == MISSION_COND_NO_CONDITION &&
-								g_missionGlobalGoals[playerIff][goalType]
+								g_missionGlobalGoals[playerTeam][goalType]
 										.triggerPairs[pairIdx]
 										.triggers[triggerIdx + 1]
 										.variableType == GOAL_TARGET_TEAM) {
-								teamOrVariable = g_missionGlobalGoals[playerIff][goalType]
+								teamOrVariable = g_missionGlobalGoals[playerTeam][goalType]
 													 .triggerPairs[pairIdx]
 													 .triggers[triggerIdx + 1]
 													 .variable;
@@ -507,7 +508,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 							}
 
 							if (goalType == 2 && bonusPrefixWidth == 0) {
-								int points = 250 * g_missionGlobalGoals[playerIff][goalType].rawPoints;
+								int points = 250 * g_missionGlobalGoals[playerTeam][goalType].rawPoints;
 								if ((sectionIdx == GOAL_TITLE_STR_FAILED_OBJECTIVES && points >= 0) ||
 									(sectionIdx == GOAL_TITLE_STR_COMPLETED_OBJECTIVES && points < 0)) {
 									pairIdx = TRIGGER_PAIR_COUNT;
@@ -547,12 +548,12 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 								const char* overrideText = NULL;
 
 								if (g_globalGoalOverrideStringHandles
-										[playerIff][goalType][triggerOrdinal]
+										[playerTeam][goalType][triggerOrdinal]
 										[g_mfdGoalsDisplayStateBySectionType[sectionIdx][goalType] & 3] !=
 									0) {
 									overrideText = (const char*)Memory_LockHandle(
 										g_globalGoalOverrideStringHandles
-											[playerIff][goalType][triggerOrdinal]
+											[playerTeam][goalType][triggerOrdinal]
 											[g_mfdGoalsDisplayStateBySectionType[sectionIdx][goalType] & 3]);
 								}
 								FlightText_SetCursor(left, cursorY);
@@ -565,7 +566,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 								if (overrideText != NULL) {
 									FlightText_DrawString(overrideText);
 									if (g_flightMissionState.runtime
-												.globalGoalTriggerCounts[1][playerIff][goalType]
+												.globalGoalTriggerCounts[1][playerTeam][goalType]
 																		[triggerOrdinal] <= 1 ||
 										condition == MISSION_COND_BOARDED ||
 										condition == MISSION_COND_DOCKED ||
@@ -580,10 +581,10 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 										sprintf(text, " (%ld%%)",
 												(long)(100 *
 													   g_flightMissionState.runtime
-														   .globalGoalTriggerCounts[0][playerIff][goalType]
+														   .globalGoalTriggerCounts[0][playerTeam][goalType]
 																				   [triggerOrdinal] /
 													   g_flightMissionState.runtime
-														   .globalGoalTriggerCounts[1][playerIff][goalType]
+														   .globalGoalTriggerCounts[1][playerTeam][goalType]
 																				   [triggerOrdinal]));
 										if (sectionIdx == GOAL_TITLE_STR_FAILED_OBJECTIVES ||
 											sectionIdx == GOAL_TITLE_STR_CONDITIONS_TO_PREVENT) {
@@ -607,7 +608,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 									int percentComplete;
 
 									if (g_flightMissionState.runtime
-												.globalGoalTriggerCounts[1][playerIff][goalType]
+												.globalGoalTriggerCounts[1][playerTeam][goalType]
 																		[triggerOrdinal] <= 1 ||
 										condition == MISSION_COND_BOARDED ||
 										condition == MISSION_COND_DOCKED ||
@@ -617,13 +618,14 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 										condition == MISSION_COND_NOT_DOCKED) {
 										percentComplete = -1;
 									} else {
-										percentComplete = 100 *
-														  g_flightMissionState.runtime
-															  .globalGoalTriggerCounts[0][playerIff][goalType]
-																					  [triggerOrdinal] /
-														  g_flightMissionState.runtime
-															  .globalGoalTriggerCounts[1][playerIff][goalType]
-																					  [triggerOrdinal];
+										percentComplete =
+											100 *
+											g_flightMissionState.runtime
+												.globalGoalTriggerCounts[0][playerTeam][goalType]
+																		[triggerOrdinal] /
+											g_flightMissionState.runtime
+												.globalGoalTriggerCounts[1][playerTeam][goalType]
+																		[triggerOrdinal];
 									}
 									drawnHeight = goals_outputgoal(variable, condition, variableType,
 																   goalStatus, amount, 0, overrideText,
@@ -635,7 +637,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 								if (overrideText != NULL) {
 									Memory_UnlockHandle(
 										g_globalGoalOverrideStringHandles
-											[playerIff][goalType][triggerOrdinal]
+											[playerTeam][goalType][triggerOrdinal]
 											[g_mfdGoalsDisplayStateBySectionType[sectionIdx][goalType] & 3]);
 								}
 							}
@@ -658,11 +660,12 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 						uint16_t amountOp;
 						uint16_t timeLimit;
 
-						if (g_missionFlightGroups[flightGroupIdx].fg.goals[goalIdx].enabledTeams[playerIff] ==
-								0 ||
+						if (g_missionFlightGroups[flightGroupIdx]
+									.fg.goals[goalIdx]
+									.enabledTeams[playerTeam] == 0 ||
 							g_missionFgStats[flightGroupIdx].arrivalEnabled == 0 ||
 							g_missionFlightGroups[flightGroupIdx].fg.goals[goalIdx].goalKind != goalType ||
-							g_missionFgStats[flightGroupIdx].goalState[8 * playerIff + goalIdx] !=
+							g_missionFgStats[flightGroupIdx].goalState[8 * playerTeam + goalIdx] !=
 								displayState) {
 							continue;
 						}
@@ -1352,7 +1355,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 
 	uint16_t craftRows[MAX_FLIGHT_GROUPS];
 	int localPlayer;
-	uint16_t playerIff;
+	uint16_t playerTeam;
 	uint16_t pageIndex;
 	uint16_t layoutIndex;
 	uint16_t rowCount;
@@ -1378,7 +1381,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 	FlightText_SetFontTier(0);
 	localPlayer = g_localPlayer;
 	craftRows[0] = g_players[localPlayer].boundFlightGroupIdx;
-	playerIff = (uint16_t)g_players[localPlayer].team;
+	playerTeam = (uint16_t)g_players[localPlayer].team;
 	pageIndex = (uint16_t)(MFD_PAGE_FRIENDLY_CRAFT - showFlightGroupsPage);
 	layoutIndex = (uint16_t)(HUD_MFD_CRAFT_LIST_ELEMENT + showFlightGroupsPage);
 	playerObjectIdx = g_players[localPlayer].objectIndex;
@@ -1412,7 +1415,8 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 
 				if (g_objectTable[objectIdx].objectType != 0 && g_objectTable[objectIdx].mobj != NULL && g_objectTable[objectIdx].mobj->pCraft != NULL) {
 					team = g_objectTable[objectIdx].mobj->team;
-					if (g_objectTable[objectIdx].mobj->team != playerIff && g_missionTeams[playerIff].allies[team] == 0) {
+					if (g_objectTable[objectIdx].mobj->team != playerTeam &&
+						g_missionTeams[playerTeam].allies[team] == 0) {
 						craft = g_objectTable[objectIdx].mobj->pCraft;
 						if (craft->objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
 							craft->objectKind != CRAFT_OBJECT_KIND_EXPLODING) {
@@ -1427,7 +1431,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 				int isHostile;
 
 				team = g_missionFlightGroups[flightGroupIdx].fg.team;
-				isHostile = team == playerIff ? 0 : g_missionTeams[playerIff].allies[team] < 1;
+				isHostile = team == playerTeam ? 0 : g_missionTeams[playerTeam].allies[team] < 1;
 				if (!isHostile && flightGroupIdx != craftRows[0]) {
 					friendlyFlightGroups[flightGroupCount++] = (uint16_t)flightGroupIdx;
 				}
@@ -1978,7 +1982,7 @@ void Mfd_BuildScratchCraftListName(uint16_t objectIdx) {
 int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex) {
 	unsigned int goalIndex;
 	FlightGroupGoal* goal;
-	int16_t* playerIff;
+	int16_t* playerTeam;
 	unsigned int globalTriggerIndex;
 	MissionTriggerPair* triggerPair;
 	MissionTrigger* trigger;
@@ -2010,12 +2014,12 @@ int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex) {
 	boardActive = 0;
 	flightGroupIdx = g_objectTable[objectIndex].flightGroupIdx;
 	specialCargoOnly = 0;
-	playerIff = &g_players[g_localPlayer].team;
+	playerTeam = &g_players[g_localPlayer].team;
 
 	for (goalIndex = 0; goalIndex < 8; ++goalIndex) {
 		goal = &g_missionFlightGroups[flightGroupIdx].fg.goals[goalIndex];
-		if (goal->enabledTeams[(uint16_t)*playerIff] != 0 && goal->goalKind == 0 &&
-			g_missionFgStats[flightGroupIdx].goalState[8 * (uint16_t)*playerIff + goalIndex] == 4) {
+		if (goal->enabledTeams[(uint16_t)*playerTeam] != 0 && goal->goalKind == 0 &&
+			g_missionFgStats[flightGroupIdx].goalState[8 * (uint16_t)*playerTeam + goalIndex] == 4) {
 			if (goal->amount == GOAL_AMT_ALL_SPECIAL_CARGO) {
 				if (g_missionFgStats[flightGroupIdx].specialCargoOutcome[FLIGHT_GROUP_OUTCOME_INSPECTED] ==
 					0) {
@@ -2042,9 +2046,9 @@ int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex) {
 
 	for (globalTriggerIndex = 0; globalTriggerIndex < 4; ++globalTriggerIndex) {
 		if (globalTriggerIndex < 2) {
-			triggerPair = &g_missionGlobalGoals[(uint16_t)*playerIff][0].triggerPairs[0];
+			triggerPair = &g_missionGlobalGoals[(uint16_t)*playerTeam][0].triggerPairs[0];
 		} else {
-			triggerPair = &g_missionGlobalGoals[(uint16_t)*playerIff][0].triggerPairs[1];
+			triggerPair = &g_missionGlobalGoals[(uint16_t)*playerTeam][0].triggerPairs[1];
 		}
 		if ((globalTriggerIndex & 1) == 0) {
 			trigger = &triggerPair->triggers[0];
@@ -2071,7 +2075,7 @@ int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex) {
 	}
 
 	if (g_activeRegionCraftObjectSlotEnd > objectIndex) {
-		if (inspectActive != 0 && craft->identifiedOrderByTeam[(uint16_t)*playerIff] != 0) {
+		if (inspectActive != 0 && craft->identifiedOrderByTeam[(uint16_t)*playerTeam] != 0) {
 			inspectActive = 0;
 		}
 		if (captureActive != 0 || boardActive != 0) {

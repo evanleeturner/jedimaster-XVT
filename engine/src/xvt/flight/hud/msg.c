@@ -526,9 +526,9 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 	for (goalIndex = 0; goalIndex < 8; ++goalIndex) {
 		FlightGroupGoal* goal = &g_missionFlightGroups[flightGroupIdx].fg.goals[goalIndex];
 		int eventCondition;
-		int playerIff = (uint16_t)g_players[playerIdx].team;
-		if (goal->enabledTeams[playerIff] == 0 || goal->goalKind != 0 ||
-			g_missionFgStats[flightGroupIdx].goalState[8 * playerIff + goalIndex] != 4)
+		int playerTeam = (uint16_t)g_players[playerIdx].team;
+		if (goal->enabledTeams[playerTeam] == 0 || goal->goalKind != 0 ||
+			g_missionFgStats[flightGroupIdx].goalState[8 * playerTeam + goalIndex] != 4)
 			continue;
 		if (goal->amount == GOAL_AMT_ALL_SPECIAL_CARGO) {
 			if (g_missionFgStats[flightGroupIdx].specialCargoOutcome[FLIGHT_GROUP_OUTCOME_INSPECTED] == 0)

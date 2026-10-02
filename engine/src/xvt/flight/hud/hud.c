@@ -1922,10 +1922,10 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 				int16_t displayFlags = NORMAL_TARGET_DISPLAY_FLAGS;
 				if (g_objectTable[currentTargetObjectIndex].mobj != NULL && targetCraft != NULL &&
 					g_flightMissionState.locatePlayersEnabled == 0) {
-					int playerIff;
+					int playerTeam;
 
-					playerIff = (uint16_t)g_players[g_localPlayer].team;
-					if (targetCraft->identifiedOrderByTeam[playerIff] == 0) {
+					playerTeam = (uint16_t)g_players[g_localPlayer].team;
+					if (targetCraft->identifiedOrderByTeam[playerTeam] == 0) {
 						int flightGroupIndex;
 						int team;
 						int hostile;
@@ -1933,8 +1933,8 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 						flightGroupIndex = g_objectTable[currentTargetObjectIndex].flightGroupIdx;
 						team = g_missionFlightGroups[flightGroupIndex].fg.team;
 						hostile = 0;
-						if (team != playerIff) {
-							hostile = g_missionTeams[playerIff].allies[team] == 0;
+						if (team != playerTeam) {
+							hostile = g_missionTeams[playerTeam].allies[team] == 0;
 						}
 						if (hostile == 1 && g_missionFlightGroups[flightGroupIndex].fg.playerNumber != 0) {
 							displayFlags = HIDDEN_TARGET_DISPLAY_FLAGS;
@@ -2048,10 +2048,10 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 			g_flightMissionState.locatePlayersEnabled == 0) {
 			CraftData* displayCraft =
 				g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx].mobj->pCraft;
-			int playerIff;
+			int playerTeam;
 
-			playerIff = (uint16_t)g_players[g_localPlayer].team;
-			if (displayCraft->identifiedOrderByTeam[playerIff] == 0) {
+			playerTeam = (uint16_t)g_players[g_localPlayer].team;
+			if (displayCraft->identifiedOrderByTeam[playerTeam] == 0) {
 				int flightGroupIndex =
 					g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx].flightGroupIdx;
 				int team;
@@ -2059,8 +2059,8 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 
 				team = g_missionFlightGroups[flightGroupIndex].fg.team;
 				hostile = 0;
-				if (team != playerIff) {
-					hostile = g_missionTeams[playerIff].allies[team] == 0;
+				if (team != playerTeam) {
+					hostile = g_missionTeams[playerTeam].allies[team] == 0;
 				}
 				if (hostile == 1 && g_missionFlightGroups[flightGroupIndex].fg.playerNumber != 0) {
 					displayFlags = HIDDEN_TARGET_DISPLAY_FLAGS;
@@ -2331,15 +2331,15 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 			ownershipDisplayMode = 1;
 			if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START && g_flightPlayerCount > 1 &&
 				targetCraft != NULL && g_flightMissionState.locatePlayersEnabled == 0) {
-				int playerIff;
+				int playerTeam;
 
-				playerIff = (uint16_t)g_players[g_localPlayer].team;
-				if (targetCraft->identifiedOrderByTeam[playerIff] == 0) {
+				playerTeam = (uint16_t)g_players[g_localPlayer].team;
+				if (targetCraft->identifiedOrderByTeam[playerTeam] == 0) {
 					int team;
 					int hostile;
 
 					team = g_missionFlightGroups[targetObject->flightGroupIdx].fg.team;
-					hostile = team == playerIff ? 0 : g_missionTeams[playerIff].allies[team] == 0;
+					hostile = team == playerTeam ? 0 : g_missionTeams[playerTeam].allies[team] == 0;
 					if (hostile == 1 &&
 						g_missionFlightGroups[targetObject->flightGroupIdx].fg.playerNumber != 0) {
 						ownershipDisplayMode = 0;
@@ -4305,17 +4305,17 @@ void Hud_DrawCmdTargetDetails(void) {
 				displayFlags = NORMAL_TARGET_DISPLAY_FLAGS;
 				if (targetMobileObject != NULL && targetCraft != NULL &&
 					g_flightMissionState.locatePlayersEnabled == 0) {
-					int playerIff;
+					int playerTeam;
 
-					playerIff = (uint16_t)g_players[g_localPlayer].team;
-					if (targetCraft->identifiedOrderByTeam[playerIff] == 0) {
+					playerTeam = (uint16_t)g_players[g_localPlayer].team;
+					if (targetCraft->identifiedOrderByTeam[playerTeam] == 0) {
 						int flightGroupIdx;
 						int team;
 						int hostile;
 
 						flightGroupIdx = targetObject->flightGroupIdx;
 						team = g_missionFlightGroups[flightGroupIdx].fg.team;
-						hostile = team == playerIff ? 0 : g_missionTeams[playerIff].allies[team] == 0;
+						hostile = team == playerTeam ? 0 : g_missionTeams[playerTeam].allies[team] == 0;
 						if (hostile == 1 && g_missionFlightGroups[flightGroupIdx].fg.playerNumber != 0)
 							displayFlags = HIDDEN_TARGET_DISPLAY_FLAGS;
 					}
@@ -4438,15 +4438,15 @@ void Hud_DrawCmdTargetDetails(void) {
 		if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START && g_flightPlayerCount > 1 &&
 			targetMobileObject != NULL && targetCraft != NULL &&
 			g_flightMissionState.locatePlayersEnabled == 0) {
-			int playerIff;
+			int playerTeam;
 
-			playerIff = (uint16_t)g_players[g_localPlayer].team;
-			if (targetCraft->identifiedOrderByTeam[playerIff] == 0) {
+			playerTeam = (uint16_t)g_players[g_localPlayer].team;
+			if (targetCraft->identifiedOrderByTeam[playerTeam] == 0) {
 				int team;
 				int hostile;
 
 				team = g_missionFlightGroups[g_objectTable[currentTargetObjectIdx].flightGroupIdx].fg.team;
-				hostile = team == playerIff ? 0 : g_missionTeams[playerIff].allies[team] == 0;
+				hostile = team == playerTeam ? 0 : g_missionTeams[playerTeam].allies[team] == 0;
 				if (hostile == 1)
 					return;
 			}
@@ -6054,7 +6054,7 @@ void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale, int playerId
 	int maxExtent;
 	unsigned int scale;
 	uint16_t scaleShift;
-	uint16_t colorIndex;
+	uint16_t cameraDivisor;
 	uint16_t resolutionMode;
 	ModelIndex modelIndex;
 
@@ -6166,18 +6166,18 @@ void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale, int playerId
 		}
 	}
 	if (useHudLayoutScale != 0) {
-		colorIndex = g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 2].colorIndexOrWidgetParam;
+		cameraDivisor = g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 2].colorIndexOrWidgetParam;
 	} else {
 		resolutionMode = g_players[playerIdx].network.flightResolutionMode;
-		colorIndex = resolutionMode == FLIGHT_RESOLUTION_320X240
-						 ? CAMERA_DIVISOR_LOW
-						 : (resolutionMode == FLIGHT_RESOLUTION_480X360 ? CAMERA_DIVISOR_HIGH
-																		: CAMERA_DIVISOR_DEFAULT);
+		cameraDivisor = resolutionMode == FLIGHT_RESOLUTION_320X240
+							? CAMERA_DIVISOR_LOW
+							: (resolutionMode == FLIGHT_RESOLUTION_480X360 ? CAMERA_DIVISOR_HIGH
+																		   : CAMERA_DIVISOR_DEFAULT);
 	}
 	resolutionMode = g_players[playerIdx].network.flightResolutionMode;
 	scaleShift =
 		(resolutionMode == FLIGHT_RESOLUTION_640X480 || resolutionMode == FLIGHT_RESOLUTION_480X360) ? 9 : 8;
-	scale = ((unsigned int)maxExtent << scaleShift) / (unsigned int)colorIndex;
+	scale = ((unsigned int)maxExtent << scaleShift) / (unsigned int)cameraDivisor;
 	scaleShift = 0;
 	while (scale > CAMERA_SCALE_LIMIT) {
 		scale >>= 1;

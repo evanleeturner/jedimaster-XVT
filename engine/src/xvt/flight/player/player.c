@@ -188,8 +188,8 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 				break;
 		}
 	}
-	craft->shieldRechargeLevel = g_players[playerIdx].savedCraftSettings.shieldRedirect;
-	craft->laserRechargeLevel = g_players[playerIdx].savedCraftSettings.laserRedirect;
+	craft->shieldRechargeLevel = g_players[playerIdx].savedCraftSettings.shieldRechargeLevel;
+	craft->laserRechargeLevel = g_players[playerIdx].savedCraftSettings.laserRechargeLevel;
 	craft->beamLevel = g_players[playerIdx].savedCraftSettings.beamLevel;
 
 	g_players[playerIdx].objectIndex = selectedObjectIdx;
@@ -416,8 +416,8 @@ void Player_SaveCraftSettings(int playerIndex) {
 
 	craft = g_objectTable[g_players[playerIndex].objectIndex].mobj->pCraft;
 	g_players[playerIndex].savedCraftSettings.throttleSpeed = craft->throttleSpeed;
-	g_players[playerIndex].savedCraftSettings.laserRedirect = craft->laserRechargeLevel;
-	g_players[playerIndex].savedCraftSettings.shieldRedirect = craft->shieldRechargeLevel;
+	g_players[playerIndex].savedCraftSettings.laserRechargeLevel = craft->laserRechargeLevel;
+	g_players[playerIndex].savedCraftSettings.shieldRechargeLevel = craft->shieldRechargeLevel;
 	g_players[playerIndex].savedCraftSettings.beamLevel = craft->beamLevel;
 	g_players[playerIndex].savedCraftSettings.shieldDistribMode = craft->shieldDistribMode;
 	g_players[playerIndex].savedCraftSettings.laserLinkMode[0] = craft->laserState.linkMode[0];
@@ -434,8 +434,8 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 		BASE_THROTTLE_SCALE = 0x5555,
 		ROLL_RATE_SEGMENT = 0x3800,
 		PITCH_RATE_SEGMENT = 0x1400,
-		POWER_REDIRECT_NEUTRAL_TOTAL = 4,
-		POWER_REDIRECT_SCALE = 0xC00,
+		POWER_RECHARGE_NEUTRAL_TOTAL = 4,
+		POWER_BALANCE_SCALE = 0xC00,
 		CONTROL_SMOOTHING_THRESHOLD = 8,
 		CONTROL_SMOOTHING_BASE_STEP = 4,
 		KEY_MODIFIER_MASK = 0xE,
@@ -479,8 +479,8 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 	int16_t absolutePitch;
 	int16_t* cameraDistanceStep;
 	int16_t powerBalance;
-	int16_t redirectTotal;
-	int16_t laserRedirect;
+	int16_t rechargeLevelTotal;
+	int16_t laserRechargeLevel;
 	uint16_t throttleScale;
 	uint16_t rollRate;
 	uint16_t pitchRate;
@@ -519,16 +519,16 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 			else
 				throttleScale = (uint16_t)((BASE_THROTTLE_SCALE - throttleScale) / 2 - 1);
 
-			laserRedirect = (uint8_t)craft->laserRechargeLevel;
+			laserRechargeLevel = (uint8_t)craft->laserRechargeLevel;
 			if ((craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0)
-				redirectTotal = (int16_t)((uint8_t)craft->shieldRechargeLevel + laserRedirect);
+				rechargeLevelTotal = (int16_t)((uint8_t)craft->shieldRechargeLevel + laserRechargeLevel);
 			else
-				redirectTotal = (int16_t)(2 * laserRedirect);
-			powerBalance = (int16_t)(POWER_REDIRECT_NEUTRAL_TOTAL - redirectTotal);
+				rechargeLevelTotal = (int16_t)(2 * laserRechargeLevel);
+			powerBalance = (int16_t)(POWER_RECHARGE_NEUTRAL_TOTAL - rechargeLevelTotal);
 			if (powerBalance < 0)
-				powerScale = (uint16_t)(-POWER_REDIRECT_SCALE * powerBalance);
+				powerScale = (uint16_t)(-POWER_BALANCE_SCALE * powerBalance);
 			else
-				powerScale = (uint16_t)(POWER_REDIRECT_SCALE * powerBalance);
+				powerScale = (uint16_t)(POWER_BALANCE_SCALE * powerBalance);
 			rollRate = (uint16_t)MATH2_fraction(craft->aiFlight.rollRate, throttleScale);
 			if (powerBalance > 0)
 				rollRate = (uint16_t)(rollRate + MATH2_fraction(rollRate, powerScale));
@@ -1285,10 +1285,10 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 	uint16_t bestObjectiveObject;
 	unsigned int bestActionableRange;
 	unsigned int bestObjectiveRange;
-	unsigned int playerIff;
+	unsigned int playerTeam;
 	int16_t selectedObject;
 
-	playerIff = (uint16_t)g_players[playerIdx].team;
+	playerTeam = (uint16_t)g_players[playerIdx].team;
 	bestActionableObject = UINT16_MAX;
 	bestObjectiveObject = UINT16_MAX;
 	bestActionableRange = UINT_MAX;
@@ -1309,45 +1309,49 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 			Object_HasActiveDecoyBeam(objectIdx) != 0)
 			continue;
 		flightGroupIdx = g_objectTable[objectIdx].flightGroupIdx;
-		if (g_missionFlightGroups[flightGroupIdx].fg.team == playerIff)
+		if (g_missionFlightGroups[flightGroupIdx].fg.team == playerTeam)
 			continue;
 		goalIndex = 0;
 		goals = g_missionFlightGroups[flightGroupIdx].fg.goals;
 		objective = 0;
-		enabledTeamGoals = &goals[0].enabledTeams[playerIff];
+		enabledTeamGoals = &goals[0].enabledTeams[playerTeam];
 		for (; goalIndex < FLIGHT_GROUP_GOAL_COUNT; ++goalIndex) {
 			FlightGroupGoal* goal = &goals[goalIndex];
 			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 && goal->goalKind == (uint8_t)goalType &&
 				goal->points >= 0 &&
 				g_missionFgStats[g_objectTable[objectIdx].flightGroupIdx]
-						.goalState[FLIGHT_GROUP_GOAL_COUNT * playerIff + goalIndex] == GOAL_STATE_COMPLETE) {
+						.goalState[FLIGHT_GROUP_GOAL_COUNT * playerTeam + goalIndex] == GOAL_STATE_COMPLETE) {
 				objective = 1;
 			}
 		}
-		triggerCondition = g_missionGlobalGoals[playerIff][goalType].triggerPairs[0].triggers[0].condition;
+		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].condition;
 		if (triggerCondition != TRIGGER_CONDITION_ALWAYS && triggerCondition != TRIGGER_CONDITION_NONE &&
 			Mission_ObjectMatchesTriggerVariable(
-				objectIdx, g_missionGlobalGoals[playerIff][goalType].triggerPairs[0].triggers[0].variableType,
-				g_missionGlobalGoals[playerIff][goalType].triggerPairs[0].triggers[0].variable) != 0)
+				objectIdx,
+				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variableType,
+				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variable) != 0)
 			objective = 1;
-		triggerCondition = g_missionGlobalGoals[playerIff][goalType].triggerPairs[0].triggers[1].condition;
+		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[1].condition;
 		if (triggerCondition != TRIGGER_CONDITION_ALWAYS && triggerCondition != TRIGGER_CONDITION_NONE &&
 			Mission_ObjectMatchesTriggerVariable(
-				objectIdx, g_missionGlobalGoals[playerIff][goalType].triggerPairs[0].triggers[1].variableType,
-				g_missionGlobalGoals[playerIff][goalType].triggerPairs[0].triggers[1].variable) != 0)
+				objectIdx,
+				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[1].variableType,
+				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[1].variable) != 0)
 			objective = 1;
 		/* The original reads the second pair's condition but the first pair's variable. */
-		triggerCondition = g_missionGlobalGoals[playerIff][goalType].triggerPairs[1].triggers[0].condition;
+		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[0].condition;
 		if (triggerCondition != TRIGGER_CONDITION_ALWAYS && triggerCondition != TRIGGER_CONDITION_NONE &&
 			Mission_ObjectMatchesTriggerVariable(
-				objectIdx, g_missionGlobalGoals[playerIff][goalType].triggerPairs[0].triggers[0].variableType,
-				g_missionGlobalGoals[playerIff][goalType].triggerPairs[0].triggers[0].variable) != 0)
+				objectIdx,
+				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variableType,
+				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variable) != 0)
 			objective = 1;
-		triggerCondition = g_missionGlobalGoals[playerIff][goalType].triggerPairs[1].triggers[1].condition;
+		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[1].condition;
 		if (triggerCondition != TRIGGER_CONDITION_ALWAYS && triggerCondition != TRIGGER_CONDITION_NONE &&
 			Mission_ObjectMatchesTriggerVariable(
-				objectIdx, g_missionGlobalGoals[playerIff][goalType].triggerPairs[1].triggers[1].variableType,
-				g_missionGlobalGoals[playerIff][goalType].triggerPairs[1].triggers[1].variable) != 0)
+				objectIdx,
+				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[1].variableType,
+				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[1].variable) != 0)
 			objective = 1;
 		if (objective != 0 &&
 			(g_objectTable[objectIdx].mobj->pCraft->objectKind == CRAFT_OBJECT_KIND_ACTIVE ||
@@ -1382,13 +1386,13 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 			continue;
 		goalIndex = 0;
 		goals = g_missionFlightGroups[flightGroupIdx].fg.goals;
-		enabledTeamGoals = &goals[0].enabledTeams[playerIff];
+		enabledTeamGoals = &goals[0].enabledTeams[playerTeam];
 		for (; goalIndex < FLIGHT_GROUP_GOAL_COUNT; ++goalIndex) {
 			FlightGroupGoal* goal = &goals[goalIndex];
 			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 && goal->goalKind == (uint8_t)goalType &&
 				goal->points >= 0 &&
-				g_missionFgStats[flightGroupIdx].goalState[FLIGHT_GROUP_GOAL_COUNT * playerIff + goalIndex] ==
-					GOAL_STATE_COMPLETE) {
+				g_missionFgStats[flightGroupIdx]
+						.goalState[FLIGHT_GROUP_GOAL_COUNT * playerTeam + goalIndex] == GOAL_STATE_COMPLETE) {
 				Player_ComputePolarToObjectRef(playerIdx, objectIdx);
 				if (bestActionableRange > (unsigned int)trig2_polardistance) {
 					bestActionableRange = (unsigned int)trig2_polardistance;
@@ -1591,7 +1595,7 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 	uint8_t objectKind;
 	ObjectTypeId objectType;
 	int objectIff;
-	uint16_t playerIff;
+	uint16_t playerTeam;
 
 	objectIndex = currentObjIdx;
 	objectCount = g_regionStaticObjectSlotCount;
@@ -1627,21 +1631,21 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 						break;
 
 					case 2:
-						playerIff = (uint16_t)g_players[playerIdx].team;
-						if (playerIff == objectIff)
+						playerTeam = (uint16_t)g_players[playerIdx].team;
+						if (playerTeam == objectIff)
 							objectIff = 0;
 						else
-							objectIff = g_missionTeams[playerIff].allies[objectIff] == 0;
+							objectIff = g_missionTeams[playerTeam].allies[objectIff] == 0;
 						if (objectIff == 1)
 							continue;
 						break;
 
 					case 3:
-						playerIff = (uint16_t)g_players[playerIdx].team;
-						if (playerIff == objectIff)
+						playerTeam = (uint16_t)g_players[playerIdx].team;
+						if (playerTeam == objectIff)
 							objectIff = 0;
 						else
-							objectIff = g_missionTeams[playerIff].allies[objectIff] == 0;
+							objectIff = g_missionTeams[playerTeam].allies[objectIff] == 0;
 						if (objectIff == 0)
 							continue;
 						break;
@@ -1934,7 +1938,7 @@ int16_t Player_CanRadioCommandCraft(int playerIdx) {
 	int flightGroupIdx;
 	int boundFlightGroupIdx;
 	uint8_t radio;
-	int playerIff;
+	int playerTeam;
 	uint8_t globalUnit;
 
 	if (g_players[playerIdx].currentTargetObjectIdx == -1) {
@@ -1964,8 +1968,8 @@ int16_t Player_CanRadioCommandCraft(int playerIdx) {
 	if (radio == 0) {
 		return 0;
 	}
-	playerIff = (uint16_t)g_players[playerIdx].team;
-	if (g_missionFlightGroups[flightGroupIdx].fg.team == playerIff) {
+	playerTeam = (uint16_t)g_players[playerIdx].team;
+	if (g_missionFlightGroups[flightGroupIdx].fg.team == playerTeam) {
 		return 1;
 	}
 	globalUnit = g_missionFlightGroups[flightGroupIdx].fg.globalUnit;
@@ -1975,7 +1979,7 @@ int16_t Player_CanRadioCommandCraft(int playerIdx) {
 	if (radio - g_missionFlightGroups[boundFlightGroupIdx].fg.playerNumber == 8) {
 		return 1;
 	}
-	return radio - playerIff == 1;
+	return radio - playerTeam == 1;
 }
 
 // FUNCTION: XVT 0x484320
@@ -2199,7 +2203,7 @@ void Player_AppendKillMessageActorName(int slot, char* text, int objectIndex) {
 	ObjectRecord* object;
 	int playerOwnerIdx;
 	CraftData* craft;
-	int playerIff;
+	int playerTeam;
 	int team;
 	int isEnemy;
 	char* playerName;
@@ -2211,12 +2215,12 @@ void Player_AppendKillMessageActorName(int slot, char* text, int objectIndex) {
 		craft->identifiedOrderByTeam[(uint16_t)g_players[g_localPlayer].team] != 0) {
 		isEnemy = 0;
 	} else {
-		playerIff = (uint16_t)g_players[g_localPlayer].team;
+		playerTeam = (uint16_t)g_players[g_localPlayer].team;
 		team = g_missionFlightGroups[g_objectTable[(uint16_t)objectIndex].flightGroupIdx].fg.team;
-		if (team == playerIff)
+		if (team == playerTeam)
 			isEnemy = 0;
 		else
-			isEnemy = g_missionTeams[playerIff].allies[team] == 0;
+			isEnemy = g_missionTeams[playerTeam].allies[team] == 0;
 	}
 	if (isEnemy == 1) {
 		if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
@@ -2494,7 +2498,7 @@ void Player_UpdateParticipationState(void) {
 // FUNCTION: XVT 0x485660
 int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx) {
 	int16_t objectIdx;
-	int playerIff;
+	int playerTeam;
 	int team;
 	uint8_t genusId;
 	CraftData* craft;
@@ -2515,13 +2519,13 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx) {
 		object = &g_objectTable[objectIdx];
 		if (object->objectType != 0 && g_players[playerIdx].objectIndex != objectIdx &&
 			excludedObjectIdx != objectIdx) {
-			playerIff = (uint16_t)g_players[playerIdx].team;
-			if (object->mobj->team != playerIff) {
+			playerTeam = (uint16_t)g_players[playerIdx].team;
+			if (object->mobj->team != playerTeam) {
 				team = g_missionFlightGroups[g_objectTable[(uint16_t)objectIdx].flightGroupIdx].fg.team;
-				if (team == playerIff)
+				if (team == playerTeam)
 					isEnemy = 0;
 				else
-					isEnemy = g_missionTeams[playerIff].allies[team] == 0;
+					isEnemy = g_missionTeams[playerTeam].allies[team] == 0;
 				if (isEnemy) {
 					genusId = object->genusId;
 					if (genusId != CRAFT_GENUS_EXPLOSION && genusId != CRAFT_GENUS_STARSHIP &&

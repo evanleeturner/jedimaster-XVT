@@ -1678,7 +1678,7 @@ int16_t paiorder_waitgootherorder(void) {
 // FUNCTION: XVT 0x469BD0
 int16_t paiorder_orderswitchorder(void) {
 	enum {
-		ORDER_STATE_COMPLETE = 1,
+		ORDER_STATE_SKIPPED_TO_ORDER4 = 1,
 		ORDER_COMPLETION_COMPLETE = 2,
 		FOURTH_ORDER_SLOT = 3,
 	};
@@ -1687,7 +1687,7 @@ int16_t paiorder_orderswitchorder(void) {
 	int16_t foundOrder;
 	uint16_t orderSlot;
 
-	if (g_paiContext.controller->skippedToOrder4 == ORDER_STATE_COMPLETE)
+	if (g_paiContext.controller->skippedToOrder4 == ORDER_STATE_SKIPPED_TO_ORDER4)
 		return 0;
 
 	if (g_paiSkipToOrder4Checked == 0) {
@@ -1700,7 +1700,7 @@ int16_t paiorder_orderswitchorder(void) {
 				MISSION_COND_ALWAYS_TRUE) {
 			if ((Mission_EvaluateTriggerPair(&g_missionFlightGroups[flightGroupIndex].fg.skipToOrder4, 0) &
 				 1) != 0) {
-				g_paiContext.controller->skippedToOrder4 = ORDER_STATE_COMPLETE;
+				g_paiContext.controller->skippedToOrder4 = ORDER_STATE_SKIPPED_TO_ORDER4;
 				g_paiContext.orderSlot = FOURTH_ORDER_SLOT;
 				g_paiContext.controller->currentOrderSlot = FOURTH_ORDER_SLOT;
 				order = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]

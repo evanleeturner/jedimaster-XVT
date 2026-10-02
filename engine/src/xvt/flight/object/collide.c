@@ -427,7 +427,7 @@ void collide_collisions(void) {
 						}
 						if (INSPECTION_RANGE_SCALE * maxBoundsExtent > g_approxDist) {
 							uint16_t maxVisibility = 0;
-							uint16_t playerIff = (uint16_t)g_players[playerIdx].team;
+							uint16_t playerTeam = (uint16_t)g_players[playerIdx].team;
 							uint8_t flightGroupIdx = targetObject->flightGroupIdx;
 							int specialCargoFlag = 0;
 							int goalMessageRequired = 0;
@@ -441,30 +441,31 @@ void collide_collisions(void) {
 								}
 							}
 							++maxVisibility;
-							targetCraft->identifiedOrderByTeam[playerIff] = (uint8_t)maxVisibility;
+							targetCraft->identifiedOrderByTeam[playerTeam] = (uint8_t)maxVisibility;
 							++g_flightMissionState.runtime
-								  .teamFgInspectedCapturedCounts[0][playerIff][flightGroupIdx];
+								  .teamFgInspectedCapturedCounts[0][playerTeam][flightGroupIdx];
 							++g_players[playerIdx].perMissionKills.numCraftInspected;
 							++g_missionFgStats[flightGroupIdx].outcomeCount[FLIGHT_GROUP_OUTCOME_INSPECTED];
-							++g_missionFgStats[flightGroupIdx].teamInspected[playerIff];
+							++g_missionFgStats[flightGroupIdx].teamInspected[playerTeam];
 							if (g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft ==
 								targetCraft->waveNumber) {
 								g_missionFgStats[flightGroupIdx]
 									.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_INSPECTED] = 1;
 								++g_players[playerIdx].perMissionKills.numSpecialInspected;
 								specialCargoFlag = 1;
-								++g_missionFgStats[flightGroupIdx].teamSpecialCargoInspected[playerIff];
+								++g_missionFgStats[flightGroupIdx].teamSpecialCargoInspected[playerTeam];
 							}
 							playerScored = Mission_ApplyFlightGroupGoalScore(
 								MISSION_COND_INSPECTED, flightGroupIdx, playerIdx, maxVisibility - 1,
-								specialCargoFlag, playerIff);
+								specialCargoFlag, playerTeam);
 							Mission_ApplyFlightGroupGoalScore(MISSION_COND_INSPECTED, flightGroupIdx, -1,
-															  maxVisibility - 1, specialCargoFlag, playerIff);
+															  maxVisibility - 1, specialCargoFlag,
+															  playerTeam);
 							for (goalIndex = 0; goalIndex < MISSION_GOAL_COUNT; ++goalIndex) {
 								FlightGroupGoal* goal =
 									&g_missionFlightGroups[flightGroupIdx].fg.goals[goalIndex];
 
-								if (goal->enabledTeams[playerIff] != 0 &&
+								if (goal->enabledTeams[playerTeam] != 0 &&
 									(goal->eventCondition == MISSION_COND_INSPECTED ||
 									 (goal->amount == GOAL_AMT_ALL_SPECIAL_CARGO &&
 									  (specialCargoFlag != 0 ||

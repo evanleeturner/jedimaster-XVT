@@ -224,10 +224,10 @@ void XvtCockpitPages_RecordBorder(unsigned page) {
 	}
 }
 
-void XvtCockpitPages_RecordScroll(unsigned page, int first_row, int total_rows, int selected_row) {
+void XvtCockpitPages_RecordScroll(unsigned page, int first_visible_row, int total_rows, int selected_row) {
 	if (page >= MFD_PAGE_COUNT)
 		return;
-	g_working[page].first_visible_row = (int16_t)first_row;
+	g_working[page].first_visible_row = (int16_t)first_visible_row;
 	g_working[page].total_rows = (uint16_t)total_rows;
 	g_working[page].selected_row = (int16_t)selected_row;
 }

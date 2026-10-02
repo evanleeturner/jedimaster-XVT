@@ -665,7 +665,7 @@ void Flight_UpdateTimers(void) {
 // FUNCTION: XVT 0x4165B0
 void Flight_UpdateDynamicMusicState(void) {
 	uint8_t trackNumber;
-	uint16_t playerIff;
+	uint16_t playerTeam;
 	uint8_t primaryGoalStatus;
 	uint32_t currentTimeMs;
 	uint32_t elapsedMs;
@@ -677,9 +677,9 @@ void Flight_UpdateDynamicMusicState(void) {
 
 	trackNumber = 0;
 	if (g_dynamicMusicState == 2 && g_dynamicMusicOutcomeLatched == 0) {
-		playerIff = g_players[g_localPlayer].team;
-		primaryGoalStatus = g_flightMissionState.runtime.teamGoalStatus[playerIff][0];
-		if (primaryGoalStatus == 2 || g_flightMissionState.runtime.teamGoalStatus[playerIff][1] == 1) {
+		playerTeam = g_players[g_localPlayer].team;
+		primaryGoalStatus = g_flightMissionState.runtime.teamGoalStatus[playerTeam][0];
+		if (primaryGoalStatus == 2 || g_flightMissionState.runtime.teamGoalStatus[playerTeam][1] == 1) {
 			trackNumber = 7;
 		} else if (primaryGoalStatus == 1 && g_missionHeader.missionType != MISSION_TYPE_QUICK_START) {
 			if (g_missionHeader.missionType == MISSION_TYPE_SKIRMISH) {
@@ -5016,9 +5016,9 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 			targetIndex = g_players[playerIdx].currentTargetObjectIdx;
 			if (targetIndex != -1 && targetIndex < g_activeRegionCraftObjectSlotEnd) {
 				ObjectRecord* target = &g_objectTable[(uint16_t)targetIndex];
-				int playerIff = (uint16_t)g_players[playerIdx].team;
+				int playerTeam = (uint16_t)g_players[playerIdx].team;
 				int team = g_missionFlightGroups[target->flightGroupIdx].fg.team;
-				if (playerIff == team || g_missionTeams[playerIff].allies[team] != 0) {
+				if (playerTeam == team || g_missionTeams[playerTeam].allies[team] != 0) {
 					if (target->playerOwnerIdx == -1) {
 						g_curCraft = target->mobj->pCraft;
 						msg_reportmessage(
@@ -5273,7 +5273,7 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 					WarheadGuidanceState* guidance;
 					MobileObject* targetMobile;
 					int targetTeam;
-					int playerIff;
+					int playerTeam;
 					if (projectile->objectType == 0 ||
 						(projectile->genusId != CRAFT_GENUS_PLAYER_PROJECTILE &&
 						 projectile->genusId != CRAFT_GENUS_OTHER_PROJECTILE) ||
@@ -5287,8 +5287,8 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 					if (targetMobile == NULL || targetMobile->family != 0)
 						continue;
 					targetTeam = targetMobile->team;
-					playerIff = (uint16_t)g_players[playerIdx].team;
-					if (targetTeam != playerIff && g_missionTeams[targetTeam].allies[playerIff] == 0)
+					playerTeam = (uint16_t)g_players[playerIdx].team;
+					if (targetTeam != playerTeam && g_missionTeams[targetTeam].allies[playerTeam] == 0)
 						continue;
 					pai_ObjectRefDirectionToObjectRef(g_players[playerIdx].objectIndex, projectileIndex);
 					if ((unsigned int)trig2_polardistance < nearestObjectDistance) {
@@ -5840,7 +5840,7 @@ int Flight_Main(char* missionCmdLine) {
 			connectionAddress = NULL;
 			break;
 	}
-	if (NetSession_InitGameSession(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_SESSION_NAME],
+	if (NetSession_InitGameSession(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_FORMAL_NAME],
 								   g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_PILOT_NAME],
 								   atoi(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_IS_HOST]),
 								   g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_MP_GAME_NAME], networkType,

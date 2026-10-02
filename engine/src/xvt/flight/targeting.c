@@ -200,16 +200,16 @@ void Targeting_DrawSceneObjectBoxes(void) {
 			if (object->playerOwnerIdx != -1 && object->playerOwnerIdx != g_localPlayer) {
 				if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
 					int craftTeam;
-					int playerIff;
+					int playerTeam;
 					int isHostile;
 
 					craftTeam =
 						g_missionFlightGroups[g_objectTable[(uint16_t)objectIdx].flightGroupIdx].fg.team;
-					playerIff = (uint16_t)g_players[g_localPlayer].team;
-					if (craftTeam == playerIff) {
+					playerTeam = (uint16_t)g_players[g_localPlayer].team;
+					if (craftTeam == playerTeam) {
 						isHostile = 0;
 					} else {
-						isHostile = g_missionTeams[playerIff].allies[craftTeam] == 0;
+						isHostile = g_missionTeams[playerTeam].allies[craftTeam] == 0;
 					}
 					if (isHostile) {
 						colorIndex = COLOR_HOSTILE_PLAYER;
@@ -240,20 +240,20 @@ void Targeting_DrawSceneObjectBoxes(void) {
 
 		if (colorIndex != 0) {
 			CraftData* craft;
-			int playerIff;
+			int playerTeam;
 			int craftTeam;
 			int isHostile;
 
 			craft = object->mobj->pCraft;
 			if (g_flightMissionState.locatePlayersEnabled == 0) {
-				playerIff = (uint16_t)g_players[g_localPlayer].team;
-				if (craft->identifiedOrderByTeam[playerIff] == 0) {
+				playerTeam = (uint16_t)g_players[g_localPlayer].team;
+				if (craft->identifiedOrderByTeam[playerTeam] == 0) {
 					craftTeam =
 						g_missionFlightGroups[g_objectTable[(uint16_t)objectIdx].flightGroupIdx].fg.team;
-					if (craftTeam == playerIff) {
+					if (craftTeam == playerTeam) {
 						isHostile = 0;
 					} else {
-						isHostile = g_missionTeams[playerIff].allies[craftTeam] == 0;
+						isHostile = g_missionTeams[playerTeam].allies[craftTeam] == 0;
 					}
 					if (isHostile) {
 						continue;

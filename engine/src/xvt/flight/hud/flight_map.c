@@ -463,7 +463,7 @@ void FlightMap_DrawOtherPlayerObjectBox(int objectIdx) {
 	MobileObject* mobileObject;
 	CraftData* craft;
 	uint8_t colorIndex;
-	int playerIff;
+	int playerTeam;
 	int team;
 	int isHostile;
 
@@ -486,13 +486,13 @@ void FlightMap_DrawOtherPlayerObjectBox(int objectIdx) {
 
 	craft = mobileObject->pCraft;
 	if (g_flightMissionState.locatePlayersEnabled == 0) {
-		playerIff = (uint16_t)g_players[g_localPlayer].team;
-		if (craft->identifiedOrderByTeam[playerIff] == 0) {
+		playerTeam = (uint16_t)g_players[g_localPlayer].team;
+		if (craft->identifiedOrderByTeam[playerTeam] == 0) {
 			team = g_missionFlightGroups[g_objectTable[(uint16_t)objectIdx].flightGroupIdx].fg.team;
-			if (team == playerIff) {
+			if (team == playerTeam) {
 				isHostile = 0;
 			} else {
-				isHostile = g_missionTeams[playerIff].allies[team] == 0;
+				isHostile = g_missionTeams[playerTeam].allies[team] == 0;
 			}
 			if (isHostile) {
 				return;

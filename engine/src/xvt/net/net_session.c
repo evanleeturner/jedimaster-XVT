@@ -55,7 +55,7 @@ uint8_t g_netSessionFlightHandshakeActive = 0;
 void NetSession_DebugTrace(const char* message) { (void)message; }
 
 // FUNCTION: XVT 0x46C230
-int NetSession_InitGameSession(const char* sessionName, const char* pilotName, int isHost,
+int NetSession_InitGameSession(const char* formalName, const char* pilotName, int isHost,
 							   const char* mpGameName, NetworkTransportType networkType, int numHumanPlayers,
 							   int inProgressLaunch, const char* connectionAddress) {
 	DPCAPS directPlayCaps;
@@ -63,7 +63,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 	int playerIndex;
 	int success;
 #ifndef XVT_MODERN
-	int outAux;
+	int outPayloadSize;
 	int outDpid;
 	int* packet;
 	int receivedPlayerCount;
@@ -129,7 +129,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 			directPlayCaps.dwSize = sizeof(directPlayCaps);
 			g_netSession.dplayInterface->lpVtbl->GetCaps(g_netSession.dplayInterface, &directPlayCaps, 0);
 		}
-		strncpy(g_netSession.localPlayerInfo.playerInfo, sessionName,
+		strncpy(g_netSession.localPlayerInfo.playerInfo, formalName,
 				sizeof(g_netSession.localPlayerInfo.playerInfo));
 		strncpy(g_netSession.localPlayerInfo.playerName, pilotName,
 				sizeof(g_netSession.localPlayerInfo.playerName));
@@ -170,7 +170,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 #else
 	if (NetSession_IsLocalHost() != 0 && numHumanPlayers != 0) {
 		while (receivedPlayerCount != 0) {
-			packet = NetSession_WaitForGamePacket(&outDpid, &outAux, 60);
+			packet = NetSession_WaitForGamePacket(&outDpid, &outPayloadSize, 60);
 			if (packet == NULL) {
 				g_netSession.dplayInterface = NULL;
 				return 0;
@@ -188,7 +188,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 		}
 	} else if (inProgressLaunch == 0) {
 		do {
-			packet = NetSession_WaitForGamePacket(&outDpid, &outAux, 60);
+			packet = NetSession_WaitForGamePacket(&outDpid, &outPayloadSize, 60);
 			if (packet == NULL) {
 				g_netSession.dplayInterface = NULL;
 				return 0;
@@ -199,7 +199,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 		receivedPlayerCount = 0;
 		while (g_netSession.playerCount > receivedPlayerCount) {
 			do {
-				packet = NetSession_WaitForGamePacket(&outDpid, &outAux, 60);
+				packet = NetSession_WaitForGamePacket(&outDpid, &outPayloadSize, 60);
 				if (packet == NULL)
 					return 0;
 			} while (*packet != NET_PACKET_ROSTER_ENTRY);
@@ -1932,7 +1932,7 @@ void NetSession_AddPlayerToRosterSlot(int playerSlot, const SessionPlayerInfo* p
 // FUNCTION: XVT 0x46F840
 int NetSession_BroadcastPlayerRoster(int toPlayerId) {
 	int outDpid;
-	int outAux;
+	int outPayloadSize;
 	int* packet;
 	int playerIndex;
 
@@ -1942,7 +1942,7 @@ int NetSession_BroadcastPlayerRoster(int toPlayerId) {
 
 	if (toPlayerId == 0) {
 		do {
-			packet = NetSession_WaitForGamePacket(&outDpid, &outAux, 60);
+			packet = NetSession_WaitForGamePacket(&outDpid, &outPayloadSize, 60);
 			if (packet == NULL)
 				return 0;
 		} while (*packet != NET_PACKET_ROSTER_COUNT);
@@ -1956,7 +1956,7 @@ int NetSession_BroadcastPlayerRoster(int toPlayerId) {
 		NetSession_SendPacket(toPlayerId, (unsigned int*)&g_netSessionScratchPacket, 48);
 		if (toPlayerId == 0) {
 			do {
-				packet = NetSession_WaitForGamePacket(&outDpid, &outAux, 60);
+				packet = NetSession_WaitForGamePacket(&outDpid, &outPayloadSize, 60);
 				if (packet == NULL)
 					return 0;
 			} while (*packet != NET_PACKET_ROSTER_ENTRY);

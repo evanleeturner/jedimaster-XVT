@@ -1281,7 +1281,7 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 	GUID sessionGuid;
 	char playerInfo[2];
 	unsigned int probeStartMs;
-	unsigned int currentTick;
+	unsigned int currentTimeMs;
 	int hostPlayerId;
 	int packetType;
 
@@ -1343,7 +1343,7 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 	probeStartMs = GetTickCount();
 	do {
 		packetType = FrontendNet_ProcessNetworkPackets();
-		currentTick = GetTickCount();
+		currentTimeMs = GetTickCount();
 		if (packetType == SESSION_PROBE_PLAYER_COUNT_PACKET || packetType == NET_PACKET_PROBE_RESPONSE)
 			break;
 		if (packetType == NET_PACKET_STATE) {
@@ -1365,7 +1365,7 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 				g_frontendNetReceivedMissionDescriptionId = -1;
 			}
 		}
-	} while (currentTick - probeStartMs < SESSION_PROBE_TIMEOUT_MS);
+	} while (currentTimeMs - probeStartMs < SESSION_PROBE_TIMEOUT_MS);
 
 	if (packetType == SESSION_PROBE_PLAYER_COUNT_PACKET) {
 		g_frontendNetSessionList[sessionIdx].lastQueryMs = GetTickCount();

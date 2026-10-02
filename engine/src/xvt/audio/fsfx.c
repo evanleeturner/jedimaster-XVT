@@ -363,7 +363,7 @@ int fsfx_PlaySound(unsigned int soundId, int objOrMissionPointRef, int playerIdx
 }
 
 // FUNCTION: XVT 0x42E720
-int fsfx_triggerweaponsfx(unsigned int objOrMissionPointRef, int playerIdx) {
+int fsfx_triggerweaponsfx(unsigned int projectileObjectIndex, int playerIdx) {
 	int result;
 
 	if (playerIdx != g_localPlayer)
@@ -375,8 +375,8 @@ int fsfx_triggerweaponsfx(unsigned int objOrMissionPointRef, int playerIdx) {
 	if (g_gameConfig.sfxExteriorVolume == 0)
 		return 0;
 
-	result = g_objectTable[objOrMissionPointRef].objectType;
-	switch (g_objectTable[objOrMissionPointRef].objectType) {
+	result = g_objectTable[projectileObjectIndex].objectType;
+	switch (g_objectTable[projectileObjectIndex].objectType) {
 		case 0x89:
 		case 0x8a:
 		case 0x8b:
@@ -388,21 +388,21 @@ int fsfx_triggerweaponsfx(unsigned int objOrMissionPointRef, int playerIdx) {
 		case 0x91:
 		case 0x92:
 		case 0x93:
-			result = fsfx_PlaySound(result - 133, objOrMissionPointRef, playerIdx);
+			result = fsfx_PlaySound(result - 133, projectileObjectIndex, playerIdx);
 			break;
 		case 0x94:
 		case 0x95:
-			result = fsfx_PlaySound(result - 138, objOrMissionPointRef, playerIdx);
+			result = fsfx_PlaySound(result - 138, projectileObjectIndex, playerIdx);
 			break;
 		case 0x96:
 		case 0x97:
-			result = fsfx_PlaySound(result - 135, objOrMissionPointRef, playerIdx);
+			result = fsfx_PlaySound(result - 135, projectileObjectIndex, playerIdx);
 			break;
 		case 0x98:
 		case 0x99:
 		case 0x9a:
 		case 0x9b:
-			result = fsfx_PlaySound(FLIGHT_SOUND_MAGNETIC_PULSE, objOrMissionPointRef, playerIdx);
+			result = fsfx_PlaySound(FLIGHT_SOUND_MAGNETIC_PULSE, projectileObjectIndex, playerIdx);
 			break;
 	}
 	return result;

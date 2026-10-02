@@ -64,11 +64,11 @@ int XvtPlayerTiming_RecordRecovery(unsigned player, int32_t position[3]);
  * control state are kept. */
 void XvtPlayerTiming_Recover(unsigned player);
 /* Canonical schema-2 record, 116 bytes. Decode validates before installation. */
-/* slot is a player number, 0 to XVT_FLIGHT_PLAYERS - 1, not an object slot. Writes the player's
+/* player is a player number, 0 to XVT_FLIGHT_PLAYERS - 1, not an object slot. Writes the player's
  * shared state as a record: channels, lock and control state, camera focus; not the recovery position.
  * A player out of range, without a live object in the main region, or whose entry belongs to another
  * object gives the empty record: zero but for the player. */
-void XvtPlayerTiming_Encode(unsigned slot, XvtPlayerTimingWire* out);
+void XvtPlayerTiming_Encode(unsigned player, XvtPlayerTimingWire* out);
 /* Returns 1 when record is well formed: player in range; valid, lock_half and control_valid 0 or 1;
  * lock_mode at most XVT_LOCK_HALF_TARGET_LOSS; no unknown control bit; zero reserved fields; if not
  * valid, exactly the empty record; if valid, a slot in the main region; directions -1, 0 or 1; and

@@ -2955,9 +2955,9 @@ int NetSession_ImportRuntimeState(void** dplayInterfaceOut, GUID* appGuidOut, GU
 // FUNCTION: XVT 0x4D1B10
 int NetSession_ExportRuntimeState(
 	void** dplayInterface, const void* appGuid, const void* sessionGuid, int* groupId, int* hostPlayerId,
-	const void* sessionName, const NetQueuedPacket* directPlaySlots, int* recvQueueRead, int* recvQueueCount,
-	int* recvQueueWrite, const NetReliablePeerSlot* reliablePeerSlots, int* netSlotCount, int* smallState,
-	const void* broadcastPayload, int* stateDwordA, int* stateDwordB, int* stateDwordC,
+	const void* localPlayerInfo, const NetQueuedPacket* directPlaySlots, int* recvQueueRead,
+	int* recvQueueCount, int* recvQueueWrite, const NetReliablePeerSlot* reliablePeerSlots, int* netSlotCount,
+	int* smallState, const void* broadcastPayload, int* stateDwordA, int* stateDwordB, int* stateDwordC,
 	const void* groupPayload, int* stateDwordD, int* stateDwordE, const NetQueuedPacket* recvHistory,
 	int* recvHistoryCount, NetQueuedPacket* recvQueue, int* recvQueueHighWater) {
 	int queueIndex;
@@ -2970,7 +2970,7 @@ int NetSession_ExportRuntimeState(
 	(void)groupId;
 	(void)hostPlayerId;
 
-	memcpy(&g_frontState.netRuntimeLocalPlayer, sessionName, sizeof(g_frontState.netRuntimeLocalPlayer));
+	memcpy(&g_frontState.netRuntimeLocalPlayer, localPlayerInfo, sizeof(g_frontState.netRuntimeLocalPlayer));
 	g_frontState.netRuntimeRecvQueueCount = *recvQueueCount;
 	queueIndex = *recvQueueRead;
 	g_frontState.netRuntimeRecvQueueReadIndex = *recvQueueRead;

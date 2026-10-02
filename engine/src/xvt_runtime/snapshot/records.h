@@ -20,7 +20,7 @@ typedef struct XvtSnapshotMobileObjectProximityList {
 
 typedef struct XvtSnapshotAiController {
 	uint8_t currentOrderSlot;
-	AiOrderScratch orderProgress;
+	AiOrderProgress orderProgress;
 	uint8_t skippedToOrder4;
 	uint8_t pendingPlanId;
 	uint8_t currentPlanId;

@@ -3769,14 +3769,15 @@ uint16_t Mission_Init(char* fileName) {
 	if (g_flightMissionState.difficulty != GAME_DIFFICULTY_MEDIUM &&
 		(g_missionHeader.missionType != MISSION_TYPE_SKIRMISH ||
 		 g_pilotData.numHumanPlayersLastMission < 2)) {
-		int playerIff = (uint16_t)g_players[0].team;
+		int playerTeam = (uint16_t)g_players[0].team;
 
 		for (flightGroupIdx = 0; flightGroupIdx < (int16_t)g_missionHeader.numFlightGroups;
 			 ++flightGroupIdx) {
 			if (g_flightMissionState.difficulty == GAME_DIFFICULTY_HARD) {
 				int flightGroupTeam = g_missionFlightGroups[flightGroupIdx].fg.team;
-				int hostile =
-					playerIff == flightGroupTeam ? 0 : g_missionTeams[flightGroupTeam].allies[playerIff] == 0;
+				int hostile = playerTeam == flightGroupTeam
+								  ? 0
+								  : g_missionTeams[flightGroupTeam].allies[playerTeam] == 0;
 
 				if (hostile != 0) {
 					g_missionFlightGroups[flightGroupIdx].fg.groupAI += 2;
@@ -3790,8 +3791,9 @@ uint16_t Mission_Init(char* fileName) {
 				}
 			} else {
 				int flightGroupTeam = g_missionFlightGroups[flightGroupIdx].fg.team;
-				int hostile =
-					playerIff == flightGroupTeam ? 0 : g_missionTeams[flightGroupTeam].allies[playerIff] == 0;
+				int hostile = playerTeam == flightGroupTeam
+								  ? 0
+								  : g_missionTeams[flightGroupTeam].allies[playerTeam] == 0;
 
 				if (hostile == 0) {
 					g_missionFlightGroups[flightGroupIdx].fg.groupAI += 2;

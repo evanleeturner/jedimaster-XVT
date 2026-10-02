@@ -48,7 +48,7 @@ void XvtCockpitPages_RecordRow(uint32_t key, int selected);
 void XvtCockpitPages_RecordBackground(unsigned page);
 void XvtCockpitPages_RecordBorder(unsigned page);
 /* Records the first visible row, the total rows and the selected row of a working page. */
-void XvtCockpitPages_RecordScroll(unsigned page, int first_row, int total_rows, int selected_row);
+void XvtCockpitPages_RecordScroll(unsigned page, int first_visible_row, int total_rows, int selected_row);
 /* Records the working page's display mode. */
 void XvtCockpitPages_RecordMode(unsigned page, unsigned mode);
 /* Copies a working page to its placed page and marks it latched this frame; the placed page's

@@ -90,7 +90,7 @@ extern NetQueuedPacket g_netSessionRecvHistory[128];
 extern NetQueuedPacket g_netSessionExportRecvQueue[256];
 
 void NetSession_DebugTrace(const char* message);
-int NetSession_InitGameSession(const char* sessionName, const char* pilotName, int localId,
+int NetSession_InitGameSession(const char* formalName, const char* pilotName, int isHost,
 							   const char* mpGameName, NetworkTransportType networkType, int numHumanPlayers,
 							   int inProgressLaunch, const char* connectionAddress);
 int NetSession_Shutdown(void);
@@ -120,7 +120,7 @@ int* NetSession_ReceiveGamePacket(int* outSenderDpid, int* outPayloadSize);
 int NetSession_HandleHandshakePacket(int packetOpcode, int* packet);
 void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize);
 int NetSession_SendCompactGamePacket(int directPlayId, unsigned int* payload, int payloadSize, ...);
-int* NetSession_WaitForGamePacket(int* outDpid, int* outAux, int timeoutSeconds);
+int* NetSession_WaitForGamePacket(int* outDpid, int* outPayloadSize, int timeoutSeconds);
 int NetSession_FindPlayerSlotByDpid(int dpid);
 int NetSession_GetPlayerDplayId(int playerIndex);
 int NetSession_GetDplayIdByActivePlayerIndex(int activePlayerIndex);
