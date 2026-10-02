@@ -282,6 +282,19 @@ static void CheckProfileRefusals(void)
 		"    fire_weapon: {axis: 1, direction: positive, threshold: 0}\n"));
 	XVT_ASSERT_TRUE(!StickWithButtons(
 		"    fire_weapon: {axis: 1, direction: positive, threshold: 1.5}\n"));
+	/* An axis source takes no fourth field; its axis is a name on a gamepad
+	 * and an index within the axes on a joystick. */
+	XVT_ASSERT_TRUE(!StickWithButtons(
+		"    fire_weapon: {axis: 1, direction: positive, threshold: 0.5, extra: 2}\n"));
+	XVT_ASSERT_TRUE(!PadWithButtons(
+		"    fire_weapon: {axis: 1, direction: positive}\n"));
+	XVT_ASSERT_TRUE(!PadWithButtons(
+		"    fire_weapon: {axis: middlex, direction: positive}\n"));
+	XVT_ASSERT_TRUE(!StickWithButtons(
+		"    fire_weapon: {axis: 16, direction: positive}\n"));
+	/* A mapping that is none of the source forms. */
+	XVT_ASSERT_TRUE(
+		!StickWithButtons("    fire_weapon: {direction: up}\n"));
 	/* A source bound to two actions. */
 	XVT_ASSERT_TRUE(!PadWithButtons(
 		"    fire_weapon: south\n    target_next: south\n"));
