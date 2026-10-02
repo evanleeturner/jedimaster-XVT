@@ -201,6 +201,7 @@ set(XVT_RUNTIME_SOURCES
     src/xvt_runtime/snapshot/render_assets.c
     src/xvt_runtime/snapshot/render_cockpit_assets.c
     src/xvt_runtime/snapshot/records.c
+    src/xvt_runtime/snapshot/world_checksum.c
     src/xvt_runtime/snapshot/world_state.c
     src/xvt_runtime/runtime/movie_task.c
     src/xvt_runtime/runtime/cutscene_task.c

@@ -67,7 +67,8 @@ target_compile_definitions(test_log PRIVATE NDEBUG)
 add_test(NAME log COMMAND test_log)
 
 xvt_add_engine_test(test_world_state test_world_state.c
-    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/world_state.c")
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/world_state.c"
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/world_checksum.c")
 add_test(NAME world_state COMMAND test_world_state)
 
 # Settings and bindings files: src/xvt_runtime/config/.
