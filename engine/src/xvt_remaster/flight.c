@@ -38,6 +38,12 @@ const XvtPreparedFlight *XvtRemasterFlight_Current(void)
 	return g_frame.valid ? &g_frame : NULL;
 }
 
+/* Turns the newest captured snapshot and the one before it into the frame the
+ * renderer draws: the size, whether the motion history resets or moves on,
+ * the views and layouts, each object's current and previous transform, and
+ * whether the frame must be drawn again. The decisions made near the top are
+ * read by most later steps, so pieces split out would each take much of this
+ * state as arguments or hand several values back. */
 int XvtRemasterFlight_Prepare(const XvtRenderSnapshot *s,
 			      const XvtRenderSnapshot *p, int width, int height)
 {
