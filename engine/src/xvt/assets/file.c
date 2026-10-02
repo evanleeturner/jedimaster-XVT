@@ -127,7 +127,7 @@ int16_t File_ReadDword(XvtFile* stream, unsigned int* value) {
 }
 
 // FUNCTION: XVT 0x4CC6C0
-int16_t File_ReadCount(XvtFile* stream, void* buffer, size_t count) {
+int16_t File_ReadBytes(XvtFile* stream, void* buffer, size_t count) {
 	return !((int16_t)(File_RawRead(buffer, 1, count, stream) != count));
 }
 
@@ -147,7 +147,7 @@ int16_t File_WriteDword(XvtFile* stream, int value) {
 }
 
 // FUNCTION: XVT 0x4CC790
-int16_t File_WriteCount(XvtFile* stream, const void* buffer, size_t count) {
+int16_t File_WriteBytes(XvtFile* stream, const void* buffer, size_t count) {
 	return !((int16_t)(File_RawWrite(buffer, 1, count, stream) != count));
 }
 

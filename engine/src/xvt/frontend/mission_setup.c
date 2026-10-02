@@ -132,13 +132,13 @@ int g_localPilotNetworkPlayerIndex = 0;
 // GLOBAL: XVT 0xB6A2B4
 MissionListEntry* g_battleMissionList = NULL;
 // GLOBAL: XVT 0x66D880
-int g_battleChoiceTick = 0;
+int g_battleChoiceClockMs = 0;
 // GLOBAL: XVT 0x66D884
 int g_battleChoiceScrollOffset = 0;
 // GLOBAL: XVT 0x66D888
 int g_battleChoiceRemainingMs = 0;
 // GLOBAL: XVT 0x66D88C
-int g_battleChoiceLastTick = 0;
+int g_battleChoicePreviousClockMs = 0;
 // GLOBAL: XVT 0x66D890
 int g_battleChoiceRowCount = 0;
 // GLOBAL: XVT 0x66D894
@@ -150,7 +150,7 @@ int g_missionSetupUseCombatSimPilotState = 0;
 // GLOBAL: XVT 0x665D10
 MissionSetupActivePanel g_missionSetupActivePanel = MISSION_SETUP_PANEL_PLAYERS;
 // GLOBAL: XVT 0x665D14
-int g_missionSetupLastHostBroadcastTick = 0;
+int g_missionSetupLastHostBroadcastMs = 0;
 // GLOBAL: XVT 0x665D1C
 int g_missionSetupMissionListRowCount = 0;
 // GLOBAL: XVT 0x665D20
@@ -168,17 +168,17 @@ int g_remoteBattleRebelVictoryCount = 0;
 // GLOBAL: XVT 0xAA6130
 int g_remoteBattleImperialVictoryCount = 0;
 // GLOBAL: XVT 0x52C184
-int g_skipFrontendEntryMovie = 0;
+int g_frontendSkipScreenEntrySetup = 0;
 // GLOBAL: XVT 0xAA6140
 int g_missionSetupBeginButtonLockoutFrames = 0;
 // GLOBAL: XVT 0x6691D0
 int g_missionSetupShowDescriptionPanel = 0;
 // GLOBAL: XVT 0x6691D8
-int g_missionSetupLaunchCountdownCurrentTick = 0;
+int g_missionSetupCountdownClockMs = 0;
 // GLOBAL: XVT 0x669250
 int g_missionSetupLaunchCountdownMs = 0;
 // GLOBAL: XVT 0x669254
-int g_missionSetupLaunchCountdownPreviousTick = 0;
+int g_missionSetupCountdownPreviousClockMs = 0;
 // GLOBAL: XVT 0x669788
 int g_missionSetupLaunchSignalSent = 0;
 // GLOBAL: XVT 0x66978C
@@ -247,11 +247,11 @@ int MissionSetup_Update(int frameCounter) {
 		RANDOM_SETUP_PLAYER_CHOICE = 2,
 		CAMPAIGN_CLIENT_CONTINUATION_OFFSET = 12,
 		MISSION_PLAYER_COUNT_CHARACTER_OFFSET = '0',
-		ANIMATION_FRAME_COUNT = 32,
+		ANIMATION_CYCLE_FRAMES = 32,
 	};
 
 	RECT rect;
-	unsigned int currentTick;
+	unsigned int nowMs;
 	int packetType;
 	int playerIndex;
 	int missionTypeChanged;
@@ -305,7 +305,7 @@ int MissionSetup_Update(int frameCounter) {
 		g_missionSetupRosterAuthoritative = 0;
 		g_missionSetupSelectedPlayerRosterIndex = -1;
 		g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
-		g_missionSetupLastHostBroadcastTick = GetTickCount();
+		g_missionSetupLastHostBroadcastMs = GetTickCount();
 		g_selectedMissionListIndex = 0;
 		if (g_missionList != NULL) {
 			for (; (unsigned int)g_selectedMissionListIndex < g_missionCount; ++g_selectedMissionListIndex) {
@@ -336,7 +336,7 @@ int MissionSetup_Update(int frameCounter) {
 		g_pilotData.missionSequenceActive = 0;
 		FrontendMission_LoadCurrent();
 		MissionSetup_LoadMissionDescText(g_briefingText);
-		MissionSetup_CountActiveTeams();
+		MissionSetup_UpdateTeamCounts();
 
 		if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
 			(g_pilotData.missionDirectoryId == MISSION_DIRECTORY_COMBAT_ENGAGEMENTS ||
@@ -409,7 +409,7 @@ int MissionSetup_Update(int frameCounter) {
 			}
 		}
 
-		g_skipFrontendEntryMovie = 0;
+		g_frontendSkipScreenEntrySetup = 0;
 		for (playerIndex = 0; playerIndex < NETWORK_PLAYER_COUNT; ++playerIndex) {
 			memset(&g_pilotData.networkPlayers[playerIndex], 0,
 				   sizeof(g_pilotData.networkPlayers[playerIndex]));
@@ -431,12 +431,11 @@ int MissionSetup_Update(int frameCounter) {
 
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		if (Net_IsHost() != 0) {
-			currentTick = GetTickCount();
-			if (currentTick - (unsigned int)g_missionSetupLastHostBroadcastTick >
-				HOST_BROADCAST_INTERVAL_MS) {
+			nowMs = GetTickCount();
+			if (nowMs - (unsigned int)g_missionSetupLastHostBroadcastMs > HOST_BROADCAST_INTERVAL_MS) {
 				MissionSetup_BroadcastReadyRoster(0);
 				MissionSetup_BroadcastLobbySelection();
-				g_missionSetupLastHostBroadcastTick = currentTick;
+				g_missionSetupLastHostBroadcastMs = nowMs;
 			}
 		}
 
@@ -454,7 +453,7 @@ int MissionSetup_Update(int frameCounter) {
 			FrontImage_FreeResourceByName("background");
 			MissionSetup_DrawBackgroundAndPreview();
 			MissionSetup_LoadMissionDescText(g_briefingText);
-			MissionSetup_CountActiveTeams();
+			MissionSetup_UpdateTeamCounts();
 			if (g_missionList != NULL) {
 				for (g_selectedMissionListIndex = 0;
 					 (unsigned int)g_selectedMissionListIndex < g_missionCount;
@@ -559,7 +558,7 @@ int MissionSetup_Update(int frameCounter) {
 			);
 			return 0;
 		} else if (packetType == NET_PACKET_PLAYER_KICKED) {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
 			Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch, PACKET_SIZE_ONE_WORD);
 			Net_ShutdownDirectPlaySession();
@@ -621,16 +620,16 @@ int MissionSetup_Update(int frameCounter) {
 			g_pilotData.missionDirectoryId != MISSION_DIRECTORY_MELEES &&
 			g_pilotData.missionDirectoryId != MISSION_DIRECTORY_TOURNAMENTS) {
 			if (g_pilotData.currentFactionId == 0) {
-				sprintf(g_frontendScratchBuffer, "rebtiny%d", (frameCounter % ANIMATION_FRAME_COUNT) >> 1);
+				sprintf(g_frontendScratchBuffer, "rebtiny%d", (frameCounter % ANIMATION_CYCLE_FRAMES) >> 1);
 				FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 			} else {
-				sprintf(g_frontendScratchBuffer, "imptiny%d", (frameCounter % ANIMATION_FRAME_COUNT) >> 1);
+				sprintf(g_frontendScratchBuffer, "imptiny%d", (frameCounter % ANIMATION_CYCLE_FRAMES) >> 1);
 				FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 			}
 		} else {
-			sprintf(g_frontendScratchBuffer, "rebtiny%d", (frameCounter % ANIMATION_FRAME_COUNT) >> 1);
+			sprintf(g_frontendScratchBuffer, "rebtiny%d", (frameCounter % ANIMATION_CYCLE_FRAMES) >> 1);
 			FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
-			sprintf(g_frontendScratchBuffer, "imptiny%d", (frameCounter % ANIMATION_FRAME_COUNT) >> 1);
+			sprintf(g_frontendScratchBuffer, "imptiny%d", (frameCounter % ANIMATION_CYCLE_FRAMES) >> 1);
 		}
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 420, 453);
 	}
@@ -689,7 +688,7 @@ int MissionSetup_Update(int frameCounter) {
 #endif
 			}
 			if (buttonPressed != 0) {
-				g_skipFrontendEntryMovie = 1;
+				g_frontendSkipScreenEntrySetup = 1;
 				g_frontendNetPacketScratch.packetType = NET_PACKET_HOST_CANCELLED;
 				Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, PACKET_SIZE_ONE_WORD);
 				Net_ShutdownDirectPlaySession();
@@ -720,7 +719,7 @@ int MissionSetup_Update(int frameCounter) {
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
 				FrontendString_Get(FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
 				FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL)) != 0) {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
 			Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch, PACKET_SIZE_ONE_WORD);
 			Net_ShutdownDirectPlaySession();
@@ -1045,7 +1044,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 				}
 			}
 			FrontendMission_LoadCurrent();
-			MissionSetup_CountActiveTeams();
+			MissionSetup_UpdateTeamCounts();
 			MissionSetup_LoadMissionDescText(g_briefingText);
 			g_frontendFirstVisibleLine = 0;
 			if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_BATTLES) {
@@ -1115,7 +1114,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 				changed = 1;
 				g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 				FrontendMission_LoadCurrent();
-				MissionSetup_CountActiveTeams();
+				MissionSetup_UpdateTeamCounts();
 				MissionSetup_LoadMissionDescText(g_briefingText);
 				g_frontendFirstVisibleLine = 0;
 				if (g_missionList != NULL) {
@@ -1136,7 +1135,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 							}
 						}
 						FrontendMission_LoadCurrent();
-						MissionSetup_CountActiveTeams();
+						MissionSetup_UpdateTeamCounts();
 						MissionSetup_LoadMissionDescText(g_briefingText);
 						g_frontendFirstVisibleLine = 0;
 					}
@@ -1194,7 +1193,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 					g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] = selectedMissionId;
 					FrontendMission_LoadCurrent();
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					if (g_missionList != NULL) {
 						g_frontendFirstVisibleLine = 0;
@@ -1251,7 +1250,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 					g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] = selectedMissionId;
 					FrontendMission_LoadCurrent();
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					if (g_missionList != NULL) {
 						g_frontendFirstVisibleLine = 0;
@@ -1315,7 +1314,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 				if (g_gameConfig.difficulty == GAME_DIFFICULTY_EASY_CHEAT)
 					g_gameConfig.difficulty = GAME_DIFFICULTY_EASY;
 				FrontendMission_LoadCurrent();
-				MissionSetup_CountActiveTeams();
+				MissionSetup_UpdateTeamCounts();
 				MissionSetup_LoadMissionDescText(g_briefingText);
 				g_frontendFirstVisibleLine = 0;
 				if (g_missionList != NULL) {
@@ -1334,7 +1333,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 									}
 								}
 								FrontendMission_LoadCurrent();
-								MissionSetup_CountActiveTeams();
+								MissionSetup_UpdateTeamCounts();
 								MissionSetup_LoadMissionDescText(g_briefingText);
 							}
 							break;
@@ -1394,7 +1393,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 					g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] = selectedMissionId;
 					FrontendMission_LoadCurrent();
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					g_frontendFirstVisibleLine = 0;
 					if (g_missionList != NULL) {
@@ -1458,7 +1457,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 					g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] = selectedMissionId;
 					FrontendMission_LoadCurrent();
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					g_frontendFirstVisibleLine = 0;
 					if (g_missionList != NULL) {
@@ -1531,7 +1530,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 				if (g_gameConfig.randomSetup == RANDOM_SETUP_PLAYER_CHOICE)
 					g_gameConfig.randomSetup = RANDOM_SETUP_SEQUENTIAL;
 				FrontendMission_LoadCurrent();
-				MissionSetup_CountActiveTeams();
+				MissionSetup_UpdateTeamCounts();
 				MissionSetup_LoadMissionDescText(g_briefingText);
 				g_frontendFirstVisibleLine = 0;
 				g_selectedMissionListIndex = 0;
@@ -1550,7 +1549,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 									}
 								}
 								FrontendMission_LoadCurrent();
-								MissionSetup_CountActiveTeams();
+								MissionSetup_UpdateTeamCounts();
 								MissionSetup_LoadMissionDescText(g_briefingText);
 							}
 							break;
@@ -1583,7 +1582,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 					g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] = selectedMissionId;
 					FrontendMission_LoadCurrent();
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					g_frontendFirstVisibleLine = 0;
 					if (g_missionList != NULL) {
@@ -1616,7 +1615,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 					g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] = selectedMissionId;
 					FrontendMission_LoadCurrent();
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					g_frontendFirstVisibleLine = 0;
 					if (g_missionList != NULL) {
@@ -1656,7 +1655,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					if (g_gameConfig.randomSetup == RANDOM_SETUP_PLAYER_CHOICE)
 						g_gameConfig.randomSetup = RANDOM_SETUP_SEQUENTIAL;
 					FrontendMission_LoadCurrent();
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					g_frontendFirstVisibleLine = 0;
 					if (g_missionList != NULL) {
@@ -1676,7 +1675,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 										}
 									}
 									FrontendMission_LoadCurrent();
-									MissionSetup_CountActiveTeams();
+									MissionSetup_UpdateTeamCounts();
 									MissionSetup_LoadMissionDescText(g_briefingText);
 								}
 								break;
@@ -1709,7 +1708,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 						g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 						g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] = selectedMissionId;
 						FrontendMission_LoadCurrent();
-						MissionSetup_CountActiveTeams();
+						MissionSetup_UpdateTeamCounts();
 						MissionSetup_LoadMissionDescText(g_briefingText);
 						g_frontendFirstVisibleLine = 0;
 						if (g_missionList != NULL) {
@@ -1742,7 +1741,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 						g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 						g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] = selectedMissionId;
 						FrontendMission_LoadCurrent();
-						MissionSetup_CountActiveTeams();
+						MissionSetup_UpdateTeamCounts();
 						MissionSetup_LoadMissionDescText(g_briefingText);
 						g_frontendFirstVisibleLine = 0;
 						if (g_missionList != NULL) {
@@ -1782,7 +1781,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 				if (g_gameConfig.randomSetup == RANDOM_SETUP_PLAYER_CHOICE)
 					g_gameConfig.randomSetup = RANDOM_SETUP_SEQUENTIAL;
 				FrontendMission_LoadCurrent();
-				MissionSetup_CountActiveTeams();
+				MissionSetup_UpdateTeamCounts();
 				MissionSetup_LoadMissionDescText(g_briefingText);
 				g_frontendFirstVisibleLine = 0;
 				if (g_missionList != NULL) {
@@ -1801,7 +1800,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 									}
 								}
 								FrontendMission_LoadCurrent();
-								MissionSetup_CountActiveTeams();
+								MissionSetup_UpdateTeamCounts();
 								MissionSetup_LoadMissionDescText(g_briefingText);
 							}
 							break;
@@ -1834,7 +1833,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 					g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] = selectedMissionId;
 					FrontendMission_LoadCurrent();
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					g_frontendFirstVisibleLine = 0;
 					if (g_missionList != NULL) {
@@ -1867,7 +1866,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
 					g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] = selectedMissionId;
 					FrontendMission_LoadCurrent();
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					g_frontendFirstVisibleLine = 0;
 					if (g_missionList != NULL) {
@@ -1903,7 +1902,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 				if (g_gameConfig.randomSetup == RANDOM_SETUP_PLAYER_CHOICE)
 					g_gameConfig.randomSetup = RANDOM_SETUP_SEQUENTIAL;
 				FrontendMission_LoadCurrent();
-				MissionSetup_CountActiveTeams();
+				MissionSetup_UpdateTeamCounts();
 				MissionSetup_LoadMissionDescText(g_briefingText);
 				g_frontendFirstVisibleLine = 0;
 				if (g_missionList != NULL) {
@@ -1922,7 +1921,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 									}
 								}
 								FrontendMission_LoadCurrent();
-								MissionSetup_CountActiveTeams();
+								MissionSetup_UpdateTeamCounts();
 								MissionSetup_LoadMissionDescText(g_briefingText);
 							}
 							break;
@@ -1971,7 +1970,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					}
 					if (g_frontendMission.flightGroups[playerFlightGroupIndex].iff != previousPlayerIff)
 						changed = 1;
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					g_frontendFirstVisibleLine = 0;
 					if (g_missionList != NULL) {
@@ -2020,7 +2019,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 					}
 					if (g_frontendMission.flightGroups[playerFlightGroupIndex].iff != previousPlayerIff)
 						changed = 1;
-					MissionSetup_CountActiveTeams();
+					MissionSetup_UpdateTeamCounts();
 					MissionSetup_LoadMissionDescText(g_briefingText);
 					g_frontendFirstVisibleLine = 0;
 					if (g_missionList != NULL) {
@@ -2269,11 +2268,11 @@ void MissionSetup_LoadMissionDescText(char* outText4096) {
 		File_ReadWord(stream, &missionVersion);
 		if (missionVersion == 14 || missionVersion == 13) {
 			File_Seek(stream, -4096, SEEK_END);
-			File_ReadCount(stream, outText4096, 4096);
+			File_ReadBytes(stream, outText4096, 4096);
 			outText4096[4095] = '\0';
 		} else if (missionVersion == 12) {
 			File_Seek(stream, -1024, SEEK_END);
-			File_ReadCount(stream, outText4096, 1024);
+			File_ReadBytes(stream, outText4096, 1024);
 			outText4096[1023] = '\0';
 		}
 	}
@@ -2449,7 +2448,7 @@ int MissionSetup_DrawPlayerRoster(int frameCounter) {
 		FrontendDisplay_SetScreenClipRect640x480(&previousClipRect);
 
 		if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
-			((g_gameConfig.networkType == NET_TRANSPORT_TCPIP && g_gameConfig.asyncFlag != 0) ||
+			((g_gameConfig.networkType == NET_TRANSPORT_TCPIP && g_gameConfig.internetPlay != 0) ||
 			 g_gameConfig.networkType == NET_TRANSPORT_MODEM) &&
 			Net_GetHostPlayerId() != *playerId) {
 			averageLatency = Net_GetAverageLatencyMs(*playerId);
@@ -2493,7 +2492,7 @@ int MissionSetup_DrawPlayerRoster(int frameCounter) {
 		if (*playerId == 0)
 			continue;
 		if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
-			((g_gameConfig.networkType == NET_TRANSPORT_TCPIP && g_gameConfig.asyncFlag != 0) ||
+			((g_gameConfig.networkType == NET_TRANSPORT_TCPIP && g_gameConfig.internetPlay != 0) ||
 			 g_gameConfig.networkType == NET_TRANSPORT_MODEM) &&
 			Net_GetHostPlayerId() != *playerId) {
 			int lightWidth = lightRect.right - lightRect.left + 1;
@@ -2793,7 +2792,7 @@ int MissionSetup_BroadcastStatePacket(int toPlayerId) {
 	packetWords[11] = g_gameConfig.missionTimeLimit;
 	packetWords[12] = g_gameConfig.lastTeamTimeLimitMinutes;
 	packetWords[13] = rand();
-	packetWords[14] = g_gameConfig.asyncFlag;
+	packetWords[14] = g_gameConfig.internetPlay;
 	packetWords[15] = g_gameConfig.aiOpponents;
 	packetWords[16] = g_gameConfig.serverUpdateRate;
 	packetWords[17] = (uint8_t)g_gameConfig.combatBalance;
@@ -2902,7 +2901,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 		FrontImage_FreeResourceByName("background");
 		MissionSetup_DrawBackgroundAndPreview();
 		MissionSetup_LoadMissionDescText(g_briefingText);
-		MissionSetup_CountActiveTeams();
+		MissionSetup_UpdateTeamCounts();
 		if (g_missionList != NULL) {
 			g_selectedMissionListIndex = 0;
 			while ((unsigned int)g_selectedMissionListIndex < g_missionCount &&
@@ -3089,7 +3088,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 							FrontendMission_LoadCurrent();
 							FrontImage_FreeResourceByName("background");
 							MissionSetup_DrawBackgroundAndPreview();
-							MissionSetup_CountActiveTeams();
+							MissionSetup_UpdateTeamCounts();
 							MissionSetup_LoadMissionDescText(g_briefingText);
 							g_frontendFirstVisibleLine = 0;
 							if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER)
@@ -3149,7 +3148,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 						FrontendMission_LoadCurrent();
 						FrontImage_FreeResourceByName("background");
 						MissionSetup_DrawBackgroundAndPreview();
-						MissionSetup_CountActiveTeams();
+						MissionSetup_UpdateTeamCounts();
 						MissionSetup_LoadMissionDescText(g_briefingText);
 						g_frontendFirstVisibleLine = 0;
 					}
@@ -4227,7 +4226,7 @@ int MissionSetup_DrawGameSettings(void) {
 		packetWords[11] = g_gameConfig.missionTimeLimit;
 		packetWords[12] = g_gameConfig.lastTeamTimeLimitMinutes;
 		packetWords[13] = rand();
-		packetWords[14] = g_gameConfig.asyncFlag;
+		packetWords[14] = g_gameConfig.internetPlay;
 		packetWords[15] = g_gameConfig.aiOpponents;
 		packetWords[16] = g_gameConfig.serverUpdateRate;
 		packetWords[17] = (uint8_t)g_gameConfig.combatBalance;
@@ -5927,7 +5926,7 @@ int MissionSetup_EnterNextMission(int frameCounter) {
 	int* craftId;
 
 	(void)frameCounter;
-	g_skipFrontendEntryMovie = 0;
+	g_frontendSkipScreenEntrySetup = 0;
 	g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] =
 		g_pilotData.missionSequenceDescriptionId;
 	if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES)
@@ -6310,7 +6309,7 @@ int MissionSetup_SelectNextSequenceMission(void) {
 		}
 	}
 	FrontendMission_LoadCurrent();
-	MissionSetup_CountActiveTeams();
+	MissionSetup_UpdateTeamCounts();
 	return 1;
 }
 
@@ -6336,7 +6335,7 @@ int MissionSetup_EnterCurrentMission(int frameCounter) {
 	(void)frameCounter;
 	player = &g_pilotData.networkPlayers[0];
 	craftId = &player->craftId;
-	g_skipFrontendEntryMovie = 0;
+	g_frontendSkipScreenEntrySetup = 0;
 	do {
 		*craftId = 0;
 		craftId = (int*)((char*)craftId + sizeof(PilotNetworkPlayer));
@@ -6476,7 +6475,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 			return 0;
 		}
 
-		if (g_skipFrontendEntryMovie == 0 &&
+		if (g_frontendSkipScreenEntrySetup == 0 &&
 			g_missionSetupDebriefTransition != MISSION_SETUP_DEBRIEF_TRANSITION_ENTER_CURRENT_MISSION &&
 			g_pilotData.missionSequenceActive == 1) {
 			if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES) {
@@ -6533,12 +6532,12 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 			}
 		}
 		FrontendMission_LoadCurrent();
-		if (g_skipFrontendEntryMovie == 0) {
+		if (g_frontendSkipScreenEntrySetup == 0) {
 			memset(g_missionSetupPlayerAssignments.teamPlayerIds, 0,
 				   sizeof(g_missionSetupPlayerAssignments.teamPlayerIds));
 			memset(g_missionSetupPlayerAssignments.activePlayerIds, 0,
 				   sizeof(g_missionSetupPlayerAssignments.activePlayerIds));
-			MissionSetup_CountActiveTeams();
+			MissionSetup_UpdateTeamCounts();
 		} else {
 			MissionSetup_PruneTeamAssignments();
 		}
@@ -6549,9 +6548,9 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 				readyPlayerCount = Net_CountReadyPlayers();
 			}
 			if (readyPlayerCount == 1) {
-				if (g_skipFrontendEntryMovie == 1) {
+				if (g_frontendSkipScreenEntrySetup == 1) {
 					FrontendScreen_SetCallbacks(MissionSetup_Update, (FrontendScreenExitFn)MissionSetup_Exit);
-					g_skipFrontendEntryMovie = 0;
+					g_frontendSkipScreenEntrySetup = 0;
 					return 0;
 				}
 				g_missionSetupPlayerAssignments.teamPlayerIds[0][0] = g_mpRoster[0].playerId;
@@ -6560,10 +6559,10 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 				FrontendScreen_SetCallbacks(MissionSetup_FlightAssignmentUpdate,
 											MissionSetup_FreeScreenResources);
 				g_missionSetupTeamAssignmentSkipped = 1;
-				g_skipFrontendEntryMovie = 0;
+				g_frontendSkipScreenEntrySetup = 0;
 				return 0;
 			}
-			if (g_skipFrontendEntryMovie == 0 && g_teamCount != 0) {
+			if (g_frontendSkipScreenEntrySetup == 0 && g_teamCount != 0) {
 				teamIndex = 0;
 				assignedPlayerCount = 0;
 				do {
@@ -6584,7 +6583,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 			}
 		} else {
 			if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-				if (g_skipFrontendEntryMovie == 0) {
+				if (g_frontendSkipScreenEntrySetup == 0) {
 					if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_COMBAT_ENGAGEMENTS ||
 						g_pilotData.missionDirectoryId == MISSION_DIRECTORY_BATTLES) {
 						teamIndex = g_pilotData.currentFactionId ^ 1;
@@ -6614,16 +6613,16 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 														MissionSetup_FreeScreenResources);
 						}
 						g_missionSetupTeamAssignmentSkipped = 1;
-						g_skipFrontendEntryMovie = 0;
+						g_frontendSkipScreenEntrySetup = 0;
 						return 0;
 					}
 				} else if (g_missionSetupTeamAssignmentSkipped != 0) {
 					FrontendScreen_SetCallbacks(MissionSetup_Update, (FrontendScreenExitFn)MissionSetup_Exit);
-					g_skipFrontendEntryMovie = 0;
+					g_frontendSkipScreenEntrySetup = 0;
 					return 0;
 				}
 			}
-			if (g_skipFrontendEntryMovie == 0) {
+			if (g_frontendSkipScreenEntrySetup == 0) {
 				readyPlayerCount = 1;
 				if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 					readyPlayerCount = Net_CountReadyPlayers();
@@ -6651,7 +6650,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 			}
 		}
 
-		g_skipFrontendEntryMovie = 0;
+		g_frontendSkipScreenEntrySetup = 0;
 		g_missionSetupTeamAssignmentSkipped = 0;
 		if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 			for (teamIndex = 0; teamIndex < g_teamCount; ++teamIndex) {
@@ -6680,7 +6679,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 						}
 					}
 				}
-				g_skipFrontendEntryMovie = 0;
+				g_frontendSkipScreenEntrySetup = 0;
 				FrontendScreen_SetCallbacks(MissionSetup_FlightAssignmentUpdate,
 											MissionSetup_FreeScreenResources);
 				g_missionSetupTeamAssignmentSkipped = 1;
@@ -6692,7 +6691,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 			FrontendScreen_SetCallbacks(MissionSetup_FlightAssignmentUpdate,
 										MissionSetup_FreeScreenResources);
 			g_missionSetupTeamAssignmentSkipped = 1;
-			g_skipFrontendEntryMovie = 0;
+			g_frontendSkipScreenEntrySetup = 0;
 			return 0;
 		}
 		if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES && g_teamCount == 1 &&
@@ -6709,7 +6708,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 			FrontendScreen_SetCallbacks(MissionSetup_FlightAssignmentUpdate,
 										MissionSetup_FreeScreenResources);
 			g_missionSetupTeamAssignmentSkipped = 1;
-			g_skipFrontendEntryMovie = 0;
+			g_frontendSkipScreenEntrySetup = 0;
 			return 0;
 		}
 
@@ -6811,7 +6810,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 #endif
 			}
 			g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen,
 										(FrontendScreenExitFn)FrontendMissionList_FreeScreenResources);
 			Net_ShutdownDirectPlaySession();
@@ -6861,7 +6860,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 										MissionSetup_FreeScreenResources);
 			return 0;
 		} else if (packetType == NET_PACKET_RETURN_TO_SETUP) {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			FrontendScreen_SetCallbacks(MissionSetup_Update, (FrontendScreenExitFn)MissionSetup_Exit);
 			return 0;
 		} else if (packetType == NET_PACKET_RELEASE_TEAM_RESERVATION) {
@@ -7025,7 +7024,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 			Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch,
 								   sizeof(g_frontendNetPacketScratch.packetType));
 			Net_ShutdownDirectPlaySession();
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen,
 										(FrontendScreenExitFn)FrontendMissionList_FreeScreenResources);
 		}
@@ -7269,7 +7268,7 @@ int MissionSetup_DrawUnassignedPlayers(int frameCounter) {
 }
 
 // FUNCTION: XVT 0x4F36D0
-void MissionSetup_CountActiveTeams(void) {
+void MissionSetup_UpdateTeamCounts(void) {
 	int flightGroupIndex;
 	int activeTeamCount;
 
@@ -7835,7 +7834,7 @@ int MissionSetup_TryContinueBattle(void) {
 	int missionDescriptionId;
 	uint32_t continuationSeed;
 #ifndef XVT_MODERN
-	uint32_t waitStartTick;
+	uint32_t waitStartMs;
 	DPID senderId;
 	uint32_t packetSize;
 #endif
@@ -7926,12 +7925,12 @@ int MissionSetup_TryContinueBattle(void) {
 			return 0;
 		}
 #else
-		waitStartTick = GetTickCount();
+		waitStartMs = GetTickCount();
 		do {
 			receivedPacket = Net_GetNextAppPacket(&senderId, &packetSize);
 			if (receivedPacket != NULL && receivedPacket[0] == NET_PACKET_BATTLE_CONTINUATION)
 				break;
-			if (GetTickCount() - waitStartTick > BATTLE_CONTINUATION_WAIT_TIMEOUT_MS) {
+			if (GetTickCount() - waitStartMs > BATTLE_CONTINUATION_WAIT_TIMEOUT_MS) {
 				--g_pilotData.missionDirectoryId;
 				return 0;
 			}
@@ -7985,7 +7984,7 @@ int MissionSetup_TryContinueCampaign(void) {
 	int missionDescriptionId;
 	uint32_t continuationSeed;
 #ifndef XVT_MODERN
-	uint32_t waitStartTick;
+	uint32_t waitStartMs;
 	DPID senderId;
 	uint32_t packetSize;
 #endif
@@ -8079,12 +8078,12 @@ int MissionSetup_TryContinueCampaign(void) {
 			return 0;
 		}
 #else
-		waitStartTick = GetTickCount();
+		waitStartMs = GetTickCount();
 		do {
 			receivedPacket = Net_GetNextAppPacket(&senderId, &packetSize);
 			if (receivedPacket != NULL && receivedPacket[0] == NET_PACKET_CAMPAIGN_CONTINUATION)
 				break;
-			if (GetTickCount() - waitStartTick > CAMPAIGN_CONTINUATION_WAIT_TIMEOUT_MS) {
+			if (GetTickCount() - waitStartMs > CAMPAIGN_CONTINUATION_WAIT_TIMEOUT_MS) {
 				g_pilotData.missionDirectoryId = MISSION_DIRECTORY_TRAINING_EXERCISES;
 				return 0;
 			}
@@ -8275,7 +8274,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 		g_textShadeRamps[4][6] = FrontendDisplay_PackRGB(0xE0, 0, 0xE0);
 		g_textShadeRamps[4][7] = FrontendDisplay_PackRGB(0xFC, 0, 0xFC);
 
-		if (g_skipFrontendEntryMovie == 0) {
+		if (g_frontendSkipScreenEntrySetup == 0) {
 			for (teamIndex = 0; teamIndex < MAX_TEAMS; ++teamIndex) {
 				memset(&g_missionSetupPlayerFlightGroupIndices[teamIndex * MAX_PLAYERS], 0xFF,
 					   MAX_PLAYERS * sizeof(g_missionSetupPlayerFlightGroupIndices[0]));
@@ -8302,7 +8301,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 				}
 			}
 		}
-		g_skipFrontendEntryMovie = 1;
+		g_frontendSkipScreenEntrySetup = 1;
 
 		if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_MELEES) {
 			for (teamIndex = 0; teamIndex < g_teamCount; ++teamIndex) {
@@ -8407,9 +8406,9 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 		FrontendDisplay_UnlockOffscreenSurface(1);
 		FrontendText_StartTextFadeIn(20);
 		g_missionSetupLaunchCountdownMs = LAUNCH_COUNTDOWN_MS;
-		g_missionSetupLaunchCountdownCurrentTick = GetTickCount();
+		g_missionSetupCountdownClockMs = GetTickCount();
 		g_missionSetupLastBroadcastCountdownSecond = LAUNCH_COUNTDOWN_MS / 1000;
-		g_missionSetupLaunchCountdownPreviousTick = g_missionSetupLaunchCountdownCurrentTick;
+		g_missionSetupCountdownPreviousClockMs = g_missionSetupCountdownClockMs;
 		g_briefingText = malloc(BRIEFING_TEXT_CAPACITY);
 		MissionSetup_LoadMissionDescText(g_briefingText);
 	}
@@ -8440,7 +8439,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 				return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_ASSIGNMENT_CANCELLED);
 #endif
 			}
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
 			FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen,
 										(FrontendScreenExitFn)FrontendMissionList_FreeScreenResources);
@@ -8451,7 +8450,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 			FrontendScreen_SetCallbacks(MissionBriefing_Update, MissionBriefing_Exit);
 			return 0;
 		} else if (packetType == NET_PACKET_RETURN_TO_SETUP) {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			FrontendScreen_SetCallbacks(MissionSetup_Update, (FrontendScreenExitFn)MissionSetup_Exit);
 			return 0;
 		} else if (packetType == PACKET_COUNTDOWN) {
@@ -8587,9 +8586,9 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 		FrontendNet_UpdateAndDrawPanel(frameCounter);
 	}
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER && g_teamCount > 1) {
-		g_missionSetupLaunchCountdownCurrentTick = GetTickCount();
+		g_missionSetupCountdownClockMs = GetTickCount();
 		g_missionSetupLaunchCountdownMs +=
-			g_missionSetupLaunchCountdownPreviousTick - g_missionSetupLaunchCountdownCurrentTick;
+			g_missionSetupCountdownPreviousClockMs - g_missionSetupCountdownClockMs;
 		if (Net_IsHost() != 0 &&
 			g_missionSetupLastBroadcastCountdownSecond != g_missionSetupLaunchCountdownMs / 1000) {
 			g_missionSetupLastBroadcastCountdownSecond = g_missionSetupLaunchCountdownMs / 1000;
@@ -8615,7 +8614,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 			}
 			return 0;
 		}
-		g_missionSetupLaunchCountdownPreviousTick = g_missionSetupLaunchCountdownCurrentTick;
+		g_missionSetupCountdownPreviousClockMs = g_missionSetupCountdownClockMs;
 	}
 
 	FrontendDraw_RectAssign(&rect, 85, 447, 176, 471);
@@ -8656,7 +8655,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 				}
 			}
 			if (readyPlayerCount != 0) {
-				g_skipFrontendEntryMovie = 1;
+				g_frontendSkipScreenEntrySetup = 1;
 				FrontendScreen_SetCallbacks(MissionSetup_TeamAssignmentUpdate,
 
 #ifdef XVT_MODERN
@@ -8720,7 +8719,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
 				FrontendString_Get(FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
 				FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL)) != 0) {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
 			Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch,
 								   sizeof(g_frontendNetPacketScratch.packetType));
@@ -9898,9 +9897,9 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 		FrontendDisplay_UnlockOffscreenSurface(1);
 		FrontendText_StartTextFadeIn(20);
 		g_battleChoiceRemainingMs = BATTLE_CHOICE_DURATION_MS;
-		g_battleChoiceTick = GetTickCount();
+		g_battleChoiceClockMs = GetTickCount();
 		g_battleChoiceLastSentSecond = BATTLE_CHOICE_DURATION_SECONDS;
-		g_battleChoiceLastTick = g_battleChoiceTick;
+		g_battleChoicePreviousClockMs = g_battleChoiceClockMs;
 		g_briefingText = malloc(BRIEFING_TEXT_CAPACITY);
 		MissionSetup_LoadMissionDescText(g_briefingText);
 		MissionSetup_BattleChoice_BuildList();
@@ -9919,7 +9918,7 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 				return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_ASSIGNMENT_CANCELLED);
 #endif
 			}
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
 			FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen,
 										(FrontendScreenExitFn)FrontendMissionList_FreeScreenResources);
@@ -9947,7 +9946,7 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 										MissionSetup_FreeScreenResources);
 			return 0;
 		} else if (packetType == NET_PACKET_RETURN_TO_SETUP) {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			FrontendScreen_SetCallbacks(MissionSetup_Update, (FrontendScreenExitFn)MissionSetup_Exit);
 			return 0;
 		} else if (packetType == NET_PACKET_BRIEFING_COUNTDOWN) {
@@ -10022,8 +10021,8 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 		Frontend_FormatSecondsToClockString(g_battleChoiceRemainingMs / MILLISECONDS_PER_SECOND);
 		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, 0xFFFF);
 		if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-			g_battleChoiceTick = GetTickCount();
-			g_battleChoiceRemainingMs += g_battleChoiceLastTick - g_battleChoiceTick;
+			g_battleChoiceClockMs = GetTickCount();
+			g_battleChoiceRemainingMs += g_battleChoicePreviousClockMs - g_battleChoiceClockMs;
 			if (Net_IsHost() != 0) {
 				remainingSeconds = g_battleChoiceRemainingMs / MILLISECONDS_PER_SECOND;
 				if (g_battleChoiceLastSentSecond != remainingSeconds) {
@@ -10051,7 +10050,7 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 				}
 				return 0;
 			}
-			g_battleChoiceLastTick = g_battleChoiceTick;
+			g_battleChoicePreviousClockMs = g_battleChoiceClockMs;
 		}
 	}
 
@@ -10114,7 +10113,7 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 				FrontendString_Get(FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
 				FrontendString_Get(FRONTSTR_683_TERMINATE_THIS_BATTLE), FrontendString_Get(FRONTSTR_523_OKAY),
 				FrontendString_Get(FRONTSTR_019_CANCEL)) != 0) {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			FrontendScreen_SetCallbacks(MissionSetup_Update, (FrontendScreenExitFn)MissionSetup_Exit);
 		}
 #endif
@@ -10170,7 +10169,7 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
 				FrontendString_Get(FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
 				FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL)) != 0) {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
 			Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch, BASIC_PACKET_SIZE);
 			Net_ShutdownDirectPlaySession();
@@ -10460,7 +10459,7 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 			g_frontendNetReceivedMissionDescriptionId;
 		FrontendMission_LoadCurrent();
 		MissionSetup_LoadMissionDescText(g_briefingText);
-		MissionSetup_CountActiveTeams();
+		MissionSetup_UpdateTeamCounts();
 		if (g_missionList != NULL) {
 			g_selectedMissionListIndex = 0;
 			while (g_missionCount > (unsigned int)g_selectedMissionListIndex &&
@@ -10558,7 +10557,7 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 								}
 							}
 							FrontendMission_LoadCurrent();
-							MissionSetup_CountActiveTeams();
+							MissionSetup_UpdateTeamCounts();
 							MissionSetup_LoadMissionDescText(g_briefingText);
 							g_frontendFirstVisibleLine = 0;
 							if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER)
@@ -10581,7 +10580,7 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 							}
 						}
 						FrontendMission_LoadCurrent();
-						MissionSetup_CountActiveTeams();
+						MissionSetup_UpdateTeamCounts();
 						MissionSetup_LoadMissionDescText(g_briefingText);
 						g_frontendFirstVisibleLine = 0;
 					}

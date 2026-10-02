@@ -189,8 +189,8 @@ static const XvtConfigField g_fields[] = {
 	{ "random_seed", "game.random_seed", offsetof(GameConfig, randomSeed),
 	  sizeof(((GameConfig*)0)->randomSeed), 0, 4294967295 },
 	{ "password", "game.password", offsetof(GameConfig, password), sizeof(((GameConfig*)0)->password), 1, 1 },
-	{ "async_flag", "game.async_flag", offsetof(GameConfig, asyncFlag), sizeof(((GameConfig*)0)->asyncFlag),
-	  0, 1 },
+	{ "async_flag", "game.async_flag", offsetof(GameConfig, internetPlay),
+	  sizeof(((GameConfig*)0)->internetPlay), 0, 1 },
 	{ "ai_opponents", "game.ai_opponents", offsetof(GameConfig, aiOpponents),
 	  sizeof(((GameConfig*)0)->aiOpponents), 0, 1 },
 	{ "help_on", "game.help_on", offsetof(GameConfig, helpOn), sizeof(((GameConfig*)0)->helpOn), 0, 1 },
@@ -223,7 +223,7 @@ const XvtSettings* XvtConfig_DefaultSettings(void) { return g_defaults ? &g_defa
 
 uint64_t XvtConfig_Generation(void) { return g_generation; }
 
-int XvtConfig_CanReplace(void) { return g_defaults != NULL; }
+int XvtConfig_CanResetToDefaults(void) { return g_defaults != NULL; }
 
 void XvtConfig_Shutdown(void) {
 	AeronConfigFile_Destroy(g_resolved);
@@ -386,7 +386,7 @@ done:
 	return success;
 }
 
-int XvtConfig_Replace(char* error, size_t capacity) {
+int XvtConfig_ResetToDefaults(char* error, size_t capacity) {
 	AeronConfigFile* replacement = NULL;
 	AeronConfigError detail;
 	int success;
@@ -431,7 +431,7 @@ int XvtConfig_Load(AeronVfs* vfs, char* error, size_t capacity) {
 							   "USER/config.yaml");
 	if (!AeronConfigFile_LoadYamlEx(vfs, AERON_VFS_ROOT_USER, "config.yaml", &user, &detail)) {
 		if (detail.code == AERON_CONFIG_ERROR_NOT_FOUND)
-			return XvtConfig_Replace(error, capacity);
+			return XvtConfig_ResetToDefaults(error, capacity);
 		return XvtSettings_FileError(&detail, error, capacity);
 	}
 	success = XvtConfig_UpdateUser(user, 0, error, capacity);

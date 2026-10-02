@@ -8,8 +8,8 @@
 extern "C" {
 #endif
 
-extern int g_flightLoadingReadyScreenStartTick;
-extern int g_flightLoadingReadyScreenCurrentTick;
+extern int g_flightLoadingReadyScreenStartMs;
+extern int g_flightLoadingReadyScreenNowMs;
 extern int g_unusedFlightLoadingReadyScreenFlag;
 extern int g_frontendLaunchHumanPlayerCount;
 extern char g_frontendFlightCommandLine[256];

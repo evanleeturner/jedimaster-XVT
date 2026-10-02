@@ -29,7 +29,7 @@ static void Fresh(int session_mode) {
 	memset(&g_frontState, 0, sizeof g_frontState);
 	g_frontState.screenStates[0].updateFn = Placeholder;
 	g_frontendMissionSessionMode = session_mode;
-	g_skipFrontendEntryMovie = 0;
+	g_frontendSkipScreenEntrySetup = 0;
 	g_frontendQuickStartLaunchFlag = 0;
 	g_frontendGameSessionInProgress = 0;
 	g_missionSetupRosterAuthoritative = 0;

@@ -3,7 +3,7 @@
 #include "aeron/compat/host.h"
 #include "xvt_runtime/runtime/movie_task.h"
 
-static AeronRectI g_frame = { 0, 0, XVT_CLASSIC_WIDTH, XVT_CLASSIC_HEIGHT };
+static AeronRectI g_logicalRect = { 0, 0, XVT_CLASSIC_WIDTH, XVT_CLASSIC_HEIGHT };
 
 static AeronDx5Rect ClassicRect(void* context, int width, int height) {
 	AeronRectI rect = XvtPresentation_ClassicRect();
@@ -21,16 +21,16 @@ void XvtPresentation_SyncToWindow(int width, int height) {
 		w = 640;
 	if (w > 32 * 480 / 9)
 		w = (32 * 480 / 9) & ~1;
-	if (g_frame.width != w) {
-		g_frame.width = w;
+	if (g_logicalRect.width != w) {
+		g_logicalRect.width = w;
 		Aeron_SetLogicalSize(w, 480);
 	}
 }
 
-AeronRectI XvtPresentation_Frame(void) { return g_frame; }
+AeronRectI XvtPresentation_LogicalRect(void) { return g_logicalRect; }
 
 AeronRectI XvtPresentation_ClassicRect(void) {
-	return (AeronRectI) { (g_frame.width - 640) / 2, 0, 640, 480 };
+	return (AeronRectI) { (g_logicalRect.width - 640) / 2, 0, 640, 480 };
 }
 
 AeronRectI XvtPresentation_FromClassic(AeronRectI r) {
@@ -63,7 +63,7 @@ void XvtPresentation_RequireClassic(void) { AeronDx5_SetClassicFlightRenderingSu
 
 void XvtPresentation_Init(void) {
 	AeronDx5Config config = { 0 };
-	g_frame = (AeronRectI) { 0, 0, 640, 480 };
+	g_logicalRect = (AeronRectI) { 0, 0, 640, 480 };
 	config.presentation_rect = ClassicRect;
 	AeronDx5_Configure(&config);
 	AeronDx5_ResetPresentationState();

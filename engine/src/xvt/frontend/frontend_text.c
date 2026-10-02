@@ -45,7 +45,7 @@ typedef HRESULT(AERON_DXAPI* FrontendTextSurfaceReleaseDcFunc)(IDirectDrawSurfac
 #endif
 
 // GLOBAL: XVT 0x665684
-static int g_savedGlyphScratchTtl;
+static int g_savedTextFadeFramesLeft;
 // GLOBAL: XVT 0x52C000
 int g_activeTextFieldId = 0;
 // GLOBAL: XVT 0x52C014
@@ -462,7 +462,7 @@ int FrontendText_Draw(int fontSize, const char* str, int x, int y, int color) {
 			} else {
 				glyph.width = font->glyphWidth[character];
 				glyph.height = font->glyphHeight[character];
-				glyph.pixelCount = 0;
+				glyph.pixelDataBytes = 0;
 				glyph.isCompressed = 1;
 				glyph.pixels = &font->pGlyphBits[font->glyphBitOffset[character]];
 				result |= FrontImage_DrawGlyph(&glyph, x, y, currentColor, 1);
@@ -512,7 +512,7 @@ int FrontendText_DrawCentered(int fontSize, const char* str, RECT* rect, int col
 			} else {
 				glyph.width = font->glyphWidth[character];
 				glyph.height = font->glyphHeight[character];
-				glyph.pixelCount = 0;
+				glyph.pixelDataBytes = 0;
 				glyph.isCompressed = 1;
 				glyph.pixels = &font->pGlyphBits[font->glyphBitOffset[character]];
 				result |= FrontImage_DrawGlyph(&glyph, x, y, currentColor, 1);
@@ -574,7 +574,7 @@ int FrontendText_DrawAlignedInRect(int fontSize, const char* str, RECT* rect, in
 			} else {
 				glyph.width = font->glyphWidth[character];
 				glyph.height = font->glyphHeight[character];
-				glyph.pixelCount = 0;
+				glyph.pixelDataBytes = 0;
 				glyph.isCompressed = 1;
 				glyph.pixels = &font->pGlyphBits[font->glyphBitOffset[character]];
 				result |= FrontImage_DrawGlyph(&glyph, x, y, currentColor, 1);
@@ -646,7 +646,7 @@ int FrontendText_DrawLineArrayInRect(int fontSize, const char** lines, int lineC
 					} else {
 						glyph.width = font->glyphWidth[character];
 						glyph.height = font->glyphHeight[(uint8_t)*charPtr];
-						glyph.pixelCount = 0;
+						glyph.pixelDataBytes = 0;
 						glyph.isCompressed = 1;
 						glyph.pixels = &font->pGlyphBits[font->glyphBitOffset[(uint8_t)*charPtr]];
 						drawStatus |= FrontImage_DrawGlyph(&glyph, drawX, drawY, currentColor, 1);
@@ -752,7 +752,7 @@ int FrontendText_DrawWrapped(int fontSize, const char* str, RECT* rect, int colo
 					glyphChar = (uint8_t)word[*charIndex];
 					glyph.width = font->glyphWidth[glyphChar];
 					glyph.height = font->glyphHeight[glyphChar];
-					glyph.pixelCount = 0;
+					glyph.pixelDataBytes = 0;
 					glyph.isCompressed = 1;
 					glyph.pixels = &font->pGlyphBits[font->glyphBitOffset[glyphChar]];
 					FrontImage_DrawGlyph(&glyph, x, y, currentColor, 1);
@@ -845,8 +845,8 @@ void FrontendText_SaveFontAtlasFile(char* fileName, void** font, unsigned int gl
 		if (stream != NULL) {
 			memcpy(diskHeader, font, sizeof(diskHeader));
 			*(unsigned int*)diskHeader = glyphBlobSize;
-			File_WriteCount(stream, diskHeader, sizeof(diskHeader));
-			File_WriteCount(stream, *font, glyphBlobSize);
+			File_WriteBytes(stream, diskHeader, sizeof(diskHeader));
+			File_WriteBytes(stream, *font, glyphBlobSize);
 			File_Close(stream);
 		}
 	}
@@ -870,7 +870,7 @@ int FrontendText_LoadFontAtlasFile(const char* fileName, int slotIndex) {
 	}
 
 #ifdef XVT_MODERN
-	if (!File_ReadCount(stream, diskHeader, sizeof(diskHeader))) {
+	if (!File_ReadBytes(stream, diskHeader, sizeof(diskHeader))) {
 		File_Close(stream);
 		return 0;
 	}
@@ -884,7 +884,7 @@ int FrontendText_LoadFontAtlasFile(const char* fileName, int slotIndex) {
 	font->field_60A = diskHeader[0x60A];
 	glyphBlobSize = diskGlyphBlobSize;
 #else
-	File_ReadCount(stream, font, 0x60B);
+	File_ReadBytes(stream, font, 0x60B);
 	glyphBlobSize = *(const uint32_t*)(const void*)font;
 #endif
 	glyphBits = malloc(glyphBlobSize);
@@ -895,7 +895,7 @@ int FrontendText_LoadFontAtlasFile(const char* fileName, int slotIndex) {
 		return 0;
 	}
 
-	File_ReadCount(stream, glyphBits, glyphBlobSize);
+	File_ReadBytes(stream, glyphBits, glyphBlobSize);
 	g_frontState.fontBySize[font->pointSize] = font;
 	File_Close(stream);
 #ifdef XVT_MODERN
@@ -907,7 +907,7 @@ int FrontendText_LoadFontAtlasFile(const char* fileName, int slotIndex) {
 
 // FUNCTION: XVT 0x4DC140
 int FrontendText_StartTextFadeIn(int frames) {
-	memset(g_frontState.glyphScratchBuffer, 0, sizeof(g_frontState.glyphScratchBuffer));
+	memset(g_frontState.textFadeColorCache, 0, sizeof(g_frontState.textFadeColorCache));
 	g_frontState.textFadeFramesLeft = frames;
 	g_frontState.textFadeFrameCount = frames;
 	return 1;
@@ -922,14 +922,14 @@ int FrontendText_StopTextFade(void) {
 
 // FUNCTION: XVT 0x4DC190
 int FrontendText_PushGlyphScratchTtl(void) {
-	g_savedGlyphScratchTtl = g_frontState.textFadeFramesLeft;
+	g_savedTextFadeFramesLeft = g_frontState.textFadeFramesLeft;
 	g_frontState.textFadeFramesLeft = 0;
 	return 1;
 }
 
 // FUNCTION: XVT 0x4DC1B0
 int FrontendText_PopGlyphScratchTtl(void) {
-	g_frontState.textFadeFramesLeft = g_savedGlyphScratchTtl;
+	g_frontState.textFadeFramesLeft = g_savedTextFadeFramesLeft;
 	return 1;
 }
 

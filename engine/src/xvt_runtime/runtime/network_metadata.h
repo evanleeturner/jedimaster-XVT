@@ -26,7 +26,7 @@ typedef struct XvtNetworkMetadata {
 void XvtNetworkMetadata_Build(XvtNetworkMetadata* out, int accepting);
 /* Keeps, in order, only the roster players still active in the network session, and clears the
  * rest. */
-void XvtNetworkMetadata_Flight(XvtNetworkMetadata* snapshot);
+void XvtNetworkMetadata_KeepActivePlayers(XvtNetworkMetadata* snapshot);
 /* Converts up to size bytes of Windows-1252 text, stopping at a NUL, into UTF-8 in out. Control
  * characters, DEL and the five undefined 1252 bytes become '?'. Stops before a character that
  * would not fit; out is always terminated when capacity is nonzero. */

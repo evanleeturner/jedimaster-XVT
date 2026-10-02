@@ -15,7 +15,7 @@ extern "C" {
  * the sidebars. Returns 1 when the shared frontend controls act, otherwise 0; with a dialog open,
  * Leave and Join are not drawn. Leave returns to the concourse; Join, drawn only when the network
  * task allows it, begins a connect. */
-int XvtNetworkBrowser_Screen(int first_frame);
+int XvtNetworkBrowser_Screen(int frame_counter);
 /* Draws the rooms six rows at a time under a heading, with a scrollbar past six rooms, and keeps
  * the task's scroll offset within range. Row color: gray when incompatible, red when not
  * joinable, light blue when full, green otherwise; the selected row is shaded and a password room

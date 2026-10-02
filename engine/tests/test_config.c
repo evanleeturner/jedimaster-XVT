@@ -97,9 +97,9 @@ static void CheckBeforeLoad(void) {
 	XVT_ASSERT_TRUE(XvtConfig_ResolvedDocument() == NULL);
 	XVT_ASSERT_TRUE(XvtConfig_Settings() == NULL);
 	XVT_ASSERT_TRUE(XvtConfig_DefaultSettings() == NULL);
-	XVT_ASSERT_INT_EQ(XvtConfig_CanReplace(), 0);
+	XVT_ASSERT_INT_EQ(XvtConfig_CanResetToDefaults(), 0);
 	/* Replace and every update need the shipped defaults; the setters are not enabled. */
-	XVT_ASSERT_INT_EQ(XvtConfig_Replace(error, sizeof error), 0);
+	XVT_ASSERT_INT_EQ(XvtConfig_ResetToDefaults(error, sizeof error), 0);
 	AeronConfigFile* candidate = Fixture_Yaml("version: 3\n");
 	XVT_ASSERT_INT_EQ(XvtConfig_UpdateUser(candidate, 1, error, sizeof error), 0);
 	AeronConfigFile_Destroy(candidate);
@@ -127,7 +127,7 @@ static void CheckLoadWithoutUserFile(void) {
 	/* Empty overrides start in memory; no file is written. */
 	XVT_ASSERT_TRUE(!Fixture_Exists("user/config.yaml"));
 	XVT_ASSERT_TRUE(XvtConfig_Generation() > generation);
-	XVT_ASSERT_INT_EQ(XvtConfig_CanReplace(), 1);
+	XVT_ASSERT_INT_EQ(XvtConfig_CanResetToDefaults(), 1);
 	XVT_ASSERT_TRUE(XvtConfig_UserDocument() != NULL);
 	XVT_ASSERT_TRUE(XvtConfig_ResolvedDocument() != NULL);
 	const XvtSettings* settings = XvtConfig_Settings();
@@ -206,12 +206,12 @@ static void ExpectUserFileRefused(const char* text) {
 	char error[1024] = "";
 	XVT_ASSERT_INT_EQ(XvtConfig_Load(g_fixtureVfs, error, sizeof error), 0);
 	XVT_ASSERT_TRUE(strstr(error, "USER/config.yaml") != NULL);
-	XVT_ASSERT_INT_EQ(XvtConfig_CanReplace(), 1);
+	XVT_ASSERT_INT_EQ(XvtConfig_CanResetToDefaults(), 1);
 	XVT_ASSERT_TRUE(XvtConfig_DefaultSettings() != NULL);
 	XVT_ASSERT_TRUE(XvtConfig_Settings() == NULL);
 	XVT_ASSERT_TRUE(XvtConfig_UserDocument() == NULL);
 
-	XVT_ASSERT_INT_EQ(XvtConfig_Replace(error, sizeof error), 1);
+	XVT_ASSERT_INT_EQ(XvtConfig_ResetToDefaults(error, sizeof error), 1);
 	XVT_ASSERT_TRUE(XvtConfig_Settings() != NULL);
 	if (text) {
 		char* now = Fixture_ReadText("user/config.yaml");
@@ -245,10 +245,10 @@ static void ExpectDefaultsRefused(const char* text) {
 	char error[1024] = "";
 	XVT_ASSERT_INT_EQ(XvtConfig_Load(g_fixtureVfs, error, sizeof error), 0);
 	XVT_ASSERT_TRUE(error[0] != 0);
-	XVT_ASSERT_INT_EQ(XvtConfig_CanReplace(), 0);
+	XVT_ASSERT_INT_EQ(XvtConfig_CanResetToDefaults(), 0);
 	XVT_ASSERT_TRUE(XvtConfig_DefaultSettings() == NULL);
 	XVT_ASSERT_TRUE(XvtConfig_Settings() == NULL);
-	XVT_ASSERT_INT_EQ(XvtConfig_Replace(error, sizeof error), 0);
+	XVT_ASSERT_INT_EQ(XvtConfig_ResetToDefaults(error, sizeof error), 0);
 	Fixture_Case(NULL);
 	Fixture_End();
 }
@@ -517,7 +517,7 @@ static void CheckShutdownKeepsGeneration(void) {
 	XVT_ASSERT_TRUE(XvtConfig_UserDocument() == NULL);
 	XVT_ASSERT_TRUE(XvtConfig_ResolvedDocument() == NULL);
 	XVT_ASSERT_TRUE(XvtConfig_DefaultSettings() == NULL);
-	XVT_ASSERT_INT_EQ(XvtConfig_CanReplace(), 0);
+	XVT_ASSERT_INT_EQ(XvtConfig_CanResetToDefaults(), 0);
 	XVT_ASSERT_TRUE(!XvtConfig_SetSkipIntro(true, error, sizeof error));
 	XVT_ASSERT_INT_EQ(XvtConfig_Save(error, sizeof error), 0);
 	/* The next load works and counts on from where the generation was. */

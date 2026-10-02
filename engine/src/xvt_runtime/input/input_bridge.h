@@ -37,7 +37,7 @@ void XvtInput_UpdateFlight(int suppress);
  * controls, stops hiding Tab and detaches the joystick. */
 void XvtInput_Shutdown(void);
 /* 1 at most once per input frame, and only while the window has focus. */
-int XvtInput_CanReacquireKeyboard(void);
+int XvtInput_ConsumeKeyboardReacquire(void);
 /* 1 when input is not captured, a render snapshot exists, no text is being entered in it or in a
  * dialog, and no flight chat is open. */
 int XvtInput_RendererShortcutAllowed(void);

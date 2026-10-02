@@ -47,7 +47,7 @@ static void Fresh(int session_mode) {
 	memset(&g_pilotData, 0, sizeof g_pilotData);
 	g_frontState.screenStates[0].updateFn = Placeholder;
 	g_frontendMissionSessionMode = session_mode;
-	g_skipFrontendEntryMovie = 0;
+	g_frontendSkipScreenEntrySetup = 0;
 	g_missionSetupDebriefTransition = 0;
 	g_cutsceneTable = NULL;
 	g_cutsceneCount = 0;
@@ -144,7 +144,7 @@ static void CheckTeamsReturnAtOnce(void) {
 	/* A sequence, but the entry movie is skipped, or the debrief chose to enter the current mission. */
 	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
 	g_pilotData.missionSequenceActive = 1;
-	g_skipFrontendEntryMovie = 1;
+	g_frontendSkipScreenEntrySetup = 1;
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_EnterTeams(), 1);
 	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
 	g_pilotData.missionSequenceActive = 1;

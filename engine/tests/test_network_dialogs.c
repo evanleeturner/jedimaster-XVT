@@ -33,7 +33,7 @@ static void Fresh(void) {
 	XvtTest_OpenDisplay();
 	g_frontState.screenStates[0].updateFn = Placeholder;
 	g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
-	g_skipFrontendEntryMovie = 0;
+	g_frontendSkipScreenEntrySetup = 0;
 	g_gameConfig.sfxDatapadEnabled = 0;
 }
 
@@ -59,7 +59,7 @@ static void Dirty(void) {
 }
 
 static void CheckCleared(void) {
-	XVT_ASSERT_INT_EQ(g_skipFrontendEntryMovie, 1);
+	XVT_ASSERT_INT_EQ(g_frontendSkipScreenEntrySetup, 1);
 	XVT_ASSERT_INT_EQ(g_frontendNetSelectedSessionIdx, -1);
 	XVT_ASSERT_INT_EQ(g_frontendNetProbeResponseType, 0);
 	XVT_ASSERT_INT_EQ(g_frontendNetReceivedMissionDescriptionId, -1);
@@ -127,7 +127,7 @@ static void CheckFailedWaitsForDismissal(void) {
 		Fresh();
 		XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost(NULL, "Luke", "", 0), 0);
 		XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_FAILED);
-		XvtNetworkDialogs_Failed(AERON_DPLAY_DIRECTORY_ERROR_TIMEOUT, host);
+		XvtNetworkDialogs_ShowFailure(AERON_DPLAY_DIRECTORY_ERROR_TIMEOUT, host);
 
 		/* The session is reset, and the message waits in a confirm dialog. */
 		XVT_ASSERT_TRUE(XvtNetworkSession_GetStatus().state != XVT_NETWORK_SESSION_FAILED);
@@ -149,7 +149,7 @@ static void CheckFailedEveryErrorHasAMessage(void) {
 	for (int error = AERON_DPLAY_DIRECTORY_ERROR_NONE; error <= AERON_DPLAY_DIRECTORY_ERROR_BUSY; ++error) {
 		Fresh();
 		memset(g_frontDialogText0, 0, sizeof g_frontDialogText0);
-		XvtNetworkDialogs_Failed((AeronDplayDirectoryError)error, 0);
+		XvtNetworkDialogs_ShowFailure((AeronDplayDirectoryError)error, 0);
 		XVT_ASSERT_TRUE(g_frontDialogText0[0] != 0);
 	}
 }
@@ -160,7 +160,7 @@ static void CheckFailedReturnsAtOnce(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("earlier", NULL, NULL, NULL, NULL, 0), XVT_DIALOG_PENDING);
 	DismissDialog();
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
-	XvtNetworkDialogs_Failed(AERON_DPLAY_DIRECTORY_ERROR_FULL, 1);
+	XvtNetworkDialogs_ShowFailure(AERON_DPLAY_DIRECTORY_ERROR_FULL, 1);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 	XVT_ASSERT_TRUE(TopScreen() == FrontendNet_HostGameScreen);
 }

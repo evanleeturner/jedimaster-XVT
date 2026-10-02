@@ -17,14 +17,14 @@ FrontendMission g_frontendMission = { 0 };
 
 // FUNCTION: XVT 0x4F6860
 int FrontendMission_LoadForBriefing(void) {
-	FrontendMission_Reset();
+	FrontendMission_InitForBriefing();
 	FrontendMission_LoadCurrentMissionData();
 	BriefingScript_ResetState();
 	return 1;
 }
 
 // FUNCTION: XVT 0x4F69B0
-void FrontendMission_Reset(void) {
+void FrontendMission_InitForBriefing(void) {
 	int16_t index;
 
 	g_briefingPlaybackActive = 1;
@@ -123,16 +123,16 @@ void FrontendMission_LoadCurrentMissionData(void) {
 
 	File_ReadWord(stream, &g_frontendMission.flightGroupCount);
 	File_ReadWord(stream, &g_frontendMission.messageCount);
-	File_ReadCount(stream, &g_frontendMission.header, sizeof(g_frontendMission.header));
+	File_ReadBytes(stream, &g_frontendMission.header, sizeof(g_frontendMission.header));
 	for (flightGroupIndex = 0; flightGroupIndex < (int16_t)g_frontendMission.flightGroupCount;
 		 ++flightGroupIndex) {
-		File_ReadCount(stream, &g_frontendMission.flightGroups[flightGroupIndex],
+		File_ReadBytes(stream, &g_frontendMission.flightGroups[flightGroupIndex],
 					   sizeof(g_frontendMission.flightGroups[flightGroupIndex]));
 	}
 
 	for (messageIndex = 0; messageIndex < (int16_t)g_frontendMission.messageCount; ++messageIndex) {
 		File_ReadWord(stream, &indexedRecord);
-		File_ReadCount(stream, &g_frontendMission.messages[(int16_t)indexedRecord],
+		File_ReadBytes(stream, &g_frontendMission.messages[(int16_t)indexedRecord],
 					   sizeof(g_frontendMission.messages[0]));
 	}
 
@@ -140,21 +140,21 @@ void FrontendMission_LoadCurrentMissionData(void) {
 		teamGoals = g_frontendMission.globalGoals[teamIndex];
 		File_ReadWord(stream, &indexedRecord);
 		for (globalGoalIndex = 0; globalGoalIndex < (int16_t)indexedRecord; ++globalGoalIndex) {
-			File_ReadCount(stream, &teamGoals[globalGoalIndex], sizeof(teamGoals[globalGoalIndex]));
+			File_ReadBytes(stream, &teamGoals[globalGoalIndex], sizeof(teamGoals[globalGoalIndex]));
 		}
 	}
 
 	for (teamIndex = 0; teamIndex < TEAM_COUNT; ++teamIndex) {
 		File_ReadWord(stream, &indexedRecord);
 		if (indexedRecord != 0) {
-			File_ReadCount(stream, &g_frontendMission.teams[teamIndex],
+			File_ReadBytes(stream, &g_frontendMission.teams[teamIndex],
 						   sizeof(g_frontendMission.teams[teamIndex]));
 		}
 	}
 
 	for (briefingIndex = 0; briefingIndex < BRIEFING_COUNT; ++briefingIndex) {
 		loadBriefingText = 0;
-		File_ReadCount(stream, &briefingScript, sizeof(briefingScript));
+		File_ReadBytes(stream, &briefingScript, sizeof(briefingScript));
 		for (teamIndex = 0; teamIndex < TEAM_COUNT; ++teamIndex) {
 			File_ReadByte(stream, &teamUsesBriefing);
 			if (g_pilotData.team == (int)teamIndex && teamUsesBriefing != 0) {
@@ -171,7 +171,7 @@ void FrontendMission_LoadCurrentMissionData(void) {
 			File_ReadWord(stream, &textLength);
 			if (textLength != 0) {
 				if (loadBriefingText != 0) {
-					File_ReadCount(stream, briefingText, (int16_t)textLength);
+					File_ReadBytes(stream, briefingText, (int16_t)textLength);
 				} else {
 					File_Seek(stream, (int16_t)textLength, SEEK_CUR);
 				}
@@ -187,7 +187,7 @@ void FrontendMission_LoadCurrentMissionData(void) {
 			File_ReadWord(stream, &textLength);
 			if (textLength != 0) {
 				if (loadBriefingText != 0) {
-					File_ReadCount(stream, briefingText, (int16_t)textLength);
+					File_ReadBytes(stream, briefingText, (int16_t)textLength);
 				} else {
 					File_Seek(stream, (int16_t)textLength, SEEK_CUR);
 				}
@@ -224,19 +224,19 @@ void FrontendMission_LoadFile(const char* fileName, FrontendMission* outMission)
 		File_ReadWord(stream, &outMission->flightGroupCount);
 		File_ReadWord(stream, &outMission->messageCount);
 		flightGroupIndex = 0;
-		File_ReadCount(stream, &outMission->header, sizeof(outMission->header));
+		File_ReadBytes(stream, &outMission->header, sizeof(outMission->header));
 		if ((int16_t)outMission->flightGroupCount > 0) {
 			flightGroup = outMission->flightGroups;
 			do {
 				++flightGroupIndex;
-				File_ReadCount(stream, flightGroup, sizeof(*flightGroup));
+				File_ReadBytes(stream, flightGroup, sizeof(*flightGroup));
 				++flightGroup;
 			} while ((int16_t)outMission->flightGroupCount > flightGroupIndex);
 		}
 
 		for (messageIndex = 0; messageIndex < (int16_t)outMission->messageCount; ++messageIndex) {
 			File_ReadWord(stream, &indexedRecord);
-			File_ReadCount(stream, &outMission->messages[(int16_t)indexedRecord],
+			File_ReadBytes(stream, &outMission->messages[(int16_t)indexedRecord],
 						   sizeof(outMission->messages[0]));
 		}
 
@@ -249,7 +249,7 @@ void FrontendMission_LoadFile(const char* fileName, FrontendMission* outMission)
 				teamGoal = globalGoal;
 				do {
 					++globalGoalIndex;
-					File_ReadCount(stream, teamGoal, sizeof(*teamGoal));
+					File_ReadBytes(stream, teamGoal, sizeof(*teamGoal));
 					++teamGoal;
 				} while ((int16_t)indexedRecord > globalGoalIndex);
 			}
@@ -260,7 +260,7 @@ void FrontendMission_LoadFile(const char* fileName, FrontendMission* outMission)
 		for (teamIndex = 0; teamIndex < 10; ++teamIndex) {
 			File_ReadWord(stream, &indexedRecord);
 			if (indexedRecord != 0) {
-				File_ReadCount(stream, &outMission->teams[teamIndex], sizeof(outMission->teams[teamIndex]));
+				File_ReadBytes(stream, &outMission->teams[teamIndex], sizeof(outMission->teams[teamIndex]));
 			}
 		}
 
@@ -309,23 +309,23 @@ void FrontendMission_LoadCurrent(void) {
 
 	File_ReadWord(stream, &g_frontendMission.flightGroupCount);
 	File_ReadWord(stream, &g_frontendMission.messageCount);
-	File_ReadCount(stream, &g_frontendMission.header, sizeof(g_frontendMission.header));
+	File_ReadBytes(stream, &g_frontendMission.header, sizeof(g_frontendMission.header));
 	for (flightGroupIndex = 0; flightGroupIndex < (int16_t)g_frontendMission.flightGroupCount;
 		 ++flightGroupIndex) {
-		File_ReadCount(stream, &g_frontendMission.flightGroups[flightGroupIndex],
+		File_ReadBytes(stream, &g_frontendMission.flightGroups[flightGroupIndex],
 					   sizeof(g_frontendMission.flightGroups[flightGroupIndex]));
 	}
 
 	for (messageIndex = 0; messageIndex < (int16_t)g_frontendMission.messageCount; ++messageIndex) {
 		File_ReadWord(stream, &indexedRecord);
-		File_ReadCount(stream, &g_frontendMission.messages[(int16_t)indexedRecord],
+		File_ReadBytes(stream, &g_frontendMission.messages[(int16_t)indexedRecord],
 					   sizeof(g_frontendMission.messages[0]));
 	}
 
 	for (teamIndex = 0; teamIndex < 10; ++teamIndex) {
 		File_ReadWord(stream, &indexedRecord);
 		for (globalGoalIndex = 0; globalGoalIndex < (int16_t)indexedRecord; ++globalGoalIndex) {
-			File_ReadCount(stream, &g_frontendMission.globalGoals[teamIndex][globalGoalIndex],
+			File_ReadBytes(stream, &g_frontendMission.globalGoals[teamIndex][globalGoalIndex],
 						   sizeof(g_frontendMission.globalGoals[0][0]));
 		}
 	}
@@ -333,7 +333,7 @@ void FrontendMission_LoadCurrent(void) {
 	for (teamIndex = 0; teamIndex < 10; ++teamIndex) {
 		File_ReadWord(stream, &indexedRecord);
 		if (indexedRecord != 0) {
-			File_ReadCount(stream, &g_frontendMission.teams[teamIndex],
+			File_ReadBytes(stream, &g_frontendMission.teams[teamIndex],
 						   sizeof(g_frontendMission.teams[teamIndex]));
 		}
 	}

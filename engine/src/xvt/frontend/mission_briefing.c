@@ -318,7 +318,7 @@ int MissionBriefing_Update(int frameCounter) {
 				g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
 				FrontendScreen_SetCallbacks(Concourse_Update, (FrontendScreenExitFn)Concourse_Exit);
 			} else {
-				g_skipFrontendEntryMovie = 1;
+				g_frontendSkipScreenEntrySetup = 1;
 				g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
 				FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen,
 											(FrontendScreenExitFn)FrontendMissionList_FreeScreenResources);
@@ -366,7 +366,7 @@ int MissionBriefing_Update(int frameCounter) {
 				Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, 9 * sizeof(int));
 			}
 		} else if (packetType == NET_PACKET_RETURN_TO_SETUP) {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			FrontendScreen_SetCallbacks(MissionSetup_Update, (FrontendScreenExitFn)MissionSetup_Exit);
 			return 0;
 		} else if (packetType == NET_PACKET_LAUNCH_ROSTER_AND_ASSIGNMENTS) {
@@ -530,7 +530,7 @@ int MissionBriefing_Update(int frameCounter) {
 		if (actionTriggered != 0) {
 			if (g_briefingSkipPlayerAssignment != 0) {
 				if (g_missionSetupTeamAssignmentSkipped != 0) {
-					g_skipFrontendEntryMovie = 1;
+					g_frontendSkipScreenEntrySetup = 1;
 					FrontendScreen_SetCallbacks(MissionSetup_Update, (FrontendScreenExitFn)MissionSetup_Exit);
 				} else {
 					FrontendScreen_SetCallbacks(MissionSetup_TeamAssignmentUpdate,
@@ -601,7 +601,7 @@ int MissionBriefing_Update(int frameCounter) {
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
 				FrontendString_Get(FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
 				FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL)) != 0) {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
 			Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch,
 								   sizeof(g_frontendNetPacketScratch.packetType));

@@ -31,8 +31,8 @@ static void XvtApplication_DiscoverControllers(const AeronInputSnapshot* input) 
 		return;
 	XvtControllerOptions candidate = settings->controller;
 	char error[512] = { 0 };
-	bool ok = XvtControllerOptions_InitializeGamepads(
-		&candidate, &XvtConfig_DefaultSettings()->gamepad_defaults, input, error, sizeof error);
+	bool ok = XvtControllerOptions_AddNewGamepads(&candidate, &XvtConfig_DefaultSettings()->gamepad_defaults,
+												  input, error, sizeof error);
 	if (!XvtControllerOptions_Equals(&candidate, &settings->controller)) {
 		char save_error[512];
 		if (XvtConfig_SetController(&candidate, save_error, sizeof save_error))

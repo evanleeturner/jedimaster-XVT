@@ -298,7 +298,7 @@ struct PilotData {
 	int launchSessionMarker;
 	int isHost;
 	unsigned int numHumanPlayersLastMission;
-	int gameMode;
+	int sessionMode;
 	uint8_t xvtRecordPayload[672]; ///< Opaque 672-byte payload round-tripped by the XvT-compatible
 								   ///< pilot-record reader and writer.
 	int team;

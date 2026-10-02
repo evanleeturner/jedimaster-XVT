@@ -79,7 +79,7 @@ int DebugConsole_WriteText(const char* text) {
 		stream = File_Open("mpDump.txt", "a");
 		textCursor = text;
 		if (stream != NULL) {
-			File_WriteCount(stream, text, strlen(text));
+			File_WriteBytes(stream, text, strlen(text));
 			File_Close(stream);
 		}
 #else

@@ -38,10 +38,10 @@ static void World(void) {
 	XvtNetworkSession_Shutdown();
 	memset(&g_netSession, 0, sizeof g_netSession);
 	XvtResync_Reset();
-	XvtFlightNetwork_CloseSession();
+	XvtFlightNetwork_ClearCookies();
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(5000000);
-	Time_ResetFrameDeltaClocks();
+	Time_ResetElapsedTicks();
 	g_musicCdMciDeviceId = 0;
 	g_activeFlightPlayerCount = 1;
 	memset(g_players, 0, sizeof g_players);
@@ -136,7 +136,7 @@ static void CheckShutdown(void) {
 	World();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_Begin("mission"), 1);
 	g_netSession.localIsHost = 1;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeOptions(), 1);
 	XVT_ASSERT_TRUE(XvtFlightNetwork_Cookie() != 0);
 	XvtResync_BeginApply(101, 4096);
 	XvtFlightTask_Shutdown();
@@ -147,7 +147,7 @@ static void CheckShutdown(void) {
 	/* Idle, it still resets them. */
 	World();
 	g_netSession.localIsHost = 1;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeOptions(), 1);
 	XvtResync_BeginApply(101, 4096);
 	XvtFlightTask_Shutdown();
 	AssertIdle();

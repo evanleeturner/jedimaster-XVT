@@ -59,8 +59,9 @@ static void RefreshLayoutBindings(void) {
 	if (g_layout.valid) {
 		for (unsigned i = 0; i < XVT_SNAP_INSTRUMENTS; ++i) {
 			const HudElementLayout* e = &g_hudElementLayouts[i];
-			XvtSnapHudElement value = { e->x,          e->y,         e->selector,
-										e->colorIndex, e->clipWidth, e->clipHeightOrForegroundColor };
+			XvtSnapHudElement value = { e->x,         e->y,
+										e->selector,  e->colorIndexOrWidgetParam,
+										e->clipWidth, e->clipHeightOrForegroundColor };
 			if (memcmp(&g_layout.elements[i], &value, sizeof value) != 0) {
 				g_layout.elements[i] = value;
 				g_layout.generation = ++g_layoutGeneration;
@@ -120,9 +121,9 @@ void XvtRenderAssets_CaptureCockpit(int auxiliary) {
 	unsigned end = auxiliary ? 432 : 288;
 	for (unsigned i = first; i < end; ++i) {
 		const HudElementLayout* e = &g_hudElementLayouts[i];
-		g_layout.elements[i] =
-			(XvtSnapHudElement) { e->x,          e->y,         e->selector,
-								  e->colorIndex, e->clipWidth, e->clipHeightOrForegroundColor };
+		g_layout.elements[i] = (XvtSnapHudElement) { e->x,         e->y,
+													 e->selector,  e->colorIndexOrWidgetParam,
+													 e->clipWidth, e->clipHeightOrForegroundColor };
 	}
 	uint16_t mask_size = g_flightResolutionMode == FLIGHT_RESOLUTION_320X240 ? 200 : 480;
 	if (!auxiliary) {

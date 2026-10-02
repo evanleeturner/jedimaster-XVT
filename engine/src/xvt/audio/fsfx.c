@@ -449,7 +449,7 @@ unsigned int fsfx_ComputeSourceVolume(int objOrMissionPointRef, unsigned int sou
 	} else {
 		Mission_ResolveObjectOrMissionPointWorldLoc(objOrMissionPointRef, 0);
 		listener = &g_players[g_localPlayer];
-		deltaX = worldlocx - listener->viewState.savedTargetX;
+		deltaX = g_worldLocX - listener->viewState.savedTargetX;
 		deltaY = worldlocy - listener->viewState.savedTargetY;
 		worldZ = worldlocz;
 	}
@@ -496,7 +496,7 @@ int fsfx_ComputeSourcePan(int objOrMissionPointRef, int* volume) {
 	} else {
 		Mission_ResolveObjectOrMissionPointWorldLoc(objOrMissionPointRef, 0);
 		dz = worldlocz - g_players[g_localPlayer].viewState.savedTargetZ;
-		dx = worldlocx - g_players[g_localPlayer].viewState.savedTargetX;
+		dx = g_worldLocX - g_players[g_localPlayer].viewState.savedTargetX;
 		dy = worldlocy - g_players[g_localPlayer].viewState.savedTargetY;
 	}
 
@@ -714,7 +714,7 @@ void fsfx_UpdateChaffLoop(void) {
 	if (craft->cmTypeId != COUNTERMEASURE_TYPE_CHAFF)
 		return;
 
-	if (g_players[g_localPlayer].regionSessionId == 1) {
+	if (g_players[g_localPlayer].awaitingNewCraft == 1) {
 		if (Sound_GetParam(19, 256) != 0)
 			Sound_StopOldestInstanceById(19);
 		return;
@@ -789,7 +789,7 @@ void fsfx_UpdatePlayerEngineLoop(void) {
 
 	if (engineSoundId != -1) {
 		g_playerEngineLoopObjectType = objectType;
-		if (g_players[g_localPlayer].regionSessionId != 1) {
+		if (g_players[g_localPlayer].awaitingNewCraft != 1) {
 			craft = g_objectTable[objectIndex].mobj->pCraft;
 			if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_ENGINES) != 0) {
 				configVolume = g_gameConfig.sfxEngineVolume;
@@ -797,7 +797,7 @@ void fsfx_UpdatePlayerEngineLoop(void) {
 					configVolume = 127;
 				else
 					configVolume *= 13;
-				frequency = 55 * (MATH2_divide(craft->throttleSpeed, 0xffff) / 655) + baseFrequency;
+				frequency = 55 * (MATH2_ratioQ16(craft->throttleSpeed, 0xffff) / 655) + baseFrequency;
 				configVolume = (uint16_t)MATH2_fraction(configVolume, craft->throttleSpeed);
 				volume = configVolume >> 1;
 				if (Sound_GetParam(engineSoundId, 256) == 0) {
@@ -1286,8 +1286,8 @@ int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx,
 			return 0;
 		}
 		objectSignature = g_objectTable[objIdx].objectSignature;
-		elapsedSeconds = Mission_GameTimeToSeconds(g_missionElapsedClock.hours, g_missionElapsedClock.minutes,
-												   g_missionElapsedClock.seconds);
+		elapsedSeconds = Mission_ClockToSeconds(g_missionElapsedClock.hours, g_missionElapsedClock.minutes,
+												g_missionElapsedClock.seconds);
 		if (messageId != TACTICAL_MSG_DESTROYED && messageId != TACTICAL_MSG_DISABLED) {
 			lastSpeakSeconds = g_fsfxTacOfficerLastSpeakSecondsByObj[objIdx];
 			if (lastSpeakSeconds != 0 && (unsigned int)(elapsedSeconds - lastSpeakSeconds) <= 10) {

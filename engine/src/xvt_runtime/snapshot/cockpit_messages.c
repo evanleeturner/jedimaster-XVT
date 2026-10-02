@@ -64,7 +64,7 @@ void XvtCockpitMessages_Reset(void) {
 }
 
 void XvtCockpitMessages_BeginFlightFrame(void) {
-	g_loading.visible = 0;
+	g_loading.progress_visible = 0;
 	g_loadingText.visible = 0;
 }
 
@@ -106,7 +106,7 @@ void XvtCockpitMessages_BeginMessage(int pane_type) {
 	g_messageBuild.state.sender_iff = message->senderIff;
 	g_messageBuild.state.pane_type = (uint8_t)pane_type;
 	g_messageBuild.state.font_tier = g_flightFontTier;
-	g_messageBuild.state.age_ticks = message->ageSeconds;
+	g_messageBuild.state.age_seconds = message->ageSeconds;
 	g_messageCapture = pane;
 	g_captureFailed = 0;
 	CapturePalette(g_messagePalette);
@@ -152,7 +152,7 @@ void XvtCockpitMessages_Latch(XvtCockpitMessageId pane, int source_x, int source
 			? &g_readyMessagePaneQueue[0]
 			: (pane == XVT_COCKPIT_MESSAGE_SYSTEM ? &g_systemMessagePane : &g_flightGroupMessagePane);
 	if (message->stateOrMessageId == destination->state.message_id)
-		destination->state.age_ticks = message->ageSeconds;
+		destination->state.age_seconds = message->ageSeconds;
 	destination->state.timer_ticks =
 		pane == XVT_COCKPIT_MESSAGE_READY
 			? g_playerFlightTransientTimers[g_localPlayer].readyMessagePaneTimer
@@ -263,8 +263,8 @@ void XvtCockpitMessages_EndAlert(void) {
 void XvtCockpitMessages_RecordProgress(unsigned step, int x, int y, int width, int height, int filled_width) {
 	XvtCockpitLoading next;
 	memset(&next, 0, sizeof next);
-	next.visible = 1;
-	next.placement = (XvtSnapRect) { x, y, width, height };
+	next.progress_visible = 1;
+	next.progress_placement = (XvtSnapRect) { x, y, width, height };
 	next.progress_step = (uint16_t)step;
 	next.filled_width = (uint16_t)filled_width;
 	next.foreground_argb = XvtRenderDraw_Color(g_flightTextBgColor);
@@ -276,7 +276,7 @@ void XvtCockpitMessages_RecordProgress(unsigned step, int x, int y, int width, i
 }
 
 void XvtCockpitMessages_ClearProgress(void) {
-	g_loading.visible = 0;
+	g_loading.progress_visible = 0;
 	memset(&g_loadingText, 0, sizeof g_loadingText);
 }
 
@@ -317,7 +317,7 @@ void XvtCockpitMessages_Export(XvtCockpitState* state) {
 			   g_loadingText.count * sizeof *store->glyphs);
 		store->glyph_count += g_loadingText.count;
 	}
-	if (state->alert.active || state->loading.visible || state->loading.text_visible) {
+	if (state->alert.active || state->loading.progress_visible || state->loading.text_visible) {
 		state->view.screen_width = (uint16_t)g_screenWidth;
 		state->view.screen_height = (uint16_t)g_screenHeight;
 	}

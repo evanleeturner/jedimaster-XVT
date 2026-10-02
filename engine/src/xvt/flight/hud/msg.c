@@ -323,10 +323,10 @@ void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex) {
 
 	if (g_players[g_localPlayer].mapCameraState == 0) {
 		localPlayerObject = &g_objectTable[g_players[g_localPlayer].objectIndex];
-		trig2_ctop(worldlocx - localPlayerObject->world_x, worldlocy - localPlayerObject->world_y,
+		trig2_ctop(g_worldLocX - localPlayerObject->world_x, worldlocy - localPlayerObject->world_y,
 				   worldlocz - localPlayerObject->world_z);
 	} else {
-		trig2_ctop(worldlocx - g_players[g_localPlayer].viewState.savedTargetX,
+		trig2_ctop(g_worldLocX - g_players[g_localPlayer].viewState.savedTargetX,
 				   worldlocy - g_players[g_localPlayer].viewState.savedTargetY,
 				   worldlocz - g_players[g_localPlayer].viewState.savedTargetZ);
 	}
@@ -583,7 +583,7 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 		}
 	}
 	if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
-		if (inspectFlag != 0 && craft->iffVisibility[(uint16_t)g_players[playerIdx].team] != 0)
+		if (inspectFlag != 0 && craft->identifiedOrderByTeam[(uint16_t)g_players[playerIdx].team] != 0)
 			inspectFlag = 0;
 		if (captureFlag != 0 || boardedFlag != 0) {
 			if (g_objectTable[targetObjIdx].mobj->speed != 0)

@@ -236,9 +236,9 @@ void XvtMovieTask_Tick(void) {
 	if (g_movie.synchronize) {
 		uint32_t playing = 1;
 		if (key)
-			Movie_MultiplayerFrameCallback(0, 0x102, key, 0, 0, &playing);
+			Movie_MultiplayerInputCallback(0, 0x102, key, 0, 0, &playing);
 		if (g_frontState.mouseClickLatch || g_frontState.mouseRightClickLatch)
-			Movie_MultiplayerFrameCallback(0, 0x202, 0, 0, 0, &playing);
+			Movie_MultiplayerInputCallback(0, 0x202, 0, 0, 0, &playing);
 		if (!playing)
 			XvtMovieTask_Stop();
 		synchronized = XvtMovieSync_Tick();

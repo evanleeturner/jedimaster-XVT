@@ -106,7 +106,7 @@ void XvtReferenceMotion_Displacement(unsigned slot, int32_t delta[3]) {
 	}
 }
 
-int32_t XvtReferenceMotion_Axis(unsigned slot, unsigned axis) {
+int32_t XvtReferenceMotion_AxisDisplacement(unsigned slot, unsigned axis) {
 	int32_t delta[3];
 	XvtReferenceMotion_Displacement(slot, delta);
 	return axis < 3 ? delta[axis] : 0;

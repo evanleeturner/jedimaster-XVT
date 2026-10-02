@@ -180,7 +180,7 @@ static void CheckResumeDelay(void) {
 	Fresh();
 	AdvanceMs(1000);
 	g_frontState.cdAudioSuspendState = CDAudio_ResumePending;
-	g_frontState.cdAudioResumeDueTick = 1500;
+	g_frontState.cdAudioResumeDueMs = 1500;
 
 	/* Due 500 ms out, woken 1 ms late to match the strict comparison. */
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 501000);
@@ -194,7 +194,7 @@ static void CheckResumeDelay(void) {
 
 	/* Overdue reads as 0. */
 	g_frontState.cdAudioSuspendState = CDAudio_ResumePending;
-	g_frontState.cdAudioResumeDueTick = 100;
+	g_frontState.cdAudioResumeDueMs = 100;
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 0);
 }
 
@@ -202,7 +202,7 @@ static void CheckTrackEnd(void) {
 	Fresh();
 	AdvanceMs(1000);
 	g_frontState.cdAudioCurrentTrack = 3;
-	g_frontState.cdAudioTrackEndTick = 1200;
+	g_frontState.cdAudioTrackEndMs = 1200;
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 201000);
 	AdvanceMs(200);
 	XvtCdTask_Tick();
@@ -219,10 +219,10 @@ static void CheckSoonestWake(void) {
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
 	g_frontState.cdAudioCurrentTrack = 1;
-	g_frontState.cdAudioTrackEndTick = 49;
+	g_frontState.cdAudioTrackEndMs = 49;
 	/* The track end, 49 ms out and woken 1 ms late, comes before the first fade step at 101 ms. */
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 50000);
-	g_frontState.cdAudioTrackEndTick = 200;
+	g_frontState.cdAudioTrackEndMs = 200;
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 101000);
 	XvtCdTask_CancelFade();
 }

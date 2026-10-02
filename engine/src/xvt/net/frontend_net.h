@@ -32,7 +32,7 @@ struct FrontendNetSessionEntry {
 	char gameName[32];
 	NetSessionGuid sessionGuid;
 	unsigned int playersNeeded;
-	unsigned int lastQueryTick;
+	unsigned int lastQueryMs;
 	unsigned int version;
 	uint8_t passwordRequired;
 	uint8_t queryState;
@@ -64,18 +64,18 @@ extern int g_frontendChatScrollOffset;
 extern char g_frontendNetSelectedGameName[32];
 
 int FrontendNet_DrawJoinGameList(int resetScroll);
-int FrontendNet_JoinGameScreen(int firstFrame);
-int FrontendNet_AccessAllianceNetworkScreen(int firstFrame);
+int FrontendNet_JoinGameScreen(int frameCounter);
+int FrontendNet_AccessAllianceNetworkScreen(int frameCounter);
 int FrontendNet_DrawJoinGameMissionBriefing(void);
 int FrontendNet_DrawJoinGamePlayerRoster(void);
 int FrontendNet_UpdateAndDrawPanel(int frameCounter);
 int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void);
 int FrontendNet_HostGameExit(int frameCounter);
-int FrontendNet_HostGameScreen(int firstFrame);
+int FrontendNet_HostGameScreen(int frameCounter);
 int FrontendNet_ProcessNetworkPackets(void);
 
 #ifndef XVT_MODERN
-int FrontendNet_ConnectToSelectedGameScreen(int firstFrame);
+int FrontendNet_ConnectToSelectedGameScreen(int frameCounter);
 int FrontendNet_MakeSessionGuidKey(NetSessionGuid guid);
 int FrontendNet_RefreshSessionList(void);
 int FrontendNet_CompareSessionListEntries(const FrontendNetSessionEntry* lhs,

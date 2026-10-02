@@ -124,7 +124,7 @@ jobs:
         id: runner-image
         run: echo "version=${ImageVersion}" >> "$GITHUB_OUTPUT"
 
-      - name: Restore dependency caches
+      - name: XvtKeyboardSettings_RestoreModal dependency caches
         uses: actions/cache@v6
         with:
           path: |

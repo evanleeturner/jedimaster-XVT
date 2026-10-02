@@ -185,7 +185,7 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 		g_pilotListScrollOffset = 0;
 		PilotRecord_RebuildPilotList(&selectedIndex);
 		PilotRecord_RedrawBackground();
-		g_concourseRedrawRequested = 1;
+		g_pilotRecordPagesNeedRebuild = 1;
 		return 1;
 	}
 	if (XvtFrontendAction_Pending(XVT_ACTION_PILOT) == 1) {
@@ -252,7 +252,7 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 			memset(g_pilotRecordNameInput, 0, sizeof(g_pilotRecordNameInput));
 			PilotRecord_RebuildPilotList(&selectedIndex);
 			PilotRecord_RedrawBackground();
-			g_concourseRedrawRequested = 1;
+			g_pilotRecordPagesNeedRebuild = 1;
 		}
 
 #ifdef XVT_MODERN
@@ -285,7 +285,7 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 #endif
 	if (selectedIndex != 0 && g_pilotRecordNameInput[0] != '\0') {
 		selectedIndex = 0;
-		g_concourseRedrawRequested = 1;
+		g_pilotRecordPagesNeedRebuild = 1;
 		if (g_pilotFileList != NULL) {
 			pilotIndex = 0;
 			node = g_pilotFileList->head;
@@ -482,7 +482,7 @@ int PilotRecord_RebuildPilotList(int* selectedIndex) {
 				XvtFile* stream = File_Open(node->path, "rb");
 
 				if (stream != NULL) {
-					File_ReadCount(stream, (char*)g_pilotListDisplayNames + displayOffset, 12);
+					File_ReadBytes(stream, (char*)g_pilotListDisplayNames + displayOffset, 12);
 					((char*)g_pilotListDisplayNames)[displayOffset + 12] = '\0';
 #ifdef XVT_MODERN
 					if (strcasecmp((char*)g_pilotListDisplayNames + displayOffset, g_pilotData.name) == 0) {
@@ -553,9 +553,9 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 		return 0;
 	}
 
-	if (g_concourseRedrawRequested != 0) {
+	if (g_pilotRecordPagesNeedRebuild != 0) {
 		g_pilotStatisticsScrollOffset = 0;
-		g_concourseRedrawRequested = 0;
+		g_pilotRecordPagesNeedRebuild = 0;
 		g_pilotRecordPageRowCount = 25;
 		if ((unsigned int)g_pilotData.rating < PILOT_RATING_JEDI_MASTER) {
 			g_pilotRecordPageRowCount = 26;
@@ -1513,7 +1513,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		return 0;
 	}
 
-	if (g_concourseRedrawRequested != 0) {
+	if (g_pilotRecordPagesNeedRebuild != 0) {
 		if (g_pilotRecordSingleplayerTrainingMissionList != NULL) {
 			free(g_pilotRecordSingleplayerTrainingMissionList);
 			g_pilotRecordSingleplayerTrainingMissionList = NULL;
@@ -1674,7 +1674,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 			}
 		}
 		g_pilotAchievementsScrollOffset = 0;
-		g_concourseRedrawRequested = 0;
+		g_pilotRecordPagesNeedRebuild = 0;
 		g_pilotRecordPageRowCount = 0;
 		g_pilotSpCampaignHistoryRowCount = 0;
 		g_pilotSpBattleHistoryCount = 0;
@@ -3548,7 +3548,7 @@ int PilotRecord_DrawCutsceneViewerPage(void) {
 	if (g_cutsceneTable == NULL)
 		return 0;
 
-	if (g_concourseRedrawRequested != 0) {
+	if (g_pilotRecordPagesNeedRebuild != 0) {
 		if (g_pilotRecordSingleplayerCampaignMissionList != NULL) {
 			free(g_pilotRecordSingleplayerCampaignMissionList);
 			g_pilotRecordSingleplayerCampaignMissionList = NULL;
@@ -3622,7 +3622,7 @@ int PilotRecord_DrawCutsceneViewerPage(void) {
 					CUTSCENE_VIEWER_ROW_HEIGHT;
 			}
 		}
-		g_concourseRedrawRequested = 0;
+		g_pilotRecordPagesNeedRebuild = 0;
 	}
 
 	FrontendDraw_RectAssign(&textRect, 425, 107, 434, 433);
@@ -3755,7 +3755,7 @@ int PilotRecord_DrawCampaignMedalsPage(void) {
 	if (g_campaignAwardSprites == NULL)
 		return 0;
 
-	if (g_concourseRedrawRequested != 0) {
+	if (g_pilotRecordPagesNeedRebuild != 0) {
 		if (g_pilotRecordSingleplayerCampaignMissionList != NULL) {
 			free(g_pilotRecordSingleplayerCampaignMissionList);
 			g_pilotRecordSingleplayerCampaignMissionList = NULL;
@@ -3883,7 +3883,7 @@ int PilotRecord_DrawCampaignMedalsPage(void) {
 				++missionIndex;
 			} while (--remainingCampaignCount != 0);
 		}
-		g_concourseRedrawRequested = 0;
+		g_pilotRecordPagesNeedRebuild = 0;
 	}
 
 	FrontendDraw_RectAssign(&rect, 425, 107, 434, 433);
@@ -4201,7 +4201,7 @@ int PilotRecord_UpdateNavigationControls(void) {
 	} else if (FrontendButton_DrawSpriteHitTest(&rect, "reg7u", "reg7u",
 												FrontendString_Get(FRONTSTR_643_IMPERIAL_PILOT), 12, 0, 17,
 												"jewelsound")) {
-		g_concourseRedrawRequested = 1;
+		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotData.currentFactionId = 1;
 		g_pilotData.team = g_pilotData.factionStatistics[1].team;
 		g_pilotData.missionDirectoryId = g_pilotData.factionStatistics[1].missionDirectoryId;
@@ -4218,7 +4218,7 @@ int PilotRecord_UpdateNavigationControls(void) {
 		if (FrontendButton_DrawSpriteHitTest(&rect, "reg6u", "reg6u",
 											 FrontendString_Get(FRONTSTR_642_REBEL_PILOT), 12, 0, 16,
 											 "jewelsound")) {
-			g_concourseRedrawRequested = 1;
+			g_pilotRecordPagesNeedRebuild = 1;
 			g_pilotData.currentFactionId = 0;
 			g_pilotData.team = g_pilotData.factionStatistics[0].team;
 			g_pilotData.missionDirectoryId = g_pilotData.factionStatistics[0].missionDirectoryId;
@@ -4241,7 +4241,7 @@ int PilotRecord_UpdateNavigationControls(void) {
 	else if (FrontendButton_DrawSpriteHitTest(&rect, "reg8u", "reg8u",
 											  FrontendString_Get(FRONTSTR_796_VIEW_CUTSCENES), 12, 0, 18,
 											  "jewelsound")) {
-		g_concourseRedrawRequested = 1;
+		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotRecordPage = 5;
 		PilotRecord_RedrawBackground();
 	}
@@ -4253,7 +4253,7 @@ int PilotRecord_UpdateNavigationControls(void) {
 	else if (FrontendButton_DrawSpriteHitTest(&rect, "reg5u", "reg5u",
 											  FrontendString_Get(FRONTSTR_826_CAMPAIGN_MEDALS), 12, 0, 15,
 											  "jewelsound")) {
-		g_concourseRedrawRequested = 1;
+		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotRecordPage = 4;
 		PilotRecord_RedrawBackground();
 	}
@@ -4265,7 +4265,7 @@ int PilotRecord_UpdateNavigationControls(void) {
 	else if (FrontendButton_DrawSpriteHitTest(&rect, "reg4u", "reg4u",
 											  FrontendString_Get(FRONTSTR_010_MISSION_ACHIEVEMENTS), 12, 0,
 											  14, "jewelsound")) {
-		g_concourseRedrawRequested = 1;
+		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotRecordPage = 3;
 		PilotRecord_RedrawBackground();
 	}
@@ -4277,7 +4277,7 @@ int PilotRecord_UpdateNavigationControls(void) {
 	else if (FrontendButton_DrawSpriteHitTest(&rect, "reg3u", "reg3u",
 											  FrontendString_Get(FRONTSTR_008_PILOT_RATING), 12, 0, 13,
 											  "jewelsound")) {
-		g_concourseRedrawRequested = 1;
+		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotRecordPage = 2;
 		PilotRecord_RedrawBackground();
 	}
@@ -4289,7 +4289,7 @@ int PilotRecord_UpdateNavigationControls(void) {
 	else if (FrontendButton_DrawSpriteHitTest(&rect, "reg2u", "reg2u",
 											  FrontendString_Get(FRONTSTR_009_PILOT_AWARDS), 12, 0, 12,
 											  "jewelsound")) {
-		g_concourseRedrawRequested = 1;
+		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotRecordPage = 1;
 		PilotRecord_RedrawBackground();
 	}
@@ -4299,7 +4299,7 @@ int PilotRecord_UpdateNavigationControls(void) {
 		if (FrontendButton_DrawSpriteHitTest(&rect, "reg1u", "reg1u",
 											 FrontendString_Get(FRONTSTR_007_PILOT_STATISTICS), 12, 0, 11,
 											 "jewelsound")) {
-			g_concourseRedrawRequested = 1;
+			g_pilotRecordPagesNeedRebuild = 1;
 			g_pilotRecordPage = 0;
 			PilotRecord_RedrawBackground();
 		}

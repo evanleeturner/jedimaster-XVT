@@ -42,7 +42,7 @@ static int OtherPlayerBox(const PlayerData* p, const ObjectRecord* o, unsigned s
 	if (!c || o->playerOwnerIdx == -1)
 		return 0;
 	unsigned iff = (uint16_t)p->team, fg = o->flightGroupIdx;
-	if (!g_flightMissionState.locatePlayersEnabled && iff < 10 && !c->iffVisibility[iff] && fg < 48) {
+	if (!g_flightMissionState.locatePlayersEnabled && iff < 10 && !c->identifiedOrderByTeam[iff] && fg < 48) {
 		unsigned team = g_missionFlightGroups[fg].fg.team;
 		if (team < 10 && team != iff && !g_missionTeams[iff].allies[team])
 			return 0;

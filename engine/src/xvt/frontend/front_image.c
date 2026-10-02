@@ -2139,11 +2139,11 @@ int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int makeP
 	result = 0;
 	memset(palette, 0, sizeof(palette));
 	if (stream != NULL) {
-		File_ReadCount(stream, &fileHeader, sizeof(fileHeader));
+		File_ReadBytes(stream, &fileHeader, sizeof(fileHeader));
 		if (fileHeader.bfType == 0x4D42) {
 			int rowPadding;
 
-			File_ReadCount(stream, &infoHeader, sizeof(infoHeader));
+			File_ReadBytes(stream, &infoHeader, sizeof(infoHeader));
 			rowPadding = infoHeader.biWidth % 4;
 			if (rowPadding != 0)
 				rowPadding = 4 - rowPadding;
@@ -2234,7 +2234,7 @@ int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int makeP
 		image->height = imageHeight;
 		image->pixels = pixels;
 		image->isCompressed = 0;
-		image->pixelCount = image->height * infoHeader.biWidth;
+		image->pixelDataBytes = image->height * infoHeader.biWidth;
 		if (compressRLE == 1)
 			FrontImage_CompressRLE(image);
 	}
@@ -2260,7 +2260,7 @@ int FrontImage_DecodeBmp4bpp(XvtFile* stream, void* dstPixels, const BITMAPFILEH
 		int16_t row;
 
 		srcOffset = 0;
-		File_ReadCount(stream, data, dataSize);
+		File_ReadBytes(stream, data, dataSize);
 		for (row = 0; row < infoHeader->biHeight; ++row) {
 			int16_t column;
 			int dstRowOffset;
@@ -2313,10 +2313,10 @@ int FrontImage_DecodeBmp8bpp(XvtFile* stream, void* dstPixels, const BITMAPFILEH
 			int16_t row;
 
 			for (row = 0; row < infoHeader->biHeight; ++row) {
-				File_ReadCount(stream,
+				File_ReadBytes(stream,
 							   (uint8_t*)dstPixels + infoHeader->biWidth * (infoHeader->biHeight - row - 1),
 							   infoHeader->biWidth);
-				File_ReadCount(stream, paddingBuffer, rowPadding);
+				File_ReadBytes(stream, paddingBuffer, rowPadding);
 			}
 			break;
 		}
@@ -2324,7 +2324,7 @@ int FrontImage_DecodeBmp8bpp(XvtFile* stream, void* dstPixels, const BITMAPFILEH
 			int rowStartOffset;
 			int16_t decodeComplete;
 
-			File_ReadCount(stream, data, infoHeader->biSizeImage);
+			File_ReadBytes(stream, data, infoHeader->biSizeImage);
 			sourceOffset = 0;
 			decodeComplete = 0;
 			destinationOffset = infoHeader->biWidth * (infoHeader->biHeight - 1);
@@ -2588,7 +2588,7 @@ int FrontImage_CompressRLE(ImageResource* image) {
 		free(image->pixels);
 		image->pixels = resizedPixels;
 		image->isCompressed = 1;
-		image->pixelCount = compressedSize;
+		image->pixelDataBytes = compressedSize;
 	}
 	return 1;
 }
@@ -2933,12 +2933,12 @@ int FrontImage_SaveBmpFile(char* fileName, const void* pixels, int width, int he
 	infoHeader.colorsUsed = 0;
 	infoHeader.colorsImportant = 0;
 
-	ok = File_WriteCount(stream, &fileHeader, sizeof(fileHeader));
+	ok = File_WriteBytes(stream, &fileHeader, sizeof(fileHeader));
 	if (ok == 0) {
 		File_Close(stream);
 		return 0;
 	}
-	ok = File_WriteCount(stream, &infoHeader, sizeof(infoHeader));
+	ok = File_WriteBytes(stream, &infoHeader, sizeof(infoHeader));
 	if (ok == 0) {
 		File_Close(stream);
 		return 0;
@@ -2963,9 +2963,9 @@ int FrontImage_LoadBmpPaletteFile(const char* fileName, uint8_t* destRgba) {
 	stream = File_Open(fileName, "rb");
 	result = 0;
 	if (stream != NULL) {
-		File_ReadCount(stream, &fileHeader, sizeof(fileHeader));
+		File_ReadBytes(stream, &fileHeader, sizeof(fileHeader));
 		if (fileHeader.signature == 0x4D42) {
-			File_ReadCount(stream, &infoHeader, sizeof(infoHeader));
+			File_ReadBytes(stream, &infoHeader, sizeof(infoHeader));
 			if (infoHeader.planes == 1) {
 				bitsPerPixel = infoHeader.bitsPerPixel;
 				switch (bitsPerPixel) {
@@ -2995,7 +2995,7 @@ void FrontImage_ReadBmpPalette(XvtFile* stream, uint8_t* dest, int count) {
 
 	memset(dest, 0, 256 * 4);
 	for (i = 0; i < count; i++) {
-		File_ReadCount(stream, entry, sizeof(entry));
+		File_ReadBytes(stream, entry, sizeof(entry));
 		blue = entry[0];
 		green = entry[1];
 		red = entry[2];
@@ -3017,7 +3017,7 @@ unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16) {
 	unsigned int fadeMultiplier;
 
 	color = color16;
-	cacheEntry = &g_frontState.glyphScratchBuffer[color];
+	cacheEntry = &g_frontState.textFadeColorCache[color];
 	cachedColor = *cacheEntry;
 	if (cachedColor != 0) {
 		return cachedColor;

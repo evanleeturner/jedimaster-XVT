@@ -147,11 +147,11 @@ struct ModelTypeInfo {
 	uint16_t curTexLevel;
 	int16_t* textureFrameSequence;
 	uint8_t* palette;
-	uint8_t flags;
+	uint8_t behaviorFlags;
 	uint8_t modelIndex; ///< Byte storage of optional ModelIndex into g_modelDefs[73]; 0xFF means
 						///< MODEL_INDEX_NONE.
 	uint8_t textureGroup;
-	uint8_t frameCount;
+	uint8_t resourceIndex;
 };
 
 extern int16_t g_modelType127TextureFrameSequence[13];

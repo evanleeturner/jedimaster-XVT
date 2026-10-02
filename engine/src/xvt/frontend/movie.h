@@ -69,11 +69,11 @@ int Movie_ComputeRectUnionAndIntersection(const MovieDirtyRect* a, const MovieDi
 int Movie_Play(const char* name, int synchronizeMultiplayer);
 extern int g_movieSkipRequested;
 extern int g_moviePlaybackCompletionState;
-extern unsigned int g_movieMultiplayerSyncDeadlineTick;
+extern unsigned int g_movieMultiplayerSyncDeadlineMs;
 extern int g_moviePreviousWndProcMode;
-int Movie_SingleplayerFrameCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
+int Movie_SingleplayerInputCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
 									int eventArg4, uint32_t* playbackFlag);
-int Movie_MultiplayerFrameCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
+int Movie_MultiplayerInputCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
 								   int eventArg4, uint32_t* playbackFlag);
 void Movie_DrawMultiplayerSyncStatus(void);
 void Movie_UpdateMultiplayerSyncTimeout(void);

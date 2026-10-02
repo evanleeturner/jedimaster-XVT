@@ -20,9 +20,9 @@ typedef struct ImageQuantizerPixelRun {
 
 typedef struct ImageQuantizerImageLayout {
 	uint8_t reserved0000[0x1024];
-	uint32_t compressionMode;
+	uint32_t colorClass;
 	uint32_t comparePaletteIndex;
-	uint32_t compressionIneffective;
+	uint32_t compressionType;
 	uint32_t width;
 	uint32_t height;
 	uint8_t reserved1038[0x4E];
@@ -65,7 +65,7 @@ typedef struct ImageQuantizerLegacyImageRecord {
 	uint32_t field1020;
 	uint32_t compressionMode;
 	uint32_t comparePaletteIndex;
-	uint32_t field102C;
+	uint32_t compressionType;
 	uint32_t width;
 	uint32_t height;
 	uint32_t field1038;
@@ -202,7 +202,7 @@ void* ImageQuantizer_AllocateImage(void) {
 	image->field1020 = 0;
 	image->compressionMode = 1;
 	image->comparePaletteIndex = 0;
-	image->field102C = 2;
+	image->compressionType = 2;
 	image->width = 0;
 	image->height = 0;
 	image->field1038 = 8;
@@ -316,14 +316,14 @@ void ImageQuantizer_CompressPixelRuns(unsigned int* image) {
 	}
 
 	resizedRuns = realloc(imageLayout->pixels, imageLayout->runCount * sizeof(ImageQuantizerPixelRun));
-	compressionMode = imageLayout->compressionMode;
+	compressionMode = imageLayout->colorClass;
 	imageLayout->pixels = resizedRuns;
 	height = imageLayout->height;
 	if (compressionMode == 1) {
 		if ((height * imageLayout->width * 3) / 4 <= imageLayout->runCount)
-			imageLayout->compressionIneffective = 1;
+			imageLayout->compressionType = 1;
 	} else if ((height * imageLayout->width) / 2 <= imageLayout->runCount) {
-		imageLayout->compressionIneffective = 1;
+		imageLayout->compressionType = 1;
 	}
 }
 
@@ -470,7 +470,7 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int pa
 	unsigned int completed;
 	unsigned int paletteBytes;
 	unsigned int colorCount;
-	unsigned int pixelCount;
+	unsigned int runCount;
 	unsigned int level;
 	unsigned int childIndex;
 	int firstLuma;
@@ -518,7 +518,7 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int pa
 	}
 	if (outputMode != 3) {
 		layout->comparePaletteIndex = 0;
-		layout->compressionMode = 2;
+		layout->colorClass = 2;
 	}
 	memcpy(imageBytes + 0x1054, &g_imageQuantizerColorCount, sizeof(g_imageQuantizerColorCount));
 	result = dither ? ImageQuantizer_DitherImageToPalette(image) == 0 : 0;
@@ -526,8 +526,8 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int pa
 		return (unsigned int)result;
 	}
 	pixel = layout->pixels;
-	pixelCount = layout->runCount;
-	for (completed = 0; completed < pixelCount; ++completed, ++pixel) {
+	runCount = layout->runCount;
+	for (completed = 0; completed < runCount; ++completed, ++pixel) {
 		node = g_imageQuantizerRoot;
 		level = 1;
 		bitPosition = 7;
@@ -547,7 +547,7 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int pa
 		g_imageQuantizerSearchBlue = pixel->blue;
 		g_imageQuantizerNearestDistanceSq = g_imageQuantizerMaxSquaredRgbErrorPerPixel;
 		ImageQuantizer_FindNearestPaletteEntryRecursive(node->parent);
-		if (layout->compressionMode == 2) {
+		if (layout->colorClass == 2) {
 			pixel->paletteIndex = (uint16_t)g_imageQuantizerNearestPaletteIndex;
 		} else {
 			offset = 9 * g_imageQuantizerNearestPaletteIndex;
@@ -555,8 +555,8 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int pa
 			pixel->green = paletteBytesPtr[offset + 1];
 			pixel->blue = paletteBytesPtr[offset + 2];
 		}
-		if (pixelCount - completed == 1 || completed % layout->height == 0) {
-			ImageQuantizer_ReportProgress("  Assigning image colors...  ", completed, pixelCount);
+		if (runCount - completed == 1 || completed % layout->height == 0) {
+			ImageQuantizer_ReportProgress("  Assigning image colors...  ", completed, runCount);
 		}
 	}
 	return 0;
@@ -780,7 +780,7 @@ int ImageQuantizer_DitherImageToPalette(uint32_t* image) {
 				}
 			}
 			pixel->paletteIndex = (uint16_t)nearestIndex;
-			if (layout->compressionMode != 2) {
+			if (layout->colorClass != 2) {
 				pixel->red = palette[nearestIndex * 9 + 0];
 				pixel->green = palette[nearestIndex * 9 + 1];
 				pixel->blue = palette[nearestIndex * 9 + 2];

@@ -181,7 +181,7 @@ void laser_weaponsfire(void) {
 						lockRange = MISSILE_LOCK_LARGE_CRAFT_RANGE;
 					}
 					if ((unsigned int)trig2_polardistance < lockRange &&
-						Targeting_ScoreCandidate(targetObjIdx, 0, playerIdx) != 0) {
+						Targeting_TestAimCone(targetObjIdx, 0, playerIdx) != 0) {
 						ModelIndex missileBoatModelIndex;
 						uint16_t lockThreshold;
 
@@ -239,7 +239,7 @@ void laser_weaponsfire(void) {
 				beamTargetObjIdx = UINT16_MAX;
 				if ((g_curCraft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) != 0 &&
 					g_curCraft->beamActive != 0 && g_curCraft->beamTypeId != BEAM_TYPE_NONE &&
-					g_players[playerIdx].regionSessionId == 0) {
+					g_players[playerIdx].awaitingNewCraft == 0) {
 					if (g_players[playerIdx].beamFireCooldownTimer == 0) {
 						int16_t beamPresent;
 
@@ -268,7 +268,7 @@ void laser_weaponsfire(void) {
 							candidateObjIdx < g_activeRegionCraftObjectSlotEnd &&
 							g_objectTable[candidateObjIdx].mobj->pCraft->objectKind ==
 								CRAFT_OBJECT_KIND_ACTIVE &&
-							Targeting_ScoreCandidate(candidateObjIdx, 0, playerIdx) != 0 &&
+							Targeting_TestAimCone(candidateObjIdx, 0, playerIdx) != 0 &&
 							(unsigned int)g_lastRoughDistance < BEAM_TARGET_RANGE) {
 							beamTargetObjIdx = candidateObjIdx;
 						}
@@ -343,21 +343,22 @@ void laser_weaponsfire(void) {
 				if (genusId == CRAFT_GENUS_STARFIGHTER) {
 					uint16_t groupAI;
 
-					g_curCraft->shieldRedirect = POWER_RECHARGE_MAINTENANCE;
-					g_curCraft->laserRedirect = POWER_RECHARGE_MAINTENANCE;
+					g_curCraft->shieldRechargeLevel = POWER_RECHARGE_MAINTENANCE;
+					g_curCraft->laserRechargeLevel = POWER_RECHARGE_MAINTENANCE;
 					if ((g_curCraft->systemFlags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
 						int maxShield;
 
 						groupAI = g_missionFlightGroups[g_objectTable[objectIdx].flightGroupIdx].fg.groupAI;
 						if (g_curCraft->aiController.maneuverMode == AI_MANEUVER_MODE_AVOID_ATTACKER) {
 							if (groupAI == 5) {
-								g_curCraft->shieldRedirect = POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES;
+								g_curCraft->shieldRechargeLevel = POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES;
 							} else if (groupAI == 4 || groupAI == 3) {
-								g_curCraft->shieldRedirect = POWER_RECHARGE_PARTIALLY_REDIRECTED_TO_ENGINES;
+								g_curCraft->shieldRechargeLevel =
+									POWER_RECHARGE_PARTIALLY_REDIRECTED_TO_ENGINES;
 							} else {
-								g_curCraft->shieldRedirect = POWER_RECHARGE_MAINTENANCE;
+								g_curCraft->shieldRechargeLevel = POWER_RECHARGE_MAINTENANCE;
 							}
-							g_curCraft->laserRedirect = POWER_RECHARGE_INCREASED;
+							g_curCraft->laserRechargeLevel = POWER_RECHARGE_INCREASED;
 						}
 						maxShield = Craft_GetObjectMaxShield(objectIdx);
 						if (g_curCraft->shieldEnergy[0] < maxShield) {
@@ -367,8 +368,8 @@ void laser_weaponsfire(void) {
 							uint16_t slotIndex;
 							uint16_t transferCount;
 
-							if (g_curCraft->laserRedirect == POWER_RECHARGE_MAINTENANCE) {
-								g_curCraft->laserRedirect = POWER_RECHARGE_MAXIMUM;
+							if (g_curCraft->laserRechargeLevel == POWER_RECHARGE_MAINTENANCE) {
+								g_curCraft->laserRechargeLevel = POWER_RECHARGE_MAXIMUM;
 							}
 							if (g_curCraft->shieldEnergy[0] > 0) {
 								if (groupAI < 2) {
@@ -391,8 +392,8 @@ void laser_weaponsfire(void) {
 											: 0;
 								}
 							} else {
-								if (g_curCraft->shieldRedirect == POWER_RECHARGE_MAINTENANCE) {
-									g_curCraft->shieldRedirect = POWER_RECHARGE_MAXIMUM;
+								if (g_curCraft->shieldRechargeLevel == POWER_RECHARGE_MAINTENANCE) {
+									g_curCraft->shieldRechargeLevel = POWER_RECHARGE_MAXIMUM;
 								}
 								if (groupAI < 2) {
 									transferLimit = AI_SHIELD_TRANSFER_LOW;
@@ -434,7 +435,7 @@ void laser_weaponsfire(void) {
 						}
 					}
 
-					if (g_curCraft->laserRedirect == POWER_RECHARGE_MAINTENANCE) {
+					if (g_curCraft->laserRechargeLevel == POWER_RECHARGE_MAINTENANCE) {
 						int totalCharge;
 						uint16_t chargedSlotCount;
 						uint16_t slotIndex;
@@ -452,11 +453,11 @@ void laser_weaponsfire(void) {
 
 							averageCharge = (int16_t)(totalCharge / (int)chargedSlotCount);
 							if (averageCharge < LASER_CHARGE_LOW_THRESHOLD) {
-								g_curCraft->laserRedirect = POWER_RECHARGE_MAXIMUM;
+								g_curCraft->laserRechargeLevel = POWER_RECHARGE_MAXIMUM;
 							} else {
-								g_curCraft->laserRedirect = averageCharge < LASER_CHARGE_HIGH_THRESHOLD
-																? POWER_RECHARGE_INCREASED
-																: POWER_RECHARGE_MAINTENANCE;
+								g_curCraft->laserRechargeLevel = averageCharge < LASER_CHARGE_HIGH_THRESHOLD
+																	 ? POWER_RECHARGE_INCREASED
+																	 : POWER_RECHARGE_MAINTENANCE;
 							}
 						}
 					}
@@ -464,9 +465,9 @@ void laser_weaponsfire(void) {
 				} else {
 					int16_t liveShieldGenerators;
 
-					g_curCraft->shieldRedirect = POWER_RECHARGE_MAINTENANCE;
+					g_curCraft->shieldRechargeLevel = POWER_RECHARGE_MAINTENANCE;
 					liveShieldGenerators = 0;
-					g_curCraft->laserRedirect = POWER_RECHARGE_MAINTENANCE;
+					g_curCraft->laserRechargeLevel = POWER_RECHARGE_MAINTENANCE;
 					if (g_flightMissionState.difficulty == 2 && genusId == CRAFT_GENUS_STARSHIP) {
 						if (g_curCraft->hullDamage != 0) {
 							if (g_objectTable[objectIdx].objectType == CRAFT_SPECIES_INTERDICTOR ||
@@ -503,7 +504,7 @@ void laser_weaponsfire(void) {
 								liveShieldGenerators = 1;
 							}
 						}
-						g_curCraft->shieldRedirect = POWER_RECHARGE_INCREASED;
+						g_curCraft->shieldRechargeLevel = POWER_RECHARGE_INCREASED;
 					}
 					shieldRechargeRate = LARGE_CRAFT_SHIELD_RECHARGE_RATE * liveShieldGenerators;
 				}
@@ -521,8 +522,8 @@ void laser_weaponsfire(void) {
 				shieldRechargeRate != 0) {
 				int16_t shieldDelta;
 
-				shieldDelta = (int16_t)(shieldRechargeRate *
-										((uint8_t)g_curCraft->shieldRedirect - POWER_RECHARGE_MAINTENANCE));
+				shieldDelta = (int16_t)(shieldRechargeRate * ((uint8_t)g_curCraft->shieldRechargeLevel -
+															  POWER_RECHARGE_MAINTENANCE));
 				if (shieldDelta != 0) {
 					if (g_curCraft->shieldDistribMode == SHIELD_DISTRIBUTION_FULLY_FORWARD) {
 						Craft_AdjustCurrentShieldEnergy(objectIdx, 0, shieldDelta);
@@ -548,9 +549,10 @@ void laser_weaponsfire(void) {
 					if (projectileType == 0 || projectileType == TURRET_PROJECTILE_TYPE) {
 						continue;
 					}
-					chargeBasis = (int16_t)((uint8_t)g_curCraft->laserRedirect - POWER_RECHARGE_MAINTENANCE);
+					chargeBasis =
+						(int16_t)((uint8_t)g_curCraft->laserRechargeLevel - POWER_RECHARGE_MAINTENANCE);
 					if (g_curCraft->engineOutputScale == ENGINE_OVERDRIVE_ACTIVE) {
-						chargeBasis = (int16_t)((uint8_t)g_curCraft->laserRedirect - 6);
+						chargeBasis = (int16_t)((uint8_t)g_curCraft->laserRechargeLevel - 6);
 					}
 					if (g_objectTable[objectIdx].objectType == CRAFT_SPECIES_TIE_FIGHTER ||
 						g_objectTable[objectIdx].objectType == CRAFT_SPECIES_TIE_BOMBER) {
@@ -639,7 +641,7 @@ void laser_weaponsfire(void) {
 #endif
 		) {
 #ifdef XVT_MODERN
-			XvtFlightClock cannonClock = { g_elapsedTicks, g_simStepScale };
+			XvtFlightClock cannonClock = { g_elapsedTicks, g_simStepsPerSecond };
 			if (g_objectTable[objectIdx].playerOwnerIdx == -1)
 				cannonClock = XvtFlightTiming_EnterReference();
 #endif
@@ -1323,7 +1325,7 @@ uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx, uint16_t target
 		g_projectileDamageByObjectType.damage[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
 	g_objectTable[objectIndex].mobj->lifetimeTimer = laser_GetProjectileLifetimeTicks(projectileType);
 	Mission_ResolveObjectOrMissionPointWorldLoc(sourceObjIdx, 0);
-	g_objectTable[objectIndex].mobj->prevWorldX = worldlocx;
+	g_objectTable[objectIndex].mobj->prevWorldX = g_worldLocX;
 	g_objectTable[objectIndex].world_x = g_objectTable[objectIndex].mobj->prevWorldX;
 	g_objectTable[objectIndex].mobj->prevWorldY = worldlocy;
 	g_objectTable[objectIndex].world_y = g_objectTable[objectIndex].mobj->prevWorldY;
@@ -1667,7 +1669,7 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 		return;
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(targetRef, 0);
-	targetX = worldlocx;
+	targetX = g_worldLocX;
 	targetY = worldlocy;
 	targetZ = worldlocz;
 	if ((unsigned int)collide_roughdistance3d(targetX - mineX, targetY - mineY, targetZ - mineZ) >=
@@ -1679,7 +1681,7 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 
 		trig2_ctop(g_objectTable[targetRef].world_x - mineX, g_objectTable[targetRef].world_y - mineY,
 				   g_objectTable[targetRef].world_z - mineZ);
-		trig2_polardistance *= g_simStepScale;
+		trig2_polardistance *= g_simStepsPerSecond;
 		if (g_objectTable[mineObjIdx].objectType == MINE_TYPE_B_LIVE_TARGET)
 			trig2_polardistance >>= 15;
 		else
@@ -1691,7 +1693,7 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 			g_objectTable[targetRef].world_x +
 			leadFrames * (
 #ifdef XVT_MODERN
-							 (XvtFlightTiming_IsUnlocked() ? XvtReferenceMotion_Axis(targetRef, 0)
+							 (XvtFlightTiming_IsUnlocked() ? XvtReferenceMotion_AxisDisplacement(targetRef, 0)
 														   : (g_objectTable[targetRef].world_x -
 															  g_objectTable[targetRef].mobj->prevWorldX))
 #else
@@ -1702,7 +1704,7 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 			g_objectTable[targetRef].world_y +
 			leadFrames * (
 #ifdef XVT_MODERN
-							 (XvtFlightTiming_IsUnlocked() ? XvtReferenceMotion_Axis(targetRef, 1)
+							 (XvtFlightTiming_IsUnlocked() ? XvtReferenceMotion_AxisDisplacement(targetRef, 1)
 														   : (g_objectTable[targetRef].world_y -
 															  g_objectTable[targetRef].mobj->prevWorldY))
 #else
@@ -1713,7 +1715,7 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 			g_objectTable[targetRef].world_z +
 			leadFrames * (
 #ifdef XVT_MODERN
-							 (XvtFlightTiming_IsUnlocked() ? XvtReferenceMotion_Axis(targetRef, 2)
+							 (XvtFlightTiming_IsUnlocked() ? XvtReferenceMotion_AxisDisplacement(targetRef, 2)
 														   : (g_objectTable[targetRef].world_z -
 															  g_objectTable[targetRef].mobj->prevWorldZ))
 #else
@@ -1728,15 +1730,15 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 
 	trig2_ctop(leadTargetX - mineX, leadTargetY - mineY, leadTargetZ - mineZ);
 	projectileYaw = trig2_xyangle;
-	projectilePitch = pitchQ16;
+	projectilePitch = trig2_pitch;
 	{
 		uint16_t launchOffset = g_objectTable[mineObjIdx].objectType > MINE_TYPE_B_LIVE_TARGET
 									? LARGE_MINE_LAUNCH_OFFSET
 									: SMALL_MINE_LAUNCH_OFFSET;
 
-		if (pitchQ16 < ANGLE_QUARTER_EIGHTH) {
+		if (trig2_pitch < ANGLE_QUARTER_EIGHTH) {
 			mineZ += launchOffset;
-		} else if (pitchQ16 > ANGLE_THREE_EIGHTHS) {
+		} else if (trig2_pitch > ANGLE_THREE_EIGHTHS) {
 			if (g_objectTable[mineObjIdx].objectType >= MINE_TYPE_C_FIRST_SIDE_ONLY)
 				return;
 			mineZ -= launchOffset;
@@ -1974,7 +1976,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 	launchZ = sourceObject->world_z;
 	if (sourceObject->objectType == LARGE_LAUNCHER_OBJECT_TYPE) {
 		Mission_ResolveObjectOrMissionPointWorldLoc(targetRef, 0);
-		localX = worldlocx - launchX;
+		localX = g_worldLocX - launchX;
 		localY = worldlocy - launchY;
 		localZ = worldlocz - launchZ;
 		if (sourceObject->mobj == NULL)
@@ -2072,7 +2074,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 
 	targetObjIdx = targetRef;
 	Mission_ResolveObjectOrMissionPointWorldLoc((uint16_t)targetObjIdx, 0);
-	targetX = worldlocx;
+	targetX = g_worldLocX;
 	targetY = worldlocy;
 	targetZ = worldlocz;
 	{
@@ -2104,7 +2106,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 		weaponCount = g_curCraft->weaponSlots[weaponSlotIdx].ammoCount;
 		if (g_objectTable[targetObjIdx].mobj != NULL) {
 			trig2_ctop(targetDelta[0], targetDelta[1], targetDelta[2]);
-			trig2_polardistance *= g_simStepScale;
+			trig2_polardistance *= g_simStepsPerSecond;
 			if (weaponCount != 0)
 				trig2_polardistance >>= 15;
 			else
@@ -2118,7 +2120,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 			targetX += leadScale * (
 #ifdef XVT_MODERN
 									   (XvtFlightTiming_IsUnlocked()
-											? XvtReferenceMotion_Axis(targetRef, 0) +
+											? XvtReferenceMotion_AxisDisplacement(targetRef, 0) +
 												  (targetX - g_objectTable[targetObjIdx].world_x)
 											: (targetX - g_objectTable[targetObjIdx].mobj->prevWorldX))
 #else
@@ -2128,7 +2130,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 			targetY += leadScale * (
 #ifdef XVT_MODERN
 									   (XvtFlightTiming_IsUnlocked()
-											? XvtReferenceMotion_Axis(targetRef, 1) +
+											? XvtReferenceMotion_AxisDisplacement(targetRef, 1) +
 												  (targetY - g_objectTable[targetObjIdx].world_y)
 											: (targetY - g_objectTable[targetObjIdx].mobj->prevWorldY))
 #else
@@ -2138,7 +2140,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 			targetZ += leadScale * (
 #ifdef XVT_MODERN
 									   (XvtFlightTiming_IsUnlocked()
-											? XvtReferenceMotion_Axis(targetRef, 2) +
+											? XvtReferenceMotion_AxisDisplacement(targetRef, 2) +
 												  (targetZ - g_objectTable[targetObjIdx].world_z)
 											: (targetZ - g_objectTable[targetObjIdx].mobj->prevWorldZ))
 #else
@@ -2149,7 +2151,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 	}
 	trig2_ctop(targetX - launchX, targetY - launchY, targetZ - launchZ);
 	projectileYaw = trig2_xyangle;
-	projectilePitch = pitchQ16;
+	projectilePitch = trig2_pitch;
 	{
 		uint16_t accuracyThreshold = UINT16_MAX;
 

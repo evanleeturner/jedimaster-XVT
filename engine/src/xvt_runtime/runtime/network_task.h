@@ -57,7 +57,7 @@ int XvtNetworkTask_Compatible(const AeronDplayDirectoryRoom* room);
 int XvtNetworkTask_CanJoin(void);
 /* Selects room index and loads its preview; the selected index again, or one out of range, clears
  * the selection. */
-void XvtNetworkTask_Select(int index);
+void XvtNetworkTask_ToggleSelection(int index);
 /* Called under the frontend draw lock in place of the suspended screen update. */
 /* With no attempt: when the network session has failed, shows the failure dialog, sets result to
  * 0 and returns 1; otherwise returns 0. During an attempt, sets result to 0 and returns 1: Escape,

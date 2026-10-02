@@ -739,7 +739,7 @@ int ModelMesh_GetComponentFocusX(int modelType, int meshIndex) {
 	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex], model);
 	if (descriptor != NULL) {
 		if (descriptor->targetId != 0)
-			value = (int)descriptor->target.x;
+			value = (int)descriptor->targetPoint.x;
 		else
 			value = (int)descriptor->center.x;
 	} else {
@@ -775,7 +775,7 @@ int ModelMesh_GetComponentFocusY(int modelType, int meshIndex) {
 	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex], model);
 	if (descriptor != NULL) {
 		if (descriptor->targetId != 0)
-			value = (int)descriptor->target.y;
+			value = (int)descriptor->targetPoint.y;
 		else
 			value = (int)descriptor->center.y;
 	} else {
@@ -811,7 +811,7 @@ int ModelMesh_GetComponentFocusZ(int modelType, int meshIndex) {
 	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex], model);
 	if (descriptor != NULL) {
 		if (descriptor->targetId != 0)
-			value = (int)descriptor->target.z;
+			value = (int)descriptor->targetPoint.z;
 		else
 			value = (int)descriptor->center.z;
 	} else {
@@ -891,7 +891,7 @@ int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex) {
 }
 
 // FUNCTION: XVT 0x4AEF60
-int ModelMesh_HasExplosionType1(int modelType, int meshIndex) {
+int ModelMesh_HasExplosionTypeBit0(int modelType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;

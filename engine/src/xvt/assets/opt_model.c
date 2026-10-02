@@ -3369,13 +3369,13 @@ void OptModel_FixupRuntimeTexturePointers(OptNode* node, OptimizedPolyObject* ds
 				if (textureData->textureSize == textureDataSize)
 					textureDataSize = textureData->dataSize;
 				palette += textureDataSize;
-				if (g_flight16bppBytesPerPixel == 2)
+				if (g_flightBytesPerPixel == 2)
 					palette -= 4096;
 				textureData->palette = (uint16_t*)palette;
 			} else {
 				sourcePalette = textureData->palette;
 				palette = (uint8_t*)sourcePalette;
-				if (g_flight16bppBytesPerPixel == 2)
+				if (g_flightBytesPerPixel == 2)
 					palette += 4096;
 				palette -= sizeof(*textureData);
 				textureDataSize = textureData->width * textureData->height;
@@ -3392,7 +3392,7 @@ void OptModel_FixupRuntimeTexturePointers(OptNode* node, OptimizedPolyObject* ds
 						if (correspondingTextureData->textureSize == textureDataSize)
 							textureDataSize = correspondingTextureData->dataSize;
 						palette += textureDataSize;
-						if (g_flight16bppBytesPerPixel == 2)
+						if (g_flightBytesPerPixel == 2)
 							palette -= 4096;
 						textureData->palette = (uint16_t*)palette;
 					}
@@ -3953,7 +3953,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 			int blue;
 
 			sourceTexture = (const OptTextureData*)srcNode->payload;
-			if (dst != NULL && g_generateMissionPalette != 0 && g_flight16bppBytesPerPixel == 1) {
+			if (dst != NULL && g_generateMissionPalette != 0 && g_flightBytesPerPixel == 1) {
 				sourceTexels = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
 				sourcePalette = sourceTexels + sourceTexture->height * sourceTexture->width;
 				if ((unsigned int)sourceTexture->textureSize ==
@@ -4082,19 +4082,18 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 
 			sourceTexture = (const OptTextureData*)srcNode->payload;
 			if (sourceTexture->paletteType != 0) {
-				texturePayloadSize +=
-					(unsigned int)(sourceTexture->paletteType * g_flight16bppBytesPerPixel) *
-					OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
+				texturePayloadSize += (unsigned int)(sourceTexture->paletteType * g_flightBytesPerPixel) *
+									  OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
 				if (dst != NULL) {
 					sourcePalette = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
 					sourcePaletteOffset = (unsigned int)(sourceTexture->height * sourceTexture->width);
 					if ((unsigned int)sourceTexture->textureSize == sourcePaletteOffset)
 						sourcePaletteOffset = (unsigned int)sourceTexture->dataSize;
 					sourcePalette += sourcePaletteOffset;
-					if (g_flight16bppBytesPerPixel == 2)
+					if (g_flightBytesPerPixel == 2)
 						sourcePalette +=
 							(unsigned int)sourceTexture->paletteType * OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
-					if (g_flight16bppBytesPerPixel == 1) {
+					if (g_flightBytesPerPixel == 1) {
 						sourcePalette16 = (const uint16_t*)(sourcePalette + OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 						for (paletteIndex = 0; paletteIndex < OPT_TEXTURE_PALETTE_ENTRY_COUNT;
 							 ++paletteIndex) {
@@ -4103,14 +4102,14 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 						}
 					} else {
 						memcpy(dst, sourcePalette,
-							   (unsigned int)(g_flight16bppBytesPerPixel * OPT_TEXTURE_PALETTE_ENTRY_COUNT));
+							   (unsigned int)(g_flightBytesPerPixel * OPT_TEXTURE_PALETTE_ENTRY_COUNT));
 					}
-					if (g_flight16bppBytesPerPixel == 2) {
+					if (g_flightBytesPerPixel == 2) {
 						if (srcNode->pName != NULL)
 							DebugPrintf("%s:", srcNode->pName);
 						OptModel_PrepareTexturePalette((uint16_t*)dst, OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 					}
-					dst += (unsigned int)(sourceTexture->paletteType * g_flight16bppBytesPerPixel) *
+					dst += (unsigned int)(sourceTexture->paletteType * g_flightBytesPerPixel) *
 						   OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
 				}
 			} else {
@@ -4120,12 +4119,12 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 					sourcePaletteOffset = (unsigned int)sourceTexture->dataSize;
 				sourcePalette += sourcePaletteOffset;
 				if ((const uint8_t*)sourceTexture->palette == sourcePalette) {
-					paletteBytes = (unsigned int)g_flight16bppBytesPerPixel * OPT_TEXTURE_PALETTE_ENTRY_COUNT;
+					paletteBytes = (unsigned int)g_flightBytesPerPixel * OPT_TEXTURE_PALETTE_ENTRY_COUNT;
 					texturePayloadSize += paletteBytes;
 					if (dst != NULL) {
-						if (g_flight16bppBytesPerPixel == 2)
+						if (g_flightBytesPerPixel == 2)
 							sourcePalette += OPT_TEXTURE_PALETTE_ENTRY_COUNT;
-						if (g_flight16bppBytesPerPixel == 1) {
+						if (g_flightBytesPerPixel == 1) {
 							sourcePalette16 =
 								(const uint16_t*)(sourcePalette + OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 							for (paletteIndex = 0; paletteIndex < OPT_TEXTURE_PALETTE_ENTRY_COUNT;
@@ -4136,12 +4135,12 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 						} else {
 							memcpy(dst, sourcePalette, paletteBytes);
 						}
-						if (g_flight16bppBytesPerPixel == 2) {
+						if (g_flightBytesPerPixel == 2) {
 							if (srcNode->pName != NULL)
 								DebugPrintf("%s:", srcNode->pName);
 							OptModel_PrepareTexturePalette((uint16_t*)dst, OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 						}
-						dst += (unsigned int)g_flight16bppBytesPerPixel * OPT_TEXTURE_PALETTE_ENTRY_COUNT;
+						dst += (unsigned int)g_flightBytesPerPixel * OPT_TEXTURE_PALETTE_ENTRY_COUNT;
 					}
 				}
 			}

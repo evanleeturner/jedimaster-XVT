@@ -13,7 +13,7 @@
 #define XVT_ORIENTATION_RAD_TO_BAM (32767.0f / XVT_ORIENTATION_PI)
 #define XVT_ORIENTATION_GIMBAL_EPSILON 1.0e-5f
 
-static float XvtOrientation_ClampRadians(float angle) { return atan2f(sinf(angle), cosf(angle)); }
+static float XvtOrientation_WrapRadians(float angle) { return atan2f(sinf(angle), cosf(angle)); }
 
 static int16_t XvtOrientation_RoundAngle(float angle) {
 	int value = (int)roundf(angle);
@@ -28,10 +28,10 @@ static int16_t XvtOrientation_RoundAngle(float angle) {
 }
 
 static void XvtOrientation_ToRadians(XvtOrientationAngles angles, float* pitch, float* yaw, float* roll) {
-	*yaw = XvtOrientation_ClampRadians(-(float)(int16_t)angles.yaw * XVT_ORIENTATION_BAM_TO_RAD);
-	*pitch = XvtOrientation_ClampRadians(-XVT_ORIENTATION_HALF_PI -
-										 (float)(int16_t)angles.pitch * XVT_ORIENTATION_BAM_TO_RAD);
-	*roll = XvtOrientation_ClampRadians(-(float)(int16_t)angles.roll * XVT_ORIENTATION_BAM_TO_RAD);
+	*yaw = XvtOrientation_WrapRadians(-(float)(int16_t)angles.yaw * XVT_ORIENTATION_BAM_TO_RAD);
+	*pitch = XvtOrientation_WrapRadians(-XVT_ORIENTATION_HALF_PI -
+										(float)(int16_t)angles.pitch * XVT_ORIENTATION_BAM_TO_RAD);
+	*roll = XvtOrientation_WrapRadians(-(float)(int16_t)angles.roll * XVT_ORIENTATION_BAM_TO_RAD);
 }
 
 static XvtOrientationAngles XvtOrientation_FromRadians(float pitch, float yaw, float roll) {
@@ -40,10 +40,10 @@ static XvtOrientationAngles XvtOrientation_FromRadians(float pitch, float yaw, f
 	int16_t headingZ;
 	int16_t headingRoll;
 
-	headingXY = XvtOrientation_RoundAngle(XvtOrientation_ClampRadians(-yaw) * XVT_ORIENTATION_RAD_TO_BAM);
-	headingZ = XvtOrientation_RoundAngle(XvtOrientation_ClampRadians(-XVT_ORIENTATION_HALF_PI - pitch) *
+	headingXY = XvtOrientation_RoundAngle(XvtOrientation_WrapRadians(-yaw) * XVT_ORIENTATION_RAD_TO_BAM);
+	headingZ = XvtOrientation_RoundAngle(XvtOrientation_WrapRadians(-XVT_ORIENTATION_HALF_PI - pitch) *
 										 XVT_ORIENTATION_RAD_TO_BAM);
-	headingRoll = XvtOrientation_RoundAngle(XvtOrientation_ClampRadians(-roll) * XVT_ORIENTATION_RAD_TO_BAM);
+	headingRoll = XvtOrientation_RoundAngle(XvtOrientation_WrapRadians(-roll) * XVT_ORIENTATION_RAD_TO_BAM);
 
 	/* As in OpenXWA, select the equivalent Euler representation offset by
 	 * half a turn in yaw and roll. */
@@ -169,9 +169,9 @@ static void XvtOrientation_QuaternionToEuler(const float quaternion[4], float* p
 		*roll = atan2f(-m21, m11);
 	}
 
-	*pitch = XvtOrientation_ClampRadians(*pitch);
-	*yaw = XvtOrientation_ClampRadians(*yaw);
-	*roll = XvtOrientation_ClampRadians(*roll);
+	*pitch = XvtOrientation_WrapRadians(*pitch);
+	*yaw = XvtOrientation_WrapRadians(*yaw);
+	*roll = XvtOrientation_WrapRadians(*roll);
 }
 
 XvtOrientationAngles XvtOrientation_ApplyPitchYaw(XvtOrientationAngles current, int pitchDeltaQ16,

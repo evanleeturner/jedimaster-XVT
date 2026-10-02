@@ -83,7 +83,7 @@ static void XvtFlightTask_ReleaseMission(int quitting) {
 		return;
 	g_flight.released = 1;
 	XvtResync_Reset();
-	XvtFlightNetwork_BeginMission();
+	XvtFlightNetwork_ResetMission();
 	XvtFlightFrame_ResetReplay();
 	XvtRenderCapture_EndMission();
 	XvtFlightTiming_EndSession();
@@ -148,7 +148,7 @@ static int XvtFlightTask_StartWorld(void) {
 		profile = XVT_FLIGHT_TIMING_NATIVE;
 	}
 	XvtFlightTiming_BeginSession(profile);
-	XvtFlightNetwork_BeginMission();
+	XvtFlightNetwork_ResetMission();
 	unsigned mask = 0;
 	for (unsigned i = 0; i < 8; ++i)
 		if (g_players[i].connectedFlag)
@@ -202,7 +202,7 @@ void XvtFlightTask_Tick(void) {
 			break;
 		}
 		case XVT_FLIGHT_SESSION: {
-			int status = XvtFlightNetwork_Session();
+			int status = XvtFlightNetwork_ExchangeRoster();
 			if (status != XVT_FLIGHT_NETWORK_PENDING)
 				g_flight.phase = status ? XVT_FLIGHT_DEVICES : XVT_FLIGHT_CLEANUP;
 			break;

@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-extern int g_flight16bppBytesPerPixel;
+extern int g_flightBytesPerPixel;
 extern int g_flightBrightnessScaleQ8;
 extern uint16_t g_flightTextPalette[256];
 extern RgbTriplet g_swPalette[256];

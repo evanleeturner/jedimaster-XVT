@@ -151,7 +151,7 @@ static void CheckThrottleEligible(void) {
 	g_flightMissionState.missionEndPending = 1;
 	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
 	World();
-	g_players[PLAYER].regionSessionId = 1;
+	g_players[PLAYER].awaitingNewCraft = 1;
 	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
 	World();
 	g_players[PLAYER].hyperspacePhase = 1;

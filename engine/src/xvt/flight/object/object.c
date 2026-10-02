@@ -162,7 +162,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 		}
 	}
 
-	savedSimStepScale = g_simStepScale;
+	savedSimStepScale = g_simStepsPerSecond;
 	savedElapsedTicks = g_elapsedTicks;
 	objectIndex = 0;
 	overrideProcessed = 0;
@@ -181,7 +181,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 		}
 
 		objectOffsetIndex = objectIndex;
-		g_simStepScale = (uint16_t)savedSimStepScale;
+		g_simStepsPerSecond = (uint16_t)savedSimStepScale;
 		g_elapsedTicks = (uint16_t)savedElapsedTicks;
 		object = &g_objectTable[objectOffsetIndex];
 		mobileObject = object->mobj;
@@ -199,9 +199,9 @@ void Object_UpdateLifetimeAndMovement(void) {
 				}
 				continue;
 			} else {
-				g_simStepScale = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
-				if (g_simStepScale == 0) {
-					g_simStepScale = 1;
+				g_simStepsPerSecond = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
+				if (g_simStepsPerSecond == 0) {
+					g_simStepsPerSecond = 1;
 				}
 				mobileObject->simStateTimestamp += g_elapsedTicks;
 			}
@@ -569,7 +569,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 							Mission_ResolveObjectOrMissionPointWorldLoc(targetObjectIndex, 0);
 							if (targetObjectIndex >= g_activeRegionCraftObjectSlotEnd ||
 								g_objectTable[targetObjectIndex].mobj->family != 0) {
-								g_rotatedX = worldlocx;
+								g_rotatedX = g_worldLocX;
 								g_rotatedY = worldlocy;
 								g_rotatedZ = worldlocz;
 							} else {
@@ -586,12 +586,12 @@ void Object_UpdateLifetimeAndMovement(void) {
 									centerX = ModelMesh_GetCenterX(targetObjectType, targetComponentIndex);
 								}
 								pai_RotateLocalVectorToWorldScratch(targetObject, centerX, centerZ, centerY);
-								g_rotatedX += worldlocx;
+								g_rotatedX += g_worldLocX;
 								g_rotatedY += worldlocy;
 								g_rotatedZ += worldlocz;
 							}
 							Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
-							g_rotatedX -= worldlocx;
+							g_rotatedX -= g_worldLocX;
 							g_rotatedY -= worldlocy;
 							g_rotatedZ -= worldlocz;
 							trig2_ctop(g_rotatedX, g_rotatedY, g_rotatedZ);
@@ -683,7 +683,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 							}
 
 							oldPitch = object->pitch;
-							pitchDelta = (int16_t)(pitchQ16 - oldPitch);
+							pitchDelta = (int16_t)(trig2_pitch - oldPitch);
 							absoluteDelta = pitchDelta;
 #ifdef XVT_MODERN
 							if (XvtFlightTiming_IsUnlocked())
@@ -696,10 +696,10 @@ void Object_UpdateLifetimeAndMovement(void) {
 										   g_projectileHomingTurnRateByProfile[profileIndex] /
 										   SIMULATION_TICKS_PER_SECOND;
 							if (pitchDelta < 0) {
-								absoluteDelta = (int16_t)(oldPitch - pitchQ16);
+								absoluteDelta = (int16_t)(oldPitch - trig2_pitch);
 							}
 							if ((uint16_t)turnStep >= absoluteDelta) {
-								object->pitch = pitchQ16;
+								object->pitch = trig2_pitch;
 #ifdef XVT_MODERN
 								if (XvtFlightTiming_IsUnlocked())
 									XvtFlightIntegration_Clear(objectIndex, XVT_INTEGRATE_HOME_PITCH);
@@ -774,7 +774,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 #endif
 	}
 
-	g_simStepScale = (uint16_t)savedSimStepScale;
+	g_simStepsPerSecond = (uint16_t)savedSimStepScale;
 	g_elapsedTicks = (uint16_t)savedElapsedTicks;
 }
 
@@ -984,7 +984,7 @@ uint16_t Object_SpawnLocalEffectFragment(uint16_t sourceObjIdx) {
 	int16_t yawOffset;
 	int16_t pitchOffset;
 	ObjectRecord* object;
-	uint16_t speedPerTick;
+	uint16_t speedPerFrame;
 
 	objectIndex = Object_AllocSlotForGenus(CRAFT_GENUS_EXPLOSION);
 	if (objectIndex == UINT16_MAX) {
@@ -1030,15 +1030,15 @@ uint16_t Object_SpawnLocalEffectFragment(uint16_t sourceObjIdx) {
 	object->mobj->prevWorldX = object->world_x;
 	object->mobj->prevWorldY = object->world_y;
 	object->mobj->prevWorldZ = object->world_z;
-	speedPerTick = MATH2_mphconvert(object->mobj->speed, g_simStepScale);
-	if (speedPerTick != 0) {
+	speedPerFrame = MATH2_mphconvert(object->mobj->speed, g_simStepsPerSecond);
+	if (speedPerFrame != 0) {
 		int movementSpeed;
 		int zMove;
 
 		if (object->mobj->moveVectorDirty != 0) {
 			FVIEW_calcrotatemove(object->pitch, object->yaw, object);
 		}
-		movementSpeed = speedPerTick;
+		movementSpeed = speedPerFrame;
 		trig2_xmovedist = Math_MulQ15(object->mobj->moveX, movementSpeed);
 		trig2_ymovedist = Math_MulQ15(object->mobj->moveY, movementSpeed);
 		zMove = Math_MulQ15(object->mobj->moveZ, movementSpeed);
@@ -1075,7 +1075,7 @@ uint16_t Object_AllocSlotForGenus(uint16_t genusId) {
 	if (end > objectIndex) {
 		collide_ResetObjectProximityForSlot(objectIndex);
 #ifdef XVT_MODERN
-		XvtFlightIntegration_Reset(objectIndex);
+		XvtFlightIntegration_ResetSlotAndMotion(objectIndex);
 #endif
 		return objectIndex;
 	}
@@ -1119,7 +1119,7 @@ void Object_CopyStatePreservingStorage(unsigned int dstObjIdx, unsigned int srcO
 	ObjectRecord* sourceObject;
 
 #ifdef XVT_MODERN
-	XvtFlightIntegration_Reset(dstObjIdx);
+	XvtFlightIntegration_ResetSlotAndMotion(dstObjIdx);
 #endif
 
 	destinationCraft = g_objectTable[dstObjIdx].mobj->pCraft;
@@ -1223,7 +1223,7 @@ unsigned int Object_DirectionAndDistanceToMeshCenter(uint16_t fromObjIdx, uint16
 	int targetWorldZ;
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(targetObjIdx, 0);
-	targetWorldX = worldlocx;
+	targetWorldX = g_worldLocX;
 	targetWorldY = worldlocy;
 	targetWorldZ = worldlocz;
 	objectType = g_objectTable[targetObjIdx].objectType;

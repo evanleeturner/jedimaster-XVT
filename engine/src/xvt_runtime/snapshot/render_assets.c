@@ -23,7 +23,7 @@ typedef struct Source {
 static Source g_sources[SOURCE_CAPACITY];
 static uint64_t g_bindings[XVT_SNAP_TYPES];
 static uint64_t g_nextId, g_optGeneration, g_textureGeneration, g_imageGeneration;
-static uint64_t g_exportedTick, g_consumedTick;
+static uint64_t g_exportedSnapshotSerial, g_consumedSnapshotSerial;
 static int g_initialized;
 
 static void Changed(uint32_t kind) {
@@ -51,7 +51,7 @@ void XvtRenderAssets_Init(void) {
 	memset(g_bindings, 0, sizeof g_bindings);
 	g_nextId = 1;
 	g_optGeneration = g_textureGeneration = g_imageGeneration = 1;
-	g_exportedTick = g_consumedTick = UINT64_MAX;
+	g_exportedSnapshotSerial = g_consumedSnapshotSerial = UINT64_MAX;
 	g_initialized = 1;
 	XvtRenderCockpit_Reset();
 	XvtRenderAssets_RegisterImage(g_defaultCursorBitmap, 0, "", XVT_IMAGE_BUILTIN_CURSOR, 0, 1, 0, 0, 0);
@@ -98,7 +98,7 @@ static int SnapshotReferencesSource(const XvtRenderSnapshot* snapshot, uint64_t 
 }
 
 void XvtRenderAssets_BeginTick(void) {
-	if (!g_initialized || g_consumedTick != g_exportedTick)
+	if (!g_initialized || g_consumedSnapshotSerial != g_exportedSnapshotSerial)
 		return;
 	/* A held presentation can still reference an original source after its
 	 * classic handle is freed. Keep its descriptor until both snapshots retire it. */
@@ -112,7 +112,7 @@ void XvtRenderAssets_BeginTick(void) {
 	}
 }
 
-void XvtRenderAssets_Consumed(uint64_t tick) { g_consumedTick = tick; }
+void XvtRenderAssets_Consumed(uint64_t snapshot_serial) { g_consumedSnapshotSerial = snapshot_serial; }
 
 static uint64_t Register(const void* owner, uint16_t handle, const char* path, uint32_t kind, uint32_t first,
 						 uint32_t count, uint16_t point_size, uint8_t row_bytes, int make_palette,
@@ -316,5 +316,5 @@ void XvtRenderAssets_Export(XvtRenderSnapshot* snapshot) {
 	for (unsigned i = 0; i < 256; ++i)
 		snapshot->flight_palette_argb[i] = XvtRenderDraw_Color(i);
 
-	g_exportedTick = snapshot->tick_index;
+	g_exportedSnapshotSerial = snapshot->snapshot_serial;
 }

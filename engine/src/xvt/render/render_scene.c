@@ -803,8 +803,8 @@ void RenderScene_InitHardwareFrame(void) {
 	int viewportOriginX;
 	int viewportOriginY;
 
-	viewportOriginX = width - g_surfaceWidth;
-	viewportOriginY = height - g_surfaceHeight;
+	viewportOriginX = g_displayModeWidth - g_surfaceWidth;
+	viewportOriginY = g_displayModeHeight - g_surfaceHeight;
 	viewportOriginX = g_flightVpX + ((unsigned int)viewportOriginX >> 1);
 	viewportOriginY = g_flightVpY + ((unsigned int)viewportOriginY >> 1);
 	g_flightVpOriginX = (float)(unsigned int)viewportOriginX;
@@ -958,8 +958,9 @@ void std3D_FillZBufferFromViewportMask(void) {
 	memset(&surfaceDesc, 0, sizeof(surfaceDesc));
 	surfaceDesc.dwSize = sizeof(surfaceDesc);
 	g_std3DZBufferSurface->lpVtbl->GetSurfaceDesc(g_std3DZBufferSurface, &surfaceDesc);
-	destinationRow += ((width - g_surfaceWidth) & ~1) + 2 * g_flightVpX;
-	destinationRow += ((unsigned int)(height - g_surfaceHeight) / 2 + g_flightVpY) * surfaceDesc.lPitch;
+	destinationRow += ((g_displayModeWidth - g_surfaceWidth) & ~1) + 2 * g_flightVpX;
+	destinationRow +=
+		((unsigned int)(g_displayModeHeight - g_surfaceHeight) / 2 + g_flightVpY) * surfaceDesc.lPitch;
 	maskCursor = g_flightAuxBuffer + g_viewportSpanMaskOffset;
 
 	for (row = 0; row < g_flightVpHeight; ++row) {
@@ -997,7 +998,7 @@ int RenderScene_ClearFrameBuffers(void) {
 	memset(&effects, 0, sizeof(effects));
 	effects.dwSize = sizeof(effects);
 	effects.dwROP = DDROP_SRCCOPY;
-	effects.dwFillColor = g_flightTextPalette[g_flightColorEscapeBypassChar];
+	effects.dwFillColor = g_flightTextPalette[g_flightTransparentColorIndex];
 	g_flightBackBuffer->lpVtbl->Blt(g_flightBackBuffer, NULL, NULL, NULL, DDBLT_WAIT | DDBLT_COLORFILL,
 									&effects);
 	return std3D_ClearZBuffer();

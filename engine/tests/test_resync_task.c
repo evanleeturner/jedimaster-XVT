@@ -40,7 +40,7 @@ static void World(int host, XvtFlightTimingProfile profile) {
 	g_flightNetWorldChecksumEpoch = 0;
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(5000000);
-	Time_ResetFrameDeltaClocks();
+	Time_ResetElapsedTicks();
 	XvtFlightTiming_BeginSession(profile);
 	XvtResync_Reset();
 }
@@ -106,11 +106,11 @@ static void CheckDeferredChecksums(void) {
 
 static void CheckRequestStateOutsideNetwork125(void) {
 	World(0, XVT_FLIGHT_TIMING_NATIVE);
-	XvtResync_RequestState();
+	XvtResync_ServiceRecovery();
 	AssertIdle();
 	XVT_ASSERT_INT_EQ(g_flightMissionState.missionEndPending, 0);
 	World(1, XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtResync_RequestState();
+	XvtResync_ServiceRecovery();
 	AssertIdle();
 	XVT_ASSERT_INT_EQ(g_flightMissionState.missionEndPending, 0);
 }
@@ -118,7 +118,7 @@ static void CheckRequestStateOutsideNetwork125(void) {
 static void CheckRequestStateHost(void) {
 	/* The host cannot receive an image: it ends the mission, and holds no input. */
 	World(1, XVT_FLIGHT_TIMING_NETWORK_125);
-	XvtResync_RequestState();
+	XvtResync_ServiceRecovery();
 	XVT_ASSERT_INT_EQ(g_flightMissionState.missionEndPending, 1);
 	XVT_ASSERT_INT_EQ(XvtResync_HoldsInput(), 0);
 	XVT_ASSERT_INT_EQ(XvtResync_IsActive(), 0);
@@ -127,7 +127,7 @@ static void CheckRequestStateHost(void) {
 static void CheckRequestStateClient(void) {
 	/* A client's request is out: input is held, and the next wake is the peer-timeout deadline. */
 	World(0, XVT_FLIGHT_TIMING_NETWORK_125);
-	XvtResync_RequestState();
+	XvtResync_ServiceRecovery();
 	XVT_ASSERT_INT_EQ(XvtResync_HoldsInput(), 1);
 	XVT_ASSERT_INT_EQ(g_flightMissionState.missionEndPending, 0);
 	XVT_ASSERT_INT_EQ(XvtResync_ReceiveFloor(), g_serverTickTime);
@@ -136,7 +136,7 @@ static void CheckRequestStateClient(void) {
 	XVT_ASSERT_TRUE(wake > 0 && wake <= deadline);
 
 	/* A second request before the deadline changes nothing. */
-	XvtResync_RequestState();
+	XvtResync_ServiceRecovery();
 	XVT_ASSERT_INT_EQ(g_flightMissionState.missionEndPending, 0);
 	XVT_ASSERT_INT_EQ(XvtResync_HoldsInput(), 1);
 	XVT_ASSERT_TRUE(XvtResync_NextWakeDelayUs() <= wake);

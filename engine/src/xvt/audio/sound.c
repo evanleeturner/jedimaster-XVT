@@ -837,34 +837,34 @@ int Sound_FindEffectByName(const SoundEffectDef* records, int lastIndex, const c
 }
 
 // FUNCTION: XVT 0x4A9180
-int Sound_SetParam(int soundId, int param, int value) {
-	if (soundId < 4 || soundId > 837) {
+int Sound_SetParam(int flightSoundId, int param, int value) {
+	if (flightSoundId < 4 || flightSoundId > 837) {
 		return 0;
 	}
 	switch (param) {
 		case 0x500:
-			return Sound_SetEffectCurrentPriority(g_fsfxSfxNameTable[soundId], value);
+			return Sound_SetEffectCurrentPriority(g_fsfxSfxNameTable[flightSoundId], value);
 		case 0x600:
-			return Sound_SetLatestInstanceVolume(g_fsfxSfxNameTable[soundId], value);
+			return Sound_SetLatestInstanceVolume(g_fsfxSfxNameTable[flightSoundId], value);
 		case 0x700:
-			return Sound_SetLatestInstancePan(g_fsfxSfxNameTable[soundId], value);
+			return Sound_SetLatestInstancePan(g_fsfxSfxNameTable[flightSoundId], value);
 		case 0x777:
-			return Sound_SetLatestInstanceFrequency(g_fsfxSfxNameTable[soundId], value);
+			return Sound_SetLatestInstanceFrequency(g_fsfxSfxNameTable[flightSoundId], value);
 		default:
 			return 0;
 	}
 }
 
 // FUNCTION: XVT 0x4A9300
-int Sound_GetParam(int soundId, int param) {
-	if (soundId < 4 || soundId > 837) {
+int Sound_GetParam(int flightSoundId, int param) {
+	if (flightSoundId < 4 || flightSoundId > 837) {
 		return 0;
 	}
 	switch (param) {
 		case 0x100:
-			return Sound_CountPlayingInstances(g_fsfxSfxNameTable[soundId]);
+			return Sound_CountPlayingInstances(g_fsfxSfxNameTable[flightSoundId]);
 		case 0x500:
-			return Sound_GetEffectCurrentPriority(g_fsfxSfxNameTable[soundId]);
+			return Sound_GetEffectCurrentPriority(g_fsfxSfxNameTable[flightSoundId]);
 		default:
 			return 0;
 	}
@@ -881,10 +881,10 @@ int Sound_UnusedFourArgStub(int arg1, int arg2, int arg3, int arg4) {
 }
 
 // FUNCTION: XVT 0x4A9380
-int Sound_StopOldestInstanceById(int soundId) {
-	if (soundId < 4 || soundId > 837)
+int Sound_StopOldestInstanceById(int flightSoundId) {
+	if (flightSoundId < 4 || flightSoundId > 837)
 		return 0;
-	return Sound_StopOldestInstance(g_fsfxSfxNameTable[soundId]);
+	return Sound_StopOldestInstance(g_fsfxSfxNameTable[flightSoundId]);
 }
 
 // FUNCTION: XVT 0x4A93B0

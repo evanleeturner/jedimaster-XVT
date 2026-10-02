@@ -218,7 +218,7 @@ void BriefingMap_AnimateViewState(void) {
 
 // FUNCTION: XVT 0x4F7DD0
 void BriefingMap_UpdateScriptPlaybackAfterAnimation(void) {
-	if (g_briefingScript.currentTime < g_briefingScript.durationTicks) {
+	if (g_briefingScript.currentTime < g_briefingScript.durationFrames) {
 		BriefingScript_AdvanceFrame(0);
 	} else {
 		g_briefingLastNarratedTextBlockIdx = 0;

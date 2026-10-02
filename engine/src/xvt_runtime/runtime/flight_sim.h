@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 /* The flight simulation step and the per-player input history it replays. StepToTime advances in
- * sub-steps of at most XvtFlightTiming_SimulationMaximum ticks; each replays the connected players'
+ * sub-steps of at most XvtFlightTiming_MaximumStepTicks ticks; each replays the connected players'
  * due input, then runs AI, weapons, collisions, movement, mission logic, HUD and sound. A step can
  * suspend when a player's update pauses the game; the next call resumes it. */
 

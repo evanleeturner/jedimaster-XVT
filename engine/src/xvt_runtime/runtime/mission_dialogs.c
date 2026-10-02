@@ -27,12 +27,12 @@ int XvtMissionDialogs_Resume(int result, int action) {
 			break;
 		case XVT_MISSION_TEAM_CANCELLED:
 			g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen, FrontendMissionList_FreeScreenResources);
 			Net_ShutdownDirectPlaySession();
 			break;
 		case XVT_MISSION_ASSIGNMENT_CANCELLED:
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
 			FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen, FrontendMissionList_FreeScreenResources);
 			break;
@@ -41,7 +41,7 @@ int XvtMissionDialogs_Resume(int result, int action) {
 				g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
 				FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
 			} else {
-				g_skipFrontendEntryMovie = 1;
+				g_frontendSkipScreenEntrySetup = 1;
 				g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
 				FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen,
 											FrontendMissionList_FreeScreenResources);
@@ -49,7 +49,7 @@ int XvtMissionDialogs_Resume(int result, int action) {
 			break;
 		case XVT_MISSION_SETUP_HOST_LEAVE:
 			if (result) {
-				g_skipFrontendEntryMovie = 1;
+				g_frontendSkipScreenEntrySetup = 1;
 				g_frontendNetPacketScratch.packetType = NET_PACKET_HOST_CANCELLED;
 				Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, sizeof(int));
 				Net_ShutdownDirectPlaySession();
@@ -61,12 +61,12 @@ int XvtMissionDialogs_Resume(int result, int action) {
 		case XVT_MISSION_TEAM_CLIENT_LEAVE:
 			if (result) {
 				if (action == XVT_MISSION_CLIENT_LEAVE)
-					g_skipFrontendEntryMovie = 1;
+					g_frontendSkipScreenEntrySetup = 1;
 				g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
 				Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch, sizeof(int));
 				Net_ShutdownDirectPlaySession();
 				if (action == XVT_MISSION_TEAM_CLIENT_LEAVE)
-					g_skipFrontendEntryMovie = 1;
+					g_frontendSkipScreenEntrySetup = 1;
 				FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen,
 											FrontendMissionList_FreeScreenResources);
 			}
@@ -88,13 +88,13 @@ int XvtMissionDialogs_Resume(int result, int action) {
 			break;
 		case XVT_MISSION_SOLO_BACK_TO_SETUP:
 			if (result) {
-				g_skipFrontendEntryMovie = 1;
+				g_frontendSkipScreenEntrySetup = 1;
 				FrontendScreen_SetCallbacks(MissionSetup_Update, MissionSetup_Exit);
 			}
 			break;
 		case XVT_MISSION_SOLO_BACK_TO_TEAMS:
 			if (result) {
-				g_skipFrontendEntryMovie = 1;
+				g_frontendSkipScreenEntrySetup = 1;
 				FrontendScreen_SetCallbacks(MissionSetup_TeamAssignmentUpdate,
 											XvtFrontendCleanup_MissionResources);
 			}
@@ -118,7 +118,7 @@ int XvtMissionDialogs_Resume(int result, int action) {
 		case XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER:
 			if (result) {
 				FrontendButton_DisableOverlayText();
-				g_skipFrontendEntryMovie = 0;
+				g_frontendSkipScreenEntrySetup = 0;
 				g_frontendQuickStartLaunchFlag = 0;
 				g_frontendGameSessionInProgress = 0;
 				g_missionSetupRosterAuthoritative = 0;

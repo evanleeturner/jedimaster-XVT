@@ -41,7 +41,7 @@ void XvtRenderAssets_BeginTick(void);
  * record and requests a fatal renderer error. Does nothing before Init or for NULL. */
 void XvtRenderAssets_Export(XvtRenderSnapshot* snapshot);
 /* Records that the renderer is done with the export of tick. */
-void XvtRenderAssets_Consumed(uint64_t tick);
+void XvtRenderAssets_Consumed(uint64_t snapshot_serial);
 /* Register the model or texture file loaded into a classic handle, keyed by that handle.
  * Handle 0 is ignored. */
 void XvtRenderAssets_RegisterOpt(uint16_t handle, const char* path);

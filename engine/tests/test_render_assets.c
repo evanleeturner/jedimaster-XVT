@@ -459,7 +459,7 @@ static void CheckRetiredLifetime(void) {
 	XVT_ASSERT_TRUE(listed);
 
 	/* Tick 3: consumed, but the previous snapshot (tick 1) still uses it. */
-	XvtRenderAssets_Consumed(current->tick_index);
+	XvtRenderAssets_Consumed(current->snapshot_serial);
 	XvtRenderSnapshot_BeginTick();
 	XvtRenderSnapshot_Commit(3, 1, 0);
 	current = XvtRenderSnapshot_Current();
@@ -478,7 +478,7 @@ static void CheckRetiredLifetime(void) {
 	XVT_ASSERT_TRUE(listed);
 
 	/* Consuming an older export is not enough. */
-	XvtRenderAssets_Consumed(current->tick_index - 1);
+	XvtRenderAssets_Consumed(current->snapshot_serial - 1);
 	XvtRenderSnapshot_BeginTick();
 	XvtRenderSnapshot_Commit(5, 1, 0);
 	current = XvtRenderSnapshot_Current();
@@ -488,7 +488,7 @@ static void CheckRetiredLifetime(void) {
 	XVT_ASSERT_TRUE(listed);
 
 	/* Tick 6: the last export is consumed and no snapshot uses it: it is gone. */
-	XvtRenderAssets_Consumed(current->tick_index);
+	XvtRenderAssets_Consumed(current->snapshot_serial);
 	XvtRenderSnapshot_BeginTick();
 	XvtRenderSnapshot_Commit(6, 1, 0);
 	current = XvtRenderSnapshot_Current();

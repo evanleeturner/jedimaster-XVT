@@ -76,7 +76,7 @@ int XvtRemasterView_NeedsWorld(const XvtRenderSnapshot* s) {
 			 !g_waitClassic);
 }
 
-int XvtRemasterView_Direct(const XvtRenderSnapshot* s, int width, int height) {
+int XvtRemasterView_TryEnableDirect(const XvtRenderSnapshot* s, int width, int height) {
 	return s->flight_valid && s->scene_kind == XVT_SCENE_FLIGHT && g_worldReady &&
 		   s->mission_generation == g_mission && g_blend.target > 0 && g_blend.alpha >= 1 && !g_waitClassic &&
 		   AeronDx5_IsClassicFlightRenderingSuppressed() && XvtFlightPipeline_SetDirect(1, width, height);
@@ -146,7 +146,7 @@ void XvtRemasterView_Present(const XvtRenderSnapshot* s, int32_t delta_us, int w
 	AeronTextureLayerDesc layer = {
 		.texture = output,
 		.logical_rect =
-			g_display == DISPLAY_FRONTEND ? XvtPresentation_ClassicRect() : XvtPresentation_Frame(),
+			g_display == DISPLAY_FRONTEND ? XvtPresentation_ClassicRect() : XvtPresentation_LogicalRect(),
 		.blend_mode = AERON_LAYER_BLEND_PREMULTIPLIED,
 		.color_space = flight                          ? AERON_COLOR_SPACE_LINEAR_SRGB
 					   : g_display == DISPLAY_FRONTEND ? AERON_COLOR_SPACE_SRGB

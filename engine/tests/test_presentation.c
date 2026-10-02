@@ -24,9 +24,9 @@ static void CheckRect(AeronRectI rect, int x, int y, int width, int height) {
 static void CheckInitResetsFrame(void) {
 	XvtPresentation_Init();
 	XvtPresentation_SyncToWindow(1920, 1080);
-	XVT_ASSERT_TRUE(XvtPresentation_Frame().width != XVT_CLASSIC_WIDTH);
+	XVT_ASSERT_TRUE(XvtPresentation_LogicalRect().width != XVT_CLASSIC_WIDTH);
 	XvtPresentation_Init();
-	CheckRect(XvtPresentation_Frame(), 0, 0, XVT_CLASSIC_WIDTH, XVT_CLASSIC_HEIGHT);
+	CheckRect(XvtPresentation_LogicalRect(), 0, 0, XVT_CLASSIC_WIDTH, XVT_CLASSIC_HEIGHT);
 	CheckRect(XvtPresentation_ClassicRect(), 0, 0, 640, 480);
 }
 
@@ -34,29 +34,29 @@ static void CheckSyncToWindow(void) {
 	XvtPresentation_Init();
 	/* 480 * 1920 / 1080 is 853.3: rounded to 853, made even. */
 	XvtPresentation_SyncToWindow(1920, 1080);
-	CheckRect(XvtPresentation_Frame(), 0, 0, 852, 480);
+	CheckRect(XvtPresentation_LogicalRect(), 0, 0, 852, 480);
 
 	/* 480 * 877 / 600 is 701.6: rounding gives 702, which is already even; cutting would give 700. */
 	XvtPresentation_SyncToWindow(877, 600);
-	XVT_ASSERT_INT_EQ(XvtPresentation_Frame().width, 702);
+	XVT_ASSERT_INT_EQ(XvtPresentation_LogicalRect().width, 702);
 
 	/* 4:3 and narrower windows give the classic width. */
 	XvtPresentation_SyncToWindow(800, 600);
-	XVT_ASSERT_INT_EQ(XvtPresentation_Frame().width, 640);
+	XVT_ASSERT_INT_EQ(XvtPresentation_LogicalRect().width, 640);
 	XvtPresentation_SyncToWindow(600, 800);
-	XVT_ASSERT_INT_EQ(XvtPresentation_Frame().width, 640);
+	XVT_ASSERT_INT_EQ(XvtPresentation_LogicalRect().width, 640);
 
 	/* 32:9 is the widest frame: 1706.7 rounds to 1707, made even; anything wider is clamped there. */
 	XvtPresentation_SyncToWindow(3840, 1080);
-	XVT_ASSERT_INT_EQ(XvtPresentation_Frame().width, 1706);
+	XVT_ASSERT_INT_EQ(XvtPresentation_LogicalRect().width, 1706);
 	XvtPresentation_SyncToWindow(10000, 1000);
-	XVT_ASSERT_INT_EQ(XvtPresentation_Frame().width, 1706);
+	XVT_ASSERT_INT_EQ(XvtPresentation_LogicalRect().width, 1706);
 
 	/* A non-positive size is ignored. */
 	XvtPresentation_SyncToWindow(0, 1080);
 	XvtPresentation_SyncToWindow(1920, 0);
 	XvtPresentation_SyncToWindow(-1920, -1080);
-	CheckRect(XvtPresentation_Frame(), 0, 0, 1706, 480);
+	CheckRect(XvtPresentation_LogicalRect(), 0, 0, 1706, 480);
 }
 
 static void CheckSyncTellsAeron(void) {

@@ -12,7 +12,7 @@ extern "C" {
  * preview's placement. width, height: the texture size. */
 typedef struct XvtPreviewOutput {
 	AeronTexture* texture;
-	uint64_t tick_index;
+	uint64_t snapshot_serial;
 	XvtSnapDrawHeader draw;
 	XvtSnapRect destination;
 	uint8_t mask_index;

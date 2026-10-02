@@ -486,7 +486,7 @@ static void CheckInitKeepsPoseHistory(void) {
 	XvtRenderCapture_CompleteNetworkWorld();
 	PublishView();
 	NextTick();
-	XvtRenderCapture_Init();
+	XvtRenderCapture_Reset();
 	uint64_t world = NextTick()->world_generation;
 	g_testObjects[0].roll = 0x0400;
 	XvtRenderCapture_CheckNetworkCorrection();

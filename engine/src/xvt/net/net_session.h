@@ -13,7 +13,7 @@ extern "C" {
 #pragma pack(push, 1)
 
 struct SessionPlayerInfo {
-	char sessionName[16];
+	char playerInfo[16];
 	char playerName[16];
 	int directPlayId;
 	int activeFlag;
@@ -142,7 +142,7 @@ int NetSession_RemovePlayerFromGroup(int playerDplayId);
 int NetSession_SelectFirstActivePlayerAsHost(void);
 int NetSession_UnusedStubReturnTrue(void);
 int NetSession_StubReturnTrue(void);
-int NetSession_ExitStub(int packetType);
+int NetSession_GetFixedPayloadSize(int packetType);
 int NetSession_SendReliableKeepalives(void);
 
 #ifdef __cplusplus

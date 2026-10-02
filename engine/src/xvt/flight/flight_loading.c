@@ -15,7 +15,7 @@
 // GLOBAL: XVT 0x5236A8
 uint32_t g_flightLoadingProgressStep;
 // GLOBAL: XVT 0x5236AC
-uint32_t g_flightLoadingProgressLastDrawTick;
+uint32_t g_flightLoadingProgressLastDrawMs;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x449110
@@ -24,7 +24,7 @@ void FlightLoading_ResetProgressState(void) {
 	XvtCockpitMessages_ClearProgress();
 #endif
 	g_flightLoadingProgressStep = 0;
-	g_flightLoadingProgressLastDrawTick = timeGetTime();
+	g_flightLoadingProgressLastDrawMs = timeGetTime();
 }
 
 // FUNCTION: XVT 0x449130
@@ -55,7 +55,7 @@ void FlightLoading_PulseAndDrawProgressScreen(void) {
 
 	now = timeGetTime();
 	stepPhase = g_flightLoadingProgressStep & 0x3fu;
-	if (stepPhase != 63u && (int32_t)(now - g_flightLoadingProgressLastDrawTick) < 200) {
+	if (stepPhase != 63u && (int32_t)(now - g_flightLoadingProgressLastDrawMs) < 200) {
 		++g_flightLoadingProgressStep;
 		return;
 	}
@@ -63,7 +63,7 @@ void FlightLoading_PulseAndDrawProgressScreen(void) {
 #ifdef XVT_MODERN
 	XvtRenderCapture_BeginOverlay();
 #endif
-	g_flightLoadingProgressLastDrawTick = now;
+	g_flightLoadingProgressLastDrawMs = now;
 	if (stepPhase == 63u)
 		FlightNet_BroadcastStillLoadingPulse();
 

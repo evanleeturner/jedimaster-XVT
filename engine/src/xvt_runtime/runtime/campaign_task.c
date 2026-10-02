@@ -97,7 +97,7 @@ int XvtCampaignTask_EnterTeams(void) {
 		Frontend_CheckHostCdPresent();
 		if (!g_hostCdAvailable && g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_NET_CLIENT)
 			XvtStorage_Fatal("Cannot load required training mission", 1);
-		if (g_skipFrontendEntryMovie ||
+		if (g_frontendSkipScreenEntrySetup ||
 			g_missionSetupDebriefTransition == MISSION_SETUP_DEBRIEF_TRANSITION_ENTER_CURRENT_MISSION ||
 			g_pilotData.missionSequenceActive != 1)
 			return 1;

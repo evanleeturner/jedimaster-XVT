@@ -90,7 +90,7 @@ unsigned int MATH2_longfraction(unsigned int value, uint16_t fracQ16) {
 }
 
 // FUNCTION: XVT 0x425C20
-uint16_t MATH2_divide(uint16_t numerator, uint16_t denominator) {
+uint16_t MATH2_ratioQ16(uint16_t numerator, uint16_t denominator) {
 	if (numerator == denominator)
 		return 0xffffu;
 	if (denominator == 0)
@@ -101,7 +101,7 @@ uint16_t MATH2_divide(uint16_t numerator, uint16_t denominator) {
 }
 
 // FUNCTION: XVT 0x425C60
-unsigned int MATH2_percentage(unsigned int numerator, unsigned int denominator) {
+unsigned int MATH2_longratioQ16(unsigned int numerator, unsigned int denominator) {
 	if (numerator == denominator) {
 		return 0xFFFF;
 	}
@@ -122,15 +122,15 @@ unsigned int MATH2_percentage(unsigned int numerator, unsigned int denominator) 
 
 // FUNCTION: XVT 0x425D80
 unsigned int MATH2_mphconvert(int16_t speed, uint16_t divisor) {
-	unsigned int ticksPerUnit;
+	unsigned int framesPerSecond;
 	unsigned int scaledValue;
 	unsigned int result;
 
 	scaledValue = 4660 * speed + 128;
 	scaledValue >>= 8;
-	ticksPerUnit = divisor;
-	result = scaledValue / ticksPerUnit;
-	if ((scaledValue & ticksPerUnit) > (scaledValue >> 1)) {
+	framesPerSecond = divisor;
+	result = scaledValue / framesPerSecond;
+	if ((scaledValue & framesPerSecond) > (scaledValue >> 1)) {
 		result++;
 	}
 	return result;
@@ -191,10 +191,10 @@ int16_t MATH2_getradarcoord(int a1, int a2, int a3) {
 		projectedX = (int)(0u - (uint32_t)a1);
 	}
 #ifdef XVT_MODERN
-	shift = (uint8_t)(perspShift - 5);
+	shift = (uint8_t)(g_perspectiveShift - 5);
 	projectedX = (int)((uint32_t)projectedX << (shift & 31u));
 #else
-	shift = perspShift - 5;
+	shift = g_perspectiveShift - 5;
 	projectedX <<= shift;
 #endif
 	if (a3 != 0) {

@@ -32,12 +32,12 @@ static int g_flightSurfaceViewport480ByteSpan;
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x49CAE0
 void FlightSurface_ClearToBlack(void) {
-	if (g_flight16bppBytesPerPixel == 1) {
-		memset(g_flightOffscreenBuffer, g_flightColorEscapeBypassChar, g_screenWidth * g_screenHeight);
+	if (g_flightBytesPerPixel == 1) {
+		memset(g_flightOffscreenBuffer, g_flightTransparentColorIndex, g_screenWidth * g_screenHeight);
 	} else {
 		FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight,
-								 g_screenWidth * g_flight16bppBytesPerPixel);
-		FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+								 g_screenWidth * g_flightBytesPerPixel);
+		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		FlightText_SetClipRect(0, 0, g_screenWidth, g_screenHeight);
 		g_flightFillClipRectFn();
 		FlightSw_SetRenderTarget(NULL, 320, 240, 0);
@@ -118,8 +118,10 @@ void FlightSurface_Lock(void) {
 				surfaceDesc.dwSize = sizeof(surfaceDesc);
 				g_flightBackBuffer->lpVtbl->GetSurfaceDesc(g_flightBackBuffer, &surfaceDesc);
 				g_flightPrimaryPitch[0] = surfaceDesc.lPitch;
-				horizontalOffset = g_flight16bppBytesPerPixel * ((unsigned int)(width - g_surfaceWidth) >> 1);
-				verticalOffset = surfaceDesc.lPitch * ((unsigned int)(height - g_surfaceHeight) >> 1);
+				horizontalOffset =
+					g_flightBytesPerPixel * ((unsigned int)(g_displayModeWidth - g_surfaceWidth) >> 1);
+				verticalOffset =
+					surfaceDesc.lPitch * ((unsigned int)(g_displayModeHeight - g_surfaceHeight) >> 1);
 				g_flightSwFramebufferBase += horizontalOffset;
 				g_flightSwFramebufferBase += verticalOffset;
 				g_surfacePixels = (uint8_t*)g_surfacePixels + horizontalOffset;
@@ -151,8 +153,10 @@ void FlightSurface_Lock(void) {
 			surfaceDesc.dwSize = sizeof(surfaceDesc);
 			g_flightPrimarySurface->lpVtbl->GetSurfaceDesc(g_flightPrimarySurface, &surfaceDesc);
 			g_flightPrimaryPitch[0] = surfaceDesc.lPitch;
-			horizontalOffset = g_flight16bppBytesPerPixel * ((unsigned int)(width - g_surfaceWidth) >> 1);
-			verticalOffset = surfaceDesc.lPitch * ((unsigned int)(height - g_surfaceHeight) >> 1);
+			horizontalOffset =
+				g_flightBytesPerPixel * ((unsigned int)(g_displayModeWidth - g_surfaceWidth) >> 1);
+			verticalOffset =
+				surfaceDesc.lPitch * ((unsigned int)(g_displayModeHeight - g_surfaceHeight) >> 1);
 			g_flightSwFramebufferBase += horizontalOffset;
 			g_flightSwFramebufferBase += verticalOffset;
 			g_surfacePixels = (uint8_t*)g_surfacePixels + horizontalOffset;

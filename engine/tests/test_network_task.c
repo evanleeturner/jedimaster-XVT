@@ -84,12 +84,12 @@ static void CheckEmptyBrowser(void) {
 	/* An index out of range clears the selection and the preview. */
 	strcpy(XvtNetworkTask_Preview()->title, "stale");
 	strcpy(XvtNetworkTask_Preview()->text, "stale");
-	XvtNetworkTask_Select(0);
+	XvtNetworkTask_ToggleSelection(0);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_SelectedIndex(), -1);
 	XVT_ASSERT_TRUE(XvtNetworkTask_SelectedRoom() == NULL);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_Preview()->title[0], 0);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_Preview()->text[0], 0);
-	XvtNetworkTask_Select(-3);
+	XvtNetworkTask_ToggleSelection(-3);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_SelectedIndex(), -1);
 
 	/* The scroll offset is the browser's own, for the list draw to read and write. */

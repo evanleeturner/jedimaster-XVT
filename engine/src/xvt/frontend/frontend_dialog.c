@@ -90,7 +90,7 @@ int FrontendDialog_ShowConfirmDialog(const char* line1, const char* line2, const
 }
 
 // FUNCTION: XVT 0x4DCD30
-int FrontendDialog_ConfirmUpdateCallback(int frameState) {
+int FrontendDialog_ConfirmUpdateCallback(int frameCounter) {
 	enum {
 		CURSOR_OK_X = 184,
 		CURSOR_CANCEL_X = 496,
@@ -114,7 +114,7 @@ int FrontendDialog_ConfirmUpdateCallback(int frameState) {
 		KEY_ENTER = 13,
 		KEY_ESCAPE = 27,
 		SAVE_OFFSCREEN_BACKUP = 1,
-		GLYPH_SCRATCH_FRAMES = 20,
+		TEXT_FADE_FRAMES = 20,
 	};
 
 	RECT rect;
@@ -122,7 +122,7 @@ int FrontendDialog_ConfirmUpdateCallback(int frameState) {
 	int pressed;
 
 	finished = 0;
-	if (frameState == 0) {
+	if (frameCounter == 0) {
 		Keyboard_FlushCharBuffer();
 		if (g_frontDialogOkayLabel[0] || !g_frontDialogCancelLabel[0]) {
 			FrontendCursor_SetPos(CURSOR_OK_X, CURSOR_Y);
@@ -134,7 +134,7 @@ int FrontendDialog_ConfirmUpdateCallback(int frameState) {
 		FrontImage_DrawSpriteTranslucent("dialogbox", 0, 0);
 		FrontImage_DrawSpriteTranslucent("dialogbox", 0, 0);
 		FrontendDisplay_UnlockOffscreenSurface(SAVE_OFFSCREEN_BACKUP);
-		FrontendText_StartTextFadeIn(GLYPH_SCRATCH_FRAMES);
+		FrontendText_StartTextFadeIn(TEXT_FADE_FRAMES);
 		return 0;
 	}
 
@@ -218,35 +218,35 @@ int FrontendDialog_ConfirmUpdateCallback(int frameState) {
 // FUNCTION: XVT 0x4DD0F0
 int FrontendDialog_HasNetworkDismissPacket(void) {
 
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_PLAYER_ADMITTED) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_PLAYER_ADMITTED) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_HOST_CANCELLED) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_HOST_CANCELLED) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_PLAYER_LEFT) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_PLAYER_LEFT) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_TEAM_ASSIGNMENTS_READY) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_TEAM_ASSIGNMENTS_READY) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_FRONTEND_MISSION_START) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_FRONTEND_MISSION_START) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_FRONTEND_OPCODE_74) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_FRONTEND_OPCODE_74) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_NEXT_TOURNAMENT_MISSION) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_NEXT_TOURNAMENT_MISSION) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_NEXT_BATTLE_MISSION) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_NEXT_BATTLE_MISSION) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_REPLAY_CURRENT_MISSION) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_REPLAY_CURRENT_MISSION) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_RETURN_TO_SETUP) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_RETURN_TO_SETUP) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_REPLAY_MISSION) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_REPLAY_MISSION) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_PLAYER_KICKED) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_PLAYER_KICKED) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_SESSION_CANCELLED) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_SESSION_CANCELLED) != 0)
 		return 1;
-	if (Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_LAUNCH_ROSTER_AND_ASSIGNMENTS) != 0)
+	if (Net_PollForPacketTypeOrBacklog(NET_PACKET_LAUNCH_ROSTER_AND_ASSIGNMENTS) != 0)
 		return 1;
-	return Net_HasQueuedPacketTypeOrBacklog(NET_PACKET_RETURN_TO_MISSION_SELECTION) != 0;
+	return Net_PollForPacketTypeOrBacklog(NET_PACKET_RETURN_TO_MISSION_SELECTION) != 0;
 }
 
 // FUNCTION: XVT 0x4DD220
@@ -281,11 +281,11 @@ int FrontendDialog_PromptForPilotName(char* outName) {
 }
 
 // FUNCTION: XVT 0x4DD2C0
-int FrontendDialog_CreatePilotNameCallback(int frameState) {
+int FrontendDialog_CreatePilotNameCallback(int frameCounter) {
 	RECT rect;
 	int accepted;
 
-	if (frameState == 0) {
+	if (frameCounter == 0) {
 		FrontendCursor_SetPos(417, 291);
 		Keyboard_FlushCharBuffer();
 		FrontImage_RegisterResourceDefault("frontres\\create.bmp", "backname");
@@ -386,13 +386,13 @@ int FrontendDialog_ShowNetworkAbortError(const char* line1, const char* line2, c
 }
 
 // FUNCTION: XVT 0x4DD620
-int FrontendDialog_NetworkAbortErrorCallback(int frameState) {
+int FrontendDialog_NetworkAbortErrorCallback(int frameCounter) {
 	RECT rect;
 	int finished;
 	int pressed;
 
 	finished = 0;
-	if (frameState == 0) {
+	if (frameCounter == 0) {
 		Keyboard_FlushCharBuffer();
 		if (g_frontDialogOkayLabel[0] != '\0' || g_frontDialogCancelLabel[0] == '\0') {
 			FrontendCursor_SetPos(184, 255);

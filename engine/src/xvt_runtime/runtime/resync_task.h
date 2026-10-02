@@ -16,7 +16,7 @@ extern "C" {
  * it a peer-timeout deadline; with a request already out, it aborts the local player and ends the
  * mission once that deadline passes. The host cannot receive an image, so it ends the mission and
  * announces that it left. */
-void XvtResync_RequestState(void);
+void XvtResync_ServiceRecovery(void);
 /* 1 when a deferred checksum report carries a state request. */
 int XvtResync_HasStateRequest(void);
 /* The tick at or below which a world message is old: the incoming image's tick while it is

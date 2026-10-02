@@ -195,7 +195,7 @@ void XvtPlayerTiming_Recover(unsigned player) {
 	if (!s)
 		return;
 	const ObjectRecord* o = &g_objectTable[g_players[player].objectIndex];
-	XvtFlightIntegration_Reset((unsigned)g_players[player].objectIndex);
+	XvtFlightIntegration_ResetSlotAndMotion((unsigned)g_players[player].objectIndex);
 	memset(s->remainder, 0, sizeof s->remainder);
 	memset(s->direction, 0, sizeof s->direction);
 	s->recovery[0] = o->world_x;

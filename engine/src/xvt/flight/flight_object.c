@@ -163,7 +163,7 @@ void FlightObject_UpdateSpecialBehavior(void) {
 								rotationScale = ModelMesh_GetRotScaleData(objectType, turretMeshIndex);
 								object = &g_objectTable[objectIndex];
 								Mission_ResolveObjectOrMissionPointWorldLoc(turretTarget->targetObjIdx, 0);
-								worldlocx -= object->world_x;
+								g_worldLocX -= object->world_x;
 								worldlocy -= object->world_y;
 								worldlocz -= object->world_z;
 								if (object->mobj->orientMatrixDirty != 0) {
@@ -171,23 +171,25 @@ void FlightObject_UpdateSpecialBehavior(void) {
 									FVIEW_calcrotateorient(object->roll, 0, object);
 								}
 								turretSide =
-									Math_Dot3Q15(worldlocx, worldlocy, worldlocz, object->mobj->cachedSideX,
+									Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, object->mobj->cachedSideX,
 												 object->mobj->cachedSideY, object->mobj->cachedSideZ);
 								turretForward =
-									-Math_Dot3Q15(worldlocx, worldlocy, worldlocz, object->mobj->cachedFwdX,
+									-Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, object->mobj->cachedFwdX,
 												  object->mobj->cachedFwdY, object->mobj->cachedFwdZ);
 								turretUp =
-									Math_Dot3Q15(worldlocx, worldlocy, worldlocz, object->mobj->cachedUpX,
+									Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, object->mobj->cachedUpX,
 												 object->mobj->cachedUpY, object->mobj->cachedUpZ);
-								worldlocx = turretSide - (int)rotationScale[0];
+								g_worldLocX = turretSide - (int)rotationScale[0];
 								worldlocy = turretForward - (int)rotationScale[1];
 								worldlocz = turretUp - (int)rotationScale[2];
-								(void)Math_Dot3Q15(worldlocx, worldlocy, worldlocz, (int)rotationScale[3],
+								(void)Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, (int)rotationScale[3],
 												   (int)rotationScale[4], (int)rotationScale[5]);
-								angleX = Math_Dot3Q15(worldlocx, worldlocy, worldlocz, (int)rotationScale[6],
-													  (int)rotationScale[7], (int)rotationScale[8]);
-								angleY = Math_Dot3Q15(worldlocx, worldlocy, worldlocz, (int)rotationScale[9],
-													  (int)rotationScale[10], (int)rotationScale[11]);
+								angleX =
+									Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, (int)rotationScale[6],
+												 (int)rotationScale[7], (int)rotationScale[8]);
+								angleY =
+									Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, (int)rotationScale[9],
+												 (int)rotationScale[10], (int)rotationScale[11]);
 								g_curCraft->meshRotation[turretMeshIndex] =
 									(uint8_t)((uint16_t)trig2_arctan(angleY, angleX) >> 8);
 							} else {
@@ -669,7 +671,7 @@ void FlightObject_UpdateDebrisAndTransientAnimations(void) {
 		deltaZ = -deltaZ;
 	if (collide_roughdistance3du((unsigned int)deltaX, (unsigned int)deltaY, (unsigned int)deltaZ) > 0x800) {
 #ifdef XVT_MODERN
-		XvtFlightIntegration_Reset(debrisIndex);
+		XvtFlightIntegration_ResetSlotAndMotion(debrisIndex);
 #endif
 		g_objectTable[debrisIndex].objectType = (GameRand2() & 3) + 110;
 		g_objectTable[debrisIndex].genusId = 11;

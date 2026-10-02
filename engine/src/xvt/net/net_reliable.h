@@ -27,7 +27,7 @@ struct NetReliablePeerSlot {
 	int packetCount;
 	int packetDropCount;
 	int packetRetryCount;
-	uint32_t lastKeepaliveMs;
+	uint32_t lastHeardMs;
 };
 
 #pragma pack(pop)

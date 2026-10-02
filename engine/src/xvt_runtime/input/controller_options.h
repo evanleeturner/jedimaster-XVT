@@ -82,7 +82,6 @@ bool XvtControllerOptions_AddModel(XvtControllerOptions* options, const AeronCon
 /* Adds each connected gamepad in input that has no model yet, in GUID order, with the defaults profile,
  * leaving unbound any axis an earlier model already drives. Fails only when a model cannot be added;
  * true for NULL input. */
-bool XvtControllerOptions_InitializeGamepads(XvtControllerOptions* options,
-											 const XvtControllerProfile* defaults,
-											 const AeronInputSnapshot* input, char* error, size_t capacity);
+bool XvtControllerOptions_AddNewGamepads(XvtControllerOptions* options, const XvtControllerProfile* defaults,
+										 const AeronInputSnapshot* input, char* error, size_t capacity);
 #endif

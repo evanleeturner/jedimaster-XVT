@@ -58,7 +58,7 @@ static void Start(void) {
 	g_flightTextBgColor = BACKGROUND;
 	g_flightTextShadowColor = SHADOW;
 	g_flightTextShadowEnabled = 1;
-	g_flightColorEscapeBypassChar = BYPASS;
+	g_flightTransparentColorIndex = BYPASS;
 	g_flightOffscreenBuffer = NULL;
 	g_flightSwFramebufferBase = g_framebuffer;
 

@@ -216,7 +216,7 @@ uint16_t g_localBeamTargetObjIdx = 0;
 // GLOBAL: XVT 0x9A8064
 int16_t g_targetProximityBlinkTimer = 0;
 // GLOBAL: XVT 0x9D8112
-uint16_t g_simStepScale = 0;
+uint16_t g_simStepsPerSecond = 0;
 // GLOBAL: XVT 0x9CD274
 int g_localDebrisSlotEnd = 0;
 // GLOBAL: XVT 0x9E8F50
@@ -383,16 +383,16 @@ void Flight_UpdateTimers(void) {
 				if (controller->maneuverTimer < 0)
 					controller->maneuverTimer = 0;
 			}
-			if (controller->aiPlanState != 0) {
+			if (controller->secondaryManeuverTimer != 0) {
 
 #ifdef XVT_MODERN
-				controller->aiPlanState -= XvtFlightTiming_ReferenceElapsed();
+				controller->secondaryManeuverTimer -= XvtFlightTiming_ReferenceElapsed();
 #else
-				controller->aiPlanState -= g_elapsedTicks;
+				controller->secondaryManeuverTimer -= g_elapsedTicks;
 #endif
 
-				if (controller->aiPlanState < 0)
-					controller->aiPlanState = 0;
+				if (controller->secondaryManeuverTimer < 0)
+					controller->secondaryManeuverTimer = 0;
 			}
 
 			if (g_curCraft->weaponFireInhibitTimer != 0) {
@@ -445,16 +445,16 @@ void Flight_UpdateTimers(void) {
 						if (controller->maneuverTimer < 0)
 							controller->maneuverTimer = 0;
 					}
-					if (controller->aiPlanState != 0) {
+					if (controller->secondaryManeuverTimer != 0) {
 
 #ifdef XVT_MODERN
-						controller->aiPlanState -= XvtFlightTiming_ReferenceElapsed();
+						controller->secondaryManeuverTimer -= XvtFlightTiming_ReferenceElapsed();
 #else
-						controller->aiPlanState -= g_elapsedTicks;
+						controller->secondaryManeuverTimer -= g_elapsedTicks;
 #endif
 
-						if (controller->aiPlanState < 0)
-							controller->aiPlanState = 0;
+						if (controller->secondaryManeuverTimer < 0)
+							controller->secondaryManeuverTimer = 0;
 					}
 				}
 				++objectIndex;
@@ -667,7 +667,7 @@ void Flight_UpdateDynamicMusicState(void) {
 	uint8_t trackNumber;
 	uint16_t playerIff;
 	uint8_t primaryGoalStatus;
-	uint32_t currentTick;
+	uint32_t currentTimeMs;
 	uint32_t elapsedMs;
 
 	if (g_gameConfig.musicEnabled == 0 || g_gameConfig.musicVolume == 0 ||
@@ -691,7 +691,7 @@ void Flight_UpdateDynamicMusicState(void) {
 
 		if (trackNumber != 0) {
 			MusicCd_PlayTrackFromTime(trackNumber, 0, 0);
-			g_dynamicMusicTrackRemainingMs = MusicCd_GetTrackEndTimeMs(trackNumber);
+			g_dynamicMusicTrackRemainingMs = MusicCd_GetTrackLengthMs(trackNumber);
 			g_dynamicMusicOutcomeLatched = 1;
 			g_dynamicMusicState = trackNumber;
 		}
@@ -701,13 +701,13 @@ void Flight_UpdateDynamicMusicState(void) {
 		return;
 	}
 
-	currentTick = timeGetTime();
-	elapsedMs = currentTick - g_dynamicMusicLastUpdateMs;
-	g_dynamicMusicLastUpdateMs = currentTick;
+	currentTimeMs = timeGetTime();
+	elapsedMs = currentTimeMs - g_dynamicMusicLastUpdateMs;
+	g_dynamicMusicLastUpdateMs = currentTimeMs;
 	g_dynamicMusicTrackRemainingMs -= elapsedMs;
 	if (g_dynamicMusicTrackRemainingMs <= 0) {
 		MusicCd_PlayTrackFromTime(2, 0, 0);
-		g_dynamicMusicTrackRemainingMs = MusicCd_GetTrackEndTimeMs(2);
+		g_dynamicMusicTrackRemainingMs = MusicCd_GetTrackLengthMs(2);
 		g_dynamicMusicState = 2;
 	}
 }
@@ -716,7 +716,7 @@ void Flight_UpdateDynamicMusicState(void) {
 uint8_t* Flight_GetDuplicateWorldStateBuffer(void) { return g_worldStateDupBuffer; }
 
 // FUNCTION: XVT 0x416710
-int Flight_GetSerializedWorldStateSize(void) { return g_worldStateDupSize; }
+int Flight_GetDuplicateWorldStateSize(void) { return g_worldStateDupSize; }
 
 // FUNCTION: XVT 0x416720
 void Flight_AllocWorldStateBuffers(void) {
@@ -1787,9 +1787,9 @@ void Flight_StepSimToTime(int targetGameTime) {
 			break;
 		if ((int)(uint16_t)g_elapsedTicks > g_netUpdateIntervalTicks)
 			g_elapsedTicks = (uint16_t)g_netUpdateIntervalTicks;
-		g_simStepScale = (uint16_t)(SIMULATION_TICKS_PER_SECOND / (int)(uint16_t)g_elapsedTicks);
-		if (g_simStepScale == 0)
-			g_simStepScale = MINIMUM_SIM_STEP_TICKS;
+		g_simStepsPerSecond = (uint16_t)(SIMULATION_TICKS_PER_SECOND / (int)(uint16_t)g_elapsedTicks);
+		if (g_simStepsPerSecond == 0)
+			g_simStepsPerSecond = MINIMUM_SIM_STEP_TICKS;
 		g_gameTime = gameTime;
 		Flight_AdvanceOneStep(gameTime + (uint16_t)g_elapsedTicks);
 		if (g_flightSimSideEffectsSuppressed == 0 && g_flightMissionState.missionEndPending == 1)
@@ -1888,7 +1888,7 @@ void Flight_AdvanceOneStep(int targetGameTime) {
 				if (mobileObject == NULL || mobileObject->pCraft == NULL)
 					continue;
 				if (g_players[playerIdx].savedObjectSignature == object->objectSignature &&
-					g_players[playerIdx].savedRegion == g_players[playerIdx].regionSessionId) {
+					g_players[playerIdx].savedRegion == g_players[playerIdx].awaitingNewCraft) {
 					if (mobileObject->simStateTimestamp > g_players[playerIdx].lockstepTimestamp) {
 						mobileObject->simStateTimestamp = g_players[playerIdx].lockstepTimestamp;
 						g_objectTable[g_players[playerIdx].objectIndex].world_x = g_players[playerIdx].savedX;
@@ -1922,7 +1922,7 @@ void Flight_AdvanceOneStep(int targetGameTime) {
 			}
 
 			savedElapsedTicks = g_elapsedTicks;
-			savedSimStepScale = g_simStepScale;
+			savedSimStepScale = g_simStepsPerSecond;
 			if (g_players[playerIdx].objectIndex != -1) {
 				g_singleObjectUpdateOverrideIdx = g_players[playerIdx].objectIndex;
 				if (g_objectTable[g_singleObjectUpdateOverrideIdx].mobj != NULL) {
@@ -1930,11 +1930,11 @@ void Flight_AdvanceOneStep(int targetGameTime) {
 
 					g_elapsedTicks = (uint16_t)(frame->timestamp - g_gameTime);
 					if (g_elapsedTicks == 0)
-						g_simStepScale = SIMULATION_TICKS_PER_SECOND;
+						g_simStepsPerSecond = SIMULATION_TICKS_PER_SECOND;
 					else
-						g_simStepScale = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
-					if (g_simStepScale == 0)
-						g_simStepScale = 1;
+						g_simStepsPerSecond = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
+					if (g_simStepsPerSecond == 0)
+						g_simStepsPerSecond = 1;
 					Flight_UpdateCraftSteeringAndSpeed();
 					Object_UpdateLifetimeAndMovement();
 					g_objectTable[g_singleObjectUpdateOverrideIdx].mobj->simStateTimestamp = frame->timestamp;
@@ -1950,7 +1950,7 @@ void Flight_AdvanceOneStep(int targetGameTime) {
 					g_players[playerIdx].savedSpeed = object->mobj->speed;
 					g_players[playerIdx].savedSpeedRemainder = object->mobj->speedRemainder;
 					g_players[playerIdx].savedObjectSignature = object->objectSignature;
-					g_players[playerIdx].savedRegion = g_players[playerIdx].regionSessionId;
+					g_players[playerIdx].savedRegion = g_players[playerIdx].awaitingNewCraft;
 				}
 				g_singleObjectUpdateOverrideIdx = -1;
 			}
@@ -1959,11 +1959,11 @@ void Flight_AdvanceOneStep(int targetGameTime) {
 			if (g_elapsedTicks < MINIMUM_REPLAY_TICKS)
 				g_elapsedTicks = MINIMUM_REPLAY_TICKS;
 			if (g_elapsedTicks == 0)
-				g_simStepScale = SIMULATION_TICKS_PER_SECOND;
+				g_simStepsPerSecond = SIMULATION_TICKS_PER_SECOND;
 			else
-				g_simStepScale = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
-			if (g_simStepScale == 0)
-				g_simStepScale = 1;
+				g_simStepsPerSecond = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
+			if (g_simStepsPerSecond == 0)
+				g_simStepsPerSecond = 1;
 
 			g_players[playerIdx].lockstepTimestamp = frame->timestamp;
 			g_replayInputs[playerIdx] = frame->input;
@@ -1978,9 +1978,9 @@ void Flight_AdvanceOneStep(int targetGameTime) {
 					g_lastLocalReplayInputTimestamp = frame->timestamp;
 				}
 			}
-			Flight_UpdateEntity(playerIdx);
+			Flight_UpdatePlayerStep(playerIdx);
 			g_elapsedTicks = (uint16_t)savedElapsedTicks;
-			g_simStepScale = (uint16_t)savedSimStepScale;
+			g_simStepsPerSecond = (uint16_t)savedSimStepScale;
 			connectedFlag = g_players[playerIdx].connectedFlag;
 			g_gameTime = savedGameTime;
 			g_flightSfxSideEffectGate = 0;
@@ -2048,12 +2048,12 @@ void Flight_MainLoop(int unused) {
 	fsfx_ClearSfxNameTable();
 	FlightSync_ResetRemotePlayerRenderSmoothing();
 	FlightLoading_ResetProgressState();
-	Time_ResetFrameDeltaClocks();
+	Time_ResetElapsedTicks();
 	g_flightDisplaySurfacesActive = 1;
 	g_flightLockBackBufferForHudDraw = 1;
-	if (g_flightRenderModeId == SOFTWARE_RENDER_MODE && g_surfaceWidth == 320) {
+	if (g_flightViewportInsetX == SOFTWARE_RENDER_MODE && g_surfaceWidth == 320) {
 		g_flightResolutionMode = FLIGHT_RESOLUTION_320X240;
-	} else if (g_flightRenderModeId == SOFTWARE_RENDER_MODE && g_surfaceWidth == 480) {
+	} else if (g_flightViewportInsetX == SOFTWARE_RENDER_MODE && g_surfaceWidth == 480) {
 		g_flightResolutionMode = FLIGHT_RESOLUTION_480X360;
 	} else {
 		g_flightResolutionMode = FLIGHT_RESOLUTION_640X480;
@@ -2189,7 +2189,7 @@ void Flight_MainLoop(int unused) {
 	FlightSurface_Unlock();
 	FlightSurface_ClearToBlack();
 
-	if (g_flight16bppBytesPerPixel == 1) {
+	if (g_flightBytesPerPixel == 1) {
 		missionExtensionOffset = (int)strlen(g_currentMissionFile) - MISSION_EXTENSION_LENGTH;
 		savedMissionExtensionPrefix[MISSION_EXTENSION_FIRST] =
 			g_currentMissionFile[missionExtensionOffset + MISSION_EXTENSION_FIRST];
@@ -2284,21 +2284,21 @@ void Flight_MainLoop(int unused) {
 	if (g_gameConfig.musicEnabled != 0 && g_gameConfig.musicVolume != 0 && MusicCd_Initialize() != 0) {
 		int musicChoice;
 		uint16_t musicVolume;
-		uint32_t musicUpdateTick;
+		uint32_t musicUpdateMs;
 
 		musicVolume = UINT16_MAX * g_gameConfig.musicVolume / MUSIC_VOLUME_LEVEL_COUNT;
 		MusicCd_SetAuxVolume(musicVolume);
 		musicChoice = GameRand2() & (MUSIC_START_CHOICE_COUNT - 1);
 		MusicCd_PlayTrackFromTime(MUSIC_TRACK_FLIGHT, g_dynamicMusicInitialStartMinuteChoices[musicChoice],
 								  g_dynamicMusicInitialStartSecondChoices[musicChoice]);
-		g_dynamicMusicTrackRemainingMs = MusicCd_GetTrackEndTimeMs(MUSIC_TRACK_FLIGHT);
+		g_dynamicMusicTrackRemainingMs = MusicCd_GetTrackLengthMs(MUSIC_TRACK_FLIGHT);
 		g_dynamicMusicTrackRemainingMs -=
 			MILLISECONDS_PER_MINUTE * g_dynamicMusicInitialStartMinuteChoices[musicChoice];
 		g_dynamicMusicTrackRemainingMs -=
 			MILLISECONDS_PER_SECOND * g_dynamicMusicInitialStartSecondChoices[musicChoice];
-		musicUpdateTick = timeGetTime();
+		musicUpdateMs = timeGetTime();
 		g_dynamicMusicState = MUSIC_TRACK_FLIGHT;
-		g_dynamicMusicLastUpdateMs = musicUpdateTick;
+		g_dynamicMusicLastUpdateMs = musicUpdateMs;
 	} else {
 		g_dynamicMusicTrackRemainingMs = INT32_MAX;
 		g_dynamicMusicState = 0;
@@ -2517,7 +2517,7 @@ void Flight_RunMissionLoop(void) {
 			g_predictedFrameDelta = frameTargetTimestamp - g_flightLastStepTargetTimestamp;
 			savedInputTimestamp = g_inputTimestamp;
 			g_inputTimestamp = frameTargetTimestamp;
-			FlightNet_SampleAndSendInput();
+			FlightNet_SampleLocalInput();
 			g_flightSimSideEffectsSuppressed = 0;
 			g_netUpdateIntervalTicks = g_inputTimestamp - g_gameTime;
 			Flight_StepSimToTime(g_inputTimestamp);
@@ -2695,7 +2695,7 @@ void Flight_RunMissionLoop(void) {
 				g_predictedFrameDelta = frameTargetTimestamp - g_flightLastStepTargetTimestamp;
 				savedInputTimestamp = g_inputTimestamp;
 				g_inputTimestamp = frameTargetTimestamp;
-				FlightNet_SampleAndSendInput();
+				FlightNet_SampleLocalInput();
 				FlightSync_QueuePredictedRemoteInputFrames(g_predictedFrameDelta);
 				g_flightSimSideEffectsSuppressed = 1;
 				simulationWarpTicks = g_inputTimestamp - g_gameTime;
@@ -2767,7 +2767,7 @@ void Flight_RunMissionLoop(void) {
 			loopTicks = 1;
 		}
 
-		if (g_flightConfTickCounter == 0) {
+		if (g_flightConfTickCounterEnabled == 0) {
 			g_flightTickOverlaySampleCount = 0;
 			g_flightTickOverlayWindowTicks = 0;
 		} else {
@@ -3130,7 +3130,7 @@ unsigned int Flight_ChecksumBufferRotateXor(const void* data, unsigned int size)
 }
 
 // FUNCTION: XVT 0x47A5E0
-void Flight_UpdateEntity(int playerIdx) {
+void Flight_UpdatePlayerStep(int playerIdx) {
 #ifdef XVT_MODERN
 	XvtFlightSim_UpdateEntity(playerIdx);
 #else
@@ -3194,7 +3194,7 @@ void Flight_UpdateEntity(int playerIdx) {
 					}
 					break;
 				case FLIGHT_KEY_ALT_B:
-					if (g_flight16bppBytesPerPixel == PALETTED_BYTES_PER_PIXEL) {
+					if (g_flightBytesPerPixel == PALETTED_BYTES_PER_PIXEL) {
 						g_flightBrightnessScaleQ8 += BRIGHTNESS_STEP_Q8;
 						if (g_flightBrightnessScaleQ8 == BRIGHTNESS_LIMIT_Q8)
 							g_flightBrightnessScaleQ8 = BRIGHTNESS_MIN_Q8;
@@ -3273,7 +3273,7 @@ void Flight_UpdateEntity(int playerIdx) {
 	if (g_flightRuntimeStateInitialized > 1 && g_dormantFlightRegionSessionEarlyReturnFlag != 0)
 		return;
 
-	if (g_players[playerIdx].regionSessionId != 0) {
+	if (g_players[playerIdx].awaitingNewCraft != 0) {
 		if (g_flightSimSideEffectsSuppressed == 0) {
 			objectIndex = g_players[playerIdx].objectIndex;
 			if (objectIndex != -1 && g_objectTable[objectIndex].objectType == 0) {
@@ -3405,7 +3405,7 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 						if (targetMobile->pCraft != NULL) {
 							uint16_t targetSpeed = targetMobile->speed;
 							uint16_t powerMargin =
-								6 - craft->shieldRedirect - craft->beamLevel - craft->laserRedirect;
+								6 - craft->shieldRechargeLevel - craft->beamLevel - craft->laserRechargeLevel;
 							uint16_t maxSpeed = craft->aiFlight.maxSpeedCache;
 							if (powerMargin >= 0x8000u)
 								maxSpeed -= MATH2_fraction(-powerMargin << 13, maxSpeed);
@@ -3417,7 +3417,7 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 									IFMSG_280_TRYING_TO_MATCH_SPEED_WITH_TARGET_THROTTLE_SET_TO_FULL,
 									playerIdx);
 							} else {
-								craft->throttleSpeed = MATH2_divide(targetSpeed, maxSpeed);
+								craft->throttleSpeed = MATH2_ratioQ16(targetSpeed, maxSpeed);
 								msg_emitInFlightMessage(IFMSG_279_MATCHING_SPEED_WITH_TARGET, playerIdx);
 							}
 						} else {
@@ -3590,8 +3590,8 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 			case FLIGHT_KEY_SHIFT_0: {
 				int presetIndex = g_currentActionKey != FLIGHT_KEY_SHIFT_9;
 				g_players[playerIdx].throttlePreset[presetIndex] = (int16_t)craft->throttleSpeed;
-				g_players[playerIdx].laserPreset[presetIndex] = craft->laserRedirect;
-				g_players[playerIdx].shieldPreset[presetIndex] = craft->shieldRedirect;
+				g_players[playerIdx].laserPreset[presetIndex] = craft->laserRechargeLevel;
+				g_players[playerIdx].shieldPreset[presetIndex] = craft->shieldRechargeLevel;
 				g_players[playerIdx].beamPreset[presetIndex] = craft->beamLevel;
 				msg_emitInFlightMessage(IFMSG_123_CONFIGURATION_SAVED_TO_PRESET, playerIdx);
 				fsfx_PlaySound(FLIGHT_SOUND_SMALL_CLICK, -1, playerIdx);
@@ -3630,8 +3630,8 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 			case FLIGHT_KEY_9: {
 				int presetIndex = g_currentActionKey != FLIGHT_KEY_9;
 				craft->throttleSpeed = (uint16_t)g_players[playerIdx].throttlePreset[presetIndex];
-				craft->laserRedirect = g_players[playerIdx].laserPreset[presetIndex];
-				craft->shieldRedirect = g_players[playerIdx].shieldPreset[presetIndex];
+				craft->laserRechargeLevel = g_players[playerIdx].laserPreset[presetIndex];
+				craft->shieldRechargeLevel = g_players[playerIdx].shieldPreset[presetIndex];
 				craft->beamLevel = g_players[playerIdx].beamPreset[presetIndex];
 				fsfx_PlaySound(FLIGHT_SOUND_SMALL_CLICK, -1, playerIdx);
 				break;
@@ -3937,7 +3937,7 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 						} else if (craft->shieldDistribMode == SHIELD_DISTRIBUTION_FULLY_AFT) {
 							Player_TransferShieldBankEnergy(1, 0, playerIdx);
 						} else {
-							uint16_t frontPercent = MATH2_percentage(
+							uint16_t frontPercent = MATH2_longratioQ16(
 								g_modelDefs[GetModelIndexFromType(
 												g_objectTable[g_players[playerIdx].objectIndex].objectType)]
 									.shieldStrength,
@@ -4202,28 +4202,30 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 				}
 				break;
 			case FLIGHT_KEY_F9:
-				if (++craft->laserRedirect >= POWER_RECHARGE_LEVEL_COUNT)
-					craft->laserRedirect = POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES;
+				if (++craft->laserRechargeLevel >= POWER_RECHARGE_LEVEL_COUNT)
+					craft->laserRechargeLevel = POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES;
 				if (playerIdx == g_localPlayer) {
 					if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0) {
-						msg_emitInFlightMessage((InFlightMessageId)(craft->laserRedirect + 71), playerIdx);
+						msg_emitInFlightMessage((InFlightMessageId)(craft->laserRechargeLevel + 71),
+												playerIdx);
 					} else {
 						g_msgArgTable[0] = 92;
 						g_msgArgTable[1] = 87;
 						msg_emitInFlightMessage(IFMSG_086_ARG_SYSTEM_IS_ARG, playerIdx);
 					}
-					fsfx_PlaySound((unsigned int)(craft->laserRedirect + FLIGHT_SOUND_SETTING_OFF), -1,
+					fsfx_PlaySound((unsigned int)(craft->laserRechargeLevel + FLIGHT_SOUND_SETTING_OFF), -1,
 								   playerIdx);
 				}
 				break;
 			case FLIGHT_KEY_F10:
 				if ((craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
 					if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
-						if (++craft->shieldRedirect >= POWER_RECHARGE_LEVEL_COUNT)
-							craft->shieldRedirect = POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES;
-						msg_emitInFlightMessage((InFlightMessageId)(craft->shieldRedirect + 76), playerIdx);
-						fsfx_PlaySound((unsigned int)(craft->shieldRedirect + FLIGHT_SOUND_SETTING_OFF), -1,
-									   playerIdx);
+						if (++craft->shieldRechargeLevel >= POWER_RECHARGE_LEVEL_COUNT)
+							craft->shieldRechargeLevel = POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES;
+						msg_emitInFlightMessage((InFlightMessageId)(craft->shieldRechargeLevel + 76),
+												playerIdx);
+						fsfx_PlaySound((unsigned int)(craft->shieldRechargeLevel + FLIGHT_SOUND_SETTING_OFF),
+									   -1, playerIdx);
 					} else {
 						g_msgArgTable[0] = 98;
 						g_msgArgTable[1] = 87;
@@ -5176,9 +5178,9 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 					}
 				} else {
 					int recentAttacker = (uint16_t)craft->lastAttackerObjIdx == candidate &&
-										 (uint16_t)Mission_GameTimeToSeconds(g_missionElapsedClock.hours,
-																			 g_missionElapsedClock.minutes,
-																			 g_missionElapsedClock.seconds) -
+										 (uint16_t)Mission_ClockToSeconds(g_missionElapsedClock.hours,
+																		  g_missionElapsedClock.minutes,
+																		  g_missionElapsedClock.seconds) -
 												 craft->lastHitMissionSecond <
 											 5;
 					int owner = object->playerOwnerIdx;
@@ -5689,7 +5691,7 @@ int Flight_Main(char* missionCmdLine) {
 	}
 
 	g_laserFireTimestampTrackingEnabled = 1;
-	g_asyncFlag = g_gameConfig.asyncFlag;
+	g_asyncFlag = g_gameConfig.internetPlay;
 	optionMatch = strstr(missionCmdLine, "traincourse");
 	g_flightConfTrainCourse = 1;
 	if (optionMatch == NULL) {
@@ -5729,11 +5731,11 @@ int Flight_Main(char* missionCmdLine) {
 		g_flightConfVoiceEnabled = 1;
 	}
 	if (strstr(missionCmdLine, "notickcounter") != NULL) {
-		g_flightConfTickCounter = 0;
+		g_flightConfTickCounterEnabled = 0;
 	} else if (strstr(missionCmdLine, "tickcounter") != NULL) {
-		g_flightConfTickCounter = 1;
+		g_flightConfTickCounterEnabled = 1;
 	} else {
-		g_flightConfTickCounter = 0;
+		g_flightConfTickCounterEnabled = 0;
 	}
 	if (strstr(missionCmdLine, "nomipmaps") != NULL) {
 		g_mipmappingEnabled = 0;
@@ -5883,13 +5885,13 @@ int Flight_Main(char* missionCmdLine) {
 		bppConfigValue = g_gameConfig.bpp[NetSession_GetPlayerCount() > 1];
 		switch (bppConfigValue) {
 			case DISPLAY_CONFIG_LOW:
-				g_flight16bppBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
+				g_flightBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
 				break;
 			case DISPLAY_CONFIG_MEDIUM:
-				g_flight16bppBytesPerPixel = HIGH_COLOR_BYTES_PER_PIXEL;
+				g_flightBytesPerPixel = HIGH_COLOR_BYTES_PER_PIXEL;
 				break;
 			default:
-				g_flight16bppBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
+				g_flightBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
 				break;
 		}
 	}
@@ -5979,16 +5981,16 @@ int Flight_Main(char* missionCmdLine) {
 	}
 	switch (g_gameConfig.screenRes[NetSession_GetPlayerCount() > 1]) {
 		case DISPLAY_CONFIG_LOW:
-			width = DISPLAY_WIDTH_LOW;
-			height = DISPLAY_HEIGHT_LOW;
+			g_displayModeWidth = DISPLAY_WIDTH_LOW;
+			g_displayModeHeight = DISPLAY_HEIGHT_LOW;
 			break;
 		case DISPLAY_CONFIG_MEDIUM:
-			width = DISPLAY_WIDTH_MEDIUM;
-			height = DISPLAY_HEIGHT_MEDIUM;
+			g_displayModeWidth = DISPLAY_WIDTH_MEDIUM;
+			g_displayModeHeight = DISPLAY_HEIGHT_MEDIUM;
 			break;
 		default:
-			width = DISPLAY_WIDTH_HIGH;
-			height = DISPLAY_HEIGHT_HIGH;
+			g_displayModeWidth = DISPLAY_WIDTH_HIGH;
+			g_displayModeHeight = DISPLAY_HEIGHT_HIGH;
 			break;
 	}
 	switch (g_gameConfig.windowSize[NetSession_GetPlayerCount() > 1]) {
@@ -6005,14 +6007,14 @@ int Flight_Main(char* missionCmdLine) {
 			g_surfaceHeight = DISPLAY_HEIGHT_HIGH;
 			break;
 	}
-	g_renderTargetWidth = width;
-	g_requestedFlightBytesPerPixel = g_flight16bppBytesPerPixel;
+	g_renderTargetWidth = g_displayModeWidth;
+	g_requestedFlightBytesPerPixel = g_flightBytesPerPixel;
 	g_requestedFlightHardware3D = g_useHardware3D;
 	if (FlightDisplay_Init() == 0) {
 		return 0;
 	}
 
-	switch (width) {
+	switch (g_displayModeWidth) {
 		case DISPLAY_WIDTH_LOW:
 			g_gameConfig.screenRes[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_LOW;
 			break;
@@ -6025,7 +6027,7 @@ int Flight_Main(char* missionCmdLine) {
 		default:
 			break;
 	}
-	switch (g_flight16bppBytesPerPixel) {
+	switch (g_flightBytesPerPixel) {
 		case PALETTED_BYTES_PER_PIXEL:
 			g_gameConfig.bpp[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_LOW;
 			break;
@@ -6157,7 +6159,7 @@ void Flight_UpdateCraftSteeringAndSpeed(void) {
 	int objectIdx;
 
 	simulationRate = SIMULATION_TICKS_PER_SECOND;
-	savedSimStepScale = g_simStepScale;
+	savedSimStepScale = g_simStepsPerSecond;
 	objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 	overrideProcessed = 0;
 	savedElapsedTicks = g_elapsedTicks;
@@ -6168,7 +6170,7 @@ void Flight_UpdateCraftSteeringAndSpeed(void) {
 			overrideProcessed = 1;
 			objectIndex = (uint16_t)g_singleObjectUpdateOverrideIdx;
 		}
-		g_simStepScale = (uint16_t)savedSimStepScale;
+		g_simStepsPerSecond = (uint16_t)savedSimStepScale;
 		g_elapsedTicks = (uint16_t)savedElapsedTicks;
 		objectIdx = objectIndex;
 		if (g_objectTable[objectIdx].mobj != NULL) {
@@ -6177,9 +6179,9 @@ void Flight_UpdateCraftSteeringAndSpeed(void) {
 											g_objectTable[objectIdx].mobj->simStateTimestamp);
 				if (g_elapsedTicks == 0)
 					continue;
-				g_simStepScale = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
-				if (g_simStepScale == 0)
-					g_simStepScale = 1;
+				g_simStepsPerSecond = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
+				if (g_simStepsPerSecond == 0)
+					g_simStepsPerSecond = 1;
 			}
 		}
 		if (g_objectTable[objectIdx].objectType == 0 || g_objectTable[objectIdx].mobj->family != 0)
@@ -6281,13 +6283,13 @@ void Flight_UpdateCraftSteeringAndSpeed(void) {
 #endif
 				(void)MATH2_fraction(pitchStep, 0x8000u);
 				if (g_curCraft->aiFlight.pitchState == 1) {
-					if (pitchStep < pitchDelta || g_curCraft->aiFlight.headingForce != 0) {
+					if (pitchStep < pitchDelta || g_curCraft->aiFlight.pitchThroughLoop != 0) {
 						g_curCraft->pitch -= pitchStep;
 						if (g_curCraft->pitch >= 0xE000u) {
 							g_curCraft->pitch = (uint16_t)-g_curCraft->pitch;
 							g_objectTable[objectIdx].yaw -= 0x8000u;
 							g_objectTable[objectIdx].roll -= 0x8000u;
-							g_curCraft->aiFlight.headingForce = 0;
+							g_curCraft->aiFlight.pitchThroughLoop = 0;
 							g_curCraft->aiFlight.pitchState = 2;
 						}
 					} else {
@@ -6295,13 +6297,13 @@ void Flight_UpdateCraftSteeringAndSpeed(void) {
 						g_curCraft->aiFlight.pitchState = 3;
 					}
 				} else if (g_curCraft->aiFlight.pitchState == 2) {
-					if (pitchStep < pitchDelta || g_curCraft->aiFlight.headingForce != 0) {
+					if (pitchStep < pitchDelta || g_curCraft->aiFlight.pitchThroughLoop != 0) {
 						g_curCraft->pitch += pitchStep;
 						if (g_curCraft->pitch >= 0x8000u) {
 							g_curCraft->pitch = (uint16_t)-g_curCraft->pitch;
 							g_objectTable[objectIdx].yaw -= 0x8000u;
 							g_objectTable[objectIdx].roll -= 0x8000u;
-							g_curCraft->aiFlight.headingForce = 0;
+							g_curCraft->aiFlight.pitchThroughLoop = 0;
 							g_curCraft->aiFlight.pitchState = 1;
 						}
 					} else {
@@ -6392,8 +6394,8 @@ void Flight_UpdateCraftSteeringAndSpeed(void) {
 				commandedSpeed = g_curCraft->commandedSpeed;
 				if (commandedSpeed == 0 || throttleFraction != UINT16_MAX) {
 					maxSpeed = g_curCraft->aiFlight.maxSpeedCache;
-					speedBias = 6 - (uint8_t)g_curCraft->shieldRedirect - (uint8_t)g_curCraft->beamLevel -
-								(uint8_t)g_curCraft->laserRedirect;
+					speedBias = 6 - (uint8_t)g_curCraft->shieldRechargeLevel -
+								(uint8_t)g_curCraft->beamLevel - (uint8_t)g_curCraft->laserRechargeLevel;
 					if (g_objectTable[objectIdx].objectType == 7)
 						maxSpeed += speedBias * MATH2_fraction(maxSpeed, 0x1000u);
 					else if (g_objectTable[objectIdx].objectType == 5 && speedBias > 0)
@@ -6436,7 +6438,7 @@ void Flight_UpdateCraftSteeringAndSpeed(void) {
 				break;
 			case CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE:
 				if (g_curCraft->workingSubsystems != 0) {
-					if (controller->aiPlanState != 0)
+					if (controller->secondaryManeuverTimer != 0)
 						Flight_AccelerateObjectSpeed(objectIdx, 50);
 					else if (controller->maneuverTimer != 0)
 						Flight_AccelerateObjectSpeed(objectIdx, 200);
@@ -6473,7 +6475,7 @@ void Flight_UpdateCraftSteeringAndSpeed(void) {
 			}
 		}
 	}
-	g_simStepScale = (uint16_t)savedSimStepScale;
+	g_simStepsPerSecond = (uint16_t)savedSimStepScale;
 	g_elapsedTicks = (uint16_t)savedElapsedTicks;
 }
 
@@ -6591,7 +6593,7 @@ void Flight_UpdateDivePulloutPitchTarget(int objectIdx) {
 		}
 		moveZ = object->mobj->moveZ;
 		projectedMovement = moveZ;
-		projectedMovement *= g_simStepScale;
+		projectedMovement *= g_simStepsPerSecond;
 		if (object->genusId == 0) {
 			projectedMovement *= 3;
 		} else {

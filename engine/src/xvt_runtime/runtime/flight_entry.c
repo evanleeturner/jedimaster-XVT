@@ -32,7 +32,7 @@ enum {
 	DISPLAY_INIT_SOUND_ERROR = 13,
 };
 
-static int g_session;
+static int g_gameSessionStarted;
 static int g_sound;
 static int g_devices;
 
@@ -52,7 +52,7 @@ static void XvtFlightEntry_ReadLaunchSwitches(char* missionCmdLine) {
 	}
 
 	g_laserFireTimestampTrackingEnabled = 1;
-	g_asyncFlag = g_gameConfig.asyncFlag;
+	g_asyncFlag = g_gameConfig.internetPlay;
 	optionMatch = strstr(missionCmdLine, "traincourse");
 	g_flightConfTrainCourse = 1;
 	if (optionMatch == NULL) {
@@ -92,11 +92,11 @@ static void XvtFlightEntry_ReadLaunchSwitches(char* missionCmdLine) {
 		g_flightConfVoiceEnabled = 1;
 	}
 	if (strstr(missionCmdLine, "notickcounter") != NULL) {
-		g_flightConfTickCounter = 0;
+		g_flightConfTickCounterEnabled = 0;
 	} else if (strstr(missionCmdLine, "tickcounter") != NULL) {
-		g_flightConfTickCounter = 1;
+		g_flightConfTickCounterEnabled = 1;
 	} else {
-		g_flightConfTickCounter = 0;
+		g_flightConfTickCounterEnabled = 0;
 	}
 	if (strstr(missionCmdLine, "nomipmaps") != NULL) {
 		g_mipmappingEnabled = 0;
@@ -145,7 +145,7 @@ int XvtFlightEntry_Prepare(char* missionCmdLine) {
 	int commandLineOffset;
 	int quotedArgument;
 
-	g_session = g_sound = g_devices = 0;
+	g_gameSessionStarted = g_sound = g_devices = 0;
 	ModelPreview_FreeResources();
 	g_flightRenderToFrontend = 0;
 	if (missionCmdLine == NULL) {
@@ -220,7 +220,7 @@ int XvtFlightEntry_Prepare(char* missionCmdLine) {
 			connectionAddress = NULL;
 			break;
 	}
-	g_session = 1;
+	g_gameSessionStarted = 1;
 	return NetSession_InitGameSession(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_SESSION_NAME],
 									  g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_PILOT_NAME],
 									  atoi(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_IS_HOST]),
@@ -278,16 +278,16 @@ static void XvtFlightEntry_ConfigureMipmaps(void) {
 static void XvtFlightEntry_ConfigureDisplaySize(void) {
 	switch (g_gameConfig.screenRes[NetSession_GetPlayerCount() > 1]) {
 		case DISPLAY_CONFIG_LOW:
-			width = DISPLAY_WIDTH_LOW;
-			height = DISPLAY_HEIGHT_LOW;
+			g_displayModeWidth = DISPLAY_WIDTH_LOW;
+			g_displayModeHeight = DISPLAY_HEIGHT_LOW;
 			break;
 		case DISPLAY_CONFIG_MEDIUM:
-			width = DISPLAY_WIDTH_MEDIUM;
-			height = DISPLAY_HEIGHT_MEDIUM;
+			g_displayModeWidth = DISPLAY_WIDTH_MEDIUM;
+			g_displayModeHeight = DISPLAY_HEIGHT_MEDIUM;
 			break;
 		default:
-			width = DISPLAY_WIDTH_HIGH;
-			height = DISPLAY_HEIGHT_HIGH;
+			g_displayModeWidth = DISPLAY_WIDTH_HIGH;
+			g_displayModeHeight = DISPLAY_HEIGHT_HIGH;
 			break;
 	}
 	switch (g_gameConfig.windowSize[NetSession_GetPlayerCount() > 1]) {
@@ -304,7 +304,7 @@ static void XvtFlightEntry_ConfigureDisplaySize(void) {
 			g_surfaceHeight = DISPLAY_HEIGHT_HIGH;
 			break;
 	}
-	g_renderTargetWidth = width;
+	g_renderTargetWidth = g_displayModeWidth;
 }
 
 static void XvtFlightEntry_Configure(void) {
@@ -344,13 +344,13 @@ static void XvtFlightEntry_Configure(void) {
 		bppConfigValue = g_gameConfig.bpp[NetSession_GetPlayerCount() > 1];
 		switch (bppConfigValue) {
 			case DISPLAY_CONFIG_LOW:
-				g_flight16bppBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
+				g_flightBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
 				break;
 			case DISPLAY_CONFIG_MEDIUM:
-				g_flight16bppBytesPerPixel = HIGH_COLOR_BYTES_PER_PIXEL;
+				g_flightBytesPerPixel = HIGH_COLOR_BYTES_PER_PIXEL;
 				break;
 			default:
-				g_flight16bppBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
+				g_flightBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
 				break;
 		}
 	}
@@ -405,7 +405,7 @@ static void XvtFlightEntry_Configure(void) {
 		}
 	}
 	XvtFlightEntry_ConfigureDisplaySize();
-	g_requestedFlightBytesPerPixel = g_flight16bppBytesPerPixel;
+	g_requestedFlightBytesPerPixel = g_flightBytesPerPixel;
 	g_requestedFlightHardware3D = g_useHardware3D;
 }
 
@@ -416,7 +416,7 @@ int XvtFlightEntry_CreateDevices(void) {
 		return 0;
 	}
 
-	switch (width) {
+	switch (g_displayModeWidth) {
 		case DISPLAY_WIDTH_LOW:
 			g_gameConfig.screenRes[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_LOW;
 			break;
@@ -429,7 +429,7 @@ int XvtFlightEntry_CreateDevices(void) {
 		default:
 			break;
 	}
-	switch (g_flight16bppBytesPerPixel) {
+	switch (g_flightBytesPerPixel) {
 		case PALETTED_BYTES_PER_PIXEL:
 			g_gameConfig.bpp[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_LOW;
 			break;
@@ -464,11 +464,11 @@ void XvtFlightEntry_Cleanup(void) {
 	if (g_devices) {
 		DInput_Shutdown();
 	}
-	if (g_session) {
+	if (g_gameSessionStarted) {
 		NetSession_Shutdown();
 		XvtNetworkSession_EndFlight();
 	}
-	g_session = 0;
+	g_gameSessionStarted = 0;
 	if (g_devices && g_useHardware3D != 0) {
 		std3D_DetachAndReleaseZBufferSurface();
 		std3D_Close();

@@ -62,7 +62,7 @@ static void CaptureView(XvtCockpitView* view) {
 	view->map_active = player->mapCameraState != 0;
 	view->external_camera = player->viewState.externalCameraActive != 0;
 	view->mission_ending = g_flightMissionState.missionEndPending != 0;
-	view->region_session = player->regionSessionId != 0;
+	view->region_session = player->awaitingNewCraft != 0;
 	view->instruments_visible = !view->mission_ending && !view->region_session;
 	view->viewport = (XvtSnapRect) { g_flightVpX, g_flightVpY, g_flightVpWidth, g_flightVpHeight };
 	view->projection_offset_y = g_projOffsetY;
@@ -196,7 +196,7 @@ void XvtCockpit_LatchLauncher(unsigned launcher, int x, int y, int width, int he
 	number->bounds = (XvtSnapRect) { x, y, width, height };
 	number->phase = XVT_COCKPIT_AFTER_CRT;
 	number->keyed = 1;
-	number->color_key_argb = XvtRenderDraw_Color(g_flightColorEscapeBypassChar);
+	number->color_key_argb = XvtRenderDraw_Color(g_flightTransparentColorIndex);
 	g_pending.weapons.launchers[launcher].visible = 1;
 }
 
@@ -260,7 +260,7 @@ void XvtCockpit_Presented(int standalone_overlay) {
 		XvtRenderCockpit_CaptureDefinition(&g_pending.definition);
 	XvtCockpitMessages_Export(&g_pending);
 	if (!g_compositionSelected &&
-		(g_pending.alert.active || g_pending.loading.visible || g_pending.loading.text_visible))
+		(g_pending.alert.active || g_pending.loading.progress_visible || g_pending.loading.text_visible))
 		g_pending.valid = 1;
 	g_pending.definition_generation =
 		UpdateGeneration(g_completed.definition_generation, &g_pending.definition, &g_completed.definition,

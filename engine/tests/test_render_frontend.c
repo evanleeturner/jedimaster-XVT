@@ -22,7 +22,7 @@ static ImageResource g_image;
 static ImageResource g_cursorImage;
 static uint8_t g_pixels[64];
 static uint8_t g_glyphBits[256 * 4];
-static FrontImageResourceRecord g_resources[1];
+static FrontImageResourceRecord g_preparedResourceGeneration[1];
 
 /* A fresh snapshot with its first tick open, a 16-bit 565 frontend clipped to (5, 6)-(600, 400), and one
  * registered 32 x 16 image. */
@@ -164,11 +164,11 @@ static void CheckNoTick(void) {
 /* A full list counts a dropped record. */
 static void CheckFullLists(void) {
 	Fresh();
-	for (unsigned i = 0; i < XVT_SNAP_PAINT; ++i)
+	for (unsigned i = 0; i < XVT_SNAP_PAINTS; ++i)
 		XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
 	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 0);
 	XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
-	XVT_ASSERT_INT_EQ(Writer()->paint_count, XVT_SNAP_PAINT);
+	XVT_ASSERT_INT_EQ(Writer()->paint_count, XVT_SNAP_PAINTS);
 	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 1);
 
 	for (unsigned i = 0; i < XVT_SNAP_COPIES; ++i)
@@ -292,10 +292,10 @@ static void CheckNamedCursor(void) {
 	uint64_t id =
 		XvtRenderAssets_RegisterImage(&g_cursorImage, 0, "", XVT_IMAGE_BUILTIN_CURSOR, 0, 1, 0, 0, 0);
 	XVT_ASSERT_TRUE(id != 0);
-	memset(g_resources, 0, sizeof g_resources);
-	strcpy(g_resources[0].name, "pointer");
-	g_resources[0].image = &g_cursorImage;
-	g_frontState.resourceTable = g_resources;
+	memset(g_preparedResourceGeneration, 0, sizeof g_preparedResourceGeneration);
+	strcpy(g_preparedResourceGeneration[0].name, "pointer");
+	g_preparedResourceGeneration[0].image = &g_cursorImage;
+	g_frontState.resourceTable = g_preparedResourceGeneration;
 	g_frontState.resourceCount = 1;
 	strcpy(g_frontState.cursorSpriteName, "pointer");
 	g_frontState.mouseX = 300;

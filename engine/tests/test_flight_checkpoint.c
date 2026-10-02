@@ -1,11 +1,11 @@
 /* Checks the timing extension of a network125 world checkpoint (xvt_runtime/runtime/flight_checkpoint.h)
  * against the promises in its header: the membership masks and the abort flags SetMask raises, an extension
- * appended after world bytes and read back, what Read refuses, what Restore puts back, and the per-player
- * paired motion. No game data is read: the test builds a world of five object slots, slots 0 to 3 in the
- * main region and slot 4 in the static region, with slot 2 the local transient range, so slots 0, 1, 3 and 4
- * are shared. Player 0 flies slot 0, whose craft can carry another object, and player 1 flies slot 1. Each
- * check starts from that world in a fresh network125 timing session at game time TICK, with the integration
- * and reference motion tables made for it and a flight begun with players 0 and 1.
+ * appended after world bytes and read back, what Read refuses, what Restore puts
+ * back, and the per-player paired motion. No game data is read: the test builds a world of five object slots,
+ * slots 0 to 3 in the main region and slot 4 in the static region, with slot 2 the local transient range, so
+ * slots 0, 1, 3 and 4 are shared. Player 0 flies slot 0, whose craft can carry another object, and player 1
+ * flies slot 1. Each check starts from that world in a fresh network125 timing session at game time TICK,
+ * with the integration and reference motion tables made for it and a flight begun with players 0 and 1.
  *
  * Most checks watch one integration channel through XvtFlightIntegration_Rate (flight_integration.h): Seed
  * leaves a carried remainder of 3/4 on a slot, and Probe adds 1/4 more, so Probe returns 1 exactly when that
@@ -147,19 +147,19 @@ static void CheckBeginAndMasks(void) {
 
 	/* Dropping an initial player raises its abort flag; every other player's flag is cleared. */
 	g_playerAbortFlags[6] = 1;
-	XvtFlightCheckpoint_SetMask(0x05);
+	XvtFlightCheckpoint_ApplyConfirmedMask(0x05);
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_ConfirmedMask(), 0x05);
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_InitialMask(), 0x07);
 	for (int i = 0; i < 8; ++i)
 		XVT_ASSERT_INT_EQ(g_playerAbortFlags[i], i == 1);
 
 	/* The confirmed mask stays within the initial one. */
-	XvtFlightCheckpoint_SetMask(0xFF);
+	XvtFlightCheckpoint_ApplyConfirmedMask(0xFF);
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_ConfirmedMask(), 0x07);
 	for (int i = 0; i < 8; ++i)
 		XVT_ASSERT_INT_EQ(g_playerAbortFlags[i], 0);
 
-	XvtFlightCheckpoint_SetMask(0);
+	XvtFlightCheckpoint_ApplyConfirmedMask(0);
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_ConfirmedMask(), 0);
 	for (int i = 0; i < 8; ++i)
 		XVT_ASSERT_INT_EQ(g_playerAbortFlags[i], i < 3);
@@ -320,7 +320,7 @@ static void CheckRestore(void) {
 	Seed(0);
 	Seed(1);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_YAW, 3, 1, 4), 0);
-	XvtFlightCheckpoint_SetMask(0x01);
+	XvtFlightCheckpoint_ApplyConfirmedMask(0x01);
 	size_t size = Append(g_saved);
 	memcpy(g_image, g_saved, size);
 	XvtFlightCheckpointView view;
@@ -330,7 +330,7 @@ static void CheckRestore(void) {
 	 * pass. */
 	XVT_ASSERT_INT_EQ(Probe(0), 1);
 	Seed(3);
-	XvtFlightCheckpoint_SetMask(0x03);
+	XvtFlightCheckpoint_ApplyConfirmedMask(0x03);
 	XVT_ASSERT_INT_EQ(g_playerAbortFlags[1], 0);
 	g_gameTime = TICK + 10 * XVT_NETWORK_STEP_TICKS;
 

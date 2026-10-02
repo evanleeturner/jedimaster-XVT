@@ -292,8 +292,8 @@ static void XvtControllerSettings_DeviceSelector(XvtControllerSettings* settings
 void XvtControllerSettings_Discover(XvtControllerSettings* settings, AeronUiContext* ui,
 									const AeronInputSnapshot* input, const XvtControllerProfile* defaults) {
 	size_t count = settings->draft.count;
-	bool ok = XvtControllerOptions_InitializeGamepads(&settings->draft, defaults, input, settings->error,
-													  sizeof settings->error);
+	bool ok = XvtControllerOptions_AddNewGamepads(&settings->draft, defaults, input, settings->error,
+												  sizeof settings->error);
 	if (settings->draft.count != count) {
 		XvtControllerSettings_ResetDeviceEditState(settings, ui);
 		settings->dirty = true;

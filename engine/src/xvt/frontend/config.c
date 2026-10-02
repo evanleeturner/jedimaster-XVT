@@ -170,7 +170,7 @@ char* g_configKeywords[] = { "lastpilot",
 							 "" };
 
 // FUNCTION: XVT 0x4B7F30
-int Config_OptionsDatapadUpdate(int frameState) {
+int Config_OptionsDatapadUpdate(int frameCounter) {
 	enum {
 		CONFIG_SCREEN_NETWORK = 0,
 		CONFIG_SCREEN_SINGLEPLAYER_VIDEO = 1,
@@ -188,7 +188,7 @@ int Config_OptionsDatapadUpdate(int frameState) {
 	int dismissRequested;
 	RECT rect;
 
-	if (frameState == 0) {
+	if (frameCounter == 0) {
 		FrontendCursor_SetPos(32, 127);
 		FrontendScrollbar_SaveState();
 		Frontend_ResetScrollableControls();
@@ -261,7 +261,7 @@ int Config_OptionsDatapadUpdate(int frameState) {
 	if (g_pilotData.name[0] != '\0') {
 		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
 		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
-		animationFrame = frameState % PILOT_BANNER_ANIMATION_FRAMES;
+		animationFrame = frameCounter % PILOT_BANNER_ANIMATION_FRAMES;
 		animationFrame >>= 1;
 		sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
@@ -293,7 +293,7 @@ int Config_OptionsDatapadUpdate(int frameState) {
 	FrontendButton_DisableOverlayText();
 	dismissRequested |= FrontendDialog_HasNetworkDismissPacket();
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_HOST) {
-		dismissRequested |= Net_HasQueuedJoinRequestOrBacklog();
+		dismissRequested |= Net_PollForJoinRequestOrBacklog();
 	}
 	if (dismissRequested != 0) {
 		Config_Write();
@@ -319,7 +319,7 @@ int Config_OptionsDatapadUpdate(int frameState) {
 			*(int*)&g_frontendNetPacketScratch.payload[40] = g_gameConfig.missionTimeLimit;
 			*(int*)&g_frontendNetPacketScratch.payload[44] = g_gameConfig.lastTeamTimeLimitMinutes;
 			*(int*)&g_frontendNetPacketScratch.payload[48] = rand();
-			*(int*)&g_frontendNetPacketScratch.payload[52] = g_gameConfig.asyncFlag;
+			*(int*)&g_frontendNetPacketScratch.payload[52] = g_gameConfig.internetPlay;
 			*(int*)&g_frontendNetPacketScratch.payload[56] = g_gameConfig.aiOpponents;
 			*(int*)&g_frontendNetPacketScratch.payload[60] = g_gameConfig.serverUpdateRate;
 			*(int*)&g_frontendNetPacketScratch.payload[64] = (uint8_t)g_gameConfig.combatBalance;
@@ -860,7 +860,7 @@ void Config_Load(void) {
 	g_gameConfig.craftWaves = CRAFT_WAVES_DEFAULT;
 	g_gameConfig.lastTeamTimeLimitMinutes = 1;
 	g_gameConfig.randomSeed = 0;
-	g_gameConfig.asyncFlag = 0;
+	g_gameConfig.internetPlay = 0;
 	g_gameConfig.aiOpponents = 0;
 	g_gameConfig.helpOn = 1;
 	g_gameConfig.combatBalance = COMBAT_BALANCE_AUTOBALANCE;
@@ -1177,7 +1177,7 @@ void Config_Load(void) {
 				memcpy(g_gameConfig.password, value, sizeof(g_gameConfig.password));
 				break;
 			case 93:
-				g_gameConfig.asyncFlag = (uint8_t)atoi(value);
+				g_gameConfig.internetPlay = (uint8_t)atoi(value);
 				break;
 			case 94:
 				g_gameConfig.aiOpponents = (uint8_t)atoi(value);
@@ -1324,7 +1324,7 @@ void Config_Write(void) {
 	File_Printf(stream, "last_time_limit %d\n", g_gameConfig.lastTeamTimeLimitMinutes);
 	File_Printf(stream, "random_seed %d\n", g_gameConfig.randomSeed);
 	File_Printf(stream, "password %s\n", g_gameConfig.password);
-	File_Printf(stream, "async_flag %d\n", g_gameConfig.asyncFlag);
+	File_Printf(stream, "async_flag %d\n", g_gameConfig.internetPlay);
 	File_Printf(stream, "ai_opponents %d\n", g_gameConfig.aiOpponents);
 	File_Printf(stream, "help_on %d\n", g_gameConfig.helpOn);
 	File_Printf(stream, "combat_balance %d\n", g_gameConfig.combatBalance);
@@ -1471,10 +1471,10 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 						g_gameConfig.serverUpdateRate = CONFIG_DEFAULT_SERVER_UPDATE_RATE;
 #ifdef XVT_MODERN
 						g_gameConfig.networkType = NET_TRANSPORT_TCPIP;
-						g_gameConfig.asyncFlag = CONFIG_DEFAULT_ENABLED;
+						g_gameConfig.internetPlay = CONFIG_DEFAULT_ENABLED;
 #else
 					g_gameConfig.networkType = CONFIG_DEFAULT_DISABLED;
-					g_gameConfig.asyncFlag = CONFIG_DEFAULT_DISABLED;
+					g_gameConfig.internetPlay = CONFIG_DEFAULT_DISABLED;
 #endif
 						break;
 					case CONFIG_PAGE_SINGLEPLAYER_VIDEO:
@@ -1813,7 +1813,7 @@ void Config_NetworkOptionsScreen(void) {
 			if (g_gameConfig.sfxDatapadEnabled != 0)
 				FrontendSound_PlayUISound("configsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 			if (g_gameConfig.networkType != NET_TRANSPORT_IPX)
-				g_gameConfig.asyncFlag = 0;
+				g_gameConfig.internetPlay = 0;
 		}
 		g_gameConfig.networkType = NET_TRANSPORT_IPX;
 	}
@@ -1844,7 +1844,7 @@ void Config_NetworkOptionsScreen(void) {
 			if (g_gameConfig.sfxDatapadEnabled != 0)
 				FrontendSound_PlayUISound("configsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 			if (g_gameConfig.networkType != NET_TRANSPORT_TCPIP)
-				g_gameConfig.asyncFlag = 1;
+				g_gameConfig.internetPlay = 1;
 		}
 		g_gameConfig.networkType = NET_TRANSPORT_TCPIP;
 	}
@@ -1884,7 +1884,7 @@ void Config_NetworkOptionsScreen(void) {
 			if (g_gameConfig.sfxDatapadEnabled != 0)
 				FrontendSound_PlayUISound("configsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 			if (g_gameConfig.networkType != NET_TRANSPORT_MODEM)
-				g_gameConfig.asyncFlag = 0;
+				g_gameConfig.internetPlay = 0;
 		}
 		g_gameConfig.networkType = NET_TRANSPORT_MODEM;
 	}
@@ -1925,7 +1925,7 @@ void Config_NetworkOptionsScreen(void) {
 			if (g_gameConfig.sfxDatapadEnabled != 0)
 				FrontendSound_PlayUISound("configsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 			if (g_gameConfig.networkType != NET_TRANSPORT_SERIAL)
-				g_gameConfig.asyncFlag = 0;
+				g_gameConfig.internetPlay = 0;
 		}
 		g_gameConfig.networkType = NET_TRANSPORT_SERIAL;
 	}
@@ -1963,7 +1963,7 @@ void Config_NetworkOptionsScreen(void) {
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_479_PLAYING_OVER_THE_INTERNET),
 									   &sourceRect, 0, 1, g_colorYellow);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
-		Config_DrawNetworkOptionCycleDisabled(&g_gameConfig.asyncFlag, &sourceRect, FRONTSTR_480_NO);
+		Config_DrawNetworkOptionCycleDisabled(&g_gameConfig.internetPlay, &sourceRect, FRONTSTR_480_NO);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_743_HOST_SERVER_UPDATE_RATE),
 									   &sourceRect, 0, 1, g_colorYellow);
@@ -1977,7 +1977,7 @@ void Config_NetworkOptionsScreen(void) {
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_479_PLAYING_OVER_THE_INTERNET),
 									   &sourceRect, 0, 1, g_colorYellow);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
-		Config_DrawOptionCycle(&g_gameConfig.asyncFlag, &sourceRect, FRONTSTR_480_NO);
+		Config_DrawOptionCycle(&g_gameConfig.internetPlay, &sourceRect, FRONTSTR_480_NO);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_743_HOST_SERVER_UPDATE_RATE),
 									   &sourceRect, 0, 1, g_colorYellow);
@@ -2643,13 +2643,13 @@ void Config_DrawCustomTauntsPage(void) {
 }
 
 // FUNCTION: XVT 0x4FB670
-int Config_CreditsScreen(int frameState) {
+int Config_CreditsScreen(int frameCounter) {
 	int outPageDurationFrames;
 	int lineIndex;
 	int key;
 	int logoId;
 
-	if (frameState == 0) {
+	if (frameCounter == 0) {
 		Keyboard_FlushCharBuffer();
 		if (g_frontendCreditsFile != NULL) {
 			File_Close(g_frontendCreditsFile);
@@ -2674,7 +2674,7 @@ int Config_CreditsScreen(int frameState) {
 		g_creditsPrevLogoY[1] = 0;
 		g_creditsPrevLogoX[1] = 0;
 		if (Credits_ParseNextPage(&g_creditsBufferIdx, &g_creditsHasMorePages, &g_creditsPageEndFrame,
-								  &g_creditsGlyphScratchFrames) == 0) {
+								  &g_creditsTextFadeFrames) == 0) {
 			FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
 			return 0;
 		}
@@ -2763,17 +2763,17 @@ int Config_CreditsScreen(int frameState) {
 	FrontendText_PopGlyphScratchTtl();
 
 	if (g_creditsHasMorePages != 0) {
-		if (g_creditsPageEndFrame <= frameState) {
+		if (g_creditsPageEndFrame <= frameCounter) {
 			Credits_ParseNextPage(&g_creditsBufferIdx, &g_creditsHasMorePages, &outPageDurationFrames,
-								  &g_creditsGlyphScratchFrames);
+								  &g_creditsTextFadeFrames);
 			g_creditsPageEndFrame += outPageDurationFrames;
-			FrontendText_StartTextFadeIn(g_creditsGlyphScratchFrames);
+			FrontendText_StartTextFadeIn(g_creditsTextFadeFrames);
 			++g_creditsPageIndex;
 			if (g_creditsHasMorePages == 0) {
 				CDAudio_DisableLoopCurrentTrack();
 			}
 		}
-	} else if (g_creditsPageEndFrame <= frameState) {
+	} else if (g_creditsPageEndFrame <= frameCounter) {
 		g_creditsExitPending = 1;
 		FrontendDisplay_ClearOffscreenSurface();
 		CDAudio_FadeAuxVolume(0x8000, 0x1000, 2000);

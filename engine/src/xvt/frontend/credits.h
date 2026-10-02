@@ -21,7 +21,7 @@ extern int g_creditsPrevLogoId[2];
 extern int g_creditsHasMorePages;
 extern int g_creditsPageIndex;
 extern int g_creditsPageEndFrame;
-extern int g_creditsGlyphScratchFrames;
+extern int g_creditsTextFadeFrames;
 extern int g_creditsTextY[2];
 extern int g_creditsTextX[2];
 extern unsigned int g_creditsBufferIdx;
@@ -31,7 +31,7 @@ extern int g_creditsExitPending;
 
 int Credits_LoadScreenResources(void);
 int Credits_ParseNextPage(unsigned int* outBufferIdx, int* outHasMorePages, int* outPageDurationFrames,
-						  int* outGlyphScratchFrames);
+						  int* outTextFadeFrames);
 int Credits_ParseTextLine(const char* line, unsigned int bufferIdx, unsigned int lineIdx);
 
 #ifdef __cplusplus

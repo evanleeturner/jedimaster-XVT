@@ -59,7 +59,7 @@ uint8_t XvtFlightCheckpoint_InitialMask(void);
 uint8_t XvtFlightCheckpoint_ConfirmedMask(void);
 /* Sets the confirmed mask to mask within the initial mask, raises the abort flag of each initial
  * player it drops, and clears every other player's abort flag. */
-void XvtFlightCheckpoint_SetMask(uint8_t mask);
+void XvtFlightCheckpoint_ApplyConfirmedMask(uint8_t mask);
 #ifdef __cplusplus
 }
 #endif

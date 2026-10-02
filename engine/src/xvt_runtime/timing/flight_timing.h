@@ -12,7 +12,7 @@ extern "C" {
  * when it crosses a boundary of XVT_REFERENCE_TICKS. Reference logic runs between EnterReference and
  * RestoreClock, which, when unlocked, make the step globals describe one reference period. */
 
-/* g_elapsedTicks and g_simStepScale, as EnterReference saves them. */
+/* g_elapsedTicks and g_simStepsPerSecond, as EnterReference saves them. */
 typedef struct XvtFlightClock {
 	uint16_t elapsed, scale;
 } XvtFlightClock;
@@ -31,7 +31,7 @@ XvtFlightTimingProfile XvtFlightTiming_Profile(void);
 int XvtFlightTiming_IsNetwork125(void);
 /* The longest simulation step, in ticks: XVT_NETWORK_STEP_TICKS in NETWORK_125, otherwise the current
  * g_netUpdateIntervalTicks. */
-int XvtFlightTiming_SimulationMaximum(void);
+int XvtFlightTiming_MaximumStepTicks(void);
 /* After a NETWORK_125 state restore at tick: sets the advance serial to tick / XVT_NETWORK_STEP_TICKS
  * and the reference phase to tick % XVT_REFERENCE_TICKS, closes any open step, and rebuilds the last
  * animation update's time and serial from tick and the crew mesh rotation timer, as 0 when that time
@@ -62,7 +62,7 @@ int XvtFlightTiming_ReferenceDue(void);
 uint16_t XvtFlightTiming_ReferenceElapsed(void);
 /* The number of nonzero steps opened this session, or the count RestoreNetworkTick set. */
 uint64_t XvtFlightTiming_AdvanceSerial(void);
-/* Returns g_elapsedTicks and g_simStepScale for RestoreClock. When unlocked, sets them to one reference
+/* Returns g_elapsedTicks and g_simStepsPerSecond for RestoreClock. When unlocked, sets them to one reference
  * period, XVT_REFERENCE_TICKS and SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS; when locked,
  * changes nothing. It does not check ReferenceDue; callers do. */
 XvtFlightClock XvtFlightTiming_EnterReference(void);

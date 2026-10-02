@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-int16_t Targeting_ScoreCandidate(uint16_t a1, int16_t a2, int a3);
+int16_t Targeting_TestAimCone(uint16_t a1, int16_t a2, int a3);
 extern uint16_t g_targetAngleScore;
 void Targeting_DrawSceneObjectBoxes(void);
 void Targeting_DrawObjectBox(uint16_t objectIdx, uint16_t componentIdx, uint8_t colorIndex);

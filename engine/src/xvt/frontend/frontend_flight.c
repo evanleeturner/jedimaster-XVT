@@ -33,9 +33,9 @@
 #include <string.h>
 
 // GLOBAL: XVT 0x669798
-int g_flightLoadingReadyScreenStartTick = 0;
+int g_flightLoadingReadyScreenStartMs = 0;
 // GLOBAL: XVT 0x669794
-int g_flightLoadingReadyScreenCurrentTick = 0;
+int g_flightLoadingReadyScreenNowMs = 0;
 // GLOBAL: XVT 0xB69CDC
 int g_unusedFlightLoadingReadyScreenFlag = 0;
 // GLOBAL: XVT 0xB6A2C8
@@ -60,7 +60,7 @@ int FlightLoading_UpdateReadyScreen(int frameCounter) {
 		}
 		g_frontendLaunchHumanPlayerCount = readyPlayerCount;
 		g_pilotData.numHumanPlayersLastMission = readyPlayerCount;
-		g_flightLoadingReadyScreenStartTick = GetTickCount();
+		g_flightLoadingReadyScreenStartMs = GetTickCount();
 		FrontImage_RegisterResourceDefault("frontres\\wait.bmp", "background");
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteOpaque("background", 0, 0);
@@ -73,8 +73,8 @@ int FlightLoading_UpdateReadyScreen(int frameCounter) {
 	FrontendDraw_RectAssign(&rect, 0, 0, 639, 479);
 	FrontendText_DrawCentered(15, FrontendString_Get(FRONTSTR_205_PREPARE_FOR_LAUNCH), &rect, 0xFFFF);
 	if (g_missionSetupIsHost != 0) {
-		g_flightLoadingReadyScreenCurrentTick = GetTickCount();
-		if (g_flightLoadingReadyScreenStartTick + 2000 < g_flightLoadingReadyScreenCurrentTick) {
+		g_flightLoadingReadyScreenNowMs = GetTickCount();
+		if (g_flightLoadingReadyScreenStartMs + 2000 < g_flightLoadingReadyScreenNowMs) {
 			MissionSetup_BroadcastStatePacket(0);
 			g_unusedFlightLoadingReadyScreenFlag = 1;
 			FrontImage_FreeResourceByName("background");
@@ -82,8 +82,8 @@ int FlightLoading_UpdateReadyScreen(int frameCounter) {
 			return 0;
 		}
 	}
-	g_flightLoadingReadyScreenCurrentTick = GetTickCount();
-	if (g_flightLoadingReadyScreenStartTick + 4000 < g_flightLoadingReadyScreenCurrentTick) {
+	g_flightLoadingReadyScreenNowMs = GetTickCount();
+	if (g_flightLoadingReadyScreenStartMs + 4000 < g_flightLoadingReadyScreenNowMs) {
 		g_unusedFlightLoadingReadyScreenFlag = 1;
 		FrontImage_FreeResourceByName("background");
 		FrontendScreen_SetCallbacks(FrontendFlight_LaunchSession, FrontendFlight_NoOpExit);

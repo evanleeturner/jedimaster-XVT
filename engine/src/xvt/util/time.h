@@ -10,7 +10,7 @@ extern "C" {
 
 uint32_t timeGetTime(void);
 uint32_t GetTickCount(void);
-void Time_ResetFrameDeltaClocks(void);
+void Time_ResetElapsedTicks(void);
 uint32_t Time_ConsumeElapsedTicks(void);
 
 #ifdef __cplusplus

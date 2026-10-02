@@ -18,7 +18,7 @@
 #define MOUSE_FLIGHT_STICK_GAIN (127.0f / 256.0f)
 /* Right-button tap window: release inside it emits the target-in-sight tap
  * action, roll-lock engages only after it. Matches the recovered 59-sim-tick
- * window Flight_UpdateEntity uses for joystick button 2. */
+ * window Flight_UpdatePlayerStep uses for joystick button 2. */
 #define MOUSE_FLIGHT_TAP_US 250000u
 
 static struct {

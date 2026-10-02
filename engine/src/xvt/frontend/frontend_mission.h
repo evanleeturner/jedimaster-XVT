@@ -60,7 +60,7 @@ extern FrontendMission g_frontendMission;
 extern FrontendMissionSessionMode g_frontendMissionSessionMode;
 
 int FrontendMission_LoadForBriefing(void);
-void FrontendMission_Reset(void);
+void FrontendMission_InitForBriefing(void);
 void FrontendMission_LoadCurrentMissionData(void);
 void FrontendMission_LoadFile(const char* fileName, FrontendMission* outMission);
 void FrontendMission_LoadCurrent(void);

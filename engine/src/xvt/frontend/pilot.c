@@ -152,7 +152,7 @@ int Pilot_CreateNew(const char* pilotName) {
 	if (!XvtStorage_WriteAtomic(pilotPath, &g_pilotData, sizeof(g_pilotData)))
 		return 0;
 #else
-	File_WriteCount(stream, &g_pilotData, sizeof(g_pilotData));
+	File_WriteBytes(stream, &g_pilotData, sizeof(g_pilotData));
 #endif
 
 	MissionSetup_LoadMissionList(MISSION_DIRECTORY_COMBAT_ENGAGEMENTS);
@@ -205,7 +205,7 @@ int Pilot_Save(int useTemporaryFile) {
 			while (fileList->count > fileIndex) {
 				stream = File_Open(node->path, g_fileModeReadBinary);
 				if (stream != NULL) {
-					File_ReadCount(stream, g_frontendScratchBuffer, sizeof(g_pilotData.name));
+					File_ReadBytes(stream, g_frontendScratchBuffer, sizeof(g_pilotData.name));
 					File_Close(stream);
 #ifdef XVT_MODERN
 					if (strcasecmp(g_frontendScratchBuffer, g_pilotData.name) == 0) {
@@ -236,7 +236,7 @@ int Pilot_Save(int useTemporaryFile) {
 			while (fileList->count > fileIndex) {
 				stream = File_Open(node->path, g_fileModeReadBinary);
 				if (stream != NULL) {
-					File_ReadCount(stream, g_frontendScratchBuffer, sizeof(g_pilotData.name));
+					File_ReadBytes(stream, g_frontendScratchBuffer, sizeof(g_pilotData.name));
 					File_Close(stream);
 #ifdef XVT_MODERN
 					if (strcasecmp(g_frontendScratchBuffer, g_pilotData.name) == 0) {
@@ -274,7 +274,7 @@ int Pilot_Save(int useTemporaryFile) {
 	if (!XvtStorage_WriteAtomic(pilotPath, &g_pilotData, sizeof(g_pilotData)))
 		return 0;
 #else
-	File_WriteCount(stream, &g_pilotData, sizeof(g_pilotData));
+	File_WriteBytes(stream, &g_pilotData, sizeof(g_pilotData));
 #endif
 #ifndef XVT_MODERN
 	File_Close(stream);
@@ -325,7 +325,7 @@ int Pilot_FindAndLoadByName(const char* pilotName) {
 	while (fileIndex < fileList->count) {
 		stream = File_Open(node->path, g_fileModeReadBinary);
 		if (stream != NULL) {
-			File_ReadCount(stream, g_frontendScratchBuffer, sizeof(g_pilotData.name));
+			File_ReadBytes(stream, g_frontendScratchBuffer, sizeof(g_pilotData.name));
 			File_Close(stream);
 #ifdef XVT_MODERN
 			if (strcasecmp(g_frontendScratchBuffer, pilotName) == 0) {
@@ -428,7 +428,7 @@ int Pilot_ParseCommandLine(const char* cmdLine) {
 
 	if (parsed.hasPilotName != 0 && hasNetworkAddress != 0) {
 		g_gameConfig.networkType = NET_TRANSPORT_TCPIP;
-		g_gameConfig.asyncFlag = 1;
+		g_gameConfig.internetPlay = 1;
 		return 1;
 	}
 
@@ -452,13 +452,13 @@ int Pilot_LoadFromPath(const char* basePilotPath) {
 	if (expansionStream != NULL) {
 		hasExpansionRecord = 1;
 #ifdef XVT_MODERN
-		if (!File_ReadCount(expansionStream, &g_pilotData, sizeof(g_pilotData))) {
+		if (!File_ReadBytes(expansionStream, &g_pilotData, sizeof(g_pilotData))) {
 			File_Close(expansionStream);
 			memset(&g_pilotData, 0, sizeof(g_pilotData));
 			return 0;
 		}
 #else
-		File_ReadCount(expansionStream, &g_pilotData, sizeof(g_pilotData));
+		File_ReadBytes(expansionStream, &g_pilotData, sizeof(g_pilotData));
 #endif
 		File_Close(expansionStream);
 	}
@@ -653,10 +653,10 @@ int Pilot_LoadXvtRecord(XvtFile* stream) {
 	};
 
 #ifdef XVT_MODERN
-	if (!File_ReadCount(stream, &record, sizeof(record)))
+	if (!File_ReadBytes(stream, &record, sizeof(record)))
 		return 0;
 #else
-	File_ReadCount(stream, &record, sizeof(record));
+	File_ReadBytes(stream, &record, sizeof(record));
 #endif
 	memcpy(g_pilotData.name, record.name, sizeof(record.name));
 	g_pilotData.totalScore = record.totalScore;
@@ -664,7 +664,7 @@ int Pilot_LoadXvtRecord(XvtFile* stream) {
 	g_pilotData.launchSessionMarker = record.launchSessionMarker;
 	g_pilotData.isHost = record.isHost;
 	g_pilotData.numHumanPlayersLastMission = record.numHumanPlayersLastMission;
-	g_pilotData.gameMode = record.gameMode;
+	g_pilotData.sessionMode = record.gameMode;
 	memcpy(g_pilotData.xvtRecordPayload, record.xvtRecordCombatPayload,
 		   sizeof(record.xvtRecordCombatPayload));
 	memcpy(&g_pilotData.xvtRecordPayload[sizeof(record.xvtRecordCombatPayload)],
@@ -1206,12 +1206,12 @@ int Pilot_WriteXvtRecord(const char* fileName, XvtFile* stream) {
 	inputStream = File_Open(fileName, g_fileModeReadBinary);
 	if (inputStream != NULL) {
 #ifdef XVT_MODERN
-		if (!File_ReadCount(inputStream, &record, sizeof(record))) {
+		if (!File_ReadBytes(inputStream, &record, sizeof(record))) {
 			File_Close(inputStream);
 			return 0;
 		}
 #else
-		File_ReadCount(inputStream, &record, sizeof(record));
+		File_ReadBytes(inputStream, &record, sizeof(record));
 #endif
 		File_Close(inputStream);
 	}
@@ -1227,7 +1227,7 @@ int Pilot_WriteXvtRecord(const char* fileName, XvtFile* stream) {
 	record.launchSessionMarker = g_pilotData.launchSessionMarker;
 	record.isHost = g_pilotData.isHost;
 	record.numHumanPlayersLastMission = g_pilotData.numHumanPlayersLastMission;
-	record.gameMode = g_pilotData.gameMode;
+	record.gameMode = g_pilotData.sessionMode;
 	memcpy(record.xvtRecordCombatPayload, g_pilotData.xvtRecordPayload,
 		   sizeof(record.xvtRecordCombatPayload));
 	memcpy(record.xvtRecordIdentityPayload, &g_pilotData.xvtRecordPayload[320],
@@ -1538,7 +1538,7 @@ int Pilot_WriteXvtRecord(const char* fileName, XvtFile* stream) {
 	(void)stream;
 	return XvtStorage_WriteAtomic(fileName, &record, sizeof(record));
 #else
-	File_WriteCount(stream, &record, sizeof(record));
+	File_WriteBytes(stream, &record, sizeof(record));
 	File_ChangeToInstallPath();
 	File_Close(stream);
 	return 1;

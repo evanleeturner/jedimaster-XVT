@@ -317,7 +317,7 @@ void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx) {
 			pai_UpdateAimPointFromOrderTarget();
 	}
 
-	controller->aiPlanState = 0;
+	controller->secondaryManeuverTimer = 0;
 	maneuverToken = *planData;
 	if (maneuverToken != UINT8_MAX) {
 		controller->maneuverMode = maneuverToken;
@@ -386,7 +386,7 @@ void pai_setupcraftcontext(uint16_t objectIdx) {
 	g_paiContext.orderFlightGroupIndex = object->flightGroupIdx;
 	g_paiContext.orderSlot = controller->currentOrderSlot;
 	Mission_ResolveObjectOrMissionPointWorldLoc(objectIdx, g_paiContext.orderFlightGroupIndex);
-	g_paiContext.currentPointX = worldlocx;
+	g_paiContext.currentPointX = g_worldLocX;
 	g_paiContext.currentPointY = worldlocy;
 	g_paiContext.currentPointZ = worldlocz;
 	g_paiContext.skillTier = pai_SkillValueToTier(pai_GetEffectiveSkillValue(g_paiContext.craft));
@@ -527,7 +527,7 @@ int pai_IsObjectWithinCurrentPointRange(unsigned int objIdx, unsigned int maxRan
 void pai_UpdateAimPointFromOrderTarget(void) {
 	Mission_ResolveObjectOrMissionPointWorldLoc(g_paiContext.controller->targetObjIdx,
 												g_objectTable[g_paiContext.objectIndex].flightGroupIdx);
-	g_paiContext.controller->aimPointX = worldlocx;
+	g_paiContext.controller->aimPointX = g_worldLocX;
 	g_paiContext.controller->aimPointY = worldlocy;
 	g_paiContext.controller->aimPointZ = worldlocz;
 }
@@ -557,12 +557,12 @@ void pai_ObjectRefDirectionToObjectRef(unsigned int fromRef, unsigned int toRef)
 	int targetZ;
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(toRef, 0);
-	targetX = worldlocx;
+	targetX = g_worldLocX;
 	targetY = worldlocy;
 	targetZ = worldlocz;
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(fromRef, 0);
-	targetX = targetX - worldlocx;
+	targetX = targetX - g_worldLocX;
 	targetY = targetY - worldlocy;
 	targetZ = targetZ - worldlocz;
 	trig2_ctop(targetX, targetY, targetZ);
@@ -576,12 +576,12 @@ void pai_ObjectRefUpdateApproxRangeScore(unsigned int fromRef, unsigned int toRe
 	int xyScore;
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(fromRef, 0);
-	deltaX = worldlocx;
+	deltaX = g_worldLocX;
 	deltaY = worldlocy;
 	deltaZ = worldlocz;
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(toRef, 0);
-	deltaX -= worldlocx;
+	deltaX -= g_worldLocX;
 	deltaY -= worldlocy;
 	deltaZ -= worldlocz;
 
@@ -758,7 +758,7 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 		ObjectRecord* object = &g_objectTable[objectIdx];
 		uint16_t objectType = object->objectType;
 
-		if (objectType != 0 && (g_modelTypeTable[objectType].flags & 2) != 0) {
+		if (objectType != 0 && (g_modelTypeTable[objectType].behaviorFlags & 2) != 0) {
 			firstMatch =
 				Mission_FlightGroupMatchesTriggerVariable(object->flightGroupIdx, target1Type, target1);
 			secondMatch = Mission_FlightGroupMatchesTriggerVariable(g_objectTable[objectIdx].flightGroupIdx,
@@ -842,7 +842,7 @@ int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot) {
 			   strcmp(g_planTable[planId].name, "starshipprotectpln") == 0 ||
 			   strcmp(g_planTable[planId].name, "starshipattackpln") == 0 ||
 			   strcmp(g_planTable[planId].name, "starshipdisablepln") == 0) {
-		if (paifight_OrderSlotHasRemainingTargets(orderSlot) == 0 &&
+		if (paifight_SearchOrderSlotRemainingTargets(orderSlot) == 0 &&
 			paifight_OrderSlotHasFutureTargets(orderSlot) == 0) {
 			result = 1;
 		}
@@ -894,7 +894,7 @@ int16_t pai_IsBoardingPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSl
 		 strcmp(g_planTable[planId].name, "boardtopickuppln") == 0 ||
 		 strcmp(g_planTable[planId].name, "boardtocontactpln") == 0 ||
 		 strcmp(g_planTable[planId].name, "boardtorepairpln") == 0) &&
-		paifight_OrderSlotHasRemainingTargets(orderSlot) == 0 &&
+		paifight_SearchOrderSlotRemainingTargets(orderSlot) == 0 &&
 		paifight_OrderSlotHasFutureTargets(orderSlot) == 0) {
 		result = 1;
 	}

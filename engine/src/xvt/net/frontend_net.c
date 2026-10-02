@@ -95,7 +95,7 @@ int FrontendNet_DrawJoinGameList(int resetScroll) {
 #else
 	RECT rect;
 	RECT destination;
-	uint32_t tickCount;
+	uint32_t nowMs;
 	int mouseX;
 	int mouseY;
 	int clickedIndex;
@@ -103,7 +103,7 @@ int FrontendNet_DrawJoinGameList(int resetScroll) {
 
 	if (resetScroll == 0)
 		g_frontendNetSessionListScrollOffset = 0;
-	tickCount = GetTickCount();
+	nowMs = GetTickCount();
 	FrontendDraw_RectAssign(&rect, 88, 94, 416, 109);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_016_GAME_NAME_PLAYERS_NEEDED_LAST_QUERY),
 								   &rect, 0, 1, 0xFFFF);
@@ -152,8 +152,8 @@ int FrontendNet_DrawJoinGameList(int resetScroll) {
 			sprintf(g_frontendScratchBuffer, "%d", g_frontendNetSessionList[rowIndex].playersNeeded);
 			FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer, &destination, 0, 1, textColor);
 			destination.left = 374;
-			Frontend_FormatSecondsToClockString(
-				(tickCount - g_frontendNetSessionList[rowIndex].lastQueryTick) / 1000);
+			Frontend_FormatSecondsToClockString((nowMs - g_frontendNetSessionList[rowIndex].lastQueryMs) /
+												1000);
 			FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer, &destination, 0, 1, textColor);
 		}
 		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
@@ -173,9 +173,9 @@ int FrontendNet_DrawJoinGameList(int resetScroll) {
 }
 
 // FUNCTION: XVT 0x4D73C0
-int FrontendNet_JoinGameScreen(int firstFrame) {
+int FrontendNet_JoinGameScreen(int frameCounter) {
 #ifdef XVT_MODERN
-	return XvtNetworkBrowser_Screen(firstFrame);
+	return XvtNetworkBrowser_Screen(frameCounter);
 #else
 	enum {
 		SESSION_REFRESH_INTERVAL_FRAMES = 160,
@@ -193,7 +193,7 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 
 	g_configConnectionTypeEditable = 0;
 	if (g_gameConfig.networkType != NET_TRANSPORT_IPX) {
-		if (g_skipFrontendEntryMovie != 0) {
+		if (g_frontendSkipScreenEntrySetup != 0) {
 			g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
 			FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
 			return 0;
@@ -240,9 +240,9 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 					break;
 			}
 		}
-		return FrontendNet_ConnectToSelectedGameScreen(firstFrame);
+		return FrontendNet_ConnectToSelectedGameScreen(frameCounter);
 	} else {
-		if (firstFrame == 0) {
+		if (frameCounter == 0) {
 			FrontendCursor_SetPos(415, 121);
 			memset(g_mpRoster, 0, sizeof(g_mpRoster));
 			Net_ClearPlayerReadyFlags();
@@ -251,7 +251,7 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 				memset(g_frontendChatLogBuffer, 0, 1024);
 				g_frontendChatLogUsedBytes = 0;
 			}
-			if (g_skipFrontendEntryMovie == 0) {
+			if (g_frontendSkipScreenEntrySetup == 0) {
 				memset(g_frontendNetSessionList, 0, sizeof(g_frontendNetSessionList));
 				g_frontendNetSessionCount = 0;
 			}
@@ -262,7 +262,7 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 			g_frontendNetReceivedMissionDescriptionId = -1;
 			g_frontendNetSelectedSessionIdx = -1;
 			g_missionSetupRosterAuthoritative = 0;
-			g_skipFrontendEntryMovie = 0;
+			g_frontendSkipScreenEntrySetup = 0;
 			if (g_briefingText == NULL) {
 				g_briefingText = malloc(BRIEFING_TEXT_CAPACITY);
 			}
@@ -283,13 +283,13 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 
 		FrontendDraw_RectAssign(&rect, 158, 52, 491, 68);
 		FrontendText_DrawCentered(12, g_frontendNetSelectedGameName, &rect, 0xFFFF);
-		if (firstFrame % SESSION_REFRESH_INTERVAL_FRAMES == 0 && g_frontendNetSelectedSessionIdx == -1) {
+		if (frameCounter % SESSION_REFRESH_INTERVAL_FRAMES == 0 && g_frontendNetSelectedSessionIdx == -1) {
 			FrontendNet_RefreshSessionList();
 		}
 		if (g_frontendNetSelectedSessionIdx != -1) {
 			packetType = FrontendNet_ProcessNetworkPackets();
 			if (packetType == NET_PACKET_STATE) {
-				g_frontendNetSessionList[g_frontendNetSelectedSessionIdx].lastQueryTick = GetTickCount();
+				g_frontendNetSessionList[g_frontendNetSelectedSessionIdx].lastQueryMs = GetTickCount();
 				g_frontendNetSessionList[g_frontendNetSelectedSessionIdx].playersNeeded =
 					g_frontendNetProbePlayersNeeded;
 				g_frontendNetSessionList[g_frontendNetSelectedSessionIdx].passwordRequired =
@@ -373,7 +373,7 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 			}
 		}
 
-		clickedSessionIndex = FrontendNet_DrawJoinGameList(firstFrame);
+		clickedSessionIndex = FrontendNet_DrawJoinGameList(frameCounter);
 		if (clickedSessionIndex != -1) {
 			if (g_frontendNetSelectedSessionIdx == clickedSessionIndex) {
 				g_frontendNetSelectedSessionIdx = -1;
@@ -404,7 +404,7 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 		FrontendNet_DrawJoinGamePlayerRoster();
 		FrontendNet_DrawJoinGameMissionBriefing();
 		if (g_frontendNetSelectedSessionIdx != -1) {
-			FrontendNet_UpdateAndDrawPanel(firstFrame);
+			FrontendNet_UpdateAndDrawPanel(frameCounter);
 		}
 		FrontendDraw_RectAssign(&rect, 507, 452, 562, 464);
 		sprintf(g_frontendScratchBuffer, "v. %d.%d", 2, 0);
@@ -413,7 +413,7 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 		if (g_pilotData.name[0] != '\0') {
 			sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
 			FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
-			animationFrame = (firstFrame % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+			animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
 			sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 			FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 			sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);
@@ -465,7 +465,7 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 }
 
 // FUNCTION: XVT 0x4D7E70
-int FrontendNet_AccessAllianceNetworkScreen(int firstFrame) {
+int FrontendNet_AccessAllianceNetworkScreen(int frameCounter) {
 	enum {
 		ACCESS_TIMEOUT_FRAME = 480,
 		PILOT_BANNER_ANIMATION_FRAMES = 32,
@@ -477,7 +477,7 @@ int FrontendNet_AccessAllianceNetworkScreen(int firstFrame) {
 	RECT rect;
 	RECT screenRect;
 
-	if (firstFrame == 0) {
+	if (frameCounter == 0) {
 		FrontImage_RegisterResourceDefault("frontres\\joinback.bmp", "background");
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteOpaque("background", 0, 0);
@@ -564,7 +564,7 @@ int FrontendNet_AccessAllianceNetworkScreen(int firstFrame) {
 		if (g_gameConfig.networkType != 0) {
 			FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
 		} else {
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen, FrontendMissionList_FreeScreenResources);
 		}
 	} else if (networkResult == NET_PACKET_PLAYER_ADMITTED) {
@@ -579,7 +579,7 @@ int FrontendNet_AccessAllianceNetworkScreen(int firstFrame) {
 	if (g_pilotData.name[0] != '\0') {
 		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
 		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
-		animationFrame = (firstFrame % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+		animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
 		sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 		sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);
@@ -604,10 +604,10 @@ int FrontendNet_AccessAllianceNetworkScreen(int firstFrame) {
 	if (cancelPressed != 0) {
 		XvtNetworkSession_Cancel();
 #else
-	if (cancelPressed != 0 || firstFrame == ACCESS_TIMEOUT_FRAME) {
+	if (cancelPressed != 0 || frameCounter == ACCESS_TIMEOUT_FRAME) {
 		Net_ShutdownDirectPlaySessionNoJoinAbort();
 #endif
-		g_skipFrontendEntryMovie = 1;
+		g_frontendSkipScreenEntrySetup = 1;
 		FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen, FrontendMissionList_FreeScreenResources);
 		FrontImage_FreeResourceByName("background");
 	}
@@ -812,7 +812,7 @@ int FrontendNet_UpdateAndDrawPanel(int frameCounter) {
 
 #ifndef XVT_MODERN
 // FUNCTION: XVT 0x4D8C20
-int FrontendNet_ConnectToSelectedGameScreen(int firstFrame) {
+int FrontendNet_ConnectToSelectedGameScreen(int frameCounter) {
 	enum {
 		CONNECT_ACTION_FRAME = 5,
 		CONNECT_RESTORE_DISABLE_FRAME = 4,
@@ -837,7 +837,7 @@ int FrontendNet_ConnectToSelectedGameScreen(int firstFrame) {
 	int hostPlayerId;
 	unsigned int networkType;
 
-	if (firstFrame == 0) {
+	if (frameCounter == 0) {
 		Net_ClearPlayerReadyFlags();
 		if (g_frontendChatLogBuffer != NULL) {
 			memset(g_frontendChatLogBuffer, 0, CHAT_LOG_CAPACITY);
@@ -865,7 +865,7 @@ int FrontendNet_ConnectToSelectedGameScreen(int firstFrame) {
 		return 0;
 	}
 
-	if (firstFrame > 0 && firstFrame < CONNECT_ACTION_FRAME) {
+	if (frameCounter > 0 && frameCounter < CONNECT_ACTION_FRAME) {
 		FrontendCursor_Hide();
 		networkType = g_gameConfig.networkType;
 		switch ((NetworkTransportType)networkType) {
@@ -903,11 +903,11 @@ int FrontendNet_ConnectToSelectedGameScreen(int firstFrame) {
 			default:
 				break;
 		}
-		if (firstFrame == CONNECT_RESTORE_DISABLE_FRAME) {
+		if (frameCounter == CONNECT_RESTORE_DISABLE_FRAME) {
 			FrontendDisplay_DisableOffscreenRestore();
 			return 0;
 		}
-	} else if (firstFrame == CONNECT_ACTION_FRAME) {
+	} else if (frameCounter == CONNECT_ACTION_FRAME) {
 		networkType = g_gameConfig.networkType;
 		switch ((NetworkTransportType)networkType) {
 			case NET_TRANSPORT_TCPIP:
@@ -1132,7 +1132,7 @@ int FrontendNet_RefreshSessionList(void) {
 			++g_frontendNetSessionCount;
 			addedSession = 1;
 			g_frontendNetSessionList[existingIndex].playersNeeded = FRONTEND_NET_NEW_SESSION_PLAYERS_NEEDED;
-			g_frontendNetSessionList[existingIndex].lastQueryTick = 0;
+			g_frontendNetSessionList[existingIndex].lastQueryMs = 0;
 			g_frontendNetSessionList[existingIndex].version = FRONTEND_NET_PROTOCOL_VERSION;
 			g_frontendNetSessionList[existingIndex].passwordRequired = 0;
 		}
@@ -1280,7 +1280,7 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 
 	GUID sessionGuid;
 	char playerInfo[2];
-	unsigned int probeStartTick;
+	unsigned int probeStartMs;
 	unsigned int currentTick;
 	int hostPlayerId;
 	int packetType;
@@ -1319,7 +1319,7 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 			FrontendNet_RefreshSessionList();
 		}
 		g_frontendNetSessionList[sessionIdx].playersNeeded = 0;
-		g_frontendNetSessionList[sessionIdx].lastQueryTick = GetTickCount();
+		g_frontendNetSessionList[sessionIdx].lastQueryMs = GetTickCount();
 		g_frontendNetSessionList[sessionIdx].version = 0;
 		g_frontendNetSessionList[sessionIdx].passwordRequired = 0;
 		g_frontendNetSessionList[sessionIdx].queryState = 0;
@@ -1340,7 +1340,7 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 
 	g_frontendNetProbePlayersNeeded = 0;
 	g_frontendNetProbeResponseType = 0;
-	probeStartTick = GetTickCount();
+	probeStartMs = GetTickCount();
 	do {
 		packetType = FrontendNet_ProcessNetworkPackets();
 		currentTick = GetTickCount();
@@ -1365,22 +1365,22 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 				g_frontendNetReceivedMissionDescriptionId = -1;
 			}
 		}
-	} while (currentTick - probeStartTick < SESSION_PROBE_TIMEOUT_MS);
+	} while (currentTick - probeStartMs < SESSION_PROBE_TIMEOUT_MS);
 
 	if (packetType == SESSION_PROBE_PLAYER_COUNT_PACKET) {
-		g_frontendNetSessionList[sessionIdx].lastQueryTick = GetTickCount();
+		g_frontendNetSessionList[sessionIdx].lastQueryMs = GetTickCount();
 		g_frontendNetSessionList[sessionIdx].playersNeeded = g_frontendNetProbePlayersNeeded;
 		g_frontendNetSessionList[sessionIdx].version = g_frontendNetProbeVersion;
 		g_frontendNetSessionList[sessionIdx].passwordRequired = (uint8_t)g_frontendNetProbePasswordRequired;
 		g_frontendNetSessionList[sessionIdx].queryState = 1;
 	} else if (packetType == NET_PACKET_PROBE_RESPONSE) {
-		g_frontendNetSessionList[sessionIdx].lastQueryTick = GetTickCount();
+		g_frontendNetSessionList[sessionIdx].lastQueryMs = GetTickCount();
 		g_frontendNetSessionList[sessionIdx].playersNeeded = g_frontendNetProbePlayersNeeded;
 		g_frontendNetSessionList[sessionIdx].version = g_frontendNetProbeVersion;
 		g_frontendNetSessionList[sessionIdx].passwordRequired = (uint8_t)g_frontendNetProbePasswordRequired;
 		g_frontendNetSessionList[sessionIdx].queryState = 0;
 	} else {
-		g_frontendNetSessionList[sessionIdx].lastQueryTick = GetTickCount();
+		g_frontendNetSessionList[sessionIdx].lastQueryMs = GetTickCount();
 		g_frontendNetSessionList[sessionIdx].playersNeeded = 0;
 		g_frontendNetSessionList[sessionIdx].version = 0;
 		g_frontendNetSessionList[sessionIdx].passwordRequired = 0;
@@ -1400,7 +1400,7 @@ int FrontendNet_HostGameExit(int frameCounter) {
 }
 
 // FUNCTION: XVT 0x4DFD30
-int FrontendNet_HostGameScreen(int firstFrame) {
+int FrontendNet_HostGameScreen(int frameCounter) {
 	enum {
 		HOST_NAME_MAX_CHARS = 22,
 		HOST_TEXT_FIELD_ID = 0,
@@ -1415,9 +1415,9 @@ int FrontendNet_HostGameScreen(int firstFrame) {
 #endif
 	RECT rect;
 
-	if (firstFrame == 0) {
+	if (frameCounter == 0) {
 		g_hostGameStartPending = 0;
-		g_skipFrontendEntryMovie = 0;
+		g_frontendSkipScreenEntrySetup = 0;
 		g_frontendQuickStartLaunchFlag = 0;
 		g_configConnectionTypeEditable = 1;
 		g_frontendGameSessionInProgress = 0;
@@ -1761,7 +1761,7 @@ int FrontendNet_ProcessNetworkPackets(void) {
 #ifdef XVT_MODERN
 			if (packetSize < 2 * sizeof(int) || senderPlayerId != (DPID)Net_GetHostPlayerId() ||
 				(XvtNetworkSession_GetStatus().state == XVT_NETWORK_SESSION_ADMISSION &&
-				 !XvtNetworkSession_Admission(senderPlayerId, (DPID)payload[0]))) {
+				 !XvtNetworkSession_AcceptAdmission(senderPlayerId, (DPID)payload[0]))) {
 				packetType = NET_PACKET_NONE;
 				break;
 			}
@@ -1953,7 +1953,7 @@ int FrontendNet_ProcessNetworkPackets(void) {
 			break;
 
 		case NET_PACKET_RETURN_TO_SETUP:
-			g_skipFrontendEntryMovie = 1;
+			g_frontendSkipScreenEntrySetup = 1;
 			break;
 
 		case NET_PACKET_CLEAR_TEAM_ASSIGNMENTS:
@@ -2017,7 +2017,7 @@ int FrontendNet_ProcessNetworkPackets(void) {
 				g_gameConfig.missionTimeLimit = payloadBytes[40];
 				g_gameConfig.lastTeamTimeLimitMinutes = payloadBytes[44];
 				g_gameConfig.randomSeed = payload[12];
-				g_gameConfig.asyncFlag = payloadBytes[52];
+				g_gameConfig.internetPlay = payloadBytes[52];
 				g_gameConfig.aiOpponents = payloadBytes[56];
 				g_gameConfig.serverUpdateRate = payloadBytes[60];
 				g_gameConfig.combatBalance = payloadBytes[64];

@@ -188,13 +188,13 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 				break;
 		}
 	}
-	craft->shieldRedirect = g_players[playerIdx].savedCraftSettings.shieldRedirect;
-	craft->laserRedirect = g_players[playerIdx].savedCraftSettings.laserRedirect;
+	craft->shieldRechargeLevel = g_players[playerIdx].savedCraftSettings.shieldRedirect;
+	craft->laserRechargeLevel = g_players[playerIdx].savedCraftSettings.laserRedirect;
 	craft->beamLevel = g_players[playerIdx].savedCraftSettings.beamLevel;
 
 	g_players[playerIdx].objectIndex = selectedObjectIdx;
 	g_players[playerIdx].boundObjectSignature = g_objectTable[selectedObjectIdx].objectSignature;
-	g_players[playerIdx].regionSessionId = 0;
+	g_players[playerIdx].awaitingNewCraft = 0;
 	g_players[playerIdx].hyperspacePhase = 0;
 	if (matchedPreferredSignature != 0 || previousObjectIdx != UINT32_MAX)
 		craft->throttleSpeed = g_players[playerIdx].savedCraftSettings.throttleSpeed;
@@ -338,7 +338,7 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int
 	craft->shieldDistribMode = SHIELD_DISTRIBUTION_FULLY_FORWARD;
 
 	g_players[playerIndex].objectIndex = -1;
-	g_players[playerIndex].regionSessionId = 0;
+	g_players[playerIndex].awaitingNewCraft = 0;
 	g_players[playerIndex].hyperspacePhase = 0;
 	g_players[playerIndex].missileLockState = 0;
 	g_players[playerIndex].yawRollSwap = 0;
@@ -416,8 +416,8 @@ void Player_SaveCraftSettings(int playerIndex) {
 
 	craft = g_objectTable[g_players[playerIndex].objectIndex].mobj->pCraft;
 	g_players[playerIndex].savedCraftSettings.throttleSpeed = craft->throttleSpeed;
-	g_players[playerIndex].savedCraftSettings.laserRedirect = craft->laserRedirect;
-	g_players[playerIndex].savedCraftSettings.shieldRedirect = craft->shieldRedirect;
+	g_players[playerIndex].savedCraftSettings.laserRedirect = craft->laserRechargeLevel;
+	g_players[playerIndex].savedCraftSettings.shieldRedirect = craft->shieldRechargeLevel;
 	g_players[playerIndex].savedCraftSettings.beamLevel = craft->beamLevel;
 	g_players[playerIndex].savedCraftSettings.shieldDistribMode = craft->shieldDistribMode;
 	g_players[playerIndex].savedCraftSettings.laserLinkMode[0] = craft->laserState.linkMode[0];
@@ -519,9 +519,9 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 			else
 				throttleScale = (uint16_t)((BASE_THROTTLE_SCALE - throttleScale) / 2 - 1);
 
-			laserRedirect = (uint8_t)craft->laserRedirect;
+			laserRedirect = (uint8_t)craft->laserRechargeLevel;
 			if ((craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0)
-				redirectTotal = (int16_t)((uint8_t)craft->shieldRedirect + laserRedirect);
+				redirectTotal = (int16_t)((uint8_t)craft->shieldRechargeLevel + laserRedirect);
 			else
 				redirectTotal = (int16_t)(2 * laserRedirect);
 			powerBalance = (int16_t)(POWER_REDIRECT_NEUTRAL_TOTAL - redirectTotal);
@@ -535,7 +535,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 			else
 				rollRate = (uint16_t)(rollRate - MATH2_fraction(rollRate, powerScale));
 			segmentCount = rollRate / ROLL_RATE_SEGMENT;
-			segmentFraction = (uint16_t)MATH2_divide(rollRate % ROLL_RATE_SEGMENT, ROLL_RATE_SEGMENT);
+			segmentFraction = (uint16_t)MATH2_ratioQ16(rollRate % ROLL_RATE_SEGMENT, ROLL_RATE_SEGMENT);
 			inputMagnitude = (uint16_t)g_scaledInputYaw;
 			if (inputMagnitude >= 0x8000u)
 				inputMagnitude = (uint16_t)-g_scaledInputYaw;
@@ -553,7 +553,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 			else
 				pitchRate = (uint16_t)(pitchRate - MATH2_fraction(pitchRate, powerScale));
 			segmentCount = pitchRate / PITCH_RATE_SEGMENT;
-			segmentFraction = (uint16_t)MATH2_divide(pitchRate % PITCH_RATE_SEGMENT, PITCH_RATE_SEGMENT);
+			segmentFraction = (uint16_t)MATH2_ratioQ16(pitchRate % PITCH_RATE_SEGMENT, PITCH_RATE_SEGMENT);
 			inputMagnitude = (uint16_t)g_scaledInputPitch;
 			if (inputMagnitude >= 0x8000u)
 				inputMagnitude = (uint16_t)-g_scaledInputPitch;
@@ -587,8 +587,8 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 					if (smoothingStep < CONTROL_SMOOTHING_THRESHOLD) {
 						g_players[playerIdx].smoothedInputYaw = (int16_t)(smoothedInput + inputDifference);
 					} else {
-						if (g_simStepScale > CONTROL_SMOOTHING_BASE_STEP) {
-							smoothingStep = (int16_t)(smoothingStep / (int)g_simStepScale);
+						if (g_simStepsPerSecond > CONTROL_SMOOTHING_BASE_STEP) {
+							smoothingStep = (int16_t)(smoothingStep / (int)g_simStepsPerSecond);
 							if (smoothingStep == 0)
 								smoothingStep = 1;
 							smoothingStep *= CONTROL_SMOOTHING_BASE_STEP;
@@ -615,8 +615,8 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 					if (smoothingStep < CONTROL_SMOOTHING_THRESHOLD) {
 						g_players[playerIdx].smoothedInputPitch = (int16_t)(smoothedInput + inputDifference);
 					} else {
-						if (g_simStepScale > CONTROL_SMOOTHING_BASE_STEP) {
-							smoothingStep = (int16_t)(smoothingStep / (int)g_simStepScale);
+						if (g_simStepsPerSecond > CONTROL_SMOOTHING_BASE_STEP) {
+							smoothingStep = (int16_t)(smoothingStep / (int)g_simStepsPerSecond);
 							if (smoothingStep == 0)
 								smoothingStep = 1;
 							smoothingStep *= CONTROL_SMOOTHING_BASE_STEP;
@@ -1486,8 +1486,8 @@ uint16_t Player_PickTargetInSight(int playerIdx) {
 	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart; objectIdx < g_regionMainObjectSlotEnd;
 		 ++objectIdx) {
 		if (g_objectTable[objectIdx].objectType != 0 && g_players[playerIdx].objectIndex != objectIdx &&
-			(g_modelTypeTable[g_objectTable[objectIdx].objectType].flags & 1) != 0) {
-			if (Targeting_ScoreCandidate(objectIdx, 1, playerIdx)) {
+			(g_modelTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0) {
+			if (Targeting_TestAimCone(objectIdx, 1, playerIdx)) {
 				if (bestRange > (unsigned int)g_lastRoughDistance) {
 					bestTarget = objectIdx;
 					bestRange = g_lastRoughDistance;
@@ -1503,8 +1503,8 @@ uint16_t Player_PickTargetInSight(int playerIdx) {
 	for (objectIdx = (uint16_t)g_regionMainObjectSlotEnd;
 		 objectIdx < g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd; ++objectIdx) {
 		if (g_objectTable[objectIdx].objectType != 0 &&
-			(g_modelTypeTable[g_objectTable[objectIdx].objectType].flags & 1) != 0) {
-			if (Targeting_ScoreCandidate(objectIdx, 1, playerIdx)) {
+			(g_modelTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0) {
+			if (Targeting_TestAimCone(objectIdx, 1, playerIdx)) {
 				if (bestRange > (unsigned int)g_lastRoughDistance) {
 					bestTarget = objectIdx;
 					bestRange = g_lastRoughDistance;
@@ -1557,7 +1557,7 @@ uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction, int
 
 		if (g_players[playerIdx].objectIndex != currentObjIdx) {
 			object = &g_objectTable[currentObjIdx];
-			if (object->objectType != 0 && (g_modelTypeTable[object->objectType].flags & 1) != 0) {
+			if (object->objectType != 0 && (g_modelTypeTable[object->objectType].behaviorFlags & 1) != 0) {
 				if (object->mobj == NULL) {
 					break;
 				}
@@ -1615,7 +1615,7 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 			((targetFlags & 2) == 0 || g_projectileObjectSlotEnd > objectIndex)) {
 			object = &g_objectTable[objectIndex];
 			objectType = object->objectType;
-			if (objectType != 0 && (g_modelTypeTable[objectType].flags & 1) != 0 &&
+			if (objectType != 0 && (g_modelTypeTable[objectType].behaviorFlags & 1) != 0 &&
 				((targetFlags & 1) == 0 || object->genusId != CRAFT_GENUS_MINE)) {
 				objectIff = object->mobj == NULL ? g_missionFlightGroups[object->flightGroupIdx].fg.team
 												 : object->mobj->team;
@@ -2107,9 +2107,9 @@ int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx, int16_t excludedObjId
 				CraftData* targetCraft = g_objectTable[targetObjIdx].mobj->pCraft;
 				if (targetCraft->lastAttackerObjIdx == objectIdx &&
 					(g_objectTable[targetObjIdx].playerOwnerIdx == -1 ||
-					 (uint16_t)Mission_GameTimeToSeconds(g_missionElapsedClock.hours,
-														 g_missionElapsedClock.minutes,
-														 g_missionElapsedClock.seconds) -
+					 (uint16_t)Mission_ClockToSeconds(g_missionElapsedClock.hours,
+													  g_missionElapsedClock.minutes,
+													  g_missionElapsedClock.seconds) -
 							 targetCraft->lastHitMissionSecond <
 						 5))
 					qualifies = 1;
@@ -2117,8 +2117,7 @@ int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx, int16_t excludedObjId
 			playerOwnerIdx = g_objectTable[objectIdx].playerOwnerIdx;
 			if ((uint16_t)g_players[playerOwnerIdx].currentTargetObjectIdx == targetObjIdx) {
 				pai_ObjectRefUpdateApproxRangeScore(objectIdx, targetObjIdx);
-				if (g_lastRoughDistance < 0x10000 &&
-					Targeting_ScoreCandidate(targetObjIdx, 0, playerOwnerIdx))
+				if (g_lastRoughDistance < 0x10000 && Targeting_TestAimCone(targetObjIdx, 0, playerOwnerIdx))
 					qualifies = 1;
 				if (craft->warheadLockTicks != 0)
 					qualifies = 1;
@@ -2192,7 +2191,7 @@ void Player_StartPostDestructionState(int playerIdx, unsigned int sourceObjectIn
 			}
 		}
 	}
-	g_players[playerIdx].regionSessionId = 1;
+	g_players[playerIdx].awaitingNewCraft = 1;
 }
 
 // FUNCTION: XVT 0x484C50
@@ -2209,7 +2208,7 @@ void Player_AppendKillMessageActorName(int slot, char* text, int objectIndex) {
 	playerOwnerIdx = object->playerOwnerIdx;
 	craft = object->mobj->pCraft;
 	if (g_flightMissionState.locatePlayersEnabled != 0 ||
-		craft->iffVisibility[(uint16_t)g_players[g_localPlayer].team] != 0) {
+		craft->identifiedOrderByTeam[(uint16_t)g_players[g_localPlayer].team] != 0) {
 		isEnemy = 0;
 	} else {
 		playerIff = (uint16_t)g_players[g_localPlayer].team;
@@ -2250,7 +2249,7 @@ void Player_ComputePolarToObjectRef(int playerIdx, unsigned int objectRef) {
 		savedTargetX = g_players[playerIdx].viewState.savedTargetX;
 		savedTargetY = g_players[playerIdx].viewState.savedTargetY;
 		savedTargetZ = g_players[playerIdx].viewState.savedTargetZ;
-		savedTargetX = worldlocx - savedTargetX;
+		savedTargetX = g_worldLocX - savedTargetX;
 		savedTargetY = worldlocy - savedTargetY;
 		savedTargetZ = worldlocz - savedTargetZ;
 		trig2_ctop(savedTargetX, savedTargetY, savedTargetZ);
@@ -2297,7 +2296,7 @@ void Player_EndFlightParticipation(int playerIdx) {
 									 .objectType]
 					.maxBoundsExtent;
 		}
-		g_players[playerIdx].regionSessionId = 0;
+		g_players[playerIdx].awaitingNewCraft = 0;
 		g_players[playerIdx].objectIndex = -1;
 		g_players[playerIdx].pendingActionTimer = 0;
 		g_players[playerIdx].pendingActionId = 0;
@@ -2442,7 +2441,7 @@ void Player_UpdateParticipationState(void) {
 
 		player = &g_players[playerIdx];
 		if (player->connectedFlag != 0) {
-			if (player->regionSessionId != 0) {
+			if (player->awaitingNewCraft != 0) {
 				if (g_flightSimSideEffectsSuppressed == 0 && player->objectIndex != -1) {
 					ObjectRecord* object;
 

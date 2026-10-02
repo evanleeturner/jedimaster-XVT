@@ -101,7 +101,7 @@ int g_colorOrange = 0;
 // GLOBAL: XVT 0xB6A270
 int g_pulseColorRamp[12] = { 0 };
 // GLOBAL: XVT 0x664F2C
-int g_concourseRedrawRequested = 0;
+int g_pilotRecordPagesNeedRebuild = 0;
 // GLOBAL: XVT 0x664EC4
 int g_cdAudioWarningPending = 0;
 // GLOBAL: XVT 0xBB2818
@@ -117,7 +117,7 @@ int Frontend_LoadResources(void) {
 	FrontendDisplay_DisableEscapeClose();
 	FrontendDisplay_SetSurfaceClearColor(0);
 	FrontendCursor_Show();
-	FrontendDisplay_ClearPresentFrameReady();
+	FrontendDisplay_DisableClearAfterPresent();
 	FrontendDisplay_EnableOffscreenRestore();
 	FrontendText_LoadFont(15);
 	FrontendText_LoadFont(12);
@@ -434,7 +434,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 				*(int*)&g_frontendNetPacketScratch.payload[40] = g_gameConfig.missionTimeLimit;
 				*(int*)&g_frontendNetPacketScratch.payload[44] = g_gameConfig.lastTeamTimeLimitMinutes;
 				*(int*)&g_frontendNetPacketScratch.payload[48] = rand();
-				*(int*)&g_frontendNetPacketScratch.payload[52] = g_gameConfig.asyncFlag;
+				*(int*)&g_frontendNetPacketScratch.payload[52] = g_gameConfig.internetPlay;
 				*(int*)&g_frontendNetPacketScratch.payload[56] = g_gameConfig.aiOpponents;
 				*(int*)&g_frontendNetPacketScratch.payload[60] = g_gameConfig.serverUpdateRate;
 				*(int*)&g_frontendNetPacketScratch.payload[64] = (uint8_t)g_gameConfig.combatBalance;
@@ -459,14 +459,14 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_003_JOIN_GAME));
 		switch (g_gameConfig.networkType) {
 			case NET_TRANSPORT_IPX:
-				if (g_gameConfig.asyncFlag != 0) {
+				if (g_gameConfig.internetPlay != 0) {
 					tooltipText = FrontendString_Get(FRONTSTR_727_JOIN_INTERNET_IPX_GAME);
 				} else {
 					tooltipText = FrontendString_Get(FRONTSTR_728_JOIN_LOCAL_IPX_GAME);
 				}
 				break;
 			case NET_TRANSPORT_TCPIP:
-				if (g_gameConfig.asyncFlag != 0) {
+				if (g_gameConfig.internetPlay != 0) {
 					tooltipText = FrontendString_Get(FRONTSTR_729_JOIN_INTERNET_TCP_IP_GAME);
 				} else {
 					tooltipText = FrontendString_Get(FRONTSTR_730_JOIN_LOCAL_TCP_IP_GAME);
@@ -591,14 +591,14 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 			FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_004_HOST_GAME));
 			switch (g_gameConfig.networkType) {
 				case NET_TRANSPORT_IPX:
-					if (g_gameConfig.asyncFlag != 0) {
+					if (g_gameConfig.internetPlay != 0) {
 						tooltipText = FrontendString_Get(FRONTSTR_721_HOST_INTERNET_IPX_GAME);
 					} else {
 						tooltipText = FrontendString_Get(FRONTSTR_722_HOST_LOCAL_IPX_GAME);
 					}
 					break;
 				case NET_TRANSPORT_TCPIP:
-					if (g_gameConfig.asyncFlag != 0) {
+					if (g_gameConfig.internetPlay != 0) {
 						tooltipText = FrontendString_Get(FRONTSTR_723_HOST_INTERNET_TCP_IP_GAME);
 					} else {
 						tooltipText = FrontendString_Get(FRONTSTR_724_HOST_LOCAL_TCP_IP_GAME);

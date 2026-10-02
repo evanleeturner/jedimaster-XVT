@@ -35,13 +35,13 @@ int XvtFlightIntegration_Init(size_t count) {
 	return 1;
 }
 
-void XvtFlightIntegration_Reset(unsigned slot) {
+void XvtFlightIntegration_ResetSlotAndMotion(unsigned slot) {
 	if (slot < g_count)
 		memset(&g_entries[slot], 0, sizeof g_entries[slot]);
 	XvtReferenceMotion_Reset(slot);
 }
 
-static Integration* Entry(unsigned slot) {
+static Integration* XvtFlightIntegration_SyncEntry(unsigned slot) {
 	if (slot >= g_count)
 		return NULL;
 	Integration* s = &g_entries[slot];
@@ -63,9 +63,9 @@ static Integration* Entry(unsigned slot) {
 			unsigned carried = o->mobj->pCraft->carriedObjectIndex;
 			if (carried != s->carried) {
 				if (s->carried < g_count && s->carried != slot)
-					XvtFlightIntegration_Reset(s->carried);
+					XvtFlightIntegration_ResetSlotAndMotion(s->carried);
 				if (carried < g_count && carried != slot)
-					XvtFlightIntegration_Reset(carried);
+					XvtFlightIntegration_ResetSlotAndMotion(carried);
 				s->carried = carried;
 			}
 		}
@@ -86,7 +86,7 @@ static Integration* Entry(unsigned slot) {
 }
 
 void XvtFlightIntegration_Clear(unsigned slot, unsigned channel) {
-	Integration* s = Entry(slot);
+	Integration* s = XvtFlightIntegration_SyncEntry(slot);
 	if (s && channel < XVT_INTEGRATE_COUNT) {
 		s->remainder[channel] = 0;
 		s->direction[channel] = 0;
@@ -108,7 +108,8 @@ static int64_t Integrate(Integration* s, unsigned channel, int64_t numerator, in
 int XvtFlightIntegration_Rate(unsigned slot, unsigned channel, int rate, unsigned elapsed, int divisor) {
 	if (channel >= XVT_INTEGRATE_COUNT || divisor <= 0)
 		return 0;
-	int64_t v = Integrate(Entry(slot), channel, (int64_t)rate * elapsed, divisor, (rate > 0) - (rate < 0));
+	int64_t v = Integrate(XvtFlightIntegration_SyncEntry(slot), channel, (int64_t)rate * elapsed, divisor,
+						  (rate > 0) - (rate < 0));
 	return v > INT_MAX ? INT_MAX : v < INT_MIN ? INT_MIN : (int)v;
 }
 
@@ -121,7 +122,7 @@ unsigned XvtFlightIntegration_Steer(unsigned slot, unsigned channel, uint16_t ra
 	/* The complete product fits uint64_t even at the uint16_t elapsed limit. */
 	uint64_t product = (uint64_t)rate * g_elapsedTicks * a * f;
 	uint64_t divisor = (uint64_t)SIMULATION_TICKS_PER_SECOND * XVT_Q16_SCALE * XVT_Q16_SCALE;
-	Integration* s = Entry(slot);
+	Integration* s = XvtFlightIntegration_SyncEntry(slot);
 	if (s && s->direction[channel] != direction) {
 		s->remainder[channel] = 0;
 		s->direction[channel] = direction;
@@ -136,7 +137,7 @@ unsigned XvtFlightIntegration_Steer(unsigned slot, unsigned channel, uint16_t ra
 }
 
 void XvtFlightIntegration_Move(unsigned slot) {
-	Integration* s = Entry(slot);
+	Integration* s = XvtFlightIntegration_SyncEntry(slot);
 	if (s) {
 		const ObjectRecord* o = &g_objectTable[slot];
 		const int position[3] = { o->world_x, o->world_y, o->world_z };

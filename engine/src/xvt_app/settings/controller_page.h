@@ -62,8 +62,9 @@ void XvtControllerSettings_Open(XvtControllerSettings* settings, const XvtSettin
  * selects a flight axis (Yaw, Pitch, Roll, Throttle) and edits its source by capture from the selected
  * device (a source already driving another model's same axis, or another axis of this profile, opens the
  * axis conflict dialog), shows the live input (the throttle as a lever position), and offers Invert,
- * Deadzone (not for the throttle) and Clear Binding. Then the error with Dismiss Error, and Restore
- * Controller Defaults, enabled with a device selected, which opens the restore modal. */
+ * Deadzone (not for the throttle) and Clear Binding. Then the error with Dismiss Error, and
+ * Restore Controller Defaults, enabled with a device selected, which opens the
+ * restore modal. */
 void XvtControllerSettings_Draw(XvtControllerSettings* settings, AeronUiContext* ui,
 								const AeronInputSnapshot* input);
 /* Nothing for a NULL argument. With no compatible device selected, cancels the capture and closes the

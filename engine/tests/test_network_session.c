@@ -222,9 +222,9 @@ static void CheckResetKeepsShutdownClears(void) {
 
 static void CheckAdmissionOutsideAdmission(void) {
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Admission(0, 0), 0);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_AcceptAdmission(0, 0), 0);
 	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginJoin("\x02", "Luke", &g_room), XVT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Admission(0, 0), 0);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_AcceptAdmission(0, 0), 0);
 	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
 }
 

@@ -177,7 +177,7 @@ int g_moviePreviousWndProcMode = 0;
 // GLOBAL: XVT 0xAA6084
 int g_moviePlaybackCompletionState = 0;
 // GLOBAL: XVT 0xAA607C
-unsigned int g_movieMultiplayerSyncDeadlineTick = 0;
+unsigned int g_movieMultiplayerSyncDeadlineMs = 0;
 // GLOBAL: XVT 0x665D98
 int g_movieSkipRequested = 0;
 // GLOBAL: XVT 0x6681A8
@@ -866,10 +866,10 @@ int Movie_Play(const char* name, int synchronizeMultiplayer) {
 	playbackParams.window = g_frontState.hWnd;
 	if (synchronizeMultiplayer != 0 &&
 		g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		playbackParams.inputCallback = (MovieInputCallback)Movie_MultiplayerFrameCallback;
+		playbackParams.inputCallback = (MovieInputCallback)Movie_MultiplayerInputCallback;
 		playbackParams.progressCallback = (MovieProgressCallback)Movie_MultiplayerSyncCallback;
 	} else {
-		playbackParams.inputCallback = (MovieInputCallback)Movie_SingleplayerFrameCallback;
+		playbackParams.inputCallback = (MovieInputCallback)Movie_SingleplayerInputCallback;
 		playbackParams.progressCallback = NULL;
 	}
 	return Movie_RunSmackerPlayback(&playbackParams);
@@ -877,7 +877,7 @@ int Movie_Play(const char* name, int synchronizeMultiplayer) {
 }
 
 // FUNCTION: XVT 0x4F0070
-int Movie_SingleplayerFrameCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
+int Movie_SingleplayerInputCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
 									int eventArg4, uint32_t* playbackFlag) {
 	(void)context;
 	(void)eventArg3;
@@ -915,7 +915,7 @@ int Movie_SingleplayerFrameCallback(int context, unsigned int eventCode, int key
 }
 
 // FUNCTION: XVT 0x4F0140
-int Movie_MultiplayerFrameCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
+int Movie_MultiplayerInputCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
 								   int eventArg4, uint32_t* playbackFlag) {
 	enum {
 		moviePaintEvent = 15,
@@ -1057,7 +1057,7 @@ void Movie_DrawMultiplayerSyncStatus(void) {
 // FUNCTION: XVT 0x4F0510
 void Movie_UpdateMultiplayerSyncTimeout(void) {
 	enum {
-		HOST_TIMEOUT_TICKS = 5000,
+		HOST_TIMEOUT_MS = 5000,
 		CLIENT_TIMEOUT_MS = 20000,
 		TIMEOUT_COMPLETION_STATE = 2,
 		PROMPT_FONT_SIZE = 12,
@@ -1068,14 +1068,14 @@ void Movie_UpdateMultiplayerSyncTimeout(void) {
 	RECT rect;
 	int packet[2];
 
-	timeoutMs = Net_IsHost() != 0 ? HOST_TIMEOUT_TICKS : CLIENT_TIMEOUT_MS;
-	if (g_movieMultiplayerSyncDeadlineTick == 0) {
+	timeoutMs = Net_IsHost() != 0 ? HOST_TIMEOUT_MS : CLIENT_TIMEOUT_MS;
+	if (g_movieMultiplayerSyncDeadlineMs == 0) {
 		packet[0] = NET_PACKET_MOVIE_SYNC;
 		packet[1] = 0;
 		Net_SendPacketAndFlush(0, packet, sizeof(packet));
-		g_movieMultiplayerSyncDeadlineTick = timeoutMs + GetTickCount();
-		if (g_movieMultiplayerSyncDeadlineTick == 0)
-			++g_movieMultiplayerSyncDeadlineTick;
+		g_movieMultiplayerSyncDeadlineMs = timeoutMs + GetTickCount();
+		if (g_movieMultiplayerSyncDeadlineMs == 0)
+			++g_movieMultiplayerSyncDeadlineMs;
 		rect.left = g_movieX;
 		rect.right = g_moviePlaybackParams->displayWidth - (int)g_movieRightMargin - 1;
 		rect.top = g_movieY;
@@ -1097,11 +1097,11 @@ void Movie_UpdateMultiplayerSyncTimeout(void) {
 	}
 
 	{
-		unsigned int deadlineTick;
+		unsigned int deadlineMs;
 		const char* message;
 
-		deadlineTick = g_movieMultiplayerSyncDeadlineTick;
-		if (deadlineTick - GetTickCount() <= timeoutMs)
+		deadlineMs = g_movieMultiplayerSyncDeadlineMs;
+		if (deadlineMs - GetTickCount() <= timeoutMs)
 			return;
 		g_moviePlaybackCompletionState = TIMEOUT_COMPLETION_STATE;
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
@@ -1151,7 +1151,7 @@ int Movie_MultiplayerSyncCallback(int initialize) {
 				g_movieMultiplayerSyncPlayers[playerIndex].playerId = 0;
 			}
 		}
-		g_movieMultiplayerSyncDeadlineTick = 0;
+		g_movieMultiplayerSyncDeadlineMs = 0;
 	}
 
 	FrontendNet_ProcessNetworkPackets();

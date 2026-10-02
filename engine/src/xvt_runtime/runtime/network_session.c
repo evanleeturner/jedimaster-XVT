@@ -35,7 +35,7 @@ enum {
 static struct {
 	int phase, host, online, opened, registered, closing, cancel_join, flight, flight_ready, lost;
 	GUID app, instance;
-	char info[16], player[16], name[32];
+	char rating_text[16], player[16], name[32];
 	uint64_t deadline, retry;
 	AeronDplayDirectoryError error;
 	XvtNetworkMetadata metadata;
@@ -108,7 +108,7 @@ void XvtNetworkSession_OnClose(void) {
 	/* Every shutdown calls this, with or without a session; only a session under way is reported. */
 	if (g_session.phase != SESSION_IDLE && g_session.phase != SESSION_FAILED)
 		XVT_LOG_INFO("network.session_closed phase=%d", g_session.phase);
-	XvtFlightNetwork_CloseSession();
+	XvtFlightNetwork_ClearCookies();
 	if (g_session.registered)
 		AeronDplayDirectory_StopHosting();
 	if (g_session.online && !g_session.host) {
@@ -151,10 +151,10 @@ static int XvtNetworkSession_Start(const char* info, const char* player, const c
 	g_session.online = online;
 	if (!info || !player || !name || (!host && !room))
 		return XvtNetworkSession_Fail(AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
-	if (strlen(info) >= sizeof(g_session.info) || strlen(player) >= sizeof(g_session.player) ||
+	if (strlen(info) >= sizeof(g_session.rating_text) || strlen(player) >= sizeof(g_session.player) ||
 		strlen(name) >= sizeof(g_session.name))
 		return XvtNetworkSession_Fail(AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
-	strcpy(g_session.info, info);
+	strcpy(g_session.rating_text, info);
 	strcpy(g_session.player, player);
 	if (*name)
 		strcpy(g_session.name, name);
@@ -169,7 +169,7 @@ static int XvtNetworkSession_Start(const char* info, const char* player, const c
 	g_session.phase = SESSION_CLOSE;
 	XVT_LOG_INFO("network.session_begin role=\"%s\" online=%d", XvtNetworkSession_Role(), online);
 	XVT_LOG_DEBUG("network.session_names pilot=\"%s\" game=\"%s\" rating=\"%s\"", g_session.player,
-				  g_session.name, g_session.info);
+				  g_session.name, g_session.rating_text);
 	return XVT_NETWORK_PENDING;
 }
 
@@ -209,7 +209,7 @@ static int XvtNetworkSession_Factory(void) {
 		peer->directPlayId = 0;
 		peer->lastPiggybackType = NET_PACKET_NOP;
 		peer->piggybackLength = 1;
-		peer->lastActivityMs = peer->lastKeepaliveMs = 0;
+		peer->lastActivityMs = peer->lastHeardMs = 0;
 		peer->packetCount = peer->packetDropCount = peer->packetRetryCount = 0;
 	}
 	memset(g_frontState.netRuntimeRecvHistory, 0, sizeof(g_frontState.netRuntimeRecvHistory));
@@ -221,7 +221,7 @@ static int XvtNetworkSession_Factory(void) {
 	g_missionSetupRosterAuthoritative = 0;
 	g_frontState.netAppGuid = g_session.app;
 	g_frontState.netIsHost = g_session.host;
-	strcpy(g_frontState.netPlayers[0].playerInfo, g_session.info);
+	strcpy(g_frontState.netPlayers[0].playerInfo, g_session.rating_text);
 	strcpy(g_frontState.netPlayers[0].playerName, g_session.player);
 	strcpy(g_frontState.netSessionName, g_session.name);
 	result = DirectPlayCreate(provider, &temporary, NULL);
@@ -263,7 +263,7 @@ static int XvtNetworkSession_Handshake(void) {
 			peer->sendSeq = 0;
 			peer->lastPiggybackType = NET_PACKET_NOP;
 			peer->piggybackLength = 1;
-			peer->lastActivityMs = peer->lastKeepaliveMs = GetTickCount();
+			peer->lastActivityMs = peer->lastHeardMs = GetTickCount();
 			if (saved.directPlayId && peer->directPlayId == saved.directPlayId) {
 				peer->prevRecvSeqDefault = saved.prevRecvSeqDefault;
 				peer->recvSeqDefault = saved.recvSeqDefault;
@@ -271,7 +271,7 @@ static int XvtNetworkSession_Handshake(void) {
 				memcpy(&peer->lastPiggybackType, &saved.lastPiggybackType, saved.piggybackLength);
 				peer->piggybackLength = saved.piggybackLength;
 				peer->lastActivityMs = saved.lastActivityMs;
-				peer->lastKeepaliveMs = saved.lastKeepaliveMs;
+				peer->lastHeardMs = saved.lastHeardMs;
 			}
 		}
 		int response[5] = { NET_PACKET_KEEPALIVE_ACK, packet[3], 0, 0, 0 };
@@ -365,7 +365,7 @@ int XvtNetworkSession_Tick(void) {
 			break;
 		}
 		case SESSION_PLAYER: {
-			int player = Net_CreateDirectPlayPlayer(g_session.info, g_session.player);
+			int player = Net_CreateDirectPlayPlayer(g_session.rating_text, g_session.player);
 			if (player == XVT_NETWORK_PENDING)
 				break;
 			if (!player)
@@ -419,7 +419,7 @@ int XvtNetworkSession_Tick(void) {
 	return XVT_NETWORK_PENDING;
 }
 
-int XvtNetworkSession_Admission(DPID sender, DPID player) {
+int XvtNetworkSession_AcceptAdmission(DPID sender, DPID player) {
 	if (g_session.phase != SESSION_ADMISSION || sender != g_frontState.netHostPlayerId ||
 		player != g_frontState.netRuntimeLocalPlayer.playerId || g_session.lost ||
 		Aeron_NowUs() >= g_session.deadline)
@@ -485,7 +485,7 @@ void XvtNetworkSession_Service(void) {
 	if (g_session.flight) {
 		current = g_session.metadata;
 		if (g_session.flight_ready)
-			XvtNetworkMetadata_Flight(&current);
+			XvtNetworkMetadata_KeepActivePlayers(&current);
 	} else {
 		int accepting =
 			g_frontState.screenStates[g_frontState.screenStackTop].updateFn == MissionSetup_Update &&
@@ -525,7 +525,7 @@ void XvtNetworkSession_BeginFlight(void) {
 	g_session.flight_ready = 0;
 }
 
-void XvtNetworkSession_FlightReady(void) { g_session.flight_ready = 1; }
+void XvtNetworkSession_MarkFlightReady(void) { g_session.flight_ready = 1; }
 
 void XvtNetworkSession_EndFlight(void) {
 	if (!g_session.flight)

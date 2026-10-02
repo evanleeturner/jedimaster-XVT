@@ -191,8 +191,8 @@ NetPlayerInfo* Net_GetPlayerRoster(int* outCount);
 int Net_GetPlayerCount(void);
 int Net_DidReadyPlayerLeaveThisFrame(void);
 int Net_IsHost(void);
-int Net_HasQueuedPacketTypeOrBacklog(int packetType);
-int Net_HasQueuedJoinRequestOrBacklog(void);
+int Net_PollForPacketTypeOrBacklog(int packetType);
+int Net_PollForJoinRequestOrBacklog(void);
 int* Net_GetNextAppPacket(DPID* outSenderId, uint32_t* outPacketSize);
 void Net_HandleFrontendRosterPacket(int packetType, const void* packetData);
 void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize);
@@ -213,8 +213,8 @@ int NetSession_ImportRuntimeState(void** dplayInterfaceOut, GUID* appGuidOut, GU
 								  NetQueuedPacket* directPlaySlotsOut, int32_t* recvQueueReadOut,
 								  int* recvQueueCountOut, int* recvQueueWriteOut,
 								  NetReliablePeerSlot* reliablePeerSlotsOut, uint32_t* netSlotCountOut,
-								  uint32_t* smallStateOut, char* stateBytesAOut, int* stateDwordAOut,
-								  int* stateDwordBOut, uint32_t* stateDwordCOut, char* stateBytesBOut,
+								  uint32_t* smallStateOut, char* broadcastPayloadOut, int* stateDwordAOut,
+								  int* stateDwordBOut, uint32_t* stateDwordCOut, char* groupPayloadOut,
 								  int* stateDwordDOut, int* stateDwordEOut, NetQueuedPacket* recvHistoryOut,
 								  int* recvHistoryCountOut);
 int NetSession_ExportRuntimeState(void** dplayInterface, const void* appGuid, const void* sessionGuid,
@@ -222,8 +222,8 @@ int NetSession_ExportRuntimeState(void** dplayInterface, const void* appGuid, co
 								  const NetQueuedPacket* directPlaySlots, int* recvQueueRead,
 								  int* recvQueueCount, int* recvQueueWrite,
 								  const NetReliablePeerSlot* reliablePeerSlots, int* netSlotCount,
-								  int* smallState, const void* stateBytesA, int* stateDwordA,
-								  int* stateDwordB, int* stateDwordC, const void* stateBytesB,
+								  int* smallState, const void* broadcastPayload, int* stateDwordA,
+								  int* stateDwordB, int* stateDwordC, const void* groupPayload,
 								  int* stateDwordD, int* stateDwordE, const NetQueuedPacket* recvHistory,
 								  int* recvHistoryCount, NetQueuedPacket* recvQueue, int* recvQueueHighWater);
 int Net_CompactReliablePeerSlotsForRoster(void);

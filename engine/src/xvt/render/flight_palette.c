@@ -5,7 +5,7 @@
 #include "xvt/render/renderer.h"
 
 // GLOBAL: XVT 0x5233D8
-int g_flight16bppBytesPerPixel = 1;
+int g_flightBytesPerPixel = 1;
 // GLOBAL: XVT 0x523400
 int g_flightBrightnessScaleQ8 = 0x100;
 // GLOBAL: XVT 0x9A7BC0
@@ -173,7 +173,7 @@ void FlightPalette_Reset(void) {
 	RgbTriplet adjustedPalette[256];
 
 	FlightPalette_BuildRgbRange(g_swPalette, adjustedPalette, 0, 256);
-	if (g_flight16bppBytesPerPixel == 1)
+	if (g_flightBytesPerPixel == 1)
 		FlightDisplay_SetPaletteEntries((uint8_t*)adjustedPalette, 0, 256);
 	g_paletteDirtyFlags &= ~1;
 }
@@ -216,7 +216,7 @@ void FlightPalette_SetFull(RgbTriplet* rgbTriples) { FlightPalette_SetRange(rgbT
 
 // FUNCTION: XVT 0x449100
 void FlightPalette_ResetIf8Bit(void) {
-	if (g_flight16bppBytesPerPixel == 1)
+	if (g_flightBytesPerPixel == 1)
 		FlightPalette_Reset();
 }
 

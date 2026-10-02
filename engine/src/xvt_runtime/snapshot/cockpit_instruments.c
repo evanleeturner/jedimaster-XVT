@@ -20,25 +20,25 @@ static struct {
 	uint8_t laser_lock[XVT_HUD_WEAPON_SLOTS];
 	uint8_t threats[4];
 	XvtCockpitRadar radar;
-} g_resolved;
+} g_recorded;
 
 void XvtCockpitInstruments_BeginUpdate(int player) {
 	if (player == g_localPlayer) {
-		memset(&g_resolved, 0, sizeof g_resolved);
+		memset(&g_recorded, 0, sizeof g_recorded);
 		XvtCockpitReadouts_BeginUpdate();
 	}
 }
 
 void XvtCockpitInstruments_RecordLaserLock(unsigned slot, unsigned state) {
 	if (slot < XVT_HUD_WEAPON_SLOTS)
-		g_resolved.laser_lock[slot] = (uint8_t)state;
+		g_recorded.laser_lock[slot] = (uint8_t)state;
 }
 
 void XvtCockpitInstruments_RecordThreats(unsigned attack, unsigned laser, unsigned beam, unsigned warhead) {
-	g_resolved.threats[0] = (uint8_t)attack;
-	g_resolved.threats[1] = (uint8_t)laser;
-	g_resolved.threats[2] = (uint8_t)beam;
-	g_resolved.threats[3] = (uint8_t)warhead;
+	g_recorded.threats[0] = (uint8_t)attack;
+	g_recorded.threats[1] = (uint8_t)laser;
+	g_recorded.threats[2] = (uint8_t)beam;
+	g_recorded.threats[3] = (uint8_t)warhead;
 }
 
 void XvtCockpitInstruments_RecordRadar(int object, int front, int index, int x, int y, int color) {
@@ -46,19 +46,19 @@ void XvtCockpitInstruments_RecordRadar(int object, int front, int index, int x, 
 		return;
 	unsigned side = front ? 0 : 1;
 	const HudElementLayout* anchor = &g_hudElementLayouts[g_hudInstrumentSetBaseIndex + side];
-	XvtSnapRadarBlip* blip = &g_resolved.radar.blips[side][index];
+	XvtSnapRadarBlip* blip = &g_recorded.radar.blips[side][index];
 	memset(blip, 0, sizeof *blip);
 	blip->object = (XvtSnapObjectId) { (uint16_t)object, g_objectTable[object].objectSignature };
 	blip->x = (int16_t)(x - anchor->x);
 	blip->y = (int16_t)(y - anchor->y);
 	blip->color_index = (uint16_t)color;
 	blip->targeted = object == g_players[g_localPlayer].currentTargetObjectIdx;
-	g_resolved.radar.count[side] = (uint8_t)(index == 47 ? 47 : index + 1);
+	g_recorded.radar.count[side] = (uint8_t)(index == 47 ? 47 : index + 1);
 	if (blip->targeted) {
-		g_resolved.radar.marker_visible = 1;
-		g_resolved.radar.marker_side = (uint8_t)side;
-		g_resolved.radar.marker_x = blip->x;
-		g_resolved.radar.marker_y = blip->y;
+		g_recorded.radar.marker_visible = 1;
+		g_recorded.radar.marker_side = (uint8_t)side;
+		g_recorded.radar.marker_x = blip->x;
+		g_recorded.radar.marker_y = blip->y;
 	}
 }
 
@@ -78,8 +78,8 @@ static int UsesCompactPower(const ObjectRecord* object) {
 void XvtCockpitInstruments_CompleteRadar(void) {
 	const HudRadarBlipPoint* points[2] = { g_radarForeDrawBlips, g_radarAftDrawBlips };
 	for (unsigned side = 0; side < 2; ++side)
-		for (unsigned index = 0; index < g_resolved.radar.count[side]; ++index)
-			g_resolved.radar.coverage[side][index] = g_flight16bppBytesPerPixel == 1
+		for (unsigned index = 0; index < g_recorded.radar.count[side]; ++index)
+			g_recorded.radar.coverage[side][index] = g_flightBytesPerPixel == 1
 														 ? (uint8_t)(points[side][index].color & 3)
 														 : points[side][index].color != 0;
 }
@@ -96,10 +96,11 @@ static void BuildShieldState(XvtCockpitState* state, const CraftData* craft) {
 		if (energy < 0 || !(craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_SHIELDS))
 			energy = 0;
 		unsigned excess = (unsigned)energy >= maximum;
-		unsigned fraction = MATH2_percentage(excess ? (unsigned)energy - maximum : (unsigned)energy, maximum);
+		unsigned fraction =
+			MATH2_longratioQ16(excess ? (unsigned)energy - maximum : (unsigned)energy, maximum);
 		unsigned level = MATH2_longfraction(9, (uint16_t)fraction);
 		shield->visible = 1;
-		shield->text_mode = g_hudElementLayouts[base + 35 + side * 2].colorIndex == UINT16_MAX;
+		shield->text_mode = g_hudElementLayouts[base + 35 + side * 2].colorIndexOrWidgetParam == UINT16_MAX;
 		shield->primary_level = excess ? 9 : (uint8_t)level;
 		shield->overcharge_level = excess ? (uint8_t)level : 0;
 		if (!shield->text_mode && g_playerFlightTransientTimers[g_localPlayer].shieldHitFlashTimer &&
@@ -155,7 +156,7 @@ static void SetPowerGauge(XvtCockpitPowerGauge* gauge, int visible, unsigned fil
 static void BuildPowerState(XvtCockpitState* state, const CraftData* craft, int compact) {
 	XvtCockpitSystems* systems = &state->systems;
 	unsigned features = systems->hud_features;
-	unsigned laser = (uint8_t)craft->laserRedirect, shield = (uint8_t)craft->shieldRedirect;
+	unsigned laser = (uint8_t)craft->laserRechargeLevel, shield = (uint8_t)craft->shieldRechargeLevel;
 	unsigned beam = (uint8_t)craft->beamLevel;
 	unsigned engine = 8 - laser;
 	int shields = (craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0;
@@ -307,7 +308,7 @@ static void BuildLaserSlots(XvtCockpitState* state, const CraftData* craft, int 
 		const HudElementLayout* selection = &g_hudElementLayouts[base + index + 11];
 		slot->selection_visible = compact && charge_visible && selection->x + selection->y != 0;
 		slot->lock_visible = compact;
-		slot->locked = g_resolved.laser_lock[index];
+		slot->locked = g_recorded.laser_lock[index];
 	}
 	unsigned lock = player->selectedWeaponMode == 0
 						? (g_targetLockActive ? 4 : 0)
@@ -426,12 +427,12 @@ void XvtCockpitInstruments_Build(XvtCockpitState* state) {
 		BuildBeamState(state, craft);
 		BuildPowerState(state, craft, compact);
 		BuildBasicReadouts(state, craft);
-		state->radar = g_resolved.radar;
+		state->radar = g_recorded.radar;
 		int radar_visible = (systems->hud_features & XVT_COCKPIT_FEATURE_FORE_RADAR) &&
 							(systems->hud_features & XVT_COCKPIT_FEATURE_AFT_RADAR);
 		state->radar.visible[0] = state->radar.visible[1] = radar_visible;
 		for (unsigned index = 0; index < 4; ++index)
 			systems->threats[index] =
-				(XvtCockpitIndicator) { 1, g_resolved.threats[index], 0, XVT_COCKPIT_BEFORE_CRT };
+				(XvtCockpitIndicator) { 1, g_recorded.threats[index], 0, XVT_COCKPIT_BEFORE_CRT };
 	}
 }

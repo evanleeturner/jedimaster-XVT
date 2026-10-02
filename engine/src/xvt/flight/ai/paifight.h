@@ -37,8 +37,8 @@ int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type, uint16
 													 int16_t targetOrMode, int16_t target2Type,
 													 uint16_t target2);
 int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx, uint16_t candidateCount);
-int16_t paifight_OrderSlotCanTarget(uint16_t orderSlot);
-int16_t paifight_OrderSlotHasRemainingTargets(uint16_t orderSlot);
+int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot);
+int16_t paifight_SearchOrderSlotRemainingTargets(uint16_t orderSlot);
 int16_t paifight_CountRemainingOrderTargetsFromOrderSlot(uint16_t orderSlot);
 int16_t paifight_CountRemainingOrderTargets(int16_t target1Type, uint16_t target1, int16_t targetRelationOp,
 											int16_t target2Type, uint16_t target2);

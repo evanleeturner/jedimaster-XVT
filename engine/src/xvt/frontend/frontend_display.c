@@ -289,7 +289,7 @@ void FrontendDisplay_Shutdown(int bDestroyWindow) {
 		if (g_frontState.screenStates[screenIndex].savedImage.pixels != NULL) {
 			free(g_frontState.screenStates[screenIndex].savedImage.pixels);
 			g_frontState.screenStates[screenIndex].savedImage.pixels = NULL;
-			g_frontState.screenStates[screenIndex].savedImage.pixelCount = 0;
+			g_frontState.screenStates[screenIndex].savedImage.pixelDataBytes = 0;
 		}
 	}
 	FrontImage_FreeAllResources();
@@ -612,7 +612,7 @@ uint32_t FrontendDisplay_RunMainLoop(void* hInstance, void* hPrevInstance, char*
 				frameReady = 0;
 				g_frontState.netReadyPlayerLeftThisFrame = 0;
 				if (g_frontState.textFadeFramesLeft != 0)
-					memset(&g_frontState.glyphScratchBuffer, 0, sizeof(g_frontState.glyphScratchBuffer));
+					memset(&g_frontState.textFadeColorCache, 0, sizeof(g_frontState.textFadeColorCache));
 				Net_PumpIncomingPackets();
 				if (g_frontState.screenStates[g_frontState.screenStackTop].updateFn != NULL) {
 					GetKeyboardState(g_frontState.keyState);
@@ -652,11 +652,11 @@ uint32_t FrontendDisplay_RunMainLoop(void* hInstance, void* hPrevInstance, char*
 					g_frontState.mouseClickLatch = 0;
 					g_frontState.mouseRightClickLatch = 0;
 					if (g_frontState.cdAudioSuspendState == CDAudio_ResumePending &&
-						GetTickCount() > g_frontState.cdAudioResumeDueTick) {
+						GetTickCount() > g_frontState.cdAudioResumeDueMs) {
 						CDAudio_ResumeSuspendedPlayback();
 					}
 					if (g_frontState.cdAudioCurrentTrack != 0 &&
-						GetTickCount() > g_frontState.cdAudioTrackEndTick) {
+						GetTickCount() > g_frontState.cdAudioTrackEndMs) {
 						if (g_frontState.cdAudioLoopCurrentTrack != 0)
 							CDAudio_PlayTrackFromTime(g_frontState.cdAudioCurrentTrack, 0, 0);
 						else
@@ -902,7 +902,7 @@ uint32_t FrontendDisplay_Init(void* hInstance, void* hPrevInstance, char* lpCmdL
 
 	g_frontState.clipMaxX = 639;
 	g_frontState.clipMaxY = 479;
-	g_frontState.presentFrameReady = 1;
+	g_frontState.clearBackBufferAfterPresent = 1;
 	g_frontState.displayBpp = bpp;
 	zeroValue = 0;
 	g_frontState.pixelFormat555 = zeroValue;
@@ -1082,12 +1082,12 @@ void FrontendDisplay_PresentFrame(void) {
 		}
 	}
 
-	if (g_frontState.presentFrameReady != 0)
+	if (g_frontState.clearBackBufferAfterPresent != 0)
 		FrontendDisplay_ClearBackBuffer();
 }
 
 // FUNCTION: XVT 0x4D4BF0
-void FrontendDisplay_ClearPresentFrameReady(void) { g_frontState.presentFrameReady = 0; }
+void FrontendDisplay_DisableClearAfterPresent(void) { g_frontState.clearBackBufferAfterPresent = 0; }
 
 // FUNCTION: XVT 0x4D4C00
 void FrontendDisplay_SetSurfaceClearColor(uint32_t color) { g_frontState.surfaceClearColor = color; }
@@ -1332,7 +1332,7 @@ uint32_t FrontendDisplay_InitPreservingNetworkSession(void* hInstance, void* hPr
 
 	g_frontState.clipMaxX = 639;
 	g_frontState.clipMaxY = 479;
-	g_frontState.presentFrameReady = 1;
+	g_frontState.clearBackBufferAfterPresent = 1;
 	g_frontState.displayBpp = bpp;
 	zeroValue = 0;
 	g_frontState.pixelFormat555 = zeroValue;
@@ -1498,7 +1498,7 @@ int FrontendDisplay_RunFrame(void) {
 		}
 	}
 	if (g_frontState.textFadeFramesLeft != 0)
-		memset(&g_frontState.glyphScratchBuffer, 0, sizeof(g_frontState.glyphScratchBuffer));
+		memset(&g_frontState.textFadeColorCache, 0, sizeof(g_frontState.textFadeColorCache));
 	Net_PumpIncomingPackets();
 	if (g_frontState.screenStates[g_frontState.screenStackTop].updateFn != NULL) {
 		FrontendScreenExitFn exitFn;
@@ -1525,7 +1525,7 @@ int FrontendDisplay_RunFrame(void) {
 			--g_frontState.textFadeFramesLeft;
 		g_frontState.mouseClickLatch = 0;
 		g_frontState.mouseRightClickLatch = 0;
-		if (g_frontState.cdAudioCurrentTrack != 0 && GetTickCount() > g_frontState.cdAudioTrackEndTick) {
+		if (g_frontState.cdAudioCurrentTrack != 0 && GetTickCount() > g_frontState.cdAudioTrackEndMs) {
 			if (g_frontState.cdAudioLoopCurrentTrack != 0) {
 				CDAudio_PlayTrackFromTime(g_frontState.cdAudioCurrentTrack, 0, 0);
 				return FRAME_CONTINUE;
@@ -1722,7 +1722,7 @@ const DxGuid* FrontendDisplay_LoadDriverGuid(void) {
 		return NULL;
 	}
 	readSucceeded =
-		File_ReadCount(stream, &g_configuredDirectDrawDriverGuid, sizeof(g_configuredDirectDrawDriverGuid));
+		File_ReadBytes(stream, &g_configuredDirectDrawDriverGuid, sizeof(g_configuredDirectDrawDriverGuid));
 	File_Close(stream);
 	return readSucceeded != 0 ? &g_configuredDirectDrawDriverGuid : NULL;
 }
@@ -2028,9 +2028,9 @@ IDirectDrawPalette* FrontendDisplay_LoadPalette(IDirectDraw* pDD, const char* lp
 
 		stream = File_Open(lpName, "rb");
 		if (stream != NULL) {
-			File_ReadCount(stream, &fileHeader, sizeof(fileHeader));
-			File_ReadCount(stream, &infoHeader, sizeof(infoHeader));
-			File_ReadCount(stream, entries, sizeof(entries));
+			File_ReadBytes(stream, &fileHeader, sizeof(fileHeader));
+			File_ReadBytes(stream, &infoHeader, sizeof(infoHeader));
+			File_ReadBytes(stream, entries, sizeof(entries));
 			File_Close(stream);
 			if (infoHeader.headerSize == sizeof(infoHeader)) {
 				if (infoHeader.bitsPerPixel <= 8) {

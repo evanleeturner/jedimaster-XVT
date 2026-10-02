@@ -79,7 +79,7 @@ int CDAudio_Initialize(void) {
 							&statusParameters) != MMSYSERR_NOERROR) {
 			break;
 		}
-		g_frontState.cdAudioTrackCache.trackEndMsfByTrack[deviceCount - 1] =
+		g_frontState.cdAudioTrackCache.trackLengthMsfByTrack[deviceCount - 1] =
 			(unsigned int)statusParameters.dwReturn;
 		deviceCount++;
 		if (g_frontState.cdAudioTrackCount < deviceCount) {
@@ -111,7 +111,7 @@ int CDAudio_PlayTrackFromTime(int trackNumber, uint16_t startMinute, uint8_t sta
 	memset(&parameters, 0, sizeof(parameters));
 	parameters.from =
 		((uint8_t)trackNumber | ((unsigned int)startMinute << 8)) | ((unsigned int)startSecond << 16);
-	trackEndMsf = g_frontState.cdAudioTrackCache.trackEndMsfByTrack[trackNumber - 1];
+	trackEndMsf = g_frontState.cdAudioTrackCache.trackLengthMsfByTrack[trackNumber - 1];
 	parameters.to = ((uint8_t)trackNumber | ((unsigned int)(uint8_t)trackEndMsf << 8)) |
 					(((unsigned int)(uint8_t)((uint16_t)trackEndMsf >> 8) |
 					  ((unsigned int)(uint8_t)(trackEndMsf >> 16) << 8))
@@ -123,7 +123,7 @@ int CDAudio_PlayTrackFromTime(int trackNumber, uint16_t startMinute, uint8_t sta
 	}
 
 	g_frontState.cdAudioCurrentTrack = trackNumber;
-	g_frontState.cdAudioTrackEndTick = CDAudio_GetTrackEndTimeMs(trackNumber) + GetTickCount() + 2000;
+	g_frontState.cdAudioTrackEndMs = CDAudio_GetTrackLengthMs(trackNumber) + GetTickCount() + 2000;
 	g_frontState.cdAudioPlaybackComplete = 0;
 	g_frontState.cdAudioSuspendState = CDAudio_NotSuspended;
 	return 1;
@@ -172,8 +172,8 @@ void CDAudio_CloseDevice(void) {
 	deviceIndex = 0;
 	mciSendCommandA(*mciDeviceId, MCI_CLOSE, 0, NULL);
 	*mciDeviceId = 0;
-	memset(g_frontState.cdAudioTrackCache.trackEndMsfByTrack, 0,
-		   sizeof(g_frontState.cdAudioTrackCache.trackEndMsfByTrack));
+	memset(g_frontState.cdAudioTrackCache.trackLengthMsfByTrack, 0,
+		   sizeof(g_frontState.cdAudioTrackCache.trackLengthMsfByTrack));
 	g_frontState.cdAudioCurrentTrack = 0;
 	g_frontState.cdAudioPlaybackComplete = 0;
 	g_frontState.cdAudioSuspendState = CDAudio_NotSuspended;
@@ -206,7 +206,7 @@ int CDAudio_IsPlaybackComplete(void) {
 }
 
 // FUNCTION: XVT 0x4D32C0
-int CDAudio_GetTrackEndTimeMs(int trackNumber) {
+int CDAudio_GetTrackLengthMs(int trackNumber) {
 	unsigned int trackEndMsf;
 
 	if (g_frontState.cdAudioMciDeviceId == 0) {
@@ -216,7 +216,7 @@ int CDAudio_GetTrackEndTimeMs(int trackNumber) {
 		return 0;
 	}
 
-	trackEndMsf = g_frontState.cdAudioTrackCache.trackEndMsfByTrack[trackNumber - 1];
+	trackEndMsf = g_frontState.cdAudioTrackCache.trackLengthMsfByTrack[trackNumber - 1];
 	return (MCI_MSF_MINUTE(trackEndMsf) * 60 + MCI_MSF_SECOND(trackEndMsf)) * 1000 +
 		   MCI_MSF_FRAME(trackEndMsf) * 1000 / 75;
 }
@@ -235,7 +235,7 @@ int CDAudio_DisableLoopCurrentTrack(void) {
 
 // FUNCTION: XVT 0x4D3350
 int CDAudio_SuspendPlayback(void) {
-	uint32_t trackEndTick;
+	uint32_t trackEndMs;
 	MCI_GENERIC_PARMS parameters;
 
 	if (g_frontState.cdAudioMciDeviceId == 0)
@@ -243,10 +243,10 @@ int CDAudio_SuspendPlayback(void) {
 
 	if (g_frontState.cdAudioSuspendState == CDAudio_NotSuspended) {
 		if (g_frontState.cdAudioCurrentTrack != 0 && g_frontState.cdAudioPlaybackComplete == 0) {
-			trackEndTick = g_frontState.cdAudioTrackEndTick;
-			g_frontState.cdAudioSuspendRemainingMs = trackEndTick - GetTickCount() - 2000;
+			trackEndMs = g_frontState.cdAudioTrackEndMs;
+			g_frontState.cdAudioSuspendRemainingMs = trackEndMs - GetTickCount() - 2000;
 			g_frontState.cdAudioSuspendElapsedMs =
-				(uint32_t)CDAudio_GetTrackEndTimeMs(g_frontState.cdAudioCurrentTrack) -
+				(uint32_t)CDAudio_GetTrackLengthMs(g_frontState.cdAudioCurrentTrack) -
 				g_frontState.cdAudioSuspendRemainingMs;
 			mciSendCommandA(g_frontState.cdAudioMciDeviceId, MCI_STOP, 0, &parameters);
 			g_frontState.cdAudioSuspendState = CDAudio_Suspended;
@@ -263,7 +263,7 @@ int CDAudio_SuspendPlayback(void) {
 int CDAudio_RequestResumePlayback(void) {
 	if (g_frontState.cdAudioSuspendState == CDAudio_Suspended) {
 		g_frontState.cdAudioSuspendState = CDAudio_ResumePending;
-		g_frontState.cdAudioResumeDueTick = GetTickCount() + 1000;
+		g_frontState.cdAudioResumeDueMs = GetTickCount() + 1000;
 	}
 	return 1;
 }
@@ -278,7 +278,7 @@ int CDAudio_ResumeSuspendedPlayback(void) {
 	startSecond = g_frontState.cdAudioSuspendElapsedMs - startSecond;
 	startSecond /= 1000;
 	CDAudio_PlayTrackFromTime(g_frontState.cdAudioCurrentTrack, (uint16_t)startMinute, (uint8_t)startSecond);
-	g_frontState.cdAudioTrackEndTick = GetTickCount() + g_frontState.cdAudioSuspendRemainingMs + 2000;
+	g_frontState.cdAudioTrackEndMs = GetTickCount() + g_frontState.cdAudioSuspendRemainingMs + 2000;
 	g_frontState.cdAudioSuspendState = CDAudio_NotSuspended;
 	return 1;
 }
@@ -313,7 +313,7 @@ int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fa
 #else
 	int fadeUp;
 	unsigned int stepDelayMs;
-	uint32_t previousTick;
+	uint32_t previousTimeMs;
 	int currentTick;
 	unsigned int nextVolume;
 
@@ -331,10 +331,10 @@ int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fa
 		stepDelayMs = (fadeDurationMs << 8) / (toVolume - fromVolume);
 	}
 
-	previousTick = GetTickCount();
+	previousTimeMs = GetTickCount();
 	while (1) {
 		currentTick = GetTickCount();
-		if ((int)(previousTick + stepDelayMs) < currentTick) {
+		if ((int)(previousTimeMs + stepDelayMs) < currentTick) {
 			if (fadeUp != 0) {
 				nextVolume = fromVolume + 256;
 				if (nextVolume > 65535) {
@@ -350,7 +350,7 @@ int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fa
 				}
 			}
 			CDAudio_SetAuxVolume(fromVolume);
-			previousTick = currentTick;
+			previousTimeMs = currentTick;
 		}
 		if (fadeUp != 0) {
 			if (toVolume <= fromVolume) {

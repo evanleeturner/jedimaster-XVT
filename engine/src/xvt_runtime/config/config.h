@@ -24,7 +24,7 @@ extern "C" {
  * stays untouched on disk; the defaults then stay loaded and CanReplace returns 1. */
 int XvtConfig_Load(AeronVfs* vfs, char* error, size_t capacity);
 /* Replaces the user overrides with an empty format-3 document, in memory only. Needs the defaults. */
-int XvtConfig_Replace(char* error, size_t capacity);
+int XvtConfig_ResetToDefaults(char* error, size_t capacity);
 /* Frees every document; Settings then returns NULL and the setters fail until the next Load. The
  * generation is kept. */
 void XvtConfig_Shutdown(void);
@@ -40,7 +40,7 @@ const XvtSettings* XvtConfig_DefaultSettings(void);
 /* Counts accepted updates; never reset, not even by Shutdown. */
 uint64_t XvtConfig_Generation(void);
 /* 1 while the shipped defaults are loaded, so Replace can work. */
-int XvtConfig_CanReplace(void);
+int XvtConfig_CanResetToDefaults(void);
 /* Copies and validates overrides before optional atomic USER/config.yaml save. */
 /* Needs the shipped defaults; candidate must be a map with a version from 1 to 3. Obsolete keys are
  * dropped; controller settings and joystick buttons from before version 3 are dropped and the controller

@@ -10,7 +10,7 @@ extern "C" {
 
 struct CDAudioTrackCache {
 	unsigned int currentAuxVolume;
-	unsigned int trackEndMsfByTrack[40];
+	unsigned int trackLengthMsfByTrack[40];
 };
 
 typedef enum CDAudioSuspendState {
@@ -24,7 +24,7 @@ int CDAudio_PlayTrackFromTime(int trackNumber, uint16_t startMinute, uint8_t sta
 int CDAudio_StopCurrentTrack(void);
 void CDAudio_CloseDevice(void);
 int CDAudio_IsPlaybackComplete(void);
-int CDAudio_GetTrackEndTimeMs(int trackNumber);
+int CDAudio_GetTrackLengthMs(int trackNumber);
 int CDAudio_EnableLoopCurrentTrack(void);
 int CDAudio_DisableLoopCurrentTrack(void);
 int CDAudio_SuspendPlayback(void);

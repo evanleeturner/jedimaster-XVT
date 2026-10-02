@@ -46,7 +46,7 @@ typedef struct Msvc42FilePrefix {
 // GLOBAL: XVT 0x9D8A60
 char g_fileName[256] = { 0 };
 // GLOBAL: XVT 0x9A8C34
-uint8_t* g_flightLog1Buffer = NULL;
+uint8_t* g_flightScratchScreenBuffer = NULL;
 // GLOBAL: XVT 0x9D8C1C
 uint8_t* g_flightAuxBufferMirror = NULL;
 // GLOBAL: XVT 0x9A20AC
@@ -2288,17 +2288,17 @@ void FeDiskIo_InitGlobalBuffers(void) {
 	}
 
 	g_flightLog1BufferHandle =
-		Memory_AllocHandle(g_screenHeight * (unsigned int)g_flight16bppBytesPerPixel * g_screenWidth, 0);
+		Memory_AllocHandle(g_screenHeight * (unsigned int)g_flightBytesPerPixel * g_screenWidth, 0);
 	if (g_flightLog1BufferHandle == 0) {
 		allocationFailed = 1;
 	}
 	g_flightAuxBufferHandle =
-		Memory_AllocHandle(g_screenHeight * (unsigned int)g_flight16bppBytesPerPixel * g_screenWidth, 0);
+		Memory_AllocHandle(g_screenHeight * (unsigned int)g_flightBytesPerPixel * g_screenWidth, 0);
 	if (g_flightAuxBufferHandle == 0) {
 		allocationFailed = 1;
 	}
 	g_flightOffscreenBufferHandle =
-		Memory_AllocHandle(g_screenHeight * (unsigned int)g_flight16bppBytesPerPixel * g_screenWidth, 0);
+		Memory_AllocHandle(g_screenHeight * (unsigned int)g_flightBytesPerPixel * g_screenWidth, 0);
 	if (g_flightOffscreenBufferHandle == 0) {
 		allocationFailed = 1;
 	}
@@ -2356,11 +2356,11 @@ void FeDiskIo_InitGlobalBuffers(void) {
 	}
 
 	g_renderObjectListEntries = Memory_LockHandle(g_visibleObjectsHandle);
-	g_flightLog1Buffer = Memory_LockHandle(g_flightLog1BufferHandle);
-	memset(g_flightLog1Buffer, FLIGHT_LOG_CLEAR_COLOR,
-		   g_screenHeight * (unsigned int)g_flight16bppBytesPerPixel * g_screenWidth);
+	g_flightScratchScreenBuffer = Memory_LockHandle(g_flightLog1BufferHandle);
+	memset(g_flightScratchScreenBuffer, FLIGHT_LOG_CLEAR_COLOR,
+		   g_screenHeight * (unsigned int)g_flightBytesPerPixel * g_screenWidth);
 	g_flightOffscreenBuffer = Memory_LockHandle(g_flightOffscreenBufferHandle);
-	FlightSw_SetRotatedSpriteDestBuffer(g_flightLog1Buffer);
+	FlightSw_SetRotatedSpriteDestBuffer(g_flightScratchScreenBuffer);
 	g_flightAuxBuffer = Memory_LockHandle(g_flightAuxBufferHandle);
 	g_flightAuxBufferMirror = g_flightAuxBuffer;
 
@@ -2399,7 +2399,7 @@ void FeDiskIo_InitGlobalBuffers(void) {
 	FlightText_DrawStringCentered(loadingMessage);
 
 	requestedRenderTargetWidth = g_renderTargetWidth;
-	if (requestedRenderTargetWidth != width) {
+	if (requestedRenderTargetWidth != g_displayModeWidth) {
 		g_flightTextColorIndex = FLIGHT_TEXT_WARNING_COLOR;
 		FlightText_SetCursor(0, (g_screenHeight >> 1) + 3 * g_flightFontLineHeight);
 		switch (g_renderTargetWidth) {
@@ -2418,7 +2418,7 @@ void FeDiskIo_InitGlobalBuffers(void) {
 		}
 		FlightText_DrawStringCentered(unsupportedResolutionMessage);
 		FlightText_SetCursor(0, (g_screenHeight >> 1) + 4 * g_flightFontLineHeight + 1);
-		switch (width) {
+		switch (g_displayModeWidth) {
 			case 320:
 				fallbackResolutionMessage = g_strDiskIoMessages[DISK_IO_STR_RES_320_USED_INSTEAD];
 				break;
@@ -2436,11 +2436,11 @@ void FeDiskIo_InitGlobalBuffers(void) {
 	}
 
 	requestedBytesPerPixel = g_requestedFlightBytesPerPixel;
-	activeBytesPerPixel = g_flight16bppBytesPerPixel;
+	activeBytesPerPixel = g_flightBytesPerPixel;
 	if (requestedBytesPerPixel != activeBytesPerPixel) {
 		g_flightTextColorIndex = FLIGHT_TEXT_WARNING_COLOR;
 		FlightText_SetCursor(0, (g_screenHeight >> 1) + 6 * g_flightFontLineHeight);
-		if (g_flight16bppBytesPerPixel == 2) {
+		if (g_flightBytesPerPixel == 2) {
 			pixelFormatMessage = g_strDiskIoMessages[DISK_IO_STR_USING_16BPP];
 		} else {
 			pixelFormatMessage = g_strDiskIoMessages[DISK_IO_STR_USING_8BPP];
@@ -2537,9 +2537,9 @@ void FeDiskIo_LockGlobalBuffers(void) {
 		g_flightFontGlyphTableSw = g_flightFontMediumSw;
 	}
 
-	g_flightLog1Buffer = Memory_LockHandle(g_flightLog1BufferHandle);
+	g_flightScratchScreenBuffer = Memory_LockHandle(g_flightLog1BufferHandle);
 	g_flightOffscreenBuffer = Memory_LockHandle(g_flightOffscreenBufferHandle);
-	FlightSw_SetRotatedSpriteDestBuffer(g_flightLog1Buffer);
+	FlightSw_SetRotatedSpriteDestBuffer(g_flightScratchScreenBuffer);
 	g_flightAuxBuffer = Memory_LockHandle(g_flightAuxBufferHandle);
 	g_flightAuxBufferMirror = g_flightAuxBuffer;
 }
@@ -2738,7 +2738,7 @@ void FeDiskIo_LoadResources(void) {
 				 ++modelType) {
 				if ((g_modelTypeTable[modelType].recordFlags & MODEL_RECORD_HAS_RESOURCE) != 0 &&
 					g_modelTypeTable[modelType].textureGroup == specListGroup &&
-					g_modelTypeTable[modelType].frameCount == listEntryIndex - 1) {
+					g_modelTypeTable[modelType].resourceIndex == listEntryIndex - 1) {
 					uint8_t assetFlags = g_modelTypeTable[modelType].assetFlags;
 
 					if ((assetFlags & MODEL_ASSET_ACTIVE_MASK) != 0 &&
@@ -2762,7 +2762,7 @@ void FeDiskIo_LoadResources(void) {
 				FeDiskIo_ReadWithRetryPrompt(&resourceDataSize, sizeof(resourceDataSize), 1, textureStream);
 				FeDiskIo_ReadWithRetryPrompt(&paletteEntryCount, sizeof(paletteEntryCount), 1, textureStream);
 				resourceHandle =
-					Memory_AllocHandle(resourceDataSize + g_flight16bppBytesPerPixel * paletteEntryCount, 0);
+					Memory_AllocHandle(resourceDataSize + g_flightBytesPerPixel * paletteEntryCount, 0);
 				if (resourceHandle == 0) {
 					FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 #ifdef XVT_MODERN
@@ -2782,7 +2782,7 @@ void FeDiskIo_LoadResources(void) {
 #ifdef XVT_MODERN
 				XvtRenderAssets_RegisterTexture(resourceHandle, resourceName);
 #endif
-				if (g_flight16bppBytesPerPixel == 2) {
+				if (g_flightBytesPerPixel == 2) {
 					TexLevel_Convert24BppPalettesTo16Bpp(textureData);
 				} else {
 					TexLevel_Convert24BppPalettesTo8Bpp(textureData);
@@ -2793,7 +2793,7 @@ void FeDiskIo_LoadResources(void) {
 				 ++modelType) {
 				if ((g_modelTypeTable[modelType].recordFlags & MODEL_RECORD_HAS_RESOURCE) != 0 &&
 					g_modelTypeTable[modelType].textureGroup == specListGroup &&
-					g_modelTypeTable[modelType].frameCount == listEntryIndex - 1) {
+					g_modelTypeTable[modelType].resourceIndex == listEntryIndex - 1) {
 					uint8_t assetFlags = g_modelTypeTable[modelType].assetFlags;
 
 					if ((assetFlags & MODEL_ASSET_ACTIVE_MASK) != 0 &&
@@ -2836,7 +2836,7 @@ unsigned int FeDiskIo_InitResources(void) {
 	unsigned int result;
 
 	g_generateMissionPalette &= g_paletteGenerationEnabled;
-	if (g_flight16bppBytesPerPixel == 1) {
+	if (g_flightBytesPerPixel == 1) {
 		unsigned int extensionOffset;
 		uint8_t savedExtension0;
 		uint8_t savedExtension1;
@@ -2877,7 +2877,7 @@ unsigned int FeDiskIo_InitResources(void) {
 		g_currentMissionFile[extensionOffset + 2] = savedExtension2;
 	}
 
-	if (g_generateMissionPalette != 0 && g_flight16bppBytesPerPixel == 1) {
+	if (g_generateMissionPalette != 0 && g_flightBytesPerPixel == 1) {
 		ImageQuantizer_BeginPaletteCollection(GENERATED_PALETTE_COLOR_COUNT, QUANTIZER_TREE_DEPTH);
 	}
 	g_loadingModel = 1;
@@ -2888,7 +2888,7 @@ unsigned int FeDiskIo_InitResources(void) {
 	{
 		RgbTriplet targetRgb;
 
-		if (g_generateMissionPalette != 0 && g_flight16bppBytesPerPixel == 1) {
+		if (g_generateMissionPalette != 0 && g_flightBytesPerPixel == 1) {
 			unsigned int extensionOffset;
 			int paletteOffset;
 			uint8_t savedExtension0;
@@ -2956,7 +2956,7 @@ unsigned int FeDiskIo_InitResources(void) {
 		result = Color_FindNearestRgbTripletIndex((const uint8_t*)&targetRgb, (const uint8_t*)g_swPalette, 0,
 												  PALETTE_COLOR_COUNT);
 	}
-	g_flightColorEscapeBypassChar = (uint8_t)result;
+	g_flightTransparentColorIndex = (uint8_t)result;
 	g_flightBackgroundColorIndex = (uint8_t)result;
 	return result;
 }
@@ -3293,8 +3293,8 @@ char FeDiskIo_ShowRetryFailPrompt(void) {
 	FlightSurface_Lock();
 	FlightText_SetFontTier(1);
 	lineHeight = 4 * g_flightFontLineHeight;
-	savedPixels =
-		g_flightLog1Buffer + g_screenWidth * g_flight16bppBytesPerPixel * (g_screenHeight - lineHeight - 1);
+	savedPixels = g_flightScratchScreenBuffer +
+				  g_screenWidth * g_flightBytesPerPixel * (g_screenHeight - lineHeight - 1);
 	g_flightSaveScreenRectFn(savedPixels, 0, ((unsigned int)g_screenHeight >> 1) - 2 * g_flightFontLineHeight,
 							 (int16_t)g_screenWidth, lineHeight + 1);
 	FlightText_SetClipRect((int16_t)((unsigned int)g_screenWidth >> 4),

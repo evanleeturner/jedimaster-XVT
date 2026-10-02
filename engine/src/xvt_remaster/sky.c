@@ -12,11 +12,11 @@
 static XvtRemasterSkyStars* g_stars;
 static AeronTexture* g_cube;
 static char g_cubePath[XVT_SNAP_PATH];
-static int g_hyper, g_drawStars;
+static int g_drawHyperspace, g_drawStars;
 
 static void Background(AeronCommandBuffer* cmd, AeronRenderPass* pass, int w, int h, void* user) {
 	(void)user;
-	if (g_hyper)
+	if (g_drawHyperspace)
 		XvtHyperspace_Draw(cmd, pass, w, h, NULL);
 	else if (g_drawStars)
 		XvtRemasterSkyStars_Draw(cmd, pass, w, h, g_stars);
@@ -86,13 +86,13 @@ static void Backdrops(AeronScene3D* scene, const XvtRenderSnapshot* s, const Xvt
 int XvtSky_Prepare(AeronCommandBuffer* cmd, AeronScene3D* scene, const XvtRenderSnapshot* s,
 				   const XvtRenderView* view) {
 	const XvtSkySettings* p = &XvtRemasterConfig_Effective()->sky;
-	g_hyper = s->hyperspace.phase == XVT_SNAP_HYPERSPACE_TRANSITION;
+	g_drawHyperspace = s->hyperspace.phase == XVT_SNAP_HYPERSPACE_TRANSITION;
 	g_drawStars = 0;
 	AeronScene_SetSkyCube(scene, NULL, NULL, 1);
 	AeronScene_SetPassHook(scene, AERON_SCENE_HOOK_BEFORE_OPAQUE, Background, NULL);
 	if (!XvtHyperspace_Prepare(cmd, s, scene, view))
 		return 0;
-	if (g_hyper)
+	if (g_drawHyperspace)
 		return 1;
 	if (p->enabled && p->mode == XVT_SKY_CUBE) {
 		if (!g_cube || strcmp(g_cubePath, p->path)) {

@@ -21,7 +21,7 @@ typedef struct XvtSnapshotMobileObjectProximityList {
 typedef struct XvtSnapshotAiController {
 	uint8_t currentOrderSlot;
 	AiOrderScratch orderProgress;
-	uint8_t orderStateFlag;
+	uint8_t skippedToOrder4;
 	uint8_t pendingPlanId;
 	uint8_t currentPlanId;
 	uint8_t waypointIndex;
@@ -44,7 +44,7 @@ typedef struct XvtSnapshotAiController {
 	AiManeuverMode maneuverMode;
 	uint8_t maneuverPhase;
 	int32_t maneuverTimer;
-	int16_t aiPlanState;
+	int16_t secondaryManeuverTimer;
 } XvtSnapshotAiController;
 
 typedef struct XvtSnapshotAiFlightState {
@@ -70,7 +70,7 @@ typedef struct XvtSnapshotAiFlightState {
 	int16_t pitchRate;
 	int16_t pitchAccel;
 	uint8_t pitchState;
-	uint8_t headingForce;
+	uint8_t pitchThroughLoop;
 	uint16_t pitchStepScale;
 	int16_t rollRate;
 	int16_t rollAccel;
@@ -228,14 +228,14 @@ typedef struct XvtSnapshotCraftData {
 	uint8_t notDisabledAccountingSuppress;
 	uint8_t capturedByFlightGroup;
 	int8_t attackedByTeam[10];
-	uint8_t iffVisibility[10];
+	uint8_t identifiedOrderByTeam[10];
 	uint8_t boardingState;
 	char specialCargoName[16];
 	int32_t shieldEnergy[2];
-	PowerRechargeLevel shieldRedirect;
+	PowerRechargeLevel shieldRechargeLevel;
 	ShieldDistributionMode shieldDistribMode;
 	uint8_t cannonClassCount;
-	PowerRechargeLevel laserRedirect;
+	PowerRechargeLevel laserRechargeLevel;
 	uint8_t laserSlotCount;
 	CraftLaserState laserState;
 	uint8_t warheadLauncherCount;
@@ -286,7 +286,7 @@ typedef struct XvtSnapshotPlayerData {
 	int16_t team;
 	uint16_t boundFlightGroupIdx;
 	uint8_t connectedFlag;
-	uint8_t regionSessionId;
+	uint8_t awaitingNewCraft;
 	uint8_t boundCraftEngineGlowCount;
 	uint8_t mapCameraState;
 	uint8_t hyperspacePhase;
@@ -352,7 +352,7 @@ typedef struct XvtSnapshotPlayerData {
 typedef struct XvtSnapshotMissionFlightRuntimeState {
 	int32_t teamScores[2][10];
 	uint16_t teamKillStats[4][10];
-	uint16_t teamFgCounters[2][10][48];
+	uint16_t teamFgInspectedCapturedCounts[2][10][48];
 	uint8_t teamFgDesignationCode[10][48];
 	uint8_t globalPrimaryGoalStatus;
 	uint16_t globalGoalStatusUnused;

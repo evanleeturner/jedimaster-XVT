@@ -87,7 +87,7 @@ static void CheckRotation(void) {
 static void CheckCommitStamps(void) {
 	Fresh();
 	const XvtRenderSnapshot* first = Tick(1234);
-	uint64_t index = first->tick_index;
+	uint64_t index = first->snapshot_serial;
 	uint64_t host = first->capture_host_us;
 	XVT_ASSERT_INT_EQ(first->game_time_ticks, 1234);
 	XVT_ASSERT_TRUE(first->focused != 0);
@@ -99,9 +99,9 @@ static void CheckCommitStamps(void) {
 	XVT_ASSERT_INT_EQ(second->game_time_ticks, -5);
 	XVT_ASSERT_INT_EQ(second->focused, 0);
 	XVT_ASSERT_TRUE(second->paused != 0);
-	XVT_ASSERT_INT_EQ(second->tick_index, index + 1);
+	XVT_ASSERT_INT_EQ(second->snapshot_serial, index + 1);
 	XVT_ASSERT_TRUE(second->capture_host_us >= host);
-	XVT_ASSERT_INT_EQ(Tick(0)->tick_index, index + 2);
+	XVT_ASSERT_INT_EQ(Tick(0)->snapshot_serial, index + 2);
 }
 
 /* Commit runs the asset export into the writer: the built-in cursor that Init registers is listed. */

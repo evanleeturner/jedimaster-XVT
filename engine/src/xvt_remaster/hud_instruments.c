@@ -177,6 +177,6 @@ void XvtHudInstruments_DrawCrtMarker(const XvtHudDraw* draw) {
 		return;
 	XvtSnapRect rect = { crt->destination.x + (int)floorf(x) - 2, crt->destination.y + (int)floorf(y) - 2, 4,
 						 4 };
-	XvtHudDraw_FrameClipped(draw, XVT_COCKPIT_AFTER_CRT, rect, crt->destination,
-							draw->state->palette_argb[206]);
+	XvtHudDraw_OutlineClipped(draw, XVT_COCKPIT_AFTER_CRT, rect, crt->destination,
+							  draw->state->palette_argb[206]);
 }

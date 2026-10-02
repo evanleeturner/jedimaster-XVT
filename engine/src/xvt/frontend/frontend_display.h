@@ -48,7 +48,7 @@ uint32_t FrontendDisplay_Init(void* hInstance, void* hPrevInstance, char* lpCmdL
 uint8_t* FrontendDisplay_LockBackBuffer(void);
 void FrontendDisplay_UnlockBackBuffer(void);
 void FrontendDisplay_PresentFrame(void);
-void FrontendDisplay_ClearPresentFrameReady(void);
+void FrontendDisplay_DisableClearAfterPresent(void);
 void FrontendDisplay_SetSurfaceClearColor(uint32_t color);
 void FrontendDisplay_ClearBackBuffer(void);
 void FrontendDisplay_GetScreenClipRect(RECT* outRect);

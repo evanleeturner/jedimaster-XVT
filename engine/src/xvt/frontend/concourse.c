@@ -39,8 +39,8 @@ enum {
 	CONCOURSE_CD_MOVIE_CHECK_LIMIT = 5,
 	CONCOURSE_CURSOR_START_X = 32,
 	CONCOURSE_CURSOR_START_Y = 127,
-	CONCOURSE_GLYPH_SCRATCH_FRAMES = 20,
-	CONCOURSE_ANIMATION_FRAME_COUNT = 32,
+	CONCOURSE_TEXT_FADE_FRAMES = 20,
+	CONCOURSE_ANIMATION_CYCLE_FRAMES = 32,
 	CONCOURSE_VERSION_MAJOR = 2,
 	CONCOURSE_VERSION_MINOR = 0,
 };
@@ -295,7 +295,7 @@ int Concourse_Update(int frameCounter) {
 			g_frontendChatLogUsedBytes = 0;
 		}
 		g_configConnectionTypeEditable = 1;
-		g_skipFrontendEntryMovie = 0;
+		g_frontendSkipScreenEntrySetup = 0;
 		g_frontendQuickStartLaunchFlag = 0;
 		g_frontendGameSessionInProgress = 0;
 		if (g_optSkipIntro != 0) {
@@ -310,7 +310,7 @@ int Concourse_Update(int frameCounter) {
 			g_pilotData.missionSequenceDescriptionId =
 				g_pilotData.factionStatistics[g_pilotData.currentFactionId].missionSequenceDescriptionId;
 		}
-		g_concourseRedrawRequested = 1;
+		g_pilotRecordPagesNeedRebuild = 1;
 		g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
 		g_missionSetupRosterAuthoritative = 0;
 		g_pilotRecordPage = 0;
@@ -393,7 +393,7 @@ int Concourse_Update(int frameCounter) {
 		FrontImage_RegisterResourceDefault("frontres\\reg0.bmp", "background0");
 		FrontImage_RegisterResourceDefault("frontres\\reg1.bmp", "background1");
 		PilotRecord_RedrawBackground();
-		FrontendText_StartTextFadeIn(CONCOURSE_GLYPH_SCRATCH_FRAMES);
+		FrontendText_StartTextFadeIn(CONCOURSE_TEXT_FADE_FRAMES);
 	}
 
 	PilotRecord_UpdatePilotSelectionPanel(frameCounter);
@@ -410,10 +410,10 @@ int Concourse_Update(int frameCounter) {
 		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
 		if (g_pilotData.currentFactionId == 0) {
 			sprintf(g_frontendScratchBuffer, "rebtiny%d",
-					(frameCounter % CONCOURSE_ANIMATION_FRAME_COUNT) >> 1);
+					(frameCounter % CONCOURSE_ANIMATION_CYCLE_FRAMES) >> 1);
 		} else {
 			sprintf(g_frontendScratchBuffer, "imptiny%d",
-					(frameCounter % CONCOURSE_ANIMATION_FRAME_COUNT) >> 1);
+					(frameCounter % CONCOURSE_ANIMATION_CYCLE_FRAMES) >> 1);
 		}
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 420, 453);

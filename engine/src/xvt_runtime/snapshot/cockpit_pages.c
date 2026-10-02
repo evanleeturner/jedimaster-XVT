@@ -20,7 +20,7 @@ typedef struct PageContent {
 	PageSection sections[XVT_COCKPIT_PAGE_SECTION_COUNT];
 	XvtSnapRect background_bounds, border_bounds;
 	uint32_t background_argb, border_argb;
-	int16_t origin_x, origin_y, first_row, selected_row;
+	int16_t origin_x, origin_y, first_visible_row, selected_row;
 	uint16_t total_rows;
 	uint16_t mode;
 	uint64_t generation;
@@ -38,7 +38,7 @@ static uint64_t g_generation;
 
 static uint32_t CaptureColor(unsigned index) {
 	uint32_t color = XvtRenderDraw_Color(index);
-	return color == XvtRenderDraw_Color(g_flightColorEscapeBypassChar) ? 0 : color;
+	return color == XvtRenderDraw_Color(g_flightTransparentColorIndex) ? 0 : color;
 }
 
 static XvtSnapRect CaptureLocalBounds(unsigned page) {
@@ -227,7 +227,7 @@ void XvtCockpitPages_RecordBorder(unsigned page) {
 void XvtCockpitPages_RecordScroll(unsigned page, int first_row, int total_rows, int selected_row) {
 	if (page >= MFD_PAGE_COUNT)
 		return;
-	g_working[page].first_row = (int16_t)first_row;
+	g_working[page].first_visible_row = (int16_t)first_row;
 	g_working[page].total_rows = (uint16_t)total_rows;
 	g_working[page].selected_row = (int16_t)selected_row;
 }
@@ -252,7 +252,7 @@ void XvtCockpitPages_Latch(unsigned page) {
 				  memcmp(&destination->border_bounds, &source->border_bounds, sizeof source->border_bounds) ||
 				  destination->background_argb != source->background_argb ||
 				  destination->border_argb != source->border_argb ||
-				  destination->first_row != source->first_row ||
+				  destination->first_visible_row != source->first_visible_row ||
 				  destination->total_rows != source->total_rows ||
 				  destination->selected_row != source->selected_row || destination->mode != source->mode;
 	for (unsigned index = 0; index < XVT_COCKPIT_PAGE_SECTION_COUNT; ++index) {
@@ -283,7 +283,7 @@ void XvtCockpitPages_Latch(unsigned page) {
 	destination->border_bounds = source->border_bounds;
 	destination->background_argb = source->background_argb;
 	destination->border_argb = source->border_argb;
-	destination->first_row = source->first_row;
+	destination->first_visible_row = source->first_visible_row;
 	destination->total_rows = source->total_rows;
 	destination->selected_row = source->selected_row;
 	destination->mode = source->mode;
@@ -311,10 +311,10 @@ void XvtCockpitPages_Export(XvtCockpitState* state) {
 		page->border_bounds = content->border_bounds;
 		page->background_argb = content->background_argb;
 		page->border_argb = content->border_argb;
-		page->first_visible_row = content->first_row;
+		page->first_visible_row = content->first_visible_row;
 		page->total_rows = content->total_rows;
 		page->selected_row = content->selected_row;
-		page->style = content->mode;
+		page->command_text_mode = content->mode;
 		page->first_glyph = store->glyph_count;
 		page->first_store_row = store->row_count;
 		for (unsigned index = 0; index < XVT_COCKPIT_PAGE_SECTION_COUNT; ++index) {

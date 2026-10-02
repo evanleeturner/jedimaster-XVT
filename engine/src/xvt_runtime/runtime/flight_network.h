@@ -47,7 +47,7 @@ void XvtFlightNetwork_BeginIteration(void);
 /* Takes one packet from this iteration's receive budget: 1, or 0 when it is spent. */
 int XvtFlightNetwork_TakePacketBudget(void);
 /* Starts a mission: empties the message queues and the staged input and outgoing world message. */
-void XvtFlightNetwork_BeginMission(void);
+void XvtFlightNetwork_ResetMission(void);
 /* Sends staged input in batches of up to XVT_INPUT_BATCH_RECORDS, at most
  * XVT_INPUT_BATCHES_PER_ITERATION per iteration, once XVT_INPUT_BATCH_TICKS have passed since the
  * last flush or a batch is full. Each goes to every connected remote player, or with async on,
@@ -103,26 +103,26 @@ int XvtFlightNetwork_DecodeControl(const uint8_t* packet, int* size);
 /* The current mission cookie; 0 before one is agreed. */
 uint32_t XvtFlightNetwork_Cookie(void);
 /* Forgets the mission cookie and the cookie counter. */
-void XvtFlightNetwork_CloseSession(void);
+void XvtFlightNetwork_ClearCookies(void);
 /* Marks the network session's flight ready and starts the roster exchange: the host waits for
  * players startup-ready packets (none when 0) and then sends the roster; a client waits for it,
  * or returns 1 at once for an in-progress launch. Returns -1 otherwise. */
-int XvtFlightNetwork_BeginSession(int players, int in_progress);
+int XvtFlightNetwork_BeginRosterExchange(int players, int in_progress);
 /* Advances the roster exchange. Returns -1 while pending, 1 when done (at once for a host
  * expecting at most one player), and 0 after 60 seconds without a packet. */
-int XvtFlightNetwork_Session(void);
+int XvtFlightNetwork_ExchangeRoster(void);
 /* Exchanges each player's resolution, rating and taunts; the host first takes a new mission cookie
  * and returns 0 when the counter is spent, leaving the session. A single player fills its own and
  * returns 1. Returns -1 while pending, 1 once every active player's taunts arrived, and 0 after 60
  * seconds without a packet (30 during taunts). */
-int XvtFlightNetwork_Options(void);
+int XvtFlightNetwork_ExchangeOptions(void);
 /* The mission start handshake. A single player resets the clocks and returns 1. Otherwise each
  * player tells the host it has loaded; the host, once all have, broadcasts the start. On the start
  * every player acknowledges and resets the clocks with a lead allowance of 130 ticks with async on,
  * 30 otherwise; the host then waits for the acknowledgements until its input clock reaches 100
  * and keeps the lead allowance at least 35. Returns -1 while pending, 1 when started, and 0 after
  * 60 seconds without a packet. */
-int XvtFlightNetwork_Start(void);
+int XvtFlightNetwork_WaitForMissionStart(void);
 /* Ends any exchange in progress and forgets the mission cookie, keeping the counter. */
 void XvtFlightNetwork_Reset(void);
 

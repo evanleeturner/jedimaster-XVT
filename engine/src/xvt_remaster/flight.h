@@ -32,7 +32,7 @@ typedef struct XvtPreparedFlight {
 	AeronRectI content_rect;
 	XvtPreparedObject objects[XVT_SNAP_OBJECTS];
 	uint32_t object_count;
-	uint64_t tick_index, flight_frame_serial;
+	uint64_t snapshot_serial, flight_frame_serial;
 	float delta_seconds;
 	/* Host span between changed poses, matching XWA's held-velocity timing. */
 	uint64_t velocity_span_us;

@@ -11,7 +11,7 @@
 #include <string.h>
 
 static struct {
-	unsigned int entry;
+	unsigned int entry_index;
 	int phase;
 	int active;
 	int waiting;
@@ -34,7 +34,7 @@ int XvtCutsceneTask_Play(int phase) {
 			g_pilotData.missionSequenceActive != 1 || !g_cutsceneTable)
 			return 0;
 		g_cutscene.phase = phase;
-		g_cutscene.entry = 0;
+		g_cutscene.entry_index = 0;
 		g_cutscene.active = 1;
 	}
 	if (g_cutscene.waiting) {
@@ -46,10 +46,10 @@ int XvtCutsceneTask_Play(int phase) {
 			XvtCutsceneTask_Reset();
 			return 0;
 		}
-		++g_cutscene.entry;
+		++g_cutscene.entry_index;
 	}
-	for (; g_cutscene.entry < (unsigned int)g_cutsceneCount; ++g_cutscene.entry) {
-		const CutsceneEntry* entry = &g_cutsceneTable[g_cutscene.entry];
+	for (; g_cutscene.entry_index < (unsigned int)g_cutsceneCount; ++g_cutscene.entry_index) {
+		const CutsceneEntry* entry = &g_cutsceneTable[g_cutscene.entry_index];
 		if (entry->missionIdx != g_pilotData.missionDescriptionIds[5] ||
 			entry->playAfterDebriefing != g_cutscene.phase ||
 			entry->missionDescriptionId != g_pilotData.missionDescriptionIds[0])

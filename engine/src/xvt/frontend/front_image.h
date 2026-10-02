@@ -15,7 +15,7 @@ struct ImageResource {
 	int width;
 	int height;
 	int isCompressed;
-	int pixelCount;
+	int pixelDataBytes;
 	uint8_t* pixels;
 	int colorLUT[256];
 };

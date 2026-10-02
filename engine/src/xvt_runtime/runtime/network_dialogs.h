@@ -24,7 +24,7 @@ int XvtNetworkDialogs_Connecting(void);
 void XvtNetworkDialogs_Return(int host);
 /* Resets the network session and shows the message for error in a confirm dialog; once it is
  * dismissed, or at once when the dialog does not wait, returns to the host or join screen. */
-void XvtNetworkDialogs_Failed(AeronDplayDirectoryError error, int host);
+void XvtNetworkDialogs_ShowFailure(AeronDplayDirectoryError error, int host);
 /* When the network session has failed, reports it through Failed as a join and returns 1;
  * otherwise returns 0. */
 int XvtNetworkDialogs_ReportAdmissionFailure(void);

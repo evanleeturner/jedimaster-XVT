@@ -94,12 +94,12 @@ void XvtFlightLoading_Globals(void) {
 	fsfx_ClearSfxNameTable();
 	FlightSync_ResetRemotePlayerRenderSmoothing();
 	FlightLoading_ResetProgressState();
-	Time_ResetFrameDeltaClocks();
+	Time_ResetElapsedTicks();
 	g_flightDisplaySurfacesActive = 1;
 	g_flightLockBackBufferForHudDraw = 1;
-	if (g_flightRenderModeId == SOFTWARE_RENDER_MODE && g_surfaceWidth == 320) {
+	if (g_flightViewportInsetX == SOFTWARE_RENDER_MODE && g_surfaceWidth == 320) {
 		g_flightResolutionMode = FLIGHT_RESOLUTION_320X240;
-	} else if (g_flightRenderModeId == SOFTWARE_RENDER_MODE && g_surfaceWidth == 480) {
+	} else if (g_flightViewportInsetX == SOFTWARE_RENDER_MODE && g_surfaceWidth == 480) {
 		g_flightResolutionMode = FLIGHT_RESOLUTION_480X360;
 	} else {
 		g_flightResolutionMode = FLIGHT_RESOLUTION_640X480;
@@ -212,7 +212,7 @@ void XvtFlightLoading_Palette(void) {
 	FlightSurface_Unlock();
 	FlightSurface_ClearToBlack();
 
-	if (g_flight16bppBytesPerPixel == 1) {
+	if (g_flightBytesPerPixel == 1) {
 		missionExtensionOffset = (int)strlen(g_currentMissionFile) - MISSION_EXTENSION_LENGTH;
 		savedMissionExtensionPrefix[MISSION_EXTENSION_FIRST] =
 			g_currentMissionFile[missionExtensionOffset + MISSION_EXTENSION_FIRST];
@@ -289,21 +289,21 @@ void XvtFlightLoading_Runtime(void) {
 	if (g_gameConfig.musicEnabled != 0 && g_gameConfig.musicVolume != 0 && MusicCd_Initialize() != 0) {
 		int musicChoice;
 		uint16_t musicVolume;
-		uint32_t musicUpdateTick;
+		uint32_t musicUpdateMs;
 
 		musicVolume = UINT16_MAX * g_gameConfig.musicVolume / MUSIC_VOLUME_LEVEL_COUNT;
 		MusicCd_SetAuxVolume(musicVolume);
 		musicChoice = GameRand2() & (MUSIC_START_CHOICE_COUNT - 1);
 		MusicCd_PlayTrackFromTime(MUSIC_TRACK_FLIGHT, g_dynamicMusicInitialStartMinuteChoices[musicChoice],
 								  g_dynamicMusicInitialStartSecondChoices[musicChoice]);
-		g_dynamicMusicTrackRemainingMs = MusicCd_GetTrackEndTimeMs(MUSIC_TRACK_FLIGHT);
+		g_dynamicMusicTrackRemainingMs = MusicCd_GetTrackLengthMs(MUSIC_TRACK_FLIGHT);
 		g_dynamicMusicTrackRemainingMs -=
 			MILLISECONDS_PER_MINUTE * g_dynamicMusicInitialStartMinuteChoices[musicChoice];
 		g_dynamicMusicTrackRemainingMs -=
 			MILLISECONDS_PER_SECOND * g_dynamicMusicInitialStartSecondChoices[musicChoice];
-		musicUpdateTick = timeGetTime();
+		musicUpdateMs = timeGetTime();
 		g_dynamicMusicState = MUSIC_TRACK_FLIGHT;
-		g_dynamicMusicLastUpdateMs = musicUpdateTick;
+		g_dynamicMusicLastUpdateMs = musicUpdateMs;
 	} else {
 		g_dynamicMusicTrackRemainingMs = INT32_MAX;
 		g_dynamicMusicState = 0;

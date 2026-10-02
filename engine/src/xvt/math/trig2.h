@@ -23,7 +23,7 @@ extern int trig2_yoffset;
 extern int trig2_zmovedist;
 extern int trig2_zoffset;
 extern uint16_t trig2_theta;
-extern uint16_t pitchQ16;
+extern uint16_t trig2_pitch;
 
 int16_t trig2_getsignedsin(int16_t angleQ16);
 int16_t trig2_calcsineofangle(int16_t angle);

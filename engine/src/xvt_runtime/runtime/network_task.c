@@ -116,7 +116,7 @@ static void XvtNetworkTask_LoadPreview(void) {
 		File_ReadWord(file, &version);
 		int size = version == 12 ? 1024 : (version == 13 || version == 14) ? 4096 : 0;
 		if (size && File_GetSize(file) >= size + 2 && !File_Seek(file, -size, SEEK_END)) {
-			if (!File_ReadCount(file, text, (size_t)size))
+			if (!File_ReadBytes(file, text, (size_t)size))
 				text[0] = 0;
 			text[size - 1] = 0;
 		}
@@ -159,7 +159,7 @@ int XvtNetworkTask_CanJoin(void) {
 		   room->metadata.players < room->metadata.max_players;
 }
 
-void XvtNetworkTask_Select(int index) {
+void XvtNetworkTask_ToggleSelection(int index) {
 	if (index == g_browser.selected_index || index < 0 || (unsigned)index >= g_browser.snapshot.room_count)
 		index = -1;
 	g_browser.selected_index = index;
@@ -272,8 +272,8 @@ static void XvtNetworkTask_FinishSession(int result) {
 	if (g_network.action != XVT_NETWORK_AUTO_HOST)
 		FrontendDisplay_EnableOffscreenRestore();
 	if (!result)
-		XvtNetworkDialogs_Failed(XvtNetworkSession_GetStatus().error,
-								 g_network.action != XVT_NETWORK_CONNECT);
+		XvtNetworkDialogs_ShowFailure(XvtNetworkSession_GetStatus().error,
+									  g_network.action != XVT_NETWORK_CONNECT);
 	else if (g_network.action == XVT_NETWORK_CONNECT)
 		FrontendScreen_SetCallbacks(FrontendNet_AccessAllianceNetworkScreen, NULL);
 	else {
@@ -289,7 +289,7 @@ int XvtNetworkTask_Resume(int* result) {
 		XvtNetworkSessionStatus status = XvtNetworkSession_GetStatus();
 		if (status.state == XVT_NETWORK_SESSION_FAILED) {
 			*result = 0;
-			XvtNetworkDialogs_Failed(status.error, 0);
+			XvtNetworkDialogs_ShowFailure(status.error, 0);
 			return 1;
 		}
 		return 0;

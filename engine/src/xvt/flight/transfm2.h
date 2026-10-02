@@ -21,7 +21,7 @@ extern int g_viewSpaceX;
 extern int g_viewSpaceY;
 extern int g_viewSpaceDepth;
 extern int32_t g_projScaleHalfInt;
-extern uint8_t perspShift;
+extern uint8_t g_perspectiveShift;
 extern uint16_t g_projAspectY;
 
 int TRANSFM2_clipobjecteyez(int x, int y, int z);

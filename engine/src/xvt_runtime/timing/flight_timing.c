@@ -63,17 +63,17 @@ uint16_t XvtFlightTiming_ReferenceElapsed(void) {
 uint64_t XvtFlightTiming_AdvanceSerial(void) { return g_timing.serial; }
 
 XvtFlightClock XvtFlightTiming_EnterReference(void) {
-	XvtFlightClock saved = { g_elapsedTicks, g_simStepScale };
+	XvtFlightClock saved = { g_elapsedTicks, g_simStepsPerSecond };
 	if (g_timing.unlocked) {
 		g_elapsedTicks = XVT_REFERENCE_TICKS;
-		g_simStepScale = SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS;
+		g_simStepsPerSecond = SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS;
 	}
 	return saved;
 }
 
 void XvtFlightTiming_RestoreClock(XvtFlightClock saved) {
 	g_elapsedTicks = saved.elapsed;
-	g_simStepScale = saved.scale;
+	g_simStepsPerSecond = saved.scale;
 }
 
 void XvtFlightTiming_AnimationEvent(void) {
@@ -92,7 +92,7 @@ XvtFlightTimingProfile XvtFlightTiming_Profile(void) { return g_timing.profile; 
 
 int XvtFlightTiming_IsNetwork125(void) { return g_timing.profile == XVT_FLIGHT_TIMING_NETWORK_125; }
 
-int XvtFlightTiming_SimulationMaximum(void) {
+int XvtFlightTiming_MaximumStepTicks(void) {
 	return XvtFlightTiming_IsNetwork125() ? XVT_NETWORK_STEP_TICKS : g_netUpdateIntervalTicks;
 }
 

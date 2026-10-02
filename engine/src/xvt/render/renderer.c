@@ -28,7 +28,7 @@ int g_keepFullResTextures = 1;
 // GLOBAL: XVT 0x66DDD4
 IDirectDraw* g_flightDirectDraw;
 // GLOBAL: XVT 0x5233C8
-uint8_t g_flightColorEscapeBypassChar = 0xfb;
+uint8_t g_flightTransparentColorIndex = 0xfb;
 // GLOBAL: XVT 0x9A7A30
 uint8_t g_palettePackedMode = 0;
 // GLOBAL: XVT 0x5233F8
@@ -48,9 +48,9 @@ int g_surfaceHeight = 480;
 // GLOBAL: XVT 0x527ECC
 void* g_surfacePixels = (void*)0xA0000;
 // GLOBAL: XVT 0x66DDC4
-int width;
+int g_displayModeWidth;
 // GLOBAL: XVT 0x66DDE0
-int height;
+int g_displayModeHeight;
 // GLOBAL: XVT 0x9A7BAC
 unsigned int g_screenWidth = 0;
 // GLOBAL: XVT 0x9A806C
@@ -186,7 +186,8 @@ void Renderer_InitD3DDevice(void) {
 	unsigned int deviceIndex;
 
 	g_renderTextureCacheCursor = -1;
-	std3D_InitRenderTargetDesc((unsigned int)width, (unsigned int)height, g_surfacePitch);
+	std3D_InitRenderTargetDesc((unsigned int)g_displayModeWidth, (unsigned int)g_displayModeHeight,
+							   g_surfacePitch);
 	std3D_SetRenderSurface(g_flightBackBuffer);
 	std3D_SetColorOverlayParams(0.0f, 0.0f, 0.0f, 0);
 	std3D_Startup();

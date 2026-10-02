@@ -89,7 +89,7 @@ static void World(void) {
 	g_flightCursorX = 70;
 	g_flightCursorY = 80;
 	g_flightTextBgColor = BACKGROUND;
-	g_flightColorEscapeBypassChar = BYPASS;
+	g_flightTransparentColorIndex = BYPASS;
 	g_flightOffscreenBuffer = NULL;
 	g_flightSwFramebufferBase = g_framebuffer;
 	memset(g_readyMessagePaneQueue, 0, sizeof g_readyMessagePaneQueue);
@@ -281,7 +281,7 @@ static void CheckReset(void) {
 	XVT_ASSERT_INT_EQ(state->overlay_content.glyph_count, 0);
 	/* The messages were reset with it: the progress bar is gone. */
 	XvtCockpit_Presented(1);
-	XVT_ASSERT_INT_EQ(Presented()->loading.visible, 0);
+	XVT_ASSERT_INT_EQ(Presented()->loading.progress_visible, 0);
 }
 
 static void CheckStandaloneOverlay(void) {
@@ -302,7 +302,7 @@ static void CheckStandaloneOverlay(void) {
 	XvtCockpit_Presented(1);
 	state = Presented();
 	XVT_ASSERT_INT_EQ(state->valid, 1);
-	XVT_ASSERT_INT_EQ(state->loading.visible, 1);
+	XVT_ASSERT_INT_EQ(state->loading.progress_visible, 1);
 	XVT_ASSERT_TRUE(state->presentation_serial != serial);
 
 	/* The alert counts as well. */

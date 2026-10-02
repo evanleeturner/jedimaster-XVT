@@ -19,7 +19,7 @@ void XvtPresentation_Init(void);
  * 1706, and tells Aeron when it changes. Ignored for a non-positive size. */
 void XvtPresentation_SyncToWindow(int width, int height);
 /* The current logical frame. */
-AeronRectI XvtPresentation_Frame(void);
+AeronRectI XvtPresentation_LogicalRect(void);
 /* The 640x480 classic rectangle, centered horizontally in the frame. */
 AeronRectI XvtPresentation_ClassicRect(void);
 /* rect moved from classic coordinates into frame coordinates. */

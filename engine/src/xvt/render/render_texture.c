@@ -172,10 +172,10 @@ Std3DTexCacheNode* RenderTexture_GetOrCreateBitmap(int width, int height, uint16
 	if (g_pStd3DCurDevice->caps.bColorKeyTexture != 0)
 		g_pStd3DCurDevice->caps.bAlphaTexture = 0;
 	if (g_pStd3DCurDevice->caps.bAlphaTexture != 0) {
-		palette[0] = g_flightTextPalette[g_flightColorEscapeBypassChar];
+		palette[0] = g_flightTextPalette[g_flightTransparentColorIndex];
 		std3D_ConvertTexTo1555(palette, (int)maxColor + 1);
 	} else {
-		palette[0] = g_flightTextPalette[g_flightColorEscapeBypassChar];
+		palette[0] = g_flightTextPalette[g_flightTransparentColorIndex];
 		std3D_CopyPaletteToScratch16(palette, (int)maxColor + 1);
 	}
 	if (std3D_CreateMipSurface(&source, node, 1, 0) == 0) {
@@ -266,14 +266,14 @@ Std3DTexCacheNode* RenderTexture_GetOrCreateColorKey(int width, int height, uint
 		g_pStd3DCurDevice->caps.bAlphaTexture = 0;
 	if (g_pStd3DCurDevice->caps.bAlphaTexture != 0) {
 		palette[transparentIndex] = palette[0];
-		palette[0] = g_flightTextPalette[g_flightColorEscapeBypassChar];
+		palette[0] = g_flightTextPalette[g_flightTransparentColorIndex];
 		std3D_ConvertTexTo1555(palette, PALETTE_COLOR_COUNT);
 		palette[0] = palette[transparentIndex];
 		palette[transparentIndex] = 0;
 	} else {
 		uint16_t* transparentColor = &palette[transparentIndex];
 		*transparentColor = palette[0];
-		palette[0] = g_flightTextPalette[g_flightColorEscapeBypassChar];
+		palette[0] = g_flightTextPalette[g_flightTransparentColorIndex];
 		std3D_CopyPaletteToScratch16(palette, PALETTE_COLOR_COUNT);
 		palette[0] = *transparentColor;
 		*transparentColor = 0;

@@ -27,7 +27,7 @@ static void FreshTick(void) {
 	g_objectTable = g_testObjects;
 	g_regionMainObjectSlotEnd = 2;
 	g_regionStaticObjectSlotCount = 1;
-	worldlocx = 0;
+	g_worldLocX = 0;
 	worldlocy = 0;
 	worldlocz = 0;
 	XvtRenderSnapshot_Init();
@@ -68,7 +68,7 @@ static void CheckScope(void) {
 
 static void CheckTargetBoxRecord(void) {
 	FreshTick();
-	worldlocx = 1000;
+	g_worldLocX = 1000;
 	worldlocy = -2000;
 	worldlocz = 3000;
 	XvtRenderHud_TargetBox(2, 7, 4096, 33);
@@ -168,13 +168,13 @@ static void CheckColor(void) {
 
 	/* The classic brightness and the 16-bit palette built for the pixel format do not apply. */
 	int brightness = g_flightBrightnessScaleQ8;
-	int bytes_per_pixel = g_flight16bppBytesPerPixel;
+	int bytes_per_pixel = g_flightBytesPerPixel;
 	g_flightBrightnessScaleQ8 = 17;
-	g_flight16bppBytesPerPixel = 4;
+	g_flightBytesPerPixel = 4;
 	memset(g_flightTextPalette, 0x5A, sizeof g_flightTextPalette);
 	XVT_ASSERT_INT_EQ(XvtRenderDraw_Color(5), color);
 	g_flightBrightnessScaleQ8 = brightness;
-	g_flight16bppBytesPerPixel = bytes_per_pixel;
+	g_flightBytesPerPixel = bytes_per_pixel;
 }
 
 int main(void) {

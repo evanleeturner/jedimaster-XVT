@@ -152,7 +152,7 @@ static void Detail(XvtKeyboardSettings* settings, AeronUiContext* ui) {
 	XvtBindingsEditor_EndDetail(&settings->editor, ui);
 }
 
-static void Restore(XvtKeyboardSettings* settings, AeronUiContext* ui) {
+static void XvtKeyboardSettings_RestoreModal(XvtKeyboardSettings* settings, AeronUiContext* ui) {
 	if (!AeronUi_BeginModal(ui, "RESTORE KEYBOARD DEFAULTS", &settings->restore_open, NULL))
 		return;
 	AeronUi_Help(ui, "Replace all keyboard bindings with the shipped defaults?");
@@ -184,7 +184,7 @@ void XvtKeyboardSettings_DrawModals(XvtKeyboardSettings* settings, AeronUiContex
 			}
 		}
 	} else if (settings->restore_open) {
-		Restore(settings, ui);
+		XvtKeyboardSettings_RestoreModal(settings, ui);
 	} else {
 		Detail(settings, ui);
 	}

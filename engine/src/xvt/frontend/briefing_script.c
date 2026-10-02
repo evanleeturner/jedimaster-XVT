@@ -42,7 +42,7 @@ void BriefingScript_AdvanceOrResetAtEnd(int frameCounter) {
 
 // FUNCTION: XVT 0x4F7340
 int16_t BriefingScript_InitDefaultScript(void) {
-	g_briefingScript.durationTicks = 200;
+	g_briefingScript.durationFrames = 200;
 	g_briefingScript.headerWord06 = 2;
 	g_briefingScript.words[0] = 9999;
 	g_briefingScript.words[1] = 34;
@@ -95,7 +95,7 @@ int16_t BriefingScript_AdvanceUntilTime(int16_t targetTime, int16_t initializeSt
 // FUNCTION: XVT 0x4F7480
 int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 	int16_t textSlotActive;
-	int16_t visibleTextTicks;
+	int16_t visibleTextFrames;
 	int16_t opcode;
 	int16_t slotIndex;
 	int16_t currentTime;
@@ -105,7 +105,7 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 
 	currentTime = g_briefingScript.currentTime;
 	textSlotActive = 0;
-	visibleTextTicks = 0;
+	visibleTextFrames = 0;
 	opcode = 0;
 	done = 0;
 	BriefingScript_ResetState();
@@ -115,7 +115,7 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 		}
 		opcode = g_briefingScript.words[g_briefingScript.cursorWordIndex + 1];
 		if (g_briefingTextSlotsChanged != 0) {
-			visibleTextTicks = 0;
+			visibleTextFrames = 0;
 			textSlotActive = 0;
 		}
 		for (slotIndex = 0; slotIndex < 2; ++slotIndex) {
@@ -124,9 +124,9 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 			}
 		}
 		if (textSlotActive != 0) {
-			++visibleTextTicks;
+			++visibleTextFrames;
 		}
-		if ((g_briefingScriptPauseMarkerReached != 0 || visibleTextTicks == 1) &&
+		if ((g_briefingScriptPauseMarkerReached != 0 || visibleTextFrames == 1) &&
 			currentTime <= g_briefingScript.currentTime) {
 			done = 1;
 		} else {
@@ -134,7 +134,7 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 		}
 	} while (done == 0);
 
-	if (g_briefingScriptPauseMarkerReached != 0 || visibleTextTicks == 1) {
+	if (g_briefingScriptPauseMarkerReached != 0 || visibleTextFrames == 1) {
 		targetTime = g_briefingScript.currentTime;
 		targetOpcode = 0;
 	} else {

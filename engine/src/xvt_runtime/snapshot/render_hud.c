@@ -52,7 +52,7 @@ void XvtRenderHud_TargetBox(unsigned object, unsigned component, int extent, int
 							  .color_index = (uint16_t)color,
 							  .layer = XVT_SCOPE_COCKPIT,
 							  .extent = extent,
-							  .world_pos = { worldlocx, worldlocy, worldlocz } };
+							  .world_pos = { g_worldLocX, worldlocy, worldlocz } };
 	if (object < (unsigned)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount))
 		b->object = (XvtSnapObjectId) { (uint16_t)object, g_objectTable[object].objectSignature };
 }

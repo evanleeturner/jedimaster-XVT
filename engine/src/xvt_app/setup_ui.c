@@ -40,7 +40,7 @@ static XvtSetupFrameResult XvtSetupUi_DrawRecovery(AeronUiContext* ui, char* err
 	if (AeronUi_Button(ui, "Keep file and quit"))
 		result = XVT_SETUP_FRAME_CANCELLED;
 	AeronUi_NextColumn(ui);
-	if (AeronUi_Button(ui, "Reset to defaults") && XvtConfig_Replace(error, capacity))
+	if (AeronUi_Button(ui, "Reset to defaults") && XvtConfig_ResetToDefaults(error, capacity))
 		result = XVT_SETUP_FRAME_SUCCESS;
 	AeronUi_EndColumns(ui);
 	AeronUi_EndWindow(ui);

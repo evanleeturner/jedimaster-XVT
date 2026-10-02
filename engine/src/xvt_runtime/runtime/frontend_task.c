@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static uint64_t g_nextFrame;
+static uint64_t g_nextFrameDueUs;
 static uint64_t g_nextJoystick;
 static int g_quit;
 static int g_initialized;
@@ -72,7 +72,7 @@ int XvtFrontendTask_Init(int skip_intro) {
 	g_frontState.clipMaxX = 639;
 	g_frontState.clipMaxY = 479;
 	g_frontState.displayBpp = 16;
-	g_frontState.presentFrameReady = 1;
+	g_frontState.clearBackBufferAfterPresent = 1;
 	g_frontState.cdAudioSavedAuxVolume = -1;
 	g_frontState.appActive = 1;
 	FrontendDisplay_SetFrameRate(24);
@@ -85,8 +85,8 @@ int XvtFrontendTask_Init(int skip_intro) {
 	g_frontState.screenStates[0].exitFn =
 		skip_intro ? Concourse_Exit : FrontendBootstrap_ExitIntroAndLoadCredits;
 	g_startupMode = skip_intro ? 2 : 1;
-	g_nextFrame = XvtTime_GetElapsedUs();
-	g_nextJoystick = g_nextFrame;
+	g_nextFrameDueUs = XvtTime_GetElapsedUs();
+	g_nextJoystick = g_nextFrameDueUs;
 	XVT_LOG_INFO("frontend.ready");
 	return 1;
 }
@@ -112,7 +112,7 @@ int XvtFrontendTask_RunFrame(void) {
 	g_continuationFrame = 0;
 	g_frontState.netReadyPlayerLeftThisFrame = 0;
 	if (g_frontState.textFadeFramesLeft)
-		memset(&g_frontState.glyphScratchBuffer, 0, sizeof(g_frontState.glyphScratchBuffer));
+		memset(&g_frontState.textFadeColorCache, 0, sizeof(g_frontState.textFadeColorCache));
 	updateFn = g_frontState.screenStates[stack].updateFn;
 	if (!updateFn)
 		return 0;
@@ -169,9 +169,9 @@ int XvtFrontendTask_RunFrame(void) {
 void XvtFrontendTask_Tick(void) {
 	uint64_t now = XvtTime_GetElapsedUs();
 	int result;
-	if (g_quit || now < g_nextFrame)
+	if (g_quit || now < g_nextFrameDueUs)
 		return;
-	g_nextFrame = now + (uint64_t)g_frontState.frameIntervalMs * 1000;
+	g_nextFrameDueUs = now + (uint64_t)g_frontState.frameIntervalMs * 1000;
 	if (g_startupMode) {
 		int mode = g_startupMode;
 		g_startupMode = 0;
@@ -211,7 +211,7 @@ int XvtFrontendTask_ShouldQuit(void) { return g_quit; }
 
 uint64_t XvtFrontendTask_NextWakeDelayUs(void) {
 	uint64_t now = XvtTime_GetElapsedUs();
-	uint64_t delay = g_nextFrame > now ? g_nextFrame - now : 0;
+	uint64_t delay = g_nextFrameDueUs > now ? g_nextFrameDueUs - now : 0;
 	uint64_t cd = XvtCdTask_NextWakeDelayUs();
 	return cd < delay ? cd : delay;
 }

@@ -84,7 +84,7 @@ static int XvtOpt_Index(const XvtOptDecode* decode, uint32_t address) {
 
 static int XvtOpt_Texture(XvtOptDecode* decode, XvtOptEntry* entry) {
 	const uint8_t* raw = XvtOpt_Address(decode, entry->payload, 24);
-	int64_t pixels, bytes, palettes;
+	int64_t pixels, bytes, palette_bytes;
 	if (!raw)
 		return 0;
 	int32_t type = (int32_t)XvtOpt_U32(raw + 4);
@@ -95,15 +95,15 @@ static int XvtOpt_Texture(XvtOptDecode* decode, XvtOptEntry* entry) {
 	entry->palette = XvtOpt_U32(raw);
 	pixels = (int64_t)width * height;
 	bytes = texture_size == pixels ? data_size : pixels;
-	palettes = type ? (int64_t)type * 768 : entry->palette == entry->payload + 24 + bytes ? 12288 : 0;
+	palette_bytes = type ? (int64_t)type * 768 : entry->palette == entry->payload + 24 + bytes ? 12288 : 0;
 	if (width <= 0 || height <= 0 || width > 16384 || height > 16384 || type < 0 || type > 16 ||
-		bytes < pixels || bytes > XVT_OPT_LIMIT || palettes > XVT_OPT_LIMIT ||
-		!XvtOpt_Address(decode, entry->payload, (size_t)(24 + bytes + palettes)))
+		bytes < pixels || bytes > XVT_OPT_LIMIT || palette_bytes > XVT_OPT_LIMIT ||
+		!XvtOpt_Address(decode, entry->payload, (size_t)(24 + bytes + palette_bytes)))
 		return 0;
 	if (!type && !XvtOpt_Address(decode, entry->palette, 12288))
 		return 0;
-	entry->texture_offset = XvtOpt_Reserve(decode, sizeof(OptTextureData) + (size_t)(bytes + palettes));
-	if (palettes) {
+	entry->texture_offset = XvtOpt_Reserve(decode, sizeof(OptTextureData) + (size_t)(bytes + palette_bytes));
+	if (palette_bytes) {
 		entry->embedded_palette = entry->payload + 24 + (uint32_t)bytes;
 		entry->palette_offset = entry->texture_offset + sizeof(OptTextureData) + (size_t)bytes;
 	}

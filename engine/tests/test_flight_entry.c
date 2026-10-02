@@ -31,7 +31,7 @@ static void SetAllOptions(int value) {
 	g_flightConfSfxEnabled = (uint8_t)value;
 	g_flightConfMusicEnabled = (uint8_t)value;
 	g_flightConfVoiceEnabled = (uint8_t)value;
-	g_flightConfTickCounter = (uint8_t)value;
+	g_flightConfTickCounterEnabled = (uint8_t)value;
 	g_mipmappingEnabled = value;
 	g_flightInProgressLaunch = value;
 	g_flightConfNewNet = value;
@@ -60,7 +60,7 @@ static void CheckOptionsOff(void) {
 	XVT_ASSERT_INT_EQ(g_flightConfSfxEnabled, 0);
 	XVT_ASSERT_INT_EQ(g_flightConfMusicEnabled, 0);
 	XVT_ASSERT_INT_EQ(g_flightConfVoiceEnabled, 0);
-	XVT_ASSERT_INT_EQ(g_flightConfTickCounter, 0);
+	XVT_ASSERT_INT_EQ(g_flightConfTickCounterEnabled, 0);
 	XVT_ASSERT_INT_EQ(g_mipmappingEnabled, 0);
 	XVT_ASSERT_INT_EQ(g_flightFullscreen, 0);
 	XVT_ASSERT_INT_EQ(g_flightPageFlip, 0);
@@ -79,7 +79,7 @@ static void CheckOptionsOn(void) {
 	XVT_ASSERT_INT_EQ(g_flightConfSfxEnabled, 1);
 	XVT_ASSERT_INT_EQ(g_flightConfMusicEnabled, 1);
 	XVT_ASSERT_INT_EQ(g_flightConfVoiceEnabled, 1);
-	XVT_ASSERT_INT_EQ(g_flightConfTickCounter, 1);
+	XVT_ASSERT_INT_EQ(g_flightConfTickCounterEnabled, 1);
 	XVT_ASSERT_INT_EQ(g_mipmappingEnabled, 1);
 	XVT_ASSERT_INT_EQ(g_flightConfTrainCourse, 0);
 	XVT_ASSERT_INT_EQ(g_flightConfNoPilot, 0);

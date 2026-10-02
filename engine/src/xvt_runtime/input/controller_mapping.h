@@ -41,7 +41,7 @@ uint16_t XvtControllerMapping_Modifiers(void);
 uint16_t XvtControllerMapping_ReadKey(void);
 /* Empties the key queue and held buttons without sending releases, and re-arms every binding, so a
  * control still held must be released before it fires again. */
-void XvtControllerMapping_ReleaseCommands(void);
+void XvtControllerMapping_DropCommands(void);
 /* The connected controller matching model's GUID and kind whose instance id is preferred, else the one
  * with the lowest instance id; NULL when none. */
 const AeronControllerSnapshot* XvtControllerMapping_Resolve(const XvtControllerModel* model,
@@ -59,7 +59,7 @@ uint16_t XvtControllerMapping_ThrottlePosition(int16_t raw, AeronControllerKind 
  * throttle was read this frame. */
 bool XvtControllerMapping_ThrottleSample(uint16_t* position, uint32_t* generation);
 /* 1 when a configured model had a connected controller this frame, suspended or not. */
-int XvtControllerMapping_Present(void);
+int XvtControllerMapping_IsModelConnected(void);
 /* As Axis, with only the configured inversion: gamepad pitch is not flipped. */
 int XvtControllerMapping_MenuAxis(XvtInputAxis axis);
 /* Bit 1 for a gamepad's south button or a joystick's button 0, bit 2 for east or button 1, on any

@@ -45,7 +45,7 @@ int FrontendBootstrap_InitMode(void) {
 	FrontendDisplay_DisableEscapeClose();
 	FrontendDisplay_SetSurfaceClearColor(0);
 	FrontendCursor_Hide();
-	FrontendDisplay_ClearPresentFrameReady();
+	FrontendDisplay_DisableClearAfterPresent();
 	FrontendDisplay_DisableOffscreenRestore();
 	FrontendText_LoadFont(12);
 	if (g_movieSubtitleFile != NULL) {

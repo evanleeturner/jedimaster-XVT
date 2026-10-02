@@ -62,14 +62,14 @@ void XvtHudDraw_TextFill(const XvtHudDraw* draw, const XvtFontAtlas* font, unsig
 	AeronDrawList_AddSprite(XvtHudDraw_SelectList(draw, phase), &sprite);
 }
 
-void XvtHudDraw_Frame(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, uint32_t color) {
-	XvtHudDraw_FrameClipped(draw, phase, rect,
-							(XvtSnapRect) { 0, 0, draw->layout->source_width, draw->layout->source_height },
-							color);
+void XvtHudDraw_Outline(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, uint32_t color) {
+	XvtHudDraw_OutlineClipped(draw, phase, rect,
+							  (XvtSnapRect) { 0, 0, draw->layout->source_width, draw->layout->source_height },
+							  color);
 }
 
-void XvtHudDraw_FrameClipped(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, XvtSnapRect clip,
-							 uint32_t color) {
+void XvtHudDraw_OutlineClipped(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, XvtSnapRect clip,
+							   uint32_t color) {
 	if (rect.width <= 0 || rect.height <= 0)
 		return;
 	XvtSnapRect edges[] = { { rect.x, rect.y, rect.width, 1 },

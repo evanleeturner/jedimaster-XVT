@@ -213,10 +213,10 @@ XvtSetupResult XvtSetup_Run(const XvtLaunchOptions* options, XvtAppUi* ui, char*
 	if (!AeronVfs_SetRootOptions(vfs, AERON_VFS_ROOT_USER, AERON_VFS_ROOT_OPTION_CASE_INSENSITIVE_LOOKUP))
 		return XVT_SETUP_ERROR;
 	int loaded = XvtConfig_Load(vfs, error, capacity);
-	if (!loaded && !XvtConfig_CanReplace())
+	if (!loaded && !XvtConfig_CanResetToDefaults())
 		return XVT_SETUP_ERROR;
 	if (options->reset_config) {
-		if (!XvtConfig_Replace(error, capacity))
+		if (!XvtConfig_ResetToDefaults(error, capacity))
 			return XVT_SETUP_ERROR;
 		loaded = 1;
 		remember = 1;

@@ -31,7 +31,7 @@ void XvtReferenceMotion_CommitBoundary(void);
  * or no time has passed. */
 void XvtReferenceMotion_Displacement(unsigned slot, int32_t delta[3]);
 /* One axis of Displacement; 0 for an axis past 2. */
-int32_t XvtReferenceMotion_Axis(unsigned slot, unsigned axis);
+int32_t XvtReferenceMotion_AxisDisplacement(unsigned slot, unsigned axis);
 /* Canonical schema-1 record, 28 bytes. Decode validates before installation. */
 /* Writes slot's entry as a record. A slot out of range or empty, or an entry that belongs to another
  * object, gives the empty record: zero but for the slot. */

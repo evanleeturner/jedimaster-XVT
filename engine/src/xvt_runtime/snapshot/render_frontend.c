@@ -20,7 +20,7 @@ static int g_surfacesReleased;
 static XvtSnapSprite g_cursorSprite;
 
 typedef struct FrontendGlyphIdentity {
-	uintptr_t pixels;
+	uintptr_t pixels_address;
 	uint16_t character, width, height;
 } FrontendGlyphIdentity;
 
@@ -30,8 +30,8 @@ static uint64_t g_fontAssetIds[10];
 static int CompareGlyphIdentity(const void* left, const void* right) {
 	const FrontendGlyphIdentity* a = left;
 	const FrontendGlyphIdentity* b = right;
-	if (a->pixels != b->pixels)
-		return a->pixels < b->pixels ? -1 : 1;
+	if (a->pixels_address != b->pixels_address)
+		return a->pixels_address < b->pixels_address ? -1 : 1;
 	return (int)a->character - b->character;
 }
 
@@ -51,16 +51,16 @@ void XvtRenderFrontend_FontLoaded(const BitmapFont* font) {
 
 static int FindFontGlyph(unsigned slot, const ImageResource* glyph) {
 	const FrontendGlyphIdentity* entries = g_fontGlyphs[slot];
-	uintptr_t pixels = (uintptr_t)glyph->pixels;
+	uintptr_t pixels_address = (uintptr_t)glyph->pixels;
 	unsigned first = 0, end = 256;
 	while (first < end) {
 		unsigned middle = first + (end - first) / 2;
-		if (entries[middle].pixels < pixels)
+		if (entries[middle].pixels_address < pixels_address)
 			first = middle + 1;
 		else
 			end = middle;
 	}
-	for (; first < 256 && entries[first].pixels == pixels; ++first)
+	for (; first < 256 && entries[first].pixels_address == pixels_address; ++first)
 		if (entries[first].width == glyph->width && entries[first].height == glyph->height)
 			return entries[first].character;
 	return -1;
@@ -131,7 +131,7 @@ static XvtSnapDrawHeader Header(void) {
 }
 
 static unsigned GlyphColor(unsigned color) {
-	unsigned cached = g_frontState.glyphScratchBuffer[color & 65535];
+	unsigned cached = g_frontState.textFadeColorCache[color & 65535];
 	if (cached)
 		return cached;
 	unsigned total = g_frontState.textFadeFrameCount;
@@ -208,7 +208,7 @@ void XvtRenderFrontend_Paint(unsigned kind, int x0, int y0, int x1, int y1, unsi
 	XvtRenderSnapshot* s = Writer();
 	if (!s)
 		return;
-	if (s->paint_count == XVT_SNAP_PAINT) {
+	if (s->paint_count == XVT_SNAP_PAINTS) {
 		++s->dropped_records;
 		return;
 	}

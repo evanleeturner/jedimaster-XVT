@@ -249,7 +249,7 @@ static void CheckSuspendsAndResumes(void) {
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW), 0);
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_YAW), 0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Present(), 1);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 1);
 	g_input.has_focus = 1;
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW), yaw);
@@ -258,7 +258,7 @@ static void CheckSuspendsAndResumes(void) {
 	XvtInput_SetCaptured(true);
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW), 0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Present(), 1);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 1);
 	XvtInput_SetCaptured(false);
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW), yaw);
@@ -323,7 +323,7 @@ static void CheckReleaseCommands(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 1);
 
 	/* Held buttons empty, and a button still held must be released before it fires again. */
-	XvtControllerMapping_ReleaseCommands();
+	XvtControllerMapping_DropCommands();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 0);
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 0);
@@ -539,14 +539,14 @@ static void CheckThrottleSample(void) {
 static void CheckPresent(void) {
 	Start();
 	Frame();
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Present(), 0);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 0);
 	AeronControllerSnapshot* pad = Gamepad(0, 5);
 	memcpy(pad->guid, kOtherGuid, sizeof kOtherGuid);
 	Frame();
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Present(), 0);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 0);
 	Gamepad(0, 5);
 	Frame();
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Present(), 1);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 1);
 }
 
 static void CheckMenuButtons(void) {

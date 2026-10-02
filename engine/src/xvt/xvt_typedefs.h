@@ -174,7 +174,7 @@ typedef struct PlayerViewState PlayerViewState;
 typedef struct ProjVertex ProjVertex;
 typedef struct RadarEllipseClampLimit RadarEllipseClampLimit;
 typedef struct RemotePlayerRenderSample RemotePlayerRenderSample;
-typedef struct RemotePlayerSavedRenderPose RemotePlayerSavedRenderPose;
+typedef struct RemotePlayerSavedRenderPose RemotePlayerSavedSimPose;
 typedef struct RenderClipVertex RenderClipVertex;
 typedef struct RenderObjectListEntry RenderObjectListEntry;
 typedef struct RgbTriplet RgbTriplet;

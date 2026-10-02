@@ -423,7 +423,7 @@ static void CheckInitializeGamepads(void) {
 	Connect(3, kGuidA, AERON_CONTROLLER_KIND_GAMEPAD, 4)->connected = 0;
 
 	XVT_ASSERT_TRUE(
-		XvtControllerOptions_InitializeGamepads(&g_options, &defaults, &g_input, g_error, sizeof g_error));
+		XvtControllerOptions_AddNewGamepads(&g_options, &defaults, &g_input, g_error, sizeof g_error));
 	XVT_ASSERT_INT_EQ(g_options.count, 3);
 	XVT_ASSERT_INT_EQ(strcmp(g_options.models[1].guid, kGuidB), 0);
 	XVT_ASSERT_INT_EQ(strcmp(g_options.models[2].guid, kGuidC), 0);
@@ -453,19 +453,19 @@ static void CheckInitializeGamepads(void) {
 
 	/* Running again adds nothing. */
 	XVT_ASSERT_TRUE(
-		XvtControllerOptions_InitializeGamepads(&g_options, &defaults, &g_input, g_error, sizeof g_error));
+		XvtControllerOptions_AddNewGamepads(&g_options, &defaults, &g_input, g_error, sizeof g_error));
 	XVT_ASSERT_INT_EQ(g_options.count, 3);
 
 	/* NULL input is a success that adds nothing. */
 	XVT_ASSERT_TRUE(
-		XvtControllerOptions_InitializeGamepads(&g_options, &defaults, NULL, g_error, sizeof g_error));
+		XvtControllerOptions_AddNewGamepads(&g_options, &defaults, NULL, g_error, sizeof g_error));
 	XVT_ASSERT_INT_EQ(g_options.count, 3);
 
 	/* A gamepad that cannot be added fails the call. */
 	Connect(1, kGuidD, AERON_CONTROLLER_KIND_GAMEPAD, 2)->guid[3] = 'X';
 	g_error[0] = '\0';
 	XVT_ASSERT_TRUE(
-		!XvtControllerOptions_InitializeGamepads(&g_options, &defaults, &g_input, g_error, sizeof g_error));
+		!XvtControllerOptions_AddNewGamepads(&g_options, &defaults, &g_input, g_error, sizeof g_error));
 	XVT_ASSERT_TRUE(g_error[0] != '\0');
 }
 

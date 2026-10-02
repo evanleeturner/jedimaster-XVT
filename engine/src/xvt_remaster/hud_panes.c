@@ -85,7 +85,7 @@ static int DrawPage(const XvtHudDraw* draw, unsigned page_id) {
 	XvtSnapRect border = page->border_bounds;
 	border.x += page->placement.x;
 	border.y += page->placement.y;
-	XvtHudDraw_FrameClipped(draw, XVT_COCKPIT_AFTER_CRT, border, page->placement, page->border_argb);
+	XvtHudDraw_OutlineClipped(draw, XVT_COCKPIT_AFTER_CRT, border, page->placement, page->border_argb);
 	for (unsigned index = 0; index < page->row_count; ++index) {
 		const XvtCockpitPageRow* row = &content->rows[page->first_store_row + index];
 		XvtHudDraw_Fill(draw, XVT_COCKPIT_AFTER_CRT, PlaceBounds(row->bounds, page->placement),
@@ -145,8 +145,8 @@ int XvtHudPanes_DrawOverlays(const XvtHudDraw* draw) {
 	if (loading->text_visible && !DrawOverlayGlyphs(draw, loading->first_glyph, loading->glyph_count,
 													loading->text_bounds, XVT_COCKPIT_ALERT))
 		return 0;
-	if (loading->visible) {
-		XvtSnapRect bounds = loading->placement;
+	if (loading->progress_visible) {
+		XvtSnapRect bounds = loading->progress_placement;
 		XvtHudDraw_Fill(draw, XVT_COCKPIT_ALERT,
 						(XvtSnapRect) { bounds.x - 2, bounds.y - 2, bounds.width + 4, bounds.height + 4 },
 						loading->foreground_argb);
@@ -159,9 +159,9 @@ int XvtHudPanes_DrawOverlays(const XvtHudDraw* draw) {
 	const XvtCockpitAlert* alert = &draw->state->alert;
 	if (alert->active) {
 		XvtSnapRect bounds = alert->placement;
-		XvtHudDraw_Frame(draw, XVT_COCKPIT_ALERT,
-						 (XvtSnapRect) { bounds.x - 1, bounds.y - 1, bounds.width + 2, bounds.height + 2 },
-						 alert->border_argb);
+		XvtHudDraw_Outline(draw, XVT_COCKPIT_ALERT,
+						   (XvtSnapRect) { bounds.x - 1, bounds.y - 1, bounds.width + 2, bounds.height + 2 },
+						   alert->border_argb);
 		for (unsigned row = 0; row < 5; ++row)
 			XvtHudDraw_Fill(draw, XVT_COCKPIT_ALERT,
 							(XvtSnapRect) { bounds.x, bounds.y + (int)row * bounds.height / 5, bounds.width,

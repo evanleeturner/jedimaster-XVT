@@ -31,30 +31,29 @@ void FlightAlert_SaveBoxBackground(void) {
 	int pixelCount;
 
 	FlightText_SetFontTier(0);
-	boxWidth = (unsigned int)(g_surfaceWidth - g_flightRenderModeId) >> 1;
+	boxWidth = (unsigned int)(g_surfaceWidth - g_flightViewportInsetX) >> 1;
 	boxHeight = 5 * g_flightFontLineHeight;
-	boxX = ((unsigned int)(g_flightRenderModeId + g_surfaceWidth) >> 1) - boxWidth / 2 - 1;
+	boxX = ((unsigned int)(g_flightViewportInsetX + g_surfaceWidth) >> 1) - boxWidth / 2 - 1;
 	boxY = ((unsigned int)(g_flightAlertBoxVerticalOffset + g_surfaceHeight) >> 1) - boxHeight / 2 - 1;
 	boxWidth += 2;
 	boxHeight += 2;
 
 	if (g_flightAlertBoxSavedPixels == 0) {
 		pixelCount = boxWidth * boxHeight;
-		g_flightAlertBoxSavedPixels = malloc(pixelCount * g_flight16bppBytesPerPixel);
+		g_flightAlertBoxSavedPixels = malloc(pixelCount * g_flightBytesPerPixel);
 		if (g_flightAlertBoxSavedPixels == 0) {
 			return;
 		}
-		g_flightAlertBoxSavedBytes = pixelCount * g_flight16bppBytesPerPixel;
+		g_flightAlertBoxSavedBytes = pixelCount * g_flightBytesPerPixel;
 	} else {
 		pixelCount = boxWidth * boxHeight;
-		if ((unsigned int)(pixelCount * g_flight16bppBytesPerPixel) >
-			(unsigned int)g_flightAlertBoxSavedBytes) {
+		if ((unsigned int)(pixelCount * g_flightBytesPerPixel) > (unsigned int)g_flightAlertBoxSavedBytes) {
 			free(g_flightAlertBoxSavedPixels);
-			g_flightAlertBoxSavedPixels = malloc(pixelCount * g_flight16bppBytesPerPixel);
+			g_flightAlertBoxSavedPixels = malloc(pixelCount * g_flightBytesPerPixel);
 			if (g_flightAlertBoxSavedPixels == 0) {
 				return;
 			}
-			g_flightAlertBoxSavedBytes = pixelCount * g_flight16bppBytesPerPixel;
+			g_flightAlertBoxSavedBytes = pixelCount * g_flightBytesPerPixel;
 		}
 	}
 
@@ -88,7 +87,7 @@ void FlightAlert_RestoreBoxBackground(void) {
 
 	FlightText_SetFontTier(0);
 	surfaceWidth = g_surfaceWidth;
-	renderMode = g_flightRenderModeId;
+	renderMode = g_flightViewportInsetX;
 	boxWidth = (unsigned int)(surfaceWidth - renderMode) >> 1;
 	boxHeight = 5 * g_flightFontLineHeight;
 	boxX = ((unsigned int)(renderMode + surfaceWidth) >> 1) - boxWidth / 2 - 1;
@@ -127,8 +126,8 @@ void FlightAlert_DrawBox(int verticalMode, char* line1, uint8_t bgColor) {
 	unsigned int backgroundColor;
 
 	FlightText_SetFontTier(0);
-	boxWidth = (unsigned int)(g_surfaceWidth - g_flightRenderModeId) >> 1;
-	boxX = ((unsigned int)(g_flightRenderModeId + g_surfaceWidth) >> 1) - boxWidth / 2;
+	boxWidth = (unsigned int)(g_surfaceWidth - g_flightViewportInsetX) >> 1;
+	boxX = ((unsigned int)(g_flightViewportInsetX + g_surfaceWidth) >> 1) - boxWidth / 2;
 	boxHeight = 5 * g_flightFontLineHeight;
 	boxY = ((unsigned int)(g_flightAlertBoxVerticalOffset + g_surfaceHeight) >> 1) - boxHeight / 2;
 	if (g_flightAlertBoxSavedPixels == 0) {

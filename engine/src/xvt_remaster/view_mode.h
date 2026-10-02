@@ -25,7 +25,7 @@ int XvtRemasterView_NeedsWorld(const XvtRenderSnapshot* snapshot);
 /* Whether the flight may present straight to the swapchain: a valid flight scene with a ready world of
  * this mission, fully modern, not waiting, classic suppressed, and the pipeline's direct mode enabled
  * for width x height. */
-int XvtRemasterView_Direct(const XvtRenderSnapshot* snapshot, int width, int height);
+int XvtRemasterView_TryEnableDirect(const XvtRenderSnapshot* snapshot, int width, int height);
 /* Presents the frame. Records the world ready with its frame serial, mission and view size when
  * world_ready and the flight is valid; ends a classic wait once the classic frame serial moved. In a
  * movie scene, submits the movie overlay as a premultiplied sRGB layer when modern (suppressing the

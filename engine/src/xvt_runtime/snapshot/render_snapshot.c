@@ -9,11 +9,11 @@
 
 static XvtRenderSnapshot g_slots[3];
 static int g_initialized;
-static int g_tickOpen;
+static int g_snapshotOpen;
 static int g_writeSlot;
 static int g_currentSlot = -1;
 static int g_previousSlot = -1;
-static uint64_t g_tickIndex;
+static uint64_t g_snapshotSerial;
 static XvtSceneKind g_sceneKind;
 static uint32_t g_drawOrder;
 
@@ -24,20 +24,20 @@ void XvtRenderSnapshot_Init(void) {
 	g_writeSlot = 0;
 	g_currentSlot = -1;
 	g_previousSlot = -1;
-	g_tickIndex = 0;
-	g_tickOpen = 0;
+	g_snapshotSerial = 0;
+	g_snapshotOpen = 0;
 	g_sceneKind = XVT_SCENE_NONE;
 	g_initialized = 1;
 	XvtRenderAssets_Init();
-	XvtRenderCapture_Init();
+	XvtRenderCapture_Reset();
 	XvtRenderFrontend_Init();
 }
 
 void XvtRenderSnapshot_Shutdown(void) {
 	XvtRenderAssets_Shutdown();
-	XvtRenderCapture_Init();
+	XvtRenderCapture_Reset();
 	g_initialized = 0;
-	g_tickOpen = 0;
+	g_snapshotOpen = 0;
 	g_currentSlot = -1;
 	g_previousSlot = -1;
 	g_sceneKind = XVT_SCENE_NONE;
@@ -45,12 +45,12 @@ void XvtRenderSnapshot_Shutdown(void) {
 
 void XvtRenderSnapshot_BeginTick(void) {
 	XvtRenderSnapshot* snapshot;
-	if (!g_initialized || g_tickOpen)
+	if (!g_initialized || g_snapshotOpen)
 		return;
 	XvtRenderAssets_BeginTick();
 	XvtRenderCapture_BeginTick();
 	snapshot = &g_slots[g_writeSlot];
-	snapshot->tick_index = g_tickIndex;
+	snapshot->snapshot_serial = g_snapshotSerial;
 	g_drawOrder = 0;
 	snapshot->scene_kind = g_sceneKind;
 	snapshot->dropped_records = 0;
@@ -73,21 +73,21 @@ void XvtRenderSnapshot_BeginTick(void) {
 	snapshot->opt_asset_count = 0;
 	snapshot->texture_asset_count = 0;
 	snapshot->image_asset_count = 0;
-	g_tickOpen = 1;
+	g_snapshotOpen = 1;
 }
 
 void XvtRenderSnapshot_SetSceneKind(XvtSceneKind kind) {
 	if (!g_initialized)
 		return;
 	g_sceneKind = kind;
-	if (g_tickOpen)
+	if (g_snapshotOpen)
 		g_slots[g_writeSlot].scene_kind = kind;
 }
 
 void XvtRenderSnapshot_Commit(int32_t game_time_ticks, int focused, int paused) {
 	XvtRenderSnapshot* snapshot;
 	int slot;
-	if (!g_initialized || !g_tickOpen)
+	if (!g_initialized || !g_snapshotOpen)
 		return;
 	snapshot = &g_slots[g_writeSlot];
 	snapshot->game_time_ticks = game_time_ticks;
@@ -107,8 +107,8 @@ void XvtRenderSnapshot_Commit(int32_t game_time_ticks, int focused, int paused) 
 			break;
 		}
 	}
-	++g_tickIndex;
-	g_tickOpen = 0;
+	++g_snapshotSerial;
+	g_snapshotOpen = 0;
 }
 
 const XvtRenderSnapshot* XvtRenderSnapshot_Current(void) {
@@ -116,10 +116,10 @@ const XvtRenderSnapshot* XvtRenderSnapshot_Current(void) {
 }
 
 XvtRenderSnapshot* XvtRenderSnapshot_Writer(void) {
-	return g_initialized && g_tickOpen ? &g_slots[g_writeSlot] : NULL;
+	return g_initialized && g_snapshotOpen ? &g_slots[g_writeSlot] : NULL;
 }
 
-uint32_t XvtRenderSnapshot_NextOrder(void) { return g_tickOpen ? g_drawOrder++ : 0; }
+uint32_t XvtRenderSnapshot_NextOrder(void) { return g_snapshotOpen ? g_drawOrder++ : 0; }
 
 const XvtRenderSnapshot* XvtRenderSnapshot_Previous(void) {
 	return g_previousSlot >= 0 ? &g_slots[g_previousSlot] : NULL;

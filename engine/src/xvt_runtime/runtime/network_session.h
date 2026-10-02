@@ -61,7 +61,7 @@ void XvtNetworkSession_Leave(void);
 void XvtNetworkSession_OnClose(void);
 /* During admission, accepts the host's admission of the local player before the join deadline
  * and while not lost: finishes the join and returns 1 with the session established; otherwise 0. */
-int XvtNetworkSession_Admission(DPID sender, DPID player);
+int XvtNetworkSession_AcceptAdmission(DPID sender, DPID player);
 /* For a refused join: leaves the session, finishes the directory join and drops a deferred
  * cancel. */
 void XvtNetworkSession_Reject(void);
@@ -73,7 +73,7 @@ int XvtNetworkSession_IsLost(void);
  * joinable, with the current roster when it has players. */
 void XvtNetworkSession_BeginFlight(void);
 /* Marks the flight ready, so the listing keeps only players still active. */
-void XvtNetworkSession_FlightReady(void);
+void XvtNetworkSession_MarkFlightReady(void);
 /* Ends a begun flight and refreshes the player roster. */
 void XvtNetworkSession_EndFlight(void);
 

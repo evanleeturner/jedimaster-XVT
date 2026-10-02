@@ -126,7 +126,7 @@ static void CheckElements(const XvtCockpitDefinition* d) {
 		XVT_ASSERT_INT_EQ(copy->x, live->x);
 		XVT_ASSERT_INT_EQ(copy->y, live->y);
 		XVT_ASSERT_INT_EQ(copy->selector, live->selector);
-		XVT_ASSERT_INT_EQ(copy->color_index, live->colorIndex);
+		XVT_ASSERT_INT_EQ(copy->color_index, live->colorIndexOrWidgetParam);
 		XVT_ASSERT_INT_EQ(copy->clip_width, live->clipWidth);
 		/* Element 127's warning timer is zeroed in the copy. */
 		XVT_ASSERT_INT_EQ(copy->clip_height_or_foreground, i == 127 ? 0 : live->clipHeightOrForegroundColor);

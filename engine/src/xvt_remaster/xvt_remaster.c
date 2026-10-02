@@ -145,7 +145,7 @@ void XvtRemaster_Frame(int32_t delta_us) {
 	if (!assets_ready)
 		XvtRemasterFlight_Invalidate();
 	XvtFlightPipeline_SetDirect(0, width, height);
-	int direct = assets_ready && XvtRemasterView_Direct(snapshot, width, height);
+	int direct = assets_ready && XvtRemasterView_TryEnableDirect(snapshot, width, height);
 	int standalone = world_needed && !snapshot->flight_valid && snapshot->cockpit.valid &&
 					 snapshot->presented_target == XVT_TARGET_FLIGHT_MAIN;
 	int crt_dirty = frame && XvtRemasterPreview_CrtNeedsRender(snapshot, width, height);
@@ -202,7 +202,7 @@ void XvtRemaster_Frame(int32_t delta_us) {
 		XvtRemasterPreview_ReleaseFrontend();
 	}
 	g_frontendSurfacesReleased = snapshot->frontend_surfaces_released;
-	XvtRenderAssets_Consumed(snapshot->tick_index);
+	XvtRenderAssets_Consumed(snapshot->snapshot_serial);
 	XvtRemasterView_Present(snapshot, delta_us,
 							assets_ready && snapshot->cockpit.valid && XvtRemasterFlight_Output() != NULL,
 							direct);

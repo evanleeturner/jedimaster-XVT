@@ -427,7 +427,7 @@ int XvtHudAssets_PrepareResources(AeronCommandBuffer* cmd, const XvtCockpitResou
 
 int XvtHudAssets_Select(const XvtCockpitState* state, const XvtHudLayout* layout) {
 	if ((!layout->base_asset_id && !layout->part_count) || !state->definition.layout.valid ||
-		(!state->view.instruments_visible && (state->loading.visible || state->alert.active) &&
+		(!state->view.instruments_visible && (state->loading.progress_visible || state->alert.active) &&
 		 !layout->part_count)) {
 		g_current = &g_empty;
 		return 1;

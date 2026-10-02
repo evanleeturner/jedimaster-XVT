@@ -12,7 +12,7 @@ static void* XvtOpt_Move(const void* pointer, intptr_t delta) {
 	return pointer ? (void*)((uintptr_t)pointer + (uintptr_t)delta) : NULL;
 }
 
-static int XvtOpt_Seen(XvtOptRelocation* state, void* pointer) {
+static int XvtOpt_TestAndMarkSeen(XvtOptRelocation* state, void* pointer) {
 	for (size_t i = 0; i < state->count; ++i)
 		if (state->visited[i] == pointer)
 			return 1;
@@ -31,7 +31,7 @@ static int XvtOpt_Seen(XvtOptRelocation* state, void* pointer) {
 }
 
 static void XvtOpt_MoveNode(XvtOptRelocation* state, OptNode* node, unsigned depth) {
-	if (!node || XvtOpt_Seen(state, node))
+	if (!node || XvtOpt_TestAndMarkSeen(state, node))
 		return;
 	if (depth >= 256) {
 		XvtStorage_Fatal("OPT graph exceeds relocation depth", 1);
@@ -39,7 +39,7 @@ static void XvtOpt_MoveNode(XvtOptRelocation* state, OptNode* node, unsigned dep
 	}
 	node->pName = XvtOpt_Move(node->pName, state->delta);
 	node->payload = XvtOpt_Move(node->payload, state->delta);
-	if (node->nodeType == OPT_TEXTURE && node->payload && !XvtOpt_Seen(state, node->payload)) {
+	if (node->nodeType == OPT_TEXTURE && node->payload && !XvtOpt_TestAndMarkSeen(state, node->payload)) {
 		OptTextureData* texture = node->payload;
 		if (!texture->paletteType)
 			texture->palette = XvtOpt_Move(texture->palette, state->delta);
@@ -47,7 +47,7 @@ static void XvtOpt_MoveNode(XvtOptRelocation* state, OptNode* node, unsigned dep
 	if (node->nodeType == OPT_NODEREF)
 		node->payloadCount = 0;
 	node->pChildren = XvtOpt_Move(node->pChildren, state->delta);
-	if (node->pChildren && !XvtOpt_Seen(state, node->pChildren)) {
+	if (node->pChildren && !XvtOpt_TestAndMarkSeen(state, node->pChildren)) {
 		for (int i = 0; i < node->childCount; ++i) {
 			node->pChildren[i] = XvtOpt_Move(node->pChildren[i], state->delta);
 			XvtOpt_MoveNode(state, node->pChildren[i], depth + 1);

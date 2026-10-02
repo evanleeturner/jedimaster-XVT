@@ -41,7 +41,7 @@ void XvtCdTask_CancelFade(void) { g_fade.active = 0; }
 
 void XvtCdTask_Tick(void) {
 	uint64_t now = XvtTime_GetElapsedUs();
-	uint32_t ticks = XvtTime_GetElapsedMs();
+	uint32_t nowMs = XvtTime_GetElapsedMs();
 	if (g_fade.active && now >= g_fade.next) {
 		unsigned int steps = (unsigned int)((now - g_fade.next) / g_fade.interval + 1);
 		unsigned int distance =
@@ -63,10 +63,10 @@ void XvtCdTask_Tick(void) {
 	if (XvtFlightTask_IsActive())
 		return;
 	if (g_frontState.cdAudioSuspendState == CDAudio_ResumePending &&
-		(int32_t)(ticks - g_frontState.cdAudioResumeDueTick) > 0)
+		(int32_t)(nowMs - g_frontState.cdAudioResumeDueMs) > 0)
 		CDAudio_ResumeSuspendedPlayback();
 	if (g_frontState.cdAudioCurrentTrack && g_frontState.cdAudioSuspendState == 0 &&
-		!g_frontState.cdAudioPlaybackComplete && (int32_t)(ticks - g_frontState.cdAudioTrackEndTick) > 0) {
+		!g_frontState.cdAudioPlaybackComplete && (int32_t)(nowMs - g_frontState.cdAudioTrackEndMs) > 0) {
 		if (g_frontState.cdAudioLoopCurrentTrack)
 			CDAudio_PlayTrackFromTime(g_frontState.cdAudioCurrentTrack, 0, 0);
 		else
@@ -77,20 +77,20 @@ void XvtCdTask_Tick(void) {
 uint64_t XvtCdTask_NextWakeDelayUs(void) {
 	uint64_t now = XvtTime_GetElapsedUs();
 	uint64_t delay = g_fade.active ? (now < g_fade.next ? g_fade.next - now : 0) : UINT64_MAX;
-	uint32_t ticks = XvtTime_GetElapsedMs();
+	uint32_t nowMs = XvtTime_GetElapsedMs();
 	int32_t remaining;
 	uint64_t candidate;
 	if (XvtFlightTask_IsActive())
 		return delay;
 	if (g_frontState.cdAudioSuspendState == CDAudio_ResumePending) {
-		remaining = (int32_t)(g_frontState.cdAudioResumeDueTick - ticks);
+		remaining = (int32_t)(g_frontState.cdAudioResumeDueMs - nowMs);
 		candidate = remaining < 0 ? 0 : ((uint64_t)remaining + 1) * 1000;
 		if (candidate < delay)
 			delay = candidate;
 	}
 	if (g_frontState.cdAudioCurrentTrack && !g_frontState.cdAudioPlaybackComplete &&
 		g_frontState.cdAudioSuspendState == CDAudio_NotSuspended) {
-		remaining = (int32_t)(g_frontState.cdAudioTrackEndTick - ticks);
+		remaining = (int32_t)(g_frontState.cdAudioTrackEndMs - nowMs);
 		candidate = remaining < 0 ? 0 : ((uint64_t)remaining + 1) * 1000;
 		if (candidate < delay)
 			delay = candidate;

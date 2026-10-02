@@ -237,9 +237,9 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 	strcpy(g_modelPreviewOptFileName, baseName);
 	strcat(g_modelPreviewOptFileName, ".opt");
 	if (g_mipmappingEnabled != 0) {
-		g_flight16bppBytesPerPixel = 2;
+		g_flightBytesPerPixel = 2;
 		g_loadedModels[MODEL_PREVIEW_SLOT] = OptModel_CreateRuntimeHandle(g_loadedModels[MODEL_PREVIEW_SLOT]);
-		g_flight16bppBytesPerPixel = 2;
+		g_flightBytesPerPixel = 2;
 	}
 #ifdef XVT_MODERN
 	if (!g_loadedModels[MODEL_PREVIEW_SLOT])
@@ -350,7 +350,7 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 	g_flightVpBaseOffset = (unsigned int)(y * g_surfacePitch + x);
 	g_projScaleInt = MODEL_PREVIEW_PROJECTION_SCALE;
 	g_projScaleHalfInt = MODEL_PREVIEW_PROJECTION_HALF_SCALE;
-	perspShift = MODEL_PREVIEW_PERSPECTIVE_SHIFT;
+	g_perspectiveShift = MODEL_PREVIEW_PERSPECTIVE_SHIFT;
 	g_projAspectY = 0;
 
 	FVIEW_BuildCameraOrient(g_players[g_localPlayer].viewState.viewRoll,

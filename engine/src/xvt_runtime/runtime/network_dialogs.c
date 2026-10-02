@@ -44,7 +44,7 @@ int XvtNetworkDialogs_Connecting(void) {
 }
 
 void XvtNetworkDialogs_Return(int host) {
-	g_skipFrontendEntryMovie = 1;
+	g_frontendSkipScreenEntrySetup = 1;
 	g_frontendMissionSessionMode =
 		host ? FRONTEND_MISSION_SESSION_NET_HOST : FRONTEND_MISSION_SESSION_NET_CLIENT;
 	g_frontendNetSelectedSessionIdx = -1;
@@ -63,7 +63,7 @@ static int XvtNetworkDialogs_AfterFailure(int result, int host) {
 	return 0;
 }
 
-void XvtNetworkDialogs_Failed(AeronDplayDirectoryError error, int host) {
+void XvtNetworkDialogs_ShowFailure(AeronDplayDirectoryError error, int host) {
 	const char* message;
 	XvtNetworkSession_Reset();
 	switch (error) {
@@ -107,6 +107,6 @@ int XvtNetworkDialogs_ReportAdmissionFailure(void) {
 	XvtNetworkSessionStatus status = XvtNetworkSession_GetStatus();
 	if (status.state != XVT_NETWORK_SESSION_FAILED)
 		return 0;
-	XvtNetworkDialogs_Failed(status.error, 0);
+	XvtNetworkDialogs_ShowFailure(status.error, 0);
 	return 1;
 }

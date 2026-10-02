@@ -36,7 +36,7 @@ int XvtFlightIntegration_Init(size_t count);
 /* Frees the table. */
 void XvtFlightIntegration_Shutdown(void);
 /* Clears slot's entry and its reference motion entry; a slot out of range is ignored. */
-void XvtFlightIntegration_Reset(unsigned slot);
+void XvtFlightIntegration_ResetSlotAndMotion(unsigned slot);
 /* Drops one channel's carried remainder. */
 void XvtFlightIntegration_Clear(unsigned slot, unsigned channel);
 /* (rate * elapsed + the channel's carried remainder) / divisor, truncated toward zero; the channel

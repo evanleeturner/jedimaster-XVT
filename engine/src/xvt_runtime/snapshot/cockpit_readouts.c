@@ -58,9 +58,9 @@ void XvtCockpitReadouts_RecordNumber(XvtCockpitNumberId id, unsigned value, unsi
 					 g_flightDrawCharFn == FlightText_DrawNarrowGlyph;
 	number->keyed = g_flightSwFramebufferBase == g_flightOffscreenBuffer;
 	if (number->keyed)
-		number->color_key_argb = XvtRenderDraw_Color(g_flightColorEscapeBypassChar);
+		number->color_key_argb = XvtRenderDraw_Color(g_flightTransparentColorIndex);
 	if (id != XVT_COCKPIT_NUMBER_COURSE_SCORE && (uint16_t)value == UINT16_MAX) {
-		number->foreground = XvtCockpitText_ResolveColor('@', g_flightColorEscapeBypassChar);
+		number->foreground = XvtCockpitText_ResolveColor('@', g_flightTransparentColorIndex);
 		number->shadow_enabled = number->shadow_color = 0;
 	}
 	number->clear_background =

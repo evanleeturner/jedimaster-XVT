@@ -46,24 +46,24 @@ int XvtRemasterFlight_Prepare(const XvtRenderSnapshot* s, const XvtRenderSnapsho
 		height = g_height;
 	}
 	uint64_t config = XvtRemasterConfig_Generation();
-	int new_tick = !g_frame.valid || s->tick_index != g_frame.tick_index;
+	int new_snapshot = !g_frame.valid || s->snapshot_serial != g_frame.snapshot_serial;
 	int previous_valid = p && p->flight_valid && p->camera.valid &&
 						 p->mission_generation == s->mission_generation &&
 						 p->world_generation == s->world_generation;
-	int reset = !g_frame.valid || (new_tick && !previous_valid) || g_width != width || g_height != height ||
-				g_lastMission != s->mission_generation || g_lastWorld != s->world_generation ||
-				g_lastOpt != s->opt_asset_generation || g_lastTexture != s->texture_asset_generation ||
-				g_lastConfig != config;
-	if (new_tick && previous_valid &&
+	int reset = !g_frame.valid || (new_snapshot && !previous_valid) || g_width != width ||
+				g_height != height || g_lastMission != s->mission_generation ||
+				g_lastWorld != s->world_generation || g_lastOpt != s->opt_asset_generation ||
+				g_lastTexture != s->texture_asset_generation || g_lastConfig != config;
+	if (new_snapshot && previous_valid &&
 		(s->view_time_ticks < p->view_time_ticks || ViewDiscontinuity(&s->camera, &p->camera)))
 		reset = 1;
 	int changed = !previous_valid || XvtRenderMath_PoseChanged(s, p);
-	if (new_tick && previous_valid && s->hyperspace.phase == XVT_SNAP_HYPERSPACE_TRANSITION &&
+	if (new_snapshot && previous_valid && s->hyperspace.phase == XVT_SNAP_HYPERSPACE_TRANSITION &&
 		((s->hyperspace.elapsed_ticks < XVT_SNAP_HYPERSPACE_STREAK_END) !=
 		 (p->hyperspace.elapsed_ticks < XVT_SNAP_HYPERSPACE_STREAK_END)))
 		reset = 1;
 	int advance =
-		reset || (new_tick && (changed || (previous_valid && s->view_time_ticks != p->view_time_ticks)));
+		reset || (new_snapshot && (changed || (previous_valid && s->view_time_ticks != p->view_time_ticks)));
 	int scene_changed =
 		!advance && previous_valid &&
 		(memcmp(&s->lighting, &p->lighting, sizeof s->lighting) || memcmp(&s->sky, &p->sky, sizeof s->sky) ||
@@ -125,7 +125,7 @@ int XvtRemasterFlight_Prepare(const XvtRenderSnapshot* s, const XvtRenderSnapsho
 		g_frame.delta_seconds = !reset && ticks > 0 ? (float)ticks / 236.0f : 0;
 	}
 	g_frame.object_count = s->object_count;
-	g_frame.tick_index = s->tick_index;
+	g_frame.snapshot_serial = s->snapshot_serial;
 	g_frame.flight_frame_serial = s->flight_frame_serial;
 	g_frame.reset_history = reset;
 	int motion_changed = g_frame.regenerate_motion != advance;

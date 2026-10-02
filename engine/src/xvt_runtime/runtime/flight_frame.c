@@ -49,7 +49,7 @@ static struct {
 	int budget_initialized;
 } g_confirm;
 
-extern uint32_t g_lastTickTime;
+extern uint32_t g_lastTickTimeMs;
 
 /* Says why the frame loop ends and returns 1, the frame loop's "flight over". */
 static int XvtFlightFrame_End(const char* reason) {
@@ -60,7 +60,7 @@ static int XvtFlightFrame_End(const char* reason) {
 uint64_t XvtFlightTime_DelayForTicks(unsigned int ticks) {
 	uint64_t now = XvtTime_GetElapsedUs();
 	uint32_t ms = (uint32_t)(now / 1000);
-	uint32_t base = g_lastTickTime ? g_lastTickTime : ms;
+	uint32_t base = g_lastTickTimeMs ? g_lastTickTimeMs : ms;
 	uint64_t elapsed = (uint64_t)(uint32_t)(ms - base) * 1000 + now % 1000;
 	uint64_t required = (uint64_t)ticks * 4000;
 	return elapsed < required ? required - elapsed : 0;
@@ -266,7 +266,7 @@ static void XvtFlightFrame_Render(void) {
 		loopTicks = 1;
 	}
 
-	if (g_flightConfTickCounter == 0) {
+	if (g_flightConfTickCounterEnabled == 0) {
 		g_flightTickOverlaySampleCount = 0;
 		g_flightTickOverlayWindowTicks = 0;
 	} else {
@@ -366,7 +366,7 @@ static void XvtFlightFrame_StartAdvance(void) {
 	g_predictedFrameDelta = g_frame.frameTargetTimestamp - g_flightLastStepTargetTimestamp;
 	g_frame.savedInputTimestamp = g_inputTimestamp;
 	g_inputTimestamp = g_frame.frameTargetTimestamp;
-	FlightNet_SampleAndSendInput();
+	FlightNet_SampleLocalInput();
 	g_flightSimSideEffectsSuppressed = 0;
 	g_netUpdateIntervalTicks = g_inputTimestamp - g_gameTime;
 	g_frame.phase = XVT_FRAME_ADVANCE;
@@ -452,7 +452,7 @@ static XvtFlightReplayResult XvtFlightFrame_Confirm(XvtFlightQueue queue) {
 		g_gameTime = g_serverTickTime;
 		XvtFlightTiming_RestoreNetworkTick(g_gameTime);
 		XvtFlightHistory_RestoreCheckpoint();
-		XvtFlightCheckpoint_SetMask(g_confirm.message.mask);
+		XvtFlightCheckpoint_ApplyConfirmedMask(g_confirm.message.mask);
 		if (!XvtFlightNetwork_InsertWorld(&g_confirm.message))
 			return XVT_REPLAY_PENDING;
 		g_confirm.phase = queue == XVT_QUEUE_REPLAY ? XVT_CONFIRM_REPLAY : XVT_CONFIRM_APPLY;
@@ -542,7 +542,7 @@ static int XvtFlightFrame_NetworkTick(void) {
 		++g_confirm.steps;
 	}
 	if (XvtFlightNetwork_NeedsRecovery()) {
-		XvtResync_RequestState();
+		XvtResync_ServiceRecovery();
 		return g_flightMissionState.missionEndPending ? XvtFlightFrame_End("recovery") : 0;
 	}
 	XvtFlightReplayResult result = XVT_REPLAY_ADVANCED;

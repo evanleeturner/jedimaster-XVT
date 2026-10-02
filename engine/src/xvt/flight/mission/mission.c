@@ -120,7 +120,7 @@ uint16_t g_missionFgOverrideStringHandles[48][8][3] = { 0 };
 // GLOBAL: XVT 0x9E8F60
 uint16_t g_globalGoalOverrideStringHandles[10][7][4][3] = { 0 };
 // GLOBAL: XVT 0xA07CDC
-int worldlocx = 0;
+int g_worldLocX = 0;
 // GLOBAL: XVT 0xA07CD8
 int worldlocy = 0;
 // GLOBAL: XVT 0xA07CD4
@@ -238,7 +238,7 @@ void Mission_UpdateLogic(void) {
 			g_flightMissionState.maxConnectedPlayerCountThisMission =
 				g_flightMissionState.connectedPlayerCount;
 		}
-		missionElapsedSeconds = Mission_GameTimeToSeconds(
+		missionElapsedSeconds = Mission_ClockToSeconds(
 			g_missionElapsedClock.hours, g_missionElapsedClock.minutes, g_missionElapsedClock.seconds);
 
 		for (flightGroupIndex = 0; flightGroupIndex < (int16_t)g_missionHeader.numFlightGroups;
@@ -606,7 +606,8 @@ void Mission_UpdateLogic(void) {
 									if ((uint16_t)g_players[playerIndex].team == teamIndex) {
 										uint8_t announceVictory;
 
-										g_players[playerIndex].missionStats.field_14 = completedTeamCount;
+										g_players[playerIndex].missionStats.primaryGoalFinishPlace =
+											completedTeamCount;
 										g_msgSenderIff = g_players[playerIndex].iff;
 										announceVictory = 1;
 										if (g_missionHeader.missionType == MISSION_TYPE_SKIRMISH &&
@@ -1321,9 +1322,9 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, 
 							.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_LEFT_REGION];
 					break;
 
-				case MISSION_COND_ORDER_COMPLETED:
+				case MISSION_COND_CAPTURED_AND_DEPARTED:
 					if (teamOrVariable < MISSION_TEAM_COUNT) {
-						met += g_missionFgStats[flightGroupIdx].teamCondition44Count[teamOrVariable];
+						met += g_missionFgStats[flightGroupIdx].teamCapturedDepartedCount[teamOrVariable];
 						metSpecialCargo +=
 							g_missionFgStats[flightGroupIdx].teamCondition44SpecialCargo[teamOrVariable];
 						failed +=
@@ -1334,7 +1335,7 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, 
 						uint16_t teamIdx;
 
 						for (teamIdx = 0; teamIdx < MISSION_TEAM_COUNT; ++teamIdx) {
-							met += g_missionFgStats[flightGroupIdx].teamCondition44Count[teamIdx];
+							met += g_missionFgStats[flightGroupIdx].teamCapturedDepartedCount[teamIdx];
 							metSpecialCargo +=
 								g_missionFgStats[flightGroupIdx].teamCondition44SpecialCargo[teamIdx];
 							if (g_flightMissionState.runtime.teamHasCountableCraft[teamIdx] != 0) {
@@ -1397,23 +1398,23 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, 
 					}
 					break;
 				case GOAL_AMT_75:
-					if (MATH2_divide(met, total) >= 0xc000u) {
+					if (MATH2_ratioQ16(met, total) >= 0xc000u) {
 						status = 1;
-					} else if (MATH2_divide(failed, total) > 0x4000u) {
+					} else if (MATH2_ratioQ16(failed, total) > 0x4000u) {
 						status = 2;
 					}
 					break;
 				case GOAL_AMT_50:
-					if (MATH2_divide(met, total) >= 0x8000u) {
+					if (MATH2_ratioQ16(met, total) >= 0x8000u) {
 						status = 1;
-					} else if (MATH2_divide(failed, total) > 0x8000u) {
+					} else if (MATH2_ratioQ16(failed, total) > 0x8000u) {
 						status = 2;
 					}
 					break;
 				case GOAL_AMT_25:
-					if (MATH2_divide(met, total) >= 0x4000u) {
+					if (MATH2_ratioQ16(met, total) >= 0x4000u) {
 						status = 1;
-					} else if (MATH2_divide(failed, total) > 0xc000u) {
+					} else if (MATH2_ratioQ16(failed, total) > 0xc000u) {
 						status = 2;
 					}
 					break;
@@ -1455,17 +1456,17 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, 
 					}
 					break;
 				case GOAL_AMT_75_OF_SUBSET:
-					if (MATH2_divide(met, subsetTotal) >= 0xc000u) {
+					if (MATH2_ratioQ16(met, subsetTotal) >= 0xc000u) {
 						status = 1;
 					}
 					break;
 				case GOAL_AMT_50_OF_SUBSET:
-					if (MATH2_divide(met, subsetTotal) >= 0x8000u) {
+					if (MATH2_ratioQ16(met, subsetTotal) >= 0x8000u) {
 						status = 1;
 					}
 					break;
 				case GOAL_AMT_25_OF_SUBSET:
-					if (MATH2_divide(met, subsetTotal) >= 0x4000u) {
+					if (MATH2_ratioQ16(met, subsetTotal) >= 0x4000u) {
 						status = 1;
 					}
 					break;
@@ -1475,16 +1476,16 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, 
 					}
 					break;
 				case GOAL_AMT_66:
-					if (MATH2_divide(met, total) >= 0xaaaau) {
+					if (MATH2_ratioQ16(met, total) >= 0xaaaau) {
 						status = 1;
-					} else if (MATH2_divide(failed, total) > 0x5555u) {
+					} else if (MATH2_ratioQ16(failed, total) > 0x5555u) {
 						status = 2;
 					}
 					break;
 				case GOAL_AMT_33:
-					if (MATH2_divide(met, total) >= 0x5555u) {
+					if (MATH2_ratioQ16(met, total) >= 0x5555u) {
 						status = 1;
-					} else if (MATH2_divide(failed, total) > 0xaaaau) {
+					} else if (MATH2_ratioQ16(failed, total) > 0xaaaau) {
 						status = 2;
 					}
 					break;
@@ -1655,17 +1656,17 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, 
 					}
 					break;
 				case GOAL_AMT_75:
-					if (MATH2_divide(currentPlayers, totalPlayers) >= 0xc000u) {
+					if (MATH2_ratioQ16(currentPlayers, totalPlayers) >= 0xc000u) {
 						status = 1;
 					}
 					break;
 				case GOAL_AMT_50:
-					if (MATH2_divide(currentPlayers, totalPlayers) >= 0x8000u) {
+					if (MATH2_ratioQ16(currentPlayers, totalPlayers) >= 0x8000u) {
 						status = 1;
 					}
 					break;
 				case GOAL_AMT_25:
-					if (MATH2_divide(currentPlayers, totalPlayers) >= 0x4000u) {
+					if (MATH2_ratioQ16(currentPlayers, totalPlayers) >= 0x4000u) {
 						status = 1;
 					}
 					break;
@@ -1680,12 +1681,12 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, 
 					}
 					break;
 				case GOAL_AMT_66:
-					if (MATH2_divide(currentPlayers, totalPlayers) >= 0xaaaau) {
+					if (MATH2_ratioQ16(currentPlayers, totalPlayers) >= 0xaaaau) {
 						status = 1;
 					}
 					break;
 				case GOAL_AMT_33:
-					if (MATH2_divide(currentPlayers, totalPlayers) >= 0x5555u) {
+					if (MATH2_ratioQ16(currentPlayers, totalPlayers) >= 0x5555u) {
 						status = 1;
 					}
 					break;
@@ -1943,7 +1944,7 @@ int16_t Mission_ObjectMatchesTriggerVariable(uint16_t objectIdx, uint16_t variab
 				case 1: {
 					uint16_t index;
 					for (index = 0; index < 10; ++index)
-						if (mobile->team != index && craft->iffVisibility[index] != 0)
+						if (mobile->team != index && craft->identifiedOrderByTeam[index] != 0)
 							result = 1;
 					break;
 				}
@@ -2004,7 +2005,7 @@ int16_t Mission_ObjectMatchesTriggerVariable(uint16_t objectIdx, uint16_t variab
 				case 14: {
 					uint16_t index;
 					for (index = 0; index < 10; ++index)
-						if (craft->iffVisibility[index] == 0)
+						if (craft->identifiedOrderByTeam[index] == 0)
 							result = 1;
 					break;
 				}
@@ -2189,7 +2190,7 @@ void Mission_RecordCraftOutcome(uint16_t objIdx, uint16_t flightGroupIdx, uint16
 	{
 		uint16_t index;
 		for (index = 0; index < 10; ++index) {
-			if (craft->iffVisibility[index] == 0) {
+			if (craft->identifiedOrderByTeam[index] == 0) {
 				++g_missionFgStats[flightGroupIdx].teamUninspectedLost[index];
 				if (craft->waveNumber == g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft)
 					g_missionFgStats[flightGroupIdx].teamSpecialCargoUninspectedLost[index] = 1;
@@ -2417,8 +2418,8 @@ void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx, uint16_t
 	victimFlightGroupIndex = g_objectTable[victimObjIdx].flightGroupIdx;
 	if (g_missionFlightGroups[victimFlightGroupIndex].fg.specialCargoCraft == craft->waveNumber)
 		specialCargo = 1;
-	if ((uint16_t)MATH2_percentage(craft->damageStats.damageReceivedByPlayerOwnedCraft,
-								   craft->damageStats.damageReceivedTotal) >= 0x8000u)
+	if ((uint16_t)MATH2_longratioQ16(craft->damageStats.damageReceivedByPlayerOwnedCraft,
+									 craft->damageStats.damageReceivedTotal) >= 0x8000u)
 		memcpy(&creditedOwner, &g_missionFlightGroups[victimFlightGroupIndex].playerOwnerIdx,
 			   sizeof(creditedOwner));
 	if (creditedOwner != -1)
@@ -2432,8 +2433,8 @@ void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx, uint16_t
 
 		if (g_players[playerIndex].connectedFlag == 0)
 			continue;
-		damagePercent = (uint16_t)MATH2_percentage(craft->damageStats.damageFromPlayer[playerIndex],
-												   craft->damageStats.damageReceivedTotal);
+		damagePercent = (uint16_t)MATH2_longratioQ16(craft->damageStats.damageFromPlayer[playerIndex],
+													 craft->damageStats.damageReceivedTotal);
 		if (damagePercent >= 0xAAAAu)
 			contributionTier = 3;
 		else if (damagePercent >= 0x5999u)
@@ -2584,7 +2585,7 @@ void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx, uint16_t
 		{
 			int contributionTier;
 			uint16_t damagePercent =
-				(uint16_t)MATH2_percentage(teamDamage, craft->damageStats.damageReceivedTotal);
+				(uint16_t)MATH2_longratioQ16(teamDamage, craft->damageStats.damageReceivedTotal);
 			if (damagePercent >= 0xAAAAu)
 				contributionTier = 3;
 			else if (damagePercent >= 0x5999u)
@@ -2872,8 +2873,8 @@ int Mission_RecordPlayerCraftLoss(unsigned int objIdx, int allowPendingDamageCre
 			Mission_CreditDestructionDamageContributors(objIdx, objIdx);
 	}
 
-	if ((uint16_t)MATH2_percentage((uint32_t)craft->damageStats.damageReceivedByPlayerOwnedCraft,
-								   (uint32_t)craft->damageStats.damageReceivedTotal) >=
+	if ((uint16_t)MATH2_longratioQ16((uint32_t)craft->damageStats.damageReceivedByPlayerOwnedCraft,
+									 (uint32_t)craft->damageStats.damageReceivedTotal) >=
 		PLAYER_DAMAGE_THRESHOLD) {
 		uint32_t playerDamage;
 		uint32_t aiDamage;
@@ -2956,8 +2957,8 @@ void Mission_RecordPlayerCraftLossAttribution(int attackerFlightGroupIdx, int vi
 	}
 
 	damagePercent =
-		MATH2_percentage((unsigned int)victim->mobj->pCraft->damageStats.damageReceivedByPlayerOwnedCraft,
-						 (unsigned int)victim->mobj->pCraft->damageStats.damageReceivedTotal);
+		MATH2_longratioQ16((unsigned int)victim->mobj->pCraft->damageStats.damageReceivedByPlayerOwnedCraft,
+						   (unsigned int)victim->mobj->pCraft->damageStats.damageReceivedTotal);
 	if ((uint16_t)damagePercent < 0x8000u) {
 		return;
 	}
@@ -2996,8 +2997,8 @@ int Mission_ApplyFlightGroupGoalScore(int16_t eventCondition, uint16_t flightGro
 	int scoreAdjustment;
 	unsigned int flightGroupNumber;
 
-	missionTimeSeconds = Mission_GameTimeToSeconds(g_missionElapsedClock.hours, g_missionElapsedClock.minutes,
-												   g_missionElapsedClock.seconds);
+	missionTimeSeconds = Mission_ClockToSeconds(g_missionElapsedClock.hours, g_missionElapsedClock.minutes,
+												g_missionElapsedClock.seconds);
 	scoreTotal = 0;
 	flightGroupNumber = flightGroupIdx;
 	goal = g_missionFlightGroups[flightGroupIdx].fg.goals;
@@ -3064,7 +3065,7 @@ void Mission_ApplyTeamGoalScoreAllEnabledTeams(int16_t eventCondition, uint16_t 
 	do {
 		if (goal->goalKind == 2 && goal->eventCondition == (uint16_t)eventCondition &&
 			(goal->amount == 18 || (goal->amount == 19 && specialCargoFlag == 1))) {
-			elapsedSeconds = Mission_GameTimeToSeconds(
+			elapsedSeconds = Mission_ClockToSeconds(
 				g_missionElapsedClock.hours, g_missionElapsedClock.minutes, g_missionElapsedClock.seconds);
 			timeLimitSeconds = 5 * goal->timeLimit5s;
 			if (timeLimitSeconds == 0 || elapsedSeconds <= timeLimitSeconds) {
@@ -3102,7 +3103,7 @@ void Mission_ApplyTeamGoalScoreForTeam(int16_t eventCondition, uint16_t flightGr
 	do {
 		if (goal->goalKind == 2 && goal->eventCondition == (uint16_t)eventCondition &&
 			(goal->amount == 18 || (goal->amount == 19 && specialCargoFlag == 1))) {
-			elapsedSeconds = Mission_GameTimeToSeconds(
+			elapsedSeconds = Mission_ClockToSeconds(
 				g_missionElapsedClock.hours, g_missionElapsedClock.minutes, g_missionElapsedClock.seconds);
 			timeLimitSeconds = 5 * goal->timeLimit5s;
 			if (timeLimitSeconds == 0 || elapsedSeconds <= timeLimitSeconds) {
@@ -3120,7 +3121,7 @@ void Mission_ApplyTeamGoalScoreForTeam(int16_t eventCondition, uint16_t flightGr
 }
 
 // FUNCTION: XVT 0x435A10
-int Mission_GameTimeToSeconds(uint8_t hours, uint8_t minutes, uint8_t seconds) {
+int Mission_ClockToSeconds(uint8_t hours, uint8_t minutes, uint8_t seconds) {
 	return 60 * (minutes + 60 * hours) + seconds;
 }
 
@@ -3361,7 +3362,7 @@ uint16_t Mission_Init(char* fileName) {
 	g_objectSlotRangeByGenus[RESERVED_GENUS_RANGE_15].end = 0;
 	g_objectSlotRangeByGenus[CHAR_DATA_GENUS_RANGE].start = (uint16_t)g_mobileObjectCharDataSlotStart;
 	g_objectSlotRangeByGenus[CHAR_DATA_GENUS_RANGE].end = (uint16_t)g_mobileObjectCharDataSlotEnd;
-	g_simStepScale = 0;
+	g_simStepsPerSecond = 0;
 	g_flightMissionState.provingGroundsModeActive = g_flightMissionState.provingGroundsCraftType;
 	for (slot = 0; slot < g_mobileObjectCharDataCount; ++slot) {
 		memset(&g_mobileObjectCharDataPool[slot], 0, sizeof(g_mobileObjectCharDataPool[slot]));
@@ -4046,7 +4047,7 @@ uint16_t Mission_Init(char* fileName) {
 			if (craftType != CRAFT_SPECIES_UNKNOWN) {
 				uint16_t backdropType = g_craftTypeToObjectType[craftType];
 
-				if ((g_modelTypeTable[backdropType].flags & MODEL_FLAG_BACKDROP) != 0) {
+				if ((g_modelTypeTable[backdropType].behaviorFlags & MODEL_FLAG_BACKDROP) != 0) {
 					uint16_t sourceBackdropType = backdropType;
 					uint8_t packedY;
 					uint16_t side;
@@ -4058,7 +4059,7 @@ uint16_t Mission_Init(char* fileName) {
 							   (g_modelTypeTable[backdropType].assetFlags & MODEL_ASSET_REQUIRED) != 0) {
 							++backdropType;
 						}
-						if (g_flight16bppBytesPerPixel == PALETTED_BYTES_PER_PIXEL &&
+						if (g_flightBytesPerPixel == PALETTED_BYTES_PER_PIXEL &&
 							g_missionFlightGroups[currentFlightGroup].fg.status1 >=
 								(unsigned int)BACKDROP_BASE_STATUS_COUNT) {
 							g_missionFlightGroups[currentFlightGroup].fg.status1 =
@@ -4066,14 +4067,14 @@ uint16_t Mission_Init(char* fileName) {
 						}
 						if (g_missionFlightGroups[currentFlightGroup].fg.status1 <
 							(unsigned int)BACKDROP_BASE_STATUS_COUNT) {
-							g_modelTypeTable[backdropType].frameCount =
-								g_modelTypeTable[sourceBackdropType].frameCount +
+							g_modelTypeTable[backdropType].resourceIndex =
+								g_modelTypeTable[sourceBackdropType].resourceIndex +
 								g_missionFlightGroups[currentFlightGroup].fg.status1;
 							g_modelTypeTable[backdropType].palette = g_backdropPaletteRemapByFlightGroupStatus
 								[g_missionFlightGroups[currentFlightGroup].fg.status1];
 						} else if (g_missionFlightGroups[currentFlightGroup].fg.status1 <
 								   (unsigned int)BACKDROP_STATUS_COUNT) {
-							g_modelTypeTable[backdropType].frameCount =
+							g_modelTypeTable[backdropType].resourceIndex =
 								g_missionFlightGroups[currentFlightGroup].fg.status1 +
 								BACKDROP_STATUS_FRAME_OFFSET;
 							g_modelTypeTable[backdropType].palette = g_backdropPaletteRemapByFlightGroupStatus
@@ -4307,7 +4308,7 @@ void Mission_InitFlightRuntimeState(void) {
 			g_missionFgStats[g_currentFlightGroupIdx].teamSpecialCargoInspected[teamIndex] = 0;
 			g_missionFgStats[g_currentFlightGroupIdx].teamUninspectedLost[teamIndex] = 0;
 			g_missionFgStats[g_currentFlightGroupIdx].teamSpecialCargoUninspectedLost[teamIndex] = 0;
-			g_missionFgStats[g_currentFlightGroupIdx].teamCondition44Count[teamIndex] = 0;
+			g_missionFgStats[g_currentFlightGroupIdx].teamCapturedDepartedCount[teamIndex] = 0;
 			g_missionFgStats[g_currentFlightGroupIdx].teamCondition44SpecialCargo[teamIndex] = 0;
 			g_missionFgStats[g_currentFlightGroupIdx].teamCondition44OtherTeamCount[teamIndex] = 0;
 			g_missionFgStats[g_currentFlightGroupIdx].teamCondition44OtherTeamSpecialCargo[teamIndex] = 0;
@@ -4343,7 +4344,7 @@ void Mission_InitFlightRuntimeState(void) {
 				Mission_StartFlightGroupArrival(UINT16_MAX);
 			if ((g_modelTypeTable
 					 [g_craftTypeToObjectType[g_missionFlightGroups[g_currentFlightGroupIdx].fg.craftType]]
-						 .flags &
+						 .behaviorFlags &
 				 COUNTABLE_MODEL_FLAG) == 0) {
 				teamIndex = g_missionFlightGroups[g_currentFlightGroupIdx].fg.team;
 				g_flightMissionState.runtime.teamHasCountableCraft[teamIndex] = 1;
@@ -4377,8 +4378,10 @@ void Mission_InitFlightRuntimeState(void) {
 		g_flightMissionState.runtime.teamKillStats[3][teamIndex] = 0;
 		for (teamFlightGroupIndex = 0; teamFlightGroupIndex < MISSION_FLIGHT_GROUP_COUNT;
 			 ++teamFlightGroupIndex) {
-			g_flightMissionState.runtime.teamFgCounters[0][teamIndex][teamFlightGroupIndex] = 0;
-			g_flightMissionState.runtime.teamFgCounters[1][teamIndex][teamFlightGroupIndex] = 0;
+			g_flightMissionState.runtime.teamFgInspectedCapturedCounts[0][teamIndex][teamFlightGroupIndex] =
+				0;
+			g_flightMissionState.runtime.teamFgInspectedCapturedCounts[1][teamIndex][teamFlightGroupIndex] =
+				0;
 			g_flightMissionState.runtime.teamFgDesignationCode[teamIndex][teamFlightGroupIndex] = 0;
 		}
 	}
@@ -4465,7 +4468,7 @@ void Mission_InitFlightRuntimeState(void) {
 	for (playerIndex = 0; playerIndex < PLAYER_COUNT; ++playerIndex) {
 		int presetIndex;
 
-		g_players[playerIndex].regionSessionId = 0;
+		g_players[playerIndex].awaitingNewCraft = 0;
 		g_players[playerIndex].targetBoxEnabled = 1;
 		g_players[playerIndex].currentTargetObjectIdx = -1;
 		g_players[playerIndex].targetCycleStart = -1;
@@ -4524,7 +4527,7 @@ void Mission_InitFlightRuntimeState(void) {
 	g_actionKey = 0;
 	g_flightInitialTextureCacheFlushPending = 1;
 	g_flightDisplayRebuildPending = 1;
-	g_simStepScale = DEFAULT_SIM_STEP;
+	g_simStepsPerSecond = DEFAULT_SIM_STEP;
 	g_elapsedTicks = DEFAULT_SIM_STEP;
 	g_flightFrameStepMirror = DEFAULT_SIM_STEP;
 	g_inputTimestamp += (int)Time_ConsumeElapsedTicks();
@@ -4552,7 +4555,7 @@ int16_t Mission_StartFlightGroupArrival(uint16_t craftOrdinal) {
 
 	g_missionFgStats[flightGroupIndex].hasArrived = 1;
 	objectType = g_craftTypeToObjectType[g_missionFlightGroups[flightGroupIndex].fg.craftType];
-	if ((g_modelTypeTable[objectType].flags & STATIC_MODEL_FLAG) == 0) {
+	if ((g_modelTypeTable[objectType].behaviorFlags & STATIC_MODEL_FLAG) == 0) {
 		g_missionFgStats[flightGroupIndex].wavesRemaining =
 			g_missionFlightGroups[flightGroupIndex].fg.numberOfWaves;
 		Mission_SpawnFlightGroupWaveCraft(craftOrdinal);
@@ -4663,7 +4666,7 @@ void Mission_UpdateFlightGroupArrivals(void) {
 					g_craftTypeToObjectType[g_missionFlightGroups[g_currentFlightGroupIdx].fg.craftType];
 				char waveObjectsAbsent = 1;
 
-				if ((g_modelTypeTable[objectType].flags & STATIC_MODEL_FLAG) == 0) {
+				if ((g_modelTypeTable[objectType].behaviorFlags & STATIC_MODEL_FLAG) == 0) {
 					for (objectIndex = (unsigned int)g_activeRegionObjectSlotStart;
 						 objectIndex < (unsigned int)g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 						ObjectRecord* object = &g_objectTable[objectIndex];
@@ -5014,7 +5017,7 @@ void Mission_SpawnCurrentFlightGroupWave(void) {
 	uint8_t remainingWaveCount;
 
 	objectType = g_craftTypeToObjectType[g_missionFlightGroups[g_currentFlightGroupIdx].fg.craftType];
-	if ((g_modelTypeTable[objectType].flags & STATIC_MODEL_FLAG) == 0)
+	if ((g_modelTypeTable[objectType].behaviorFlags & STATIC_MODEL_FLAG) == 0)
 		Mission_SpawnFlightGroupWaveCraft(UINT16_MAX);
 	else
 		Mission_SpawnFlightGroupStaticObjects(UINT16_MAX);
@@ -5038,7 +5041,7 @@ int Mission_HasCapacityForCurrentFlightGroupWave(void) {
 	uint16_t objectType;
 
 	objectType = g_craftTypeToObjectType[g_missionFlightGroups[g_currentFlightGroupIdx].fg.craftType];
-	if ((g_modelTypeTable[objectType].flags & 0x80) == 0) {
+	if ((g_modelTypeTable[objectType].behaviorFlags & 0x80) == 0) {
 		freeSlotCount = 0;
 		for (objectIndex = (unsigned int)g_activeRegionObjectSlotStart;
 			 objectIndex < (unsigned int)g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
@@ -5120,14 +5123,14 @@ int16_t Mission_SpawnFlightGroupWaveCraft(uint16_t craftOrdinal) {
 												g_modelDefs[modelIndex].hangarPoints.outside.side,
 												g_modelDefs[modelIndex].hangarPoints.outside.up,
 												g_modelDefs[modelIndex].hangarPoints.outside.forward);
-			worldlocx = g_rotatedX + g_objectTable[mothershipObjectIndex].world_x;
+			g_worldLocX = g_rotatedX + g_objectTable[mothershipObjectIndex].world_x;
 			worldlocy = g_rotatedY + g_objectTable[mothershipObjectIndex].world_y;
 			worldlocz = g_rotatedZ + g_objectTable[mothershipObjectIndex].world_z;
 		}
-		trig2_ctop(worldlocx - g_spawnWorldX, worldlocy - g_spawnWorldY, worldlocz - g_spawnWorldZ);
+		trig2_ctop(g_worldLocX - g_spawnWorldX, worldlocy - g_spawnWorldY, worldlocz - g_spawnWorldZ);
 		g_spawnFromMothershipFlag = 1;
 		g_spawnYaw = (uint16_t)trig2_xyangle;
-		g_spawnPitch = (uint16_t)pitchQ16;
+		g_spawnPitch = (uint16_t)trig2_pitch;
 		g_spawnFormation = 0;
 		if (g_missionFlightGroups[g_currentFlightGroupIdx].fg.numberOfCraft >
 			LARGE_MOTHERSHIP_FORMATION_THRESHOLD) {
@@ -5136,7 +5139,7 @@ int16_t Mission_SpawnFlightGroupWaveCraft(uint16_t craftOrdinal) {
 		g_spawnFormationSpacing = 0;
 	} else {
 		Mission_ResolveObjectOrMissionPointWorldLoc(MISSION_POINT_1, g_currentFlightGroupIdx);
-		g_spawnWorldX = worldlocx;
+		g_spawnWorldX = g_worldLocX;
 		g_spawnWorldY = worldlocy;
 		g_spawnWorldZ = worldlocz;
 
@@ -5175,7 +5178,7 @@ int16_t Mission_SpawnFlightGroupWaveCraft(uint16_t craftOrdinal) {
 								targetPlayerNumber) {
 								Mission_ResolveObjectOrMissionPointWorldLoc(MISSION_POINT_1,
 																			flightGroupIndex);
-								g_spawnWorldX = worldlocx;
+								g_spawnWorldX = g_worldLocX;
 								g_spawnWorldY = worldlocy;
 								g_spawnWorldZ = worldlocz;
 								break;
@@ -5200,7 +5203,7 @@ int16_t Mission_SpawnFlightGroupWaveCraft(uint16_t craftOrdinal) {
 					   g_missionFlightGroups[g_currentFlightGroupIdx].fg.playerNumber != 0 &&
 					   g_missionFlightGroups[g_currentFlightGroupIdx].fg.missionPointEnabled[1] != 0) {
 				Mission_ResolveObjectOrMissionPointWorldLoc(MISSION_POINT_2, g_currentFlightGroupIdx);
-				g_spawnWorldX = worldlocx;
+				g_spawnWorldX = g_worldLocX;
 				g_spawnWorldY = worldlocy;
 				g_spawnWorldZ = worldlocz;
 			}
@@ -5208,14 +5211,14 @@ int16_t Mission_SpawnFlightGroupWaveCraft(uint16_t craftOrdinal) {
 
 		if (g_missionFlightGroups[g_currentFlightGroupIdx].fg.missionPointEnabled[4] != 0) {
 			Mission_ResolveObjectOrMissionPointWorldLoc(MISSION_POINT_5, g_currentFlightGroupIdx);
-			trig2_ctop(worldlocx - g_spawnWorldX, worldlocy - g_spawnWorldY, worldlocz - g_spawnWorldZ);
+			trig2_ctop(g_worldLocX - g_spawnWorldX, worldlocy - g_spawnWorldY, worldlocz - g_spawnWorldZ);
 			g_spawnYaw = (uint16_t)trig2_xyangle;
-			spawnPitch = pitchQ16;
+			spawnPitch = trig2_pitch;
 		} else {
 			trig2_xyangle = 0;
 			g_spawnYaw = 0;
 			spawnPitch = DEFAULT_SPAWN_PITCH;
-			pitchQ16 = DEFAULT_SPAWN_PITCH;
+			trig2_pitch = DEFAULT_SPAWN_PITCH;
 		}
 		g_spawnPitch = (uint16_t)spawnPitch;
 
@@ -5224,8 +5227,8 @@ int16_t Mission_SpawnFlightGroupWaveCraft(uint16_t craftOrdinal) {
 			craftOrdinal == UINT16_MAX &&
 			g_missionFlightGroups[g_currentFlightGroupIdx].playerOwnerIdx == -1) {
 			trig2_xyangle += HYPERSPACE_REVERSE_ANGLE;
-			pitchQ16 = HYPERSPACE_REVERSE_ANGLE - pitchQ16;
-			trig2_movexyz(HYPERSPACE_DISTANCE, trig2_xyangle, (uint16_t)pitchQ16);
+			trig2_pitch = HYPERSPACE_REVERSE_ANGLE - trig2_pitch;
+			trig2_movexyz(HYPERSPACE_DISTANCE, trig2_xyangle, (uint16_t)trig2_pitch);
 			g_spawnWorldX += HYPERSPACE_OFFSET_SCALE * trig2_xmovedist;
 			g_spawnWorldY += HYPERSPACE_OFFSET_SCALE * trig2_ymovedist;
 			g_spawnWorldZ += HYPERSPACE_OFFSET_SCALE * trig2_zmovedist;
@@ -5515,7 +5518,7 @@ uint16_t Mission_InitFlightGroupObjectSlot(void) {
 	g_curCraft->aiFlight.turnState = 0;
 	g_curCraft->aiFlight.climbState = 0;
 	g_curCraft->aiFlight.diveState = g_curCraft->aiFlight.climbState;
-	g_curCraft->aiFlight.headingForce = g_curCraft->aiFlight.diveState;
+	g_curCraft->aiFlight.pitchThroughLoop = g_curCraft->aiFlight.diveState;
 	g_curCraft->aiFlight.motionScale = -1;
 	g_curCraft->aiFlight.rollAccel = -1;
 	g_curCraft->aiFlight.pitchAccel = -1;
@@ -5563,7 +5566,7 @@ uint16_t Mission_InitFlightGroupObjectSlot(void) {
 				g_curCraft->turretTargetStates[weaponSlot].targetObjIdx = UINT16_MAX;
 			}
 		}
-		g_curCraft->laserRedirect = POWER_RECHARGE_MAINTENANCE;
+		g_curCraft->laserRechargeLevel = POWER_RECHARGE_MAINTENANCE;
 		g_curCraft->laserSlotCount = (uint8_t)laserSlotCount;
 	}
 	if (g_curCraft->cannonClassCount == 0)
@@ -5638,7 +5641,7 @@ uint16_t Mission_InitFlightGroupObjectSlot(void) {
 		g_players[boundPlayerIdx].missionStats.worseRatingPromoPoints = 0;
 		g_players[boundPlayerIdx].missionStats.field_0C = 0;
 		g_players[boundPlayerIdx].missionStats.field_10 = 0;
-		g_players[boundPlayerIdx].missionStats.field_14 = 0;
+		g_players[boundPlayerIdx].missionStats.primaryGoalFinishPlace = 0;
 		g_players[boundPlayerIdx].perMissionKills.friendliesKilled = 0;
 		g_players[boundPlayerIdx].perMissionKills.numCraftInspected = 0;
 		g_players[boundPlayerIdx].perMissionKills.numSpecialInspected = 0;
@@ -5704,9 +5707,9 @@ uint16_t Mission_InitFlightGroupObjectSlot(void) {
 	g_curCraft->beamTargetObjIdx = -1;
 	for (slot = 0; slot < TEAM_COUNT; ++slot) {
 		if (g_objectTable[objectIndex].mobj->team == slot)
-			g_curCraft->iffVisibility[slot] = 1;
+			g_curCraft->identifiedOrderByTeam[slot] = 1;
 		else
-			g_curCraft->iffVisibility[slot] = 0;
+			g_curCraft->identifiedOrderByTeam[slot] = 0;
 	}
 
 	if (g_modelDefs[modelIndex].hasHyperdrive == 0 && g_spawnStatus1 != 9 && g_spawnStatus2 != 9 &&
@@ -5748,7 +5751,7 @@ uint16_t Mission_InitFlightGroupObjectSlot(void) {
 		if (g_curCraft->shieldEnergy[1] < 0)
 			g_curCraft->shieldEnergy[1] = SHIELD_OVERFLOW_CLAMP;
 	}
-	g_curCraft->shieldRedirect = POWER_RECHARGE_MAINTENANCE;
+	g_curCraft->shieldRechargeLevel = POWER_RECHARGE_MAINTENANCE;
 	if (g_modelDefs[modelIndex].hasShields == 0 && g_spawnStatus1 != 8 && g_spawnStatus2 != 8 &&
 		g_spawnStatus1 != 16 && g_spawnStatus2 != 16) {
 		g_curCraft->systemFlags ^= CRAFT_SUBSYSTEM_FLAG_SHIELDS;
@@ -5899,7 +5902,7 @@ uint16_t Mission_InitFlightGroupObjectSlot(void) {
 		g_curCraft->aiController.orderProgress.goalProgress[index] = 0;
 	}
 	g_curCraft->aiController.currentOrderSlot = 0;
-	g_curCraft->aiController.orderStateFlag = 0;
+	g_curCraft->aiController.skippedToOrder4 = 0;
 	g_curCraft->aiController.targetObjIdx = UINT16_MAX;
 	g_curCraft->aiController.candidateTargetIdx = g_curCraft->aiController.targetObjIdx;
 	g_curCraft->aiController.targetSignature = 0;
@@ -5984,7 +5987,7 @@ void Mission_SpawnFlightGroupStaticObjects(uint16_t craftOrdinal) {
 		return;
 
 	objectType = g_craftTypeToObjectType[g_missionFlightGroups[g_currentFlightGroupIdx].fg.craftType];
-	if ((g_modelTypeTable[objectType].flags & 0x80u) == 0)
+	if ((g_modelTypeTable[objectType].behaviorFlags & 0x80u) == 0)
 		return;
 
 	genusId =
@@ -6156,7 +6159,7 @@ void Mission_ResolveObjectOrMissionPointWorldLoc(unsigned int objOrMissionPointR
 
 	currentMissionPointRef = objOrMissionPointRef;
 	if (objOrMissionPointRef < 0x8000u) {
-		worldlocx = g_objectTable[objOrMissionPointRef].world_x;
+		g_worldLocX = g_objectTable[objOrMissionPointRef].world_x;
 		worldlocy = g_objectTable[objOrMissionPointRef].world_y;
 		worldlocz = g_objectTable[objOrMissionPointRef].world_z;
 		return;
@@ -6166,7 +6169,7 @@ void Mission_ResolveObjectOrMissionPointWorldLoc(unsigned int objOrMissionPointR
 		currentMissionPointRef = g_missionFgStats[flightGroupIdx].currentMissionPointRef;
 
 	missionPointIdx = (int)(currentMissionPointRef - 0x8000u);
-	worldlocx = g_missionFlightGroups[flightGroupIdx].fg.missionPointX[missionPointIdx] * 256;
+	g_worldLocX = g_missionFlightGroups[flightGroupIdx].fg.missionPointX[missionPointIdx] * 256;
 	worldlocy = -(g_missionFlightGroups[flightGroupIdx].fg.missionPointY[missionPointIdx] * 256);
 	worldlocz = g_missionFlightGroups[flightGroupIdx].fg.missionPointZ[missionPointIdx] * 256;
 }
@@ -6184,9 +6187,9 @@ void Mission_ResolveFormationSlotWorldLoc(uint16_t flightGroupIdx, uint16_t form
 	maxZ = (int16_t)ModelBounds_GetMaxZ(objectType);
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(0x8000, flightGroupIdx);
-	if ((g_modelTypeTable[objectType].flags & 0x80) != 0) {
+	if ((g_modelTypeTable[objectType].behaviorFlags & 0x80) != 0) {
 		if (g_modelTypeTable[objectType].genusId == 9) {
-			worldlocx = g_missionFlightGroups[flightGroupIdx].fg.missionPointX[0] * 256;
+			g_worldLocX = g_missionFlightGroups[flightGroupIdx].fg.missionPointX[0] * 256;
 			worldlocy = -(g_missionFlightGroups[flightGroupIdx].fg.missionPointY[0] * 256);
 			worldlocz = g_missionFlightGroups[flightGroupIdx].fg.missionPointZ[0] * 256;
 		} else if (g_modelTypeTable[objectType].genusId == 8) {
@@ -6237,7 +6240,7 @@ void Mission_ResolveFormationSlotWorldLoc(uint16_t flightGroupIdx, uint16_t form
 					if (g_missionFlightGroups[flightGroupIdx].fg.numberOfCraft != 0) {
 						do {
 							if (slot == formationSlotIdx) {
-								worldlocx = (baseX + xStep * column) * 256;
+								g_worldLocX = (baseX + xStep * column) * 256;
 								worldlocy = (baseY + yStep * row) * 256;
 								worldlocz = (baseZ + zColumnStep * column + zRowStep * row) * 256 + maxZ;
 								return;
@@ -6302,7 +6305,7 @@ void Mission_ResolveFormationSlotWorldLoc(uint16_t flightGroupIdx, uint16_t form
 		g_rotatedX = rotatedX;
 		g_rotatedY = rotatedY;
 		g_rotatedZ = rotatedZ;
-		worldlocx += rotatedX;
+		g_worldLocX += rotatedX;
 		worldlocy += rotatedY;
 		worldlocz += rotatedZ;
 	}
@@ -6603,9 +6606,9 @@ int Mission_LoadFile(char* fileName) {
 			g_missionFlightGroups[flightGroupIdx].fg.arrivalMethod = g_tieFlightGroup.start_fg_used;
 			g_missionFlightGroups[flightGroupIdx].fg.departureMothership = g_tieFlightGroup.pri_stop_fg;
 			g_missionFlightGroups[flightGroupIdx].fg.departureMethod = g_tieFlightGroup.pri_stop_fg_used;
-			g_missionFlightGroups[flightGroupIdx].fg.alternateMothership = g_tieFlightGroup.sec_stop_fg;
+			g_missionFlightGroups[flightGroupIdx].fg.alternateMothership = g_tieFlightGroup.secondary_stop_fg;
 			g_missionFlightGroups[flightGroupIdx].fg.alternateMothershipUsed =
-				g_tieFlightGroup.sec_stop_fg_used;
+				g_tieFlightGroup.secondary_stop_fg_used;
 			g_missionFlightGroups[flightGroupIdx].fg.capturedDepartureMothership =
 				g_tieFlightGroup.capture_fg;
 			g_missionFlightGroups[flightGroupIdx].fg.capturedDepartViaMothership =
@@ -6618,28 +6621,32 @@ int Mission_LoadFile(char* fileName) {
 			memcpy(&g_missionFlightGroups[flightGroupIdx].fg.orders[2], &g_tieFlightGroup.ai[2],
 				   sizeof(g_tieFlightGroup.ai[2]));
 			g_missionFlightGroups[flightGroupIdx].fg.orders[0].target1Type = g_tieFlightGroup.ai[0].pri_type;
-			g_missionFlightGroups[flightGroupIdx].fg.orders[0].target2Type = g_tieFlightGroup.ai[0].sec_type;
+			g_missionFlightGroups[flightGroupIdx].fg.orders[0].target2Type =
+				g_tieFlightGroup.ai[0].secondary_type;
 			g_missionFlightGroups[flightGroupIdx].fg.orders[1].target1Type = g_tieFlightGroup.ai[1].pri_type;
-			g_missionFlightGroups[flightGroupIdx].fg.orders[1].target2Type = g_tieFlightGroup.ai[1].sec_type;
+			g_missionFlightGroups[flightGroupIdx].fg.orders[1].target2Type =
+				g_tieFlightGroup.ai[1].secondary_type;
 			g_missionFlightGroups[flightGroupIdx].fg.orders[2].target1Type = g_tieFlightGroup.ai[2].pri_type;
-			g_missionFlightGroups[flightGroupIdx].fg.orders[2].target2Type = g_tieFlightGroup.ai[2].sec_type;
+			g_missionFlightGroups[flightGroupIdx].fg.orders[2].target2Type =
+				g_tieFlightGroup.ai[2].secondary_type;
 			g_missionFlightGroups[flightGroupIdx].fg.orders[0].order = g_tieFlightGroup.ai[0].order;
 			g_missionFlightGroups[flightGroupIdx].fg.orders[1].order = g_tieFlightGroup.ai[1].order;
 			g_missionFlightGroups[flightGroupIdx].fg.orders[2].order = g_tieFlightGroup.ai[1].order;
 			g_missionFlightGroups[flightGroupIdx].fg.orders[0].target1 = g_tieFlightGroup.ai[0].pri_id;
-			g_missionFlightGroups[flightGroupIdx].fg.orders[0].target2 = g_tieFlightGroup.ai[0].sec_id;
+			g_missionFlightGroups[flightGroupIdx].fg.orders[0].target2 = g_tieFlightGroup.ai[0].secondary_id;
 			g_missionFlightGroups[flightGroupIdx].fg.orders[1].target1 = g_tieFlightGroup.ai[1].pri_id;
-			g_missionFlightGroups[flightGroupIdx].fg.orders[1].target2 = g_tieFlightGroup.ai[1].sec_id;
+			g_missionFlightGroups[flightGroupIdx].fg.orders[1].target2 = g_tieFlightGroup.ai[1].secondary_id;
 			g_missionFlightGroups[flightGroupIdx].fg.orders[2].target1 = g_tieFlightGroup.ai[2].pri_id;
-			g_missionFlightGroups[flightGroupIdx].fg.orders[2].target2 = g_tieFlightGroup.ai[2].sec_id;
+			g_missionFlightGroups[flightGroupIdx].fg.orders[2].target2 = g_tieFlightGroup.ai[2].secondary_id;
 
 			g_missionFlightGroups[flightGroupIdx].fg.goals[0].goalKind = 0;
 			g_missionFlightGroups[flightGroupIdx].fg.goals[0].eventCondition = g_tieFlightGroup.pri_win_cond;
 			g_missionFlightGroups[flightGroupIdx].fg.goals[0].amount = g_tieFlightGroup.pri_win_pct;
 			g_missionFlightGroups[flightGroupIdx].fg.goals[0].enabledTeams[0] = 1;
 			g_missionFlightGroups[flightGroupIdx].fg.goals[1].goalKind = 2;
-			g_missionFlightGroups[flightGroupIdx].fg.goals[1].eventCondition = g_tieFlightGroup.sec_win_cond;
-			g_missionFlightGroups[flightGroupIdx].fg.goals[1].amount = g_tieFlightGroup.sec_win_pct;
+			g_missionFlightGroups[flightGroupIdx].fg.goals[1].eventCondition =
+				g_tieFlightGroup.secondary_win_cond;
+			g_missionFlightGroups[flightGroupIdx].fg.goals[1].amount = g_tieFlightGroup.secondary_win_pct;
 			g_missionFlightGroups[flightGroupIdx].fg.goals[1].enabledTeams[0] = 1;
 			g_missionFlightGroups[flightGroupIdx].fg.goals[2].goalKind = 1;
 			g_missionFlightGroups[flightGroupIdx].fg.goals[2].eventCondition = g_tieFlightGroup.loss_cond;

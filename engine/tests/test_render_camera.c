@@ -128,7 +128,8 @@ static void CheckTagChoosesSource(void) {
 	CheckSameRows(rows, game);
 }
 
-/* Restore brings the saved copy back, and keeps its basis when the live rows still match its tag. */
+/* Restore brings the saved copy back, and keeps its basis when the live rows still
+ * match its tag. */
 static void CheckRestoreKeepsMatchingBasis(void) {
 	float first[9], second[9], rows[9];
 	BuildTagged(&kViews[1], kTag1);
@@ -144,8 +145,8 @@ static void CheckRestoreKeepsMatchingBasis(void) {
 	CheckSameRows(rows, first);
 }
 
-/* Restore drops the copy's basis when the live rows no longer match its tag: the live rows are written,
- * and stay written even after the rows come back to the old tag. */
+/* Restore drops the copy's basis when the live rows no longer match its tag: the
+ * live rows are written, and stay written even after the rows come back to the old tag. */
 static void CheckRestoreDropsStaleBasis(void) {
 	float rows[9];
 	BuildTagged(&kViews[1], kTag1);

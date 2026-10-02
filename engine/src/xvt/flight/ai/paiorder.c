@@ -177,7 +177,7 @@ int16_t paiorder_underattackorder(void) {
 							horizontalAngle = (uint16_t)(trig2_xyangle - g_objectTable[objectIdx].yaw);
 							if (horizontalAngle >= 0x8000)
 								horizontalAngle = (uint16_t)-horizontalAngle;
-							verticalAngle = (uint16_t)(pitchQ16 - g_objectTable[objectIdx].pitch);
+							verticalAngle = (uint16_t)(trig2_pitch - g_objectTable[objectIdx].pitch);
 							if (verticalAngle >= 0x8000)
 								verticalAngle = (uint16_t)-verticalAngle;
 							if (horizontalAngle < 0x2000 && verticalAngle < 0x2000) {
@@ -330,7 +330,7 @@ int16_t paiorder_dropoffdestorder(void) {
 		return 0;
 
 	Mission_ResolveFormationSlotWorldLoc(destinationFlightGroup, 0, UINT16_MAX);
-	g_paiContext.controller->aimPointX = worldlocx;
+	g_paiContext.controller->aimPointX = g_worldLocX;
 	g_paiContext.controller->aimPointY = worldlocy;
 	g_paiContext.controller->aimPointZ = worldlocz + 932;
 	pai_CalcAnglesToAimPoint();
@@ -416,7 +416,7 @@ int16_t paiorder_enterhangarorder(void) {
 					object->playerOwnerIdx != -1)
 					continue;
 				if (otherCraft->capturedByFlightGroup == 0) {
-					if (otherController->orderStateFlag == 0 &&
+					if (otherController->skippedToOrder4 == 0 &&
 						(otherCraft->aiFlight.goHomeFlag != 0 ||
 						 (otherCraft->aiFlight.missionAbortedFlag == 0 &&
 						  otherCraft->aiFlight.departTimerFlag == 0))) {
@@ -432,7 +432,7 @@ int16_t paiorder_enterhangarorder(void) {
 						Mission_ApplyTeamGoalScoreAllEnabledTeams(12, g_paiContext.orderFlightGroupIndex,
 																  specialCargo);
 					}
-					if (otherCraft->capturedByFlightGroup == 0 && otherController->orderStateFlag == 1 &&
+					if (otherCraft->capturedByFlightGroup == 0 && otherController->skippedToOrder4 == 1 &&
 						otherCraft->aiFlight.missionAbortedFlag == 0 &&
 						otherCraft->aiFlight.departTimerFlag == 0) {
 						++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
@@ -449,7 +449,7 @@ int16_t paiorder_enterhangarorder(void) {
 				Craft_ClearEffectiveAiObjectLink(otherCraft);
 			}
 
-			if (g_curCraft->capturedByFlightGroup == 0 && g_paiContext.controller->orderStateFlag == 0 &&
+			if (g_curCraft->capturedByFlightGroup == 0 && g_paiContext.controller->skippedToOrder4 == 0 &&
 				(g_curCraft->aiFlight.goHomeFlag != 0 || (g_curCraft->aiFlight.missionAbortedFlag == 0 &&
 														  g_curCraft->aiFlight.departTimerFlag == 0))) {
 				++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
@@ -464,7 +464,7 @@ int16_t paiorder_enterhangarorder(void) {
 				Mission_ApplyTeamGoalScoreAllEnabledTeams(12, g_paiContext.orderFlightGroupIndex,
 														  specialCargo);
 			}
-			if (g_curCraft->capturedByFlightGroup == 0 && g_paiContext.controller->orderStateFlag == 1 &&
+			if (g_curCraft->capturedByFlightGroup == 0 && g_paiContext.controller->skippedToOrder4 == 1 &&
 				g_curCraft->aiFlight.missionAbortedFlag == 0 && g_curCraft->aiFlight.departTimerFlag == 0) {
 				++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 					  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE];
@@ -475,7 +475,7 @@ int16_t paiorder_enterhangarorder(void) {
 			}
 			if (g_curCraft->capturedByFlightGroup != 0) {
 				team = g_objectTable[g_paiContext.objectIndex].mobj->team;
-				++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamCondition44Count[team];
+				++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamCapturedDepartedCount[team];
 				specialCargo = 0;
 				if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
 					g_curCraft->waveNumber) {
@@ -509,7 +509,7 @@ int16_t paiorder_enterhangarorder(void) {
 				carriedCraft = g_objectTable[carriedObjectIndex].mobj->pCraft;
 				if (carriedCraft->capturedByFlightGroup != 0) {
 					team = g_objectTable[carriedObjectIndex].mobj->team;
-					++g_missionFgStats[carriedGroupIndex].teamCondition44Count[team];
+					++g_missionFgStats[carriedGroupIndex].teamCapturedDepartedCount[team];
 					specialCargo = 0;
 					if (g_missionFlightGroups[carriedGroupIndex].fg.specialCargoCraft ==
 						carriedCraft->waveNumber) {
@@ -939,7 +939,7 @@ int16_t paiorder_hyperspaceorder(void) {
 			g_curCraft->pushAccumY = g_curCraft->pushAccumX;
 			g_curCraft->pushAccumZ = g_curCraft->pushAccumY;
 			g_paiContext.controller->maneuverPhase = 1;
-			g_paiContext.controller->aiPlanState = 944;
+			g_paiContext.controller->secondaryManeuverTimer = 944;
 			g_paiContext.controller->maneuverTimer = 2360;
 			paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
 		}
@@ -1217,7 +1217,7 @@ int16_t paiorder_avoidhitorder(void) {
 						horizontalAngle = (uint16_t)(trig2_xyangle - g_objectTable[objectIdx].yaw);
 						if (horizontalAngle >= 0x8000)
 							horizontalAngle = (uint16_t)-horizontalAngle;
-						verticalAngle = (uint16_t)(pitchQ16 - g_objectTable[objectIdx].pitch);
+						verticalAngle = (uint16_t)(trig2_pitch - g_objectTable[objectIdx].pitch);
 						if (verticalAngle >= 0x8000)
 							verticalAngle = (uint16_t)-verticalAngle;
 						if (horizontalAngle < 0x2000 && verticalAngle < 0x2000) {
@@ -1395,7 +1395,7 @@ int16_t paiorder_avoidstarshiporder(void) {
 				g_paiContext.controller->maneuverMode = AI_MANEUVER_MODE_AVOID_STARSHIP;
 				paiman_initmaneuver();
 				if (collisionObjectIndex >= g_regionMainObjectSlotEnd) {
-					g_paiContext.controller->aiPlanState =
+					g_paiContext.controller->secondaryManeuverTimer =
 						SIMULATION_TICKS_PER_SECOND *
 						((GameRand() & AVOIDANCE_DURATION_MASK) + MIN_AVOIDANCE_SECONDS);
 				}
@@ -1403,7 +1403,7 @@ int16_t paiorder_avoidstarshiporder(void) {
 				return 0;
 			}
 		}
-	} else if (g_paiContext.controller->aiPlanState == 0) {
+	} else if (g_paiContext.controller->secondaryManeuverTimer == 0) {
 		return 1;
 	}
 	return 0;
@@ -1546,7 +1546,7 @@ int16_t paiorder_completegohomeorder(void) {
 		return 0;
 	if (g_curCraft->aiFlight.maxSpeedCache == 0)
 		return 0;
-	if (g_paiContext.controller->orderStateFlag == 1)
+	if (g_paiContext.controller->skippedToOrder4 == 1)
 		return 1;
 
 	orderSlot = 0;
@@ -1577,7 +1577,7 @@ int16_t paiorder_completegohomeorder(void) {
 int16_t paiorder_completegootherorder(void) {
 	enum {
 		ORDER_NONE = 0,
-		ORDER_STATE_COMPLETE = 1,
+		ORDER_STATE_SKIPPED_TO_ORDER4 = 1,
 		ORDER_COMPLETION_COMPLETE = 2,
 		THIRD_ORDER_SLOT = 2,
 		FOURTH_ORDER_SLOT = 3,
@@ -1585,7 +1585,7 @@ int16_t paiorder_completegootherorder(void) {
 
 	int order;
 
-	if (g_paiContext.controller->orderStateFlag == ORDER_STATE_COMPLETE) {
+	if (g_paiContext.controller->skippedToOrder4 == ORDER_STATE_SKIPPED_TO_ORDER4) {
 		return 0;
 	}
 	if (g_paiSkipToOrder4Checked == 0) {
@@ -1596,7 +1596,7 @@ int16_t paiorder_completegootherorder(void) {
 			if ((Mission_EvaluateTriggerPair(
 					 &g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.skipToOrder4, 0) &
 				 1) != 0) {
-				g_paiContext.controller->orderStateFlag = ORDER_STATE_COMPLETE;
+				g_paiContext.controller->skippedToOrder4 = ORDER_STATE_SKIPPED_TO_ORDER4;
 				g_paiContext.orderSlot = FOURTH_ORDER_SLOT;
 				g_paiContext.controller->currentOrderSlot = FOURTH_ORDER_SLOT;
 				order = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
@@ -1645,7 +1645,7 @@ int16_t paiorder_waitgootherorder(void) {
 	uint16_t orderSlot;
 	const char* planName;
 
-	if (g_paiContext.controller->orderStateFlag == 1) {
+	if (g_paiContext.controller->skippedToOrder4 == 1) {
 		return 0;
 	}
 	orderSlot = g_paiContext.orderSlot + 1;
@@ -1687,7 +1687,7 @@ int16_t paiorder_orderswitchorder(void) {
 	int16_t foundOrder;
 	uint16_t orderSlot;
 
-	if (g_paiContext.controller->orderStateFlag == ORDER_STATE_COMPLETE)
+	if (g_paiContext.controller->skippedToOrder4 == ORDER_STATE_COMPLETE)
 		return 0;
 
 	if (g_paiSkipToOrder4Checked == 0) {
@@ -1700,7 +1700,7 @@ int16_t paiorder_orderswitchorder(void) {
 				MISSION_COND_ALWAYS_TRUE) {
 			if ((Mission_EvaluateTriggerPair(&g_missionFlightGroups[flightGroupIndex].fg.skipToOrder4, 0) &
 				 1) != 0) {
-				g_paiContext.controller->orderStateFlag = ORDER_STATE_COMPLETE;
+				g_paiContext.controller->skippedToOrder4 = ORDER_STATE_COMPLETE;
 				g_paiContext.orderSlot = FOURTH_ORDER_SLOT;
 				g_paiContext.controller->currentOrderSlot = FOURTH_ORDER_SLOT;
 				order = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
@@ -1736,7 +1736,7 @@ int16_t paiorder_orderswitchorder(void) {
 			planName = g_planTable[g_builtinPlanIdByNameIndex[g_orderLeaderBuiltinPlanNameIndex[order]]].name;
 			if (strcmp(planName, "capfreeldr1pln") == 0 || strcmp(planName, "caprespondldr1pln") == 0 ||
 				strcmp(planName, "capescortersldr1pln") == 0 || strcmp(planName, "disableldr1pln") == 0) {
-				if (paifight_OrderSlotCanTarget(orderSlot) != 0)
+				if (paifight_SearchOrderSlotTarget(orderSlot) != 0)
 					foundOrder = 1;
 			} else if ((strcmp(planName, "boardtogivepln") == 0 || strcmp(planName, "boardtotakepln") == 0 ||
 						strcmp(planName, "boardtoexchangepln") == 0 ||
@@ -1821,16 +1821,17 @@ int16_t paiorder_completefolloworder(void) {
 
 // FUNCTION: XVT 0x46A0A0
 int16_t paiorder_killselforder(void) {
-	uint16_t delaySeconds;
+	uint16_t delayFiveSecondUnits;
 
 	if (g_objectTable[g_paiContext.objectIndex].mobj->lifetimeTimer == 0) {
-		delaySeconds = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
-						   .fg.orders[g_paiContext.orderSlot]
-						   .variable1;
-		if (delaySeconds == 0)
-			delaySeconds = ((uint16_t)GameRand() & 3) + 2;
+		delayFiveSecondUnits = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+								   .fg.orders[g_paiContext.orderSlot]
+								   .variable1;
+		if (delayFiveSecondUnits == 0)
+			delayFiveSecondUnits = ((uint16_t)GameRand() & 3) + 2;
 
-		g_objectTable[g_paiContext.objectIndex].mobj->lifetimeTimer = (uint16_t)(delaySeconds * 1180u);
+		g_objectTable[g_paiContext.objectIndex].mobj->lifetimeTimer =
+			(uint16_t)(delayFiveSecondUnits * 1180u);
 	}
 	return 0;
 }

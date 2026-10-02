@@ -661,7 +661,7 @@ int MissionDebrief_Update(int frameCounter) {
 				g_pilotData.localPlayerId = localPlayerId;
 				g_pilotData.isHost = Net_IsHost();
 				g_pilotData.numHumanPlayersLastMission = Net_CountReadyPlayers();
-				g_pilotData.gameMode = g_frontendMissionSessionMode;
+				g_pilotData.sessionMode = g_frontendMissionSessionMode;
 				FrontendScreen_SetCallbacks(MissionSetup_EnterNextMission,
 
 #ifdef XVT_MODERN
@@ -680,7 +680,7 @@ int MissionDebrief_Update(int frameCounter) {
 				g_pilotData.localPlayerId = localPlayerId;
 				g_pilotData.isHost = Net_IsHost();
 				g_pilotData.numHumanPlayersLastMission = Net_CountReadyPlayers();
-				g_pilotData.gameMode = g_frontendMissionSessionMode;
+				g_pilotData.sessionMode = g_frontendMissionSessionMode;
 				FrontendScreen_SetCallbacks(MissionSetup_EnterNextMission,
 
 #ifdef XVT_MODERN
@@ -701,7 +701,7 @@ int MissionDebrief_Update(int frameCounter) {
 				g_pilotData.numHumanPlayersLastMission = Net_CountReadyPlayers();
 				g_missionSetupDebriefTransition = MISSION_SETUP_DEBRIEF_TRANSITION_ADVANCE_MISSION_DIRECTORY;
 				g_frontendQuickStartLaunchFlag = 0;
-				g_pilotData.gameMode = g_frontendMissionSessionMode;
+				g_pilotData.sessionMode = g_frontendMissionSessionMode;
 				FrontendScreen_SetCallbacks(MissionSetup_EnterNextMission,
 
 #ifdef XVT_MODERN
@@ -717,7 +717,7 @@ int MissionDebrief_Update(int frameCounter) {
 				g_pilotData.localPlayerId = localPlayerId;
 				g_pilotData.isHost = Net_IsHost();
 				g_pilotData.numHumanPlayersLastMission = Net_CountReadyPlayers();
-				g_pilotData.gameMode = g_frontendMissionSessionMode;
+				g_pilotData.sessionMode = g_frontendMissionSessionMode;
 				FrontendScreen_SetCallbacks(MissionSetup_EnterCurrentMission,
 
 #ifdef XVT_MODERN
@@ -732,9 +732,9 @@ int MissionDebrief_Update(int frameCounter) {
 				g_pilotData.launchSessionMarker = 1;
 				g_pilotData.isHost = Net_IsHost();
 				g_pilotData.numHumanPlayersLastMission = Net_CountReadyPlayers();
-				g_pilotData.gameMode = g_frontendMissionSessionMode;
+				g_pilotData.sessionMode = g_frontendMissionSessionMode;
 				g_missionSetupDebriefTransition = MISSION_SETUP_DEBRIEF_TRANSITION_ENTER_CURRENT_MISSION;
-				g_skipFrontendEntryMovie = 1;
+				g_frontendSkipScreenEntrySetup = 1;
 				FrontendScreen_SetCallbacks(MissionSetup_EnterCurrentMission,
 
 #ifdef XVT_MODERN
@@ -784,7 +784,7 @@ int MissionDebrief_Update(int frameCounter) {
 					}
 				}
 			} else if (networkEvent == NET_PACKET_RETURN_TO_MISSION_SELECTION) {
-				g_skipFrontendEntryMovie = 0;
+				g_frontendSkipScreenEntrySetup = 0;
 				g_frontendQuickStartLaunchFlag = 0;
 				g_frontendGameSessionInProgress = 0;
 				g_missionSetupRosterAuthoritative = 0;
@@ -879,7 +879,7 @@ int MissionDebrief_Update(int frameCounter) {
 											   sizeof(g_frontendNetPacketScratch.packetType));
 					} else {
 						FrontendButton_DisableOverlayText();
-						g_skipFrontendEntryMovie = 0;
+						g_frontendSkipScreenEntrySetup = 0;
 						g_frontendQuickStartLaunchFlag = 0;
 						g_frontendGameSessionInProgress = 0;
 						g_missionSetupRosterAuthoritative = 0;
@@ -936,7 +936,7 @@ int MissionDebrief_Update(int frameCounter) {
 											   sizeof(g_frontendNetPacketScratch.packetType));
 					} else {
 						FrontendButton_DisableOverlayText();
-						g_skipFrontendEntryMovie = 0;
+						g_frontendSkipScreenEntrySetup = 0;
 						g_frontendQuickStartLaunchFlag = 0;
 						g_frontendGameSessionInProgress = 0;
 						g_missionSetupRosterAuthoritative = 0;
@@ -994,7 +994,7 @@ int MissionDebrief_Update(int frameCounter) {
 								 FrontendString_Get(FRONTSTR_523_OKAY),
 								 FrontendString_Get(FRONTSTR_019_CANCEL)) != 0) {
 						FrontendButton_DisableOverlayText();
-						g_skipFrontendEntryMovie = 0;
+						g_frontendSkipScreenEntrySetup = 0;
 						g_frontendQuickStartLaunchFlag = 0;
 						g_frontendGameSessionInProgress = 0;
 						g_missionSetupRosterAuthoritative = 0;
@@ -1067,7 +1067,7 @@ int MissionDebrief_Update(int frameCounter) {
 								 FrontendString_Get(FRONTSTR_523_OKAY),
 								 FrontendString_Get(FRONTSTR_019_CANCEL)) != 0) {
 						FrontendButton_DisableOverlayText();
-						g_skipFrontendEntryMovie = 0;
+						g_frontendSkipScreenEntrySetup = 0;
 						g_frontendQuickStartLaunchFlag = 0;
 						g_frontendGameSessionInProgress = 0;
 						g_missionSetupRosterAuthoritative = 0;
@@ -1088,7 +1088,7 @@ int MissionDebrief_Update(int frameCounter) {
 											   sizeof(g_frontendNetPacketScratch.packetType));
 					} else {
 						FrontendButton_DisableOverlayText();
-						g_skipFrontendEntryMovie = 0;
+						g_frontendSkipScreenEntrySetup = 0;
 						g_frontendQuickStartLaunchFlag = 0;
 						g_frontendGameSessionInProgress = 0;
 						g_missionSetupRosterAuthoritative = 0;
@@ -1151,7 +1151,7 @@ int MissionDebrief_Update(int frameCounter) {
 								 FrontendString_Get(FRONTSTR_523_OKAY),
 								 FrontendString_Get(FRONTSTR_019_CANCEL)) != 0) {
 						FrontendButton_DisableOverlayText();
-						g_skipFrontendEntryMovie = 0;
+						g_frontendSkipScreenEntrySetup = 0;
 						g_frontendQuickStartLaunchFlag = 0;
 						g_frontendGameSessionInProgress = 0;
 						g_missionSetupRosterAuthoritative = 0;
@@ -1175,7 +1175,7 @@ int MissionDebrief_Update(int frameCounter) {
 											   sizeof(g_frontendNetPacketScratch.packetType));
 					} else {
 						FrontendButton_DisableOverlayText();
-						g_skipFrontendEntryMovie = 0;
+						g_frontendSkipScreenEntrySetup = 0;
 						g_frontendQuickStartLaunchFlag = 0;
 						g_frontendGameSessionInProgress = 0;
 						g_missionSetupRosterAuthoritative = 0;
@@ -1198,7 +1198,7 @@ int MissionDebrief_Update(int frameCounter) {
 						g_pilotData.launchSessionMarker = 1;
 						g_pilotData.isHost = 1;
 						g_pilotData.numHumanPlayersLastMission = 1;
-						g_pilotData.gameMode = g_frontendMissionSessionMode;
+						g_pilotData.sessionMode = g_frontendMissionSessionMode;
 						FrontendButton_DisableOverlayText();
 						FrontendScreen_SetCallbacks(MissionSetup_EnterNextMission,
 
@@ -1219,7 +1219,7 @@ int MissionDebrief_Update(int frameCounter) {
 								FrontendString_Get(FRONTSTR_710_REFLY_BATTLE_MISSION), 12, 0, 7,
 								"flysound") != 0) {
 							g_pilotData.localPlayerId = Net_GetLocalPlayerId();
-							g_pilotData.gameMode = g_frontendMissionSessionMode;
+							g_pilotData.sessionMode = g_frontendMissionSessionMode;
 							g_pilotData.launchSessionMarker = 1;
 							g_pilotData.isHost = 1;
 							g_pilotData.numHumanPlayersLastMission = 1;
@@ -1240,7 +1240,7 @@ int MissionDebrief_Update(int frameCounter) {
 															 12, 0, 7, "flysound") != 0) {
 							++g_pilotData.battleSequenceState.currentMissionIndex;
 							g_pilotData.localPlayerId = Net_GetLocalPlayerId();
-							g_pilotData.gameMode = g_frontendMissionSessionMode;
+							g_pilotData.sessionMode = g_frontendMissionSessionMode;
 							g_pilotData.launchSessionMarker = 1;
 							g_pilotData.isHost = 1;
 							g_pilotData.numHumanPlayersLastMission = 1;
@@ -1263,7 +1263,7 @@ int MissionDebrief_Update(int frameCounter) {
 														 12, 0, 7, "flysound") != 0) {
 						++g_pilotData.campaignSequenceState.currentMissionIndex;
 						g_pilotData.localPlayerId = Net_GetLocalPlayerId();
-						g_pilotData.gameMode = g_frontendMissionSessionMode;
+						g_pilotData.sessionMode = g_frontendMissionSessionMode;
 						g_pilotData.launchSessionMarker = 1;
 						g_pilotData.isHost = 1;
 						g_pilotData.numHumanPlayersLastMission = 1;
@@ -1290,9 +1290,9 @@ int MissionDebrief_Update(int frameCounter) {
 						g_pilotData.launchSessionMarker = 1;
 						g_pilotData.isHost = 1;
 						g_pilotData.numHumanPlayersLastMission = 1;
-						g_pilotData.gameMode = g_frontendMissionSessionMode;
+						g_pilotData.sessionMode = g_frontendMissionSessionMode;
 						FrontendButton_DisableOverlayText();
-						g_skipFrontendEntryMovie = 1;
+						g_frontendSkipScreenEntrySetup = 1;
 						g_missionSetupDebriefTransition =
 							MISSION_SETUP_DEBRIEF_TRANSITION_ENTER_CURRENT_MISSION;
 						FrontendScreen_SetCallbacks(MissionSetup_EnterCurrentMission,
@@ -1390,7 +1390,7 @@ int MissionDebrief_Update(int frameCounter) {
 					if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 						g_pilotData.isHost = 1;
 						g_pilotData.numHumanPlayersLastMission = 1;
-						g_pilotData.gameMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
+						g_pilotData.sessionMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
 						memset(g_pilotData.killsFullOnPlayer, 0, sizeof(g_pilotData.killsFullOnPlayer));
 						memset(g_pilotData.killsSharedOnPlayer, 0, sizeof(g_pilotData.killsSharedOnPlayer));
 						memset(g_pilotData.killsFullOnFlightGroup, 0,
@@ -3695,7 +3695,7 @@ void MissionDebrief_BuildText(char* outResults, int useWinText) {
 			} else {
 				File_Seek(stream, -8192, SEEK_END);
 			}
-			File_ReadCount(stream, outResults, 4096);
+			File_ReadBytes(stream, outResults, 4096);
 			outResults[4095] = 0;
 		}
 	}

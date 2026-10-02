@@ -20,7 +20,7 @@ void XvtMovieSync_Begin(void) {
 		g_movieMultiplayerSyncPlayers[index].isWaiting = 0;
 	}
 	g_moviePlaybackCompletionState = 0;
-	g_movieMultiplayerSyncDeadlineTick = 0;
+	g_movieMultiplayerSyncDeadlineMs = 0;
 }
 
 void XvtMovieSync_Wait(void) {
@@ -33,7 +33,7 @@ void XvtMovieSync_Wait(void) {
 		if (g_movieMultiplayerSyncPlayers[index].playerId == Net_GetLocalPlayerId())
 			g_movieMultiplayerSyncPlayers[index].isWaiting = 1;
 	Net_SendPacketAndFlush(0, packet, sizeof(packet));
-	g_movieMultiplayerSyncDeadlineTick = GetTickCount() + (Net_IsHost() ? 5000 : 20000);
+	g_movieMultiplayerSyncDeadlineMs = GetTickCount() + (Net_IsHost() ? 5000 : 20000);
 }
 
 int XvtMovieSync_Tick(void) {
@@ -44,7 +44,7 @@ int XvtMovieSync_Tick(void) {
 		if (g_movieMultiplayerSyncPlayers[index].playerId && !g_movieMultiplayerSyncPlayers[index].isWaiting)
 			++waiting;
 	if (g_moviePlaybackCompletionState == 1 &&
-		(int32_t)(GetTickCount() - g_movieMultiplayerSyncDeadlineTick) > 0)
+		(int32_t)(GetTickCount() - g_movieMultiplayerSyncDeadlineMs) > 0)
 		g_moviePlaybackCompletionState = 2;
 	return waiting == 0;
 }

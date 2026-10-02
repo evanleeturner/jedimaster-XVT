@@ -47,7 +47,7 @@ static void Start(void) {
 	g_flightTextShadowEnabled = 1;
 	g_flightWordWrapEnabled = 1;
 	g_flightClearLineBgEnabled = 0;
-	g_flightColorEscapeBypassChar = BYPASS;
+	g_flightTransparentColorIndex = BYPASS;
 	g_flightDrawCharFn = NULL;
 	g_flightOffscreenBuffer = NULL;
 	g_flightSwFramebufferBase = g_framebuffer;
@@ -123,7 +123,7 @@ static void CheckRecordFieldColorCodes(void) {
 	XVT_ASSERT_INT_EQ(Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].caption.foreground, 0x0B);
 
 	/* The bypass code is not resolved. */
-	g_flightColorEscapeBypassChar = 0x44;
+	g_flightTransparentColorIndex = 0x44;
 	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "\xFE\x44Z", XVT_COCKPIT_ALIGN_LEFT);
 	field = &Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ((uint8_t)field->caption.text[1], 0x44);

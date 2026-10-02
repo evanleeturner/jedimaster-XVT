@@ -31,7 +31,7 @@ int g_viewSpaceDepth = 0;
 // GLOBAL: XVT 0x9A1FF0
 int32_t g_projScaleHalfInt = 0;
 // GLOBAL: XVT 0x9D8C04
-uint8_t perspShift = 0;
+uint8_t g_perspectiveShift = 0;
 // GLOBAL: XVT 0xA080F4
 uint16_t g_flightVpCenterX = 0;
 // GLOBAL: XVT 0x9ECC44
@@ -102,7 +102,8 @@ int TRANSFM2_ProjectScreenXFixedPoint(int viewX, unsigned int depth) {
 	if (viewX < 0) {
 		uint64_t numerator;
 
-		numerator = (uint64_t)(0u - (uint32_t)viewX) * (1u << (perspShift & 31)) + (uint32_t)g_projScaleHalfInt;
+		numerator = (uint64_t)(0u - (uint32_t)viewX) * (1u << (g_perspectiveShift & 31)) +
+					(uint32_t)g_projScaleHalfInt;
 		if ((numerator & ~(uint64_t)UINT32_MAX) >= ((uint64_t)depth << 32))
 			viewX = 0x7FFFFF00;
 		else
@@ -111,7 +112,8 @@ int TRANSFM2_ProjectScreenXFixedPoint(int viewX, unsigned int depth) {
 	} else {
 		uint64_t numerator;
 
-		numerator = (uint64_t)(uint32_t)viewX * (1u << (perspShift & 31)) + (uint32_t)g_projScaleHalfInt;
+		numerator =
+			(uint64_t)(uint32_t)viewX * (1u << (g_perspectiveShift & 31)) + (uint32_t)g_projScaleHalfInt;
 		if ((numerator & ~(uint64_t)UINT32_MAX) >= ((uint64_t)depth << 32))
 			viewX = 0x7FFFFF00;
 		else
@@ -128,7 +130,7 @@ int TRANSFM2_ProjectScreenYFixedPoint(int viewY, unsigned int depth) {
 	int projectedOffset;
 
 	if (viewY < 0) {
-		numerator = (uint64_t)(0u - (uint32_t)viewY) << perspShift;
+		numerator = (uint64_t)(0u - (uint32_t)viewY) << g_perspectiveShift;
 		numerator += (uint32_t)g_projScaleHalfInt;
 		if (((uint32_t*)&numerator)[1] < depth) {
 			quotient = (uint32_t)(numerator / depth);
@@ -137,7 +139,7 @@ int TRANSFM2_ProjectScreenYFixedPoint(int viewY, unsigned int depth) {
 		}
 		projectedOffset = (int)(0u - quotient);
 	} else {
-		numerator = (uint64_t)(uint32_t)viewY << perspShift;
+		numerator = (uint64_t)(uint32_t)viewY << g_perspectiveShift;
 		numerator += (uint32_t)g_projScaleHalfInt;
 		if (((uint32_t*)&numerator)[1] < depth) {
 			projectedOffset = (int)(uint32_t)(numerator / depth);

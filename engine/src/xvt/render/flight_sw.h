@@ -27,7 +27,7 @@ extern int g_flightResolutionMode;
 extern unsigned int g_swFramebufferClearChunkSize;
 extern unsigned int g_vesaGrainsPerPage;
 extern uint8_t* g_flightSwFramebufferBase;
-extern int g_flightRenderModeId;
+extern int g_flightViewportInsetX;
 extern int g_starfieldGridDimension;
 extern int g_starfieldColors8Initialized;
 extern int g_starfieldColors16Initialized;
@@ -72,15 +72,15 @@ struct FlightSwRotSpriteEdgePoint {
 struct FlightSwRotSpriteCoeffState {
 	uint16_t rotationAngle;
 	int16_t sinQ15;
-	uint16_t field04;
+	uint16_t sinSignMask;
 	int16_t cosQ15;
-	uint16_t field08;
+	uint16_t cosSignMask;
 	uint16_t primaryCosQ15;
 	uint16_t primaryStepReciprocal;
 	uint16_t scanCount;
 	uint16_t flipY;
 	uint16_t flipX;
-	uint16_t field14;
+	uint16_t flipCount;
 	uint16_t octant;
 	uint16_t primaryAxisSwap;
 	uint16_t secondaryAxisSwap;
@@ -150,11 +150,11 @@ typedef struct SpritePayload {
 	uint32_t colorTable24Offset;
 	uint32_t rowDataOffset;
 	uint32_t palette16Offset;
-	uint32_t field10;
-	uint32_t field14;
+	uint32_t width;
+	uint32_t height;
 	int32_t anchorX;
 	int32_t anchorY;
-	int32_t field20;
+	int32_t packingMode;
 	int32_t field24;
 	int32_t colorCount;
 } SpritePayload;
@@ -231,9 +231,9 @@ unsigned int SetFlightViewport(unsigned int requestedWidth, unsigned int request
 void FlightSw_CopyLegacy8BitViewportToFramebuffer(const uint8_t* srcPixels);
 unsigned int PushFlightViewport(uint16_t width, uint16_t height, int16_t arg3, unsigned int baseOffset);
 int PopFlightViewport(void);
-void Blit16ToFlightSurface(uint8_t* sourceBase, uint16_t transparentColorIndex, uint16_t sourceX,
-						   uint16_t sourceY, uint16_t destinationX, uint16_t destinationY,
-						   uint16_t widthPixels, uint16_t heightPixels, uint16_t sourcePitch);
+void FlightSw_BlitRectToFlightSurface(uint8_t* sourceBase, uint16_t transparentColorIndex, uint16_t sourceX,
+									  uint16_t sourceY, uint16_t destinationX, uint16_t destinationY,
+									  uint16_t widthPixels, uint16_t heightPixels, uint16_t sourcePitch);
 void FlightSw_CopyFramebufferRectToBuffer(uint8_t* dstPixels, uint16_t srcX, uint16_t srcY, uint16_t dstX,
 										  uint16_t dstY, uint16_t widthPixels, uint16_t heightPixels,
 										  uint16_t dstPitchBytes);

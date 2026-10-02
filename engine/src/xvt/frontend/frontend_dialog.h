@@ -19,13 +19,13 @@ extern int g_dialogResult;
 
 int FrontendDialog_ShowConfirmDialog(const char* line1, const char* line2, const char* line3,
 									 const char* okayLabel, const char* cancelLabel);
-int FrontendDialog_ConfirmUpdateCallback(int frameState);
+int FrontendDialog_ConfirmUpdateCallback(int frameCounter);
 int FrontendDialog_HasNetworkDismissPacket(void);
 int FrontendDialog_PromptForPilotName(char* outName);
-int FrontendDialog_CreatePilotNameCallback(int frameState);
+int FrontendDialog_CreatePilotNameCallback(int frameCounter);
 int FrontendDialog_ShowNetworkAbortError(const char* line1, const char* line2, const char* line3,
 										 const char* okayLabel, const char* cancelLabel);
-int FrontendDialog_NetworkAbortErrorCallback(int frameState);
+int FrontendDialog_NetworkAbortErrorCallback(int frameCounter);
 
 #ifdef __cplusplus
 }

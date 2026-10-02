@@ -33,7 +33,7 @@ extern int g_colorCyan;
 extern int g_colorAzure;
 extern int g_colorOrange;
 extern int g_pulseColorRamp[12];
-extern int g_concourseRedrawRequested;
+extern int g_pilotRecordPagesNeedRebuild;
 extern int g_editableFieldBackgroundColor;
 extern char g_frontendScratchBuffer[256];
 extern char g_nextMissionDescription[256];

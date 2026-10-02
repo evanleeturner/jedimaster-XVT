@@ -46,7 +46,7 @@ int g_remotePlayerRenderSmoothingEnabled = 1;
 // GLOBAL: XVT 0x550888
 RemotePlayerRenderSample g_remotePlayerRenderSamples[8];
 // GLOBAL: XVT 0x550A08
-RemotePlayerSavedRenderPose g_remotePlayerSavedSimPoses[8];
+RemotePlayerSavedSimPose g_remotePlayerSavedSimPoses[8];
 #ifndef XVT_MODERN
 // GLOBAL: XVT 0x550B90
 static uint8_t* g_worldMessageBuffer = NULL;
@@ -220,7 +220,7 @@ InputFrame* FlightSync_InsertInputFrame(int playerIdx, int timestamp, const Flig
 }
 
 // FUNCTION: XVT 0x418890
-InputFrame* FlightSync_FindLastNonzeroInputFrame(int playerIdx) {
+InputFrame* FlightSync_FindLastAppliedInputFrame(int playerIdx) {
 	InputFrame* frame;
 	int frameCount;
 	InputFrame* result;

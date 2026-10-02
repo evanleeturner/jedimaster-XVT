@@ -137,7 +137,7 @@ int XvtStorage_ResolveAsset(const char* path, char* resolved, size_t capacity) {
 			   : -1;
 }
 
-static int XvtStorage_Extension(const char* path, const char* extension) {
+static int XvtStorage_HasExtension(const char* path, const char* extension) {
 	const char* dot = strrchr(path, '.');
 	if (!dot)
 		return 0;
@@ -149,17 +149,18 @@ static int XvtStorage_Extension(const char* path, const char* extension) {
 }
 
 static int XvtStorage_IsCache(const char* path) {
-	return XvtStorage_Extension(path, ".pal") || XvtStorage_Extension(path, ".act") ||
-		   XvtStorage_Extension(path, ".inv") || XvtStorage_Extension(path, ".bin") ||
-		   XvtStorage_Extension(path, ".plo");
+	return XvtStorage_HasExtension(path, ".pal") || XvtStorage_HasExtension(path, ".act") ||
+		   XvtStorage_HasExtension(path, ".inv") || XvtStorage_HasExtension(path, ".bin") ||
+		   XvtStorage_HasExtension(path, ".plo");
 }
 
 static AeronVfsRoot XvtStorage_WritablePath(const char* path, char* output, size_t capacity) {
 	int length = snprintf(output, capacity, "%s%s", XvtStorage_IsCache(path) ? "cache/" : "", path);
 	if (length < 0 || (size_t)length >= capacity)
 		output[0] = 0;
-	return (XvtStorage_Extension(path, ".tmp") || XvtStorage_Extension(path, ".tmt")) ? AERON_VFS_ROOT_TEMP
-																					  : AERON_VFS_ROOT_USER;
+	return (XvtStorage_HasExtension(path, ".tmp") || XvtStorage_HasExtension(path, ".tmt"))
+			   ? AERON_VFS_ROOT_TEMP
+			   : AERON_VFS_ROOT_USER;
 }
 
 AeronFile* XvtStorage_OpenRoot(AeronVfsRoot root, const char* path, const char* mode) {
@@ -206,8 +207,8 @@ AeronFile* XvtStorage_Open(const char* path, const char* mode) {
 	if (!mode || !XvtStorage_Normalize(path, normalized, sizeof(normalized)))
 		return NULL;
 	root = XvtStorage_WritablePath(normalized, resolved, sizeof(resolved));
-	if (mode[0] != 'r' || strchr(mode, '+') || XvtStorage_Extension(path, ".plt") ||
-		XvtStorage_Extension(path, ".pl2") || root == AERON_VFS_ROOT_TEMP)
+	if (mode[0] != 'r' || strchr(mode, '+') || XvtStorage_HasExtension(path, ".plt") ||
+		XvtStorage_HasExtension(path, ".pl2") || root == AERON_VFS_ROOT_TEMP)
 		return XvtStorage_OpenRoot(root, resolved, mode);
 	if (XvtStorage_IsCache(normalized)) {
 		AeronFile* file = XvtStorage_OpenRoot(root, resolved, mode);

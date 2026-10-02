@@ -35,7 +35,7 @@ uint8_t XvtFlightCheckpoint_InitialMask(void) { return g_membership.initial; }
 
 uint8_t XvtFlightCheckpoint_ConfirmedMask(void) { return g_membership.confirmed; }
 
-void XvtFlightCheckpoint_SetMask(uint8_t mask) {
+void XvtFlightCheckpoint_ApplyConfirmedMask(uint8_t mask) {
 	g_membership.confirmed = mask & g_membership.initial;
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player)
 		g_playerAbortFlags[player] =
@@ -98,7 +98,7 @@ void XvtFlightCheckpoint_RestorePlayer(unsigned player) {
 		XvtWire_Get16(saved->owner_id.signature) != g_objectTable[slot].objectSignature ||
 		XvtWire_Get32(saved->saved_tick) != (unsigned)g_players[player].lockstepTimestamp) {
 		if (XvtFlightCheckpoint_Shared((unsigned)g_players[player].objectIndex))
-			XvtFlightIntegration_Reset(g_players[player].objectIndex);
+			XvtFlightIntegration_ResetSlotAndMotion(g_players[player].objectIndex);
 		XvtFlightCheckpoint_InvalidatePlayer(player);
 		return;
 	}
@@ -111,7 +111,7 @@ void XvtFlightCheckpoint_RestorePlayer(unsigned player) {
 		XvtFlightIntegration_Decode(&saved->carried.integration, 1);
 		XvtReferenceMotion_Decode(&saved->carried.reference, 1);
 	} else if (XvtFlightCheckpoint_Shared(carried))
-		XvtFlightIntegration_Reset(carried);
+		XvtFlightIntegration_ResetSlotAndMotion(carried);
 }
 
 static int XvtFlightCheckpoint_ValidateMotion(const XvtObjectIdentityWire* identity,
@@ -283,7 +283,7 @@ void XvtFlightCheckpoint_Restore(const XvtFlightCheckpointView* view) {
 		XvtPlayerTiming_Decode(&record, 1);
 	}
 	memcpy(g_paired, view->paired, sizeof g_paired);
-	XvtFlightCheckpoint_SetMask(view->membership.confirmed);
+	XvtFlightCheckpoint_ApplyConfirmedMask(view->membership.confirmed);
 	g_gameTime = view->tick;
 	XvtFlightTiming_RestoreNetworkTick(view->tick);
 }

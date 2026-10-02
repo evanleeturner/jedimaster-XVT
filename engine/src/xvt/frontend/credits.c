@@ -34,7 +34,7 @@ int g_creditsPrevLogoId[2] = { 0 };
 // GLOBAL: XVT 0x6697E0
 int g_creditsPageEndFrame = 0;
 // GLOBAL: XVT 0x6697E4
-int g_creditsGlyphScratchFrames = 0;
+int g_creditsTextFadeFrames = 0;
 // GLOBAL: XVT 0x6697E8
 int g_creditsTextY[2] = { 0 };
 // GLOBAL: XVT 0x6697F0
@@ -53,7 +53,7 @@ int Credits_LoadScreenResources(void) {
 	FrontendDisplay_DisableEscapeClose();
 	FrontendDisplay_SetSurfaceClearColor(0);
 	FrontendCursor_Hide();
-	FrontendDisplay_ClearPresentFrameReady();
+	FrontendDisplay_DisableClearAfterPresent();
 	FrontendDisplay_EnableOffscreenRestore();
 	FrontendText_LoadFont(15);
 	FrontendSound_LoadList("sfx\\sfx.lst");
@@ -73,7 +73,7 @@ int Credits_LoadScreenResources(void) {
 
 // FUNCTION: XVT 0x4FBAF0
 int Credits_ParseNextPage(unsigned int* outBufferIdx, int* outHasMorePages, int* outPageDurationFrames,
-						  int* outGlyphScratchFrames) {
+						  int* outTextFadeFrames) {
 	unsigned int logoId;
 	unsigned int logoX;
 	unsigned int logoY;
@@ -91,7 +91,7 @@ int Credits_ParseNextPage(unsigned int* outBufferIdx, int* outHasMorePages, int*
 		return 0;
 	}
 	File_Scanf(g_frontendCreditsFile, "%u %u %u %u %u %u %u %u %u %u\n", &textX, &textY, outBufferIdx,
-			   outGlyphScratchFrames, outPageDurationFrames, &logoId, &logoX, &logoY, &unusedA, &unusedB);
+			   outTextFadeFrames, outPageDurationFrames, &logoId, &logoX, &logoY, &unusedA, &unusedB);
 	(*outBufferIdx)--;
 	if (*outBufferIdx > 1) {
 		*outBufferIdx = 1;

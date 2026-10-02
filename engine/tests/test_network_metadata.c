@@ -236,7 +236,7 @@ static void CheckFlight(void) {
 	g_netSession.players[1].activeFlag = 0;
 	g_netSession.players[5].directPlayId = 101;
 	g_netSession.players[5].activeFlag = 1;
-	XvtNetworkMetadata_Flight(&g_meta);
+	XvtNetworkMetadata_KeepActivePlayers(&g_meta);
 	XVT_ASSERT_INT_EQ(g_meta.room.players, 2);
 	XVT_ASSERT_INT_EQ(g_meta.players[0], 101);
 	XVT_ASSERT_INT_EQ(g_meta.players[1], 103);

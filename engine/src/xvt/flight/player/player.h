@@ -59,7 +59,7 @@ struct PlayerMissionRuntimeStats {
 	int worseRatingPromoPoints;
 	int field_0C;
 	int field_10;
-	int field_14;
+	int primaryGoalFinishPlace;
 	uint16_t laserShotsFired;
 	uint16_t laserHitsScored;
 	uint16_t ionShotsFired;
@@ -122,7 +122,7 @@ struct PlayerData {
 	int16_t team;
 	uint16_t boundFlightGroupIdx;
 	uint8_t connectedFlag;
-	uint8_t regionSessionId;
+	uint8_t awaitingNewCraft;
 	uint8_t boundCraftEngineGlowCount;
 	uint8_t mapCameraState;
 	uint8_t hyperspacePhase;

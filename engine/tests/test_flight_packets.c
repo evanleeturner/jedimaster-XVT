@@ -50,22 +50,22 @@ static void World(int host, int cookie) {
 	g_flightNetWorldChecksumResetAccumTicks = 0;
 	XvtResync_Reset();
 	XvtFlightNetwork_Reset();
-	XvtFlightNetwork_CloseSession();
-	XvtFlightNetwork_BeginMission();
+	XvtFlightNetwork_ClearCookies();
+	XvtFlightNetwork_ResetMission();
 	XvtFlightNetwork_ClearRecoveryRequest();
 	XvtFlightCheckpoint_Begin(0x01);
 	if (cookie) {
 		/* A host flying alone agrees a cookie without a peer. */
 		g_netSession.localIsHost = 1;
 		g_activeFlightPlayerCount = 1;
-		XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
+		XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeOptions(), 1);
 		XVT_ASSERT_TRUE(XvtFlightNetwork_Cookie() != 0);
 	}
 	g_netSession.localIsHost = host;
 	g_inputTimestamp = INPUT;
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(5000000);
-	Time_ResetFrameDeltaClocks();
+	Time_ResetElapsedTicks();
 	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), 0);
 	XvtTime_AdvanceHostClock(WAITING_TICKS * 4000);
 }

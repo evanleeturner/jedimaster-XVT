@@ -72,7 +72,7 @@ void XvtCockpitText_RecordField(XvtCockpitTextFieldId field, const char* text,
 		if ((uint8_t)next.caption.text[index] == 0xfe) {
 			++index;
 			next.caption.text[index] = (char)XvtCockpitText_ResolveColor((uint8_t)next.caption.text[index],
-																		 g_flightColorEscapeBypassChar);
+																		 g_flightTransparentColorIndex);
 		}
 	next.caption.visible = length != 0;
 	next.caption.font_tier = g_flightFontTier;
@@ -95,7 +95,7 @@ void XvtCockpitText_RecordField(XvtCockpitTextFieldId field, const char* text,
 	next.clear_line = g_flightClearLineBgEnabled != 0;
 	next.keyed = g_flightSwFramebufferBase == g_flightOffscreenBuffer;
 	if (next.keyed)
-		next.color_key_argb = XvtRenderDraw_Color(g_flightColorEscapeBypassChar);
+		next.color_key_argb = XvtRenderDraw_Color(g_flightTransparentColorIndex);
 	next.narrow = g_flightDrawCharFn == FlightText_DrawNarrowGlyph8bpp ||
 				  g_flightDrawCharFn == FlightText_DrawNarrowGlyph;
 	next.clear_background = FieldClearsBackground(field);
@@ -161,7 +161,7 @@ void XvtCockpitText_CopyPlacedField(XvtCockpitTextField* field, XvtCockpitTextFi
 	field->y += (int16_t)offset_y;
 	field->caption.phase = XVT_COCKPIT_AFTER_CRT;
 	field->keyed = 1;
-	field->color_key_argb = XvtRenderDraw_Color(g_flightColorEscapeBypassChar);
+	field->color_key_argb = XvtRenderDraw_Color(g_flightTransparentColorIndex);
 }
 
 int XvtCockpitText_CaptureGlyph(XvtCockpitGlyph* glyph, unsigned character, unsigned advance, unsigned height,
@@ -185,7 +185,7 @@ int XvtCockpitText_CaptureGlyph(XvtCockpitGlyph* glyph, unsigned character, unsi
 	glyph->background_argb = palette[g_flightTextBgColor];
 	glyph->shadow_argb = palette[g_flightTextShadowColor];
 	if (keyed) {
-		uint32_t key = palette[g_flightColorEscapeBypassChar];
+		uint32_t key = palette[g_flightTransparentColorIndex];
 		if (glyph->foreground_argb == key)
 			glyph->foreground_argb = 0;
 		if (glyph->background_argb == key)

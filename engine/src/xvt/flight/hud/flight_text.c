@@ -920,7 +920,7 @@ void FlightText_SetClipRect(int16_t left, int16_t top, int16_t right, int16_t bo
 
 // FUNCTION: XVT 0x4A9590
 void FlightText_SetColor(unsigned int charOrIndex) {
-	if (charOrIndex >= 0x40u && charOrIndex != g_flightColorEscapeBypassChar) {
+	if (charOrIndex >= 0x40u && charOrIndex != g_flightTransparentColorIndex) {
 		g_flightTextColorIndex = g_flightCharToColorLut[charOrIndex - 0x40u];
 	} else {
 		g_flightTextColorIndex = (uint8_t)charOrIndex;
@@ -929,7 +929,7 @@ void FlightText_SetColor(unsigned int charOrIndex) {
 
 // FUNCTION: XVT 0x4A95C0
 void FlightText_SetBackgroundColor(unsigned int charOrIndex) {
-	if (charOrIndex >= 0x40u && charOrIndex != g_flightColorEscapeBypassChar) {
+	if (charOrIndex >= 0x40u && charOrIndex != g_flightTransparentColorIndex) {
 		g_flightTextBgColor = g_flightCharToColorLut[charOrIndex - 0x40u];
 	} else {
 		g_flightTextBgColor = (uint8_t)charOrIndex;
@@ -938,7 +938,7 @@ void FlightText_SetBackgroundColor(unsigned int charOrIndex) {
 
 // FUNCTION: XVT 0x4A95F0
 void FlightText_SetShadowColor(unsigned int charOrIndex) {
-	if (charOrIndex >= 0x40u && charOrIndex != g_flightColorEscapeBypassChar) {
+	if (charOrIndex >= 0x40u && charOrIndex != g_flightTransparentColorIndex) {
 		g_flightTextShadowColor = g_flightCharToColorLut[charOrIndex - 0x40u];
 	} else {
 		g_flightTextShadowColor = (uint8_t)charOrIndex;

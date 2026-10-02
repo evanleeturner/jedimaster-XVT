@@ -78,7 +78,7 @@ void XvtRenderCapture_EndOverlay(void) {
 		--g_overlayDepth;
 }
 
-void XvtRenderCapture_Init(void) {
+void XvtRenderCapture_Reset(void) {
 	XvtCockpit_Reset();
 	XvtCockpitMessages_ClearProgress();
 	memset(&g_pending, 0, sizeof g_pending);
@@ -143,7 +143,7 @@ static void CaptureCamera(XvtSnapCamera* out, XvtSnapLighting* lighting, unsigne
 	out->screen_width = (uint16_t)g_screenWidth;
 	out->screen_height = (uint16_t)g_screenHeight;
 	out->aspect_y_q16 = g_projAspectY;
-	out->perspective_shift = perspShift;
+	out->perspective_shift = g_perspectiveShift;
 	out->player = ObjectId(p->objectIndex, capacity);
 	out->focus = ObjectId(v->cameraFocusObjIdx, capacity);
 	out->view_pitch = (uint16_t)v->viewPitch;
@@ -228,8 +228,8 @@ static void CaptureObject(unsigned slot) {
 	out->throttle = c->throttleSpeed;
 	out->engine_output = c->engineOutputScale;
 	out->max_speed = c->aiFlight.maxSpeedCache;
-	out->laser_redirect = c->laserRedirect;
-	out->shield_redirect = c->shieldRedirect;
+	out->laser_redirect = c->laserRechargeLevel;
+	out->shield_redirect = c->shieldRechargeLevel;
 	out->beam_level = c->beamLevel;
 	memcpy(out->component_state, c->componentState, sizeof out->component_state);
 	memcpy(out->component_hp, c->componentHp, sizeof out->component_hp);
@@ -272,12 +272,12 @@ static void CaptureTypes(void) {
 		out->half_extent = t->halfBoundsExtent;
 		out->record_flags = t->recordFlags;
 		out->asset_flags = t->assetFlags;
-		out->flags = t->flags;
+		out->flags = t->behaviorFlags;
 		out->model_index = t->modelIndex;
 		out->family = t->familyId;
 		out->genus = t->genusId;
 		out->texture_group = t->textureGroup;
-		out->resource_entry = t->frameCount;
+		out->resource_entry = t->resourceIndex;
 		for (unsigned j = 0; j < sizeof g_sequences / sizeof g_sequences[0]; ++j) {
 			if (t->textureFrameSequence != g_sequences[j].data)
 				continue;

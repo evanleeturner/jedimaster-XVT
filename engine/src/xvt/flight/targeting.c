@@ -27,7 +27,7 @@ uint16_t g_targetAngleScore = -1;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x482640
-int16_t Targeting_ScoreCandidate(uint16_t objectIdx, int16_t a2, int playerIdx) {
+int16_t Targeting_TestAimCone(uint16_t objectIdx, int16_t narrowCone, int playerIdx) {
 	int16_t scaleShift;
 	int dx;
 	int16_t dy, dz;
@@ -65,22 +65,22 @@ int16_t Targeting_ScoreCandidate(uint16_t objectIdx, int16_t a2, int playerIdx) 
 				pai_RotateLocalVectorToWorldScratch(target, ModelMesh_GetCenterX(objectType, meshIndex),
 													ModelMesh_GetCenterZ(objectType, meshIndex),
 													-ModelMesh_GetCenterY(objectType, meshIndex));
-				worldlocx += g_rotatedX;
+				g_worldLocX += g_rotatedX;
 				worldlocy += g_rotatedY;
 				worldlocz += g_rotatedZ;
 				g_lastRoughDistance = collide_roughdistance3d(
-					worldlocx - g_objectTable[g_players[playerIdx].objectIndex].world_x,
+					g_worldLocX - g_objectTable[g_players[playerIdx].objectIndex].world_x,
 					worldlocy - g_objectTable[g_players[playerIdx].objectIndex].world_y,
 					worldlocz - g_objectTable[g_players[playerIdx].objectIndex].world_z);
 			}
 		}
-		dx = (worldlocx - g_objectTable[g_players[playerIdx].objectIndex].world_x) >> 4;
+		dx = (g_worldLocX - g_objectTable[g_players[playerIdx].objectIndex].world_x) >> 4;
 		dy = (worldlocy - g_objectTable[g_players[playerIdx].objectIndex].world_y) >> 4;
 		dz = (worldlocz - g_objectTable[g_players[playerIdx].objectIndex].world_z) >> 4;
 		scaleShift = 4;
 	} else {
 		Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
-		dx = (worldlocx - g_objectTable[g_players[playerIdx].objectIndex].world_x) >> 8;
+		dx = (g_worldLocX - g_objectTable[g_players[playerIdx].objectIndex].world_x) >> 8;
 		dy = (worldlocy - g_objectTable[g_players[playerIdx].objectIndex].world_y) >> 8;
 		dz = (worldlocz - g_objectTable[g_players[playerIdx].objectIndex].world_z) >> 8;
 		scaleShift = 8;
@@ -100,7 +100,7 @@ int16_t Targeting_ScoreCandidate(uint16_t objectIdx, int16_t a2, int playerIdx) 
 		return 0;
 	if (forward > 0x20000)
 		return 0;
-	if (a2 != 0 && forward < 0x2000)
+	if (narrowCone != 0 && forward < 0x2000)
 		++scaleShift;
 	side = Math_MulQ15((int16_t)dx, (*playerMobileObject)->cachedSideX);
 	side += Math_MulQ15(dy, (*playerMobileObject)->cachedSideY);
@@ -133,7 +133,7 @@ int16_t Targeting_ScoreCandidate(uint16_t objectIdx, int16_t a2, int playerIdx) 
 	extentAngle = (int)(((uint64_t)(unsigned int)(targetExtent >> scaleShift) << 8) + 128) / (unsigned int)forward;
 	if (extentAngle <= 0)
 		extentAngle = 1;
-	if (a2 == 0) {
+	if (narrowCone == 0) {
 		extentAngle *= 3;
 		if (extentAngle < 10)
 			extentAngle = 9;
@@ -247,7 +247,7 @@ void Targeting_DrawSceneObjectBoxes(void) {
 			craft = object->mobj->pCraft;
 			if (g_flightMissionState.locatePlayersEnabled == 0) {
 				playerIff = (uint16_t)g_players[g_localPlayer].team;
-				if (craft->iffVisibility[playerIff] == 0) {
+				if (craft->identifiedOrderByTeam[playerIff] == 0) {
 					craftTeam =
 						g_missionFlightGroups[g_objectTable[(uint16_t)objectIdx].flightGroupIdx].fg.team;
 					if (craftTeam == playerIff) {
@@ -393,12 +393,12 @@ void Targeting_ProjectObjectOrMissionPoint(unsigned int objOrMissionPointRef, ui
 		localSide = ModelMesh_GetCenterX(objectType, componentIdx);
 
 		pai_RotateLocalVectorToWorldScratch(object, localSide, localUp, localFwd);
-		worldlocx += g_rotatedX;
+		g_worldLocX += g_rotatedX;
 		worldlocy += g_rotatedY;
 		worldlocz += g_rotatedZ;
 	}
 
-	deltaX = worldlocx - g_players[g_localPlayer].viewState.savedTargetX;
+	deltaX = g_worldLocX - g_players[g_localPlayer].viewState.savedTargetX;
 	deltaY = worldlocy - g_players[g_localPlayer].viewState.savedTargetY;
 	deltaZ = worldlocz - g_players[g_localPlayer].viewState.savedTargetZ;
 	viewZ = TRANSFM2_CamMatDotRow2(deltaX, deltaY, deltaZ);
@@ -433,19 +433,19 @@ void Targeting_ComputeProjectedObjectExtent(uint16_t objectIdx, uint16_t* outWid
 	}
 
 	objectIndex = objectIdx;
-	worldlocx = g_objectTable[objectIndex].world_x;
+	g_worldLocX = g_objectTable[objectIndex].world_x;
 	worldlocy = g_objectTable[objectIndex].world_y;
 	worldlocz = g_objectTable[objectIndex].world_z;
-	trig2_ctop(cameraX - worldlocx, cameraY - worldlocy, cameraZ - worldlocz);
+	trig2_ctop(cameraX - g_worldLocX, cameraY - worldlocy, cameraZ - worldlocz);
 	if (trig2_polardistance < 0x80000) {
 		Mission_ResolveObjectOrMissionPointWorldLoc(objectIdx, 0);
-		deltaX = (worldlocx - cameraX) >> 4;
+		deltaX = (g_worldLocX - cameraX) >> 4;
 		deltaY = (worldlocy - cameraY) >> 4;
 		deltaZ = (worldlocz - cameraZ) >> 4;
 		distanceShift = 4;
 	} else {
 		Mission_ResolveObjectOrMissionPointWorldLoc(objectIdx, 0);
-		deltaX = (worldlocx - cameraX) >> 8;
+		deltaX = (g_worldLocX - cameraX) >> 8;
 		deltaY = (worldlocy - cameraY) >> 8;
 		deltaZ = (worldlocz - cameraZ) >> 8;
 		distanceShift = 8;

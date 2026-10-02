@@ -10,7 +10,7 @@ extern "C" {
 
 struct MusicCdTrackCache {
 	unsigned int unusedTrackZeroEndMsf;
-	unsigned int trackEndMsfByTrack[30];
+	unsigned int trackLengthMsfByTrack[30];
 };
 
 extern int g_musicCdPlaybackComplete;
@@ -26,7 +26,7 @@ int MusicCd_CloseDevice(void);
 int MusicCd_IsPlaybackComplete(void);
 uint32_t MusicCd_GetDeviceId(void);
 int MusicCd_MarkPlaybackComplete(void);
-int MusicCd_GetTrackEndTimeMs(int trackNumber);
+int MusicCd_GetTrackLengthMs(int trackNumber);
 int MusicCd_SetAuxVolume(unsigned int volume0To65535);
 int MusicCd_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fadeDurationMs);
 

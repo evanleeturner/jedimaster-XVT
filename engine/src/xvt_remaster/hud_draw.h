@@ -32,11 +32,11 @@ void XvtHudDraw_Fill(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, u
 void XvtHudDraw_TextFill(const XvtHudDraw* draw, const XvtFontAtlas* font, unsigned phase, XvtSnapRect rect,
 						 uint32_t color);
 /* FrameClipped with the layout's whole source size as the clip. */
-void XvtHudDraw_Frame(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, uint32_t color);
+void XvtHudDraw_Outline(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, uint32_t color);
 /* A one-pixel outline of rect, each edge cut to clip before it is filled; nothing for a rect without
  * positive size. */
-void XvtHudDraw_FrameClipped(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, XvtSnapRect clip,
-							 uint32_t color);
+void XvtHudDraw_OutlineClipped(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, XvtSnapRect clip,
+							   uint32_t color);
 /* Draws sprite role's part number state at the binding's position plus the offsets (mirrored, and
  * anchored at its right edge, when the binding is), a monochrome part tinted with the palette color of
  * its color index, clipped to the source size; nothing when state is past the binding's part count. */

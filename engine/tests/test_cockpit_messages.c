@@ -54,7 +54,7 @@ static void Start(void) {
 	g_flightTextColorIndex = FOREGROUND;
 	g_flightTextBgColor = BACKGROUND;
 	g_flightTextShadowEnabled = 0;
-	g_flightColorEscapeBypassChar = BYPASS;
+	g_flightTransparentColorIndex = BYPASS;
 	g_screenWidth = 640;
 	g_screenHeight = 480;
 
@@ -152,7 +152,7 @@ static void CheckLatchPlacesPane(void) {
 	XVT_ASSERT_INT_EQ(pane->placement.width, 120);
 	XVT_ASSERT_INT_EQ(pane->placement.height, 30);
 	XVT_ASSERT_INT_EQ(pane->timer_ticks, 100);
-	XVT_ASSERT_INT_EQ(pane->age_ticks, 9);
+	XVT_ASSERT_INT_EQ(pane->age_seconds, 9);
 	XVT_ASSERT_INT_EQ(pane->revealed_characters, 5);
 	XVT_ASSERT_INT_EQ(pane->glyph_count, 2);
 	/* A glyph captured relative to the origin (50, 60) moves by the origin minus the source point. */
@@ -165,7 +165,7 @@ static void CheckLatchPlacesPane(void) {
 	g_readyMessagePaneQueue[0].stateOrMessageId = READY_ID + 1;
 	g_readyMessagePaneQueue[0].ageSeconds = 15;
 	XvtCockpitMessages_Latch(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400, 120, 30);
-	XVT_ASSERT_INT_EQ(Exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].age_ticks, 3);
+	XVT_ASSERT_INT_EQ(Exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].age_seconds, 3);
 
 	/* Each pane takes its own live timer; an out-of-range pane is ignored. */
 	Message(3, 'S', 1);
@@ -288,7 +288,7 @@ static void CheckResets(void) {
 	const XvtCockpitState* state = Exported();
 	XVT_ASSERT_INT_EQ(state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
 	XVT_ASSERT_INT_EQ(state->alert.active, 0);
-	XVT_ASSERT_INT_EQ(state->loading.visible, 0);
+	XVT_ASSERT_INT_EQ(state->loading.progress_visible, 0);
 	XVT_ASSERT_INT_EQ(state->loading.text_visible, 1);
 	XVT_ASSERT_INT_EQ(state->loading.glyph_count, 1);
 
@@ -427,11 +427,11 @@ static void CheckProgress(void) {
 	Start();
 	XvtCockpitMessages_RecordProgress(3, 10, 20, 300, 8, 120);
 	const XvtCockpitLoading* loading = &Exported()->loading;
-	XVT_ASSERT_INT_EQ(loading->visible, 1);
-	XVT_ASSERT_INT_EQ(loading->placement.x, 10);
-	XVT_ASSERT_INT_EQ(loading->placement.y, 20);
-	XVT_ASSERT_INT_EQ(loading->placement.width, 300);
-	XVT_ASSERT_INT_EQ(loading->placement.height, 8);
+	XVT_ASSERT_INT_EQ(loading->progress_visible, 1);
+	XVT_ASSERT_INT_EQ(loading->progress_placement.x, 10);
+	XVT_ASSERT_INT_EQ(loading->progress_placement.y, 20);
+	XVT_ASSERT_INT_EQ(loading->progress_placement.width, 300);
+	XVT_ASSERT_INT_EQ(loading->progress_placement.height, 8);
 	XVT_ASSERT_INT_EQ(loading->progress_step, 3);
 	XVT_ASSERT_INT_EQ(loading->filled_width, 120);
 	uint64_t first = loading->generation;
@@ -445,7 +445,7 @@ static void CheckProgress(void) {
 	XvtCockpitMessages_EndLoadingText();
 	XvtCockpitMessages_BeginFlightFrame();
 	loading = &Exported()->loading;
-	XVT_ASSERT_INT_EQ(loading->visible, 0);
+	XVT_ASSERT_INT_EQ(loading->progress_visible, 0);
 	XVT_ASSERT_INT_EQ(loading->text_visible, 0);
 
 	/* ClearProgress hides the bar and clears the loading text. */
@@ -455,7 +455,7 @@ static void CheckProgress(void) {
 	XvtCockpitMessages_EndLoadingText();
 	XvtCockpitMessages_ClearProgress();
 	loading = &Exported()->loading;
-	XVT_ASSERT_INT_EQ(loading->visible, 0);
+	XVT_ASSERT_INT_EQ(loading->progress_visible, 0);
 	XVT_ASSERT_INT_EQ(loading->text_visible, 0);
 	XVT_ASSERT_INT_EQ(loading->glyph_count, 0);
 }

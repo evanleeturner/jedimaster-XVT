@@ -26,7 +26,7 @@ static struct {
 	XvtControllerOptions options, pending;
 	ControllerInstance instances[AERON_CONTROLLER_MAX];
 	uint32_t analog[XVT_CONTROLLER_MODEL_CAP];
-	bool pending_options, suspended, present, throttle_valid;
+	bool has_pending_options, suspended, present, throttle_valid;
 	int axes[3], menu_axes[3];
 	uint16_t holds[XVT_INPUT_ACTION_COUNT], throttle;
 	uint8_t menu_buttons, menu_hat;
@@ -175,14 +175,14 @@ void XvtControllerMapping_SetOptions(const XvtControllerOptions* options) {
 		return;
 	}
 	g_controller.pending = *options;
-	g_controller.pending_options = true;
+	g_controller.has_pending_options = true;
 }
 
 void XvtControllerMapping_ApplyPending(void) {
-	if (!g_controller.pending_options)
+	if (!g_controller.has_pending_options)
 		return;
 	XvtControllerMapping_Install(&g_controller.pending);
-	g_controller.pending_options = false;
+	g_controller.has_pending_options = false;
 }
 
 const XvtControllerOptions* XvtControllerMapping_Options(void) { return &g_controller.options; }
@@ -404,7 +404,7 @@ bool XvtControllerMapping_ThrottleSample(uint16_t* position, uint32_t* generatio
 	return g_controller.throttle_valid;
 }
 
-int XvtControllerMapping_Present(void) { return g_controller.present; }
+int XvtControllerMapping_IsModelConnected(void) { return g_controller.present; }
 
 int XvtControllerMapping_Axis(XvtInputAxis axis) { return (unsigned)axis < 3 ? g_controller.axes[axis] : 0; }
 
@@ -429,7 +429,7 @@ uint16_t XvtControllerMapping_ReadKey(void) {
 	return key;
 }
 
-void XvtControllerMapping_ReleaseCommands(void) {
+void XvtControllerMapping_DropCommands(void) {
 	g_controller.read = g_controller.write = 0;
 	memset(g_controller.holds, 0, sizeof g_controller.holds);
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {

@@ -111,7 +111,7 @@ int XvtFlightSim_UpdateEntity(int playerIdx) {
 						}
 						break;
 					case FLIGHT_KEY_ALT_B:
-						if (g_flight16bppBytesPerPixel == PALETTED_BYTES_PER_PIXEL) {
+						if (g_flightBytesPerPixel == PALETTED_BYTES_PER_PIXEL) {
 							g_flightBrightnessScaleQ8 += BRIGHTNESS_STEP_Q8;
 							if (g_flightBrightnessScaleQ8 == BRIGHTNESS_LIMIT_Q8)
 								g_flightBrightnessScaleQ8 = BRIGHTNESS_MIN_Q8;
@@ -196,7 +196,7 @@ int XvtFlightSim_UpdateEntity(int playerIdx) {
 	if (g_flightRuntimeStateInitialized > 1 && g_dormantFlightRegionSessionEarlyReturnFlag != 0)
 		return 1;
 
-	if (g_players[playerIdx].regionSessionId != 0) {
+	if (g_players[playerIdx].awaitingNewCraft != 0) {
 		if (g_flightSimSideEffectsSuppressed == 0) {
 			objectIndex = g_players[playerIdx].objectIndex;
 			if (objectIndex != -1 && g_objectTable[objectIndex].objectType == 0) {
@@ -327,7 +327,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 					if (mobileObject == NULL || mobileObject->pCraft == NULL)
 						continue;
 					if (g_players[playerIdx].savedObjectSignature == object->objectSignature &&
-						g_players[playerIdx].savedRegion == g_players[playerIdx].regionSessionId) {
+						g_players[playerIdx].savedRegion == g_players[playerIdx].awaitingNewCraft) {
 						if (mobileObject->simStateTimestamp > g_players[playerIdx].lockstepTimestamp) {
 							XvtFlightCheckpoint_RestorePlayer(playerIdx);
 							mobileObject->simStateTimestamp = g_players[playerIdx].lockstepTimestamp;
@@ -371,7 +371,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 				}
 
 				savedElapsedTicks = g_elapsedTicks;
-				savedSimStepScale = g_simStepScale;
+				savedSimStepScale = g_simStepsPerSecond;
 				if (g_players[playerIdx].objectIndex != -1) {
 					g_singleObjectUpdateOverrideIdx = g_players[playerIdx].objectIndex;
 					if (g_objectTable[g_singleObjectUpdateOverrideIdx].mobj != NULL) {
@@ -379,11 +379,11 @@ int XvtFlightSim_Advance(int targetGameTime) {
 
 						g_elapsedTicks = (uint16_t)(frame->timestamp - g_gameTime);
 						if (g_elapsedTicks == 0)
-							g_simStepScale = SIMULATION_TICKS_PER_SECOND;
+							g_simStepsPerSecond = SIMULATION_TICKS_PER_SECOND;
 						else
-							g_simStepScale = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
-						if (g_simStepScale == 0)
-							g_simStepScale = 1;
+							g_simStepsPerSecond = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
+						if (g_simStepsPerSecond == 0)
+							g_simStepsPerSecond = 1;
 						Flight_UpdateCraftSteeringAndSpeed();
 						Object_UpdateLifetimeAndMovement();
 						g_objectTable[g_singleObjectUpdateOverrideIdx].mobj->simStateTimestamp =
@@ -400,7 +400,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 						g_players[playerIdx].savedSpeed = object->mobj->speed;
 						g_players[playerIdx].savedSpeedRemainder = object->mobj->speedRemainder;
 						g_players[playerIdx].savedObjectSignature = object->objectSignature;
-						g_players[playerIdx].savedRegion = g_players[playerIdx].regionSessionId;
+						g_players[playerIdx].savedRegion = g_players[playerIdx].awaitingNewCraft;
 						XvtFlightCheckpoint_SavePlayer(playerIdx, frame->timestamp);
 					}
 					g_singleObjectUpdateOverrideIdx = -1;
@@ -410,11 +410,11 @@ int XvtFlightSim_Advance(int targetGameTime) {
 				if (!XvtFlightTiming_IsUnlocked() && g_elapsedTicks < MINIMUM_REPLAY_TICKS)
 					g_elapsedTicks = MINIMUM_REPLAY_TICKS;
 				if (g_elapsedTicks == 0)
-					g_simStepScale = SIMULATION_TICKS_PER_SECOND;
+					g_simStepsPerSecond = SIMULATION_TICKS_PER_SECOND;
 				else
-					g_simStepScale = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
-				if (g_simStepScale == 0)
-					g_simStepScale = 1;
+					g_simStepsPerSecond = (uint16_t)(SIMULATION_TICKS_PER_SECOND / g_elapsedTicks);
+				if (g_simStepsPerSecond == 0)
+					g_simStepsPerSecond = 1;
 
 				g_players[playerIdx].lockstepTimestamp = frame->timestamp;
 				g_replayInputs[playerIdx] = frame->input;
@@ -451,7 +451,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 			savedSimStepScale = g_sim.savedScale;
 			savedGameTime = g_sim.savedGameTime;
 			g_elapsedTicks = (uint16_t)savedElapsedTicks;
-			g_simStepScale = (uint16_t)savedSimStepScale;
+			g_simStepsPerSecond = (uint16_t)savedSimStepScale;
 			connectedFlag = g_players[playerIdx].connectedFlag;
 			g_gameTime = savedGameTime;
 			g_flightSfxSideEffectGate = 0;
@@ -490,11 +490,11 @@ XvtFlightStepResult XvtFlightSim_StepToTime(int targetGameTime) {
 			g_elapsedTicks = (uint16_t)(targetGameTime - gameTime);
 			if (g_elapsedTicks < MINIMUM_SIM_STEP_TICKS)
 				break;
-			if ((int)(uint16_t)g_elapsedTicks > XvtFlightTiming_SimulationMaximum())
-				g_elapsedTicks = (uint16_t)XvtFlightTiming_SimulationMaximum();
-			g_simStepScale = (uint16_t)(SIMULATION_TICKS_PER_SECOND / (int)(uint16_t)g_elapsedTicks);
-			if (g_simStepScale == 0)
-				g_simStepScale = MINIMUM_SIM_STEP_TICKS;
+			if ((int)(uint16_t)g_elapsedTicks > XvtFlightTiming_MaximumStepTicks())
+				g_elapsedTicks = (uint16_t)XvtFlightTiming_MaximumStepTicks();
+			g_simStepsPerSecond = (uint16_t)(SIMULATION_TICKS_PER_SECOND / (int)(uint16_t)g_elapsedTicks);
+			if (g_simStepsPerSecond == 0)
+				g_simStepsPerSecond = MINIMUM_SIM_STEP_TICKS;
 			g_gameTime = gameTime;
 			g_sim.stepGameTime = gameTime;
 			XvtFlightTiming_BeginAdvance(g_elapsedTicks);

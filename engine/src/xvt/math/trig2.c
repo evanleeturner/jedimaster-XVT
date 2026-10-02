@@ -138,7 +138,7 @@ int trig2_divisorhilo = 0;
 uint16_t trig2_theta = 0;
 
 // GLOBAL: XVT 0xA080F0
-uint16_t pitchQ16 = 0;
+uint16_t trig2_pitch = 0;
 
 // GLOBAL: XVT 0xA080FE
 int16_t trig2_angleplane = 0;
@@ -459,12 +459,12 @@ void trig2_ctop(int dx, int dy, int dz) {
 
 	trig2_calcangleplanedistance(trig2_polardistance, trig2_zoffset);
 	angle = trig2_angleplane;
-	pitchQ16 = angle;
+	trig2_pitch = angle;
 	if (trig2_signz != 0) {
 		angle = (int16_t)-trig2_angleplane;
 	}
-	pitchQ16 = angle;
-	pitchQ16 = (int16_t)(0x4000 - angle);
+	trig2_pitch = angle;
+	trig2_pitch = (int16_t)(0x4000 - angle);
 }
 
 // FUNCTION: XVT 0x46A9E0

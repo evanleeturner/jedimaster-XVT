@@ -105,7 +105,7 @@ int FlightNet_BroadcastPlayerAbort(int playerSlot);
 int FlightNet_FindPilotNetworkPlayerIndex(int playerIdx);
 void FlightNet_MarkPilotNetworkPlayerLeft(int playerSlot);
 void FlightNet_ProcessIncomingPackets(void);
-int32_t FlightNet_SampleAndSendInput(void);
+int32_t FlightNet_SampleLocalInput(void);
 void FlightNet_InitMissionStartAckState(void);
 int FlightNet_ShouldSendWorldMessage(int inputTimestamp);
 void FlightNet_BroadcastWorldMessage(int inputTimestamp);

@@ -177,13 +177,13 @@ int FrontendScreen_PushState(FrontendScreenUpdateFn updateFn, RECT* screenRect) 
 		displayBpp = g_frontState.displayBpp;
 		switch (displayBpp) {
 			case 8:
-				g_frontState.screenStates[slot].savedImage.pixelCount = width * height;
+				g_frontState.screenStates[slot].savedImage.pixelDataBytes = width * height;
 				g_frontState.screenStates[slot].savedImage.isCompressed = 0;
 				FrontImage_CompressRLE(&g_frontState.screenStates[slot].savedImage);
 				break;
 
 			case 16:
-				g_frontState.screenStates[slot].savedImage.pixelCount = 2 * width * height;
+				g_frontState.screenStates[slot].savedImage.pixelDataBytes = 2 * width * height;
 				g_frontState.screenStates[slot].savedImage.isCompressed = 0;
 				break;
 		}
@@ -195,7 +195,7 @@ int FrontendScreen_PushState(FrontendScreenUpdateFn updateFn, RECT* screenRect) 
 		g_frontState.screenStates[slot].savedImage.width = 0;
 		g_frontState.screenStates[slot].savedImage.height = 0;
 		g_frontState.screenStates[slot].savedImage.pixels = NULL;
-		g_frontState.screenStates[slot].savedImage.pixelCount = 0;
+		g_frontState.screenStates[slot].savedImage.pixelDataBytes = 0;
 		FrontendDraw_RectAssign(&rect, 0, 0, 639, 479);
 		FrontendDisplay_SetScreenClipRect640x480(&rect);
 	}
@@ -227,7 +227,7 @@ void FrontendScreen_PopState(void) {
 	slot = g_frontState.screenStackTop - 1;
 	FrontendDraw_RectAssign(&rect, 0, 0, 640, 480);
 	FrontendDisplay_SetScreenClipRect640x480(&rect);
-	if (g_frontState.screenStates[slot].savedImage.pixelCount > 0) {
+	if (g_frontState.screenStates[slot].savedImage.pixelDataBytes > 0) {
 
 #ifdef XVT_MODERN
 		XvtRenderFrontend_Screen(slot, 1);

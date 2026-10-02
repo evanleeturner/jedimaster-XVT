@@ -36,7 +36,7 @@ static void Start(void) {
 	g_flightTextColorIndex = FOREGROUND;
 	g_flightTextBgColor = BACKGROUND;
 	g_flightTextShadowEnabled = 0;
-	g_flightColorEscapeBypassChar = BYPASS;
+	g_flightTransparentColorIndex = BYPASS;
 	XvtCockpitPages_Reset();
 	XvtCockpitPages_BeginFrame();
 }

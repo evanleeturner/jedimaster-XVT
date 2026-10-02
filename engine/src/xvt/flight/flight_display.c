@@ -90,7 +90,7 @@ void FlightDisplay_ConfigureResolutionState(void) {
 			g_surfacePitch = FlightDisplay_GetPrimarySurfacePitch();
 			g_projScaleInt = 256;
 			g_projScaleHalfInt = 128;
-			perspShift = 8;
+			g_perspectiveShift = 8;
 			g_hudCockpitResolutionDirectory[2] = '3';
 			g_hudCockpitResolutionDirectory[3] = '2';
 			g_projAspectY = 0;
@@ -103,7 +103,7 @@ void FlightDisplay_ConfigureResolutionState(void) {
 			g_surfacePitch = FlightDisplay_GetPrimarySurfacePitch();
 			g_projScaleInt = 512;
 			g_projScaleHalfInt = 256;
-			perspShift = 9;
+			g_perspectiveShift = 9;
 			g_hudCockpitResolutionDirectory[2] = '6';
 			g_hudCockpitResolutionDirectory[3] = '4';
 			g_projAspectY = 0;
@@ -116,7 +116,7 @@ void FlightDisplay_ConfigureResolutionState(void) {
 			g_surfacePitch = FlightDisplay_GetPrimarySurfacePitch();
 			g_projScaleInt = 512;
 			g_projScaleHalfInt = 256;
-			perspShift = 9;
+			g_perspectiveShift = 9;
 			g_hudCockpitResolutionDirectory[2] = '4';
 			g_hudCockpitResolutionDirectory[3] = '8';
 			g_projAspectY = 0;
@@ -130,7 +130,7 @@ void FlightDisplay_ConfigureResolutionState(void) {
 			g_surfacePitch = FlightDisplay_GetPrimarySurfacePitch();
 			g_projScaleInt = 256;
 			g_projScaleHalfInt = 128;
-			perspShift = 8;
+			g_perspectiveShift = 8;
 			g_hudCockpitResolutionDirectory[2] = '3';
 			g_hudCockpitResolutionDirectory[3] = '2';
 			g_projAspectY = 0;
@@ -181,95 +181,102 @@ int FlightDisplay_Init(void) {
 			return FlightDisplay_CleanupAndReportError(2);
 	}
 	if (g_useHardware3D != 0)
-		g_flight16bppBytesPerPixel = 2;
+		g_flightBytesPerPixel = 2;
 	if (g_flightFullscreen != 0) {
-		result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, width, height,
-															8 * g_flight16bppBytesPerPixel);
+		result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, g_displayModeWidth,
+															g_displayModeHeight, 8 * g_flightBytesPerPixel);
 		if (result != DX_DD_OK) {
-			if (width == 320) {
-				width = 512;
-				height = 384;
-				result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, width, height,
-																	8 * g_flight16bppBytesPerPixel);
+			if (g_displayModeWidth == 320) {
+				g_displayModeWidth = 512;
+				g_displayModeHeight = 384;
+				result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
+					g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight, 8 * g_flightBytesPerPixel);
 				if (result != DX_DD_OK) {
-					width = 640;
-					height = 480;
-					result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, width, height,
-																		8 * g_flight16bppBytesPerPixel);
+					g_displayModeWidth = 640;
+					g_displayModeHeight = 480;
+					result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
+						g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight,
+						8 * g_flightBytesPerPixel);
 					if (result != DX_DD_OK) {
-						width = 320;
-						height = 240;
+						g_displayModeWidth = 320;
+						g_displayModeHeight = 240;
 					}
 				}
-			} else if (width == 512) {
-				width = 640;
-				height = 480;
-				result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, width, height,
-																	8 * g_flight16bppBytesPerPixel);
+			} else if (g_displayModeWidth == 512) {
+				g_displayModeWidth = 640;
+				g_displayModeHeight = 480;
+				result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
+					g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight, 8 * g_flightBytesPerPixel);
 				if (result != DX_DD_OK) {
-					width = 512;
-					height = 384;
+					g_displayModeWidth = 512;
+					g_displayModeHeight = 384;
 				}
 			}
-			if (result != DX_DD_OK && g_flight16bppBytesPerPixel == 2) {
-				g_flight16bppBytesPerPixel = 1;
-				result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, width, height,
-																	8 * g_flight16bppBytesPerPixel);
+			if (result != DX_DD_OK && g_flightBytesPerPixel == 2) {
+				g_flightBytesPerPixel = 1;
+				result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
+					g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight, 8 * g_flightBytesPerPixel);
 				if (result != DX_DD_OK) {
-					if (width == 320) {
-						width = 512;
-						height = 384;
-						result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, width, height,
-																			8 * g_flight16bppBytesPerPixel);
+					if (g_displayModeWidth == 320) {
+						g_displayModeWidth = 512;
+						g_displayModeHeight = 384;
+						result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
+							g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight,
+							8 * g_flightBytesPerPixel);
 						if (result != DX_DD_OK) {
-							width = 640;
-							height = 480;
+							g_displayModeWidth = 640;
+							g_displayModeHeight = 480;
 							result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
-								g_flightDirectDraw, width, height, 8 * g_flight16bppBytesPerPixel);
+								g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight,
+								8 * g_flightBytesPerPixel);
 							if (result != DX_DD_OK) {
-								width = 320;
-								height = 240;
+								g_displayModeWidth = 320;
+								g_displayModeHeight = 240;
 							}
 						}
-					} else if (width == 512) {
-						width = 640;
-						height = 480;
-						result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, width, height,
-																			8 * g_flight16bppBytesPerPixel);
+					} else if (g_displayModeWidth == 512) {
+						g_displayModeWidth = 640;
+						g_displayModeHeight = 480;
+						result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
+							g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight,
+							8 * g_flightBytesPerPixel);
 						if (result != DX_DD_OK) {
-							width = 512;
-							height = 384;
+							g_displayModeWidth = 512;
+							g_displayModeHeight = 384;
 						}
 					}
 				}
-			} else if (result != DX_DD_OK && g_flight16bppBytesPerPixel == 1) {
-				g_flight16bppBytesPerPixel = 2;
-				result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, width, height,
-																	8 * g_flight16bppBytesPerPixel);
+			} else if (result != DX_DD_OK && g_flightBytesPerPixel == 1) {
+				g_flightBytesPerPixel = 2;
+				result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
+					g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight, 8 * g_flightBytesPerPixel);
 				if (result != DX_DD_OK) {
-					if (width == 320) {
-						width = 512;
-						height = 384;
-						result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, width, height,
-																			8 * g_flight16bppBytesPerPixel);
+					if (g_displayModeWidth == 320) {
+						g_displayModeWidth = 512;
+						g_displayModeHeight = 384;
+						result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
+							g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight,
+							8 * g_flightBytesPerPixel);
 						if (result != DX_DD_OK) {
-							width = 640;
-							height = 480;
+							g_displayModeWidth = 640;
+							g_displayModeHeight = 480;
 							result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
-								g_flightDirectDraw, width, height, 8 * g_flight16bppBytesPerPixel);
+								g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight,
+								8 * g_flightBytesPerPixel);
 							if (result != DX_DD_OK) {
-								width = 320;
-								height = 240;
+								g_displayModeWidth = 320;
+								g_displayModeHeight = 240;
 							}
 						}
-					} else if (width == 512) {
-						width = 640;
-						height = 480;
-						result = g_flightDirectDraw->lpVtbl->SetDisplayMode(g_flightDirectDraw, width, height,
-																			8 * g_flight16bppBytesPerPixel);
+					} else if (g_displayModeWidth == 512) {
+						g_displayModeWidth = 640;
+						g_displayModeHeight = 480;
+						result = g_flightDirectDraw->lpVtbl->SetDisplayMode(
+							g_flightDirectDraw, g_displayModeWidth, g_displayModeHeight,
+							8 * g_flightBytesPerPixel);
 						if (result != DX_DD_OK) {
-							width = 512;
-							height = 384;
+							g_displayModeWidth = 512;
+							g_displayModeHeight = 384;
 						}
 					}
 				}
@@ -278,7 +285,7 @@ int FlightDisplay_Init(void) {
 				return FlightDisplay_CleanupAndReportError(3);
 		}
 	}
-	if (g_flight16bppBytesPerPixel != 2)
+	if (g_flightBytesPerPixel != 2)
 		g_useHardware3D = 0;
 
 	g_flightPrimaryPitch[1] = 1;
@@ -310,7 +317,7 @@ int FlightDisplay_Init(void) {
 		if (result != DX_DD_OK)
 			return FlightDisplay_CleanupAndReportError(4);
 		g_pixelFormatCode = 565;
-		if (g_flight16bppBytesPerPixel != 2)
+		if (g_flightBytesPerPixel != 2)
 			g_pixelFormatCode = 8;
 		memset(&surfaceDesc, 0, sizeof(surfaceDesc));
 		surfaceDesc.dwSize = sizeof(surfaceDesc);
@@ -318,10 +325,10 @@ int FlightDisplay_Init(void) {
 		g_flightPrimaryPitch[0] = surfaceDesc.lPitch;
 		g_surfacePitch = surfaceDesc.lPitch;
 		if ((surfaceDesc.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) != 0) {
-			g_flight16bppBytesPerPixel = 1;
+			g_flightBytesPerPixel = 1;
 			g_pixelFormatCode = 8;
 		} else if ((surfaceDesc.ddpfPixelFormat.dwFlags & DDPF_RGB) != 0) {
-			g_flight16bppBytesPerPixel = 2;
+			g_flightBytesPerPixel = 2;
 			g_pixelFormatCode = 565;
 			if ((surfaceDesc.ddpfPixelFormat.dwGBitMask & 0x400) == 0)
 				g_pixelFormatCode = 555;
@@ -369,16 +376,16 @@ int FlightDisplay_Init(void) {
 		g_flightPrimarySurface->lpVtbl->GetSurfaceDesc(g_flightPrimarySurface, &surfaceDesc);
 		g_flightPrimaryPitch[0] = surfaceDesc.lPitch;
 		if ((surfaceDesc.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) != 0) {
-			g_flight16bppBytesPerPixel = 1;
+			g_flightBytesPerPixel = 1;
 			g_pixelFormatCode = 8;
 		} else if ((surfaceDesc.ddpfPixelFormat.dwFlags & DDPF_RGB) != 0) {
-			g_flight16bppBytesPerPixel = 2;
+			g_flightBytesPerPixel = 2;
 			if ((surfaceDesc.ddpfPixelFormat.dwGBitMask & 0x400) != 0)
 				g_pixelFormatCode = 565;
 			else
 				g_pixelFormatCode = 555;
 		} else {
-			g_flight16bppBytesPerPixel = 1;
+			g_flightBytesPerPixel = 1;
 			g_pixelFormatCode = 8;
 		}
 		if (g_flightPrimarySurface != NULL) {
@@ -388,7 +395,7 @@ int FlightDisplay_Init(void) {
 	}
 
 	if (g_flightFullscreen != 0) {
-		if (g_flight16bppBytesPerPixel == 1) {
+		if (g_flightBytesPerPixel == 1) {
 			for (paletteIndex = 0; paletteIndex < 256; ++paletteIndex) {
 				paletteEntries[paletteIndex].red = (uint8_t)paletteIndex;
 				paletteEntries[paletteIndex].green = (uint8_t)paletteIndex;
@@ -661,8 +668,8 @@ int FlightDisplay_BlitRenderSurface(void) {
 		effects.dwSize = sizeof(effects);
 		effects.dwROP = 0x00CC0020;
 		do {
-			destinationRect[0] = (unsigned int)(width - g_surfaceWidth) >> 1;
-			destinationRect[1] = (unsigned int)(height - g_surfaceHeight) >> 1;
+			destinationRect[0] = (unsigned int)(g_displayModeWidth - g_surfaceWidth) >> 1;
+			destinationRect[1] = (unsigned int)(g_displayModeHeight - g_surfaceHeight) >> 1;
 			destinationRect[2] = g_surfaceWidth + destinationRect[0];
 			destinationRect[3] = g_surfaceHeight + destinationRect[1];
 			sourceRect[0] = 0;

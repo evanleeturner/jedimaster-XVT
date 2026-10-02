@@ -43,15 +43,15 @@ uint16_t static_laserstaticcollide(uint16_t sourceObjIdx, uint16_t staticObjIdx)
 
 	staticObjectType = g_objectTable[staticObjIdx].objectType;
 	Mission_ResolveObjectOrMissionPointWorldLoc(staticObjIdx, 0);
-	g_collisionSweepStartX = worldlocx;
-	g_collisionSweepEndX = worldlocx;
+	g_collisionSweepStartX = g_worldLocX;
+	g_collisionSweepEndX = g_worldLocX;
 	g_collisionSweepStartY = worldlocy;
 	g_collisionSweepEndY = worldlocy;
 	g_collisionSweepStartZ = worldlocz;
 	g_collisionSweepEndZ = worldlocz;
 
 	hitRadius = g_modelTypeTable[staticObjectType].maxBoundsExtent;
-	dx = g_collisionProbeWorldX - worldlocx;
+	dx = g_collisionProbeWorldX - g_worldLocX;
 	if (dx < 0)
 		dx = -dx;
 	if (dx > MAX_DISTANCE)

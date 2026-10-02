@@ -22,7 +22,7 @@ struct BitmapFont {
 					   ///< runtime consumer is identified.
 };
 
-typedef uint16_t GlyphScratchBuffer[65536];
+typedef uint16_t TextFadeColorCache[65536];
 
 extern int g_activeTextFieldId;
 

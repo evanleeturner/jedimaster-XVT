@@ -56,7 +56,7 @@ struct MeshDescriptor {
 	OptVector boxMin;
 	OptVector boxMax;
 	int targetId;
-	OptVector target;
+	OptVector targetPoint;
 };
 
 struct ModelMeshObjectTypeCache {
@@ -104,7 +104,7 @@ int ModelMesh_GetComponentFocusY(int modelType, int meshIndex);
 int ModelMesh_GetComponentFocusZ(int modelType, int meshIndex);
 int ModelMesh_GetComponentMaxExtent(int modelType, int meshIndex);
 int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex);
-int ModelMesh_HasExplosionType1(int modelType, int meshIndex);
+int ModelMesh_HasExplosionTypeBit0(int modelType, int meshIndex);
 float* ModelMesh_GetRotScaleData(int modelType, int meshIndex);
 OptNode* ModelMesh_FindNthHardpointNodeRecursive(OptNode* node, OptimizedPolyObject* model,
 												 int hardpointIndex);

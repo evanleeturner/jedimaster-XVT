@@ -46,7 +46,7 @@ struct GameConfig {
 	char lastPilotName[13];
 	uint8_t reservedAfterLastPilotName;
 	char password[16];
-	uint8_t asyncFlag;
+	uint8_t internetPlay;
 	uint8_t serverUpdateRate;
 	uint8_t sfxExteriorEnabled;
 	uint8_t sfxInteriorEnabled;
@@ -91,7 +91,7 @@ typedef char xvt_size_GameConfig[(sizeof(GameConfig) == 529) ? 1 : -1];
 extern GameConfig g_gameConfig;
 extern int g_configConnectionTypeEditable;
 
-int Config_OptionsDatapadUpdate(int frameState);
+int Config_OptionsDatapadUpdate(int frameCounter);
 void Config_DrawVideoOptionRows(void);
 void Config_DrawScreenResolutionOptionRow(int configIndex);
 void Config_DrawWindowSizeOptionRow(int configIndex);
@@ -130,7 +130,7 @@ void Config_JoystickRemapScreen(void);
 int Config_LoadJoystickActionDictionary(void);
 uint8_t Config_ReadJoystickActionPickerKey(void);
 void Config_DrawCustomTauntsPage(void);
-int Config_CreditsScreen(int frameState);
+int Config_CreditsScreen(int frameCounter);
 
 #ifdef __cplusplus
 }

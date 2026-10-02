@@ -45,7 +45,8 @@ int MusicCd_Initialize(void) {
 	if (g_musicCdMciDeviceId != 0) {
 		mciSendCommandA(g_musicCdMciDeviceId, MCI_CLOSE, 0, NULL);
 		g_musicCdMciDeviceId = 0;
-		memset(g_musicCdTrackCache.trackEndMsfByTrack, 0, sizeof(g_musicCdTrackCache.trackEndMsfByTrack));
+		memset(g_musicCdTrackCache.trackLengthMsfByTrack, 0,
+			   sizeof(g_musicCdTrackCache.trackLengthMsfByTrack));
 		g_musicCdCurrentTrack = 0;
 		g_musicCdPlaybackComplete = 0;
 	}
@@ -120,7 +121,7 @@ int MusicCd_Initialize(void) {
 					g_musicCdMciDeviceId = 0;
 					return 0;
 				}
-				g_musicCdTrackCache.trackEndMsfByTrack[trackNumber - 1] =
+				g_musicCdTrackCache.trackLengthMsfByTrack[trackNumber - 1] =
 					(unsigned int)parameters.statusParameters.dwReturn;
 				++trackNumber;
 			} while (trackCount >= trackNumber);
@@ -149,7 +150,7 @@ int MusicCd_PlayTrackFromTime(int trackNumber, int startMinute, int startSecond)
 
 	memset(&parameters, 0, sizeof(parameters));
 	parameters.from = MCI_MAKE_TMSF(trackNumber, startMinute, startSecond, 0);
-	trackEndMsf = g_musicCdTrackCache.trackEndMsfByTrack[trackNumber - 1];
+	trackEndMsf = g_musicCdTrackCache.trackLengthMsfByTrack[trackNumber - 1];
 	parameters.callback = g_flightMainWindowHandle;
 	toTime = MCI_MAKE_TMSF(trackNumber, MCI_MSF_MINUTE(trackEndMsf), MCI_MSF_SECOND(trackEndMsf),
 						   MCI_MSF_FRAME(trackEndMsf));
@@ -198,7 +199,7 @@ int MusicCd_CloseDevice(void) {
 	}
 	mciSendCommandA(g_musicCdMciDeviceId, MCI_CLOSE, 0, NULL);
 	g_musicCdMciDeviceId = 0;
-	memset(g_musicCdTrackCache.trackEndMsfByTrack, 0, sizeof(g_musicCdTrackCache.trackEndMsfByTrack));
+	memset(g_musicCdTrackCache.trackLengthMsfByTrack, 0, sizeof(g_musicCdTrackCache.trackLengthMsfByTrack));
 	g_musicCdCurrentTrack = 0;
 	g_musicCdPlaybackComplete = 0;
 
@@ -245,7 +246,7 @@ int MusicCd_MarkPlaybackComplete(void) {
 }
 
 // FUNCTION: XVT 0x4A5340
-int MusicCd_GetTrackEndTimeMs(int trackNumber) {
+int MusicCd_GetTrackLengthMs(int trackNumber) {
 	unsigned int trackEndMsf;
 
 	if (g_musicCdMciDeviceId == 0) {
@@ -255,7 +256,7 @@ int MusicCd_GetTrackEndTimeMs(int trackNumber) {
 		return 0;
 	}
 
-	trackEndMsf = g_musicCdTrackCache.trackEndMsfByTrack[trackNumber - 1];
+	trackEndMsf = g_musicCdTrackCache.trackLengthMsfByTrack[trackNumber - 1];
 	return MCI_MSF_FRAME(trackEndMsf) * 1000 / 75 +
 		   1000 * (MCI_MSF_SECOND(trackEndMsf) + 60 * MCI_MSF_MINUTE(trackEndMsf));
 }
@@ -267,8 +268,8 @@ int MusicCd_SetAuxVolume(unsigned int volume0To65535) { return CDAudio_SetAuxVol
 int MusicCd_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fadeDurationMs) {
 	int fadeUp;
 	unsigned int stepDelayMs;
-	uint32_t previousTick;
-	int currentTick;
+	uint32_t previousTimeMs;
+	int currentTimeMs;
 	unsigned int nextVolume;
 
 	if (g_musicCdMciDeviceId == 0) {
@@ -285,10 +286,10 @@ int MusicCd_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fa
 		stepDelayMs = (fadeDurationMs << 8) / (toVolume - fromVolume);
 	}
 
-	previousTick = timeGetTime();
+	previousTimeMs = timeGetTime();
 	while (1) {
-		currentTick = timeGetTime();
-		if ((int)(previousTick + stepDelayMs) < currentTick) {
+		currentTimeMs = timeGetTime();
+		if ((int)(previousTimeMs + stepDelayMs) < currentTimeMs) {
 			if (fadeUp != 0) {
 				nextVolume = fromVolume + 256;
 				if (nextVolume > 65535) {
@@ -304,7 +305,7 @@ int MusicCd_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fa
 				}
 			}
 			MusicCd_SetAuxVolume(fromVolume);
-			previousTick = currentTick;
+			previousTimeMs = currentTimeMs;
 		}
 		if (fadeUp != 0) {
 			if (toVolume <= fromVolume) {

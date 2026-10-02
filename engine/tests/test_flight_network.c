@@ -75,11 +75,11 @@ static void World(int host) {
 	g_flightNetWorldChecksumResetAccumTicks = 0;
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(SECOND_US);
-	Time_ResetFrameDeltaClocks();
+	Time_ResetElapsedTicks();
 	XvtResync_Reset();
 	XvtFlightNetwork_Reset();
-	XvtFlightNetwork_CloseSession();
-	XvtFlightNetwork_BeginMission();
+	XvtFlightNetwork_ClearCookies();
+	XvtFlightNetwork_ResetMission();
 	XvtFlightNetwork_ClearRecoveryRequest();
 	XvtFlightCheckpoint_Begin(0x01);
 }
@@ -88,7 +88,7 @@ static void World(int host) {
 static uint32_t AgreeCookie(void) {
 	int host = g_netSession.localIsHost;
 	g_netSession.localIsHost = 1;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeOptions(), 1);
 	g_netSession.localIsHost = host;
 	XVT_ASSERT_TRUE(XvtFlightNetwork_Cookie() != 0);
 	return XvtFlightNetwork_Cookie();
@@ -141,14 +141,14 @@ static void CheckCookie(void) {
 	XVT_ASSERT_TRUE(third != first && third != second);
 	/* CloseSession forgets both: the counter starts over, so the cookie after it is the one after the
 	 * earlier CloseSession. */
-	XvtFlightNetwork_CloseSession();
+	XvtFlightNetwork_ClearCookies();
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Cookie(), 0);
 	XVT_ASSERT_INT_EQ(AgreeCookie(), first);
 
 	/* A client flying alone takes no cookie of its own. */
-	XvtFlightNetwork_CloseSession();
+	XvtFlightNetwork_ClearCookies();
 	g_netSession.localIsHost = 0;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeOptions(), 1);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Cookie(), 0);
 }
 
@@ -160,7 +160,7 @@ static void CheckOptionsAlone(void) {
 	for (int i = 0; i < 4; ++i)
 		snprintf(g_gameConfig.taunts[i], sizeof g_gameConfig.taunts[i], "taunt %d", i);
 	memset(g_playerTauntText, 0, sizeof g_playerTauntText);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeOptions(), 1);
 	XVT_ASSERT_INT_EQ(g_players[0].network.flightResolutionMode, 2);
 	XVT_ASSERT_INT_EQ(g_players[0].pilotRating, 1234);
 	XVT_ASSERT_INT_EQ(memcmp(g_playerTauntText[0], g_gameConfig.taunts, sizeof g_gameConfig.taunts), 0);
@@ -170,7 +170,7 @@ static void CheckStartAlone(void) {
 	World(1);
 	g_gameTime = 400;
 	g_serverTickTime = 400;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Start(), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_WaitForMissionStart(), 1);
 	XVT_ASSERT_INT_EQ(g_gameTime, 0);
 	XVT_ASSERT_INT_EQ(g_serverTickTime, 0);
 }
@@ -178,27 +178,27 @@ static void CheckStartAlone(void) {
 static void CheckSession(void) {
 	/* A host expecting no players is done at once; a client joining a flight in progress too. */
 	World(1);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_BeginSession(0, 0), XVT_FLIGHT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Session(), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_BeginRosterExchange(0, 0), XVT_FLIGHT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeRoster(), 1);
 	World(0);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_BeginSession(2, 1), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_BeginRosterExchange(2, 1), 1);
 
 	/* A host waiting for two players gives up after 60 seconds without a packet. */
 	World(1);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_BeginSession(2, 0), XVT_FLIGHT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Session(), XVT_FLIGHT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_BeginRosterExchange(2, 0), XVT_FLIGHT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeRoster(), XVT_FLIGHT_NETWORK_PENDING);
 	XvtTime_AdvanceHostClock(59 * SECOND_US);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Session(), XVT_FLIGHT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeRoster(), XVT_FLIGHT_NETWORK_PENDING);
 	XvtTime_AdvanceHostClock(2 * SECOND_US);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Session(), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeRoster(), 0);
 
 	/* So does a client waiting for the roster. */
 	World(0);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_BeginSession(2, 0), XVT_FLIGHT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_BeginRosterExchange(2, 0), XVT_FLIGHT_NETWORK_PENDING);
 	XvtTime_AdvanceHostClock(59 * SECOND_US);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Session(), XVT_FLIGHT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeRoster(), XVT_FLIGHT_NETWORK_PENDING);
 	XvtTime_AdvanceHostClock(2 * SECOND_US);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Session(), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ExchangeRoster(), 0);
 }
 
 static void CheckRecoveryFlags(void) {
@@ -257,7 +257,7 @@ static void CheckBeginMission(void) {
 	World(1);
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Push(XVT_QUEUE_PENDING, "p", 1), 1);
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Push(XVT_QUEUE_REPLAY, "r", 1), 1);
-	XvtFlightNetwork_BeginMission();
+	XvtFlightNetwork_ResetMission();
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_REPLAY), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Outgoing(), 0);
@@ -736,6 +736,6 @@ int main(void) {
 	CheckSendWorldRefusals();
 	CheckChecksumFlag();
 	World(0);
-	XvtFlightNetwork_CloseSession();
+	XvtFlightNetwork_ClearCookies();
 	return 0;
 }

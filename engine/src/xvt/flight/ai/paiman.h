@@ -61,7 +61,7 @@ int16_t paiman_zoommaneuver(void);
 void paiman_initdivemaneuver(void);
 int16_t paiman_divemaneuver(void);
 void paiman_initsplitsdivemaneuver(void);
-int16_t paiman_splitsmaneuver_2(void);
+int16_t paiman_splitsdivemaneuver(void);
 void paiman_initspeedawaymaneuver(void);
 int16_t paiman_speedawaymaneuver(void);
 void paiman_SetupSpeedAwayTurn(unsigned int objectIdx);

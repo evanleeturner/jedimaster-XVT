@@ -129,8 +129,8 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 			directPlayCaps.dwSize = sizeof(directPlayCaps);
 			g_netSession.dplayInterface->lpVtbl->GetCaps(g_netSession.dplayInterface, &directPlayCaps, 0);
 		}
-		strncpy(g_netSession.localPlayerInfo.sessionName, sessionName,
-				sizeof(g_netSession.localPlayerInfo.sessionName));
+		strncpy(g_netSession.localPlayerInfo.playerInfo, sessionName,
+				sizeof(g_netSession.localPlayerInfo.playerInfo));
 		strncpy(g_netSession.localPlayerInfo.playerName, pilotName,
 				sizeof(g_netSession.localPlayerInfo.playerName));
 		g_netSession.players[0] = g_netSession.localPlayerInfo;
@@ -166,7 +166,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 	NetSession_SendPacket(g_netSession.hostDplayId, (unsigned int*)&g_netSessionScratchPacket, 4);
 
 #ifdef XVT_MODERN
-	return XvtFlightNetwork_BeginSession(numHumanPlayers, inProgressLaunch);
+	return XvtFlightNetwork_BeginRosterExchange(numHumanPlayers, inProgressLaunch);
 #else
 	if (NetSession_IsLocalHost() != 0 && numHumanPlayers != 0) {
 		while (receivedPlayerCount != 0) {
@@ -251,9 +251,9 @@ int AERON_DXAPI NetSession_EnumPlayersCallback(DPID dplayId, uint32_t playerType
 		return 0;
 	}
 	if (PilotData_HasNetworkPlayerDpid(dplayId) != 0) {
-		strncpy(g_netSession.players[g_netSession.playerCount].sessionName, nameInfo->lpszLongNameA, 16);
+		strncpy(g_netSession.players[g_netSession.playerCount].playerInfo, nameInfo->lpszLongNameA, 16);
 		strncpy(g_netSession.players[g_netSession.playerCount].playerName, nameInfo->lpszShortNameA, 16);
-		nameEnd = &g_netSession.players[g_netSession.playerCount].sessionName[15];
+		nameEnd = &g_netSession.players[g_netSession.playerCount].playerInfo[15];
 		*nameEnd = '\0';
 		nameEnd = &g_netSession.players[g_netSession.playerCount].playerName[15];
 		*nameEnd = '\0';
@@ -341,7 +341,7 @@ void NetSession_PumpIncomingPackets(void) {
 		packetSize = wireSize - sizeof(wirePacket.header);
 		hasLength = packetType < NET_PACKET_RESYNC_CHECKSUMS || packetType > NET_PACKET_RESYNC_CHUNK;
 		if (hasLength && !(broadcastChannel && groupChannel) &&
-			NetSession_ExitStub(packetType) == 0 && packetSize >= sizeof(uint16_t)) {
+			NetSession_GetFixedPayloadSize(packetType) == 0 && packetSize >= sizeof(uint16_t)) {
 			uint16_t encodedSize;
 			memcpy(&encodedSize, packetData, sizeof(encodedSize));
 			packetData += sizeof(encodedSize);
@@ -489,7 +489,7 @@ void NetSession_PumpIncomingPackets(void) {
 			channelMarker = packetSize != 0 ? packetData[0] : 0;
 			appPayload = packetSize != 0 ? packetData + 1 : packetData;
 			appPayloadSize = packetSize != 0 ? packetSize - 1 : 0;
-			if (hasLength && NetSession_ExitStub(packetType) == 0 &&
+			if (hasLength && NetSession_GetFixedPayloadSize(packetType) == 0 &&
 				appPayloadSize >= sizeof(uint16_t)) {
 				uint16_t encodedSize;
 				memcpy(&encodedSize, appPayload, sizeof(encodedSize));
@@ -631,7 +631,7 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 	else
 		appendPending = 0;
 
-	if (packetType == NET_PACKET_REMOTE_INPUT && g_gameConfig.asyncFlag == 1) {
+	if (packetType == NET_PACKET_REMOTE_INPUT && g_gameConfig.internetPlay == 1) {
 		packetHeader |= (g_netSession.groupSeqCounter & 0x7F) << 8;
 		++g_netSession.groupSeqCounter;
 		packetHeader |= 0x8080;
@@ -640,7 +640,7 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 		encodedPacket.packetTypeHeader = packetHeader;
 		encodedPayload = (uint8_t*)&encodedPacket.payloadSize;
 		encodedHeaderSize = 2;
-		if (appendPending && NetSession_ExitStub(packetType) == 0) {
+		if (appendPending && NetSession_GetFixedPayloadSize(packetType) == 0) {
 			encodedPacket.payloadSize = payloadSize - 4;
 			encodedPayload = encodedPacket.payload;
 			encodedHeaderSize = 4;
@@ -669,7 +669,7 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 		encodedPacket.packetTypeHeader = packetHeader;
 		encodedPayload = (uint8_t*)&encodedPacket.payloadSize;
 		encodedHeaderSize = 2;
-		if (appendPending && NetSession_ExitStub(packetType) == 0) {
+		if (appendPending && NetSession_GetFixedPayloadSize(packetType) == 0) {
 			encodedPacket.payloadSize = payloadSize - 4;
 			encodedPayload = encodedPacket.payload;
 			encodedHeaderSize = 4;
@@ -699,7 +699,7 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 		encodedPacket.packetTypeHeader = packetHeader;
 		encodedPayload = (uint8_t*)&encodedPacket.payloadSize;
 		encodedHeaderSize = 2;
-		if (appendPending && NetSession_ExitStub(packetType) == 0) {
+		if (appendPending && NetSession_GetFixedPayloadSize(packetType) == 0) {
 			encodedPacket.payloadSize = payloadSize - 4;
 			encodedPayload = encodedPacket.payload;
 			encodedHeaderSize = 4;
@@ -734,7 +734,7 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 		encodedPacket.packetTypeHeader = packetHeader;
 		encodedPayload = (uint8_t*)&encodedPacket.payloadSize;
 		encodedHeaderSize = 2;
-		if (appendPending && NetSession_ExitStub(packetType) == 0) {
+		if (appendPending && NetSession_GetFixedPayloadSize(packetType) == 0) {
 			encodedPacket.payloadSize = payloadSize - 4;
 			encodedPayload = encodedPacket.payload;
 			encodedHeaderSize = 4;
@@ -752,7 +752,7 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 		g_netSession.reliablePeerSlots[sequenceIndex].piggybackLength = payloadSize - 3;
 	}
 
-	if ((packetType != NET_PACKET_REMOTE_INPUT || g_gameConfig.asyncFlag != 1) &&
+	if ((packetType != NET_PACKET_REMOTE_INPUT || g_gameConfig.internetPlay != 1) &&
 		g_netSession.localPlayerInfo.directPlayId != directPlayId) {
 		if (packetType == NET_PACKET_WORLD_MESSAGE) {
 			NetQueuedPacket* queuedPacket;
@@ -807,7 +807,7 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 			g_netSessionRecvQueue[queueIndex].nackRetryCount = 0;
 			g_netSessionRecvQueue[queueIndex].queuedFlag = 0;
 			sequenceIndex = NetReliable_FindOrCreatePeerSlot(g_netSession.localPlayerInfo.directPlayId);
-			if (packetType == NET_PACKET_REMOTE_INPUT && g_gameConfig.asyncFlag == 1) {
+			if (packetType == NET_PACKET_REMOTE_INPUT && g_gameConfig.internetPlay == 1) {
 				peerSlotAvailable = sequenceIndex < g_netSession.reliablePeerSlotCount;
 				g_netSessionRecvQueue[g_netRecvQueueWriteIndex].packetClass = 2;
 #ifdef XVT_MODERN
@@ -900,7 +900,7 @@ int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t localSeq, uint8_
 	encodedPayload = (uint8_t*)&encodedPacket.payloadSize;
 	encodedSize = 3;
 	if (appendTerminator) {
-		exitStubResult = NetSession_ExitStub((int)packetType);
+		exitStubResult = NetSession_GetFixedPayloadSize((int)packetType);
 		packetDataSize = packetSize;
 		if (exitStubResult == 0) {
 			encodedPayload = encodedPacket.payload;
@@ -1208,18 +1208,18 @@ int NetSession_HandleHandshakePacket(int packetOpcode, int* packet) {
 								(const NetPlayerNameMessage*)packet,
 								g_netSession.players[playerIndex].playerName,
 								sizeof(g_netSession.players[playerIndex].playerName),
-								g_netSession.players[playerIndex].sessionName,
-								sizeof(g_netSession.players[playerIndex].sessionName)))
+								g_netSession.players[playerIndex].playerInfo,
+								sizeof(g_netSession.players[playerIndex].playerInfo)))
 							return 0;
 #else
 						strcpy(g_netSession.players[playerIndex].playerName,
 							   ((const NetPlayerNameMessage*)packet)->names);
-						strcpy(g_netSession.players[playerIndex].sessionName,
+						strcpy(g_netSession.players[playerIndex].playerInfo,
 							   &((const NetPlayerNameMessage*)packet)
 									->names[strlen(g_netSession.players[playerIndex].playerName) + 1]);
 #endif
 						g_netSession.players[playerIndex].playerName[12] = '\0';
-						g_netSession.players[playerIndex].sessionName[12] = '\0';
+						g_netSession.players[playerIndex].playerInfo[12] = '\0';
 						return 0;
 					}
 				}
@@ -1396,7 +1396,7 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 			else
 				g_netSession.reliablePeerSlots[peerIndex].prevRecvSeqDefault = sequence;
 			g_netLastDeliveredRecvSequence = sequence;
-			if (payloadType != NET_PACKET_REMOTE_INPUT || g_gameConfig.asyncFlag != 1)
+			if (payloadType != NET_PACKET_REMOTE_INPUT || g_gameConfig.internetPlay != 1)
 				++g_netSession.reliablePeerSlots[peerIndex].packetCount;
 			memcpy(&g_netSession.recvScratchPacket, &g_netSessionRecvQueue[queueIndex],
 				   sizeof(g_netSession.recvScratchPacket));
@@ -1406,7 +1406,7 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 			return g_netSession.recvScratchPacket.payload;
 		}
 
-		if (payloadType == NET_PACKET_REMOTE_INPUT && g_gameConfig.asyncFlag == 1) {
+		if (payloadType == NET_PACKET_REMOTE_INPUT && g_gameConfig.internetPlay == 1) {
 			g_netSession.reliablePeerSlots[peerIndex].lastActivityMs = timeGetTime();
 			if (channels.wantChannelA)
 				g_netSession.reliablePeerSlots[peerIndex].prevRecvSeqChannelA = sequence;
@@ -1728,7 +1728,7 @@ int NetSession_SendCompactGamePacket(int directPlayId, unsigned int* payload, in
 	packetType = *payload;
 	packetFlags = (uint8_t)packetType & 0x7F;
 	appendTerminator = packetType < NET_PACKET_RESYNC_CHECKSUMS || packetType >= NET_PACKET_RESYNC_CHUNK + 1;
-	if (packetType == NET_PACKET_REMOTE_INPUT && g_gameConfig.asyncFlag == 1) {
+	if (packetType == NET_PACKET_REMOTE_INPUT && g_gameConfig.internetPlay == 1) {
 		deliveryMode = 2;
 	} else {
 		if (directPlayId == 0) {
@@ -1748,7 +1748,7 @@ int NetSession_SendCompactGamePacket(int directPlayId, unsigned int* payload, in
 	encodedPayload = (uint8_t*)&encodedPacket.payloadSize;
 	encodedSize = 2;
 	if (appendTerminator) {
-		exitStubResult = NetSession_ExitStub((int)packetType);
+		exitStubResult = NetSession_GetFixedPayloadSize((int)packetType);
 		packetDataSize = payloadSize;
 		if (exitStubResult == 0) {
 			encodedPayload = encodedPacket.payload;
@@ -1776,7 +1776,7 @@ int NetSession_SendCompactGamePacket(int directPlayId, unsigned int* payload, in
 
 #ifndef XVT_MODERN
 // FUNCTION: XVT 0x46F5E0
-int* NetSession_WaitForGamePacket(int* outDpid, int* outAux, int timeoutSeconds) {
+int* NetSession_WaitForGamePacket(int* outDpid, int* outPayloadSize, int timeoutSeconds) {
 	uint32_t startTime;
 	uint32_t timeoutMilliseconds;
 	int senderDpid;
@@ -1791,7 +1791,7 @@ int* NetSession_WaitForGamePacket(int* outDpid, int* outAux, int timeoutSeconds)
 		if (packet != NULL) {
 			copiedPayloadSize = payloadSize;
 			*outDpid = senderDpid;
-			*outAux = copiedPayloadSize;
+			*outPayloadSize = copiedPayloadSize;
 			return packet;
 		}
 	}
@@ -2021,7 +2021,7 @@ int NetSession_UnusedStubReturnTrue(void) { return 1; }
 int NetSession_StubReturnTrue(void) { return 1; }
 
 // FUNCTION: XVT 0x46FAD0
-int NetSession_ExitStub(int packetType) {
+int NetSession_GetFixedPayloadSize(int packetType) {
 	(void)packetType;
 	return 0;
 }

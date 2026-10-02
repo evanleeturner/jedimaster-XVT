@@ -69,7 +69,7 @@ static void Start(void) {
 	memset(g_aftDrawn, 0, sizeof g_aftDrawn);
 	g_radarForeDrawBlips = g_foreDrawn;
 	g_radarAftDrawBlips = g_aftDrawn;
-	g_flight16bppBytesPerPixel = 1;
+	g_flightBytesPerPixel = 1;
 
 	XvtCockpitInstruments_BeginUpdate(LOCAL);
 }
@@ -346,7 +346,7 @@ static void CheckCompleteRadar(void) {
 	XVT_ASSERT_INT_EQ(AllZero(radar->coverage[aft], sizeof radar->coverage[aft]), 1);
 
 	/* Otherwise, whether the point was drawn. */
-	g_flight16bppBytesPerPixel = 2;
+	g_flightBytesPerPixel = 2;
 	g_foreDrawn[1].color = 0;
 	XvtCockpitInstruments_CompleteRadar();
 	radar = &Forward()->radar;

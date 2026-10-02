@@ -122,7 +122,7 @@ void XvtNetworkMetadata_Build(XvtNetworkMetadata* out, int accepting) {
 	out->room.joinable = accepting && !g_missionSetupRosterAuthoritative && out->room.players < 8;
 }
 
-void XvtNetworkMetadata_Flight(XvtNetworkMetadata* snapshot) {
+void XvtNetworkMetadata_KeepActivePlayers(XvtNetworkMetadata* snapshot) {
 	unsigned count = 0;
 	for (unsigned i = 0; i < snapshot->room.players; ++i) {
 		for (unsigned j = 0; j < 8; ++j) {

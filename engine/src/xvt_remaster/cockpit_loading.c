@@ -9,11 +9,11 @@
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include <string.h>
 
-static uint64_t g_images, g_resources;
+static uint64_t g_preparedImageGeneration, g_preparedResourceGeneration;
 static int g_width, g_height, g_samples;
 
 void XvtCockpitLoading_Reset(void) {
-	g_images = g_resources = 0;
+	g_preparedImageGeneration = g_preparedResourceGeneration = 0;
 	g_width = g_height = g_samples = 0;
 }
 
@@ -39,19 +39,19 @@ static int PrepareMapIcons(AeronCommandBuffer* cmd, const XvtRenderSnapshot* sna
 
 int XvtCockpitLoading_Prepare(const XvtRenderSnapshot* snapshot, int width, int height) {
 	const XvtCockpitResources* resources = &snapshot->cockpit_resources;
-	int images_changed = g_images != snapshot->image_asset_generation;
+	int images_changed = g_preparedImageGeneration != snapshot->image_asset_generation;
 	if (images_changed) {
 		XvtHudRenderer_Invalidate();
 		XvtHudAssets_Retire(snapshot);
 	}
 	if (!resources->valid) {
-		g_images = snapshot->image_asset_generation;
+		g_preparedImageGeneration = snapshot->image_asset_generation;
 		return 1;
 	}
 	uint64_t generation = resources->definition.resource_generation;
 	int samples = XvtRemasterConfig_Effective()->msaa_samples;
-	if (!images_changed && g_resources == generation && width == g_width && height == g_height &&
-		samples == g_samples)
+	if (!images_changed && g_preparedResourceGeneration == generation && width == g_width &&
+		height == g_height && samples == g_samples)
 		return 1;
 	AeronCommandBuffer* cmd = Aeron_AcquireCommandBuffer();
 	if (!cmd)
@@ -74,8 +74,8 @@ int XvtCockpitLoading_Prepare(const XvtRenderSnapshot* snapshot, int width, int 
 	XvtHudAssets_Commit();
 	XvtRemasterAssets_CommitImages();
 	XvtCockpit_ResourcesPrepared(generation);
-	g_images = snapshot->image_asset_generation;
-	g_resources = generation;
+	g_preparedImageGeneration = snapshot->image_asset_generation;
+	g_preparedResourceGeneration = generation;
 	g_width = width;
 	g_height = height;
 	g_samples = samples;

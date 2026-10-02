@@ -142,11 +142,11 @@ static int XvtNetworkBrowser_AfterError(int result, int context) {
 	return 0;
 }
 
-int XvtNetworkBrowser_Screen(int first_frame) {
+int XvtNetworkBrowser_Screen(int frame_counter) {
 	RECT rect;
-	if (!first_frame) {
+	if (!frame_counter) {
 		FrontendCursor_SetPos(415, 121);
-		g_skipFrontendEntryMovie = 0;
+		g_frontendSkipScreenEntrySetup = 0;
 		g_configConnectionTypeEditable = 0;
 		g_frontendGameSessionInProgress = 0;
 		FrontImage_RegisterResourceDefault("frontres\\joinback.bmp", "background");
@@ -171,9 +171,9 @@ int XvtNetworkBrowser_Screen(int first_frame) {
 		XvtNetworkMetadata_FromUtf8(name, sizeof(name), selected->metadata.name);
 	FrontendDraw_RectAssign(&rect, 158, 52, 491, 68);
 	FrontendText_DrawCentered(12, name, &rect, 0xffff);
-	int clicked = FrontendNet_DrawJoinGameList(first_frame);
+	int clicked = FrontendNet_DrawJoinGameList(frame_counter);
 	if (clicked >= 0)
-		XvtNetworkTask_Select(clicked);
+		XvtNetworkTask_ToggleSelection(clicked);
 	FrontendNet_DrawJoinGamePlayerRoster();
 	FrontendNet_DrawJoinGameMissionBriefing();
 	FrontendDraw_RectAssign(&rect, 461, 117, 595, 398);
@@ -191,10 +191,10 @@ int XvtNetworkBrowser_Screen(int first_frame) {
 				 g_pilotData.ratingName, 1, g_pilotData.name);
 		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
 		snprintf(g_frontendScratchBuffer, sizeof(g_frontendScratchBuffer), "rebtiny%d",
-				 (first_frame % 32) >> 1);
+				 (frame_counter % 32) >> 1);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 		snprintf(g_frontendScratchBuffer, sizeof(g_frontendScratchBuffer), "imptiny%d",
-				 (first_frame % 32) >> 1);
+				 (frame_counter % 32) >> 1);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 420, 453);
 	}
 	FrontendNet_DrawJoinGameSidebarsAndQueryAll();

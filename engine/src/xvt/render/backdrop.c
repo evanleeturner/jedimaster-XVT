@@ -386,9 +386,9 @@ void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angl
 	enum { PROJECTION_WORD_BITS = 32, PROJECTION_SATURATION = 0x7FFFFF00 };
 
 #ifdef XVT_MODERN
-	projectionScale = 1u << (perspShift & (PROJECTION_WORD_BITS - 1));
+	projectionScale = 1u << (g_perspectiveShift & (PROJECTION_WORD_BITS - 1));
 #else
-	projectionScale = 1u << perspShift;
+	projectionScale = 1u << g_perspectiveShift;
 #endif
 
 	if (viewX < 0) {

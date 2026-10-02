@@ -166,7 +166,7 @@ static void XvtInput_Text(const AeronInputSnapshot* input) {
 }
 
 static void XvtInput_Controller(int suppress) {
-	int connected = XvtControllerMapping_Present();
+	int connected = XvtControllerMapping_IsModelConnected();
 	int changed = g_connected != connected;
 	g_connected = connected;
 	memset(&g_joystick, 0, sizeof g_joystick);
@@ -215,7 +215,7 @@ void XvtInput_Init(void) {
 	AeronCompat_SetJoystickSource(XvtInput_Joystick, NULL);
 }
 
-int XvtInput_CanReacquireKeyboard(void) {
+int XvtInput_ConsumeKeyboardReacquire(void) {
 	const AeronInputSnapshot* input = Aeron_InputSnapshot();
 	if (!input || !input->has_focus || input->frame_id == g_reacquireFrame)
 		return 0;

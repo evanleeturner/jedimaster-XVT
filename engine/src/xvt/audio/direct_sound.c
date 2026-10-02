@@ -82,7 +82,7 @@ int DirectSound_LoadFileAndFindAudioData(int unused, const char* fileName, WAVEF
 		File_Seek(stream, 0, SEEK_SET);
 		fileData = g_waveFileDataBuffer = malloc(fileSize);
 		if (fileData != NULL) {
-			if (File_ReadCount(stream, fileData, fileSize) &&
+			if (File_ReadBytes(stream, fileData, fileSize) &&
 				DirectSound_FindFormatAndDataChunks(fileData, format, sampleData, sampleBytes)) {
 				File_Close(stream);
 				return 1;

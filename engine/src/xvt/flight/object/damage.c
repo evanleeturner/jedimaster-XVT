@@ -200,7 +200,7 @@ int16_t Damage_DisplayMfdPage(void) {
 	if (objectIndex == -1) {
 		if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex + hudStateIndex] !=
 			g_mfdPageStates[MFD_PAGE_DAMAGE]) {
-			pitchBytes = g_flight16bppBytesPerPixel;
+			pitchBytes = g_flightBytesPerPixel;
 			pitchBytes *= g_screenWidth;
 			FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight, pitchBytes);
 			FlightText_SetFontTier(0);
@@ -208,7 +208,7 @@ int16_t Damage_DisplayMfdPage(void) {
 			sourceTop = g_mfdDamageBlitSourceY + 2;
 			sourceRight = g_mfdDamageBlitSourceX + g_mfdDamageBlitWidth - 2;
 			sourceBottom = g_mfdDamageBlitSourceY + g_mfdDamageBlitHeight - 2;
-			FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+			FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			FlightText_SetClipRect(sourceLeft - 2, sourceTop - 2, sourceRight + 2, sourceBottom + 2);
 			g_flightFillClipRectFn();
 			if (g_mfdPageStates[MFD_PAGE_DAMAGE] == MFD_PAGE_STATE_CLOSING &&
@@ -239,7 +239,7 @@ int16_t Damage_DisplayMfdPage(void) {
 	if (allSystemsOk != 0)
 		g_mfdPageStates[MFD_PAGE_DAMAGE] = MFD_PAGE_STATE_CLOSED;
 
-	pitchBytes = g_flight16bppBytesPerPixel;
+	pitchBytes = g_flightBytesPerPixel;
 	pitchBytes *= g_screenWidth;
 	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight, pitchBytes);
 	FlightText_SetFontTier(0);
@@ -257,11 +257,11 @@ int16_t Damage_DisplayMfdPage(void) {
 #ifdef XVT_MODERN
 		XvtCockpitPages_Clear(MFD_PAGE_DAMAGE);
 #endif
-		FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		FlightText_SetClipRect(sourceLeft - 2, sourceTop - 2, sourceRight + 2, sourceBottom + 2);
 		g_flightFillClipRectFn();
 		if (g_mfdPageStates[MFD_PAGE_DAMAGE] != MFD_PAGE_STATE_CLOSING && allSystemsOk == 0) {
-			FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+			FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			FlightText_SetClearLineBackground(1);
 			FlightText_SetColor(0x46);
 			g_flightFillClipRectFn();
@@ -286,7 +286,7 @@ int16_t Damage_DisplayMfdPage(void) {
 			return 0;
 		}
 	} else {
-		FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		FlightText_SetClearLineBackground(1);
 	}
 	{
@@ -309,7 +309,7 @@ int16_t Damage_DisplayMfdPage(void) {
 #endif
 			g_flightFillRectClippedFn(sourceLeft - 2, sourceTop - 2, sourceRight + 2, rowBottom + 2, 1);
 		} else if (g_mfdSecondaryPage == MFD_PAGE_DAMAGE) {
-			FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+			FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			FlightText_SetClipRect(sourceLeft - 2, sourceTop - 2, sourceRight + 2, rowBottom + 2);
 #ifdef XVT_MODERN
 			XvtCockpitPages_RecordBorder(MFD_PAGE_DAMAGE);
@@ -317,7 +317,7 @@ int16_t Damage_DisplayMfdPage(void) {
 			g_flightFillRectClippedFn(sourceLeft - 2, sourceTop - 2, sourceRight + 2, rowBottom + 2, 1);
 		}
 		FlightText_SetClipRect(sourceLeft, rowTop, sourceRight, rowBottom);
-		FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		FlightText_SetColor(0x43);
 		g_damageMfdRedrawAllRows = 1;
 		if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex + hudStateIndex] !=
@@ -382,7 +382,7 @@ int16_t Damage_DisplayMfdPage(void) {
 				if (g_damageMfdCurrentSystemId == systemId)
 					FlightText_SetBackgroundColor(0x33);
 				else
-					FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+					FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 #ifdef XVT_MODERN
 				XvtCockpitPages_RecordRow(systemId, g_damageMfdCurrentSystemId == systemId);
 #endif

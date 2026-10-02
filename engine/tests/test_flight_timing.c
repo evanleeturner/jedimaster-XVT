@@ -1,8 +1,8 @@
 /* Checks flight timing (xvt_runtime/timing/flight_timing.h) against the promises in its header: what
  * each profile reports, when reference logic is due, the step clock EnterReference installs and
  * RestoreClock puts back, the animation update serials, and the state a network restore rebuilds. The
- * step globals it reads (g_elapsedTicks, g_simStepScale, g_gameTime, g_netUpdateIntervalTicks and the crew
- * mesh timer) are set by each case; every case starts a fresh session. The dropped-period count is not
+ * step globals it reads (g_elapsedTicks, g_simStepsPerSecond, g_gameTime, g_netUpdateIntervalTicks and the
+ * crew mesh timer) are set by each case; every case starts a fresh session. The dropped-period count is not
  * readable through the header, so it is not checked. */
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
@@ -14,7 +14,7 @@
 
 static void Begin(XvtFlightTimingProfile profile) {
 	g_elapsedTicks = 0;
-	g_simStepScale = 0;
+	g_simStepsPerSecond = 0;
 	g_gameTime = 0;
 	g_netUpdateIntervalTicks = 0;
 	g_flightGlobalCountdownTimers.crewMeshRotationUpdateTimer = 0;
@@ -51,13 +51,13 @@ static void CheckProfiles(void) {
 static void CheckSimulationMaximum(void) {
 	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
 	g_netUpdateIntervalTicks = 40;
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_SimulationMaximum(), XVT_NETWORK_STEP_TICKS);
+	XVT_ASSERT_INT_EQ(XvtFlightTiming_MaximumStepTicks(), XVT_NETWORK_STEP_TICKS);
 	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_netUpdateIntervalTicks = 40;
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_SimulationMaximum(), 40);
+	XVT_ASSERT_INT_EQ(XvtFlightTiming_MaximumStepTicks(), 40);
 	Begin(XVT_FLIGHT_TIMING_NATIVE);
 	g_netUpdateIntervalTicks = 17;
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_SimulationMaximum(), 17);
+	XVT_ASSERT_INT_EQ(XvtFlightTiming_MaximumStepTicks(), 17);
 }
 
 static void CheckLockedAlwaysDue(void) {
@@ -145,15 +145,15 @@ static void CheckEnterReference(void) {
 	/* Unlocked: the step globals describe one reference period until RestoreClock. */
 	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsedTicks = 3;
-	g_simStepScale = 77;
+	g_simStepsPerSecond = 77;
 	XvtFlightClock saved = XvtFlightTiming_EnterReference();
 	XVT_ASSERT_INT_EQ(saved.elapsed, 3);
 	XVT_ASSERT_INT_EQ(saved.scale, 77);
 	XVT_ASSERT_INT_EQ(g_elapsedTicks, XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(g_simStepScale, SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(g_simStepsPerSecond, SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS);
 	XvtFlightTiming_RestoreClock(saved);
 	XVT_ASSERT_INT_EQ(g_elapsedTicks, 3);
-	XVT_ASSERT_INT_EQ(g_simStepScale, 77);
+	XVT_ASSERT_INT_EQ(g_simStepsPerSecond, 77);
 
 	/* It does not check ReferenceDue: outside a reference step it still installs the period. */
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
@@ -164,12 +164,12 @@ static void CheckEnterReference(void) {
 	/* Locked: nothing changes. */
 	Begin(XVT_FLIGHT_TIMING_NATIVE);
 	g_elapsedTicks = 11;
-	g_simStepScale = 21;
+	g_simStepsPerSecond = 21;
 	saved = XvtFlightTiming_EnterReference();
 	XVT_ASSERT_INT_EQ(saved.elapsed, 11);
 	XVT_ASSERT_INT_EQ(saved.scale, 21);
 	XVT_ASSERT_INT_EQ(g_elapsedTicks, 11);
-	XVT_ASSERT_INT_EQ(g_simStepScale, 21);
+	XVT_ASSERT_INT_EQ(g_simStepsPerSecond, 21);
 }
 
 static void CheckAnimationEvent(void) {

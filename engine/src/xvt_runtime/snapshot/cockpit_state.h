@@ -87,7 +87,7 @@ typedef struct XvtCockpitPage {
 	uint16_t first_glyph, glyph_count, header_glyph_count;
 	XvtSnapRect placement, background_bounds, border_bounds;
 	uint32_t background_argb, border_argb;
-	uint16_t style, layer;
+	uint16_t command_text_mode, layer;
 	int16_t original_state;
 } XvtCockpitPage;
 
@@ -330,7 +330,7 @@ typedef enum XvtCockpitMessageId {
 typedef struct XvtCockpitMessage {
 	uint64_t generation;
 	XvtSnapRect placement;
-	uint16_t message_id, revealed_characters, age_ticks, timer_ticks;
+	uint16_t message_id, revealed_characters, age_seconds, timer_ticks;
 	uint8_t visible, sender_iff, pane_type, font_tier;
 	uint16_t first_glyph, glyph_count;
 } XvtCockpitMessage;
@@ -354,10 +354,10 @@ typedef struct XvtCockpitLoading {
 	XvtSnapRect text_bounds;
 	uint16_t first_glyph, glyph_count;
 	uint8_t text_visible;
-	XvtSnapRect placement;
+	XvtSnapRect progress_placement;
 	uint16_t progress_step;
 	uint16_t filled_width;
-	uint8_t visible;
+	uint8_t progress_visible;
 	uint32_t foreground_argb, background_argb;
 } XvtCockpitLoading;
 

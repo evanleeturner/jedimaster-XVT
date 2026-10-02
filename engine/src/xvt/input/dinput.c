@@ -367,7 +367,7 @@ void DInput_Shutdown(void) {
 // FUNCTION: XVT 0x443860
 int DInput_ReacquireKeyboard(void) {
 #ifdef XVT_MODERN
-	if (!g_dinputKeyboardDevice || !XvtInput_CanReacquireKeyboard())
+	if (!g_dinputKeyboardDevice || !XvtInput_ConsumeKeyboardReacquire())
 		return 0;
 	g_dinputKeyboardAcquired = g_dinputKeyboardDevice->lpVtbl->Acquire(g_dinputKeyboardDevice) >= 0;
 	return g_dinputKeyboardAcquired;

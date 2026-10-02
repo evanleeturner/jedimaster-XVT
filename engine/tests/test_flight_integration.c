@@ -553,12 +553,12 @@ static void CheckReset(void) {
 	Seed(1, XVT_INTEGRATE_PITCH);
 	Seed(2, XVT_INTEGRATE_PITCH);
 	XVT_ASSERT_INT_EQ(HasReferenceMotion(1), 1);
-	XvtFlightIntegration_Reset(1);
+	XvtFlightIntegration_ResetSlotAndMotion(1);
 	XVT_ASSERT_INT_EQ(Probe(1, XVT_INTEGRATE_PITCH), 0);
 	XVT_ASSERT_INT_EQ(HasReferenceMotion(1), 0);
 
 	/* A slot out of range is ignored. */
-	XvtFlightIntegration_Reset(kSlots + 3);
+	XvtFlightIntegration_ResetSlotAndMotion(kSlots + 3);
 	XVT_ASSERT_INT_EQ(Probe(2, XVT_INTEGRATE_PITCH), 1);
 	XVT_ASSERT_INT_EQ(HasReferenceMotion(2), 1);
 }

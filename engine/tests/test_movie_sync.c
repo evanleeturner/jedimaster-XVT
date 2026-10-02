@@ -46,7 +46,7 @@ static void CheckBegin(void) {
 		g_movieMultiplayerSyncPlayers[i].isWaiting = 1;
 	}
 	g_moviePlaybackCompletionState = 1;
-	g_movieMultiplayerSyncDeadlineTick = 1234;
+	g_movieMultiplayerSyncDeadlineMs = 1234;
 	XvtMovieSync_Begin();
 
 	/* The first three roster entries, as three players are ready; none waiting. */
@@ -59,7 +59,7 @@ static void CheckBegin(void) {
 		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[i].isWaiting, 0);
 	}
 	XVT_ASSERT_INT_EQ(g_moviePlaybackCompletionState, 0);
-	XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncDeadlineTick, 0);
+	XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncDeadlineMs, 0);
 
 	/* At most 8 entries. */
 	Fresh();
@@ -83,14 +83,14 @@ static void CheckWait(void) {
 		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[1].isWaiting, 0);
 		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[2].isWaiting, 0);
 		/* 5 s out for the host, 20 s for a client. */
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncDeadlineTick, 2000 + (host ? 5000 : 20000));
+		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncDeadlineMs, 2000 + (host ? 5000 : 20000));
 
 		/* Later calls do nothing, even with the local player's mark cleared. */
 		g_movieMultiplayerSyncPlayers[0].isWaiting = 0;
 		XvtTime_AdvanceHostClock(1000 * 1000);
 		XvtMovieSync_Wait();
 		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[0].isWaiting, 0);
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncDeadlineTick, 2000 + (host ? 5000 : 20000));
+		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncDeadlineMs, 2000 + (host ? 5000 : 20000));
 	}
 }
 

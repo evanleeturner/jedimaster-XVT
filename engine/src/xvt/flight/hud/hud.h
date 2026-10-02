@@ -56,7 +56,7 @@ struct HudElementLayout {
 	uint16_t x;
 	uint16_t y;
 	uint16_t selector;
-	uint16_t colorIndex;
+	uint16_t colorIndexOrWidgetParam;
 	uint16_t clipWidth;
 	int16_t
 		clipHeightOrForegroundColor; ///< Widget-specific .INT payload: clip height or foreground text color.
@@ -99,7 +99,7 @@ extern const uint8_t g_messageSenderIffColorCodes[8];
 extern const char* g_strThreatDisplayText[4];
 extern const uint8_t g_hudShieldColors[22];
 extern uint8_t g_lastShieldDamageSide;
-extern uint8_t g_flightConfTickCounter;
+extern uint8_t g_flightConfTickCounterEnabled;
 extern int g_flightTickOverlayLastLoopTicks;
 extern int g_flightTickOverlayWindowTicks;
 extern int g_flightTickOverlaySampleCount;
@@ -312,7 +312,8 @@ void Hud_LoadCockpitSpriteResources(unsigned int modelIndex);
 void Hud_ReloadCockpitInterfaceFile(void);
 void Hud_UpdateMfdPages(void);
 void Hud_BlitSoftwareMfdPages(void);
-void Hud_Update3DCrt(uint16_t a1, uint16_t a2, uint16_t a3, uint16_t a4, int16_t a5);
+void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_t height,
+					 int16_t refreshSpanMask);
 void Hud_DrawComponentMarkerBox(int x, int y, int width, int height, uint8_t colorIdx);
 void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale, int playerIdx);
 void Hud_ResetFlightMessagePanes(int forceExpireActiveMessages);

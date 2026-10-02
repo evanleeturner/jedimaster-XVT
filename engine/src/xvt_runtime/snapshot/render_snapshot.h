@@ -62,7 +62,7 @@ typedef struct XvtSnapCursor {
 } XvtSnapCursor;
 
 typedef struct XvtRenderSnapshot {
-	uint64_t tick_index, flight_frame_serial, capture_host_us;
+	uint64_t snapshot_serial, flight_frame_serial, capture_host_us;
 	uint64_t component_event_serial;
 	int32_t component_event_time;
 	uint8_t flight_unlocked;
@@ -94,7 +94,7 @@ typedef struct XvtRenderSnapshot {
 	uint32_t sprite_count;
 	XvtSnapGlyph glyphs[XVT_SNAP_GLYPHS];
 	uint32_t glyph_count;
-	XvtSnapPaint paint[XVT_SNAP_PAINT];
+	XvtSnapPaint paint[XVT_SNAP_PAINTS];
 	uint32_t paint_count;
 	XvtSnapCopyRect copies[XVT_SNAP_COPIES];
 	uint32_t copy_count;

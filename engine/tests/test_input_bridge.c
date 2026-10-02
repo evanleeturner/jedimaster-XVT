@@ -137,14 +137,14 @@ static void CheckMappingOnlyForGameplay(void) {
 
 static void CheckCanReacquireKeyboard(void) {
 	Start();
-	XVT_ASSERT_INT_EQ(XvtInput_CanReacquireKeyboard(), 1);
-	XVT_ASSERT_INT_EQ(XvtInput_CanReacquireKeyboard(), 0);
+	XVT_ASSERT_INT_EQ(XvtInput_ConsumeKeyboardReacquire(), 1);
+	XVT_ASSERT_INT_EQ(XvtInput_ConsumeKeyboardReacquire(), 0);
 	NewFrame();
 	Host()->has_focus = 0;
-	XVT_ASSERT_INT_EQ(XvtInput_CanReacquireKeyboard(), 0);
+	XVT_ASSERT_INT_EQ(XvtInput_ConsumeKeyboardReacquire(), 0);
 	Host()->has_focus = 1;
-	XVT_ASSERT_INT_EQ(XvtInput_CanReacquireKeyboard(), 1);
-	XVT_ASSERT_INT_EQ(XvtInput_CanReacquireKeyboard(), 0);
+	XVT_ASSERT_INT_EQ(XvtInput_ConsumeKeyboardReacquire(), 1);
+	XVT_ASSERT_INT_EQ(XvtInput_ConsumeKeyboardReacquire(), 0);
 }
 
 static void CheckFrontendKeyStates(void) {
@@ -332,12 +332,12 @@ static void CheckUpdateSamplesControllers(void) {
 	Start();
 	ConnectController();
 	XvtInput_Update(0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Present(), 1);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 1);
 
 	Start();
 	ConnectController();
 	XvtInput_UpdateFlight(0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Present(), 1);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 1);
 }
 
 static void CheckUpdateFlightDropsText(void) {

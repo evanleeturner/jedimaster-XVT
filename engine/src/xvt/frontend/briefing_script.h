@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 struct FrontendBriefingScript {
-	int16_t durationTicks;
+	int16_t durationFrames;
 	int16_t currentTime;
 	int16_t cursorWordIndex;
 	int16_t headerWord06;

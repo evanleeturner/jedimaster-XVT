@@ -1025,8 +1025,8 @@ void sw3d_DrawVisibleFacesToSurface(void) {
 		g_sw3dSpanSceneMesh = *pMesh;
 		rowBaseDepth = (float)(unsigned int)g_sw3dCurrentScanlineY * g_sw3dCurrentFace->gradients[7] +
 					   g_sw3dCurrentFace->gradients[8];
-		g_sw3dSpanFramebufferRowOffset = g_surfacePitch * (g_sw3dCurrentScanlineY + g_flightVpY) +
-										 g_flight16bppBytesPerPixel * g_flightVpX;
+		g_sw3dSpanFramebufferRowOffset =
+			g_surfacePitch * (g_sw3dCurrentScanlineY + g_flightVpY) + g_flightBytesPerPixel * g_flightVpX;
 
 		for (spanIndex = 0; (unsigned int)g_sw3dCurrentScanlineY < (unsigned int)g_sw3dCurrentFace->yBot;
 			 ++spanIndex, ++g_sw3dCurrentScanlineY) {
@@ -2004,7 +2004,7 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float depth) {
 			inverseDepth = g_sw3dSpanOneFloat / boundaryDepth;
 		}
 
-		if (g_flight16bppBytesPerPixel == 2 && !useSpecializedTextureWrap) {
+		if (g_flightBytesPerPixel == 2 && !useSpecializedTextureWrap) {
 			sw3d_DrawTexturedShadeSpanGeneric();
 		} else {
 			for (pixelIndex = 0; pixelIndex < g_sw3dSpanLength; ++pixelIndex) {
@@ -2024,7 +2024,7 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float depth) {
 				texel = g_sw3dSpanTexels[texelIndex];
 				shadeAccum = (unsigned int)(g_sw3dSpanShadeQ8 + g_sw3dSpanShadeDitherAccum);
 				g_sw3dSpanShadeDitherAccum = (uint8_t)shadeAccum;
-				if (g_flight16bppBytesPerPixel == 2) {
+				if (g_flightBytesPerPixel == 2) {
 					uint16_t* surface16 =
 						(uint16_t*)((uint8_t*)g_surfacePixels + g_sw3dSpanFramebufferRowOffset);
 					uint16_t* shadeTable16 =
@@ -2154,13 +2154,13 @@ void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int 
 	int drawX;
 
 	drawX = startX;
-	if (g_flight16bppBytesPerPixel == 2) {
+	if (g_flightBytesPerPixel == 2) {
 		pSrcRaster -= 2 * startX;
 	} else {
 		pSrcRaster -= startX;
 	}
 	g_sw3dSpanFramebufferRowOffset =
-		g_flight16bppBytesPerPixel * g_flightVpX + g_surfacePitch * (scanY + g_flightVpY);
+		g_flightBytesPerPixel * g_flightVpX + g_surfacePitch * (scanY + g_flightVpY);
 
 	for (span = g_scanlineSpanHeads[scanY]; span != NULL; span = span->next) {
 		SceneFace* face;
@@ -2316,7 +2316,7 @@ void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int 
 // FUNCTION: XVT 0x497D80
 void sw3d_CopySpanToFramebuffer(const uint8_t* pSrcRasterBase, int startX, int pixelCount) {
 	if (pixelCount > 0) {
-		if (g_flight16bppBytesPerPixel == 2) {
+		if (g_flightBytesPerPixel == 2) {
 			uint8_t* dst = (uint8_t*)g_surfacePixels + g_sw3dSpanFramebufferRowOffset + startX + startX;
 
 			pSrcRasterBase += 2 * startX;

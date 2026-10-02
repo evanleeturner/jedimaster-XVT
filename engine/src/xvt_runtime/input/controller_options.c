@@ -184,9 +184,8 @@ bool XvtControllerOptions_AddModel(XvtControllerOptions* options, const AeronCon
 	return true;
 }
 
-bool XvtControllerOptions_InitializeGamepads(XvtControllerOptions* options,
-											 const XvtControllerProfile* defaults,
-											 const AeronInputSnapshot* input, char* error, size_t capacity) {
+bool XvtControllerOptions_AddNewGamepads(XvtControllerOptions* options, const XvtControllerProfile* defaults,
+										 const AeronInputSnapshot* input, char* error, size_t capacity) {
 	const AeronControllerSnapshot* sorted[AERON_CONTROLLER_MAX];
 	int count = 0;
 	if (!input)

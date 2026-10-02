@@ -109,9 +109,9 @@ static void CheckAxis(void) {
 	int32_t delta[3];
 	XvtReferenceMotion_Displacement(0, delta);
 	for (unsigned axis = 0; axis < 3; ++axis)
-		XVT_ASSERT_INT_EQ(XvtReferenceMotion_Axis(0, axis), delta[axis]);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Axis(0, 3), 0);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Axis(0, 1000), 0);
+		XVT_ASSERT_INT_EQ(XvtReferenceMotion_AxisDisplacement(0, axis), delta[axis]);
+	XVT_ASSERT_INT_EQ(XvtReferenceMotion_AxisDisplacement(0, 3), 0);
+	XVT_ASSERT_INT_EQ(XvtReferenceMotion_AxisDisplacement(0, 1000), 0);
 }
 
 static void CheckCommitted(void) {

@@ -115,7 +115,7 @@ AiCourseOrderManeuverProc g_aiCourseOrderManeuverTable[AI_MANEUVER_MODE_COUNT] =
 	paiman_attackmaneuver,
 	paiman_zoommaneuver,
 	paiman_divemaneuver,
-	paiman_splitsmaneuver_2,
+	paiman_splitsdivemaneuver,
 	paiman_speedawaymaneuver,
 	paiman_escortmaneuver,
 	paiman_boardmaneuver,
@@ -127,7 +127,7 @@ AiCourseOrderManeuverProc g_aiCourseOrderManeuverTable[AI_MANEUVER_MODE_COUNT] =
 	paiman_turnawaymaneuver,
 	paiman_awaitboardmaneuver,
 	paiman_outofhangarmaneuver,
-	paiman_splitsmaneuver_2,
+	paiman_splitsdivemaneuver,
 	paiman_avoidstarshipmaneuver,
 	paiman_waitmaneuver,
 	paiman_dropoffmaneuver,
@@ -210,7 +210,7 @@ int16_t paiman_turninsidemaneuver(void) {
 	if (g_paiContext.controller->maneuverTimer == 0) {
 		return 1;
 	}
-	if (g_paiContext.controller->aiPlanState == 0) {
+	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
 		paiman_UpdateTurnInsideHeading(g_paiContext.objectIndex);
 	}
 	return 0;
@@ -240,7 +240,7 @@ void paiman_UpdateTurnInsideHeading(unsigned int fallbackObjIdx) {
 	turnStep = effectiveSkill >> 1;
 	turnStep += 0x8000;
 	paiman_setturn((uint16_t)turnStep);
-	g_paiContext.controller->aiPlanState =
+	g_paiContext.controller->secondaryManeuverTimer =
 		SIMULATION_TICKS_PER_SECOND * g_aiTurnAwayStateDelayBySkill[g_paiContext.skillTier];
 }
 
@@ -249,7 +249,7 @@ void paiman_initsplitsmaneuver(void) {
 	g_curCraft->aiFlight.rollStep = 0xFFFFu;
 	g_paiContext.controller->targetRoll = 0x8000;
 	g_curCraft->aiFlight.turnState = 0;
-	g_curCraft->aiFlight.headingForce = 1;
+	g_curCraft->aiFlight.pitchThroughLoop = 1;
 	g_paiContext.controller->targetZAngle = 0x4000;
 	g_curCraft->aiFlight.pitchState = 2;
 	g_curCraft->aiFlight.pitchStepScale = 0xFFFFu;
@@ -271,7 +271,7 @@ void paiman_initimmelmannmaneuver(void) {
 	g_curCraft->aiFlight.turnState = 0;
 	g_paiContext.controller->targetZAngle = 0x4000;
 	g_curCraft->aiFlight.pitchStepScale = 0xFFFFu;
-	g_curCraft->aiFlight.headingForce = 0;
+	g_curCraft->aiFlight.pitchThroughLoop = 0;
 	pitch = g_curCraft->pitch;
 	if (pitch < 0x4000u)
 		g_curCraft->aiFlight.pitchState = 2;
@@ -292,7 +292,7 @@ int16_t paiman_immelmannmaneuver(void) {
 			if (g_curCraft->aiFlight.pitchState == 3) {
 				g_curCraft->aiFlight.pitchState = 1;
 				g_curCraft->aiFlight.pitchStepScale = -1;
-				g_curCraft->aiFlight.headingForce = 1;
+				g_curCraft->aiFlight.pitchThroughLoop = 1;
 				g_paiContext.controller->targetZAngle = 0x4000;
 				g_paiContext.controller->maneuverPhase = 1;
 			}
@@ -337,7 +337,7 @@ void paiman_initscissorsmaneuver(void) {
 	g_curCraft->aiFlight.rollStep = -1;
 	g_paiContext.controller->targetRoll = (uint16_t)GameRand();
 	g_paiContext.controller->maneuverTimer = SIMULATION_TICKS_PER_SECOND * ((GameRand() & 7) + 10);
-	g_paiContext.controller->aiPlanState = 472;
+	g_paiContext.controller->secondaryManeuverTimer = 472;
 }
 
 // FUNCTION: XVT 0x49F8B0
@@ -346,11 +346,11 @@ int16_t paiman_scissorsmaneuver(void) {
 		g_curCraft->aiFlight.rollState = 4;
 		return 1;
 	}
-	if (g_paiContext.controller->aiPlanState == 0) {
+	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
 		g_curCraft->aiFlight.turnState = 1;
 		g_paiContext.controller->targetXYAngle += 0x8000;
 		g_paiContext.controller->targetRoll ^= 0x8000u;
-		g_paiContext.controller->aiPlanState = MATH2_fraction((uint16_t)GameRand(), 0xEC) + 472;
+		g_paiContext.controller->secondaryManeuverTimer = MATH2_fraction((uint16_t)GameRand(), 0xEC) + 472;
 		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.groupAI >= 3 &&
 			(GameRand() & 3) == 3 && g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_FLARE &&
 			g_curCraft->cmAmmoCount != 0 && g_curCraft->cmFireCooldownTimer == 0)
@@ -400,7 +400,7 @@ void paiman_initcruisemaneuver(void) {
 		g_orderThrottleToCraftThrottleSpeed[g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
 												.fg.orders[g_paiContext.orderSlot]
 												.throttle]);
-	g_paiContext.controller->aiPlanState = SIMULATION_TICKS_PER_SECOND;
+	g_paiContext.controller->secondaryManeuverTimer = SIMULATION_TICKS_PER_SECOND;
 }
 
 // FUNCTION: XVT 0x49FB20
@@ -430,13 +430,13 @@ int16_t paiman_cruisemaneuver(void) {
 		}
 	}
 
-	if (g_paiContext.controller->aiPlanState == 0) {
+	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
 		if (g_curCraft->aiFlight.diveState != 1 && g_curCraft->aiFlight.climbState != 1) {
 			zDistance = g_paiContext.controller->aimPointZ - g_objectTable[g_paiContext.objectIndex].world_z;
 			if (zDistance < 0)
 				zDistance = -zDistance;
 			if (zDistance > 512) {
-				g_paiContext.controller->targetZAngle = (uint16_t)pitchQ16;
+				g_paiContext.controller->targetZAngle = (uint16_t)trig2_pitch;
 				if (g_paiContext.controller->targetZAngle <= g_curCraft->pitch)
 					g_curCraft->aiFlight.pitchState = 1;
 				else
@@ -447,7 +447,7 @@ int16_t paiman_cruisemaneuver(void) {
 		}
 
 		paiman_setflighttotarget(0, 1);
-		g_paiContext.controller->aiPlanState = SIMULATION_TICKS_PER_SECOND;
+		g_paiContext.controller->secondaryManeuverTimer = SIMULATION_TICKS_PER_SECOND;
 		if (g_curCraft->aiFlight.turnState == 3 && g_objectTable[g_paiContext.objectIndex].roll != 0) {
 			g_curCraft->aiFlight.rollState = 1;
 			g_curCraft->aiFlight.rollStep = UINT16_MAX;
@@ -503,16 +503,16 @@ void paiman_AdvanceOrderWaypoint(int objectIndex) {
 void paiman_initheadtowardfullmaneuver(void) {
 	paiman_setflighttotarget(0, 1);
 	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
-	g_paiContext.controller->aiPlanState = SIMULATION_TICKS_PER_SECOND;
+	g_paiContext.controller->secondaryManeuverTimer = SIMULATION_TICKS_PER_SECOND;
 }
 
 // FUNCTION: XVT 0x49FFA0
 int16_t paiman_headtowardfullmaneuver(void) {
-	if (g_paiContext.controller->aiPlanState == 0) {
+	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
 		pai_UpdateAimPointFromOrderTarget();
 		paiman_setflighttotarget(0, 1);
 		paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
-		g_paiContext.controller->aiPlanState = SIMULATION_TICKS_PER_SECOND;
+		g_paiContext.controller->secondaryManeuverTimer = SIMULATION_TICKS_PER_SECOND;
 	}
 	return 0;
 }
@@ -640,7 +640,7 @@ int16_t paiman_followleadermaneuver(void) {
 			else
 				g_curCraft->aiFlight.pitchState = 2;
 			g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-			g_curCraft->aiFlight.headingForce = 0;
+			g_curCraft->aiFlight.pitchThroughLoop = 0;
 		}
 	}
 
@@ -811,7 +811,7 @@ int16_t paiman_attackmaneuver(void) {
 									if (speed >= maxSpeed) {
 										paiman_setpower(g_paiContext.objectIndex, fullThrottle);
 									} else {
-										uint16_t throttle = MATH2_divide(speed, maxSpeed);
+										uint16_t throttle = MATH2_ratioQ16(speed, maxSpeed);
 
 										paiman_setpower(g_paiContext.objectIndex, throttle);
 									}
@@ -876,7 +876,7 @@ int16_t paiman_attackmaneuver(void) {
 					g_curCraft->aiFlight.pitchState = 1;
 				else
 					g_curCraft->aiFlight.pitchState = 2;
-				g_curCraft->aiFlight.headingForce = 0;
+				g_curCraft->aiFlight.pitchThroughLoop = 0;
 				g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
 				paiman_setpower(g_paiContext.objectIndex, fullThrottle);
 				if (g_activeRegionCraftObjectSlotEnd <= g_paiContext.controller->targetObjIdx) {
@@ -947,7 +947,7 @@ void paiman_initzoommaneuver(void) {
 	} else {
 		g_curCraft->aiFlight.pitchState = 2;
 	}
-	g_curCraft->aiFlight.headingForce = 0;
+	g_curCraft->aiFlight.pitchThroughLoop = 0;
 	g_curCraft->aiFlight.pitchStepScale = 0xFFFFu;
 }
 
@@ -964,7 +964,7 @@ void paiman_initdivemaneuver(void) {
 	} else {
 		g_curCraft->aiFlight.pitchState = 2;
 	}
-	g_curCraft->aiFlight.headingForce = 0;
+	g_curCraft->aiFlight.pitchThroughLoop = 0;
 	g_curCraft->aiFlight.pitchStepScale = 0xFFFFu;
 	g_paiContext.controller->maneuverTimer = 1180;
 }
@@ -978,14 +978,14 @@ void paiman_initsplitsdivemaneuver(void) {
 	g_curCraft->aiFlight.rollStep = 0xFFFFu;
 	g_paiContext.controller->targetRoll = 0x8000u;
 	g_curCraft->aiFlight.turnState = 0;
-	g_curCraft->aiFlight.headingForce = 1;
+	g_curCraft->aiFlight.pitchThroughLoop = 1;
 	g_paiContext.controller->targetZAngle = (GameRand() & 0x3FFF) + 0x4000;
 	g_curCraft->aiFlight.pitchState = 2;
 	g_curCraft->aiFlight.pitchStepScale = (pai_GetEffectiveSkillValue(g_curCraft) >> 1) + 0x8000;
 }
 
 // FUNCTION: XVT 0x4A1030
-int16_t paiman_splitsmaneuver_2(void) {
+int16_t paiman_splitsdivemaneuver(void) {
 	return g_curCraft->aiFlight.rollState == 4 && g_curCraft->aiFlight.pitchState == 3;
 }
 
@@ -1006,7 +1006,7 @@ void paiman_initspeedawaymaneuver(void) {
 
 // FUNCTION: XVT 0x4A10D0
 int16_t paiman_speedawaymaneuver(void) {
-	if (g_paiContext.controller->aiPlanState == 0) {
+	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
 		g_paiContext.controller->targetXYAngle = -g_paiContext.controller->targetXYAngle;
 		paiman_SetupSpeedAwayTurn(g_paiContext.objectIndex);
 	}
@@ -1033,7 +1033,7 @@ void paiman_SetupSpeedAwayTurn(unsigned int objectIdx) {
 	turnStep = effectiveSkill >> 1;
 	turnStep += 0x8000;
 	paiman_setturn(turnStep);
-	g_paiContext.controller->aiPlanState = 118;
+	g_paiContext.controller->secondaryManeuverTimer = 118;
 }
 
 // FUNCTION: XVT 0x4A11B0
@@ -1063,7 +1063,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 				g_curCraft->aiFlight.pitchState = 0;
 				g_curCraft->aiFlight.turnState = 0;
 				g_paiContext.controller->maneuverPhase = 1;
-				g_paiContext.controller->aiPlanState = 944;
+				g_paiContext.controller->secondaryManeuverTimer = 944;
 				g_paiContext.controller->maneuverTimer = 1652;
 			}
 			paiman_setpower(g_paiContext.objectIndex, 0xFFFF);
@@ -1076,7 +1076,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 
 	g_curCraft->objectKind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE;
 	if (g_objectTable[g_paiContext.objectIndex].mobj->speed >= 0xE10) {
-		if (g_curCraft->capturedByFlightGroup == 0 && g_paiContext.controller->orderStateFlag == 0 &&
+		if (g_curCraft->capturedByFlightGroup == 0 && g_paiContext.controller->skippedToOrder4 == 0 &&
 			(g_curCraft->aiFlight.goHomeFlag != 0 ||
 			 (g_curCraft->aiFlight.missionAbortedFlag == 0 && g_curCraft->aiFlight.departTimerFlag == 0))) {
 			flightGroupIdx = g_paiContext.orderFlightGroupIndex;
@@ -1088,7 +1088,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 			}
 			Mission_ApplyTeamGoalScoreAllEnabledTeams(12, g_paiContext.orderFlightGroupIndex, specialCargo);
 		}
-		if (g_curCraft->capturedByFlightGroup == 0 && g_paiContext.controller->orderStateFlag == 1 &&
+		if (g_curCraft->capturedByFlightGroup == 0 && g_paiContext.controller->skippedToOrder4 == 1 &&
 			g_curCraft->aiFlight.missionAbortedFlag == 0 && g_curCraft->aiFlight.departTimerFlag == 0) {
 			flightGroupIdx = g_paiContext.orderFlightGroupIndex;
 			++g_missionFgStats[flightGroupIdx]
@@ -1099,7 +1099,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 		}
 		if (g_curCraft->capturedByFlightGroup != 0) {
 			team = g_objectTable[g_paiContext.objectIndex].mobj->team;
-			++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamCondition44Count[team];
+			++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamCapturedDepartedCount[team];
 			specialCargo = 0;
 			if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
 				g_curCraft->waveNumber) {
@@ -1136,7 +1136,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 					carriedCraft = g_objectTable[carriedObjectIdx].mobj->pCraft;
 					if (carriedCraft->capturedByFlightGroup != 0) {
 						team = g_objectTable[carriedObjectIdx].mobj->team;
-						++g_missionFgStats[carriedGroupIdx].teamCondition44Count[team];
+						++g_missionFgStats[carriedGroupIdx].teamCapturedDepartedCount[team];
 						specialCargo = 0;
 						if (g_missionFlightGroups[carriedGroupIdx].fg.specialCargoCraft ==
 							carriedCraft->waveNumber) {
@@ -1191,7 +1191,7 @@ void paiman_initoutofhyperspacemaneuver(void) {
 	g_curCraft->objectKind = CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE;
 	g_objectTable[g_paiContext.objectIndex].mobj->speed = 3600;
 	g_paiContext.controller->maneuverPhase = 0;
-	g_paiContext.controller->aiPlanState = SIMULATION_TICKS_PER_SECOND;
+	g_paiContext.controller->secondaryManeuverTimer = SIMULATION_TICKS_PER_SECOND;
 	g_paiContext.controller->targetObjIdx = 0x8000;
 	g_paiContext.controller->targetSignature = 0;
 	g_paiContext.controller->hasLiveTarget = 0;
@@ -1210,13 +1210,13 @@ int16_t paiman_outofhyperspacemaneuver(void) {
 	uint8_t* outOfHyperspacePlan;
 
 	targetController = &g_paiContext.targetCraft->aiController;
-	if (g_paiContext.controller->aiPlanState == 0) {
+	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
 		++g_paiContext.controller->maneuverPhase;
 		if (g_paiContext.controller->maneuverPhase > 10)
 			g_paiContext.controller->maneuverPhase = 10;
 		g_objectTable[g_paiContext.objectIndex].mobj->speed =
 			g_aiCourseOrderSpeedByManeuverPhase[g_paiContext.controller->maneuverPhase];
-		g_paiContext.controller->aiPlanState = SIMULATION_TICKS_PER_SECOND;
+		g_paiContext.controller->secondaryManeuverTimer = SIMULATION_TICKS_PER_SECOND;
 	}
 
 	reached = 0;
@@ -1344,7 +1344,7 @@ int16_t paiman_escortmaneuver(void) {
 				else
 					g_curCraft->aiFlight.pitchState = 2;
 				g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-				g_curCraft->aiFlight.headingForce = 0;
+				g_curCraft->aiFlight.pitchThroughLoop = 0;
 			}
 		}
 		{
@@ -1487,7 +1487,7 @@ int16_t paiman_boardmaneuver(void) {
 				g_paiContext.controller->aimPointZ = g_rotatedZ + g_objectTable[targetObjectIndex].world_z;
 			} else {
 				Mission_ResolveObjectOrMissionPointWorldLoc(targetObjectIndex, 0);
-				g_paiContext.controller->aimPointX = worldlocx;
+				g_paiContext.controller->aimPointX = g_worldLocX;
 				g_paiContext.controller->aimPointY = worldlocy;
 				g_paiContext.controller->aimPointZ = worldlocz + MISSION_POINT_APPROACH_Z_OFFSET;
 			}
@@ -1569,7 +1569,7 @@ int16_t paiman_boardmaneuver(void) {
 				targetPitch = g_objectTable[targetObjectIndex].pitch;
 			} else {
 				Mission_ResolveObjectOrMissionPointWorldLoc(targetObjectIndex, 0);
-				g_curCraft->pushAccumX = worldlocx - g_objectTable[g_paiContext.objectIndex].world_x;
+				g_curCraft->pushAccumX = g_worldLocX - g_objectTable[g_paiContext.objectIndex].world_x;
 				pushX = g_curCraft->pushAccumX;
 				g_curCraft->pushAccumY = worldlocy - g_objectTable[g_paiContext.objectIndex].world_y;
 				pushY = g_curCraft->pushAccumY;
@@ -1593,7 +1593,7 @@ int16_t paiman_boardmaneuver(void) {
 			if (g_objectTable[g_paiContext.objectIndex].pitch != g_objectTable[targetObjectIndex].pitch) {
 				g_paiContext.controller->targetZAngle = targetPitch;
 				g_curCraft->aiFlight.pitchStepScale = ALIGNMENT_STEP;
-				g_curCraft->aiFlight.headingForce = 0;
+				g_curCraft->aiFlight.pitchThroughLoop = 0;
 				g_curCraft->aiFlight.pitchState =
 					g_paiContext.controller->targetZAngle > g_curCraft->pitch ? 2 : 1;
 			}
@@ -1611,7 +1611,7 @@ int16_t paiman_boardmaneuver(void) {
 			g_curCraft->pushAccumZ = 0;
 			g_paiContext.controller->maneuverPhase = BOARD_PHASE_TRANSFER;
 			g_paiContext.controller->maneuverTimer = DOCKING_DURATION_PER_ORDER_UNIT * variable1;
-			g_paiContext.controller->aiPlanState = SIMULATION_TICKS_PER_SECOND;
+			g_paiContext.controller->secondaryManeuverTimer = SIMULATION_TICKS_PER_SECOND;
 			if (g_objectTable[g_paiContext.objectIndex].mobj != NULL &&
 				g_curCraft->aiFlight.orderActionFlag == 0) {
 				uint16_t flightGroupIndex = g_paiContext.orderFlightGroupIndex;
@@ -1668,7 +1668,7 @@ int16_t paiman_boardmaneuver(void) {
 
 				if (strcmp(planName, "boardtogivepln") != 0 ||
 					g_objectTable[targetObjectIndex].playerOwnerIdx == -1 ||
-					g_paiContext.controller->aiPlanState != 0 || targetCraft == NULL)
+					g_paiContext.controller->secondaryManeuverTimer != 0 || targetCraft == NULL)
 					return 0;
 				for (launcherIndex = 0; launcherIndex < targetCraft->warheadLauncherCount; ++launcherIndex) {
 					uint16_t weaponSlotIndex;
@@ -1725,7 +1725,7 @@ int16_t paiman_boardmaneuver(void) {
 						subsystemMask *= 2;
 					}
 				}
-				g_paiContext.controller->aiPlanState = RELOAD_PLAN_STATE;
+				g_paiContext.controller->secondaryManeuverTimer = RELOAD_PLAN_STATE;
 				if (reloadedOrRepaired != 0)
 					g_paiContext.controller->maneuverTimer = RELOAD_CONTINUE_DURATION;
 				return 0;
@@ -1911,15 +1911,15 @@ int16_t paiman_boardmaneuver(void) {
 				MobileObject* boardingMobileObject = g_objectTable[g_paiContext.objectIndex].mobj;
 
 				if (boardingMobileObject->iff == targetMobileObject->iff) {
-					uint8_t* visibility = &targetCraft->iffVisibility[boardingMobileObject->team];
+					uint8_t* visibility = &targetCraft->identifiedOrderByTeam[boardingMobileObject->team];
 
 					if (*visibility == 0) {
 						uint16_t visibilityIndex;
 						uint16_t maximumVisibility = 0;
 
 						for (visibilityIndex = 0; visibilityIndex < IFF_VISIBILITY_COUNT; ++visibilityIndex) {
-							if (maximumVisibility < targetCraft->iffVisibility[visibilityIndex])
-								maximumVisibility = targetCraft->iffVisibility[visibilityIndex];
+							if (maximumVisibility < targetCraft->identifiedOrderByTeam[visibilityIndex])
+								maximumVisibility = targetCraft->identifiedOrderByTeam[visibilityIndex];
 						}
 						*visibility = (uint8_t)(maximumVisibility + 1);
 						++g_missionFgStats[*targetFlightGroupIndexPtr]
@@ -2015,11 +2015,11 @@ void paiman_TransferObjectToAiTeam(unsigned int objectIdx, CraftData* craft, uin
 					g_missionFgStats[flightGroupIdx].specialCargoOutcome[FLIGHT_GROUP_OUTCOME_CAPTURED] = 1;
 				}
 			} else {
-				g_flightMissionState.runtime
-					.teamFgCounters[1][g_missionFlightGroups[craft->capturedByFlightGroup & 0x7F].fg.team]
-								   [flightGroupIdx]--;
+				g_flightMissionState.runtime.teamFgInspectedCapturedCounts
+					[1][g_missionFlightGroups[craft->capturedByFlightGroup & 0x7F].fg.team][flightGroupIdx]--;
 			}
-			g_flightMissionState.runtime.teamFgCounters[1][(*currentMobileObjectPtr)->team][flightGroupIdx]++;
+			g_flightMissionState.runtime
+				.teamFgInspectedCapturedCounts[1][(*currentMobileObjectPtr)->team][flightGroupIdx]++;
 			craft->capturedByFlightGroup = ownerFlag | (uint8_t)g_paiContext.orderFlightGroupIndex;
 		}
 	}
@@ -2071,7 +2071,7 @@ void paiman_initturnawaymaneuver(void) {
 int16_t paiman_turnawaymaneuver(void) {
 	if (g_paiContext.controller->maneuverTimer == 0)
 		return 1;
-	if (g_paiContext.controller->aiPlanState == 0)
+	if (g_paiContext.controller->secondaryManeuverTimer == 0)
 		paiman_setupturnawaycourse(g_paiContext.objectIndex);
 	return 0;
 }
@@ -2091,7 +2091,7 @@ void paiman_setupturnawaycourse(unsigned int objectIdx) {
 	turnStep = effectiveSkill >> 1;
 	turnStep += 0x8000;
 	paiman_setturn(turnStep);
-	g_paiContext.controller->aiPlanState =
+	g_paiContext.controller->secondaryManeuverTimer =
 		g_aiTurnAwayStateDelayBySkill[g_paiContext.skillTier] * SIMULATION_TICKS_PER_SECOND;
 }
 
@@ -2131,13 +2131,13 @@ void paiman_initavoidstarshipmaneuver(void) {
 	uint16_t effectiveSkill;
 	unsigned int turnStep;
 
-	g_paiContext.controller->aiPlanState = ((GameRand() & 7) + 15) * SIMULATION_TICKS_PER_SECOND;
+	g_paiContext.controller->secondaryManeuverTimer = ((GameRand() & 7) + 15) * SIMULATION_TICKS_PER_SECOND;
 	effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
 	turnStep = effectiveSkill >> 1;
 	turnStep += 0x8000;
 	paiman_setturn(turnStep);
 	g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-	g_curCraft->aiFlight.headingForce = 0;
+	g_curCraft->aiFlight.pitchThroughLoop = 0;
 	if (g_paiContext.controller->targetZAngle <= g_curCraft->pitch)
 		g_curCraft->aiFlight.pitchState = 1;
 	else
@@ -2207,7 +2207,7 @@ int16_t paiman_dropoffmaneuver(void) {
 		Mission_ResolveFormationSlotWorldLoc(destinationFlightGroupIndex, formationSlotIndex,
 											 basisObjectIndex);
 		minZ = -ModelBounds_GetMinZ(g_objectTable[g_paiContext.objectIndex].objectType);
-		g_curCraft->pushAccumX = worldlocx - g_objectTable[g_paiContext.objectIndex].world_x;
+		g_curCraft->pushAccumX = g_worldLocX - g_objectTable[g_paiContext.objectIndex].world_x;
 		distanceX = g_curCraft->pushAccumX;
 		g_curCraft->pushAccumY = worldlocy - g_objectTable[g_paiContext.objectIndex].world_y;
 		distanceY = g_curCraft->pushAccumY;
@@ -2298,14 +2298,14 @@ void paiman_initavoidattackermaneuver(void) {
 	}
 
 	g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-	g_curCraft->aiFlight.headingForce = 0;
+	g_curCraft->aiFlight.pitchThroughLoop = 0;
 	g_curCraft->aiFlight.rollState = 3;
 	g_curCraft->aiFlight.rollStep = UINT16_MAX;
 	g_paiContext.controller->targetRoll = (uint16_t)GameRand();
 	g_paiContext.controller->maneuverTimer = SIMULATION_TICKS_PER_SECOND * ((GameRand() & 7) + 10);
 
 	groupAI = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.groupAI;
-	g_paiContext.controller->aiPlanState =
+	g_paiContext.controller->secondaryManeuverTimer =
 		(int16_t)((uint16_t)MATH2_fraction(g_aiAvoidAttackerDelayFracQ16ByGroupAI[groupAI], 0x00ECu) +
 				  236u * g_aiAvoidAttackerDelaySecondsByGroupAI[groupAI]);
 }
@@ -2320,7 +2320,7 @@ int16_t paiman_avoidattackermaneuver(void) {
 		g_curCraft->aiFlight.rollState = 4;
 		return 1;
 	}
-	if (g_paiContext.controller->aiPlanState == 0) {
+	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
 		randomAngle = (uint16_t)(GameRand() & 0x0FFF);
 		g_paiContext.controller->maneuverPhase ^= 1;
 		if (g_paiContext.controller->maneuverPhase != 0)
@@ -2341,10 +2341,10 @@ int16_t paiman_avoidattackermaneuver(void) {
 			g_curCraft->aiFlight.pitchState = 1;
 		}
 		groupAi = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.groupAI;
-		g_paiContext.controller->aiPlanState =
+		g_paiContext.controller->secondaryManeuverTimer =
 			(uint16_t)(SIMULATION_TICKS_PER_SECOND * g_aiAvoidAttackerDelaySecondsByGroupAI[groupAi] +
 					   MATH2_fraction(g_aiAvoidAttackerDelayFracQ16ByGroupAI[groupAi], 0xEC));
-		g_paiContext.controller->aiPlanState += MATH2_fraction((uint16_t)GameRand(), 0xEC);
+		g_paiContext.controller->secondaryManeuverTimer += MATH2_fraction((uint16_t)GameRand(), 0xEC);
 		if (groupAi >= 3 && (GameRand() & 7) == 7 && g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_FLARE &&
 			g_curCraft->cmAmmoCount != 0 && g_curCraft->cmFireCooldownTimer == 0)
 			laser_createcountermeasureprojectile(g_paiContext.objectIndex,
@@ -2398,9 +2398,9 @@ void paiman_setflighttotarget(uint16_t pitchBias, int driveHeading) {
 	paiman_setturn(turnStep);
 	updateHeading = driveHeading;
 	if (updateHeading != 0) {
-		g_paiContext.controller->targetZAngle = (uint16_t)pitchQ16;
+		g_paiContext.controller->targetZAngle = (uint16_t)trig2_pitch;
 		g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-		g_curCraft->aiFlight.headingForce = 0;
+		g_curCraft->aiFlight.pitchThroughLoop = 0;
 		pitch = g_curCraft->pitch;
 		if (pitch >= g_paiContext.controller->targetZAngle) {
 			g_curCraft->aiFlight.pitchState = 1;
@@ -2420,7 +2420,7 @@ void paiman_initcruiseandrunawaycontrols(void) {
 	g_curCraft->aiFlight.climbState = 0;
 	g_paiContext.controller->targetZAngle = 0x4000;
 	g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-	g_curCraft->aiFlight.headingForce = 0;
+	g_curCraft->aiFlight.pitchThroughLoop = 0;
 	pitch = g_curCraft->pitch;
 	if (pitch < 0x4000) {
 		g_curCraft->aiFlight.pitchState = 2;
@@ -2474,8 +2474,8 @@ void paiman_attacktarget(int16_t yawOffset) {
 	if (g_curCraft->aiFlight.rollState == 3) {
 		g_curCraft->aiFlight.rollState = 0;
 	}
-	if (g_curCraft->pitch != (uint16_t)pitchQ16) {
-		g_paiContext.controller->targetZAngle = (uint16_t)pitchQ16;
+	if (g_curCraft->pitch != (uint16_t)trig2_pitch) {
+		g_paiContext.controller->targetZAngle = (uint16_t)trig2_pitch;
 		g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
 		if (g_paiContext.controller->targetZAngle <= g_curCraft->pitch) {
 			g_curCraft->aiFlight.pitchState = 1;
@@ -2485,19 +2485,19 @@ void paiman_attacktarget(int16_t yawOffset) {
 		paiman_setpower(objectIndex, UINT16_MAX);
 		g_curCraft->aiFlight.climbState = 0;
 		g_curCraft->aiFlight.diveState = 0;
-		g_curCraft->aiFlight.headingForce = 0;
+		g_curCraft->aiFlight.pitchThroughLoop = 0;
 	}
 }
 
 // FUNCTION: XVT 0x4A4840
 void paiman_calcplanelead(int targetObjIdx) {
-	uint16_t leadTicks;
+	uint16_t leadFrames;
 	int deltaY;
 	int deltaZ;
 	MobileObject* targetMobile;
 
 	if (g_objectTable[targetObjIdx].mobj->speed == 0) {
-		leadTicks = 0;
+		leadFrames = 0;
 	} else {
 		uint16_t projectileType;
 		uint16_t projectileSpeed;
@@ -2505,7 +2505,7 @@ void paiman_calcplanelead(int targetObjIdx) {
 		uint16_t targetSpeed;
 		uint16_t yawDifference;
 		uint16_t timeDivisor;
-		uint16_t travelTicks;
+		uint16_t travelFrames;
 		uint16_t effectiveSkill;
 		uint16_t objectIndex;
 
@@ -2535,14 +2535,14 @@ void paiman_calcplanelead(int targetObjIdx) {
 		if (timeDivisor == 0) {
 			timeDivisor = 19;
 		}
-		travelTicks = g_simStepScale * (trig2_polardistance / timeDivisor);
+		travelFrames = g_simStepsPerSecond * (trig2_polardistance / timeDivisor);
 		effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-		leadTicks = MATH2_fraction(travelTicks, effectiveSkill);
+		leadFrames = MATH2_fraction(travelFrames, effectiveSkill);
 	}
 	targetMobile = g_objectTable[targetObjIdx].mobj;
 	deltaY =
 #ifdef XVT_MODERN
-		(XvtFlightTiming_IsUnlocked() ? XvtReferenceMotion_Axis(targetObjIdx, 1)
+		(XvtFlightTiming_IsUnlocked() ? XvtReferenceMotion_AxisDisplacement(targetObjIdx, 1)
 									  : (g_objectTable[targetObjIdx].world_y - targetMobile->prevWorldY))
 #else
 		g_objectTable[targetObjIdx].world_y - targetMobile->prevWorldY
@@ -2550,7 +2550,7 @@ void paiman_calcplanelead(int targetObjIdx) {
 		;
 	deltaZ =
 #ifdef XVT_MODERN
-		(XvtFlightTiming_IsUnlocked() ? XvtReferenceMotion_Axis(targetObjIdx, 2)
+		(XvtFlightTiming_IsUnlocked() ? XvtReferenceMotion_AxisDisplacement(targetObjIdx, 2)
 									  : (g_objectTable[targetObjIdx].world_z - targetMobile->prevWorldZ))
 #else
 		g_objectTable[targetObjIdx].world_z - targetMobile->prevWorldZ
@@ -2558,17 +2558,17 @@ void paiman_calcplanelead(int targetObjIdx) {
 		;
 	g_paiContext.controller->aimPointX =
 		g_objectTable[targetObjIdx].world_x +
-		leadTicks * (
+		leadFrames * (
 #ifdef XVT_MODERN
-						(XvtFlightTiming_IsUnlocked()
-							 ? XvtReferenceMotion_Axis(targetObjIdx, 0)
-							 : (g_objectTable[targetObjIdx].world_x - targetMobile->prevWorldX))
+						 (XvtFlightTiming_IsUnlocked()
+							  ? XvtReferenceMotion_AxisDisplacement(targetObjIdx, 0)
+							  : (g_objectTable[targetObjIdx].world_x - targetMobile->prevWorldX))
 #else
-						g_objectTable[targetObjIdx].world_x - targetMobile->prevWorldX
+						 g_objectTable[targetObjIdx].world_x - targetMobile->prevWorldX
 #endif
-					);
-	g_paiContext.controller->aimPointY = g_objectTable[targetObjIdx].world_y + leadTicks * deltaY;
-	g_paiContext.controller->aimPointZ = g_objectTable[targetObjIdx].world_z + leadTicks * deltaZ;
+					 );
+	g_paiContext.controller->aimPointY = g_objectTable[targetObjIdx].world_y + leadFrames * deltaY;
+	g_paiContext.controller->aimPointZ = g_objectTable[targetObjIdx].world_z + leadFrames * deltaZ;
 }
 
 // FUNCTION: XVT 0x4A4A10
@@ -2667,8 +2667,8 @@ void paiman_setspeed(int objIdx, unsigned int desiredSpeed) {
 	uint16_t adjustedMaxSpeed;
 
 	craft = g_objectTable[objIdx].mobj->pCraft;
-	powerDelta = (uint16_t)(6 - (uint8_t)craft->shieldRedirect - (uint8_t)craft->beamLevel -
-							(uint8_t)craft->laserRedirect);
+	powerDelta = (uint16_t)(6 - (uint8_t)craft->shieldRechargeLevel - (uint8_t)craft->beamLevel -
+							(uint8_t)craft->laserRechargeLevel);
 	if (powerDelta >= 0x8000u) {
 		powerDelta = (uint16_t)-powerDelta;
 		powerDelta <<= 13;
@@ -2684,5 +2684,5 @@ void paiman_setspeed(int objIdx, unsigned int desiredSpeed) {
 	if (adjustedMaxSpeed <= desiredSpeed)
 		paiman_setpower(objIdx, 0xFFFF);
 	else
-		paiman_setpower(objIdx, MATH2_divide((uint16_t)desiredSpeed, adjustedMaxSpeed));
+		paiman_setpower(objIdx, MATH2_ratioQ16((uint16_t)desiredSpeed, adjustedMaxSpeed));
 }

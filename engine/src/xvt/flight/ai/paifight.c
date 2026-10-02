@@ -178,7 +178,8 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 
 			objectArrayIndex = objectIndex;
 			objectType = g_objectTable[objectArrayIndex].objectType;
-			if (objectType == 0 || (g_modelTypeTable[objectType].flags & TARGETABLE_STATIC_MODEL_FLAG) == 0)
+			if (objectType == 0 ||
+				(g_modelTypeTable[objectType].behaviorFlags & TARGETABLE_STATIC_MODEL_FLAG) == 0)
 				continue;
 			trigger1Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
 			trigger2Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
@@ -264,7 +265,8 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 
 			objectArrayIndex = objectIndex;
 			objectType = g_objectTable[objectArrayIndex].objectType;
-			if (objectType == 0 || (g_modelTypeTable[objectType].flags & TARGETABLE_STATIC_MODEL_FLAG) == 0)
+			if (objectType == 0 ||
+				(g_modelTypeTable[objectType].behaviorFlags & TARGETABLE_STATIC_MODEL_FLAG) == 0)
 				continue;
 			trigger1Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
 			trigger2Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
@@ -615,7 +617,7 @@ int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx, uint16_t candida
 }
 
 // FUNCTION: XVT 0x45DD00
-int16_t paifight_OrderSlotCanTarget(uint16_t orderSlot) {
+int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot) {
 	PaiPlanRecord* plan;
 	int16_t targetObject;
 
@@ -641,7 +643,7 @@ int16_t paifight_OrderSlotCanTarget(uint16_t orderSlot) {
 }
 
 // FUNCTION: XVT 0x45DDF0
-int16_t paifight_OrderSlotHasRemainingTargets(uint16_t orderSlot) {
+int16_t paifight_SearchOrderSlotRemainingTargets(uint16_t orderSlot) {
 	PaiPlanRecord* plan;
 	int16_t result;
 
@@ -746,7 +748,7 @@ int16_t paifight_CountRemainingOrderTargets(int16_t target1Type, uint16_t target
 	staticObjectIndex = (uint16_t)g_regionMainObjectSlotEnd;
 	while (staticObjectIndex < (int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount)) {
 		object = &g_objectTable[staticObjectIndex];
-		if (object->objectType != 0 && (g_modelTypeTable[object->objectType].flags & 2) != 0) {
+		if (object->objectType != 0 && (g_modelTypeTable[object->objectType].behaviorFlags & 2) != 0) {
 			flightGroupIdx = object->flightGroupIdx;
 			matchesTarget1 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target1Type, target1);
 			matchesTarget2 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target2Type, target2);
@@ -925,7 +927,7 @@ int16_t paifight_fightershootorder(void) {
 		targetAngle = (uint16_t)(trig2_xyangle - g_objectTable[g_paiContext.objectIndex].yaw);
 		if (targetAngle >= ANGLE_HALF_TURN)
 			targetAngle = (uint16_t)-targetAngle;
-		pitchAngle = (uint16_t)(pitchQ16 - g_curCraft->pitch);
+		pitchAngle = (uint16_t)(trig2_pitch - g_curCraft->pitch);
 		if (pitchAngle >= ANGLE_HALF_TURN)
 			pitchAngle = (uint16_t)-pitchAngle;
 		if (targetAngle >= MAX_TARGET_ANGLE || pitchAngle >= MAX_TARGET_ANGLE ||
@@ -1442,7 +1444,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 		GUNNER_WEAPON_TYPE = 2,
 		RETARGET_COOLDOWN_TICKS = 472,
 		MAX_SHARED_TURRETS = 2,
-		CHAFF_ACTIVE_TICKS = 10,
+		CHAFF_ACTIVE_SECONDS = 10,
 		COUNTERMEASURE_DISABLED_STATUS = 21,
 	};
 
@@ -1519,7 +1521,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 					clearSweep = 1;
 					if (!expandedProbe) {
 						Mission_ResolveObjectOrMissionPointWorldLoc(lastAttackerObjIdx, 0);
-						g_collisionProbeWorldX = worldlocx;
+						g_collisionProbeWorldX = g_worldLocX;
 						g_collisionProbeWorldY = worldlocy;
 						g_collisionProbeWorldZ = worldlocz;
 						clearSweep = collide_CheckSweptModelCollision(g_paiContext.objectIndex,
@@ -1611,7 +1613,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 					clearSweep = 1;
 					if (!expandedProbe) {
 						Mission_ResolveObjectOrMissionPointWorldLoc(candidateObjIdx, 0);
-						g_collisionProbeWorldX = worldlocx;
+						g_collisionProbeWorldX = g_worldLocX;
 						g_collisionProbeWorldY = worldlocy;
 						g_collisionProbeWorldZ = worldlocz;
 						clearSweep = collide_CheckSweptModelCollision(g_paiContext.objectIndex,
@@ -1659,7 +1661,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 				if ((g_curCraft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_COUNTERMEASURES) != 0) {
 					if (g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF) {
 						if (g_curCraft->chaffActiveTimer == 0) {
-							g_curCraft->chaffActiveTimer += CHAFF_ACTIVE_TICKS;
+							g_curCraft->chaffActiveTimer += CHAFF_ACTIVE_SECONDS;
 							if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.status1 !=
 									COUNTERMEASURE_DISABLED_STATUS &&
 								g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.status2 !=
@@ -1959,7 +1961,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 
 			objectArrayIndex = staticObjectIndex;
 			if (g_objectTable[objectArrayIndex].objectType == 0 ||
-				(g_modelTypeTable[g_objectTable[objectArrayIndex].objectType].flags &
+				(g_modelTypeTable[g_objectTable[objectArrayIndex].objectType].behaviorFlags &
 				 TARGETABLE_STATIC_MODEL_FLAG) == 0)
 				continue;
 
@@ -1977,7 +1979,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 				continue;
 
 			Mission_ResolveObjectOrMissionPointWorldLoc(staticObjectIndex, 0);
-			g_lastRoughDistance = collide_roughdistance3d(worldlocx - g_paifightSearchOriginX,
+			g_lastRoughDistance = collide_roughdistance3d(g_worldLocX - g_paifightSearchOriginX,
 														  worldlocy - g_paifightSearchOriginY,
 														  worldlocz - g_paifightSearchOriginZ);
 			if (expandedProbe) {
@@ -1994,7 +1996,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 			if (expandedProbe) {
 				clearSweep = 1;
 			} else {
-				g_collisionProbeWorldX = worldlocx;
+				g_collisionProbeWorldX = g_worldLocX;
 				g_collisionProbeWorldY = worldlocy;
 				g_collisionProbeWorldZ = worldlocz;
 				++g_gunnerCollisionProbeCount;
@@ -2143,7 +2145,7 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16
 			continue;
 		if (requireClearSweep != 0) {
 			Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
-			g_collisionProbeWorldX = worldlocx;
+			g_collisionProbeWorldX = g_worldLocX;
 			g_collisionProbeWorldY = worldlocy;
 			g_collisionProbeWorldZ = worldlocz;
 			if (collide_CheckSweptModelCollision(g_paiContext.objectIndex, g_paiContext.objectIndex) != 0)
@@ -2158,7 +2160,7 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16
 		 objectIndex < g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount; ++objectIndex) {
 		objectArrayIndex = objectIndex;
 		if (g_objectTable[objectArrayIndex].objectType == 0 ||
-			(g_modelTypeTable[g_objectTable[objectArrayIndex].objectType].flags &
+			(g_modelTypeTable[g_objectTable[objectArrayIndex].objectType].behaviorFlags &
 			 TARGETABLE_STATIC_MODEL_FLAG) == 0)
 			continue;
 
@@ -2176,14 +2178,14 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16
 			continue;
 
 		Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
-		rangeScore = (unsigned int)collide_roughdistance3d(worldlocx - g_paifightSearchOriginX,
+		rangeScore = (unsigned int)collide_roughdistance3d(g_worldLocX - g_paifightSearchOriginX,
 														   worldlocy - g_paifightSearchOriginY,
 														   worldlocz - g_paifightSearchOriginZ);
 		g_lastRoughDistance = (int)rangeScore;
 		if (rangeScore >= bestRangeScore)
 			continue;
 		if (requireClearSweep != 0) {
-			g_collisionProbeWorldX = worldlocx;
+			g_collisionProbeWorldX = g_worldLocX;
 			g_collisionProbeWorldY = worldlocy;
 			g_collisionProbeWorldZ = worldlocz;
 			if (collide_CheckSweptModelCollision(g_paiContext.objectIndex, g_paiContext.objectIndex) != 0)

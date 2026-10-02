@@ -15,8 +15,8 @@ void XvtRenderCamera_Build(int16_t roll, int16_t pitch, int16_t yaw, int16_t ang
  * still match its tag, otherwise the live Q15 rows scaled by 1/32768. */
 void XvtRenderCamera_CopyRows(float rows[9]);
 /* Match the original single saved flight viewport. */
-/* Save copies the camera; a second Save overwrites the first. Restore brings the copy back and
- * drops its precise basis unless the live Q15 rows still match its tag. */
+/* Save copies the camera; a second Save overwrites the first. Restore brings the
+ * copy back and drops its precise basis unless the live Q15 rows still match its tag. */
 void XvtRenderCamera_SaveViewport(void);
 void XvtRenderCamera_RestoreViewport(void);
 

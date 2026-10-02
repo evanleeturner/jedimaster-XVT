@@ -322,7 +322,7 @@ static int RenderOne(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, const 
 		Aeron_EndRenderPass(pass);
 	}
 	XvtPreviewOutput* out = &g_outputs[slot];
-	out->tick_index = s->tick_index;
+	out->snapshot_serial = s->snapshot_serial;
 	out->texture = crt ? AeronScene_ColorTexture(scene) : Aeron_RenderTargetGetTexture(g_targets[slot]);
 	out->width = width;
 	out->height = height;

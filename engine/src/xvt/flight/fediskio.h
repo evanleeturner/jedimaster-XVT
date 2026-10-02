@@ -49,7 +49,7 @@ typedef enum DiskIoStringId {
 
 extern char g_fileName[256];
 extern char* g_strDiskIoMessages[32];
-extern uint8_t* g_flightLog1Buffer;
+extern uint8_t* g_flightScratchScreenBuffer;
 extern uint8_t* g_flightAuxBufferMirror;
 extern uint16_t g_fileReadAbortFlag;
 extern XvtFile* g_stream;

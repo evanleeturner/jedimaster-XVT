@@ -33,7 +33,7 @@ static struct {
 static struct {
 	int sender;
 	XvtFlightChecksumReportWire packet;
-} g_checksums[XVT_DEFERRED_CHECKSUMS];
+} g_deferredChecksumReports[XVT_DEFERRED_CHECKSUMS];
 
 static unsigned g_checksum_read, g_checksum_count;
 
@@ -45,8 +45,8 @@ void XvtResync_DeferChecksum(int sender, const int* packet) {
 		return;
 	}
 	unsigned index = (g_checksum_read + g_checksum_count++) % XVT_DEFERRED_CHECKSUMS;
-	g_checksums[index].sender = sender;
-	memcpy(&g_checksums[index].packet, packet, sizeof(XvtFlightChecksumReportWire));
+	g_deferredChecksumReports[index].sender = sender;
+	memcpy(&g_deferredChecksumReports[index].packet, packet, sizeof(XvtFlightChecksumReportWire));
 }
 
 /* The roster slot of the player the host is sending to; logs name slots, not network ids. */
@@ -388,13 +388,13 @@ static void XvtResync_RestartReceive(void) {
 	XvtFlightMessages_Clear(XVT_QUEUE_PENDING);
 	XvtFlightMessages_Clear(XVT_QUEUE_REPLAY);
 	XvtFlightFrame_ResetReplay();
-	XvtResync_RequestState();
+	XvtResync_ServiceRecovery();
 }
 
 static int XvtResync_ReadyChecksum(void) {
 	for (unsigned i = 0; i < g_checksum_count; ++i) {
 		unsigned index = (g_checksum_read + i) % XVT_DEFERRED_CHECKSUMS;
-		const XvtFlightChecksumReportWire* packet = &g_checksums[index].packet;
+		const XvtFlightChecksumReportWire* packet = &g_deferredChecksumReports[index].packet;
 		int ready = (XvtWire_Get32(packet->request_state) == XVT_CHECKSUM_REQUEST_STATE
 						 ? g_serverTickTime >= g_flightNetLastSentWorldMessageTimestamp
 						 : XvtWire_Get32(packet->checksum.epoch) <= g_flightNetWorldChecksumEpoch);
@@ -411,12 +411,12 @@ static void XvtResync_ServiceChecksums(void) {
 		if (ready < 0)
 			return;
 		unsigned index = (g_checksum_read + (unsigned)ready) % XVT_DEFERRED_CHECKSUMS;
-		int sender = g_checksums[index].sender;
+		int sender = g_deferredChecksumReports[index].sender;
 		int packet[sizeof(XvtFlightChecksumReportWire) / sizeof(int)];
-		memcpy(packet, &g_checksums[index].packet, sizeof packet);
+		memcpy(packet, &g_deferredChecksumReports[index].packet, sizeof packet);
 		for (unsigned i = (unsigned)ready; i + 1 < g_checksum_count; ++i)
-			g_checksums[(g_checksum_read + i) % XVT_DEFERRED_CHECKSUMS] =
-				g_checksums[(g_checksum_read + i + 1) % XVT_DEFERRED_CHECKSUMS];
+			g_deferredChecksumReports[(g_checksum_read + i) % XVT_DEFERRED_CHECKSUMS] =
+				g_deferredChecksumReports[(g_checksum_read + i + 1) % XVT_DEFERRED_CHECKSUMS];
 		--g_checksum_count;
 		FlightSync_HandleWorldChecksumPacket(sender, packet);
 	}
@@ -513,8 +513,8 @@ void XvtResync_Tick(void) {
 
 int XvtResync_HasStateRequest(void) {
 	for (unsigned i = 0; i < g_checksum_count; ++i)
-		if (XvtWire_Get32(g_checksums[(g_checksum_read + i) % XVT_DEFERRED_CHECKSUMS].packet.request_state) ==
-			XVT_CHECKSUM_REQUEST_STATE)
+		if (XvtWire_Get32(g_deferredChecksumReports[(g_checksum_read + i) % XVT_DEFERRED_CHECKSUMS]
+							  .packet.request_state) == XVT_CHECKSUM_REQUEST_STATE)
 			return 1;
 	return 0;
 }
@@ -559,7 +559,7 @@ void XvtResync_Reset(void) {
 
 void XvtResync_WorldApplied(void) { XvtRenderCapture_WorldChanged(); }
 
-void XvtResync_RequestState(void) {
+void XvtResync_ServiceRecovery(void) {
 	if (!XvtFlightTiming_IsNetwork125())
 		return;
 	if (g_receive.request_sent) {

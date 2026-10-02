@@ -131,7 +131,7 @@ char* FlightNet_GetStatusPlayerName(void) {
 // FUNCTION: XVT 0x463160
 int FlightNet_SyncPlayerOptionsAndTaunts(void) {
 #ifdef XVT_MODERN
-	return XvtFlightNetwork_Options();
+	return XvtFlightNetwork_ExchangeOptions();
 #else
 	int activePlayers;
 	int* packet;
@@ -340,7 +340,7 @@ int FlightNet_SyncPlayerOptionsAndTaunts(void) {
 // FUNCTION: XVT 0x463790
 int FlightNet_WaitForMissionStart(void) {
 #ifdef XVT_MODERN
-	return XvtFlightNetwork_Start();
+	return XvtFlightNetwork_WaitForMissionStart();
 #else
 	enum {
 		PACKET_WAIT_TIMEOUT_TICKS = 60,
@@ -632,9 +632,9 @@ void FlightNet_ProcessIncomingPackets(void) {
 		RESYNC_CHECKSUM_COUNT = 126,
 		WORLD_STATE_CHUNK_COUNT = 16,
 		PACKET_CLOCK_PROBE_REPLY_SIZE = 2 * sizeof(int),
-		RECOVERY_DELAY_MS = 826,
-		RECOVERY_BLINK_MS = 118,
-		PEER_TIMEOUT_MS = 7080,
+		RECOVERY_DELAY_TICKS = 826,
+		RECOVERY_BLINK_TICKS = 118,
+		PEER_TIMEOUT_TICKS = 7080,
 		CLOCK_PROBE_BIAS_TICKS = 20,
 		CLOCK_PROBE_LIMIT_TICKS = 472,
 		FULL_TIMESTAMP_CODE = 0x7F,
@@ -681,7 +681,7 @@ void FlightNet_ProcessIncomingPackets(void) {
 	if (g_flightNetRecoveryUiActive != 0) {
 		int blinkTime = g_flightNetRecoveryUiBlinkTime;
 
-		packetState.startTimestamp = g_flightNetRecoverySavedInputTimestamp - RECOVERY_DELAY_MS;
+		packetState.startTimestamp = g_flightNetRecoverySavedInputTimestamp - RECOVERY_DELAY_TICKS;
 		currentTimestamp = blinkTime + (int)Time_ConsumeElapsedTicks() + 1;
 	} else {
 		currentTimestamp = g_inputTimestamp;
@@ -692,7 +692,7 @@ void FlightNet_ProcessIncomingPackets(void) {
 	for (;;) {
 		int* packet;
 
-		if (currentTimestamp - packetState.startTimestamp > RECOVERY_DELAY_MS) {
+		if (currentTimestamp - packetState.startTimestamp > RECOVERY_DELAY_TICKS) {
 			if (g_flightNetRecoveryUiActive != 0) {
 				if (FlightInput_HasKeyReady() != 0 && FlightInput_GetNextKey() == FLIGHT_KEY_ESCAPE) {
 					g_flightNetRecoveryUiActive = 0;
@@ -709,7 +709,7 @@ void FlightNet_ProcessIncomingPackets(void) {
 					}
 					return;
 				}
-				if (currentTimestamp - g_flightNetRecoveryUiBlinkTime > RECOVERY_BLINK_MS) {
+				if (currentTimestamp - g_flightNetRecoveryUiBlinkTime > RECOVERY_BLINK_TICKS) {
 					g_flightNetRecoveryUiBlinkTime = currentTimestamp;
 					packetState.blinkToggle = !packetState.blinkToggle;
 					if (packetState.blinkToggle != 0) {
@@ -824,10 +824,10 @@ void FlightNet_ProcessIncomingPackets(void) {
 					input.keyMods |= cursor[0] & 1u;
 					inserted = FlightSync_InsertInputFrame(playerIndex, (int)timestamp, &input);
 					if (inserted != NULL) {
-						int localPlayerId = NetSession_IsLocalHost();
+						int localIsHost = NetSession_IsLocalHost();
 
 						inserted->applied = 1;
-						if (localPlayerId == 0) {
+						if (localIsHost == 0) {
 							inserted->applied = 0;
 						}
 						inserted->valid = 1;
@@ -857,7 +857,7 @@ void FlightNet_ProcessIncomingPackets(void) {
 						if (playerIndex != g_localPlayer && g_players[playerIndex].connectedFlag != 0 &&
 							g_flightNetPeerSilenceTicks[playerIndex] != -1) {
 							g_flightNetPeerSilenceTicks[playerIndex] += g_netUpdateIntervalTicks;
-							if (g_flightNetPeerSilenceTicks[playerIndex] > PEER_TIMEOUT_MS) {
+							if (g_flightNetPeerSilenceTicks[playerIndex] > PEER_TIMEOUT_TICKS) {
 								FlightNet_BroadcastPlayerAbort(playerIndex);
 								g_flightNetPeerSilenceTicks[playerIndex] = 0;
 							}
@@ -989,10 +989,10 @@ void FlightNet_ProcessIncomingPackets(void) {
 							cursor += 2;
 							inserted = FlightSync_InsertInputFrame(playerIndex, (int)timestamp, &input);
 							if (inserted != NULL) {
-								int localPlayerId = NetSession_IsLocalHost();
+								int localIsHost = NetSession_IsLocalHost();
 
 								inserted->applied = 1;
-								if (localPlayerId == 0) {
+								if (localIsHost == 0) {
 									inserted->applied = 0;
 								}
 								inserted->valid = 1;
@@ -1111,7 +1111,7 @@ void FlightNet_ProcessIncomingPackets(void) {
 					continue;
 				}
 				FlightNet_HandleWorldStateResyncPacket(packet);
-				if (g_flightNetHostTimeoutElapsedTicks > PEER_TIMEOUT_MS ||
+				if (g_flightNetHostTimeoutElapsedTicks > PEER_TIMEOUT_TICKS ||
 					g_players[g_localPlayer].connectedFlag == 0) {
 					if (g_flightNetRecoveryUiActive != 0) {
 						g_flightNetRecoveryUiActive = 0;
@@ -1150,7 +1150,7 @@ void FlightNet_ProcessIncomingPackets(void) {
 }
 
 // FUNCTION: XVT 0x464900
-int32_t FlightNet_SampleAndSendInput(void) {
+int32_t FlightNet_SampleLocalInput(void) {
 #ifdef XVT_MODERN
 	InputFrame* inserted;
 
@@ -1330,7 +1330,7 @@ int FlightNet_ShouldSendWorldMessage(int inputTimestamp) {
 		if (*connectedFlag != 0) {
 			InputFrame* inputFrame;
 
-			inputFrame = FlightSync_FindLastNonzeroInputFrame(playerIdx);
+			inputFrame = FlightSync_FindLastAppliedInputFrame(playerIdx);
 			if (inputFrame == NULL) {
 				oldestInputTimestamp = 0;
 				break;
@@ -1961,7 +1961,7 @@ void FlightNet_HandleWorldStateResyncPacket(const int* packet) {
 	receivedPayloadSize =
 		(int)(sizeof(int) * Flight_BuildWorldStateResyncSegmentChecksums(
 								g_flightNetScratchPacket.payloadDwords, Flight_GetDuplicateWorldStateBuffer(),
-								Flight_GetSerializedWorldStateSize()));
+								Flight_GetDuplicateWorldStateSize()));
 
 	NetSession_SendPacket(NetSession_GetHostDplayId(), (unsigned int*)&g_flightNetScratchPacket,
 						  receivedPayloadSize + sizeof(int));
@@ -2064,10 +2064,10 @@ void FlightNet_HandleWorldStateResyncPacket(const int* packet) {
 						input.keyMods |= cursor[0] & 1u;
 						inserted = FlightSync_InsertInputFrame(playerIndex, (int)timestamp, &input);
 						if (inserted != NULL) {
-							int localPlayerId = NetSession_IsLocalHost();
+							int localIsHost = NetSession_IsLocalHost();
 
 							inserted->applied = 1;
-							if (localPlayerId == 0) {
+							if (localIsHost == 0) {
 								inserted->applied = 0;
 							}
 							inserted->valid = 1;
@@ -2165,10 +2165,10 @@ void FlightNet_HandleWorldStateResyncPacket(const int* packet) {
 							cursor += 2;
 							inserted = FlightSync_InsertInputFrame(playerIndex, (int)timestamp, &input);
 							if (inserted != NULL) {
-								int localPlayerId = NetSession_IsLocalHost();
+								int localIsHost = NetSession_IsLocalHost();
 
 								inserted->applied = 1;
-								if (localPlayerId == 0) {
+								if (localIsHost == 0) {
 									inserted->applied = 0;
 								}
 								inserted->valid = 1;

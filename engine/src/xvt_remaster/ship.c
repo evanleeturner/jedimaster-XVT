@@ -85,14 +85,14 @@ void XvtRemasterShip_BuildMeshTable(const XvtMeshAsset* asset, const XvtSnapObje
 	memset(out, 0, sizeof *out);
 	float bridge[3][4];
 	ship_mat3x4_identity(bridge);
-	const float byte_angle = -6.2831853071795864769f / 256.0f;
+	const float byte_angle_to_radians = -6.2831853071795864769f / 256.0f;
 	int bwing = object && object->has_craft && object->object_type == XVT_SNAP_TYPE_B_WING &&
 				asset->bridge_component >= 0 && asset->bridge_component < XVT_SNAP_COMPONENTS;
 	if (bwing)
 		ship_mat3x4_rotation_about_pivot(bridge, (const float[3]) { 0, -1, 0 }, (const float[3]) { 0, 0, 0 },
 										 (visual_angles ? visual_angles[asset->bridge_component]
 														: object->mesh_rotation[asset->bridge_component]) *
-											 byte_angle);
+											 byte_angle_to_radians);
 	for (unsigned i = 0; i < AERON_MAX_MESH_SLOTS; ++i) {
 		float local[3][4];
 		ship_mat3x4_identity(local);
@@ -105,7 +105,7 @@ void XvtRemasterShip_BuildMeshTable(const XvtMeshAsset* asset, const XvtSnapObje
 			if (r->has_rotation && (visual_angles ? visual_angles[i] : object->mesh_rotation[i]))
 				ship_mat3x4_rotation_about_pivot(
 					local, r->axis, r->pivot,
-					(visual_angles ? visual_angles[i] : object->mesh_rotation[i]) * byte_angle);
+					(visual_angles ? visual_angles[i] : object->mesh_rotation[i]) * byte_angle_to_radians);
 		}
 		ship_mat3x4_mul(out->rows[i], bridge, local);
 		out->visibility_packed[i >> 2][i & 3] = visible ? 1 : 0;

@@ -24,7 +24,7 @@ void XvtRenderCapture_BeginOverlay(void);
 void XvtRenderCapture_EndOverlay(void);
 /* Resets cockpit capture, message progress, the pending view, generations, serials and the
  * overlay depth, and deactivates capture. Does not reset the network pose history. */
-void XvtRenderCapture_Init(void);
+void XvtRenderCapture_Reset(void);
 /* Discards the pending view and the published mark; called by XvtRenderSnapshot_BeginTick. */
 void XvtRenderCapture_BeginTick(void);
 /* Both re-enable classic rendering and end with WorldChanged. BeginMission also resets HUD

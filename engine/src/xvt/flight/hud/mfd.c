@@ -297,13 +297,13 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 	}
 
 	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight,
-							 g_flight16bppBytesPerPixel * g_screenWidth);
+							 g_flightBytesPerPixel * g_screenWidth);
 	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex + HUD_MFD_GOALS_ELEMENT] !=
 		(uint16_t)g_mfdPageStates[MFD_PAGE_GOALS]) {
 		if (g_players[g_localPlayer].mapCameraState != 0) {
 			FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
 		} else {
-			FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+			FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		}
 		FlightText_SetClipRect(left - 2, top - 2, right + 2, bottom + 2);
 		g_flightFillClipRectFn();
@@ -327,7 +327,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 	if (g_players[g_localPlayer].mapCameraState != 0) {
 		FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
 	} else {
-		FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 	}
 	lineStep = g_flightFontLineHeight + 2;
 	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex + HUD_MFD_GOALS_ELEMENT] !=
@@ -779,7 +779,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 		if (g_players[g_localPlayer].mapCameraState != 0) {
 			FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
 		} else {
-			FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+			FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		}
 		FlightText_SetClipRect(left - 2, top - 2, right + 2, bottom + 2);
 #ifdef XVT_MODERN
@@ -843,7 +843,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 	int16_t sharedKillCount;
 
 	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight,
-							 g_screenWidth * g_flight16bppBytesPerPixel);
+							 g_screenWidth * g_flightBytesPerPixel);
 	FlightText_SetFontTier(0);
 	paneWidth = 0;
 	needsRedraw = 0;
@@ -951,7 +951,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 		bottomY = (int16_t)((int16_t)entryCount * (g_flightFontLineHeight + 1) + top + 2);
 		if (g_mfdMissionScoreboardLastWidth != right ||
 			g_mfdMissionScoreboardLastPlayerCount != g_activeFlightPlayerCount) {
-			FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+			FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			if (g_mfdMissionScoreboardLastPlayerCount != 0) {
 				bottomY =
 					(int16_t)((g_mfdMissionScoreboardLastPlayerCount + 1) * (g_flightFontLineHeight + 1) +
@@ -981,7 +981,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 			FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
 		} else if (g_mfdPageStates[MFD_PAGE_SCOREBOARD] == MFD_PAGE_STATE_CLOSING ||
 				   g_players[g_localPlayer].viewState.hudStateLive != HUD_VIEW_FORWARD) {
-			FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+			FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		} else {
 			FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
 		}
@@ -1010,7 +1010,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 		} else if (g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_FORWARD) {
 			FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
 		} else {
-			FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+			FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		}
 #ifdef XVT_MODERN
 		XvtCockpitPages_BeginSection(MFD_PAGE_SCOREBOARD, XVT_COCKPIT_PAGE_HEADER);
@@ -1053,7 +1053,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 			if (g_players[g_localPlayer].mapCameraState != 0) {
 				FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
 			} else if (g_players[g_localPlayer].viewState.hudStateLive != HUD_VIEW_FORWARD) {
-				FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+				FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			} else {
 				FlightText_SetBackgroundColor(COLOR_LOCAL_ENTRY);
 			}
@@ -1084,10 +1084,10 @@ void Mfd_DrawMissionScoreboardPage(void) {
 	} else if (g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_FORWARD) {
 		FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
 	} else {
-		FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 	}
-	FlightText_SetColor(
-		g_hudElementLayouts[g_hudInstrumentSetBaseIndex + HUD_MFD_SCOREBOARD_ELEMENT].colorIndex);
+	FlightText_SetColor(g_hudElementLayouts[g_hudInstrumentSetBaseIndex + HUD_MFD_SCOREBOARD_ELEMENT]
+							.colorIndexOrWidgetParam);
 	if (g_flightResolutionMode == FLIGHT_RESOLUTION_320X240 && g_players[g_localPlayer].mapCameraState != 0 &&
 		g_mfdActivePage == MFD_PAGE_SCOREBOARD) {
 		switch (g_currentActionKey) {
@@ -1374,7 +1374,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 	int16_t* pageState;
 
 	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight,
-							 g_screenWidth * g_flight16bppBytesPerPixel);
+							 g_screenWidth * g_flightBytesPerPixel);
 	FlightText_SetFontTier(0);
 	localPlayer = g_localPlayer;
 	craftRows[0] = g_players[localPlayer].boundFlightGroupIdx;
@@ -1528,7 +1528,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 				FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
 			} else if (*pageState == MFD_PAGE_STATE_CLOSING ||
 					   g_players[localPlayer].viewState.hudStateLive != HUD_VIEW_FORWARD) {
-				FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+				FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			} else {
 				FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
 			}
@@ -1571,7 +1571,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 			} else if (g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_FORWARD) {
 				FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
 			} else {
-				FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+				FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			}
 			halfCharacterWidth = g_flightFontHalfHeight;
 			FlightText_SetCursor(paneLeft, paneTop);
@@ -1629,13 +1629,13 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 			} else if (g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_FORWARD) {
 				FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
 			} else {
-				FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+				FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			}
 			if (rowCount != g_mfdCraftListCachedRowCount) {
 				int16_t clearBottom;
 
 				if (g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_FORWARD) {
-					FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+					FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 				}
 				if (showFlightGroupsPage == 1 && g_players[g_localPlayer].mapCameraState != 0) {
 					clearBottom = (int16_t)(g_mfdMapBlitHeight + g_mfdMapBlitSourceY - 2);
@@ -1682,7 +1682,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 			} else if (g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_FORWARD) {
 				FlightText_SetBackgroundColor(COLOR_MEDIUM);
 			} else {
-				FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+				FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			}
 			borderTop = (int16_t)(paneTop - 2);
 			FlightText_SetClipRect((int16_t)(paneLeft - 2), borderTop, (int16_t)(paneRight + 2),
@@ -1710,7 +1710,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 		} else if (g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_FORWARD) {
 			FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
 		} else {
-			FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+			FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		}
 
 		if (g_mfdActivePage == pageIndex) {
@@ -1787,7 +1787,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 							FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
 							FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
 							FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight,
-													 g_screenWidth * g_flight16bppBytesPerPixel);
+													 g_screenWidth * g_flightBytesPerPixel);
 						}
 						FlightText_SetClipRect(paneLeft, rowY, paneRight, paneBottom);
 					}
@@ -1821,7 +1821,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 								maxShield = (unsigned int)Craft_GetObjectMaxShield(listedObjectIdx);
 								if (shieldAverage != 0 && maxShield != 0) {
 									percentage =
-										(uint16_t)MATH2_percentage((unsigned int)shieldAverage, maxShield);
+										(uint16_t)MATH2_longratioQ16((unsigned int)shieldAverage, maxShield);
 									shieldPercent = 2 * (percentage / PERCENTAGE_SCALE);
 								} else {
 									shieldPercent = 0;
@@ -1844,9 +1844,9 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 								if (craft->hullDamage > craft->hullMax) {
 									hullPercent = 1;
 								} else {
-									hullPercent = (uint16_t)MATH2_percentage(
-													  craft->hullMax - craft->hullDamage, craft->hullMax);
-								hullPercent = (uint16_t)hullPercent / PERCENTAGE_SCALE;
+									hullPercent = (uint16_t)MATH2_longratioQ16(
+										craft->hullMax - craft->hullDamage, craft->hullMax);
+									hullPercent = (uint16_t)hullPercent / PERCENTAGE_SCALE;
 									if (hullPercent == 0) {
 										hullPercent = 100;
 									}
@@ -2071,7 +2071,7 @@ int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex) {
 	}
 
 	if (g_activeRegionCraftObjectSlotEnd > objectIndex) {
-		if (inspectActive != 0 && craft->iffVisibility[(uint16_t)*playerIff] != 0) {
+		if (inspectActive != 0 && craft->identifiedOrderByTeam[(uint16_t)*playerIff] != 0) {
 			inspectActive = 0;
 		}
 		if (captureActive != 0 || boardActive != 0) {
@@ -2143,7 +2143,7 @@ void Mfd_DrawCommandMenuPage(void) {
 	uint16_t activePage;
 	int pitchBytes;
 
-	pitchBytes = g_flight16bppBytesPerPixel;
+	pitchBytes = g_flightBytesPerPixel;
 	pitchBytes *= g_screenWidth;
 	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight, pitchBytes);
 	FlightText_SetFontTier(0);
@@ -2441,11 +2441,11 @@ int16_t Mfd_DrawMessageLogPage(void) {
 	top = (int16_t)(g_readyMessagePaneTop + 2);
 	right = (int16_t)(g_readyMessagePaneRight - 2);
 	bottom = (int16_t)(g_readyMessagePaneBottom - 2);
-	pitch = g_flight16bppBytesPerPixel * g_screenWidth;
+	pitch = g_flightBytesPerPixel * g_screenWidth;
 	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight, (int)pitch);
 	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex + HUD_MFD_MESSAGE_LOG_ELEMENT] !=
 		g_mfdPageStates[MFD_PAGE_MESSAGE_LOG]) {
-		FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		FlightText_SetClipRect(g_readyMessagePaneLeft, g_readyMessagePaneTop, g_readyMessagePaneRight,
 							   g_readyMessagePaneBottom);
 #ifdef XVT_MODERN
@@ -2475,7 +2475,7 @@ int16_t Mfd_DrawMessageLogPage(void) {
 								  (g_flightPlayerCount >= 1 ? 2 * g_flightFontHalfHeight : 0),
 							  g_readyMessagePaneTop);
 #endif
-	FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+	FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 	g_flightTextShadowEnabled = 1;
 	lineHeight = (int16_t)(g_flightFontLineHeight + 2);
 	FlightText_SetColor(0x43);
@@ -2577,10 +2577,10 @@ int16_t Mfd_DrawMessageLogPage(void) {
 					if (ch != '?' && ch != '!' && ch != ':' && ch != ' ') {
 						g_flightDrawCharFn('.');
 					}
-					FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+					FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 					g_flightDrawCharFn('\n');
 					FlightText_SetColor(0x42);
-					FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+					FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 					if (g_messageLogRecords[recordIndex].clockHour != 0) {
 						FlightText_SetCursor(right - FlightText_MeasureStringWidth("00:00:00 "), cursorY);
 						FlightText_DrawDecimalNumber(g_messageLogRecords[recordIndex].clockHour, 2, 1);
@@ -2617,7 +2617,7 @@ int16_t Mfd_DrawMessageLogPage(void) {
 #endif
 		g_flightFillRectClippedFn(left - 2, top - 2, right + 2, bottom + 2, 1);
 	} else if (g_mfdSecondaryPage == MFD_PAGE_MESSAGE_LOG) {
-		FlightText_SetBackgroundColor(g_flightColorEscapeBypassChar);
+		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		FlightText_SetClipRect(left - 2, top - 2, right + 2, bottom + 2);
 #ifdef XVT_MODERN
 		XvtCockpitPages_RecordBorder(MFD_PAGE_MESSAGE_LOG);

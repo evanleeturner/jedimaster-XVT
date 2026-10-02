@@ -14,7 +14,7 @@ static AeronDrawList2D* g_list;
 static int g_width, g_height, g_presented, g_movie;
 static float g_scale;
 static int g_releasePresented;
-static uint64_t g_tick = UINT64_MAX;
+static uint64_t g_replayedSnapshotSerial = UINT64_MAX;
 
 static XvtSnapRect g_savedBounds[TARGETS];
 static AeronRenderTarget* g_cursorTarget;
@@ -310,7 +310,7 @@ int XvtFrontend_NeedsReplay(const XvtRenderSnapshot* s, int w, int h) {
 		((int)ceilf(640 * fminf(w / 640.0f, h / 480.0f)) != g_width ||
 		 (int)ceilf(480 * fminf(w / 640.0f, h / 480.0f)) != g_height))
 		return 1;
-	if (s->tick_index == g_tick)
+	if (s->snapshot_serial == g_replayedSnapshotSerial)
 		return 0;
 	for (unsigned i = 0; i < s->sprite_count; ++i)
 		if (s->sprites[i].draw.scope == XVT_SCOPE_FRONTEND)
@@ -333,7 +333,7 @@ int XvtFrontend_NeedsReplay(const XvtRenderSnapshot* s, int w, int h) {
 int XvtFrontend_Replay(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, int width, int height) {
 	if (!PrepareTargets(cmd, width, height))
 		return 0;
-	if (g_tick == s->tick_index)
+	if (g_replayedSnapshotSerial == s->snapshot_serial)
 		return 1;
 	unsigned indices[6] = { 0 };
 	const XvtSnapSprite* cursor = NULL;
@@ -406,7 +406,7 @@ int XvtFrontend_Replay(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, int 
 	}
 	if (active >= 0)
 		AeronDrawList_Render(g_list, cmd);
-	g_tick = s->tick_index;
+	g_replayedSnapshotSerial = s->snapshot_serial;
 	return 1;
 }
 
@@ -454,7 +454,7 @@ void XvtFrontend_Shutdown(void) {
 	}
 	AeronDrawList_Destroy(g_list);
 	g_list = NULL;
-	g_tick = UINT64_MAX;
+	g_replayedSnapshotSerial = UINT64_MAX;
 	g_width = g_height = g_presented = g_movie = 0;
 	g_releasePresented = 0;
 	Aeron_DestroyRenderTarget(g_cursorTarget);

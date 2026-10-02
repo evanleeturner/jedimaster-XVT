@@ -35,9 +35,9 @@ static XvtFlightMessage g_message;
 static void Clocks(XvtFlightTimingProfile profile) {
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(5000 * MS_US);
-	Time_ResetFrameDeltaClocks();
+	Time_ResetElapsedTicks();
 	XvtFlightTiming_BeginSession(profile);
-	XvtFlightNetwork_BeginMission();
+	XvtFlightNetwork_ResetMission();
 	XvtFlightNetwork_ClearRecoveryRequest();
 	memset(g_players, 0, sizeof g_players);
 	memset(g_inputHistory, 0, sizeof g_inputHistory);

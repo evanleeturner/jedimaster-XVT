@@ -148,14 +148,14 @@ struct CraftData {
 	uint8_t notDisabledAccountingSuppress;
 	uint8_t capturedByFlightGroup;
 	int8_t attackedByTeam[10];
-	uint8_t iffVisibility[10];
+	uint8_t identifiedOrderByTeam[10];
 	uint8_t boardingState;
 	char specialCargoName[16];
 	int shieldEnergy[2]; ///< Front and rear shield banks.
-	PowerRechargeLevel shieldRedirect;
+	PowerRechargeLevel shieldRechargeLevel;
 	ShieldDistributionMode shieldDistribMode;
 	uint8_t cannonClassCount;
-	PowerRechargeLevel laserRedirect;
+	PowerRechargeLevel laserRechargeLevel;
 	uint8_t laserSlotCount;
 	CraftLaserState laserState;
 	uint8_t warheadLauncherCount;

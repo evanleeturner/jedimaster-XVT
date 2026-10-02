@@ -98,20 +98,21 @@ HRESULT FlightView_CompositeMaskedSoftwareSurface(void) {
 	offscreenPixels = source;
 	offscreenPitch = surfaceDesc.lPitch;
 
+	destination =
+		(uint16_t*)((uint8_t*)destination +
+					g_flightBytesPerPixel * ((unsigned int)(g_displayModeWidth - g_surfaceWidth) >> 1));
 	destination = (uint16_t*)((uint8_t*)destination +
-							  g_flight16bppBytesPerPixel * ((unsigned int)(width - g_surfaceWidth) >> 1));
-	destination = (uint16_t*)((uint8_t*)destination +
-							  backBufferPitch * ((unsigned int)(height - g_surfaceHeight) >> 1));
+							  backBufferPitch * ((unsigned int)(g_displayModeHeight - g_surfaceHeight) >> 1));
 
 	for (row = 0; row < (unsigned int)g_flightVpY; ++row) {
 		if ((g_surfaceWidth & 1) != 0) {
 			*destination = *source;
 			if (g_surfaceWidth != 0) {
-				memcpy(destination + 1, source + 1, g_flight16bppBytesPerPixel * (g_surfaceWidth - 1));
+				memcpy(destination + 1, source + 1, g_flightBytesPerPixel * (g_surfaceWidth - 1));
 			}
 		} else {
 			copyWidth = g_surfaceWidth;
-			memcpy(destination, source, copyWidth * g_flight16bppBytesPerPixel);
+			memcpy(destination, source, copyWidth * g_flightBytesPerPixel);
 		}
 		source = (uint16_t*)((uint8_t*)source + offscreenPitch);
 		destination = (uint16_t*)((uint8_t*)destination + backBufferPitch);
@@ -123,13 +124,13 @@ HRESULT FlightView_CompositeMaskedSoftwareSurface(void) {
 			if ((g_flightVpX & 1) != 0) {
 				*destination = *source;
 				if (g_flightVpX != 0) {
-					memcpy(destination + 1, source + 1, g_flight16bppBytesPerPixel * (g_flightVpX - 1));
+					memcpy(destination + 1, source + 1, g_flightBytesPerPixel * (g_flightVpX - 1));
 				}
 			} else {
-				memcpy(destination, source, g_flight16bppBytesPerPixel * g_flightVpX);
+				memcpy(destination, source, g_flightBytesPerPixel * g_flightVpX);
 			}
-			source = (uint16_t*)((uint8_t*)source + g_flight16bppBytesPerPixel * g_flightVpX);
-			destination = (uint16_t*)((uint8_t*)destination + g_flight16bppBytesPerPixel * g_flightVpX);
+			source = (uint16_t*)((uint8_t*)source + g_flightBytesPerPixel * g_flightVpX);
+			destination = (uint16_t*)((uint8_t*)destination + g_flightBytesPerPixel * g_flightVpX);
 		}
 		decodedWidth = 0;
 		runType = (int8_t)*maskCursor++;
@@ -146,14 +147,14 @@ HRESULT FlightView_CompositeMaskedSoftwareSurface(void) {
 				if ((runLength & 1) != 0) {
 					*destination = *source;
 					if (runLength != 0) {
-						memcpy(destination + 1, source + 1, g_flight16bppBytesPerPixel * (runLength - 1));
+						memcpy(destination + 1, source + 1, g_flightBytesPerPixel * (runLength - 1));
 					}
 				} else {
-					memcpy(destination, source, g_flight16bppBytesPerPixel * runLength);
+					memcpy(destination, source, g_flightBytesPerPixel * runLength);
 				}
 			}
-			source = (uint16_t*)((uint8_t*)source + g_flight16bppBytesPerPixel * runLength);
-			destination = (uint16_t*)((uint8_t*)destination + g_flight16bppBytesPerPixel * runLength);
+			source = (uint16_t*)((uint8_t*)source + g_flightBytesPerPixel * runLength);
+			destination = (uint16_t*)((uint8_t*)destination + g_flightBytesPerPixel * runLength);
 			decodedWidth += runLength;
 			runType = -runType;
 		}
@@ -164,29 +165,29 @@ HRESULT FlightView_CompositeMaskedSoftwareSurface(void) {
 			if ((runLength & 1) != 0) {
 				*destination = *source;
 				if (runLength != 0) {
-					memcpy(destination + 1, source + 1, g_flight16bppBytesPerPixel * (runLength - 1));
+					memcpy(destination + 1, source + 1, g_flightBytesPerPixel * (runLength - 1));
 				}
 			} else {
-				memcpy(destination, source, g_flight16bppBytesPerPixel * runLength);
+				memcpy(destination, source, g_flightBytesPerPixel * runLength);
 			}
-			source = (uint16_t*)((uint8_t*)source + g_flight16bppBytesPerPixel * runLength);
-			destination = (uint16_t*)((uint8_t*)destination + g_flight16bppBytesPerPixel * runLength);
+			source = (uint16_t*)((uint8_t*)source + g_flightBytesPerPixel * runLength);
+			destination = (uint16_t*)((uint8_t*)destination + g_flightBytesPerPixel * runLength);
 			decodedWidth = g_surfaceWidth;
 		}
-		source = (uint16_t*)((uint8_t*)source + offscreenPitch - g_flight16bppBytesPerPixel * decodedWidth);
+		source = (uint16_t*)((uint8_t*)source + offscreenPitch - g_flightBytesPerPixel * decodedWidth);
 		destination =
-			(uint16_t*)((uint8_t*)destination + backBufferPitch - g_flight16bppBytesPerPixel * decodedWidth);
+			(uint16_t*)((uint8_t*)destination + backBufferPitch - g_flightBytesPerPixel * decodedWidth);
 	}
 
 	for (row = g_flightVpY + g_flightVpHeight; (unsigned int)g_surfaceHeight > row; ++row) {
 		if ((g_surfaceWidth & 1) != 0) {
 			*destination = *source;
 			if (g_surfaceWidth != 0) {
-				memcpy(destination + 1, source + 1, g_flight16bppBytesPerPixel * (g_surfaceWidth - 1));
+				memcpy(destination + 1, source + 1, g_flightBytesPerPixel * (g_surfaceWidth - 1));
 			}
 		} else {
 			copyWidth = g_surfaceWidth;
-			memcpy(destination, source, copyWidth * g_flight16bppBytesPerPixel);
+			memcpy(destination, source, copyWidth * g_flightBytesPerPixel);
 		}
 		source = (uint16_t*)((uint8_t*)source + offscreenPitch);
 		destination = (uint16_t*)((uint8_t*)destination + backBufferPitch);
@@ -323,7 +324,7 @@ void FlightView_UpdatePlayerCamera(int playerIdx) {
 					   playerObject->world_y - g_players[playerIdx].viewState.savedTargetY,
 					   playerObject->world_z - g_players[playerIdx].viewState.savedTargetZ);
 			g_players[playerIdx].viewState.viewRoll = 0;
-			g_players[playerIdx].viewState.viewPitch = pitchQ16;
+			g_players[playerIdx].viewState.viewPitch = trig2_pitch;
 			g_players[playerIdx].viewState.viewYaw = trig2_xyangle;
 			FVIEW_BuildCameraOrient(
 				g_players[playerIdx].viewState.viewRoll, g_players[playerIdx].viewState.viewPitch,
@@ -349,7 +350,7 @@ void FlightView_UpdatePlayerCamera(int playerIdx) {
 				g_players[playerIdx].viewState.hudAimY, NULL);
 
 			Mission_ResolveObjectOrMissionPointWorldLoc(g_players[playerIdx].viewState.cameraFocusObjIdx, 0);
-			g_players[playerIdx].viewState.savedTargetX = worldlocx;
+			g_players[playerIdx].viewState.savedTargetX = g_worldLocX;
 			g_players[playerIdx].viewState.savedTargetY = worldlocy;
 			g_players[playerIdx].viewState.savedTargetZ = worldlocz;
 
@@ -713,7 +714,7 @@ void FlightView_Render(void) {
 	Hud_DrawHudTargetInsetIfEnabled(g_localPlayer);
 	g_flightBackgroundColorIndex = 0;
 	g_inputTimestamp += (int)Time_ConsumeElapsedTicks();
-	g_flightBackgroundColorIndex = g_flightColorEscapeBypassChar;
+	g_flightBackgroundColorIndex = g_flightTransparentColorIndex;
 	g_flightRenderDurationTicks = (uint16_t)(g_inputTimestamp - g_flightRenderDurationTicks);
 	FlightSurface_Lock();
 	Hud_BlitSoftwareHudTextPanes();

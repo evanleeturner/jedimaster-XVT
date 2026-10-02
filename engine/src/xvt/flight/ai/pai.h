@@ -55,7 +55,7 @@ enum {
 struct AiController {
 	uint8_t currentOrderSlot;
 	AiOrderScratch orderProgress;
-	uint8_t orderStateFlag;
+	uint8_t skippedToOrder4;
 	uint8_t pendingPlanId;
 	uint8_t currentPlanId;
 	uint8_t waypointIndex;
@@ -78,7 +78,7 @@ struct AiController {
 	AiManeuverMode maneuverMode;
 	uint8_t maneuverPhase;
 	int maneuverTimer;
-	int16_t aiPlanState;
+	int16_t secondaryManeuverTimer;
 };
 
 struct AiFlightState {
@@ -104,7 +104,7 @@ struct AiFlightState {
 	int16_t pitchRate;
 	int16_t pitchAccel;
 	uint8_t pitchState;
-	uint8_t headingForce;
+	uint8_t pitchThroughLoop;
 	uint16_t pitchStepScale;
 	int16_t rollRate;
 	int16_t rollAccel;

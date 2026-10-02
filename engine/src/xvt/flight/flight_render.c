@@ -40,7 +40,7 @@ void FlightRender_ConfigureCallbacksForResolution(uint8_t initialGraphicsDetailP
 			break;
 	}
 	g_palettePackedMode = pixelMode;
-	if (g_flight16bppBytesPerPixel == 2)
+	if (g_flightBytesPerPixel == 2)
 		pixelMode = 2;
 	g_palettePackedMode = pixelMode;
 	g_flightViewportMode = 1;

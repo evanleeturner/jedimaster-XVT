@@ -69,7 +69,7 @@ struct FrontendGlobalState {
 	uint8_t escapeCloseEnabled;
 	DDSURFACEDESC backBufferDesc;
 	uint8_t backBufferLocked;
-	uint8_t presentFrameReady;
+	uint8_t clearBackBufferAfterPresent;
 	uint32_t surfaceClearColor;
 	int drawSurfacePitch;
 	int backBufferPitch;
@@ -107,11 +107,11 @@ struct FrontendGlobalState {
 	int cdAudioCurrentTrack;
 	int cdAudioTrackCount;
 	int cdAudioPlaybackComplete;
-	uint32_t cdAudioTrackEndTick;
+	uint32_t cdAudioTrackEndMs;
 	int cdAudioLoopCurrentTrack;
 	int cdAudioSuspendRemainingMs;
 	int cdAudioSuspendElapsedMs;
-	uint32_t cdAudioResumeDueTick;
+	uint32_t cdAudioResumeDueMs;
 	CDAudioSuspendState cdAudioSuspendState;
 	int cdAudioSavedAuxVolume;
 	CDAudioTrackCache cdAudioTrackCache;
@@ -119,7 +119,7 @@ struct FrontendGlobalState {
 	BitmapFont* fontBySize[256];
 	int textFadeFramesLeft;
 	int textFadeFrameCount;
-	GlyphScratchBuffer glyphScratchBuffer;
+	TextFadeColorCache textFadeColorCache;
 	int (*modeInitFn)(void);
 	FrontendScreenUpdateFn pendingScreenUpdateFn;
 	RECT pendingScreenRect;

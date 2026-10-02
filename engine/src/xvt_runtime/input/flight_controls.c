@@ -42,7 +42,7 @@ void XvtFlightControls_Reset(void) {
 bool XvtFlightControls_ThrottleEligible(unsigned player) {
 	if (player >= 8 || !g_players[player].connectedFlag || g_flightMissionState.missionEndPending ||
 		(g_flightRuntimeStateInitialized > 1 && g_dormantFlightRegionSessionEarlyReturnFlag) ||
-		g_players[player].regionSessionId || g_players[player].hyperspacePhase ||
+		g_players[player].awaitingNewCraft || g_players[player].hyperspacePhase ||
 		g_players[player].mapCameraState || g_players[player].viewState.playerInputBlocked ||
 		g_players[player].msgTypeId != FLIGHT_CHAT_RECIPIENT_INACTIVE)
 		return false;
@@ -177,7 +177,7 @@ int16_t XvtFlightControls_RollStep(unsigned player, uint16_t roll_rate, int16_t 
 	int raw = g_xvtControlRoll * 120;
 	unsigned magnitude = (unsigned)(raw < 0 ? -raw : raw);
 	unsigned whole = roll_rate / 0x3800;
-	uint16_t fraction = (uint16_t)MATH2_divide(roll_rate % 0x3800, 0x3800);
+	uint16_t fraction = (uint16_t)MATH2_ratioQ16(roll_rate % 0x3800, 0x3800);
 	int target = (int)(magnitude * whole + MATH2_fraction(magnitude, fraction));
 	if (raw < 0)
 		target = -target;
@@ -231,7 +231,7 @@ void XvtFlightControls_SampleRecorded(FlightInputFrameRecord* input) {
 
 void XvtFlightControls_Recover(void) {
 	XvtInput_FlushKeyboard();
-	XvtControllerMapping_ReleaseCommands();
+	XvtControllerMapping_DropCommands();
 	XvtMouseFlight_DiscardPending();
 	g_actionKey = 0;
 	XvtFlightControls_ResetThrottle();

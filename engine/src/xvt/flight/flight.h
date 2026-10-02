@@ -20,7 +20,7 @@ extern int g_localDebrisSlotEnd;
 extern uint16_t g_curCraftModelIndex;
 
 extern uint16_t g_elapsedTicks;
-extern uint16_t g_simStepScale;
+extern uint16_t g_simStepsPerSecond;
 extern int g_gameTime;
 extern int g_singleObjectUpdateOverrideIdx;
 extern void* g_flightMainWindowHandle;
@@ -173,7 +173,7 @@ void Flight_ResetUnusedResumeSlots(void);
 void Flight_UpdateTimers(void);
 void Flight_UpdateDynamicMusicState(void);
 uint8_t* Flight_GetDuplicateWorldStateBuffer(void);
-int Flight_GetSerializedWorldStateSize(void);
+int Flight_GetDuplicateWorldStateSize(void);
 void Flight_AllocWorldStateBuffers(void);
 void Flight_FreeWorldStateBuffers(void);
 void Flight_SaveWorldState(void);
@@ -201,7 +201,7 @@ static __inline uint32_t Flight_RotateChecksumLeft(uint32_t checksum) {
 #endif
 }
 
-void Flight_UpdateEntity(int playerIdx);
+void Flight_UpdatePlayerStep(int playerIdx);
 void Flight_ProcessPlayerActions(int playerIdx);
 char Flight_ApplyGraphicsDetailPreset(uint16_t preset);
 #ifndef XVT_MODERN
@@ -213,7 +213,7 @@ int32_t Flight_PumpWindowMessages(void);
 int32_t StubWndProc(void* hWnd, unsigned int Msg, uint32_t wParam, int32_t lParam);
 void Flight_UpdateCraftSteeringAndSpeed(void);
 void Flight_SlewObjectSpeedTowardTarget(unsigned int objectIdx, int targetSpeed, int allowDecel, int fracQ16);
-void Flight_AccelerateObjectSpeed(int objectIdx, int accelerationPerTick);
+void Flight_AccelerateObjectSpeed(int objectIdx, int accelerationPerSecond);
 void Flight_DecelerateObjectSpeed(int objectIdx, int deceleration);
 void Flight_UpdateDivePulloutPitchTarget(int objectIdx);
 

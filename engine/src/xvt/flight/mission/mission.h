@@ -148,7 +148,7 @@ extern uint8_t g_spawnLeaderObjIdx;
 extern char g_missionDebugBuffer[256];
 extern uint16_t g_missionFgOverrideStringHandles[48][8][3];
 extern uint16_t g_globalGoalOverrideStringHandles[10][7][4][3];
-extern int worldlocx;
+extern int g_worldLocX;
 extern int worldlocy;
 extern int worldlocz;
 #pragma pack(push, 1)
@@ -280,7 +280,7 @@ typedef enum FlightGroupOutcomeIndex {
 struct MissionFlightRuntimeState {
 	int teamScores[2][10];
 	uint16_t teamKillStats[4][10];
-	uint16_t teamFgCounters[2][10][48];
+	uint16_t teamFgInspectedCapturedCounts[2][10][48];
 	uint8_t teamFgDesignationCode[10][48];
 	uint8_t globalPrimaryGoalStatus;
 	uint16_t globalGoalStatusUnused;
@@ -307,7 +307,7 @@ struct MissionFgRuntimeStats {
 	uint8_t teamSpecialCargoInspected[10];
 	uint8_t teamUninspectedLost[10];
 	uint8_t teamSpecialCargoUninspectedLost[10];
-	uint8_t teamCondition44Count[10];
+	uint8_t teamCapturedDepartedCount[10];
 	uint8_t teamCondition44SpecialCargo[10];
 	uint8_t teamCondition44OtherTeamCount[10];
 	uint8_t teamCondition44OtherTeamSpecialCargo[10];
@@ -375,8 +375,8 @@ struct EAIStruct {
 	uint8_t target_unused;
 	uint8_t pri_type;
 	uint8_t pri_id;
-	uint8_t sec_type;
-	uint8_t sec_id;
+	uint8_t secondary_type;
+	uint8_t secondary_id;
 	uint8_t pri_sec_op;
 	uint8_t pri_sec_unused;
 };
@@ -431,15 +431,15 @@ struct EFGStruct {
 	uint8_t start_fg_used;
 	uint8_t pri_stop_fg;
 	uint8_t pri_stop_fg_used;
-	uint8_t sec_stop_fg;
-	uint8_t sec_stop_fg_used;
+	uint8_t secondary_stop_fg;
+	uint8_t secondary_stop_fg_used;
 	uint8_t capture_fg;
 	uint8_t capture_fg_used;
 	EAIStruct ai[3];
 	uint8_t pri_win_cond;
 	uint8_t pri_win_pct;
-	uint8_t sec_win_cond;
-	uint8_t sec_win_pct;
+	uint8_t secondary_win_cond;
+	uint8_t secondary_win_pct;
 	uint8_t loss_cond;
 	uint8_t loss_pct;
 	uint8_t bonus_cond;
@@ -544,7 +544,7 @@ void Mission_ApplyTeamGoalScoreAllEnabledTeams(int16_t eventCondition, uint16_t 
 											   int specialCargoFlag);
 void Mission_ApplyTeamGoalScoreForTeam(int16_t eventCondition, uint16_t flightGroupIdx, int specialCargoFlag,
 									   uint8_t teamIdx);
-int Mission_GameTimeToSeconds(uint8_t hours, uint8_t minutes, uint8_t seconds);
+int Mission_ClockToSeconds(uint8_t hours, uint8_t minutes, uint8_t seconds);
 int Mission_ComputeKillScoreForObject(int victimObjIdx);
 int Mission_ComputeCraftPointValue(int objIdx);
 int Mission_GetElapsedClockSeconds(void);

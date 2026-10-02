@@ -70,11 +70,11 @@ static void CheckDrawsWithNoRooms(void) {
 
 static void CheckFirstFrame(void) {
 	Fresh();
-	g_skipFrontendEntryMovie = 1;
+	g_frontendSkipScreenEntrySetup = 1;
 	g_configConnectionTypeEditable = 1;
 	g_frontendGameSessionInProgress = 1;
 	XVT_ASSERT_INT_EQ(XvtNetworkBrowser_Screen(0), 0);
-	XVT_ASSERT_INT_EQ(g_skipFrontendEntryMovie, 0);
+	XVT_ASSERT_INT_EQ(g_frontendSkipScreenEntrySetup, 0);
 	XVT_ASSERT_INT_EQ(g_configConnectionTypeEditable, 0);
 	XVT_ASSERT_INT_EQ(g_frontendGameSessionInProgress, 0);
 

@@ -548,7 +548,7 @@ static const Field kObjectFields[] = {
 /* Every snapshot field PoseChanged does not compare. view_time_ticks and flight_unlocked count only while
  * the component animation reports movement, which it does not here. */
 static const Field kOtherFields[] = {
-	SNAPSHOT_FIELD(tick_index),
+	SNAPSHOT_FIELD(snapshot_serial),
 	SNAPSHOT_FIELD(flight_frame_serial),
 	SNAPSHOT_FIELD(capture_host_us),
 	SNAPSHOT_FIELD(component_event_serial),
