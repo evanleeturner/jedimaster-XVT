@@ -199,6 +199,132 @@ XvtControllerConfig_SameSource(const AeronControllerDigitalSource *left,
 		left->hat_direction == right->hat_direction);
 }
 
+/* Reads a {button} source, a joystick button by its raw index, into out.
+ * Returns false with the reason in error when the mapping is malformed or
+ * the index is out of range. */
+static bool XvtControllerConfig_ParseRawButtonSource(
+	const AeronConfigNode *node, const AeronConfigNode *button,
+	bool gamepad, AeronControllerDigitalSource *out, char *error,
+	size_t capacity)
+{
+	int64_t index;
+	if (gamepad || AeronConfigNode_MapCount(node) != 1 ||
+	    AeronConfigNode_Type(button) != AERON_CONFIG_INT) {
+		return XvtControllerConfig_ConfigError(
+			error, capacity, "malformed raw button source");
+	}
+	index = AeronConfigNode_Int(button, -1);
+	if (index < 0 || index >= AERON_CONTROLLER_BUTTON_MAX) {
+		return XvtControllerConfig_ConfigError(
+			error, capacity, "raw button index is out of range");
+	}
+	out->kind = AERON_CONTROLLER_DIGITAL_BUTTON;
+	out->index = (uint8_t)index;
+	return true;
+}
+
+/* Reads an {axis, direction} source and its optional threshold into out:
+ * one direction of an axis, read as a button. Returns false with the reason
+ * in error when the mapping is malformed or a value is out of range. */
+static bool XvtControllerConfig_ParseAxisSource(
+	const AeronConfigNode *node, const AeronConfigNode *axis,
+	const AeronConfigNode *direction, const AeronConfigNode *threshold,
+	bool gamepad, AeronControllerDigitalSource *out, char *error,
+	size_t capacity)
+{
+	const char *direction_name;
+	int64_t index;
+	if (!direction || (AeronConfigNode_MapCount(node) != 2 &&
+			   AeronConfigNode_MapCount(node) != 3)) {
+		return XvtControllerConfig_ConfigError(
+			error, capacity, "malformed digital axis source");
+	}
+	if (gamepad) {
+		AeronGamepadAxis gamepad_axis;
+		const char *name = AeronConfigNode_String(axis, NULL);
+		if (!name) {
+			return XvtControllerConfig_ConfigError(
+				error, capacity,
+				"gamepad axis source must be named");
+		}
+		gamepad_axis = Aeron_GamepadAxisFromName(name);
+		if (gamepad_axis >= AERON_GAMEPAD_AXIS_COUNT) {
+			return XvtControllerConfig_ConfigError(
+				error, capacity, "unknown gamepad axis '%s'",
+				name);
+		}
+		out->index = (uint8_t)gamepad_axis;
+	} else {
+		index = AeronConfigNode_Int(axis, -1);
+		if (AeronConfigNode_Type(axis) != AERON_CONFIG_INT ||
+		    index < 0 || index >= AERON_CONTROLLER_AXIS_MAX) {
+			return XvtControllerConfig_ConfigError(
+				error, capacity,
+				"raw axis index is out of range");
+		}
+		out->index = (uint8_t)index;
+	}
+	direction_name = AeronConfigNode_String(direction, NULL);
+	if (direction_name && strcmp(direction_name, "positive") == 0) {
+		out->kind = AERON_CONTROLLER_DIGITAL_AXIS_POSITIVE;
+	} else if (direction_name && strcmp(direction_name, "negative") == 0) {
+		out->kind = AERON_CONTROLLER_DIGITAL_AXIS_NEGATIVE;
+	} else {
+		return XvtControllerConfig_ConfigError(
+			error, capacity,
+			"axis direction must be positive or negative");
+	}
+	if (threshold) {
+		double value = AeronConfigNode_Float(threshold, NAN);
+		if (!isfinite(value) || value <= 0.0 || value > 1.0) {
+			return XvtControllerConfig_ConfigError(
+				error, capacity,
+				"axis threshold must be in (0, 1]");
+		}
+		out->threshold = (float)value;
+	}
+	return true;
+}
+
+/* Reads a {hat, direction} source, one direction of a joystick hat, into
+ * out. Returns false with the reason in error when the mapping is malformed
+ * or a value is out of range. */
+static bool XvtControllerConfig_ParseHatSource(
+	const AeronConfigNode *node, const AeronConfigNode *hat,
+	const AeronConfigNode *direction, bool gamepad,
+	AeronControllerDigitalSource *out, char *error, size_t capacity)
+{
+	const char *direction_name;
+	int64_t index;
+	if (gamepad || !direction || AeronConfigNode_MapCount(node) != 2 ||
+	    AeronConfigNode_Type(hat) != AERON_CONFIG_INT) {
+		return XvtControllerConfig_ConfigError(
+			error, capacity, "malformed raw hat source");
+	}
+	index = AeronConfigNode_Int(hat, -1);
+	if (index < 0 || index >= AERON_CONTROLLER_HAT_MAX) {
+		return XvtControllerConfig_ConfigError(
+			error, capacity, "raw hat index is out of range");
+	}
+	direction_name = AeronConfigNode_String(direction, NULL);
+	if (direction_name && strcmp(direction_name, "up") == 0) {
+		out->hat_direction = AERON_CONTROLLER_HAT_UP;
+	} else if (direction_name && strcmp(direction_name, "right") == 0) {
+		out->hat_direction = AERON_CONTROLLER_HAT_RIGHT;
+	} else if (direction_name && strcmp(direction_name, "down") == 0) {
+		out->hat_direction = AERON_CONTROLLER_HAT_DOWN;
+	} else if (direction_name && strcmp(direction_name, "left") == 0) {
+		out->hat_direction = AERON_CONTROLLER_HAT_LEFT;
+	} else {
+		return XvtControllerConfig_ConfigError(
+			error, capacity,
+			"hat direction must be up/right/down/left");
+	}
+	out->kind = AERON_CONTROLLER_DIGITAL_HAT;
+	out->index = (uint8_t)index;
+	return true;
+}
+
 static bool XvtControllerConfig_ParseDigitalSource(
 	const AeronConfigNode *node, bool gamepad,
 	AeronControllerDigitalSource *out, char *error, size_t capacity)
@@ -233,126 +359,19 @@ static bool XvtControllerConfig_ParseDigitalSource(
 			AeronConfigNode_MapGet(node, "direction");
 		const AeronConfigNode *threshold =
 			AeronConfigNode_MapGet(node, "threshold");
-		const char *direction_name;
-		int64_t index;
 		if (button) {
-			if (gamepad || AeronConfigNode_MapCount(node) != 1 ||
-			    AeronConfigNode_Type(button) != AERON_CONFIG_INT) {
-				return XvtControllerConfig_ConfigError(
-					error, capacity,
-					"malformed raw button source");
-			}
-			index = AeronConfigNode_Int(button, -1);
-			if (index < 0 || index >= AERON_CONTROLLER_BUTTON_MAX) {
-				return XvtControllerConfig_ConfigError(
-					error, capacity,
-					"raw button index is out of range");
-			}
-			out->kind = AERON_CONTROLLER_DIGITAL_BUTTON;
-			out->index = (uint8_t)index;
-			return true;
+			return XvtControllerConfig_ParseRawButtonSource(
+				node, button, gamepad, out, error, capacity);
 		}
 		if (axis) {
-			if (!direction ||
-			    (AeronConfigNode_MapCount(node) != 2 &&
-			     AeronConfigNode_MapCount(node) != 3)) {
-				return XvtControllerConfig_ConfigError(
-					error, capacity,
-					"malformed digital axis source");
-			}
-			if (gamepad) {
-				AeronGamepadAxis gamepad_axis;
-				const char *name =
-					AeronConfigNode_String(axis, NULL);
-				if (!name) {
-					return XvtControllerConfig_ConfigError(
-						error, capacity,
-						"gamepad axis source must be named");
-				}
-				gamepad_axis = Aeron_GamepadAxisFromName(name);
-				if (gamepad_axis >= AERON_GAMEPAD_AXIS_COUNT) {
-					return XvtControllerConfig_ConfigError(
-						error, capacity,
-						"unknown gamepad axis '%s'",
-						name);
-				}
-				out->index = (uint8_t)gamepad_axis;
-			} else {
-				index = AeronConfigNode_Int(axis, -1);
-				if (AeronConfigNode_Type(axis) !=
-					    AERON_CONFIG_INT ||
-				    index < 0 ||
-				    index >= AERON_CONTROLLER_AXIS_MAX) {
-					return XvtControllerConfig_ConfigError(
-						error, capacity,
-						"raw axis index is out of range");
-				}
-				out->index = (uint8_t)index;
-			}
-			direction_name =
-				AeronConfigNode_String(direction, NULL);
-			if (direction_name &&
-			    strcmp(direction_name, "positive") == 0) {
-				out->kind =
-					AERON_CONTROLLER_DIGITAL_AXIS_POSITIVE;
-			} else if (direction_name &&
-				   strcmp(direction_name, "negative") == 0) {
-				out->kind =
-					AERON_CONTROLLER_DIGITAL_AXIS_NEGATIVE;
-			} else {
-				return XvtControllerConfig_ConfigError(
-					error, capacity,
-					"axis direction must be positive or negative");
-			}
-			if (threshold) {
-				double value =
-					AeronConfigNode_Float(threshold, NAN);
-				if (!isfinite(value) || value <= 0.0 ||
-				    value > 1.0) {
-					return XvtControllerConfig_ConfigError(
-						error, capacity,
-						"axis threshold must be in (0, 1]");
-				}
-				out->threshold = (float)value;
-			}
-			return true;
+			return XvtControllerConfig_ParseAxisSource(
+				node, axis, direction, threshold, gamepad, out,
+				error, capacity);
 		}
 		if (hat) {
-			if (gamepad || !direction ||
-			    AeronConfigNode_MapCount(node) != 2 ||
-			    AeronConfigNode_Type(hat) != AERON_CONFIG_INT) {
-				return XvtControllerConfig_ConfigError(
-					error, capacity,
-					"malformed raw hat source");
-			}
-			index = AeronConfigNode_Int(hat, -1);
-			if (index < 0 || index >= AERON_CONTROLLER_HAT_MAX) {
-				return XvtControllerConfig_ConfigError(
-					error, capacity,
-					"raw hat index is out of range");
-			}
-			direction_name =
-				AeronConfigNode_String(direction, NULL);
-			if (direction_name &&
-			    strcmp(direction_name, "up") == 0) {
-				out->hat_direction = AERON_CONTROLLER_HAT_UP;
-			} else if (direction_name &&
-				   strcmp(direction_name, "right") == 0) {
-				out->hat_direction = AERON_CONTROLLER_HAT_RIGHT;
-			} else if (direction_name &&
-				   strcmp(direction_name, "down") == 0) {
-				out->hat_direction = AERON_CONTROLLER_HAT_DOWN;
-			} else if (direction_name &&
-				   strcmp(direction_name, "left") == 0) {
-				out->hat_direction = AERON_CONTROLLER_HAT_LEFT;
-			} else {
-				return XvtControllerConfig_ConfigError(
-					error, capacity,
-					"hat direction must be up/right/down/left");
-			}
-			out->kind = AERON_CONTROLLER_DIGITAL_HAT;
-			out->index = (uint8_t)index;
-			return true;
+			return XvtControllerConfig_ParseHatSource(
+				node, hat, direction, gamepad, out, error,
+				capacity);
 		}
 	}
 	return XvtControllerConfig_ConfigError(
