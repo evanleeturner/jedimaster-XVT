@@ -1,0 +1,8 @@
+# Commits git blame skips: layout-only changes. Use them with
+#   git blame --ignore-revs-file .git-blame-ignore-revs <file>
+# or once per clone:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub's blame view reads this file on its own.
+
+# Reformat the C sources: K&R braces, 8-column tabs, braces on every body
+1bd352d2d22e2d913451443091e2f7586e25f3f9
