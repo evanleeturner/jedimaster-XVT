@@ -403,6 +403,34 @@ static int XvtNetworkSession_Register(void)
 	return 1;
 }
 
+/* Starts the roster with the local player: the host lists itself and moves
+ * on to registering (online) or straight to an established session; a
+ * joining player moves on to the handshake. */
+static void XvtNetworkSession_Roster(void)
+{
+	g_frontState.netPlayerCount = 1;
+	Net_RefreshPlayerRoster();
+	g_frontState.netRuntimeRecvQueueReadIndex =
+		g_frontState.netRuntimeRecvQueueWriteIndex = 0;
+	g_frontState.netRuntimeRecvQueueCount = 0;
+	if (g_session.host) {
+		g_frontState.netHostPlayerId =
+			g_frontState.netRuntimeLocalPlayer.playerId;
+		Net_SetPlayerReady(Net_GetLocalPlayerId());
+		snprintf(g_mpRoster[0].name, sizeof(g_mpRoster[0].name), "%s",
+			 g_session.player_name);
+		g_mpRoster[0].playerId = Net_GetLocalPlayerId();
+		g_mpRoster[0].pilotRating = g_pilotData.rating;
+		if (g_session.online) {
+			g_session.phase = SESSION_REGISTER;
+		} else {
+			XvtNetworkSession_Establish();
+		}
+	} else {
+		g_session.phase = SESSION_HANDSHAKE;
+	}
+}
+
 int XvtNetworkSession_Update(void)
 {
 	HRESULT result;
@@ -514,27 +542,7 @@ int XvtNetworkSession_Update(void)
 		g_session.phase = SESSION_ROSTER;
 		break;
 	case SESSION_ROSTER:
-		g_frontState.netPlayerCount = 1;
-		Net_RefreshPlayerRoster();
-		g_frontState.netRuntimeRecvQueueReadIndex =
-			g_frontState.netRuntimeRecvQueueWriteIndex = 0;
-		g_frontState.netRuntimeRecvQueueCount = 0;
-		if (g_session.host) {
-			g_frontState.netHostPlayerId =
-				g_frontState.netRuntimeLocalPlayer.playerId;
-			Net_SetPlayerReady(Net_GetLocalPlayerId());
-			snprintf(g_mpRoster[0].name, sizeof(g_mpRoster[0].name),
-				 "%s", g_session.player_name);
-			g_mpRoster[0].playerId = Net_GetLocalPlayerId();
-			g_mpRoster[0].pilotRating = g_pilotData.rating;
-			if (g_session.online) {
-				g_session.phase = SESSION_REGISTER;
-			} else {
-				XvtNetworkSession_Establish();
-			}
-		} else {
-			g_session.phase = SESSION_HANDSHAKE;
-		}
+		XvtNetworkSession_Roster();
 		break;
 	case SESSION_REGISTER:
 		Net_PumpIncomingPackets();
