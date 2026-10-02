@@ -46,7 +46,7 @@ static void DrawWeapons(const XvtHudDraw* draw) {
 								(int)segment * draw->layout->sprites[XVT_HUD_LASER_CHARGE + index].step_x, 0,
 								XVT_COCKPIT_BEFORE_CRT);
 		if (slot->selection_visible)
-			XvtHudDraw_Part(draw, XVT_HUD_LASER_SELECTION + index, slot->selected, 0, 0,
+			XvtHudDraw_Part(draw, XVT_HUD_LASER_SELECTION + index, slot->selection_state, 0, 0,
 							XVT_COCKPIT_BEFORE_CRT);
 		XvtHudDraw_Part(draw, XVT_HUD_LASER_READY + index, slot->ready, 0, 0, XVT_COCKPIT_BEFORE_CRT);
 		if (slot->lock_visible)
@@ -101,7 +101,7 @@ void XvtHudInstruments_DrawWidgets(const XvtHudDraw* draw) {
 	DrawPowerGauge(draw, XVT_HUD_BEAM_POWER, &systems->beam_power);
 	DrawIndicator(draw, XVT_HUD_SHIELD_DISTRIBUTION, &systems->shield_distribution);
 	DrawIndicator(draw, XVT_HUD_SFOILS, &systems->sfoils);
-	DrawIndicator(draw, XVT_HUD_COUNTERMEASURE_SELECTION, &systems->countermeasure_selected);
+	DrawIndicator(draw, XVT_HUD_COUNTERMEASURE_SELECTION, &systems->countermeasure_active);
 	DrawIndicator(draw, XVT_HUD_CRITICAL_WARNING, &systems->critical_warning);
 	for (unsigned index = 0; index < 4; ++index) {
 		DrawIndicator(draw, XVT_HUD_THREAT + index, &systems->threats[index]);
@@ -144,7 +144,7 @@ void XvtHudInstruments_DrawWorldMarkers(const XvtHudDraw* draw, const XvtSnapTar
 	for (unsigned index = 0; index < count; ++index) {
 		const XvtSnapTargetBox* marker = &markers[index];
 		float x, y, depth;
-		if (marker->layer != XVT_SCOPE_COCKPIT ||
+		if (marker->scope != XVT_SCOPE_COCKPIT ||
 			!XvtRenderMath_ProjectWorld(view, marker->world_pos, &x, &y, &depth) || depth <= 0)
 			continue;
 		float focal = view->camera.viewport.width / (2 * tanf(view->camera.h_half_rad));

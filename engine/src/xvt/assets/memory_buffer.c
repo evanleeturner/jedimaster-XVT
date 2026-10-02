@@ -47,7 +47,7 @@ unsigned int MemoryBuffer_ReadDword(const uint8_t* buffer, unsigned int* offset)
 }
 
 // FUNCTION: XVT 0x4CC830
-void MemoryBuffer_ReadCount(const uint8_t* buffer, void* destination, unsigned int* offset,
+void MemoryBuffer_ReadBytes(const uint8_t* buffer, void* destination, unsigned int* offset,
 							unsigned int count) {
 	memcpy(destination, &buffer[*offset], count);
 	*offset += count;
@@ -85,7 +85,7 @@ void MemoryBuffer_WriteDword(uint8_t* buffer, unsigned int* offset, unsigned int
 }
 
 // FUNCTION: XVT 0x4CC8C0
-void MemoryBuffer_WriteCount(uint8_t* buffer, const void* source, unsigned int* offset, unsigned int count) {
+void MemoryBuffer_WriteBytes(uint8_t* buffer, const void* source, unsigned int* offset, unsigned int count) {
 	memcpy(&buffer[*offset], source, count);
 	*offset += count;
 }

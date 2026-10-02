@@ -279,10 +279,10 @@ static int RenderOne(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, const 
 			(p->destination.height * 0.5f - p->camera.center_y - p->camera.projection_offset_y) /
 			(p->destination.height * 0.5f);
 		camera.viewport = (AeronRectI) { 0, 0, width, height };
-		float scale = p->model_scale * AERON_OPT_UNITS_PER_METER;
+		float model_scale = p->model_scale * AERON_OPT_UNITS_PER_METER;
 		for (int row = 0; row < 3; ++row) {
 			for (int col = 0; col < 3; ++col)
-				instance.transform[row * 4 + col] = scale * p->view_orient[col * 3 + row];
+				instance.transform[row * 4 + col] = model_scale * p->view_orient[col * 3 + row];
 			instance.transform[row * 4 + 3] = p->view_pos[row];
 		}
 		instance.transform[15] = 1;

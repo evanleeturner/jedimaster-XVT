@@ -342,7 +342,7 @@ int XvtFrontend_Replay(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, int 
 								 s->copy_count,   s->surface_event_count, s->preview_count };
 	for (;;) {
 		uint32_t order = UINT32_MAX;
-		unsigned ch = 6;
+		unsigned stream = 6;
 		const uint32_t orders[6] = {
 			indices[0] < counts[0] ? s->sprites[indices[0]].draw.z_order : UINT32_MAX,
 			indices[1] < counts[1] ? s->glyphs[indices[1]].draw.z_order : UINT32_MAX,
@@ -354,16 +354,16 @@ int XvtFrontend_Replay(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, int 
 		for (unsigned j = 0; j < 6; ++j)
 			if (orders[j] < order) {
 				order = orders[j];
-				ch = j;
+				stream = j;
 			}
-		if (ch == 6)
+		if (stream == 6)
 			break;
-		unsigned i = indices[ch]++;
-		if (ch == 3 || ch == 4) {
+		unsigned i = indices[stream]++;
+		if (stream == 3 || stream == 4) {
 			if (active >= 0)
 				AeronDrawList_Render(g_list, cmd);
 			active = -1;
-			if (ch == 4) {
+			if (stream == 4) {
 				if (!ApplySurfaceEvent(cmd, &s->surface_events[i], cursor))
 					return 0;
 				if (s->surface_events[i].kind == XVT_SURFACE_PRESENT)
@@ -376,11 +376,11 @@ int XvtFrontend_Replay(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, int 
 			}
 			continue;
 		}
-		const XvtSnapDrawHeader* h = ch == 0   ? &s->sprites[i].draw
-									 : ch == 1 ? &s->glyphs[i].draw
-									 : ch == 2 ? &s->paint[i].draw
-											   : &s->previews[i].draw;
-		if (ch == 0 && h->target == XVT_TARGET_FRONT_CURSOR) {
+		const XvtSnapDrawHeader* h = stream == 0   ? &s->sprites[i].draw
+									 : stream == 1 ? &s->glyphs[i].draw
+									 : stream == 2 ? &s->paint[i].draw
+												   : &s->previews[i].draw;
+		if (stream == 0 && h->target == XVT_TARGET_FRONT_CURSOR) {
 			cursor = &s->sprites[i];
 			continue;
 		}
@@ -394,12 +394,12 @@ int XvtFrontend_Replay(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, int 
 			active = h->target;
 			AeronDrawList_Begin(g_list, g_targets[active], g_width, g_height, AERON_DRAWLIST2D_LOAD, NULL);
 		}
-		if (ch == 0) {
+		if (stream == 0) {
 			if (!DrawSprite(&s->sprites[i], g_scale))
 				return 0;
-		} else if (ch == 1)
+		} else if (stream == 1)
 			XvtUi_Glyph(g_list, &s->glyphs[i], g_scale, 0, 0);
-		else if (ch == 2)
+		else if (stream == 2)
 			XvtUi_Paint(g_list, &s->paint[i], g_scale);
 		else
 			DrawPreview(i);

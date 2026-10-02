@@ -138,15 +138,15 @@ static void CheckValidate(void) {
 static void CheckDecodeRoundTrip(void) {
 	EmptyWorld();
 	g_nextObjectSignature = 0x1234;
-	g_gameRandStateB = 77;
+	g_gameRandFeedbackState = 77;
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
 	XVT_ASSERT_TRUE(written > 0);
 
 	g_nextObjectSignature = 0;
-	g_gameRandStateB = 0;
+	g_gameRandFeedbackState = 0;
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Decode(g_image, written), 1);
 	XVT_ASSERT_INT_EQ(g_nextObjectSignature, 0x1234);
-	XVT_ASSERT_INT_EQ(g_gameRandStateB, 77);
+	XVT_ASSERT_INT_EQ(g_gameRandFeedbackState, 77);
 
 	/* Encoding the restored world gives the same bytes back. */
 	uint8_t* again = calloc(1, g_capacity);
@@ -447,7 +447,7 @@ static void SetMixedOnlyValues(int seed) {
 	g_debrisObjectSlotsTotal = (unsigned)(v + 12);
 	g_planCount = v + 13;
 	g_unusedWorldStateSerializedDword = v + 14;
-	g_gameRandStateB = (int16_t)(v + 15);
+	g_gameRandFeedbackState = (int16_t)(v + 15);
 	g_flightConfNewNet = v + 16;
 	g_activeFlightPlayerCount = v + 17;
 	g_missionFileVersion = (uint16_t)(v + 18);

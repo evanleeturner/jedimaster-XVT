@@ -11,10 +11,10 @@
 #include <string.h>
 
 typedef struct Integration {
-	int64_t position[3], remainder[XVT_INTEGRATE_COUNT];
+	int64_t position_remainder[3], remainder[XVT_INTEGRATE_COUNT];
 	int8_t direction[XVT_INTEGRATE_COUNT];
 	uint16_t signature, carried, target, target_signature;
-	uint8_t type, state;
+	uint8_t type, family;
 } Integration;
 
 static Integration* g_entries;
@@ -47,11 +47,11 @@ static Integration* XvtFlightIntegration_SyncEntry(unsigned slot) {
 	Integration* s = &g_entries[slot];
 	const ObjectRecord* o = &g_objectTable[slot];
 	if (s->signature != o->objectSignature || s->type != o->objectType ||
-		(o->mobj && s->state != o->mobj->family)) {
+		(o->mobj && s->family != o->mobj->family)) {
 		memset(s, 0, sizeof *s);
 		s->signature = o->objectSignature;
 		s->type = o->objectType;
-		s->state = o->mobj ? o->mobj->family : 0;
+		s->family = o->mobj ? o->mobj->family : 0;
 		s->carried = UINT16_MAX;
 		s->target = UINT16_MAX;
 	}
@@ -143,7 +143,7 @@ void XvtFlightIntegration_Move(unsigned slot) {
 		const int position[3] = { o->world_x, o->world_y, o->world_z };
 		for (unsigned a = 0; a < 3; ++a)
 			if (position[a] <= -0x01000000 || position[a] >= 0x01000000)
-				s->position[a] = 0;
+				s->position_remainder[a] = 0;
 	}
 	const MobileObject* m = g_objectTable[slot].mobj;
 	const int axes[3] = { m->moveX, m->moveY, m->moveZ };
@@ -151,10 +151,10 @@ void XvtFlightIntegration_Move(unsigned slot) {
 	int64_t speed = ((int64_t)4660 * m->speed + 128) >> 8;
 	const int64_t divisor = (int64_t)SIMULATION_TICKS_PER_SECOND * XVT_Q15_SCALE;
 	for (unsigned a = 0; a < 3; ++a) {
-		int64_t numerator = speed * g_elapsedTicks * axes[a] + (s ? s->position[a] : 0);
+		int64_t numerator = speed * g_elapsedTicks * axes[a] + (s ? s->position_remainder[a] : 0);
 		*outputs[a] = (int)(numerator / divisor);
 		if (s)
-			s->position[a] = numerator % divisor;
+			s->position_remainder[a] = numerator % divisor;
 	}
 }
 
@@ -189,16 +189,17 @@ void XvtFlightIntegration_Encode(unsigned slot, XvtIntegrationWire* out) {
 	const Integration* state = &g_entries[slot];
 	const ObjectRecord* object = &g_objectTable[slot];
 	if (!object->objectType || state->type != object->objectType ||
-		state->signature != object->objectSignature || (object->mobj && state->state != object->mobj->family))
+		state->signature != object->objectSignature ||
+		(object->mobj && state->family != object->mobj->family))
 		return;
 	XvtWire_Set16(out->signature, state->signature);
 	out->type = state->type;
-	out->state = state->state;
+	out->family = state->family;
 	XvtWire_Set16(out->carried_slot, state->carried);
 	XvtWire_Set16(out->target_slot, state->target);
 	XvtWire_Set16(out->target_signature, state->target_signature);
 	for (unsigned axis = 0; axis < XVT_STATE_POSITION_AXES; ++axis)
-		XvtWire_Set64(out->position[axis], (uint64_t)state->position[axis]);
+		XvtWire_Set64(out->position_remainder[axis], (uint64_t)state->position_remainder[axis]);
 	for (unsigned channel = 0; channel < XVT_INTEGRATE_COUNT; ++channel) {
 		XvtWire_Set64(out->remainder[channel], (uint64_t)state->remainder[channel]);
 		out->direction[channel] = state->direction[channel];
@@ -218,7 +219,7 @@ int XvtFlightIntegration_Decode(const XvtIntegrationWire* record, int apply) {
 	Integration state = { 0 };
 	state.signature = XvtWire_Get16(record->signature);
 	state.type = record->type;
-	state.state = record->state;
+	state.family = record->family;
 	state.carried = XvtWire_Get16(record->carried_slot);
 	state.target = XvtWire_Get16(record->target_slot);
 	state.target_signature = XvtWire_Get16(record->target_signature);
@@ -227,8 +228,9 @@ int XvtFlightIntegration_Decode(const XvtIntegrationWire* record, int apply) {
 		return 0;
 	const int64_t position_divisor = (int64_t)SIMULATION_TICKS_PER_SECOND * XVT_Q15_SCALE;
 	for (unsigned axis = 0; axis < XVT_STATE_POSITION_AXES; ++axis) {
-		state.position[axis] = (int64_t)XvtWire_Get64(record->position[axis]);
-		if (state.position[axis] <= -position_divisor || state.position[axis] >= position_divisor)
+		state.position_remainder[axis] = (int64_t)XvtWire_Get64(record->position_remainder[axis]);
+		if (state.position_remainder[axis] <= -position_divisor ||
+			state.position_remainder[axis] >= position_divisor)
 			return 0;
 	}
 	for (unsigned channel = 0; channel < XVT_INTEGRATE_COUNT; ++channel) {

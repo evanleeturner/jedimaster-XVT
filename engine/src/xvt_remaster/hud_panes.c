@@ -2,8 +2,8 @@
 #include "xvt_remaster/hud_text.h"
 
 static int DrawNumberInPhase(const XvtHudDraw* draw, const XvtCockpitNumber* number, unsigned phase,
-							 int score) {
-	return number->phase != phase || XvtHudText_DrawNumber(draw, number, score);
+							 int signed_value) {
+	return number->phase != phase || XvtHudText_DrawNumber(draw, number, signed_value);
 }
 
 int XvtHudPanes_DrawReadouts(const XvtHudDraw* draw, unsigned phase) {

@@ -41,7 +41,7 @@ XvtKeyboardShortcut XvtKeyboardMapping_Shortcut(AeronKeyChord source) {
 	return XVT_KEYBOARD_SHORTCUT_NONE;
 }
 
-int XvtKeyboardMapping_Trigger(const AeronInputSnapshot* input, XvtKeyboardShortcut shortcut) {
+int XvtKeyboardMapping_FindShortcutPress(const AeronInputSnapshot* input, XvtKeyboardShortcut shortcut) {
 	if (!input || !input->has_focus || input->key_events_overflow)
 		return -1;
 	for (uint16_t i = 0; i < input->key_event_count; ++i) {

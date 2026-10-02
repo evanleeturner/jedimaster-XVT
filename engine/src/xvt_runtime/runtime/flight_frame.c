@@ -20,9 +20,9 @@ enum {
 	HOST_TIMEOUT_TICKS = 7080,
 	UPDATE_HISTOGRAM_BUCKETS = 20,
 	LONG_UPDATE_TICKS = 8,
-	PING_DROP_SCORE_STEP = 10,
-	PING_LEVEL_2_SCORE = 10,
-	PING_LEVEL_3_SCORE = 20,
+	PACKET_DROP_SCORE_STEP = 10,
+	PACKET_DROP_LEVEL_2_SCORE = 10,
+	PACKET_DROP_LEVEL_3_SCORE = 20,
 };
 
 enum { XVT_FRAME_WAIT, XVT_FRAME_ADVANCE };
@@ -44,7 +44,7 @@ static struct {
 	XvtFlightMessage message;
 	XvtConfirmationPhase phase;
 	int publish_floor, suspended, predicted_suspended;
-	uint64_t iteration, deadline;
+	uint64_t iteration_start_us, deadline;
 	unsigned steps;
 	int budget_initialized;
 } g_confirm;
@@ -74,8 +74,8 @@ void XvtFlightFrame_Begin(void) {
 	g_flightLastStepTargetTimestamp = 0;
 	g_lastLocalReplayInputTimestamp = 0;
 	g_flightSfxSideEffectGate = 0;
-	g_flightPingPrevHostDropCount = 0;
-	g_flightPingDropScore = 0;
+	g_flightPrevHostPacketDropCount = 0;
+	g_flightPacketDropScore = 0;
 	memset(g_flightUpdateDurationHistogram, 0, sizeof(g_flightUpdateDurationHistogram));
 }
 
@@ -158,8 +158,8 @@ static void XvtFlightFrame_UpdateLagIndicator(void) {
 
 /* Sets the ping indicator (0 to 3). It stays 0 until a host drop count has been recorded; after
  * that a drop score rises with each new host packet drop and falls by one per frame. */
-static void XvtFlightFrame_UpdatePingIndicator(void) {
-	if (g_flightPingPrevHostDropCount == 0) {
+static void XvtFlightFrame_UpdatePacketDropIndicator(void) {
+	if (g_flightPrevHostPacketDropCount == 0) {
 		g_packetDropIndicator = 0;
 	} else {
 		int hostDplayId;
@@ -167,19 +167,19 @@ static void XvtFlightFrame_UpdatePingIndicator(void) {
 
 		hostDplayId = NetSession_GetHostDplayId();
 		hostDropCount = NetReliable_GetPeerPacketDropCountByDpid(hostDplayId);
-		g_flightPingDropScore += PING_DROP_SCORE_STEP * (hostDropCount - g_flightPingPrevHostDropCount);
-		if (g_flightPingDropScore == 0) {
+		g_flightPacketDropScore += PACKET_DROP_SCORE_STEP * (hostDropCount - g_flightPrevHostPacketDropCount);
+		if (g_flightPacketDropScore == 0) {
 			g_packetDropIndicator = 0;
-		} else if (g_flightPingDropScore < PING_LEVEL_2_SCORE) {
+		} else if (g_flightPacketDropScore < PACKET_DROP_LEVEL_2_SCORE) {
 			g_packetDropIndicator = 1;
-		} else if (g_flightPingDropScore < PING_LEVEL_3_SCORE) {
+		} else if (g_flightPacketDropScore < PACKET_DROP_LEVEL_3_SCORE) {
 			g_packetDropIndicator = 2;
 		} else {
 			g_packetDropIndicator = 3;
 		}
-		g_flightPingPrevHostDropCount = hostDropCount;
-		if (g_flightPingDropScore != 0) {
-			--g_flightPingDropScore;
+		g_flightPrevHostPacketDropCount = hostDropCount;
+		if (g_flightPacketDropScore != 0) {
+			--g_flightPacketDropScore;
 		}
 	}
 }
@@ -245,7 +245,7 @@ static void XvtFlightFrame_Render(void) {
 	updateTicks = g_inputTimestamp - g_frame.frameStartTimestamp;
 	g_inputTimestamp += Time_ConsumeElapsedTicks();
 	XvtFlightFrame_UpdateLagIndicator();
-	XvtFlightFrame_UpdatePingIndicator();
+	XvtFlightFrame_UpdatePacketDropIndicator();
 
 	renderStartTimestamp = g_inputTimestamp;
 	XvtRenderCapture_CompleteNetworkWorld();
@@ -387,8 +387,8 @@ static int XvtFlightFrame_Advance(void) {
 
 static void XvtFlightFrame_NetworkBudget(void) {
 	uint64_t now = XvtTime_GetElapsedUs();
-	if (!g_confirm.budget_initialized || g_confirm.iteration != now) {
-		g_confirm.iteration = now;
+	if (!g_confirm.budget_initialized || g_confirm.iteration_start_us != now) {
+		g_confirm.iteration_start_us = now;
 		g_confirm.steps = 0;
 		g_confirm.deadline = 0;
 		g_confirm.budget_initialized = 1;
@@ -452,7 +452,7 @@ static XvtFlightReplayResult XvtFlightFrame_Confirm(XvtFlightQueue queue) {
 		g_gameTime = g_serverTickTime;
 		XvtFlightTiming_RestoreNetworkTick(g_gameTime);
 		XvtFlightHistory_RestoreCheckpoint();
-		XvtFlightCheckpoint_ApplyConfirmedMask(g_confirm.message.mask);
+		XvtFlightCheckpoint_ApplyConfirmedMask(g_confirm.message.participant_mask);
 		if (!XvtFlightNetwork_InsertWorld(&g_confirm.message))
 			return XVT_REPLAY_PENDING;
 		g_confirm.phase = queue == XVT_QUEUE_REPLAY ? XVT_CONFIRM_REPLAY : XVT_CONFIRM_APPLY;
@@ -485,7 +485,7 @@ static XvtFlightReplayResult XvtFlightFrame_Confirm(XvtFlightQueue queue) {
 	Sound_FlushQueuedEffects();
 	Flight_SaveWorldState();
 	XVT_LOG_DEBUG("network.confirm tick=%d queue=\"%s\" mask=%02x records=%u checksum=%d", g_serverTickTime,
-				  queue == XVT_QUEUE_REPLAY ? "replay" : "pending", g_confirm.message.mask,
+				  queue == XVT_QUEUE_REPLAY ? "replay" : "pending", g_confirm.message.participant_mask,
 				  g_confirm.message.count, (g_confirm.message.target_flags & XVT_WORLD_CHECKSUM_FLAG) != 0);
 	if (queue == XVT_QUEUE_PENDING && (g_confirm.message.target_flags & XVT_WORLD_CHECKSUM_FLAG))
 		XvtFlightFrame_Checksum();
@@ -632,9 +632,9 @@ uint64_t XvtFlightFrame_NextWakeDelayUs(void) {
 		uint64_t wake = XvtFlightNetwork_NextWakeDelayUs(g_inputTimestamp);
 		if (!XvtFlightNetwork_NeedsRecovery() && g_gameTime < g_serverTickTime + XVT_PREDICTION_LEAD_TICKS) {
 			int remaining = g_gameTime + XVT_NETWORK_STEP_TICKS - g_inputTimestamp;
-			uint64_t simulation = remaining > 0 ? XvtFlightTime_DelayForTicks((unsigned)remaining) : 0;
-			if (simulation < wake)
-				wake = simulation;
+			uint64_t stepDelayUs = remaining > 0 ? XvtFlightTime_DelayForTicks((unsigned)remaining) : 0;
+			if (stepDelayUs < wake)
+				wake = stepDelayUs;
 		}
 		return wake;
 	}

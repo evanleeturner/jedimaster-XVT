@@ -30,14 +30,17 @@ static void XvtVideoPage_DrawControls(AeronUiContext* ui) {
 
 	static const char* const gamma_labels[] = { "2.2", "2.4", "sRGB", "Auto" };
 	static const float gamma_values[] = { 2.2f, 2.4f, 0, -1 };
-	int gamma = options.sdr_gamma < 0 ? 3 : options.sdr_gamma == 0 ? 2 : options.sdr_gamma == 2.4f ? 1 : 0;
+	int gamma_index = options.sdr_gamma < 0       ? 3
+					  : options.sdr_gamma == 0    ? 2
+					  : options.sdr_gamma == 2.4f ? 1
+												  : 0;
 #if defined(__APPLE__)
-	const int tone_mapping_enabled = 0;
+	const int hdr_output_active = 0;
 #else
-	const int tone_mapping_enabled = Aeron_OutputHdrEnabled();
+	const int hdr_output_active = Aeron_OutputHdrEnabled();
 #endif
-	if (AeronUi_SelectorEnabled(ui, "SDR Content Gamma", &gamma, gamma_labels, 4, tone_mapping_enabled)) {
-		options.sdr_gamma = gamma_values[gamma];
+	if (AeronUi_SelectorEnabled(ui, "SDR Content Gamma", &gamma_index, gamma_labels, 4, hdr_output_active)) {
+		options.sdr_gamma = gamma_values[gamma_index];
 		changed = true;
 	}
 	static const float paper_white_values[] = { 0.0f, 100.0f, 150.0f, 200.0f, 250.0f, 300.0f, 400.0f };
@@ -45,10 +48,10 @@ static void XvtVideoPage_DrawControls(AeronUiContext* ui) {
 										 "250 nits", "300 nits", "400 nits", NULL };
 	char custom_white[32];
 	int white_count = 7;
-	int paper_white = 0;
+	int paper_white_index = 0;
 	if (options.paper_white_nits > 0) {
-		paper_white = 1;
-		float best_distance = options.paper_white_nits - paper_white_values[paper_white];
+		paper_white_index = 1;
+		float best_distance = options.paper_white_nits - paper_white_values[paper_white_index];
 		if (best_distance < 0.0f)
 			best_distance = -best_distance;
 		for (int index = 2; index < 7; ++index) {
@@ -56,21 +59,21 @@ static void XvtVideoPage_DrawControls(AeronUiContext* ui) {
 			if (distance < 0.0f)
 				distance = -distance;
 			if (distance < best_distance) {
-				paper_white = index;
+				paper_white_index = index;
 				best_distance = distance;
 			}
 		}
 	}
-	if (options.paper_white_nits != paper_white_values[paper_white]) {
+	if (options.paper_white_nits != paper_white_values[paper_white_index]) {
 		snprintf(custom_white, sizeof custom_white, "%.1f nits", options.paper_white_nits);
 		paper_white_labels[7] = custom_white;
-		paper_white = 7;
+		paper_white_index = 7;
 		white_count = 8;
 	}
-	if (AeronUi_SelectorEnabled(ui, "HDR Paper White", &paper_white, paper_white_labels, white_count,
-								tone_mapping_enabled)) {
-		if (paper_white < 7)
-			options.paper_white_nits = paper_white_values[paper_white];
+	if (AeronUi_SelectorEnabled(ui, "HDR Paper White", &paper_white_index, paper_white_labels, white_count,
+								hdr_output_active)) {
+		if (paper_white_index < 7)
+			options.paper_white_nits = paper_white_values[paper_white_index];
 		changed = true;
 	}
 	AeronUi_Spacer(ui, 8.0f);

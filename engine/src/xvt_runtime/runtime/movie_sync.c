@@ -38,20 +38,20 @@ void XvtMovieSync_Wait(void) {
 
 int XvtMovieSync_Update(void) {
 	int index;
-	int waiting = 0;
+	int still_watching = 0;
 	FrontendNet_ProcessNetworkPackets();
 	for (index = 0; index < 8; ++index)
 		if (g_movieMultiplayerSyncPlayers[index].playerId && !g_movieMultiplayerSyncPlayers[index].isWaiting)
-			++waiting;
+			++still_watching;
 	if (g_moviePlaybackCompletionState == 1 &&
 		(int32_t)(GetTickCount() - g_movieMultiplayerSyncDeadlineMs) > 0)
 		g_moviePlaybackCompletionState = 2;
-	return waiting == 0;
+	return still_watching == 0;
 }
 
 void XvtMovieSync_Draw(int top_margin, int bottom_margin) {
 	int index;
-	int roster;
+	int roster_index;
 	int count = Net_CountReadyPlayers();
 	RECT rect;
 	char text[128];
@@ -61,9 +61,9 @@ void XvtMovieSync_Draw(int top_margin, int bottom_margin) {
 		if (!g_movieMultiplayerSyncPlayers[index].playerId)
 			continue;
 		text[0] = 0;
-		for (roster = 0; roster < count && roster < 8; ++roster) {
-			if (g_mpRoster[roster].playerId == g_movieMultiplayerSyncPlayers[index].playerId) {
-				snprintf(text, sizeof(text), "%s%s", g_mpRoster[roster].name,
+		for (roster_index = 0; roster_index < count && roster_index < 8; ++roster_index) {
+			if (g_mpRoster[roster_index].playerId == g_movieMultiplayerSyncPlayers[index].playerId) {
+				snprintf(text, sizeof(text), "%s%s", g_mpRoster[roster_index].name,
 						 FrontendString_Get(g_movieMultiplayerSyncPlayers[index].isWaiting
 												? FRONTSTR_805_WAITING
 												: FRONTSTR_804_WATCHING));

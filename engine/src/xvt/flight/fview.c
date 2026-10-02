@@ -195,18 +195,18 @@ int FVIEW_ComputeObjectViewMatrix(void) {
 	g_objViewMat_R2_Z = result;
 	if (g_transformLightDirectionToObjectSpace != 0) {
 		g_objectLightDirectionX =
-			Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, g_modelPreviewLightDirectionX,
-								g_modelPreviewLightDirectionY, g_modelPreviewLightDirectionZ);
+			Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, g_worldLightDirectionX,
+								g_worldLightDirectionY, g_worldLightDirectionZ);
 		g_objectLightDirectionY =
-			Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z, g_modelPreviewLightDirectionX,
-								g_modelPreviewLightDirectionY, g_modelPreviewLightDirectionZ);
-		result = Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, g_modelPreviewLightDirectionX,
-									 g_modelPreviewLightDirectionY, g_modelPreviewLightDirectionZ);
+			Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z, g_worldLightDirectionX,
+								g_worldLightDirectionY, g_worldLightDirectionZ);
+		result = Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, g_worldLightDirectionX,
+									 g_worldLightDirectionY, g_worldLightDirectionZ);
 		g_objectLightDirectionZ = result;
 	} else {
-		g_objectLightDirectionX = g_modelPreviewLightDirectionX;
-		g_objectLightDirectionY = g_modelPreviewLightDirectionY;
-		g_objectLightDirectionZ = g_modelPreviewLightDirectionZ;
+		g_objectLightDirectionX = g_worldLightDirectionX;
+		g_objectLightDirectionY = g_worldLightDirectionY;
+		g_objectLightDirectionZ = g_worldLightDirectionZ;
 	}
 	return result;
 }

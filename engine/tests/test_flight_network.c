@@ -418,7 +418,7 @@ static void CheckReceiveBatch(void) {
 static size_t WorldPart(uint32_t cookie, unsigned target, uint8_t mask) {
 	memset(&g_message, 0, sizeof g_message);
 	g_message.target_flags = target;
-	g_message.mask = mask;
+	g_message.participant_mask = mask;
 	AddRecord(&g_message, 0, 2, 10);
 	size_t size = XvtFlightMessages_EncodePart(g_packet, &g_message, cookie, 0);
 	XVT_ASSERT_TRUE(size > 0);
@@ -434,7 +434,7 @@ static void CheckReceiveWorld(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 1);
 	XVT_ASSERT_TRUE(XvtFlightMessages_Peek(XVT_QUEUE_PENDING, &g_out, sizeof g_out) > 0);
 	XVT_ASSERT_INT_EQ(g_out.target_flags, 8);
-	XVT_ASSERT_INT_EQ(g_out.mask, 0x01);
+	XVT_ASSERT_INT_EQ(g_out.participant_mask, 0x01);
 	XVT_ASSERT_INT_EQ(g_out.count, 1);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 0);
 
@@ -634,7 +634,7 @@ static void CheckSendWorld(void) {
 	XvtFlightNetwork_SendWorld();
 	XVT_ASSERT_INT_EQ(TakePending(), 1);
 	XVT_ASSERT_INT_EQ(g_out.target_flags & INT32_MAX, 16 + XVT_WORLD_MESSAGE_TICKS);
-	XVT_ASSERT_INT_EQ(g_out.mask, 0x01);
+	XVT_ASSERT_INT_EQ(g_out.participant_mask, 0x01);
 	XVT_ASSERT_INT_EQ(g_out.count, 2);
 	int tick = 0;
 	FlightInputFrameRecord input;

@@ -76,7 +76,7 @@ uint16_t Damage_QueueCraftBillboardsForObjectType(unsigned int objectIndex, int 
 			meshTypeIndex = meshIndex;
 			if (objectType < 73) {
 				if (meshTypeIndex < 0) {
-					meshType = MESH_COMPONENT_00_HULL;
+					meshType = MESH_COMPONENT_00_DEFAULT;
 				} else {
 					if (meshTypeIndex >= g_objectTypeMeshCache[objectType].meshCount) {
 						meshTypeIndex = g_objectTypeMeshCache[objectType].meshCount - 1;

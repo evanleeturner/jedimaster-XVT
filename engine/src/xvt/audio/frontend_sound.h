@@ -24,7 +24,8 @@ struct FrontendSoundVoice {
 int FrontendSound_InitDirectSound(void* hwnd);
 int FrontendSound_ShutdownDirectSound(void);
 int FrontendSound_LoadSound(const char* fileName, const char* soundName);
-int FrontendSound_LoadSoundFile(const char* fileName, const char* soundName, int create3DFlags);
+int FrontendSound_LoadSoundFile(const char* fileName, const char* soundName,
+								int omitSoftwareAndFrequencyCaps);
 void FrontendSound_UnloadAllBuffers(void);
 int FrontendSound_UnloadBufferByName(const char* soundName);
 int FrontendSound_PlayUISound(const char* soundName, int allowRestartExisting, int loop, int priority,

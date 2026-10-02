@@ -39,7 +39,7 @@ static const double g_modelPreviewMetersScale = 1600.0;
 // GLOBAL: XVT 0x518130
 static const double g_modelPreviewQ16Scale = 0.0000152587890625;
 // GLOBAL: XVT 0x520EC0
-int16_t g_modelPreviewAngleD;
+int16_t g_modelPreviewUpAxisAngle;
 // GLOBAL: XVT 0x520EC4
 OptimizedPolyObject* g_modelPreviewModelData = NULL;
 // GLOBAL: XVT 0x520EC8
@@ -95,17 +95,17 @@ int16_t g_savedModelPreviewLightDirectionX;
 // GLOBAL: XVT 0x5561DC
 int g_savedModelPreviewNodeSwitchIndex;
 // GLOBAL: XVT 0x55620C
-int16_t g_savedModelPreviewAngleD;
+int16_t g_savedModelPreviewUpAxisAngle;
 // GLOBAL: XVT 0x556210
 int16_t g_savedModelPreviewRoll;
 // GLOBAL: XVT 0x5562D0
 char g_savedModelPreviewModelFileName[128];
 // GLOBAL: XVT 0x9D12EC
-int g_modelPreviewLightDirectionX;
+int g_worldLightDirectionX;
 // GLOBAL: XVT 0x9D12F0
-int g_modelPreviewLightDirectionY;
+int g_worldLightDirectionY;
 // GLOBAL: XVT 0x9D1304
-int g_modelPreviewLightDirectionZ;
+int g_worldLightDirectionZ;
 // GLOBAL: XVT 0xA60710
 OptVector g_modelPreviewViewDelta = { 0.0f, 0.0f, 0.0f };
 // GLOBAL: XVT 0xA6071C
@@ -271,9 +271,9 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 		g_modelPreviewObject.mobj = &g_modelPreviewMobileObject;
 		g_modelPreviewMobileObject.pCraft = &g_modelPreviewCraftScratch;
 		g_modelPreviewObject.roll = 0;
-		g_modelPreviewAngleD = 0;
+		g_modelPreviewUpAxisAngle = 0;
 		ModelPreview_ResetViewAndRenderState();
-		ModelPreview_SetWhiteDirectionalLight(1, 1, 1);
+		ModelPreview_SetLightDirection(1, 1, 1);
 	}
 	return 1;
 }
@@ -313,7 +313,7 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 	uint8_t* maskCursor;
 	unsigned int row;
 	unsigned int remainingWidth;
-	int savedLocalLightsLevel;
+	int savedLocalLightsEnabled;
 
 	if (g_loadedModels[MODEL_PREVIEW_SLOT] == 0) {
 		return 0;
@@ -357,7 +357,7 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 							g_players[g_localPlayer].viewState.viewPitch,
 							g_players[g_localPlayer].viewState.viewYaw, 0, 0, 0, NULL);
 	FVIEW_SetObjectTransform(g_modelPreviewObject.roll, g_modelPreviewObject.pitch, g_modelPreviewObject.yaw,
-							 g_modelPreviewAngleD, NULL);
+							 g_modelPreviewUpAxisAngle, NULL);
 
 	g_modelPreviewViewDelta.x =
 		(float)(g_modelPreviewObject.world_x - g_players[g_localPlayer].viewState.cameraWorldX);
@@ -442,7 +442,7 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 
 	g_viewSpaceDepth = (int)g_modelPreviewViewDelta.z;
 	g_modelPreviewObject.mobj->nodeSwitchIndex = (uint8_t)g_nodeSwitchIndex;
-	savedLocalLightsLevel = g_localLightsEnabled;
+	savedLocalLightsEnabled = g_localLightsEnabled;
 	g_localLightsEnabled = 0;
 	RenderScene_Initialize(1);
 #ifdef XVT_MODERN
@@ -453,7 +453,7 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 	RenderScene_DrawObjectModel(&g_modelPreviewObject);
 	sw3d_DrawVisibleFacesToSurface();
 	RenderScene_UnlockBuffers();
-	g_localLightsEnabled = savedLocalLightsLevel;
+	g_localLightsEnabled = savedLocalLightsEnabled;
 	return 1;
 }
 
@@ -520,14 +520,14 @@ void ModelPreview_ScaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, doub
 		}
 		case OPT_FACEGROUP: {
 			int count;
-			float* childScales;
+			float* lodThresholds;
 
 			count = resolvedNode->childCount;
-			childScales = (float*)resolvedNode->payload;
+			lodThresholds = (float*)resolvedNode->payload;
 			if (count > 0) {
 				do {
-					*childScales = (float)(*childScales / scale);
-					++childScales;
+					*lodThresholds = (float)(*lodThresholds / scale);
+					++lodThresholds;
 					--count;
 				} while (count != 0);
 			}
@@ -605,14 +605,14 @@ void ModelPreview_UnscaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, do
 		}
 		case OPT_FACEGROUP: {
 			int count;
-			float* childScales;
+			float* lodThresholds;
 
 			count = resolvedNode->childCount;
-			childScales = (float*)resolvedNode->payload;
+			lodThresholds = (float*)resolvedNode->payload;
 			if (count > 0) {
 				do {
-					*childScales = (float)(*childScales * scale);
-					++childScales;
+					*lodThresholds = (float)(*lodThresholds * scale);
+					++lodThresholds;
 					--count;
 				} while (count != 0);
 			}
@@ -754,7 +754,7 @@ int ModelPreview_ResetViewAndRenderState(void) {
 }
 
 // FUNCTION: XVT 0x42B010
-void ModelPreview_SetWhiteDirectionalLight(int x, int y, int z) {
+void ModelPreview_SetLightDirection(int x, int y, int z) {
 	double lightX;
 	double lightY;
 	double lightZ;
@@ -768,9 +768,9 @@ void ModelPreview_SetWhiteDirectionalLight(int x, int y, int z) {
 	lightX *= invLength;
 	lightY *= invLength;
 	lightZ *= invLength;
-	g_modelPreviewLightDirectionX = (int16_t)(int)(lightX * g_modelPreviewLightDirectionQ15Scale);
-	g_modelPreviewLightDirectionY = (int16_t)(int)(lightY * g_modelPreviewLightDirectionQ15Scale);
-	g_modelPreviewLightDirectionZ = (int16_t)(int)(lightZ * g_modelPreviewLightDirectionQ15Scale);
+	g_worldLightDirectionX = (int16_t)(int)(lightX * g_modelPreviewLightDirectionQ15Scale);
+	g_worldLightDirectionY = (int16_t)(int)(lightY * g_modelPreviewLightDirectionQ15Scale);
+	g_worldLightDirectionZ = (int16_t)(int)(lightZ * g_modelPreviewLightDirectionQ15Scale);
 }
 
 // FUNCTION: XVT 0x42B090
@@ -805,10 +805,10 @@ void ModelPreview_SaveState(void) {
 	g_savedModelPreviewPitch = g_modelPreviewObject.pitch;
 	g_savedModelPreviewYaw = g_modelPreviewObject.yaw;
 	g_savedModelPreviewRoll = g_modelPreviewObject.roll;
-	g_savedModelPreviewLightDirectionX = (int16_t)g_modelPreviewLightDirectionX;
-	g_savedModelPreviewLightDirectionY = (int16_t)g_modelPreviewLightDirectionY;
-	g_savedModelPreviewLightDirectionZ = (int16_t)g_modelPreviewLightDirectionZ;
-	g_savedModelPreviewAngleD = g_modelPreviewAngleD;
+	g_savedModelPreviewLightDirectionX = (int16_t)g_worldLightDirectionX;
+	g_savedModelPreviewLightDirectionY = (int16_t)g_worldLightDirectionY;
+	g_savedModelPreviewLightDirectionZ = (int16_t)g_worldLightDirectionZ;
+	g_savedModelPreviewUpAxisAngle = g_modelPreviewUpAxisAngle;
 }
 
 // FUNCTION: XVT 0x42B1B0
@@ -821,17 +821,17 @@ void ModelPreview_RestoreState(void) {
 	g_modelPreviewObject.yaw = g_savedModelPreviewYaw;
 	g_modelPreviewObject.roll = g_savedModelPreviewRoll;
 	g_nodeSwitchIndex = g_savedModelPreviewNodeSwitchIndex;
-	g_modelPreviewLightDirectionX = g_savedModelPreviewLightDirectionX;
-	g_modelPreviewLightDirectionY = g_savedModelPreviewLightDirectionY;
-	g_modelPreviewLightDirectionZ = g_savedModelPreviewLightDirectionZ;
-	g_modelPreviewAngleD = g_savedModelPreviewAngleD;
+	g_worldLightDirectionX = g_savedModelPreviewLightDirectionX;
+	g_worldLightDirectionY = g_savedModelPreviewLightDirectionY;
+	g_worldLightDirectionZ = g_savedModelPreviewLightDirectionZ;
+	g_modelPreviewUpAxisAngle = g_savedModelPreviewUpAxisAngle;
 }
 
 // FUNCTION: XVT 0x42B250
-void ModelPreview_SetObjectAngleDDegrees(float angleDeg) {
+void ModelPreview_SetObjectUpAxisAngleDegrees(float angleDeg) {
 	double angle = angleDeg;
 
-	g_modelPreviewAngleD = (int16_t)(int)(angle * g_degreesToQ16AngleScale);
+	g_modelPreviewUpAxisAngle = (int16_t)(int)(angle * g_degreesToQ16AngleScale);
 }
 
 // FUNCTION: XVT 0x42B270

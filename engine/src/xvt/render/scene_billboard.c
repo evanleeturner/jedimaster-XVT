@@ -56,7 +56,7 @@ void SceneBillboard_DrawOrQueueObject(int objectIndex) {
 	object = &g_objectTable[objectIndex];
 	sourceObjectType = object->objectType;
 	g_billboardObjectOrTypeIndex = objectIndex;
-	g_billboardTextureFrameSequence = g_modelTypeTable[sourceObjectType].textureFrameSequence;
+	g_billboardTextureFrameSequence = g_objectTypeTable[sourceObjectType].textureFrameSequence;
 	if (sourceObjectType == COMPONENT_OBJECT_TYPE) {
 		frame = object->typeSpecificByte[0] >> 1;
 	} else {

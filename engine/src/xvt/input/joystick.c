@@ -23,7 +23,7 @@ int g_joyDeviceIndex = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4AABA0
-void Joystick_PollRawAxes(int deviceIndex, int* pAxisX, int* pAxisY, int* pAxisZ, int* pButtons) {
+void Joystick_PollScaledAxes(int deviceIndex, int* pAxisX, int* pAxisY, int* pAxisZ, int* pButtons) {
 	JOYINFOEX joystickInfo;
 	JOYCAPSA joystickCaps;
 	int absDelta;
@@ -137,7 +137,7 @@ void Joystick_PollRawAxes(int deviceIndex, int* pAxisX, int* pAxisY, int* pAxisZ
 int16_t Joystick_InitializeBackendStub(void) { return 1; }
 
 // FUNCTION: XVT 0x4ACB90
-int Joystick_PollRawAxesIfEnabled(int* pAxisX, int* pAxisY, int* pAxisZ, int* pAxisR) {
+int Joystick_PollScaledAxesIfActive(int* pAxisX, int* pAxisY, int* pAxisZ, int* pAxisR) {
 	int buttons;
 
 	(void)pAxisR;
@@ -149,6 +149,6 @@ int Joystick_PollRawAxesIfEnabled(int* pAxisX, int* pAxisY, int* pAxisZ, int* pA
 		return 0;
 	}
 
-	Joystick_PollRawAxes(g_joyDeviceIndex, pAxisX, pAxisY, pAxisZ, &buttons);
+	Joystick_PollScaledAxes(g_joyDeviceIndex, pAxisX, pAxisY, pAxisZ, &buttons);
 	return buttons;
 }

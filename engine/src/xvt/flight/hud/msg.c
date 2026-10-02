@@ -418,7 +418,7 @@ void msg_radioMessage(uint16_t senderObjIdx, uint8_t* senderCraft, uint16_t comm
 			msg_emitInFlightMessage(IFMSG_148_ROGER_CRAFT_WITHOUT_NUMBER, g_localPlayer);
 		}
 	}
-	fsfx_speakorderack(g_localPlayer, senderObjIdx, 1, responseIndex, senderObjIdx, UINT16_MAX);
+	fsfx_SpeakWingmanEvent(g_localPlayer, senderObjIdx, 1, responseIndex, senderObjIdx, UINT16_MAX);
 }
 
 // FUNCTION: XVT 0x451E70

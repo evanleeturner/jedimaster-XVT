@@ -255,7 +255,7 @@ void FlightMap_BuildRenderList(void) {
 					case CRAFT_GENUS_STARSHIP:
 					case CRAFT_GENUS_PLATFORM:
 						if (RenderList_ProjectObjectBoundsForCulling(
-								objectIdx, g_modelTypeTable[objectType].maxBoundsExtent, g_localPlayer)) {
+								objectIdx, g_objectTypeTable[objectType].maxBoundsExtent, g_localPlayer)) {
 							RenderList_QueueObject(objectIdx, g_viewSpaceDepth);
 						}
 						break;
@@ -264,7 +264,7 @@ void FlightMap_BuildRenderList(void) {
 					case CRAFT_GENUS_SMALL_DEBRIS:
 					case CRAFT_GENUS_EXPLOSION:
 						if (FlightView_ProjectAndTestSphereVisible(
-								objectIdx, g_modelTypeTable[objectType].maxBoundsExtent)) {
+								objectIdx, g_objectTypeTable[objectType].maxBoundsExtent)) {
 							RenderList_QueueObject(objectIdx, g_viewSpaceDepth);
 						}
 						break;
@@ -282,7 +282,7 @@ void FlightMap_BuildRenderList(void) {
 				genusId = g_objectTable[objectIdx].genusId;
 				if (genusId >= CRAFT_GENUS_MINE && genusId <= CRAFT_GENUS_SATELLITE &&
 					RenderList_ProjectObjectBoundsForCulling(
-						objectIdx, g_modelTypeTable[objectType].maxBoundsExtent, g_localPlayer)) {
+						objectIdx, g_objectTypeTable[objectType].maxBoundsExtent, g_localPlayer)) {
 					RenderList_QueueObject(objectIdx, g_viewSpaceDepth);
 				}
 			}
@@ -346,7 +346,7 @@ void FlightMap_DrawObjectPass(int drawAboveGridPlane) {
 				case CRAFT_GENUS_STARSHIP:
 				case CRAFT_GENUS_PLATFORM:
 				case CRAFT_GENUS_OBSTACLE:
-					if (g_modelTypeTable[g_objectTable[objectIdx].objectType].maxBoundsExtent <
+					if (g_objectTypeTable[g_objectTable[objectIdx].objectType].maxBoundsExtent <
 						g_renderListHead->sortDepth >> MAP_MODEL_ICON_DISTANCE_SHIFT) {
 						FlightMap_DrawObjectIconAtViewPos(objectIdx, g_viewSpaceX, g_viewSpaceY,
 														  g_viewSpaceDepth);
@@ -385,7 +385,7 @@ void FlightMap_DrawObjectPass(int drawAboveGridPlane) {
 
 				case CRAFT_GENUS_MINE:
 				case CRAFT_GENUS_SATELLITE:
-					if (g_modelTypeTable[g_objectTable[objectIdx].objectType].maxBoundsExtent <
+					if (g_objectTypeTable[g_objectTable[objectIdx].objectType].maxBoundsExtent <
 						g_renderListHead->sortDepth >> MAP_MODEL_ICON_DISTANCE_SHIFT) {
 						FlightMap_DrawObjectIconAtViewPos(objectIdx, g_viewSpaceX, g_viewSpaceY,
 														  g_viewSpaceDepth);
@@ -1054,7 +1054,8 @@ int FlightMap_PickObjectNearestScreenCenter(int playerIdx) {
 					int score;
 
 					if (!RenderList_ProjectObjectBoundsForCulling(
-							objectSlot, g_modelTypeTable[g_objectTable[objectIdx].objectType].maxBoundsExtent,
+							objectSlot,
+							g_objectTypeTable[g_objectTable[objectIdx].objectType].maxBoundsExtent,
 							playerIdx))
 						break;
 					projectedX = (g_viewSpaceX << g_perspectiveShift) / g_viewSpaceDepth;
@@ -1090,7 +1091,7 @@ int FlightMap_PickObjectNearestScreenCenter(int playerIdx) {
 		if (g_objectTable[objectIdx].objectType != 0 && g_objectTable[objectIdx].genusId >= 8 &&
 			g_objectTable[objectIdx].genusId <= 9 &&
 			RenderList_ProjectObjectBoundsForCulling(
-				objectSlot, g_modelTypeTable[g_objectTable[objectIdx].objectType].maxBoundsExtent,
+				objectSlot, g_objectTypeTable[g_objectTable[objectIdx].objectType].maxBoundsExtent,
 				playerIdx)) {
 			int projectedX = (g_viewSpaceX << g_perspectiveShift) / g_viewSpaceDepth;
 			int projectedY = (g_viewSpaceY << g_perspectiveShift) / g_viewSpaceDepth;

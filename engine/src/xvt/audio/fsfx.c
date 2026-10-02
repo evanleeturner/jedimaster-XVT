@@ -23,7 +23,7 @@
 #include <string.h>
 
 // GLOBAL: XVT 0x520F18
-uint16_t g_fsfxMinDistanceOrRolloffBySfxSlot[96] = {
+uint16_t g_fsfxFalloffDistanceBySfxSlot[96] = {
 	0,     0,    0,     0,     8192, 8192, 8192, 10240, 10240, 10240, 10240, 10240, 12288, 12288,
 	12288, 8192, 10240, 10240, 8192, 8192, 8192, 49152, 24576, 24576, 24576, 24576, 24576, 24576,
 	8192,  8192, 8192,  8192,  8192, 8192, 8192, 8192,  8192,  8192,  8192,  8192,  8192,  8192,
@@ -54,9 +54,10 @@ static const uint8_t g_fsfxVoiceCategoryRepeatThreshold[24] = { 0x00, 0x00, 0x00
 																0x01, 0x02, 0x01, 0x01, 0x02, 0x00,
 																0x01, 0x01, 0x00, 0x02, 0x01, 0x01 };
 // GLOBAL: XVT 0x521080
-static const uint8_t g_fsfxDesignationToVoiceVariant[24] = { 0xFF, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
-															 0x07, 0x08, 0x09, 0x0D, 0x0E, 0xFF, 0xFF, 0xFF,
-															 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00 };
+static const uint8_t g_fsfxDesignationToTacticalMessageId[24] = { 0xFF, 0x00, 0x01, 0x02, 0x03, 0x04,
+																  0x05, 0x06, 0x07, 0x08, 0x09, 0x0D,
+																  0x0E, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+																  0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00 };
 // GLOBAL: XVT 0x521098
 static const uint8_t g_commanderVoiceSfxOffsetByCategory[10] = { 0x00, 0x02, 0x0A, 0x0C, 0x0D,
 																 0x0E, 0x12, 0x14, 0x1A, 0x1E };
@@ -74,7 +75,7 @@ uint8_t g_fsfxVoiceQueueChainFlag[128] = { 0 };
 // GLOBAL: XVT 0xA0A900
 static uint8_t g_fsfxCurrentVoiceCategory = 0;
 // GLOBAL: XVT 0xA0A910
-uint16_t g_fsfxVoiceQueueObjectSerial[128] = { 0 };
+uint16_t g_fsfxVoiceQueueObjectSignature[128] = { 0 };
 // GLOBAL: XVT 0xA0A7F0
 static int g_fsfxTacOfficerLastSpeakSecondsByObj[136] = { 0 };
 // GLOBAL: XVT 0xA0AB20
@@ -96,7 +97,7 @@ uint16_t g_fsfxLoadedBySlot[838] = { 0 };
 // GLOBAL: XVT 0xA0FC80
 int g_fsfxVoiceQueueSfxSlot[128] = { 0 };
 // GLOBAL: XVT 0xA1050C
-static uint16_t g_fsfxCurrentVoiceObjectSerial = 0;
+static uint16_t g_fsfxCurrentVoiceObjectSignature = 0;
 // GLOBAL: XVT 0xA1050E
 static uint8_t g_fsfxCurrentVoiceChainFlag = 0;
 // GLOBAL: XVT 0x556350
@@ -169,7 +170,7 @@ void fsfx_LoadMissionVoiceSfx(void) {
 	char path[64];
 	int numberOfCraft;
 	unsigned int playerGroup;
-	int activeGroupCount;
+	int playerFlownGroupCount;
 	uint16_t variant;
 	int firstSoundId;
 	int missionFileNameLength;
@@ -204,17 +205,17 @@ void fsfx_LoadMissionVoiceSfx(void) {
 		fsfx_LoadSfxList(path, 0x324u);
 	}
 	if (g_gameConfig.voicePilotLevel != 0) {
-		activeGroupCount = 0;
+		playerFlownGroupCount = 0;
 		for (playerGroup = 0; (int)playerGroup < g_missionHeader.numFlightGroups; ++playerGroup) {
 			if (g_missionFlightGroups[playerGroup].fg.playerNumber != 0)
-				++activeGroupCount;
+				++playerFlownGroupCount;
 		}
 		for (playerGroup = 0; (int)playerGroup < g_missionHeader.numFlightGroups; ++playerGroup) {
 			if (g_missionFlightGroups[playerGroup].playerOwnerIdx == g_localPlayer)
 				break;
 		}
 		if ((int)playerGroup < g_missionHeader.numFlightGroups &&
-			(g_missionFlightGroups[playerGroup].fg.numberOfCraft > 1 || activeGroupCount > 1)) {
+			(g_missionFlightGroups[playerGroup].fg.numberOfCraft > 1 || playerFlownGroupCount > 1)) {
 			numberOfCraft = g_missionFlightGroups[playerGroup].fg.numberOfCraft;
 			variant = fsfx_RandomIndex(6);
 			if (numberOfCraft-- != 0) {
@@ -268,7 +269,7 @@ void fsfx_LoadMissionVoiceSfx(void) {
 }
 
 // FUNCTION: XVT 0x42E460
-void fsfx_StopHyperZoomImp(int playerIdx) {
+void fsfx_StopHyperspaceExitSounds(int playerIdx) {
 	if (g_flightSimSideEffectsSuppressed != 0)
 		return;
 	if (g_localPlayer != playerIdx)
@@ -286,7 +287,7 @@ void fsfx_StopHyperZoomImp(int playerIdx) {
 }
 
 // FUNCTION: XVT 0x42E4D0
-int fsfx_PlaySound(unsigned int soundId, int objOrMissionPointRef, int playerIdx) {
+int fsfx_PlaySound(unsigned int soundId, int emitterObjIdx, int playerIdx) {
 	int objectIndex;
 	int objectType;
 	int priority;
@@ -310,7 +311,7 @@ int fsfx_PlaySound(unsigned int soundId, int objOrMissionPointRef, int playerIdx
 	if (g_fsfxLoadedBySlot[soundId] == 0)
 		return 0;
 
-	if (objOrMissionPointRef == -1) {
+	if (emitterObjIdx == -1) {
 		if (g_gameConfig.sfxInteriorEnabled == 0)
 			return 0;
 		if (g_gameConfig.sfxInteriorVolume == 0)
@@ -335,18 +336,17 @@ int fsfx_PlaySound(unsigned int soundId, int objOrMissionPointRef, int playerIdx
 	if (soundId == FLIGHT_SOUND_HYPERSPACE_EXIT_EMPIRE)
 		Sound_StopOldestInstanceById(FLIGHT_SOUND_HYPERSPACE_ENTER_EMPIRE);
 
-	volume = fsfx_ComputeSourceVolume(objOrMissionPointRef, soundId);
+	volume = fsfx_ComputeSourceVolume(emitterObjIdx, soundId);
 	if (volume != 0) {
-		pan = fsfx_ComputeSourcePan(objOrMissionPointRef, &volume);
+		pan = fsfx_ComputeSourcePan(emitterObjIdx, &volume);
 		priority = 124;
 		if ((unsigned int)volume < 125)
 			priority = volume;
 
-		if (objOrMissionPointRef == -1 ||
-			g_objectTable[objOrMissionPointRef].playerOwnerIdx == g_localPlayer) {
+		if (emitterObjIdx == -1 || g_objectTable[emitterObjIdx].playerOwnerIdx == g_localPlayer) {
 			priority = soundId == FLIGHT_SOUND_DANGER_WARNING ? 127 : 125;
 		} else {
-			sourceObject = &g_objectTable[objOrMissionPointRef];
+			sourceObject = &g_objectTable[emitterObjIdx];
 			sourceMobileObject = sourceObject->mobj;
 			if (sourceMobileObject != NULL &&
 				g_objectTable[sourceMobileObject->sourceObjIdx].playerOwnerIdx == g_localPlayer)
@@ -409,9 +409,9 @@ int fsfx_triggerweaponsfx(unsigned int projectileObjectIndex, int playerIdx) {
 }
 
 // FUNCTION: XVT 0x42E810
-unsigned int fsfx_ComputeSourceVolume(int objOrMissionPointRef, unsigned int soundId) {
+unsigned int fsfx_ComputeSourceVolume(int emitterObjIdx, unsigned int soundId) {
 	unsigned int volumeScale;
-	unsigned int minDistance;
+	unsigned int falloffDistance;
 	unsigned int baseVolume;
 	unsigned int distance;
 	unsigned int scaledDistance;
@@ -424,7 +424,7 @@ unsigned int fsfx_ComputeSourceVolume(int objOrMissionPointRef, unsigned int sou
 	int deltaY;
 	int worldZ;
 
-	if (objOrMissionPointRef == -1) {
+	if (emitterObjIdx == -1) {
 		volumeScale = g_gameConfig.sfxInteriorVolume;
 		if (volumeScale >= 10) {
 			volumeScale = 127;
@@ -435,19 +435,19 @@ unsigned int fsfx_ComputeSourceVolume(int objOrMissionPointRef, unsigned int sou
 	}
 
 	if (soundId >= 95) {
-		minDistance = 8192;
+		falloffDistance = 8192;
 		baseVolume = 112;
 	} else {
-		minDistance = g_fsfxMinDistanceOrRolloffBySfxSlot[soundId];
+		falloffDistance = g_fsfxFalloffDistanceBySfxSlot[soundId];
 		baseVolume = g_fsfxBaseVolumeBySfxSlot[soundId];
 	}
-	if (g_objectTable[objOrMissionPointRef].mobj != NULL) {
+	if (g_objectTable[emitterObjIdx].mobj != NULL) {
 		listener = &g_players[g_localPlayer];
-		deltaX = g_objectTable[objOrMissionPointRef].mobj->prevWorldX - listener->viewState.cameraWorldX;
-		deltaY = g_objectTable[objOrMissionPointRef].mobj->prevWorldY - listener->viewState.cameraWorldY;
-		worldZ = g_objectTable[objOrMissionPointRef].mobj->prevWorldZ;
+		deltaX = g_objectTable[emitterObjIdx].mobj->prevWorldX - listener->viewState.cameraWorldX;
+		deltaY = g_objectTable[emitterObjIdx].mobj->prevWorldY - listener->viewState.cameraWorldY;
+		worldZ = g_objectTable[emitterObjIdx].mobj->prevWorldZ;
 	} else {
-		Mission_ResolveObjectOrMissionPointWorldLoc(objOrMissionPointRef, 0);
+		Mission_ResolveObjectOrMissionPointWorldLoc(emitterObjIdx, 0);
 		listener = &g_players[g_localPlayer];
 		deltaX = g_worldLocX - listener->viewState.cameraWorldX;
 		deltaY = g_worldLocY - listener->viewState.cameraWorldY;
@@ -455,18 +455,18 @@ unsigned int fsfx_ComputeSourceVolume(int objOrMissionPointRef, unsigned int sou
 	}
 	distance = collide_roughdistance3d(deltaX, deltaY, worldZ - listener->viewState.cameraWorldZ);
 	scaledDistance = distance >> 2;
-	if (scaledDistance >= minDistance)
+	if (scaledDistance >= falloffDistance)
 		return 0;
 	scaledDistance = distance >> 1;
-	if (scaledDistance >= minDistance)
+	if (scaledDistance >= falloffDistance)
 		return baseVolume >> 3;
-	if (distance >= minDistance)
+	if (distance >= falloffDistance)
 		return baseVolume >> 2;
 
 	quarterVolume = baseVolume >> 2;
-	distanceSpan = minDistance - distance;
+	distanceSpan = falloffDistance - distance;
 	volumeRange = baseVolume - quarterVolume;
-	volume = quarterVolume + distanceSpan * volumeRange / (minDistance - (minDistance >> 5));
+	volume = quarterVolume + distanceSpan * volumeRange / (falloffDistance - (falloffDistance >> 5));
 	if (g_gameConfig.sfxExteriorVolume != 10) {
 		volume = volume * g_gameConfig.sfxExteriorVolume / 10;
 	}
@@ -476,25 +476,25 @@ unsigned int fsfx_ComputeSourceVolume(int objOrMissionPointRef, unsigned int sou
 }
 
 // FUNCTION: XVT 0x42E9A0
-int fsfx_ComputeSourcePan(int objOrMissionPointRef, int* volume) {
+int fsfx_ComputeSourcePan(int emitterObjIdx, int* volume) {
 	MobileObject* sourceMobileObject;
 	int dx;
 	int dy;
 	int dz;
 	int16_t angleY;
-	int16_t angleX;
+	int16_t forwardOffset;
 	int16_t panAngle;
 
-	if (objOrMissionPointRef == -1)
+	if (emitterObjIdx == -1)
 		return 64;
 
-	sourceMobileObject = g_objectTable[objOrMissionPointRef].mobj;
+	sourceMobileObject = g_objectTable[emitterObjIdx].mobj;
 	if (sourceMobileObject != NULL) {
 		dx = sourceMobileObject->prevWorldX - g_players[g_localPlayer].viewState.cameraWorldX;
 		dy = sourceMobileObject->prevWorldY - g_players[g_localPlayer].viewState.cameraWorldY;
 		dz = sourceMobileObject->prevWorldZ - g_players[g_localPlayer].viewState.cameraWorldZ;
 	} else {
-		Mission_ResolveObjectOrMissionPointWorldLoc(objOrMissionPointRef, 0);
+		Mission_ResolveObjectOrMissionPointWorldLoc(emitterObjIdx, 0);
 		dz = g_worldLocZ - g_players[g_localPlayer].viewState.cameraWorldZ;
 		dx = g_worldLocX - g_players[g_localPlayer].viewState.cameraWorldX;
 		dy = g_worldLocY - g_players[g_localPlayer].viewState.cameraWorldY;
@@ -502,9 +502,9 @@ int fsfx_ComputeSourcePan(int objOrMissionPointRef, int* volume) {
 
 	angleY = (int16_t)Math_Dot3Q15Wrapped((int16_t)dx, (int16_t)dy, (int16_t)dz, g_camMatR0_X, g_camMatR0_Y,
 										  g_camMatR0_Z);
-	angleX = (int16_t)Math_Dot3Q15Wrapped((int16_t)dx, (int16_t)dy, (int16_t)dz, g_camMatR2_X, g_camMatR2_Y,
-										  g_camMatR2_Z);
-	panAngle = trig2_arctan(angleY, angleX);
+	forwardOffset = (int16_t)Math_Dot3Q15Wrapped((int16_t)dx, (int16_t)dy, (int16_t)dz, g_camMatR2_X,
+												 g_camMatR2_Y, g_camMatR2_Z);
+	panAngle = trig2_arctan(angleY, forwardOffset);
 
 	if (panAngle >= 0x4000 || panAngle <= -0x4000) {
 		int16_t verticalAngle;
@@ -514,7 +514,7 @@ int fsfx_ComputeSourcePan(int objOrMissionPointRef, int* volume) {
 
 		angleY = (int16_t)Math_Dot3Q15Wrapped((int16_t)dx, (int16_t)dy, (int16_t)dz, g_camMatR1_X,
 											  g_camMatR1_Y, g_camMatR1_Z);
-		verticalAngle = (int16_t)(0x8000 - trig2_arctan(angleY, angleX));
+		verticalAngle = (int16_t)(0x8000 - trig2_arctan(angleY, forwardOffset));
 		rearAngle = (int16_t)(0x8000 - panAngle);
 		panAngle = (int16_t)(0x8000 - panAngle);
 		if (verticalAngle < 0)
@@ -1039,7 +1039,7 @@ void fsfx_UpdateFlightSfx(void) {
 									g_objectTable[playerObjectIndex].mobj->prevWorldY,
 								g_objectTable[objectIndex].mobj->prevWorldZ -
 									g_objectTable[playerObjectIndex].mobj->prevWorldZ);
-							flybyDistance = g_modelTypeTable[objectType].maxBoundsExtent + 1024;
+							flybyDistance = g_objectTypeTable[objectType].maxBoundsExtent + 1024;
 							if (flybyDistance > currentDistance) {
 								if (previousDistance >= flybyDistance) {
 									fsfx_PlaySound(flybySoundId, objectIndex, g_localPlayer);
@@ -1055,9 +1055,9 @@ void fsfx_UpdateFlightSfx(void) {
 }
 
 // FUNCTION: XVT 0x42FB70
-int fsfx_speakorderack(int playerIdx, int speakerObjIdx, int voiceCategory, int responseIndex,
-					   int targetObjIdx, uint16_t probability) {
-	int messageOffset;
+int fsfx_SpeakWingmanEvent(int playerIdx, int speakerObjIdx, int voiceCategory, int responseIndex,
+						   int targetObjIdx, uint16_t probability) {
+	int speakerVoiceListSlot;
 	int playerObjIdx;
 	int candidates[6];
 	unsigned int craftIndexInGroup;
@@ -1067,8 +1067,8 @@ int fsfx_speakorderack(int playerIdx, int speakerObjIdx, int voiceCategory, int 
 	unsigned int candidateIndex;
 	unsigned int alternateIndex;
 	CraftData* craft;
-	int waveNumber;
-	int targetWaveNumber;
+	int craftOrdinal;
+	int targetCraftOrdinal;
 	uint16_t objectSignature;
 
 	if (g_gameConfig.voicePilotLevel == 0) {
@@ -1137,18 +1137,18 @@ int fsfx_speakorderack(int playerIdx, int speakerObjIdx, int voiceCategory, int 
 	}
 
 	craft = g_objectTable[speakerObjIdx].mobj->pCraft;
-	waveNumber = craft->waveNumber;
+	craftOrdinal = craft->waveNumber;
 	craftIndexInGroup = craft->craftIndexInGroup;
 	if (craftIndexInGroup > 6) {
 		craftIndexInGroup = 0;
 	}
-	messageOffset = 97 * waveNumber + 114;
-	targetWaveNumber = 0;
+	speakerVoiceListSlot = 97 * craftOrdinal + 114;
+	targetCraftOrdinal = 0;
 	if (targetObjIdx == -1 || g_activeRegionCraftObjectSlotEnd <= targetObjIdx) {
 		objectSignature = UINT16_MAX;
 	} else {
 		objectSignature = g_objectTable[targetObjIdx].objectSignature;
-		targetWaveNumber = g_objectTable[targetObjIdx].mobj->pCraft->waveNumber;
+		targetCraftOrdinal = g_objectTable[targetObjIdx].mobj->pCraft->waveNumber;
 	}
 	baseOffset = g_fsfxVoiceCategoryBaseOffset[voiceCategory];
 
@@ -1158,59 +1158,60 @@ int fsfx_speakorderack(int playerIdx, int speakerObjIdx, int voiceCategory, int 
 			case 3:
 			case 5:
 				if (fsfx_IsVoiceQueueEmpty()) {
-					selectedResponse = fsfx_SelectAvailableVoiceVariant(voiceCategory, targetWaveNumber);
+					selectedResponse = fsfx_SelectAvailableVoiceVariant(voiceCategory, targetCraftOrdinal);
 					if (selectedResponse == -1) {
 						return 0;
 					}
 					if (craftIndexInGroup != 0) {
-						g_fsfxVoiceLinePlayCounts[selectedResponse + 97 * targetWaveNumber + baseOffset]++;
+						g_fsfxVoiceLinePlayCounts[selectedResponse + 97 * targetCraftOrdinal + baseOffset]++;
 						fsfx_QueueVoiceSfx(g_fsfxVoiceCategoryBaseOffset[2] + craftIndexInGroup +
-											   messageOffset - 1,
+											   speakerVoiceListSlot - 1,
 										   1, 2, 0, objectSignature);
 					}
-					fsfx_QueueVoiceSfx(baseOffset + messageOffset + selectedResponse, 1, voiceCategory, 1,
-									   objectSignature);
+					fsfx_QueueVoiceSfx(baseOffset + speakerVoiceListSlot + selectedResponse, 1, voiceCategory,
+									   1, objectSignature);
 					break;
 				}
 				return 0;
 			case 6:
 				if (fsfx_IsVoiceQueueEmpty()) {
-					selectedResponse = fsfx_SelectAvailableVoiceVariant(voiceCategory, targetWaveNumber);
+					selectedResponse = fsfx_SelectAvailableVoiceVariant(voiceCategory, targetCraftOrdinal);
 					if (selectedResponse == -1) {
 						return 0;
 					}
-					g_fsfxVoiceLinePlayCounts[selectedResponse + 97 * targetWaveNumber + baseOffset]++;
-					fsfx_QueueVoiceSfx(baseOffset + messageOffset + selectedResponse, 1, voiceCategory, 0,
-									   objectSignature);
+					g_fsfxVoiceLinePlayCounts[selectedResponse + 97 * targetCraftOrdinal + baseOffset]++;
+					fsfx_QueueVoiceSfx(baseOffset + speakerVoiceListSlot + selectedResponse, 1, voiceCategory,
+									   0, objectSignature);
 					break;
 				}
 				return 0;
 			case 9:
 			case 10:
 			case 21:
-				selectedResponse = fsfx_SelectAvailableVoiceVariant(voiceCategory, targetWaveNumber);
+				selectedResponse = fsfx_SelectAvailableVoiceVariant(voiceCategory, targetCraftOrdinal);
 				if (selectedResponse == -1) {
 					return 0;
 				}
-				g_fsfxVoiceLinePlayCounts[selectedResponse + 97 * targetWaveNumber + baseOffset]++;
-				fsfx_QueueVoiceSfx(baseOffset + messageOffset + selectedResponse, 1, voiceCategory, 0,
+				g_fsfxVoiceLinePlayCounts[selectedResponse + 97 * targetCraftOrdinal + baseOffset]++;
+				fsfx_QueueVoiceSfx(baseOffset + speakerVoiceListSlot + selectedResponse, 1, voiceCategory, 0,
 								   objectSignature);
 				break;
 			case 12:
 				selectedResponse = fsfx_RandomIndex(4);
-				fsfx_QueueVoiceSfx(baseOffset + messageOffset + selectedResponse, 1, voiceCategory, 0,
+				fsfx_QueueVoiceSfx(baseOffset + speakerVoiceListSlot + selectedResponse, 1, voiceCategory, 0,
 								   objectSignature);
 				break;
 			case 16:
-				selectedResponse = fsfx_SelectAvailableVoiceVariant(voiceCategory, targetWaveNumber);
+				selectedResponse = fsfx_SelectAvailableVoiceVariant(voiceCategory, targetCraftOrdinal);
 				if (selectedResponse == -1) {
 					return 0;
 				}
-				g_fsfxVoiceLinePlayCounts[selectedResponse + 97 * targetWaveNumber + baseOffset]++;
-				fsfx_QueueVoiceSfx(baseOffset + messageOffset + selectedResponse, 1, voiceCategory, 0,
+				g_fsfxVoiceLinePlayCounts[selectedResponse + 97 * targetCraftOrdinal + baseOffset]++;
+				fsfx_QueueVoiceSfx(baseOffset + speakerVoiceListSlot + selectedResponse, 1, voiceCategory, 0,
 								   objectSignature);
-				fsfx_QueueVoiceSfx(g_fsfxVoiceCategoryBaseOffset[17] + targetWaveNumber + messageOffset, 1,
-								   17, 1, objectSignature);
+				fsfx_QueueVoiceSfx(g_fsfxVoiceCategoryBaseOffset[17] + targetCraftOrdinal +
+									   speakerVoiceListSlot,
+								   1, 17, 1, objectSignature);
 				break;
 			default:
 				break;
@@ -1219,36 +1220,38 @@ int fsfx_speakorderack(int playerIdx, int speakerObjIdx, int voiceCategory, int 
 		switch (voiceCategory) {
 			case 1:
 				if (craftIndexInGroup != 0) {
-					fsfx_QueueVoiceSfx(g_fsfxVoiceCategoryBaseOffset[0] + craftIndexInGroup + messageOffset - 1,
+					fsfx_QueueVoiceSfx(g_fsfxVoiceCategoryBaseOffset[0] + craftIndexInGroup +
+										   speakerVoiceListSlot - 1,
 									   1, 0, 0, objectSignature);
 				}
 				if (GameRand2() < 0x5555) {
-					fsfx_QueueVoiceSfx(g_fsfxVoiceCategoryBaseOffset[1] + messageOffset, 1, 1, 1,
+					fsfx_QueueVoiceSfx(g_fsfxVoiceCategoryBaseOffset[1] + speakerVoiceListSlot, 1, 1, 1,
 									   objectSignature);
 				}
 				if (g_fsfxVoiceCategoryVariantCount[voiceCategory] > selectedResponse) {
-					fsfx_QueueVoiceSfx(baseOffset + messageOffset + selectedResponse, 1, voiceCategory, 2,
-									   objectSignature);
+					fsfx_QueueVoiceSfx(baseOffset + speakerVoiceListSlot + selectedResponse, 1, voiceCategory,
+									   2, objectSignature);
 					break;
 				}
 				return 0;
 			case 23:
 				if (GameRand2() < 0x8000) {
 					int voiceVariant = fsfx_RandomIndex(g_fsfxVoiceCategoryVariantCount[voiceCategory]);
-					fsfx_QueueVoiceSfx(g_fsfxVoiceCategoryBaseOffset[21] + messageOffset + voiceVariant, 1, 21, 0,
-									   objectSignature);
+					fsfx_QueueVoiceSfx(g_fsfxVoiceCategoryBaseOffset[21] + speakerVoiceListSlot +
+										   voiceVariant,
+									   1, 21, 0, objectSignature);
 				}
 				if (g_fsfxVoiceCategoryVariantCount[voiceCategory] > selectedResponse) {
-					fsfx_QueueVoiceSfx(messageOffset + selectedResponse + baseOffset, 1, voiceCategory, 1,
-									   objectSignature);
-					g_fsfxVoiceLinePlayCounts[97 * waveNumber + selectedResponse + baseOffset]++;
+					fsfx_QueueVoiceSfx(speakerVoiceListSlot + selectedResponse + baseOffset, 1, voiceCategory,
+									   1, objectSignature);
+					g_fsfxVoiceLinePlayCounts[97 * craftOrdinal + selectedResponse + baseOffset]++;
 					break;
 				}
 				return 0;
 			default:
 				if (g_fsfxVoiceCategoryVariantCount[voiceCategory] > selectedResponse) {
-					fsfx_QueueVoiceSfx(baseOffset + messageOffset + selectedResponse, 1, voiceCategory, 0,
-									   objectSignature);
+					fsfx_QueueVoiceSfx(baseOffset + speakerVoiceListSlot + selectedResponse, 1, voiceCategory,
+									   0, objectSignature);
 					break;
 				}
 				return 0;
@@ -1259,7 +1262,7 @@ int fsfx_speakorderack(int playerIdx, int speakerObjIdx, int voiceCategory, int 
 
 // FUNCTION: XVT 0x430200
 int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx, uint16_t probability) {
-	int voiceVariant;
+	int designationMessageId;
 	int elapsedSeconds;
 	int lastSpeakSeconds;
 	int16_t objectSignature;
@@ -1279,10 +1282,10 @@ int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx,
 		if (objIdx == -1 || objIdx >= g_activeRegionCraftObjectSlotEnd) {
 			return 0;
 		}
-		voiceVariant = g_fsfxDesignationToVoiceVariant
+		designationMessageId = g_fsfxDesignationToTacticalMessageId
 			[g_flightMissionState.runtime.teamFgDesignationCode[(uint16_t)g_players[g_localPlayer].team]
 															   [g_objectTable[objIdx].flightGroupIdx]];
-		if (voiceVariant == 0xFF) {
+		if (designationMessageId == 0xFF) {
 			return 0;
 		}
 		objectSignature = g_objectTable[objIdx].objectSignature;
@@ -1295,20 +1298,20 @@ int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx,
 			}
 			g_fsfxTacOfficerLastSpeakSecondsByObj[objIdx] = elapsedSeconds;
 		}
-		if ((voiceVariant == 4 || voiceVariant == 5) &&
+		if ((designationMessageId == 4 || designationMessageId == 5) &&
 			g_missionFlightGroups[g_objectTable[objIdx].flightGroupIdx].fg.team !=
 				(uint16_t)g_players[g_localPlayer].team) {
-			if (voiceVariant == 4) {
-				voiceVariant = 10;
+			if (designationMessageId == 4) {
+				designationMessageId = 10;
 			} else {
-				voiceVariant = 11;
+				designationMessageId = 11;
 			}
 		}
 	}
 
 	switch (voiceCategory) {
 		case TACTICAL_VOICE_STATUS:
-			fsfx_QueueVoiceSfx(voiceVariant + 696, FLIGHT_VOICE_SPEAKER_TACTICAL, voiceCategory, 0,
+			fsfx_QueueVoiceSfx(designationMessageId + 696, FLIGHT_VOICE_SPEAKER_TACTICAL, voiceCategory, 0,
 							   objectSignature);
 			fsfx_QueueVoiceSfx(messageId + 696, FLIGHT_VOICE_SPEAKER_TACTICAL, voiceCategory, 1,
 							   objectSignature);
@@ -1378,28 +1381,29 @@ int fsfx_QueueCommanderVoiceCategory(int voiceCategory, int objectSignature) {
 }
 
 // FUNCTION: XVT 0x430540
-int fsfx_SelectAvailableVoiceVariant(int voiceCategory, int waveNumber) {
+int fsfx_SelectAvailableVoiceVariant(int voiceCategory, int craftOrdinal) {
 	int baseOffset;
 	int variantCount;
 	int variantIndex;
 	uint8_t repeatThreshold;
 	int remainingVariants;
-	int waveOffset;
+	int craftListOffset;
 
 	variantCount = g_fsfxVoiceCategoryVariantCount[voiceCategory];
 	baseOffset = g_fsfxVoiceCategoryBaseOffset[voiceCategory];
 	variantIndex = fsfx_RandomIndex(variantCount);
 	repeatThreshold = g_fsfxVoiceCategoryRepeatThreshold[voiceCategory];
 	if (repeatThreshold != 0) {
-		waveOffset = waveNumber * 97;
-		if (g_fsfxVoiceLinePlayCounts[waveOffset + variantIndex + baseOffset] >= repeatThreshold) {
+		craftListOffset = craftOrdinal * 97;
+		if (g_fsfxVoiceLinePlayCounts[craftListOffset + variantIndex + baseOffset] >= repeatThreshold) {
 			remainingVariants = variantCount;
 			while (remainingVariants-- != 0) {
 				++variantIndex;
 				if (variantIndex >= variantCount) {
 					variantIndex = 0;
 				}
-				if (g_fsfxVoiceLinePlayCounts[waveOffset + variantIndex + baseOffset] < repeatThreshold) {
+				if (g_fsfxVoiceLinePlayCounts[craftListOffset + variantIndex + baseOffset] <
+					repeatThreshold) {
 					return variantIndex;
 				}
 			}
@@ -1429,7 +1433,7 @@ int fsfx_IsVoiceQueueEmpty(void) { return g_fsfxVoiceQueueCount == 0; }
 
 // FUNCTION: XVT 0x430610
 int fsfx_QueueVoiceSfx(int sfxSlot, char speakerType, char voiceCategory, char chainFlag,
-					   uint16_t objectSerial) {
+					   uint16_t objectSignature) {
 	int queueIndex;
 	uint8_t queueCount;
 
@@ -1453,12 +1457,12 @@ int fsfx_QueueVoiceSfx(int sfxSlot, char speakerType, char voiceCategory, char c
 		voiceCategory == TACTICAL_VOICE_STATUS && chainFlag == 0 &&
 		g_fsfxVoiceQueueSpeakerType[queueCount - 1] == FLIGHT_VOICE_SPEAKER_TACTICAL &&
 		g_fsfxVoiceQueueCategory[queueCount - 1] == TACTICAL_VOICE_STATUS &&
-		g_fsfxVoiceQueueObjectSerial[queueCount - 1] == objectSerial) {
+		g_fsfxVoiceQueueObjectSignature[queueCount - 1] == objectSignature) {
 		return 0;
 	}
 
 	queueIndex = g_fsfxVoiceQueueCount;
-	g_fsfxVoiceQueueObjectSerial[queueIndex] = objectSerial;
+	g_fsfxVoiceQueueObjectSignature[queueIndex] = objectSignature;
 	g_fsfxVoiceQueueSfxSlot[queueIndex] = sfxSlot;
 	g_fsfxVoiceQueueSpeakerType[queueIndex] = speakerType;
 	g_fsfxVoiceQueueCategory[queueIndex] = voiceCategory;
@@ -1495,14 +1499,14 @@ void fsfx_UpdateVoiceQueue(void) {
 	g_fsfxCurrentVoiceCategory = g_fsfxVoiceQueueCategory[0];
 	g_fsfxVoiceQueueCount = queueCount;
 	g_fsfxCurrentVoiceChainFlag = g_fsfxVoiceQueueChainFlag[0];
-	g_fsfxCurrentVoiceObjectSerial = g_fsfxVoiceQueueObjectSerial[0];
+	g_fsfxCurrentVoiceObjectSignature = g_fsfxVoiceQueueObjectSignature[0];
 
 	while (queueIndex < queueCount) {
 		g_fsfxVoiceQueueSfxSlot[queueIndex] = g_fsfxVoiceQueueSfxSlot[queueIndex + 1];
 		g_fsfxVoiceQueueSpeakerType[queueIndex] = g_fsfxVoiceQueueSpeakerType[queueIndex + 1];
 		g_fsfxVoiceQueueCategory[queueIndex] = g_fsfxVoiceQueueCategory[queueIndex + 1];
 		g_fsfxVoiceQueueChainFlag[queueIndex] = g_fsfxVoiceQueueChainFlag[queueIndex + 1];
-		g_fsfxVoiceQueueObjectSerial[queueIndex] = g_fsfxVoiceQueueObjectSerial[queueIndex + 1];
+		g_fsfxVoiceQueueObjectSignature[queueIndex] = g_fsfxVoiceQueueObjectSignature[queueIndex + 1];
 		++queueIndex;
 	}
 
@@ -1544,7 +1548,7 @@ void fsfx_PruneStaleVoiceQueueEntries(void) {
 		if (objectIndex < objectSlotEnd) {
 			do {
 				if (g_objectTable[objectIndex].objectSignature ==
-						(uint16_t)g_fsfxVoiceQueueObjectSerial[queueIndex] &&
+						(uint16_t)g_fsfxVoiceQueueObjectSignature[queueIndex] &&
 					g_objectTable[objectIndex].objectType != 0 && g_objectTable[objectIndex].mobj != NULL &&
 					g_objectTable[objectIndex].mobj->pCraft != NULL &&
 					g_objectTable[objectIndex].mobj->pCraft->objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
@@ -1572,8 +1576,8 @@ void fsfx_RemoveVoiceQueueEntryChain(unsigned int queueIndex) {
 	unsigned int scanIndex;
 	unsigned int sourceIndex;
 	int* sourceSfxSlot;
-	uint16_t* destinationSerial;
-	uint16_t* sourceSerial;
+	uint16_t* destinationSignature;
+	uint16_t* sourceSignature;
 	unsigned int destinationIndex;
 
 	removedCount = 1;
@@ -1599,8 +1603,8 @@ void fsfx_RemoveVoiceQueueEntryChain(unsigned int queueIndex) {
 	}
 
 	sourceIndex = queueIndex + removedCount;
-	destinationSerial = &g_fsfxVoiceQueueObjectSerial[queueIndex];
-	sourceSerial = &g_fsfxVoiceQueueObjectSerial[sourceIndex];
+	destinationSignature = &g_fsfxVoiceQueueObjectSignature[queueIndex];
+	sourceSignature = &g_fsfxVoiceQueueObjectSignature[sourceIndex];
 	sourceSfxSlot = &g_fsfxVoiceQueueSfxSlot[sourceIndex];
 	destinationSfxSlot = &g_fsfxVoiceQueueSfxSlot[queueIndex];
 	while (1) {
@@ -1611,7 +1615,7 @@ void fsfx_RemoveVoiceQueueEntryChain(unsigned int queueIndex) {
 			g_fsfxVoiceQueueCategory[destinationIndex + removedCount];
 		g_fsfxVoiceQueueChainFlag[destinationIndex] =
 			g_fsfxVoiceQueueChainFlag[destinationIndex + removedCount];
-		*destinationSerial++ = *sourceSerial++;
+		*destinationSignature++ = *sourceSignature++;
 		++destinationIndex;
 		if (destinationIndex >= chainFlag) {
 			break;

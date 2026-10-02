@@ -19,7 +19,7 @@ static void* g_waveFileDataBuffer = NULL;
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x44B650
 IDirectSoundBuffer* DirectSound_LoadWaveBuffer(IDirectSound* directSound, const char* fileName,
-											   int create3DFlags) {
+											   int omitSoftwareAndFrequencyCaps) {
 	IDirectSoundBuffer* buffer = NULL;
 	const void* sampleData;
 	DSBUFFERDESC desc = { 0 };
@@ -29,7 +29,7 @@ IDirectSoundBuffer* DirectSound_LoadWaveBuffer(IDirectSound* directSound, const 
 											 &desc.dwBufferBytes)) {
 		desc.dwSize = sizeof(desc);
 		desc.dwFlags = 194;
-		if (create3DFlags == 0) {
+		if (omitSoftwareAndFrequencyCaps == 0) {
 			desc.dwFlags = 234;
 		}
 		if (directSound->lpVtbl->CreateSoundBuffer(directSound, &desc, &buffer, NULL) >= 0) {

@@ -179,7 +179,7 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 			objectArrayIndex = objectIndex;
 			objectType = g_objectTable[objectArrayIndex].objectType;
 			if (objectType == 0 ||
-				(g_modelTypeTable[objectType].behaviorFlags & TARGETABLE_STATIC_MODEL_FLAG) == 0)
+				(g_objectTypeTable[objectType].behaviorFlags & TARGETABLE_STATIC_MODEL_FLAG) == 0)
 				continue;
 			trigger1Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
 			trigger2Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
@@ -266,7 +266,7 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 			objectArrayIndex = objectIndex;
 			objectType = g_objectTable[objectArrayIndex].objectType;
 			if (objectType == 0 ||
-				(g_modelTypeTable[objectType].behaviorFlags & TARGETABLE_STATIC_MODEL_FLAG) == 0)
+				(g_objectTypeTable[objectType].behaviorFlags & TARGETABLE_STATIC_MODEL_FLAG) == 0)
 				continue;
 			trigger1Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
 			trigger2Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
@@ -749,7 +749,7 @@ int16_t paifight_CountRemainingOrderTargets(int16_t target1Type, uint16_t target
 	staticObjectIndex = (uint16_t)g_regionMainObjectSlotEnd;
 	while (staticObjectIndex < (int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount)) {
 		object = &g_objectTable[staticObjectIndex];
-		if (object->objectType != 0 && (g_modelTypeTable[object->objectType].behaviorFlags & 2) != 0) {
+		if (object->objectType != 0 && (g_objectTypeTable[object->objectType].behaviorFlags & 2) != 0) {
 			flightGroupIdx = object->flightGroupIdx;
 			matchesTarget1 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target1Type, target1);
 			matchesTarget2 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target2Type, target2);
@@ -1199,7 +1199,7 @@ uint16_t paifight_SelectTargetComponentMesh(uint16_t targetObjIdx) {
 			objectType = g_objectTable[targetObjIdx].objectType;
 			if (objectType < 73) {
 				if (adjustedMeshIndex < 0) {
-					meshType = MESH_COMPONENT_00_HULL;
+					meshType = MESH_COMPONENT_00_DEFAULT;
 				} else {
 					cachedMeshCount = g_objectTypeMeshCache[objectType].meshCount;
 					if (cachedMeshCount <= meshIndex)
@@ -1210,7 +1210,7 @@ uint16_t paifight_SelectTargetComponentMesh(uint16_t targetObjIdx) {
 				meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshIndex);
 			}
 
-			if ((uint16_t)meshType == MESH_COMPONENT_01_HULL ||
+			if ((uint16_t)meshType == MESH_COMPONENT_01_MAIN_HULL ||
 				(uint16_t)meshType == MESH_COMPONENT_03_FUSELAGE) {
 				if (selectNearest) {
 					unsigned int distance = Object_DirectionAndDistanceToMeshCenter(g_paiContext.objectIndex,
@@ -1512,7 +1512,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 				maxRangeScore = AI_TARGET_RANGE_MAX;
 				if (isSuperStarDestroyer)
 					maxRangeScore +=
-						g_modelTypeTable[g_objectTable[g_paiContext.objectIndex].objectType].maxBoundsExtent;
+						g_objectTypeTable[g_objectTable[g_paiContext.objectIndex].objectType].maxBoundsExtent;
 				if ((unsigned int)g_lastRoughDistance >= maxRangeScore) {
 					searchForTarget = 1;
 				} else {
@@ -1568,7 +1568,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 				bestTargetObjIdx = -1;
 				if (isSuperStarDestroyer)
 					bestRangeScore +=
-						g_modelTypeTable[g_objectTable[g_paiContext.objectIndex].objectType].maxBoundsExtent;
+						g_objectTypeTable[g_objectTable[g_paiContext.objectIndex].objectType].maxBoundsExtent;
 
 				for (candidateObjIdx = (uint16_t)g_activeRegionObjectSlotStart;
 					 candidateObjIdx < g_activeRegionCraftObjectSlotEnd; ++candidateObjIdx) {
@@ -1902,7 +1902,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 	bestRangeScore = AI_TARGET_RANGE_MAX;
 	if (expandedProbe) {
 		bestRangeScore +=
-			g_modelTypeTable[g_objectTable[g_paiContext.objectIndex].objectType].maxBoundsExtent;
+			g_objectTypeTable[g_objectTable[g_paiContext.objectIndex].objectType].maxBoundsExtent;
 	}
 
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
@@ -1959,7 +1959,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 
 			objectArrayIndex = staticObjectIndex;
 			if (g_objectTable[objectArrayIndex].objectType == 0 ||
-				(g_modelTypeTable[g_objectTable[objectArrayIndex].objectType].behaviorFlags &
+				(g_objectTypeTable[g_objectTable[objectArrayIndex].objectType].behaviorFlags &
 				 TARGETABLE_STATIC_MODEL_FLAG) == 0)
 				continue;
 
@@ -2038,7 +2038,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 				g_lastRoughDistance = collide_roughdistance3d(blocker->world_x - g_paifightSearchOriginX,
 															  blocker->world_y - g_paifightSearchOriginY,
 															  blocker->world_z - g_paifightSearchOriginZ);
-				g_lastRoughDistance -= g_modelTypeTable[blocker->objectType].maxBoundsExtent;
+				g_lastRoughDistance -= g_objectTypeTable[blocker->objectType].maxBoundsExtent;
 				if ((unsigned int)g_lastRoughDistance <= bestRangeScore) {
 					ObjectRecord* bestObject = &g_objectTable[bestObjectIndex];
 
@@ -2158,7 +2158,7 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16
 		 objectIndex < g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount; ++objectIndex) {
 		objectArrayIndex = objectIndex;
 		if (g_objectTable[objectArrayIndex].objectType == 0 ||
-			(g_modelTypeTable[g_objectTable[objectArrayIndex].objectType].behaviorFlags &
+			(g_objectTypeTable[g_objectTable[objectArrayIndex].objectType].behaviorFlags &
 			 TARGETABLE_STATIC_MODEL_FLAG) == 0)
 			continue;
 

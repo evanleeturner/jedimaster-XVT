@@ -240,7 +240,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 							Craft_SpawnMainHullExplosionEffects(objectIndex, 1);
 							collide_ConvertObjectToExplosion(objectIndex, EXPLOSION_OBJECT_TYPE_LARGE);
 							g_objectTable[objectOffsetIndex].mobj->effectSize =
-								(uint8_t)(g_modelTypeTable[object->objectType].maxBoundsExtent >>
+								(uint8_t)(g_objectTypeTable[object->objectType].maxBoundsExtent >>
 										  MODEL_LIGHT_SCALE_SHIFT);
 						} else {
 							collide_ConvertObjectToExplosion(objectIndex, EXPLOSION_OBJECT_TYPE_LARGE);
@@ -819,7 +819,7 @@ void RenderNonCraftSceneObject(uint16_t objectIndex) {
 	};
 
 	ObjectRecord* object;
-	ModelTypeInfo* modelType;
+	ObjectTypeInfo* modelType;
 	uint16_t rotationAngle;
 	int16_t* textureFrameSequence;
 	uint16_t frame;
@@ -835,7 +835,7 @@ void RenderNonCraftSceneObject(uint16_t objectIndex) {
 	int screenY;
 
 	object = &g_objectTable[objectIndex];
-	modelType = &g_modelTypeTable[object->objectType];
+	modelType = &g_objectTypeTable[object->objectType];
 	g_billboardObjectOrTypeIndex = objectIndex;
 	textureFrameSequence = modelType->textureFrameSequence;
 	if (textureFrameSequence == NULL) {

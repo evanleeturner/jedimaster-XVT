@@ -25,7 +25,7 @@ void XvtSettingsMenu_SetPage(int page, XvtSettingsPageFn draw);
 /* true while the menu is shown; it does not open it. */
 bool XvtSettingsMenu_IsOpen(void);
 /* true while open and the last Frame's UI reported a capture owning the whole frame. */
-bool XvtSettingsMenu_CapturesController(void);
+bool XvtSettingsMenu_CaptureOwnsFrame(void);
 /* true while open and the UI's keyboard capture is active, its completion or cancellation frame
  * included. */
 bool XvtSettingsMenu_CapturesKeyboard(void);

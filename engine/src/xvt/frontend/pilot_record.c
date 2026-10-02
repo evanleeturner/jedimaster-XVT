@@ -176,10 +176,10 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 	int accepted;
 
 #ifdef XVT_MODERN
-	if (XvtFrontendAction_Pending(XVT_ACTION_PILOT) == 2) {
+	if (XvtFrontendAction_Pending(XVT_ACTION_OWNER_PILOT) == 2) {
 		if (!XvtDialog_TakeResult(&accepted))
 			return 1;
-		XvtFrontendAction_Finish(XVT_ACTION_PILOT);
+		XvtFrontendAction_Finish(XVT_ACTION_OWNER_PILOT);
 		if (accepted && !Pilot_DeleteCurrent())
 			XvtStorage_Fatal("Cannot delete the selected pilot", 1);
 		g_pilotListScrollOffset = 0;
@@ -188,11 +188,11 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 		g_pilotRecordPagesNeedRebuild = 1;
 		return 1;
 	}
-	if (XvtFrontendAction_Pending(XVT_ACTION_PILOT) == 1) {
+	if (XvtFrontendAction_Pending(XVT_ACTION_OWNER_PILOT) == 1) {
 		selectedIndex = FrontendDialog_PromptForPilotName(g_pilotRecordNameInput);
 		if (selectedIndex == XVT_DIALOG_PENDING)
 			return 1;
-		XvtFrontendAction_Finish(XVT_ACTION_PILOT);
+		XvtFrontendAction_Finish(XVT_ACTION_OWNER_PILOT);
 	} else {
 #endif
 		FrontendDraw_RectAssign(&rect, 451, 90, 605, 106);
@@ -264,7 +264,7 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 		if (g_pilotFileList->count == 0) {
 #ifdef XVT_MODERN
 			if (frameCounter == 0) {
-				XvtFrontendAction_Trigger(XVT_ACTION_PILOT, 1, 1);
+				XvtFrontendAction_Trigger(XVT_ACTION_OWNER_PILOT, 1, 1);
 				FrontendDialog_PromptForPilotName(g_pilotRecordNameInput);
 				return 1;
 			}
@@ -358,7 +358,7 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 													0xFFFF, 20, "buttonsound");
 	if ((selectedIndex != 0 || Keyboard_IsKeyDown(PILOT_DELETE_VIRTUAL_KEY)) && g_pilotData.name[0] != '\0') {
 #ifdef XVT_MODERN
-		XvtFrontendAction_Trigger(XVT_ACTION_PILOT, 2, 1);
+		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_PILOT, 2, 1);
 		FrontendDialog_ShowConfirmDialog(FrontendString_Get(FRONTSTR_527_ARE_YOU_SURE_YOU_WANT),
 										 FrontendString_Get(FRONTSTR_528_TO_DELETE_THIS_PILOT), NULL,
 										 FrontendString_Get(FRONTSTR_529_YES),

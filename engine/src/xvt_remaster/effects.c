@@ -129,7 +129,7 @@ static unsigned BaseSize(const XvtSnapObject* o) {
 	return o->light_scale && base >= 256 ? base + 256 : base;
 }
 
-static uint16_t FlameCode(const XvtRenderSnapshot* s, const XvtSnapObject* o, int ordinal) {
+static uint16_t EngineFlameFrameCode(const XvtRenderSnapshot* s, const XvtSnapObject* o, int ordinal) {
 	if (!o->has_craft || o->object_type >= XVT_SNAP_TYPES || o->id.slot >= s->sky.craft_slot_end)
 		return XVT_SNAP_INVALID_TEXTURE_FRAME;
 	const XvtMeshAsset* mesh = XvtRemasterShip_Mesh(s, s->types[o->object_type].model_asset_id);
@@ -166,7 +166,7 @@ static void SubmitOne(AeronScene3D* scene, const XvtRenderSnapshot* s, const Xvt
 	float previous[4][3];
 	const XvtSnapObject* old = Previous(p, o);
 	if (regenerate && old && pc) {
-		uint16_t old_code = flame_ordinal ? FlameCode(p, old, flame_ordinal) : FrameCode(p, old);
+		uint16_t old_code = flame_ordinal ? EngineFlameFrameCode(p, old, flame_ordinal) : FrameCode(p, old);
 		float old_roll =
 			Angle(old, pc) + (flame_ordinal ? flame_ordinal * (float)old->roll * kTau / 65536.0f : 0);
 		XvtEffectFrame old_frame;
@@ -251,7 +251,7 @@ void XvtEffects_ProjectileMatrix(const XvtSnapObject* o, const int32_t camera[3]
 void XvtEffects_MapObject(AeronScene3D* scene, const XvtRenderSnapshot* s, const XvtSnapObject* o) {
 	SubmitOne(scene, s, NULL, o, &s->camera, NULL, FrameCode(s, o), 0, 0);
 	for (int ordinal = 1; ordinal <= XVT_SNAP_COMPONENTS; ++ordinal) {
-		uint16_t code = FlameCode(s, o, ordinal);
+		uint16_t code = EngineFlameFrameCode(s, o, ordinal);
 		if (code == XVT_SNAP_INVALID_TEXTURE_FRAME)
 			break;
 		SubmitOne(scene, s, NULL, o, &s->camera, NULL, code, ordinal, 0);

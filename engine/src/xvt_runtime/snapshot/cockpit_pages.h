@@ -41,7 +41,7 @@ void XvtCockpitPages_EndSection(void);
 void XvtCockpitPages_RecordGlyph(unsigned character, unsigned advance, unsigned height, int narrow);
 /* Ends the current row and starts one with this key, at the live clip rectangle and text
  * background color. Ignored with no capture or after a failure; more than
- * XVT_HUD_VISIBLE_ROWS_PER_PAGE rows logs an error and fails the capture. */
+ * XVT_HUD_ROWS_PER_SECTION rows logs an error and fails the capture. */
 void XvtCockpitPages_RecordRow(uint32_t key, int selected);
 /* Record the page's background or border as the live clip rectangle in the text background
  * color, 0 when that is the key color. The page's generation rises on a change. */

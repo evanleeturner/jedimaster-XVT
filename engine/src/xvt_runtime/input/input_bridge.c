@@ -165,7 +165,7 @@ static void XvtInput_Text(const AeronInputSnapshot* input) {
 	}
 }
 
-static void XvtInput_Controller(int suppress) {
+static void XvtInput_UpdateJoystick(int suppress) {
 	int connected = XvtControllerMapping_IsModelConnected();
 	int changed = g_connected != connected;
 	g_connected = connected;
@@ -232,7 +232,7 @@ void XvtInput_Update(int suppress) {
 	suppress |= g_keyboardRoute == XVT_KEYBOARD_BLOCKED;
 	XvtControllerMapping_Update(input);
 	XvtFlightControls_UpdateThrottleContext();
-	XvtInput_Controller(suppress);
+	XvtInput_UpdateJoystick(suppress);
 	memset(g_frontState.keyState, 0, sizeof(g_frontState.keyState));
 	if (suppress) {
 		Keyboard_FlushCharBuffer();
@@ -288,7 +288,7 @@ void XvtInput_UpdateFlight(int suppress) {
 	if (input) {
 		XvtControllerMapping_Update(input);
 		XvtFlightControls_UpdateThrottleContext();
-		XvtInput_Controller(suppress || !input->has_focus || XvtInput_IsCaptured());
+		XvtInput_UpdateJoystick(suppress || !input->has_focus || XvtInput_IsCaptured());
 	}
 	Keyboard_FlushCharBuffer();
 }

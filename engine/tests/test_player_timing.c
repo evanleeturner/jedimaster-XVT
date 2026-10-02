@@ -521,7 +521,7 @@ static XvtPlayerTimingWire GoodRecord(void) {
 		record.direction[i] = (int8_t)((int)(i % 3) - 1);
 	}
 	record.lock_mode = XVT_LOCK_HALF_CHAFF;
-	record.lock_half = 1;
+	record.lock_odd_tick = 1;
 	record.control_valid = 1;
 	XvtWire_Set32(record.control_mode, XVT_CONTROL_ROLL | XVT_CONTROL_MAP);
 	XvtWire_Set16(record.lock_signature, 0x200);
@@ -643,7 +643,7 @@ static void CheckDecodeRefusals(void) {
 	bad.valid = 2;
 	ExpectRefused(&bad);
 	bad = good;
-	bad.lock_half = 2;
+	bad.lock_odd_tick = 2;
 	ExpectRefused(&bad);
 	bad = good;
 	bad.control_valid = 2;

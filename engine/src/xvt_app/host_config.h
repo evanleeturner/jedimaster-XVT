@@ -41,7 +41,7 @@ int XvtLaunchOptions_Parse(int argc, char* argv[], XvtLaunchOptions* options);
  * "OpenXvT", the embedded window icon, the resource root from options (none for NULL options), the
  * "resources" and "shaders" folders, a 640x480 logical size presented aspect-fit, and an opaque black
  * clear color. Every other field stays zero. */
-void XvtHostConfig_InitAeron(const XvtLaunchOptions* options, AeronConfig* config);
+void XvtHostConfig_FillAeronConfig(const XvtLaunchOptions* options, AeronConfig* config);
 /* With a nonempty resource root in options, copies it to out and returns 1, or 0 when it does not fit
  * with its terminator. Otherwise returns Aeron's answer for the "resources" folder beside the executable
  * or bundle resources, written to out. */

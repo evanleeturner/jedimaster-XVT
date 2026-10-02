@@ -130,7 +130,7 @@ static void CheckInitAeron(void) {
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--resource-root=res"), 1);
 	AeronConfig config;
 	memset(&config, 0xFF, sizeof config);
-	XvtHostConfig_InitAeron(&options, &config);
+	XvtHostConfig_FillAeronConfig(&options, &config);
 
 	XVT_ASSERT_INT_EQ(strcmp(config.org_name, "TotallyOpen"), 0);
 	XVT_ASSERT_INT_EQ(strcmp(config.app_name, "OpenXvT"), 0);
@@ -158,7 +158,7 @@ static void CheckInitAeron(void) {
 
 	/* NULL options: no resource root. */
 	memset(&config, 0xFF, sizeof config);
-	XvtHostConfig_InitAeron(NULL, &config);
+	XvtHostConfig_FillAeronConfig(NULL, &config);
 	XVT_ASSERT_TRUE(config.resource_root == NULL);
 	XVT_ASSERT_INT_EQ(strcmp(config.resource_path, "resources"), 0);
 }

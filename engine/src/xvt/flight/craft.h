@@ -194,7 +194,7 @@ struct CraftData {
 struct CraftTechStats {
 	int craftType; ///< CraftSpecies selected by the Tech Library. specdesc.txt uses craftType-1;
 				   ///< BuildCraftTechStats also uses this value directly as the parallel object/model slot.
-	CraftGenus genusId; ///< CraftGenus copied from g_modelTypeTable[craftType].
+	CraftGenus genusId; ///< CraftGenus copied from g_objectTypeTable[craftType].
 	int speedRating;
 	int accelerationRating;
 	int maneuverRating;

@@ -123,9 +123,9 @@ static void XvtLogSink_WriteHeader(const XvtLaunchOptions* options, SDL_Time sta
 	char resources[XVT_LOG_SINK_PATH_CAPACITY];
 	char shown[3][XVT_LOG_SINK_PATH_CAPACITY];
 	char line[3 * XVT_LOG_SINK_PATH_CAPACITY + 64];
-	char* user;
+	char* preferences;
 	char* cwd;
-	XvtHostConfig_InitAeron(options, &config);
+	XvtHostConfig_FillAeronConfig(options, &config);
 	SDL_TimeToDateTime(start, &today, false);
 	XvtLogSink_EmitHeaderLine(line, sizeof(line),
 							  snprintf(line, sizeof(line), "= %s run %08x fmt 1 date %04d-%02d-%02d tz utc\n",
@@ -133,15 +133,15 @@ static void XvtLogSink_WriteHeader(const XvtLaunchOptions* options, SDL_Time sta
 									   today.month, today.day));
 	if (!XvtHostConfig_ResolveResourceRoot(options, resources, sizeof(resources)))
 		resources[0] = 0;
-	user = SDL_GetPrefPath(config.org_name, config.app_name);
+	preferences = SDL_GetPrefPath(config.org_name, config.app_name);
 	cwd = SDL_GetCurrentDirectory();
-	XvtLog_ShortenHome(shown[0], sizeof(shown[0]), user, g_logSinkHome, g_logSinkHomeLength);
+	XvtLog_ShortenHome(shown[0], sizeof(shown[0]), preferences, g_logSinkHome, g_logSinkHomeLength);
 	XvtLog_ShortenHome(shown[1], sizeof(shown[1]), resources, g_logSinkHome, g_logSinkHomeLength);
 	XvtLog_ShortenHome(shown[2], sizeof(shown[2]), cwd, g_logSinkHome, g_logSinkHomeLength);
 	XvtLogSink_EmitHeaderLine(
 		line, sizeof(line),
 		snprintf(line, sizeof(line), "= user \"%s\" res \"%s\" cwd \"%s\"\n", shown[0], shown[1], shown[2]));
-	SDL_free(user);
+	SDL_free(preferences);
 	SDL_free(cwd);
 }
 
@@ -155,7 +155,7 @@ static int XvtLogSink_DefaultFolder(const XvtLaunchOptions* options, char* out, 
 	size_t length;
 	char separator;
 	int written;
-	XvtHostConfig_InitAeron(options, &config);
+	XvtHostConfig_FillAeronConfig(options, &config);
 	preferences = SDL_GetPrefPath(config.org_name, config.app_name);
 	if (!preferences) {
 		snprintf(error, error_capacity, "no preferences folder: %s", SDL_GetError());

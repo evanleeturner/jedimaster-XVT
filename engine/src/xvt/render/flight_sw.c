@@ -1356,7 +1356,7 @@ void FlightStarfield_Render(void) {
 	uint8_t targetRgb[3];
 	uint16_t backgroundColor16;
 
-	g_starfieldGridDimension = STAR_GRID_SPAN / g_starDensity;
+	g_starfieldGridDimension = STAR_GRID_SPAN / g_starGridDivisor;
 	if (g_flightBytesPerPixel == 2) {
 		backgroundColor16 = g_flightPalette16Bpp[g_flightBackgroundColorIndex];
 		if (!g_starfieldColors16Initialized) {

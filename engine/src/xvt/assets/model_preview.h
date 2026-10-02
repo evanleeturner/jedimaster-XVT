@@ -9,9 +9,9 @@ extern "C" {
 #endif
 
 extern int g_nodeSwitchIndex;
-extern int g_modelPreviewLightDirectionX;
-extern int g_modelPreviewLightDirectionY;
-extern int g_modelPreviewLightDirectionZ;
+extern int g_worldLightDirectionX;
+extern int g_worldLightDirectionY;
+extern int g_worldLightDirectionZ;
 extern int g_modelPreviewStateGuard;
 extern int g_modelPreviewRenderResourcesInitialized;
 extern OptimizedPolyObject* g_modelPreviewModelData;
@@ -34,13 +34,13 @@ void ModelPreview_UnscaleOptRootNodes(OptimizedPolyObject* opt, double scale);
 void ModelPreview_AccumulateOptNodeBounds(OptNode* node, OptimizedPolyObject* object);
 double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject* object, int axis);
 int ModelPreview_ResetViewAndRenderState(void);
-void ModelPreview_SetWhiteDirectionalLight(int x, int y, int z);
+void ModelPreview_SetLightDirection(int x, int y, int z);
 void ModelPreview_SetObjectEulerDegrees(float pitchDeg, float yawDeg, float rollDeg);
 void ModelPreview_SetNodeSwitchIndex(int nodeSwitchIndex);
 void ModelPreview_SetObjectWorldPosition(int x, int y, int z);
 void ModelPreview_SaveState(void);
 void ModelPreview_RestoreState(void);
-void ModelPreview_SetObjectAngleDDegrees(float angleDeg);
+void ModelPreview_SetObjectUpAxisAngleDegrees(float angleDeg);
 int ModelPreview_GetDisplayedSizeMeters(void);
 
 #ifdef __cplusplus

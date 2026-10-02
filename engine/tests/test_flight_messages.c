@@ -40,7 +40,7 @@ static FlightInputFrameRecord Input(uint8_t key, int8_t axis, uint8_t mods, int 
 static void MakeMessage(XvtFlightMessage* message, unsigned target, uint8_t mask, unsigned count) {
 	memset(message, 0, sizeof *message);
 	message->target_flags = target;
-	message->mask = mask;
+	message->participant_mask = mask;
 	unsigned players = 0;
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player)
 		players += (mask >> player) & 1u;
@@ -67,8 +67,8 @@ static size_t Part(const XvtFlightMessage* message, unsigned part) {
 }
 
 static int SameMessage(const XvtFlightMessage* a, const XvtFlightMessage* b) {
-	return a->target_flags == b->target_flags && a->mask == b->mask && a->count == b->count &&
-		   !memcmp(a->records, b->records, a->count * sizeof a->records[0]);
+	return a->target_flags == b->target_flags && a->participant_mask == b->participant_mask &&
+		   a->count == b->count && !memcmp(a->records, b->records, a->count * sizeof a->records[0]);
 }
 
 static void CheckInputRoundTrip(void) {
@@ -293,7 +293,7 @@ static void CheckAssemblyRefusals(void) {
 
 	/* A record whose player is outside the mask. */
 	g_other = g_message;
-	g_other.mask = 0x01;
+	g_other.participant_mask = 0x01;
 	size = Part(&g_other, 0);
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_ReceivePart(g_part, size, COOKIE, 0, &g_out), -1);
 

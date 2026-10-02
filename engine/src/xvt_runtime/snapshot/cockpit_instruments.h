@@ -30,7 +30,7 @@ void XvtCockpitInstruments_CompleteRadar(void);
  * when the player has no craft in a main slot. The system masks and, in the forward or HUD-only
  * view, the feature covers are built whether or not instruments are visible; the rest only
  * while they are, and all but the warnings only in those views with the map closed. Also sets
- * view's compact_instruments and laser_slots. Reads state->view, which must be filled first. */
+ * view's rebel_fighter and laser_slots. Reads state->view, which must be filled first. */
 void XvtCockpitInstruments_Build(XvtCockpitState* state);
 #ifdef __cplusplus
 }

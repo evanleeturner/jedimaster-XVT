@@ -11,9 +11,9 @@
 
 typedef struct PageSection {
 	XvtCockpitGlyph* glyphs;
-	unsigned count, capacity, row_count;
+	unsigned glyph_count, capacity, row_count;
 	uint64_t generation;
-	XvtCockpitPageRow rows[XVT_HUD_VISIBLE_ROWS_PER_PAGE];
+	XvtCockpitPageRow rows[XVT_HUD_ROWS_PER_SECTION];
 } PageSection;
 
 typedef struct PageContent {
@@ -24,7 +24,7 @@ typedef struct PageContent {
 	uint16_t total_rows;
 	uint16_t mode;
 	uint64_t generation;
-	int selected;
+	int latched_this_frame;
 	unsigned failed_sections;
 } PageContent;
 
@@ -88,7 +88,7 @@ void XvtCockpitPages_ResetWorking(void) {
 void XvtCockpitPages_BeginFrame(void) {
 	g_pendingFailed = 0;
 	for (unsigned page = 0; page < MFD_PAGE_COUNT; ++page)
-		g_pending[page].selected = 0;
+		g_pending[page].latched_this_frame = 0;
 }
 
 void XvtCockpitPages_SetOrigin(unsigned page, int x, int y) {
@@ -103,7 +103,7 @@ void XvtCockpitPages_Clear(unsigned page) {
 		return;
 	PageContent* content = &g_working[page];
 	for (unsigned section = 0; section < XVT_COCKPIT_PAGE_SECTION_COUNT; ++section) {
-		content->sections[section].count = content->sections[section].row_count = 0;
+		content->sections[section].glyph_count = content->sections[section].row_count = 0;
 		content->sections[section].generation = ++g_generation;
 	}
 	content->background_argb = content->border_argb = 0;
@@ -121,7 +121,7 @@ void XvtCockpitPages_BeginSection(unsigned page, XvtCockpitPageSection section) 
 	}
 	g_page = page;
 	g_section = section;
-	g_building.count = g_building.row_count = 0;
+	g_building.glyph_count = g_building.row_count = 0;
 	g_captureFailed = 0;
 	g_capturing = 1;
 	for (unsigned color = 0; color < 256; ++color)
@@ -131,7 +131,7 @@ void XvtCockpitPages_BeginSection(unsigned page, XvtCockpitPageSection section) 
 static void FinishRow(void) {
 	if (g_building.row_count) {
 		XvtCockpitPageRow* row = &g_building.rows[g_building.row_count - 1];
-		row->glyph_count = (uint16_t)(g_building.count - row->first_glyph);
+		row->glyph_count = (uint16_t)(g_building.glyph_count - row->first_glyph);
 	}
 }
 
@@ -145,9 +145,9 @@ void XvtCockpitPages_EndSection(void) {
 		g_working[g_page].failed_sections &= ~(1u << g_section);
 	PageSection* previous = &g_working[g_page].sections[g_section];
 	if (!g_captureFailed &&
-		(previous->count != g_building.count || previous->row_count != g_building.row_count ||
-		 (previous->count &&
-		  memcmp(previous->glyphs, g_building.glyphs, previous->count * sizeof previous->glyphs[0])) ||
+		(previous->glyph_count != g_building.glyph_count || previous->row_count != g_building.row_count ||
+		 (previous->glyph_count &&
+		  memcmp(previous->glyphs, g_building.glyphs, previous->glyph_count * sizeof previous->glyphs[0])) ||
 		 (previous->row_count &&
 		  memcmp(previous->rows, g_building.rows, previous->row_count * sizeof previous->rows[0])))) {
 		/* Publish a complete section; the scratch buffer takes the prior allocation. */
@@ -155,7 +155,7 @@ void XvtCockpitPages_EndSection(void) {
 		unsigned old_capacity = previous->capacity;
 		previous->glyphs = g_building.glyphs;
 		previous->capacity = g_building.capacity;
-		previous->count = g_building.count;
+		previous->glyph_count = g_building.glyph_count;
 		previous->row_count = g_building.row_count;
 		memcpy(previous->rows, g_building.rows, g_building.row_count * sizeof previous->rows[0]);
 		previous->generation = g_working[g_page].generation = ++g_generation;
@@ -172,19 +172,19 @@ void XvtCockpitPages_RecordGlyph(unsigned character, unsigned advance, unsigned 
 	if (!XvtCockpitText_CaptureGlyph(&glyph, character, advance, height, narrow, g_working[g_page].origin_x,
 									 g_working[g_page].origin_y, g_palette, 1))
 		return;
-	if (!ReserveGlyphs(&g_building, g_building.count + 1)) {
+	if (!ReserveGlyphs(&g_building, g_building.glyph_count + 1)) {
 		XVT_LOG_ERROR("snapshot.section_overflow page=%u section=%u", g_page, g_section);
 		g_captureFailed = 1;
 		return;
 	}
-	g_building.glyphs[g_building.count++] = glyph;
+	g_building.glyphs[g_building.glyph_count++] = glyph;
 }
 
 void XvtCockpitPages_RecordRow(uint32_t key, int selected) {
 	if (!g_capturing || g_captureFailed)
 		return;
 	FinishRow();
-	if (g_building.row_count == XVT_HUD_VISIBLE_ROWS_PER_PAGE) {
+	if (g_building.row_count == XVT_HUD_ROWS_PER_SECTION) {
 		XVT_LOG_ERROR("snapshot.page_rows_overflow page=%u", g_page);
 		g_captureFailed = 1;
 		return;
@@ -193,7 +193,7 @@ void XvtCockpitPages_RecordRow(uint32_t key, int selected) {
 	memset(row, 0, sizeof *row);
 	row->key = key;
 	row->selected = selected != 0;
-	row->first_glyph = (uint16_t)g_building.count;
+	row->first_glyph = (uint16_t)g_building.glyph_count;
 	row->bounds = CaptureLocalBounds(g_page);
 	row->background_argb = CaptureColor(g_flightTextBgColor);
 }
@@ -260,21 +260,22 @@ void XvtCockpitPages_Latch(unsigned page) {
 		const PageSection* from = &source->sections[index];
 		if (to->generation == from->generation)
 			continue;
-		if (to->count == from->count && to->row_count == from->row_count &&
-			(!from->count || !memcmp(to->glyphs, from->glyphs, from->count * sizeof from->glyphs[0])) &&
+		if (to->glyph_count == from->glyph_count && to->row_count == from->row_count &&
+			(!from->glyph_count ||
+			 !memcmp(to->glyphs, from->glyphs, from->glyph_count * sizeof from->glyphs[0])) &&
 			(!from->row_count || !memcmp(to->rows, from->rows, from->row_count * sizeof from->rows[0]))) {
 			to->generation = from->generation;
 			continue;
 		}
-		if (!ReserveGlyphs(to, from->count)) {
+		if (!ReserveGlyphs(to, from->glyph_count)) {
 			XVT_LOG_ERROR("snapshot.section_retain_failed page=%u section=%u", page, index);
 			g_pendingFailed = 1;
 			return;
 		}
-		if (from->count)
-			memcpy(to->glyphs, from->glyphs, from->count * sizeof from->glyphs[0]);
+		if (from->glyph_count)
+			memcpy(to->glyphs, from->glyphs, from->glyph_count * sizeof from->glyphs[0]);
 		memcpy(to->rows, from->rows, from->row_count * sizeof from->rows[0]);
-		to->count = from->count;
+		to->glyph_count = from->glyph_count;
 		to->row_count = from->row_count;
 		to->generation = from->generation;
 		changed = 1;
@@ -289,7 +290,7 @@ void XvtCockpitPages_Latch(unsigned page) {
 	destination->mode = source->mode;
 	if (changed)
 		destination->generation = ++g_generation;
-	destination->selected = 1;
+	destination->latched_this_frame = 1;
 }
 
 void XvtCockpitPages_Export(XvtCockpitState* state) {
@@ -303,7 +304,7 @@ void XvtCockpitPages_Export(XvtCockpitState* state) {
 		XvtCockpitPage* page = &state->pages[id];
 		const PageContent* content = &g_pending[id];
 		page->glyph_count = page->row_count = page->header_glyph_count = 0;
-		page->visible &= content->selected != 0;
+		page->visible &= content->latched_this_frame != 0;
 		if (!page->visible)
 			continue;
 		page->content_generation = content->generation;
@@ -319,23 +320,23 @@ void XvtCockpitPages_Export(XvtCockpitState* state) {
 		page->first_store_row = store->row_count;
 		for (unsigned index = 0; index < XVT_COCKPIT_PAGE_SECTION_COUNT; ++index) {
 			const PageSection* section = &content->sections[index];
-			if (section->count > XVT_HUD_PAGE_GLYPH_CAPACITY - store->glyph_count ||
+			if (section->glyph_count > XVT_HUD_PAGE_GLYPH_CAPACITY - store->glyph_count ||
 				section->row_count > XVT_HUD_PAGE_ROW_CAPACITY - store->row_count) {
 				XVT_LOG_ERROR("snapshot.page_text_overflow page=%u", id);
 				state->valid = 0;
 				return;
 			}
-			if (section->count)
+			if (section->glyph_count)
 				memcpy(&store->glyphs[store->glyph_count], section->glyphs,
-					   section->count * sizeof section->glyphs[0]);
+					   section->glyph_count * sizeof section->glyphs[0]);
 			for (unsigned row = 0; row < section->row_count; ++row) {
 				XvtCockpitPageRow* output = &store->rows[store->row_count++];
 				*output = section->rows[row];
 				output->first_glyph += store->glyph_count;
 			}
-			store->glyph_count += (uint16_t)section->count;
+			store->glyph_count += (uint16_t)section->glyph_count;
 			if (index == XVT_COCKPIT_PAGE_HEADER)
-				page->header_glyph_count = (uint16_t)section->count;
+				page->header_glyph_count = (uint16_t)section->glyph_count;
 		}
 		page->glyph_count = store->glyph_count - page->first_glyph;
 		page->row_count = store->row_count - page->first_store_row;

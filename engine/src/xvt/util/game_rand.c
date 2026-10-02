@@ -3,9 +3,9 @@
 // GLOBAL: XVT 0x555C80
 uint16_t g_gameRand2ValueState = 0;
 // GLOBAL: XVT 0x555C84
-int16_t g_gameRandStateA = 0;
+int16_t g_gameRandValueState = 0;
 // GLOBAL: XVT 0x9D113C
-int16_t g_gameRandStateB = 0;
+int16_t g_gameRandFeedbackState = 0;
 // GLOBAL: XVT 0x9D77A8
 uint16_t g_gameRand2FeedbackState = 0;
 
@@ -18,17 +18,17 @@ int16_t GameRand(void) {
 	int seedSign;
 	uint16_t high;
 
-	result = g_gameRandStateA;
+	result = g_gameRandValueState;
 	iterations = 16;
 	do {
-		high = (uint8_t)(g_gameRandStateB >> 8);
-		carryOut = (((uint16_t)(high ^ (uint16_t)((uint8_t)g_gameRandStateB * 2))) & 0x80) != 0;
+		high = (uint8_t)(g_gameRandFeedbackState >> 8);
+		carryOut = (((uint16_t)(high ^ (uint16_t)((uint8_t)g_gameRandFeedbackState * 2))) & 0x80) != 0;
 		seedSign = (high & 0x80) != 0;
-		g_gameRandStateB = (int16_t)(2 * g_gameRandStateB + carryOut);
+		g_gameRandFeedbackState = (int16_t)(2 * g_gameRandFeedbackState + carryOut);
 		result = (int16_t)(2 * result + seedSign);
 	} while (--iterations != 0);
 
-	g_gameRandStateA = result;
+	g_gameRandValueState = result;
 	return result;
 }
 

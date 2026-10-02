@@ -147,10 +147,10 @@ static void CheckSystemMasksWhateverVisibility(void) {
 	XvtCockpitSystems hidden = Built(HUD_VIEW_FORWARD, 0, 0)->systems;
 	XvtCockpitSystems elsewhere = Built(HUD_VIEW_TARGET_CAMERA, 0, 1)->systems;
 	XVT_ASSERT_TRUE(shown.installed != 0 && shown.working != 0);
-	XVT_ASSERT_TRUE(shown.hud_features != 0 && shown.installed_hud_features != 0);
+	XVT_ASSERT_TRUE(shown.active_hud_features != 0 && shown.installed_hud_features != 0);
 	XVT_ASSERT_INT_EQ(hidden.installed, shown.installed);
 	XVT_ASSERT_INT_EQ(hidden.working, shown.working);
-	XVT_ASSERT_INT_EQ(hidden.hud_features, shown.hud_features);
+	XVT_ASSERT_INT_EQ(hidden.active_hud_features, shown.active_hud_features);
 	XVT_ASSERT_INT_EQ(hidden.installed_hud_features, shown.installed_hud_features);
 	XVT_ASSERT_INT_EQ(elsewhere.working, shown.working);
 	XVT_ASSERT_INT_EQ(elsewhere.installed_hud_features, shown.installed_hud_features);

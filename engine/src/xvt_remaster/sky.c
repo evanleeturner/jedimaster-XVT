@@ -114,7 +114,7 @@ int XvtSky_Prepare(AeronCommandBuffer* cmd, AeronScene3D* scene, const XvtRender
 			.exposure = p->exposure,
 			.brightness = p->star_brightness,
 			.classic_pixel_scale = view->classic_pixel_scale,
-			.density_divisor = s->sky.star_density,
+			.density_divisor = s->sky.star_grid_divisor,
 		};
 		if (!XvtRemasterSkyStars_Prepare(g_stars, cmd, scene, &params))
 			return 0;

@@ -95,7 +95,7 @@ void FlightObject_UpdateSpecialBehavior(void) {
 			objectType = g_objectTable[objectIndex].objectType;
 			if (objectType == 0)
 				continue;
-			g_billboardTextureFrameSequence = g_modelTypeTable[objectType].textureFrameSequence;
+			g_billboardTextureFrameSequence = g_objectTypeTable[objectType].textureFrameSequence;
 			craft = g_objectTable[objectIndex].mobj->pCraft;
 			switch (g_objectTable[objectIndex].genusId) {
 				case CRAFT_GENUS_STARFIGHTER:
@@ -147,7 +147,7 @@ void FlightObject_UpdateSpecialBehavior(void) {
 									ModelMesh_GetCachedObjectTypeMeshType(objectType, turretMeshIndex);
 							else
 								turretMeshType = ModelMesh_GetObjectTypeMeshType(objectType, turretMeshIndex);
-							if (turretMeshType != MESH_COMPONENT_21_LASR_TUR)
+							if (turretMeshType != MESH_COMPONENT_21_ROTATING_LASR_TUR)
 								continue;
 
 							turretTarget = &g_curCraft->turretTargetStates[weaponSlotIndex];
@@ -263,7 +263,7 @@ void FlightObject_UpdateSpecialBehavior(void) {
 									g_curCraft->meshRotation[meshIndex] = 0;
 							}
 						}
-						if (meshType == MESH_COMPONENT_20_WING &&
+						if (meshType == MESH_COMPONENT_20_ROTATING_WING &&
 							(g_curCraft->sFoilState & S_FOIL_TRANSITION_ACTIVE) != 0) {
 							if ((g_curCraft->sFoilState & S_FOIL_TRANSITION_CLOSING) != 0) {
 								if (objectType == X_WING_OBJECT_TYPE) {
@@ -339,7 +339,7 @@ void FlightObject_UpdateSpecialBehavior(void) {
 
 			objectType = g_objectTable[objectIndex].objectType;
 			if (objectType != 0) {
-				g_billboardTextureFrameSequence = g_modelTypeTable[objectType].textureFrameSequence;
+				g_billboardTextureFrameSequence = g_objectTypeTable[objectType].textureFrameSequence;
 				if (g_billboardTextureFrameSequence != NULL) {
 					g_billboardTextureSequenceIndex = g_objectTable[objectIndex].typeSpecificByte[0];
 					FlightObject_AdvanceTextureFrameSequence(objectIndex);
@@ -509,10 +509,10 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx) {
 						if (deltaZ < 0)
 							deltaZ = -deltaZ;
 						candidateObjectType = candidate->objectType;
-						candidateExtent = g_modelTypeTable[candidateObjectType].maxBoundsExtent;
+						candidateExtent = g_objectTypeTable[candidateObjectType].maxBoundsExtent;
 						deltaX -= candidateExtent;
 						deltaZ -= candidateExtent;
-						playerExtent = g_modelTypeTable[playerCraftObject->objectType].maxBoundsExtent;
+						playerExtent = g_objectTypeTable[playerCraftObject->objectType].maxBoundsExtent;
 						if (playerExtent > deltaX && playerExtent > deltaZ && deltaY > 0 &&
 							deltaY < HYPERSPACE_CLEARANCE_DISTANCE) {
 							obstructionDetected = 1;
@@ -545,10 +545,10 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx) {
 							if (deltaZ < 0)
 								deltaZ = -deltaZ;
 							candidateObjectType = candidate->objectType;
-							candidateExtent = g_modelTypeTable[candidateObjectType].maxBoundsExtent;
+							candidateExtent = g_objectTypeTable[candidateObjectType].maxBoundsExtent;
 							deltaX -= candidateExtent;
 							deltaZ -= candidateExtent;
-							playerExtent = g_modelTypeTable[playerCraftObject->objectType].maxBoundsExtent;
+							playerExtent = g_objectTypeTable[playerCraftObject->objectType].maxBoundsExtent;
 							if (playerExtent > deltaX && playerExtent > deltaZ && deltaY > 0 &&
 								deltaY < HYPERSPACE_CLEARANCE_DISTANCE) {
 								obstructionDetected = 1;
@@ -623,7 +623,7 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx) {
 			if (g_players[playerIdx].objectIndex != -1) {
 				fsfx_UpdateBeamSystemLoop(0, playerIdx);
 				fsfx_UpdateIncomingMissileWarning(0);
-				fsfx_StopHyperZoomImp(playerIdx);
+				fsfx_StopHyperspaceExitSounds(playerIdx);
 			}
 			g_objectTable[objectIdx].objectType = 0;
 			Player_SaveCraftSettings(playerIdx);

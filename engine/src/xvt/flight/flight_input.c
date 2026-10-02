@@ -284,7 +284,7 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 		mouseY = 0;
 #endif
 		if (g_joystickAvailable != 0) {
-			joystickButtons = Joystick_PollRawAxesIfEnabled(&axisX, &axisY, &throttleRaw, NULL);
+			joystickButtons = Joystick_PollScaledAxesIfActive(&axisX, &axisY, &throttleRaw, NULL);
 		}
 		if (g_flightMouseEnabled != 0) {
 			mouseButtons = (uint16_t)Mouse_ReadPositionAndButtons(&mouseX, &mouseY);
@@ -407,12 +407,12 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 // FUNCTION: XVT 0x4AA7F0
 int FlightInput_HasKeyReady(void) {
 #ifdef XVT_MODERN
-	return XvtInput_IsCaptured() ? 0 : DInput_HasKeyReady();
+	return XvtInput_IsCaptured() ? 0 : DInput_SkipToPendingKeyPress();
 #else
 	struct FlightInputWin32Message message;
 
 	if (g_flightConfDirectInput != 0) {
-		return DInput_HasKeyReady();
+		return DInput_SkipToPendingKeyPress();
 	}
 	if (g_flightInputNonBlockingMsgPump == 0 || PeekMessageA(&message, 0, 0, 0, 0) != 0) {
 		if (GetMessageA(&message, 0, 0, 0) == 0) {

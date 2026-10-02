@@ -34,11 +34,11 @@ static void XvtApplication_DiscoverControllers(const AeronInputSnapshot* input) 
 	bool ok = XvtControllerOptions_AddNewGamepads(&candidate, &XvtConfig_DefaultSettings()->gamepad_defaults,
 												  input, error, sizeof error);
 	if (!XvtControllerOptions_Equals(&candidate, &settings->controller)) {
-		char save_error[512];
-		if (XvtConfig_SetController(&candidate, save_error, sizeof save_error))
+		char store_error[512];
+		if (XvtConfig_SetController(&candidate, store_error, sizeof store_error))
 			XvtControllerMapping_SetOptions(&XvtConfig_Settings()->controller);
 		else {
-			snprintf(error, sizeof error, "%s", save_error);
+			snprintf(error, sizeof error, "%s", store_error);
 			ok = false;
 		}
 	}
@@ -57,10 +57,10 @@ static int XvtApplication_FrameLoop(void) {
 		const AeronInputSnapshot* input = Aeron_InputSnapshot();
 		XvtApplication_DiscoverControllers(input);
 		bool menu_opened = XvtSettingsMenu_BeginFrame(input);
-		int debug_key = XvtKeyboardMapping_Trigger(input, XVT_KEYBOARD_SHORTCUT_DEBUG);
+		int debug_key = XvtKeyboardMapping_FindShortcutPress(input, XVT_KEYBOARD_SHORTCUT_DEBUG);
 		if (debug_key >= 0 && !XvtSettingsMenu_CapturesKeyboard()) {
 			Aeron_DebugUiToggle();
-			XvtInput_SuppressKey(debug_key);
+			XvtInput_BlockKeyUntilReleased(debug_key);
 		}
 		XvtRemaster_BeginFrame(input);
 		XvtPort_Update(delta_us);
@@ -109,7 +109,7 @@ int XvtApplication_Run(const XvtLaunchOptions* options) {
 		AeronVfs_Destroy(vfs);
 		return success ? 0 : 1;
 	}
-	XvtHostConfig_InitAeron(options, &config);
+	XvtHostConfig_FillAeronConfig(options, &config);
 	XVT_LOG_INFO("app.start version=\"%s\"", OPENXVT_VERSION);
 	if (!Aeron_Init(&config)) {
 		/* Aeron unwinds its own partial initialization; shutdown is idempotent. */

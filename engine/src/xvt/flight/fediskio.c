@@ -2642,10 +2642,10 @@ void FeDiskIo_FreeFlightResources(void) {
 	}
 
 	for (modelType = 0; modelType < 201; ++modelType) {
-		textureHandle = g_modelTypeTable[modelType].curTexLevel;
+		textureHandle = g_objectTypeTable[modelType].resourceHandle;
 		if (textureHandle != 0) {
 			for (previousModelType = 0; previousModelType < modelType; ++previousModelType) {
-				if (g_modelTypeTable[previousModelType].curTexLevel == textureHandle) {
+				if (g_objectTypeTable[previousModelType].resourceHandle == textureHandle) {
 					break;
 				}
 			}
@@ -2657,7 +2657,7 @@ void FeDiskIo_FreeFlightResources(void) {
 
 	memset(g_loadedModels, 0, sizeof(g_loadedModels));
 	for (modelType = 0; modelType < 201; ++modelType) {
-		g_modelTypeTable[modelType].curTexLevel = 0;
+		g_objectTypeTable[modelType].resourceHandle = 0;
 	}
 	RenderScene_FreeBuffers();
 	Mission_FreeOverrideStringHandles();
@@ -2691,7 +2691,7 @@ void FeDiskIo_LoadResources(void) {
 
 	for (modelType = 0; modelType < sizeof(g_loadedModels) / sizeof(g_loadedModels[0]); ++modelType) {
 		g_loadedModels[modelType] = 0;
-		g_modelTypeTable[modelType].curTexLevel = 0;
+		g_objectTypeTable[modelType].resourceHandle = 0;
 	}
 	FeDiskIo_UnlockGlobalBuffers();
 	g_sceneEdgeFlagsCapacity = 0;
@@ -2733,12 +2733,12 @@ void FeDiskIo_LoadResources(void) {
 			++listEntryIndex;
 			resourceNeeded = 0;
 			resourceAssetFlags = 0;
-			for (modelType = 0; modelType < sizeof(g_modelTypeTable) / sizeof(g_modelTypeTable[0]);
+			for (modelType = 0; modelType < sizeof(g_objectTypeTable) / sizeof(g_objectTypeTable[0]);
 				 ++modelType) {
-				if ((g_modelTypeTable[modelType].recordFlags & MODEL_RECORD_HAS_RESOURCE) != 0 &&
-					g_modelTypeTable[modelType].textureGroup == specListGroup &&
-					g_modelTypeTable[modelType].resourceIndex == listEntryIndex - 1) {
-					uint8_t assetFlags = g_modelTypeTable[modelType].assetFlags;
+				if ((g_objectTypeTable[modelType].recordFlags & MODEL_RECORD_HAS_RESOURCE) != 0 &&
+					g_objectTypeTable[modelType].textureGroup == specListGroup &&
+					g_objectTypeTable[modelType].resourceIndex == listEntryIndex - 1) {
+					uint8_t assetFlags = g_objectTypeTable[modelType].assetFlags;
 
 					if ((assetFlags & MODEL_ASSET_ACTIVE_MASK) != 0 &&
 						((assetFlags & MODEL_ASSET_PROVING_GROUNDS_ONLY) == 0 ||
@@ -2788,23 +2788,23 @@ void FeDiskIo_LoadResources(void) {
 				}
 			}
 
-			for (modelType = 0; modelType < sizeof(g_modelTypeTable) / sizeof(g_modelTypeTable[0]);
+			for (modelType = 0; modelType < sizeof(g_objectTypeTable) / sizeof(g_objectTypeTable[0]);
 				 ++modelType) {
-				if ((g_modelTypeTable[modelType].recordFlags & MODEL_RECORD_HAS_RESOURCE) != 0 &&
-					g_modelTypeTable[modelType].textureGroup == specListGroup &&
-					g_modelTypeTable[modelType].resourceIndex == listEntryIndex - 1) {
-					uint8_t assetFlags = g_modelTypeTable[modelType].assetFlags;
+				if ((g_objectTypeTable[modelType].recordFlags & MODEL_RECORD_HAS_RESOURCE) != 0 &&
+					g_objectTypeTable[modelType].textureGroup == specListGroup &&
+					g_objectTypeTable[modelType].resourceIndex == listEntryIndex - 1) {
+					uint8_t assetFlags = g_objectTypeTable[modelType].assetFlags;
 
 					if ((assetFlags & MODEL_ASSET_ACTIVE_MASK) != 0 &&
 						((assetFlags & MODEL_ASSET_PROVING_GROUNDS_ONLY) == 0 ||
 						 g_flightMissionState.provingGroundsModeActive != 0)) {
-						g_modelTypeTable[modelType].curTexLevel = resourceHandle;
+						g_objectTypeTable[modelType].resourceHandle = resourceHandle;
 						g_loadedModels[modelType] = resourceHandle;
 #ifdef XVT_MODERN
 						XvtRenderAssets_BindType(modelType, resourceHandle);
 #endif
 						if ((resourceAssetFlags & MODEL_ASSET_OPT) != 0) {
-							FeDiskIo_BuildModelDef(g_modelTypeTable[modelType].modelIndex, modelType);
+							FeDiskIo_BuildModelDef(g_objectTypeTable[modelType].modelIndex, modelType);
 						}
 					}
 				}
@@ -2979,9 +2979,9 @@ void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType) {
 	int currentMeshIndex;
 	int meshCount;
 
-	g_modelTypeTable[(uint8_t)objectType].maxBoundsExtent = ModelBounds_GetMaxExtent((uint8_t)objectType);
-	g_modelTypeTable[(uint8_t)objectType].halfBoundsExtent =
-		g_modelTypeTable[(uint8_t)objectType].maxBoundsExtent >> 1;
+	g_objectTypeTable[(uint8_t)objectType].maxBoundsExtent = ModelBounds_GetMaxExtent((uint8_t)objectType);
+	g_objectTypeTable[(uint8_t)objectType].halfBoundsExtent =
+		g_objectTypeTable[(uint8_t)objectType].maxBoundsExtent >> 1;
 	if (modelDefIndex == 0xFF) {
 		return;
 	}
@@ -3099,11 +3099,11 @@ void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType) {
 							g_modelDefs[modelDefIndex].laserGroupWeaponType[groupSlot] =
 								(uint8_t)(hardpointType - 120);
 							if (meshType == MESH_COMPONENT_04_LASR_TUR ||
-								meshType == MESH_COMPONENT_21_LASR_TUR ||
+								meshType == MESH_COMPONENT_21_ROTATING_LASR_TUR ||
 								meshType == MESH_COMPONENT_05_LASR_GUN ||
-								g_modelTypeTable[(uint8_t)objectType].genusId == CRAFT_GENUS_FREIGHTER ||
-								g_modelTypeTable[(uint8_t)objectType].genusId == CRAFT_GENUS_PLATFORM ||
-								g_modelTypeTable[(uint8_t)objectType].genusId == CRAFT_GENUS_STARSHIP) {
+								g_objectTypeTable[(uint8_t)objectType].genusId == CRAFT_GENUS_FREIGHTER ||
+								g_objectTypeTable[(uint8_t)objectType].genusId == CRAFT_GENUS_PLATFORM ||
+								g_objectTypeTable[(uint8_t)objectType].genusId == CRAFT_GENUS_STARSHIP) {
 								g_modelDefs[modelDefIndex].laserGroupMountType[groupSlot] = 2;
 							} else {
 								g_modelDefs[modelDefIndex].laserGroupMountType[groupSlot] =
@@ -3173,7 +3173,7 @@ void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType) {
 							.weaponHardpoints[weaponSlotCount]
 							.alternateMeshHardpointIdx = 0xFF;
 						if (meshType == MESH_COMPONENT_04_LASR_TUR ||
-							meshType == MESH_COMPONENT_21_LASR_TUR) {
+							meshType == MESH_COMPONENT_21_ROTATING_LASR_TUR) {
 							alternateSlot = weaponSlotCount;
 						}
 						++weaponSlotCount;

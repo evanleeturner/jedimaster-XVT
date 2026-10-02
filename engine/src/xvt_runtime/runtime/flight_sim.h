@@ -67,7 +67,7 @@ int XvtFlightSim_Advance(int targetGameTime);
  * recorded throttle unless the craft changed. Alt-P in a single-player flight without network
  * progress pauses and returns 0; the next call skips the input read. Returns 1 otherwise, at once
  * when the mission end is pending. */
-int XvtFlightSim_UpdateEntity(int playerIdx);
+int XvtFlightSim_UpdatePlayerStep(int playerIdx);
 /* 1 while the flight is paused by Alt-P. */
 int XvtFlightSim_IsPaused(void);
 /* Returns 1 when not paused. While paused, returns 0 until the local key read is Alt-P (although

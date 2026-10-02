@@ -31,7 +31,7 @@ static uint32_t PlanarDistance(uint32_t a, uint32_t b) {
 		}
 		index = (uint16_t)(n / (d >> 16)) >> 8;
 	}
-	uint32_t scale = g_squarerootable[index];
+	uint32_t scale = g_hypotExcessQ16Table[index];
 	return max + (max >> 16) * scale + (uint16_t)((((max & 65535) * scale) + 32768) >> 16);
 }
 
@@ -41,10 +41,11 @@ static int OtherPlayerBox(const PlayerData* p, const ObjectRecord* o, unsigned s
 	const CraftData* c = o->mobj ? o->mobj->pCraft : NULL;
 	if (!c || o->playerOwnerIdx == -1)
 		return 0;
-	unsigned iff = (uint16_t)p->team, fg = o->flightGroupIdx;
-	if (!g_flightMissionState.locatePlayersEnabled && iff < 10 && !c->identifiedOrderByTeam[iff] && fg < 48) {
+	unsigned player_team = (uint16_t)p->team, fg = o->flightGroupIdx;
+	if (!g_flightMissionState.locatePlayersEnabled && player_team < 10 &&
+		!c->identifiedOrderByTeam[player_team] && fg < 48) {
 		unsigned team = g_missionFlightGroups[fg].fg.team;
-		if (team < 10 && team != iff && !g_missionTeams[iff].allies[team])
+		if (team < 10 && team != player_team && !g_missionTeams[player_team].allies[team])
 			return 0;
 	}
 	return !(slot < (unsigned)g_activeRegionCraftObjectSlotEnd &&
@@ -55,7 +56,7 @@ static int OtherPlayerBox(const PlayerData* p, const ObjectRecord* o, unsigned s
 static int Extent(const ObjectRecord* o) {
 	const CraftData* c = o->mobj ? o->mobj->pCraft : NULL;
 	if (!c)
-		return g_modelTypeTable[o->objectType].maxBoundsExtent;
+		return g_objectTypeTable[o->objectType].maxBoundsExtent;
 	const ModelDef* d = &g_modelDefs[c->modelIndex];
 	return (int)((uint32_t)((d->boundSizeX + d->boundSizeY + d->boundSizeZ) / 3) << d->boundSizeShift);
 }

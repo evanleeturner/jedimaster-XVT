@@ -32,7 +32,7 @@ typedef struct XvtControllerSettings {
 	char conflict_text[512];
 	bool discover_failed;
 	int page;
-	int axis;
+	int selected_axis;
 	XvtInputAxis pending_axis;
 	int pending_axis_source;
 	AeronControllerDigitalSource pending_digital;

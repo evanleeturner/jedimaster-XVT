@@ -34,7 +34,7 @@ void XvtInput_FlushRawKeyboard(void);
 /* Blocks every key held now until it is released. */
 void XvtInput_BlockHeldKeys(void);
 /* Blocks one key until it is released; a key out of range is ignored. */
-void XvtInput_SuppressKey(int key);
+void XvtInput_BlockKeyUntilReleased(int key);
 /* Once per frame, after settings load: takes up changed mouse settings; resets mouse flight when a
  * flight starts or ends or its control context changes (ship, external camera, map); toggles the
  * release with Ctrl+Alt+M, and recaptures on a click inside the window; switches relative mouse mode to

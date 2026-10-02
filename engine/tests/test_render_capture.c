@@ -229,18 +229,18 @@ static void CheckDroppedRecords(void) {
 	/* Two model types with neither a frame sequence nor a palette get ones the capture does not know. */
 	unsigned plain[2], found = 0;
 	for (unsigned t = 0; t < XVT_SNAP_TYPES && found < 2; ++t)
-		if (!g_modelTypeTable[t].textureFrameSequence && !g_modelTypeTable[t].palette)
+		if (!g_objectTypeTable[t].textureFrameSequence && !g_objectTypeTable[t].palette)
 			plain[found++] = t;
 	XVT_ASSERT_INT_EQ(found, 2);
 	static int16_t sequence[3] = { 1, 2, 3 };
 	static uint8_t palette[16];
-	g_modelTypeTable[plain[0]].textureFrameSequence = sequence;
-	g_modelTypeTable[plain[1]].palette = palette;
+	g_objectTypeTable[plain[0]].textureFrameSequence = sequence;
+	g_objectTypeTable[plain[1]].palette = palette;
 	UseObjects(g_testObjects, 4, 3, 1);
 	PublishView();
 	XVT_ASSERT_INT_EQ(Writer()->dropped_records, baseline + 2);
-	g_modelTypeTable[plain[0]].textureFrameSequence = NULL;
-	g_modelTypeTable[plain[1]].palette = NULL;
+	g_objectTypeTable[plain[0]].textureFrameSequence = NULL;
+	g_objectTypeTable[plain[1]].palette = NULL;
 	free(objects);
 	UseObjects(g_testObjects, 4, 3, 1);
 }

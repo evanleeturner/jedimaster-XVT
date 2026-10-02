@@ -50,7 +50,7 @@ void XvtRenderHud_TargetBox(unsigned object, unsigned component, int extent, int
 	*b = (XvtSnapTargetBox) { .object = { UINT16_MAX, 0 },
 							  .component = (uint16_t)component,
 							  .color_index = (uint16_t)color,
-							  .layer = XVT_SCOPE_COCKPIT,
+							  .scope = XVT_SCOPE_COCKPIT,
 							  .extent = extent,
 							  .world_pos = { g_worldLocX, g_worldLocY, g_worldLocZ } };
 	if (object < (unsigned)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount))

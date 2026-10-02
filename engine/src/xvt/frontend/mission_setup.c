@@ -5251,7 +5251,7 @@ int MissionSetup_UpdateCraftLoadout(void) {
 			if (rejectCraftChoice == 0) {
 				craftType = MissionSetup_GetCraftType(-1);
 				ModelPreview_LoadModel(g_shipList[g_shipTypeToShipListIndex[craftType]].modelFileName);
-				ModelPreview_SetWhiteDirectionalLight(-1, 0, 1);
+				ModelPreview_SetLightDirection(-1, 0, 1);
 				if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_MELEES ||
 					g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TOURNAMENTS) {
 					craftType = MissionSetup_GetCraftType(-1);
@@ -5371,7 +5371,7 @@ int MissionSetup_UpdateCraftLoadout(void) {
 
 		craftType = MissionSetup_GetCraftType(-1);
 		ModelPreview_LoadModel(g_shipList[g_shipTypeToShipListIndex[craftType]].modelFileName);
-		ModelPreview_SetWhiteDirectionalLight(-1, 0, 1);
+		ModelPreview_SetLightDirection(-1, 0, 1);
 		selectedPresetCraftOptionIndex = g_missionSetupSelectedPresetCraftOptionIndex;
 		selectedFlightGroupCraftOptionIndex = g_missionSetupSelectedFlightGroupCraftOptionIndex;
 		selectedFlightGroupIndex = g_missionSetupSelectedFlightGroupIndex;

@@ -50,7 +50,7 @@ uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx, uint16_t staticO
 	g_collisionSweepStartZ = g_worldLocZ;
 	g_collisionSweepEndZ = g_worldLocZ;
 
-	hitRadius = g_modelTypeTable[staticObjectType].maxBoundsExtent;
+	hitRadius = g_objectTypeTable[staticObjectType].maxBoundsExtent;
 	dx = g_collisionProbeWorldX - g_worldLocX;
 	if (dx < 0)
 		dx = -dx;

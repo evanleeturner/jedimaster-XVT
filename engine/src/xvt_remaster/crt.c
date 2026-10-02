@@ -113,21 +113,21 @@ invalid:
 	return 0;
 }
 
-int XvtCrt_PrepareView(const XvtSnapPreview* preview, const XvtSnapCockpitLayout* definition,
-					   AeronTexture* color, int width, int height, float scale, float ox, float oy) {
+int XvtCrt_PrepareView(const XvtSnapPreview* preview, const XvtSnapCockpitLayout* layout, AeronTexture* color,
+					   int width, int height, float scale, float ox, float oy) {
 	g_color = NULL;
 	if (!preview || !color)
 		return 1;
 	XvtSnapRect r = preview->destination;
 	unsigned index = preview->mask_index;
-	unsigned size = index < 3 ? definition->mask_bytes[index] : 0;
+	unsigned size = index < 3 ? layout->mask_bytes[index] : 0;
 	if (size > sizeof g_masks[0].bytes || r.width <= 0 || r.height <= 0 ||
 		r.width > preview->camera.screen_width || r.height > preview->camera.screen_height || width <= 0 ||
 		height <= 0)
 		return 0;
 	if (index >= 3 || !g_masks[index].texture || g_masks[index].width != r.width ||
 		g_masks[index].height != r.height || g_masks[index].size != size ||
-		memcmp(g_masks[index].bytes, definition->masks[index], size))
+		memcmp(g_masks[index].bytes, layout->masks[index], size))
 		return 0;
 	g_mask = g_masks[index].texture;
 	float x = r.x * scale + ox, y = r.y * scale + oy, w = r.width * scale, h = r.height * scale;

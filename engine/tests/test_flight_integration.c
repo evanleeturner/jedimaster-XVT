@@ -387,12 +387,13 @@ static XvtIntegrationWire GoodRecord(void) {
 	XvtWire_Set16(record.slot, 2);
 	XvtWire_Set16(record.signature, 0x102);
 	record.type = 1;
-	record.state = 0;
+	record.family = 0;
 	XvtWire_Set16(record.carried_slot, 0xFFFF);
 	XvtWire_Set16(record.target_slot, 4);
 	XvtWire_Set16(record.target_signature, 0x104);
 	for (unsigned axis = 0; axis < XVT_STATE_POSITION_AXES; ++axis)
-		XvtWire_Set64(record.position[axis], (uint64_t)(int64_t)(axis == 1 ? -1000 : 1000 + (int)axis));
+		XvtWire_Set64(record.position_remainder[axis],
+					  (uint64_t)(int64_t)(axis == 1 ? -1000 : 1000 + (int)axis));
 	for (unsigned channel = 0; channel < XVT_INTEGRATE_COUNT; ++channel) {
 		XvtWire_Set64(record.remainder[channel],
 					  (uint64_t)(int64_t)(channel % 2 ? -(int)channel : (int)channel));
@@ -507,9 +508,9 @@ static void CheckDecodeRefusals(void) {
 	ExpectRefused(&bad);
 
 	bad = good;
-	XvtWire_Set64(bad.position[2], (uint64_t)position_limit);
+	XvtWire_Set64(bad.position_remainder[2], (uint64_t)position_limit);
 	ExpectRefused(&bad);
-	XvtWire_Set64(bad.position[2], (uint64_t)-position_limit);
+	XvtWire_Set64(bad.position_remainder[2], (uint64_t)-position_limit);
 	ExpectRefused(&bad);
 
 	bad = good;
@@ -528,8 +529,8 @@ static void CheckDecodeRefusals(void) {
 
 	/* One short of each bound is accepted, as are 0xFFFF slots and the empty record. */
 	bad = good;
-	XvtWire_Set64(bad.position[0], (uint64_t)(position_limit - 1));
-	XvtWire_Set64(bad.position[1], (uint64_t)(1 - position_limit));
+	XvtWire_Set64(bad.position_remainder[0], (uint64_t)(position_limit - 1));
+	XvtWire_Set64(bad.position_remainder[1], (uint64_t)(1 - position_limit));
 	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_ROLL], (uint64_t)(steering_limit - 1));
 	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_TURN], (uint64_t)(1 - steering_limit));
 	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_PUSH_X], (uint64_t)(other_limit - 1));

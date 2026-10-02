@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /* Mission/frontend craft-type (species) identifier. Convert through g_craftTypeToObjectType before indexing
- * g_modelTypeTable; this is distinct from ModelIndex. */
+ * g_objectTypeTable; this is distinct from ModelIndex. */
 /* Stored as uint8_t in the binary (IDB enum CraftSpecies). */
 typedef uint8_t CraftSpecies;
 
@@ -121,7 +121,7 @@ enum {
 	CRAFT_SPECIES_UNUSED_100 = 0x64,
 };
 
-/* Byte family ID stored in ModelTypeInfo. Values 0..2 have localized goal labels; 3..6 are internal families
+/* Byte family ID stored in ObjectTypeInfo. Values 0..2 have localized goal labels; 3..6 are internal families
  * displayed as placeholders by the goal text table. */
 /* Stored as int8_t in the binary (IDB enum CraftFamily). */
 typedef int8_t CraftFamily;
@@ -136,7 +136,7 @@ enum {
 	CRAFT_FAMILY_OBSTACLE = 0x6,
 };
 
-struct ModelTypeInfo {
+struct ObjectTypeInfo {
 	uint8_t recordFlags;
 	uint8_t assetFlags;
 	CraftFamily familyId; ///< Object family classification; values are CraftFamily.
@@ -144,7 +144,7 @@ struct ModelTypeInfo {
 		genusId; ///< Byte storage of CraftGenus for this ObjectTypeId; distinct from mission CraftSpecies.
 	int maxBoundsExtent;
 	int halfBoundsExtent;
-	uint16_t curTexLevel;
+	uint16_t resourceHandle;
 	int16_t* textureFrameSequence;
 	uint8_t* palette;
 	uint8_t behaviorFlags;
@@ -174,7 +174,7 @@ extern uint8_t g_modelType110Palette[16];
 extern uint8_t g_modelType111Palette[16];
 extern uint8_t g_modelType112Palette[16];
 extern uint8_t g_modelType113Palette[16];
-extern ModelTypeInfo g_modelTypeTable[201];
+extern ObjectTypeInfo g_objectTypeTable[201];
 extern uint8_t g_craftTypeToObjectType[96];
 
 /* Index into g_modelDefs[73] (the strings.txt 'strings for specs' name/specification table); MODEL_INDEX_NONE

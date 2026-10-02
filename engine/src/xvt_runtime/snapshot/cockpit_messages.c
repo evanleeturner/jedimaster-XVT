@@ -26,11 +26,11 @@ typedef struct AlertContent {
 	XvtCockpitGlyph glyphs[3][XVT_HUD_ALERT_LINE_GLYPHS];
 } AlertContent;
 
-static MessageContent g_messages[XVT_COCKPIT_MESSAGE_COUNT], g_pending[XVT_COCKPIT_MESSAGE_COUNT],
+static MessageContent g_workingPanes[XVT_COCKPIT_MESSAGE_COUNT], g_pending[XVT_COCKPIT_MESSAGE_COUNT],
 	g_messageBuild;
 static AlertContent g_alert, g_alertBuild;
 static XvtCockpitLoading g_loading;
-static int g_messageCapture = -1, g_alertCapture = -1, g_captureFailed;
+static int g_messageCapturePane = -1, g_alertCaptureLine = -1, g_captureFailed;
 static uint32_t g_messagePalette[256], g_alertPalette[256];
 static uint64_t g_generation;
 
@@ -50,8 +50,8 @@ static void CapturePalette(uint32_t palette[256]) {
 }
 
 void XvtCockpitMessages_ResetWorking(void) {
-	memset(g_messages, 0, sizeof g_messages);
-	g_messageCapture = -1;
+	memset(g_workingPanes, 0, sizeof g_workingPanes);
+	g_messageCapturePane = -1;
 }
 
 void XvtCockpitMessages_Reset(void) {
@@ -59,7 +59,7 @@ void XvtCockpitMessages_Reset(void) {
 	memset(g_pending, 0, sizeof g_pending);
 	memset(&g_alert, 0, sizeof g_alert);
 	memset(&g_loading, 0, sizeof g_loading);
-	g_alertCapture = -1;
+	g_alertCaptureLine = -1;
 	g_captureFailed = 0;
 }
 
@@ -83,10 +83,10 @@ void XvtCockpitMessages_EndLoadingText(void) {
 }
 
 void XvtCockpitMessages_Clear(XvtCockpitMessageId pane) {
-	if ((unsigned)pane >= XVT_COCKPIT_MESSAGE_COUNT || !g_messages[pane].state.visible)
+	if ((unsigned)pane >= XVT_COCKPIT_MESSAGE_COUNT || !g_workingPanes[pane].state.visible)
 		return;
-	memset(&g_messages[pane], 0, sizeof g_messages[pane]);
-	g_messages[pane].state.generation = ++g_generation;
+	memset(&g_workingPanes[pane], 0, sizeof g_workingPanes[pane]);
+	g_workingPanes[pane].state.generation = ++g_generation;
 }
 
 void XvtCockpitMessages_BeginMessage(int pane_type) {
@@ -107,31 +107,31 @@ void XvtCockpitMessages_BeginMessage(int pane_type) {
 	g_messageBuild.state.pane_type = (uint8_t)pane_type;
 	g_messageBuild.state.font_tier = g_flightFontTier;
 	g_messageBuild.state.age_seconds = message->ageSeconds;
-	g_messageCapture = pane;
+	g_messageCapturePane = pane;
 	g_captureFailed = 0;
 	CapturePalette(g_messagePalette);
 }
 
 void XvtCockpitMessages_RecordReveal(unsigned characters) {
-	if (g_messageCapture >= 0)
+	if (g_messageCapturePane >= 0)
 		g_messageBuild.state.revealed_characters = (uint16_t)characters;
 }
 
 void XvtCockpitMessages_EndMessage(void) {
-	if (g_messageCapture < 0)
+	if (g_messageCapturePane < 0)
 		return;
-	unsigned pane = (unsigned)g_messageCapture;
+	unsigned pane = (unsigned)g_messageCapturePane;
 	if (!g_captureFailed) {
-		g_messageBuild.state.generation = g_messages[pane].state.generation;
-		if (!g_messages[pane].state.visible || g_messageBuild.origin_x != g_messages[pane].origin_x ||
-			g_messageBuild.origin_y != g_messages[pane].origin_y ||
-			g_messageBuild.state.glyph_count != g_messages[pane].state.glyph_count ||
-			memcmp(g_messageBuild.glyphs, g_messages[pane].glyphs,
+		g_messageBuild.state.generation = g_workingPanes[pane].state.generation;
+		if (!g_workingPanes[pane].state.visible || g_messageBuild.origin_x != g_workingPanes[pane].origin_x ||
+			g_messageBuild.origin_y != g_workingPanes[pane].origin_y ||
+			g_messageBuild.state.glyph_count != g_workingPanes[pane].state.glyph_count ||
+			memcmp(g_messageBuild.glyphs, g_workingPanes[pane].glyphs,
 				   g_messageBuild.state.glyph_count * sizeof g_messageBuild.glyphs[0]))
 			g_messageBuild.state.generation = ++g_generation;
-		g_messages[pane] = g_messageBuild;
+		g_workingPanes[pane] = g_messageBuild;
 	}
-	g_messageCapture = -1;
+	g_messageCapturePane = -1;
 }
 
 void XvtCockpitMessages_BeginPlacement(void) {
@@ -144,7 +144,7 @@ void XvtCockpitMessages_Latch(XvtCockpitMessageId pane, int source_x, int source
 	if ((unsigned)pane >= XVT_COCKPIT_MESSAGE_COUNT)
 		return;
 	MessageContent* destination = &g_pending[pane];
-	const MessageContent* source = &g_messages[pane];
+	const MessageContent* source = &g_workingPanes[pane];
 	destination->state = source->state;
 	destination->state.placement = (XvtSnapRect) { x, y, width, height };
 	const HudInFlightMessageRecord* message =
@@ -183,34 +183,34 @@ void XvtCockpitMessages_RecordGlyph(unsigned character, unsigned advance, unsign
 		g_loadingText.glyphs[g_loadingText.count++] = glyph;
 		return;
 	}
-	if (g_messageCapture >= 0) {
+	if (g_messageCapturePane >= 0) {
 		if (!XvtCockpitText_CaptureGlyph(&glyph, character, advance, height, narrow, g_messageBuild.origin_x,
 										 g_messageBuild.origin_y, g_messagePalette, 1))
 			return;
 		if (g_messageBuild.state.glyph_count == XVT_HUD_MESSAGE_GLYPHS) {
-			XVT_LOG_ERROR("snapshot.pane_overflow pane=%d", g_messageCapture);
+			XVT_LOG_ERROR("snapshot.pane_overflow pane=%d", g_messageCapturePane);
 			g_captureFailed = 1;
 			return;
 		}
 		g_messageBuild.glyphs[g_messageBuild.state.glyph_count++] = glyph;
-	} else if (g_alertCapture >= 0) {
+	} else if (g_alertCaptureLine >= 0) {
 		if (!XvtCockpitText_CaptureGlyph(&glyph, character, advance, height, narrow,
 										 g_alertBuild.state.placement.x, g_alertBuild.state.placement.y,
 										 g_alertPalette, 0))
 			return;
-		uint16_t* count = &g_alertBuild.state.glyph_count[g_alertCapture];
+		uint16_t* count = &g_alertBuild.state.glyph_count[g_alertCaptureLine];
 		if (*count == XVT_HUD_ALERT_LINE_GLYPHS) {
-			XVT_LOG_ERROR("snapshot.alert_overflow line=%d", g_alertCapture);
+			XVT_LOG_ERROR("snapshot.alert_overflow line=%d", g_alertCaptureLine);
 			g_captureFailed = 1;
 			return;
 		}
-		g_alertBuild.glyphs[g_alertCapture][(*count)++] = glyph;
+		g_alertBuild.glyphs[g_alertCaptureLine][(*count)++] = glyph;
 	}
 }
 
 void XvtCockpitMessages_BeginAlert(void) {
 	memset(&g_alert, 0, sizeof g_alert);
-	g_alertCapture = -1;
+	g_alertCaptureLine = -1;
 }
 
 void XvtCockpitMessages_BeginAlertLine(int mode, int x, int y, int width, int height) {
@@ -233,15 +233,15 @@ void XvtCockpitMessages_BeginAlertLine(int mode, int x, int y, int width, int he
 		g_alertBuild.state.glyph_count[line] = 0;
 		memset(g_alertBuild.glyphs[line], 0, sizeof g_alertBuild.glyphs[line]);
 	}
-	g_alertCapture = mode <= 1 ? 0 : mode - 1;
-	g_alertBuild.state.line_visible[g_alertCapture] = 1;
+	g_alertCaptureLine = mode <= 1 ? 0 : mode - 1;
+	g_alertBuild.state.line_visible[g_alertCaptureLine] = 1;
 	g_captureFailed = 0;
 }
 
 void XvtCockpitMessages_EndAlertLine(void) {
-	if (g_alertCapture < 0)
+	if (g_alertCaptureLine < 0)
 		return;
-	unsigned first_row = g_alertCapture == 0 ? 0 : (unsigned)g_alertCapture + 1;
+	unsigned first_row = g_alertCaptureLine == 0 ? 0 : (unsigned)g_alertCaptureLine + 1;
 	for (unsigned row = first_row; row < 5; ++row)
 		g_alertBuild.state.row_background_argb[row] = g_alertPalette[g_flightTextBgColor];
 	if (!g_captureFailed) {
@@ -250,7 +250,7 @@ void XvtCockpitMessages_EndAlertLine(void) {
 			g_alertBuild.state.generation = ++g_generation;
 		g_alert = g_alertBuild;
 	}
-	g_alertCapture = -1;
+	g_alertCaptureLine = -1;
 }
 
 void XvtCockpitMessages_EndAlert(void) {

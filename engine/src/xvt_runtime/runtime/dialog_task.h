@@ -43,8 +43,8 @@ int XvtDialog_TakeResult(int* result);
  * whichever dialog produced it; returns -1 while a dialog is open; otherwise copies the three
  * lines and two button labels (NULL as empty), plays the warning sound when enabled, and opens a
  * confirm dialog, or the network abort dialog when network is set, returning -1. */
-int XvtDialog_Confirm(const char* a, const char* b, const char* c, const char* okay, const char* cancel,
-					  int network);
+int XvtDialog_Confirm(const char* line1, const char* line2, const char* line3, const char* okay_label,
+					  const char* cancel_label, int network);
 /* Like Confirm, for the pilot-name prompt: returns any untaken result first, whichever dialog
  * produced it, copying the first 12 characters of the first dialog text line into name and
  * terminating it (name needs 13 bytes). For this prompt that line is the typed name, empty when

@@ -13,8 +13,8 @@ enum {
 	XVT_HUD_PANEL_BINDINGS = 265,
 	XVT_HUD_FONT_TIERS = 3,
 	XVT_HUD_WEAPON_SLOTS = 16,
-	XVT_HUD_VISIBLE_ROWS_PER_PAGE = 96,
-	XVT_HUD_PAGE_ROW_CAPACITY = 7 * XVT_HUD_VISIBLE_ROWS_PER_PAGE,
+	XVT_HUD_ROWS_PER_SECTION = 96,
+	XVT_HUD_PAGE_ROW_CAPACITY = 7 * XVT_HUD_ROWS_PER_SECTION,
 	XVT_HUD_PAGE_GLYPH_CAPACITY = 8192
 };
 
@@ -87,7 +87,7 @@ typedef struct XvtCockpitPage {
 	uint16_t first_glyph, glyph_count, header_glyph_count;
 	XvtSnapRect placement, background_bounds, border_bounds;
 	uint32_t background_argb, border_argb;
-	uint16_t command_text_mode, layer;
+	uint16_t command_text_mode, phase;
 	int16_t original_state;
 } XvtCockpitPage;
 
@@ -112,7 +112,7 @@ typedef struct XvtCockpitDefinition {
 	XvtSnapCockpitLayout layout;
 	XvtCockpitAssetBinding panels[XVT_HUD_PANEL_BINDINGS];
 	XvtCockpitFontBinding fonts[XVT_HUD_FONT_TIERS];
-	uint8_t beam_fades[4], shield_colors[11];
+	uint8_t beam_segment_colors[4], shield_colors[11];
 	int16_t beam_offsets[9][2];
 } XvtCockpitDefinition;
 
@@ -121,8 +121,8 @@ typedef struct XvtCockpitView {
 	uint16_t resource_descriptor, viewport_descriptor, panel_set;
 	uint16_t active_page, secondary_page;
 	uint8_t mirrored, map_active, external_camera, instruments_visible;
-	uint8_t mission_ending, region_session;
-	uint8_t compact_instruments, laser_slots;
+	uint8_t mission_ending, awaiting_new_craft;
+	uint8_t rebel_fighter, laser_slots;
 	XvtSnapRect viewport;
 	int16_t projection_offset_y;
 } XvtCockpitView;
@@ -181,7 +181,7 @@ typedef struct XvtCockpitShield {
 } XvtCockpitShield;
 
 typedef struct XvtCockpitPowerGauge {
-	uint8_t visible, filled, segments, compact;
+	uint8_t visible, filled, segments, rebel_fighter;
 	int16_t step_y;
 } XvtCockpitPowerGauge;
 
@@ -257,10 +257,10 @@ typedef struct XvtCockpitTextField {
 } XvtCockpitTextField;
 
 typedef struct XvtCockpitSystems {
-	uint32_t installed, working, hud_features, installed_hud_features;
+	uint32_t installed, working, active_hud_features, installed_hud_features;
 	XvtCockpitShield shields[2];
 	XvtCockpitPowerGauge engine_power, laser_power, shield_power, beam_power;
-	XvtCockpitIndicator beam_enabled, sfoils, shield_distribution, countermeasure_selected;
+	XvtCockpitIndicator beam_enabled, sfoils, shield_distribution, countermeasure_active;
 	XvtCockpitIndicator threats[4], critical_warning, hull_indicator;
 	XvtCockpitIndicator feature_covers[13], unavailable_shields, unavailable_beam[2];
 	XvtCockpitNumber countermeasure_count;
@@ -269,7 +269,7 @@ typedef struct XvtCockpitSystems {
 
 typedef struct XvtCockpitWeaponSlot {
 	uint8_t visible, bank, hud_slot, charge_band, segments;
-	uint8_t selected, ready, locked, color;
+	uint8_t selection_state, ready, locked, color;
 	uint8_t charge_visible, selection_visible, lock_visible, empty_band;
 	XvtCockpitNumber charge_percent;
 } XvtCockpitWeaponSlot;

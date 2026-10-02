@@ -16,7 +16,7 @@ enum {
 	NO_VIEWPORT_INSET = 0,
 	MUSIC_TRACK_FLIGHT = 2,
 	MUSIC_START_CHOICE_COUNT = 4,
-	MUSIC_VOLUME_LEVEL_COUNT = 9,
+	MUSIC_VOLUME_MAX_LEVEL = 9,
 	MUSIC_FADE_DIVISOR = 8,
 	MUSIC_FADE_DURATION_MS = 1000,
 	MILLISECONDS_PER_SECOND = 1000,
@@ -122,20 +122,20 @@ void XvtFlightLoading_Globals(void) {
 	XvtFlightLoading_MissionRules();
 
 	if (g_activeFlightPlayerCount != 1) {
-		g_gameRandStateB = (int16_t)g_gameConfig.randomSeed;
+		g_gameRandFeedbackState = (int16_t)g_gameConfig.randomSeed;
 	} else {
 		uint16_t randomSeed;
 
 		randomSeed = (uint16_t)timeGetTime();
 		randomSeed ^= RANDOM_SEED_XOR;
-		g_gameRandStateB = (int16_t)randomSeed;
+		g_gameRandFeedbackState = (int16_t)randomSeed;
 	}
 	{
 		uint32_t randomTime;
 
 		randomTime = timeGetTime();
 		g_asteroidFieldRandSeed = (uint16_t)ASTEROID_FIELD_RANDOM_SEED;
-		g_gameRand2FeedbackState = (uint16_t)(randomTime + g_gameRandStateB);
+		g_gameRand2FeedbackState = (uint16_t)(randomTime + g_gameRandFeedbackState);
 	}
 
 	memset(g_players, 0, sizeof(g_players));
@@ -264,9 +264,9 @@ void XvtFlightLoading_MissionSetup(void) {
 
 	g_messageLogTotalCount = 0;
 	g_flightMessageRuntimeState = 0;
-	g_modelPreviewLightDirectionX = DEFAULT_MODEL_LIGHT_DIRECTION;
-	g_modelPreviewLightDirectionY = DEFAULT_MODEL_LIGHT_DIRECTION;
-	g_modelPreviewLightDirectionZ = DEFAULT_MODEL_LIGHT_DIRECTION;
+	g_worldLightDirectionX = DEFAULT_MODEL_LIGHT_DIRECTION;
+	g_worldLightDirectionY = DEFAULT_MODEL_LIGHT_DIRECTION;
+	g_worldLightDirectionZ = DEFAULT_MODEL_LIGHT_DIRECTION;
 	g_systemMessageDisplayEnabled = 1;
 	g_readyMessagePaneLeft = -1;
 	g_messageLogWriteIndex = UINT16_MAX;
@@ -291,7 +291,7 @@ void XvtFlightLoading_Runtime(void) {
 		uint16_t musicVolume;
 		uint32_t musicUpdateMs;
 
-		musicVolume = UINT16_MAX * g_gameConfig.musicVolume / MUSIC_VOLUME_LEVEL_COUNT;
+		musicVolume = UINT16_MAX * g_gameConfig.musicVolume / MUSIC_VOLUME_MAX_LEVEL;
 		MusicCd_SetAuxVolume(musicVolume);
 		musicChoice = GameRand2() & (MUSIC_START_CHOICE_COUNT - 1);
 		MusicCd_PlayTrackFromTime(MUSIC_TRACK_FLIGHT, g_dynamicMusicInitialStartMinuteChoices[musicChoice],

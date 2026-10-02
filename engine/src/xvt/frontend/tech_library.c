@@ -110,7 +110,7 @@ int TechLibrary_Update(int frameCounter) {
 		g_techLibraryCraftStats.craftType = g_shipList[g_techLibrarySelectedShipListIdx].craftType;
 		BuildCraftTechStats(&g_techLibraryCraftStats);
 		ModelPreview_LoadModel(g_shipList[g_techLibrarySelectedShipListIdx].modelFileName);
-		ModelPreview_SetWhiteDirectionalLight(g_techLibraryLightX, g_techLibraryLightY, g_techLibraryLightZ);
+		ModelPreview_SetLightDirection(g_techLibraryLightX, g_techLibraryLightY, g_techLibraryLightZ);
 		selectedCraftType = g_shipList[g_techLibrarySelectedShipListIdx].craftType;
 		if (selectedCraftType == CRAFT_SPECIES_TIE_INTERCEPTOR ||
 			selectedCraftType == CRAFT_SPECIES_TIE_BOMBER) {
@@ -133,7 +133,7 @@ int TechLibrary_Update(int frameCounter) {
 							TECH_LIBRARY_VIEWPORT_RIGHT, TECH_LIBRARY_VIEWPORT_BOTTOM);
 	ModelPreview_SetObjectEulerDegrees(g_techLibraryPreviewPitchDeg, g_techLibraryPreviewYawDeg,
 									   g_techLibraryPreviewRollDeg);
-	ModelPreview_SetObjectAngleDDegrees(g_techLibraryPreviewAngleD);
+	ModelPreview_SetObjectUpAxisAngleDegrees(g_techLibraryPreviewAngleD);
 	ModelPreview_RenderViewport(rect.left, rect.top, rect.right - rect.left + 1, rect.bottom - rect.top + 1,
 								NULL);
 	FrontendDraw_RectAssign(&rect, TECH_LIBRARY_TITLE_LEFT, TECH_LIBRARY_TITLE_TOP, TECH_LIBRARY_TITLE_RIGHT,
@@ -267,7 +267,7 @@ int TechLibrary_UpdateModelControls(void) {
 				}
 			}
 		}
-		ModelPreview_SetWhiteDirectionalLight(g_techLibraryLightX, g_techLibraryLightY, g_techLibraryLightZ);
+		ModelPreview_SetLightDirection(g_techLibraryLightX, g_techLibraryLightY, g_techLibraryLightZ);
 	}
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);

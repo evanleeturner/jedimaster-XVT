@@ -2,42 +2,42 @@
 #include <stdio.h>
 
 void XvtBindingsEditor_Init(XvtBindingsEditor* editor) {
-	*editor = (XvtBindingsEditor) { .action_selected = SIZE_MAX, .binding_selected = SIZE_MAX };
+	*editor = (XvtBindingsEditor) { .highlighted_action_row = SIZE_MAX, .highlighted_binding_row = SIZE_MAX };
 }
 
 void XvtBindingsEditor_Select(XvtBindingsEditor* editor, XvtInputAction action, bool open_modal) {
 	editor->selected_action = action;
 	editor->category = XvtInputActions_Category(action);
-	editor->action_selected = SIZE_MAX;
-	editor->binding_selected = SIZE_MAX;
+	editor->highlighted_action_row = SIZE_MAX;
+	editor->highlighted_binding_row = SIZE_MAX;
 	if (open_modal)
 		editor->binding_modal_open = 1;
 }
 
-void XvtBindingsEditor_Category(XvtBindingsEditor* editor, AeronUiContext* ui) {
+void XvtBindingsEditor_CategorySelector(XvtBindingsEditor* editor, AeronUiContext* ui) {
 	static const char* const categories[] = { "Weapons", "Targets", "Throttle", "View",
 											  "Info",    "System",  "Comms" };
 	if (AeronUi_SegmentedSelector(ui, "Action Category", &editor->category, categories,
 								  XVT_INPUT_ACTION_CATEGORY_COUNT)) {
-		editor->action_selected = SIZE_MAX;
+		editor->highlighted_action_row = SIZE_MAX;
 		editor->selected_action = XVT_INPUT_ACTION_NONE;
 	}
 }
 
 void XvtBindingsEditor_Actions(XvtBindingsEditor* editor, AeronUiContext* ui, const AeronUiListItem* items,
 							   size_t count, float trailing_height) {
-	if (editor->action_selected == SIZE_MAX && editor->selected_action != XVT_INPUT_ACTION_NONE)
+	if (editor->highlighted_action_row == SIZE_MAX && editor->selected_action != XVT_INPUT_ACTION_NONE)
 		for (size_t i = 0; i < count; ++i)
 			if (items[i].id == (uint64_t)editor->selected_action) {
-				editor->action_selected = i;
+				editor->highlighted_action_row = i;
 				break;
 			}
 	float height = AeronUi_AvailableHeight(ui) - trailing_height;
 	if (height < 180.0f)
 		height = 180.0f;
-	uint32_t result = AeronUi_ListBox(ui, "Actions", items, count, &editor->action_selected, height);
-	if ((result & AERON_UI_LIST_ACTIVATED) && editor->action_selected < count)
-		XvtBindingsEditor_Select(editor, (XvtInputAction)items[editor->action_selected].id, true);
+	uint32_t result = AeronUi_ListBox(ui, "Actions", items, count, &editor->highlighted_action_row, height);
+	if ((result & AERON_UI_LIST_ACTIVATED) && editor->highlighted_action_row < count)
+		XvtBindingsEditor_Select(editor, (XvtInputAction)items[editor->highlighted_action_row].id, true);
 }
 
 bool XvtBindingsEditor_BeginDetail(XvtBindingsEditor* editor, AeronUiContext* ui) {
@@ -48,13 +48,13 @@ bool XvtBindingsEditor_BeginDetail(XvtBindingsEditor* editor, AeronUiContext* ui
 							  &(AeronUiWindowDesc) { .width_ref = 720.0f, .centered = 1 }) != 0;
 }
 
-void XvtBindingsEditor_List(XvtBindingsEditor* editor, AeronUiContext* ui, const AeronUiListItem* items,
-							size_t count, const char* empty_text) {
+void XvtBindingsEditor_BindingList(XvtBindingsEditor* editor, AeronUiContext* ui,
+								   const AeronUiListItem* items, size_t count, const char* empty_text) {
 	AeronUi_Header(ui, "Current Bindings");
 	if (count)
-		AeronUi_ListBox(ui, "Bindings", items, count, &editor->binding_selected, 180.0f);
+		AeronUi_ListBox(ui, "Bindings", items, count, &editor->highlighted_binding_row, 180.0f);
 	else {
-		editor->binding_selected = SIZE_MAX;
+		editor->highlighted_binding_row = SIZE_MAX;
 		AeronUi_Help(ui, empty_text);
 	}
 }
@@ -67,8 +67,8 @@ void XvtBindingsEditor_EndDetail(XvtBindingsEditor* editor, AeronUiContext* ui) 
 	AeronUi_EndModal(ui);
 }
 
-bool XvtBindingsEditor_Conflict(AeronUiContext* ui, int* open, const char* source, XvtInputAction previous,
-								XvtInputAction replacement) {
+bool XvtBindingsEditor_ConfirmReplace(AeronUiContext* ui, int* open, const char* source,
+									  XvtInputAction previous, XvtInputAction replacement) {
 	if (!AeronUi_BeginModal(ui, "CONTROL ALREADY BOUND", open, NULL))
 		return false;
 	char text[512];

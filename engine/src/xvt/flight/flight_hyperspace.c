@@ -88,7 +88,7 @@ int g_hyperspaceStreakOffsetY[1024] = { 0 };
 // GLOBAL: XVT 0x551C80
 int g_hyperspaceStreakOffsetZ[1024] = { 0 };
 // GLOBAL: XVT 0x552C80
-int g_hyperspaceStreakLength[1024] = { 0 };
+int g_hyperspaceStreakHalfWidth[1024] = { 0 };
 // GLOBAL: XVT 0x553C80
 int g_hyperspaceStreakOffsetX[1024] = { 0 };
 // GLOBAL: XVT 0x554C80
@@ -177,7 +177,7 @@ void FlightHyperspace_RenderTransitionEffect(void) {
 				averageRadius = (offsetX + offsetZ) >> 1;
 			} while (averageRadius < HYPERSPACE_MINIMUM_RADIUS);
 
-			g_hyperspaceStreakLength[streakIndex] = (averageRadius >> (HYPERSPACE_LENGTH_SHIFT - 1)) + 1;
+			g_hyperspaceStreakHalfWidth[streakIndex] = (averageRadius >> (HYPERSPACE_LENGTH_SHIFT - 1)) + 1;
 			if ((rand() & HYPERSPACE_RANDOM_SIGN_MASK) != 0) {
 				g_hyperspaceStreakOffsetX[streakIndex] = offsetX;
 			} else {
@@ -199,7 +199,7 @@ void FlightHyperspace_RenderTransitionEffect(void) {
 
 #ifdef XVT_MODERN
 	XvtRenderCapture_Hyperspace((unsigned)streakCount, g_hyperspaceStreakOffsetX, g_hyperspaceStreakOffsetY,
-								g_hyperspaceStreakOffsetZ, g_hyperspaceStreakLength,
+								g_hyperspaceStreakOffsetZ, g_hyperspaceStreakHalfWidth,
 								g_hyperspaceStreakRollAngle);
 #endif
 	for (streakIndex = 0; streakIndex < streakCount; ++streakIndex) {
@@ -218,7 +218,7 @@ void FlightHyperspace_RenderTransitionEffect(void) {
 		g_objectTable->yaw = 0;
 		g_objectTable->pitch = HYPERSPACE_FORWARD_OFFSET;
 
-		streakLength = g_hyperspaceStreakLength[streakIndex];
+		streakLength = g_hyperspaceStreakHalfWidth[streakIndex];
 		g_hyperspaceStreakQuadVertices[0].x = (float)streakLength;
 		g_hyperspaceStreakQuadVertices[1].x = g_hyperspaceStreakQuadVertices[0].x;
 		g_hyperspaceStreakQuadVertices[2].x = (float)-streakLength;

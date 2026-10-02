@@ -218,9 +218,9 @@ int XvtFlightCheckpoint_Read(const uint8_t* image, size_t size, XvtFlightCheckpo
 	unsigned expected = 0;
 	for (unsigned slot = 0; slot < XvtFlightCheckpoint_Slots(); ++slot)
 		expected += XvtFlightCheckpoint_Shared(slot);
-	view->objects = XvtWire_Get16(header.reference_count);
+	view->object_count = XvtWire_Get16(header.reference_count);
 	if (XvtWire_Get16(header.schema) != XVT_STATE_SCHEMA ||
-		XvtWire_Get16(header.player_count) != XVT_FLIGHT_PLAYERS || view->objects != expected ||
+		XvtWire_Get16(header.player_count) != XVT_FLIGHT_PLAYERS || view->object_count != expected ||
 		XvtWire_Get16(header.integration_count) != expected ||
 		length != fixed + expected * sizeof(XvtObjectMotionWire))
 		return 0;
@@ -269,7 +269,7 @@ void XvtFlightCheckpoint_Restore(const XvtFlightCheckpointView* view) {
 	XvtReferenceMotion_ResetShared();
 	XvtFlightIntegration_ResetShared();
 	XvtPlayerTiming_ResetShared();
-	for (unsigned row = 0; row < view->objects; ++row) {
+	for (unsigned row = 0; row < view->object_count; ++row) {
 		XvtReferenceMotionWire reference;
 		XvtIntegrationWire integration;
 		memcpy(&reference, view->reference + row * sizeof reference, sizeof reference);

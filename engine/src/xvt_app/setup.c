@@ -133,7 +133,7 @@ int XvtSetup_ResolveInstallation(const char* path, char* resolved, size_t resolv
 
 /* Import a selected pilot and its counterpart together. Existing names are
  * checked before either write; collisions require an explicit new basename. */
-static int XvtSetup_ImportPilot(const char* path, const char* destination, char* error, size_t capacity) {
+static int XvtSetup_ImportPilot(const char* path, const char* pilot_name, char* error, size_t capacity) {
 	char source[XVT_PATH_CAPACITY], source_pair[XVT_PATH_CAPACITY];
 	char target[64], target_pair[64];
 	uint8_t* data[2] = { NULL, NULL };
@@ -150,10 +150,10 @@ static int XvtSetup_ImportPilot(const char* path, const char* destination, char*
 		goto done;
 	const char* basename = strrchr(source, '/');
 	basename = basename ? basename + 1 : source;
-	if (destination) {
-		if (!destination[0] || strlen(destination) > 24 || strpbrk(destination, "/\\:.?*"))
+	if (pilot_name) {
+		if (!pilot_name[0] || strlen(pilot_name) > 24 || strpbrk(pilot_name, "/\\:.?*"))
 			goto done;
-		snprintf(target, sizeof(target), "%s%s", destination, extension);
+		snprintf(target, sizeof(target), "%s%s", pilot_name, extension);
 	} else {
 		if (strlen(basename) >= sizeof(target))
 			goto done;
@@ -209,7 +209,7 @@ done:
 XvtSetupResult XvtSetup_Run(const XvtLaunchOptions* options, XvtAppUi* ui, char* error, size_t capacity) {
 	char selected[XVT_PATH_CAPACITY];
 	AeronVfs* vfs = XvtStorage_Vfs();
-	int remember = options->save_config;
+	int save_due = options->save_config;
 	if (!AeronVfs_SetRootOptions(vfs, AERON_VFS_ROOT_USER, AERON_VFS_ROOT_OPTION_CASE_INSENSITIVE_LOOKUP))
 		return XVT_SETUP_ERROR;
 	int loaded = XvtConfig_Load(vfs, error, capacity);
@@ -219,7 +219,7 @@ XvtSetupResult XvtSetup_Run(const XvtLaunchOptions* options, XvtAppUi* ui, char*
 		if (!XvtConfig_ResetToDefaults(error, capacity))
 			return XVT_SETUP_ERROR;
 		loaded = 1;
-		remember = 1;
+		save_due = 1;
 		error[0] = 0;
 	}
 	if (ui) {
@@ -233,7 +233,7 @@ XvtSetupResult XvtSetup_Run(const XvtLaunchOptions* options, XvtAppUi* ui, char*
 		XvtSetupResult result = XvtSetupUi_Run(ui, NULL, 0, error, capacity);
 		if (result != XVT_SETUP_SUCCESS)
 			return result;
-		remember = 1;
+		save_due = 1;
 	}
 	const char* candidate = options->game_data ? options->game_data : XvtConfig_Settings()->game_data;
 	if (strlen(candidate) >= sizeof(selected)) {
@@ -255,7 +255,7 @@ XvtSetupResult XvtSetup_Run(const XvtLaunchOptions* options, XvtAppUi* ui, char*
 			return result;
 		/* The dialog saved the path; a requested legacy config import below
 		 * still needs its own save after applying the imported settings. */
-		remember = options->import_config != NULL;
+		save_due = options->import_config != NULL;
 	}
 	if (!AeronVfs_SetRoot(vfs, AERON_VFS_ROOT_ASSET, selected) ||
 		!AeronVfs_SetRootOptions(vfs, AERON_VFS_ROOT_ASSET, AERON_VFS_ROOT_OPTION_CASE_INSENSITIVE_LOOKUP)) {
@@ -268,7 +268,7 @@ XvtSetupResult XvtSetup_Run(const XvtLaunchOptions* options, XvtAppUi* ui, char*
 	if (options->import_pilot &&
 		!XvtSetup_ImportPilot(options->import_pilot, options->pilot_name, error, capacity))
 		return XVT_SETUP_ERROR;
-	if (remember) {
+	if (save_due) {
 		if (!XvtConfig_SetGameData(selected, 1, error, capacity))
 			return XVT_SETUP_ERROR;
 	}

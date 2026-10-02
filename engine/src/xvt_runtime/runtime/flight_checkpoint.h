@@ -26,7 +26,7 @@ int XvtFlightCheckpoint_Validate(const uint8_t* image, size_t size, size_t* pref
 typedef struct XvtFlightCheckpointView {
 	size_t prefix;
 	int tick;
-	unsigned objects;
+	unsigned object_count;
 	const uint8_t *reference, *integration, *players, *paired;
 	XvtMembershipWire membership;
 } XvtFlightCheckpointView;

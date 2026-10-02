@@ -29,18 +29,18 @@ enum {
 	XVT_CAMPAIGN_IDLE,
 	XVT_CAMPAIGN_SEQUENCE,
 	XVT_CAMPAIGN_MOVIE,
-	XVT_CAMPAIGN_DEBRIEF,
+	XVT_CAMPAIGN_DEBRIEF_MOVIE,
 	XVT_CAMPAIGN_DEBRIEF_ROSTER,
 	XVT_CAMPAIGN_DEBRIEF_RENAME
 };
 
 static struct {
 	int phase;
-	int campaign;
+	int is_campaign;
 	int pending;
 	int packet_type;
 	uint32_t wait_start;
-	char player_info[16];
+	char rating_long_name[16];
 } g_campaign;
 
 int XvtCampaignTask_WaitPacket(int packet_type, int** packet) {
@@ -101,13 +101,14 @@ int XvtCampaignTask_EnterTeams(void) {
 			g_missionSetupDebriefTransition == MISSION_SETUP_DEBRIEF_TRANSITION_ENTER_CURRENT_MISSION ||
 			g_pilotData.missionSequenceActive != 1)
 			return 1;
-		g_campaign.campaign = g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES;
-		if (!g_campaign.campaign && g_pilotData.missionDirectoryId != MISSION_DIRECTORY_COMBAT_ENGAGEMENTS)
+		g_campaign.is_campaign = g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES;
+		if (!g_campaign.is_campaign && g_pilotData.missionDirectoryId != MISSION_DIRECTORY_COMBAT_ENGAGEMENTS)
 			return 1;
 		g_campaign.phase = XVT_CAMPAIGN_SEQUENCE;
 	}
 	if (g_campaign.phase == XVT_CAMPAIGN_SEQUENCE) {
-		result = g_campaign.campaign ? MissionSetup_TryContinueCampaign() : MissionSetup_TryContinueBattle();
+		result =
+			g_campaign.is_campaign ? MissionSetup_TryContinueCampaign() : MissionSetup_TryContinueBattle();
 		if (result == XVT_CAMPAIGN_PENDING) {
 			g_campaign.pending = 1;
 			return result;
@@ -119,7 +120,7 @@ int XvtCampaignTask_EnterTeams(void) {
 			g_remoteBattleRebelVictoryCount = 0;
 			g_remoteBattleImperialVictoryCount = 0;
 		}
-		if (!g_campaign.campaign)
+		if (!g_campaign.is_campaign)
 			return XvtCampaignTask_Finish(1);
 		g_campaign.phase = XVT_CAMPAIGN_MOVIE;
 	}
@@ -147,9 +148,9 @@ int XvtCampaignTask_EnterDebrief(void) {
 			g_pilotData.missionSequenceActive != 1 || !g_pilotData.campaignSequenceState.lastMissionCompleted)
 			g_campaign.phase = XVT_CAMPAIGN_DEBRIEF_ROSTER;
 		else
-			g_campaign.phase = XVT_CAMPAIGN_DEBRIEF;
+			g_campaign.phase = XVT_CAMPAIGN_DEBRIEF_MOVIE;
 	}
-	if (g_campaign.phase == XVT_CAMPAIGN_DEBRIEF) {
+	if (g_campaign.phase == XVT_CAMPAIGN_DEBRIEF_MOVIE) {
 		result = Cutscene_PlayForCurrentMissionPhase(1);
 		if (result == XVT_MOVIE_PENDING) {
 			g_campaign.pending = 1;
@@ -182,11 +183,12 @@ int XvtCampaignTask_EnterDebrief(void) {
 		if (g_pilotData.promotionDelta == PILOT_PROMOTION_NONE ||
 			g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER)
 			return XvtCampaignTask_Finish(1);
-		g_campaign.player_info[0] = (char)(g_pilotData.rating + 1);
-		g_campaign.player_info[1] = 0;
+		g_campaign.rating_long_name[0] = (char)(g_pilotData.rating + 1);
+		g_campaign.rating_long_name[1] = 0;
 		g_campaign.phase = XVT_CAMPAIGN_DEBRIEF_RENAME;
 	}
-	result = Net_SetPlayerNameWithLockGuard(Net_GetLocalPlayerId(), g_campaign.player_info, g_pilotData.name);
+	result =
+		Net_SetPlayerNameWithLockGuard(Net_GetLocalPlayerId(), g_campaign.rating_long_name, g_pilotData.name);
 	if (result == XVT_CAMPAIGN_PENDING) {
 		g_campaign.pending = 1;
 		return result;

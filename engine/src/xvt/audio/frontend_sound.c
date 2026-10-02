@@ -96,7 +96,8 @@ int FrontendSound_LoadSound(const char* fileName, const char* soundName) {
 }
 
 // FUNCTION: XVT 0x4DE390
-int FrontendSound_LoadSoundFile(const char* fileName, const char* soundName, int create3DFlags) {
+int FrontendSound_LoadSoundFile(const char* fileName, const char* soundName,
+								int omitSoftwareAndFrequencyCaps) {
 	FrontendSoundBufferRecord record;
 	int wasBackBufferLocked;
 
@@ -118,7 +119,8 @@ int FrontendSound_LoadSoundFile(const char* fileName, const char* soundName, int
 
 	wasBackBufferLocked = g_frontState.backBufferLocked;
 	FrontendDisplay_UnlockBackBuffer();
-	record.buffer = DirectSound_LoadWaveBuffer(g_frontState.frontendDirectSound, fileName, create3DFlags);
+	record.buffer =
+		DirectSound_LoadWaveBuffer(g_frontState.frontendDirectSound, fileName, omitSoftwareAndFrequencyCaps);
 	if (record.buffer != NULL) {
 		record.buffer->lpVtbl->SetCurrentPosition(record.buffer, 0);
 		strncpy(record.name, soundName, sizeof(record.name));

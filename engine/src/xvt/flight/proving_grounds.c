@@ -154,7 +154,7 @@ void ProvingGrounds_DrawCourseObject(uint16_t objectIndex) {
 		} else {
 			meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshTypeIndex);
 		}
-		if (meshType == MESH_COMPONENT_01_HULL) {
+		if (meshType == MESH_COMPONENT_01_MAIN_HULL) {
 			break;
 		}
 	}
@@ -415,7 +415,7 @@ void ProvingGrounds_StartLevel(uint16_t level) {
 			}
 
 			if (objectIndex == FIRST_CHECKPOINT_OBJECT) {
-				if (meshType == MESH_COMPONENT_01_HULL) {
+				if (meshType == MESH_COMPONENT_01_MAIN_HULL) {
 					g_curCraft->componentHp[modelNodeIndex - 1] = UINT8_MAX;
 				} else {
 					g_curCraft->componentHp[modelNodeIndex - 1] = 0;
@@ -425,7 +425,7 @@ void ProvingGrounds_StartLevel(uint16_t level) {
 			}
 
 			switch (meshType) {
-				case MESH_COMPONENT_01_HULL:
+				case MESH_COMPONENT_01_MAIN_HULL:
 					g_curCraft->componentState[modelNodeIndex - 1] = COMPONENT_DISABLED;
 					break;
 				case MESH_COMPONENT_05_LASR_GUN:
@@ -442,7 +442,7 @@ void ProvingGrounds_StartLevel(uint16_t level) {
 						g_curCraft->meshRotation[modelNodeIndex - 1] = 0;
 					}
 					break;
-				case MESH_COMPONENT_18_HULL:
+				case MESH_COMPONENT_18_MISC_HULL:
 					if (level < HULL_FIRST_ACTIVE_LEVEL) {
 						g_curCraft->componentState[modelNodeIndex - 1] = COMPONENT_DISABLED;
 						g_curCraft->componentHp[modelNodeIndex - 1] = 0;
@@ -566,7 +566,7 @@ void ProvingGrounds_UpdateCourse(void) {
 						g_curCraft->meshRotation[modelNodeIndex - 1] += obstacleAnimSteps[0];
 					}
 					break;
-				case MESH_COMPONENT_18_HULL:
+				case MESH_COMPONENT_18_MISC_HULL:
 					if (g_flightMissionState.provingGroundsLevel >= HULL_FIRST_ANIM_LEVEL) {
 						g_curCraft->meshRotation[modelNodeIndex - 1] += obstacleAnimSteps[2];
 					}

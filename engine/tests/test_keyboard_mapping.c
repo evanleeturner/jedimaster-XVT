@@ -108,24 +108,25 @@ static void AddEvent(int key, int modifiers, int down, int repeat) {
 static void CheckTrigger(void) {
 	memset(&g_input, 0, sizeof g_input);
 	g_input.has_focus = 1;
-	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_Trigger(&g_input, XVT_KEYBOARD_SHORTCUT_SETTINGS), -1);
+	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_FindShortcutPress(&g_input, XVT_KEYBOARD_SHORTCUT_SETTINGS), -1);
 
 	/* A release and a repeat are not fresh presses; the fresh press after them is found. */
 	AddEvent(AERON_KEY_ESCAPE, 0, 0, 0);
 	AddEvent(AERON_KEY_ESCAPE, 0, 1, 1);
-	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_Trigger(&g_input, XVT_KEYBOARD_SHORTCUT_SETTINGS), -1);
+	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_FindShortcutPress(&g_input, XVT_KEYBOARD_SHORTCUT_SETTINGS), -1);
 	AddEvent(KEY_M, AERON_KEY_MOD_CTRL | AERON_KEY_MOD_ALT, 1, 0);
 	AddEvent(AERON_KEY_ESCAPE, AERON_KEY_MOD_SHIFT, 1, 0);
-	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_Trigger(&g_input, XVT_KEYBOARD_SHORTCUT_SETTINGS), AERON_KEY_ESCAPE);
-	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_Trigger(&g_input, XVT_KEYBOARD_SHORTCUT_MOUSE), KEY_M);
-	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_Trigger(&g_input, XVT_KEYBOARD_SHORTCUT_RENDERER), -1);
+	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_FindShortcutPress(&g_input, XVT_KEYBOARD_SHORTCUT_SETTINGS),
+					  AERON_KEY_ESCAPE);
+	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_FindShortcutPress(&g_input, XVT_KEYBOARD_SHORTCUT_MOUSE), KEY_M);
+	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_FindShortcutPress(&g_input, XVT_KEYBOARD_SHORTCUT_RENDERER), -1);
 
 	/* Nothing triggers without focus or after the events overflowed. */
 	g_input.has_focus = 0;
-	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_Trigger(&g_input, XVT_KEYBOARD_SHORTCUT_SETTINGS), -1);
+	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_FindShortcutPress(&g_input, XVT_KEYBOARD_SHORTCUT_SETTINGS), -1);
 	g_input.has_focus = 1;
 	g_input.key_events_overflow = 1;
-	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_Trigger(&g_input, XVT_KEYBOARD_SHORTCUT_SETTINGS), -1);
+	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_FindShortcutPress(&g_input, XVT_KEYBOARD_SHORTCUT_SETTINGS), -1);
 }
 
 static void CheckSourceValid(void) {

@@ -77,8 +77,8 @@ int XvtControllerOptions_FindModel(const XvtControllerOptions* options, const ch
 bool XvtControllerOptions_Validate(const XvtControllerOptions* options, char* error, size_t capacity);
 /* Appends a model for device with a cleared profile; true with nothing added when its GUID is already
  * listed. Fails for a device without a valid GUID or when the list is full. */
-bool XvtControllerOptions_AddModel(XvtControllerOptions* options, const AeronControllerSnapshot* device,
-								   char* error, size_t capacity);
+bool XvtControllerOptions_EnsureModel(XvtControllerOptions* options, const AeronControllerSnapshot* device,
+									  char* error, size_t capacity);
 /* Adds each connected gamepad in input that has no model yet, in GUID order, with the defaults profile,
  * leaving unbound any axis an earlier model already drives. Fails only when a model cannot be added;
  * true for NULL input. */

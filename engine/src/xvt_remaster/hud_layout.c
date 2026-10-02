@@ -42,8 +42,9 @@ static int BindFadedFrames(XvtHudLayout* layout, const XvtCockpitState* state, X
 	binding->first_part = layout->part_count;
 	binding->part_count = beam ? 36 : 11;
 	for (unsigned variant = 0; variant < binding->part_count; ++variant) {
-		unsigned color = beam ? definition->beam_fades[variant % 4] : definition->shield_colors[variant];
-		int fade = beam ? (color == definition->beam_fades[0] ? 0 : (int16_t)element->clip_width)
+		unsigned color =
+			beam ? definition->beam_segment_colors[variant % 4] : definition->shield_colors[variant];
+		int fade = beam ? (color == definition->beam_segment_colors[0] ? 0 : (int16_t)element->clip_width)
 						: (variant ? (int16_t)element->clip_width : -1);
 		if (!AddPart(layout, definition, element->selector + (beam ? variant / 4 : 0), element->color_index,
 					 fade > 0 ? XVT_HUD_PART_INDEXED_FADE : XVT_HUD_PART_MONOCHROME, color, fade))
@@ -68,10 +69,10 @@ static int CompileWeapons(XvtHudLayout* layout, const XvtCockpitState* state) {
 			if (charge->mirrored)
 				charge->step_x = -charge->step_x;
 		}
-		if ((state->view.compact_instruments && (selection_layout->x || selection_layout->y) &&
+		if ((state->view.rebel_fighter && (selection_layout->x || selection_layout->y) &&
 			 !BindFrames(layout, state, XVT_HUD_LASER_SELECTION + slot, base + 11 + slot, 7, -1, 1)) ||
 			!BindFrames(layout, state, XVT_HUD_LASER_READY + slot, base + 53 + slot, 4, -1, 1) ||
-			(state->view.compact_instruments &&
+			(state->view.rebel_fighter &&
 			 !BindFrames(layout, state, XVT_HUD_LASER_LOCK + slot, base + 61 + slot, 3, -1, 1)))
 			return 0;
 	}
@@ -95,7 +96,7 @@ static int CompileSystems(XvtHudLayout* layout, const XvtCockpitState* state) {
 											   XVT_COCKPIT_FEATURE_SHIELD_POWER,
 											   XVT_COCKPIT_FEATURE_BEAM_POWER };
 	for (unsigned gauge = 0; gauge < 4; ++gauge)
-		if ((features & power_features[gauge]) && (gauge != 3 || !state->view.compact_instruments) &&
+		if ((features & power_features[gauge]) && (gauge != 3 || !state->view.rebel_fighter) &&
 			!BindFrames(layout, state, XVT_HUD_ENGINE_POWER + gauge, base + 42 + gauge, 2, 253, 1))
 			return 0;
 	if ((features & XVT_COCKPIT_FEATURE_BEAM) && !BindFadedFrames(layout, state, XVT_HUD_BEAM, base + 51, 1))
@@ -105,10 +106,10 @@ static int CompileSystems(XvtHudLayout* layout, const XvtCockpitState* state) {
 		((features & XVT_COCKPIT_FEATURE_SHIELDS) &&
 		 !BindFrames(layout, state, XVT_HUD_HULL, base + 39, 4, -1, 1)))
 		return 0;
-	if (state->view.compact_instruments && state->definition.layout.elements[45].x &&
+	if (state->view.rebel_fighter && state->definition.layout.elements[45].x &&
 		!BindFrames(layout, state, XVT_HUD_SFOILS, 45, 2, -1, 1))
 		return 0;
-	if (state->view.compact_instruments && (features & XVT_COCKPIT_FEATURE_SHIELDS) &&
+	if (state->view.rebel_fighter && (features & XVT_COCKPIT_FEATURE_SHIELDS) &&
 		(state->definition.layout.elements[51].x || state->definition.layout.elements[51].y) &&
 		!BindFrames(layout, state, XVT_HUD_SHIELD_DISTRIBUTION, 51, 3, -1, 1))
 		return 0;
@@ -119,7 +120,7 @@ static int CompileSystems(XvtHudLayout* layout, const XvtCockpitState* state) {
 	for (unsigned cover = 0; cover < 13; ++cover)
 		if ((features & (1u << cover)) &&
 			!BindFrames(layout, state, XVT_HUD_FEATURE_COVER + cover, base + 69 + cover,
-						state->view.compact_instruments && !base ? 1 : 2, -1, 13))
+						state->view.rebel_fighter && !base ? 1 : 2, -1, 13))
 			return 0;
 	return BindFrames(layout, state, XVT_HUD_TARGET_COVER, base + 69, 1, -1, 1) &&
 		   BindFrames(layout, state, XVT_HUD_TARGET_ALT_COVER, base + 108, 1, -1, 1) &&
@@ -196,7 +197,7 @@ int XvtHudLayout_Update(XvtHudLayoutCache* cache, const XvtCockpitState* state) 
 	key.mirrored = state->view.mirrored;
 	key.viewport = state->view.viewport;
 	key.projection_offset_y = state->view.projection_offset_y;
-	key.compact_instruments = state->view.compact_instruments;
+	key.rebel_fighter = state->view.rebel_fighter;
 	key.laser_slots = state->view.laser_slots;
 	if (!cache->valid || cache->definition_generation != state->definition_generation ||
 		cache->installed_hud_features != state->systems.installed_hud_features ||

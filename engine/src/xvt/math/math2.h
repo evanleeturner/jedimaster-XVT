@@ -14,7 +14,7 @@ unsigned int MATH2_longfraction(unsigned int value, uint16_t fracQ16);
 uint16_t MATH2_ratioQ16(uint16_t numerator, uint16_t denominator);
 unsigned int MATH2_longratioQ16(unsigned int numerator, unsigned int denominator);
 unsigned int MATH2_mphconvert(int16_t speed, uint16_t divisor);
-int16_t MATH2_getradarcoord(int a1, int a2, int a3);
+int16_t MATH2_getradarcoord(int side, int up, int forward);
 
 #ifdef __cplusplus
 }

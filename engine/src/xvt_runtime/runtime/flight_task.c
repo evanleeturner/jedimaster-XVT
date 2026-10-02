@@ -39,7 +39,7 @@ typedef enum XvtFlightPhase {
 static struct {
 	XvtFlightPhase phase;
 	char command[1024];
-	int resources;
+	int resourcesAllocated;
 	int commitResults;
 	int optionsFailed;
 	int result;
@@ -104,10 +104,10 @@ static void XvtFlightTask_ReleaseMission(int quitting) {
 	if (g_flight.missionEntered)
 		Sound_StopAllInstances();
 	if (g_flight.optionsFailed)
-		nullsub_10();
-	if (g_flight.resources) {
+		Sound_EmptyStub();
+	if (g_flight.resourcesAllocated) {
 		FeDiskIo_FreeFlightResources();
-		g_flight.resources = 0;
+		g_flight.resourcesAllocated = 0;
 	}
 	if (g_flight.missionEntered && !quitting && g_preFlightResolutionMode != g_flightResolutionMode)
 		FlightDisplay_ApplyResolutionMode(g_preFlightResolutionMode);
@@ -216,7 +216,7 @@ void XvtFlightTask_Update(void) {
 			g_flight.phase = XVT_FLIGHT_PALETTE;
 			break;
 		case XVT_FLIGHT_PALETTE:
-			g_flight.resources = 1;
+			g_flight.resourcesAllocated = 1;
 			XvtFlightLoading_Palette();
 			g_flight.phase = XVT_FLIGHT_MISSION_SETUP;
 			break;

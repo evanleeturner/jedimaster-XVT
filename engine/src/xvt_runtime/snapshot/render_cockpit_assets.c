@@ -99,7 +99,8 @@ void XvtRenderCockpit_CaptureDefinition(XvtCockpitDefinition* definition) {
 		definition->fonts[tier].line_height = (uint16_t)height;
 		definition->fonts[tier].half_height = (uint16_t)half_height;
 	}
-	memcpy(definition->beam_fades, g_hudBeamSegmentColorByChargeStep, sizeof definition->beam_fades);
+	memcpy(definition->beam_segment_colors, g_hudBeamSegmentColorByChargeStep,
+		   sizeof definition->beam_segment_colors);
 	memcpy(definition->shield_colors, g_hudShieldColors, sizeof definition->shield_colors);
 	for (unsigned index = 0; index < 9; ++index) {
 		if (g_flightResolutionMode == FLIGHT_RESOLUTION_640X480) {

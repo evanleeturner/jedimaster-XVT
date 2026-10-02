@@ -421,7 +421,7 @@ void collide_collisions(void) {
 					if (targetCraft->objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
 						targetCraft->objectKind != CRAFT_OBJECT_KIND_EXPLODING &&
 						targetCraft->identifiedOrderByTeam[g_objectTable[ownerObjIdx].mobj->team] == 0) {
-						maxBoundsExtent = g_modelTypeTable[targetObject->objectType].maxBoundsExtent;
+						maxBoundsExtent = g_objectTypeTable[targetObject->objectType].maxBoundsExtent;
 						if (maxBoundsExtent > INSPECTION_LARGE_MODEL_EXTENT) {
 							maxBoundsExtent >>= 1;
 						}
@@ -1075,8 +1075,8 @@ void collide_InsertMobileObjectProximityCandidate(MobileObjectProximityList* lis
 		collide_roughdistance3d(g_objectTable[ownerObjIdx].world_x - g_objectTable[candidateObjIdx].world_x,
 								g_objectTable[ownerObjIdx].world_y - g_objectTable[candidateObjIdx].world_y,
 								g_objectTable[ownerObjIdx].world_z - g_objectTable[candidateObjIdx].world_z);
-	clearance -= g_modelTypeTable[g_objectTable[ownerObjIdx].objectType].maxBoundsExtent;
-	clearance -= g_modelTypeTable[g_objectTable[candidateObjIdx].objectType].maxBoundsExtent;
+	clearance -= g_objectTypeTable[g_objectTable[ownerObjIdx].objectType].maxBoundsExtent;
+	clearance -= g_objectTypeTable[g_objectTable[candidateObjIdx].objectType].maxBoundsExtent;
 	if (clearance < 0) {
 		contactTicks = 0;
 	} else {
@@ -1455,8 +1455,9 @@ int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx, uint16_t targetObj
 	uint8_t sourceGenus;
 	int maxExtent;
 
-	maxDistance = g_modelTypeTable[g_objectTable[targetObjIdx].objectType].maxBoundsExtent + COLLISION_MARGIN;
-	maxDistance += g_modelTypeTable[g_objectTable[sourceObjIdx].objectType].maxBoundsExtent;
+	maxDistance =
+		g_objectTypeTable[g_objectTable[targetObjIdx].objectType].maxBoundsExtent + COLLISION_MARGIN;
+	maxDistance += g_objectTypeTable[g_objectTable[sourceObjIdx].objectType].maxBoundsExtent;
 	g_approxDist = maxDistance;
 	dx = g_collisionProbeWorldX - g_collisionSweepEndX;
 
@@ -1505,7 +1506,7 @@ int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx, uint16_t targetObj
 
 	target = &g_objectTable[targetObjIdx];
 	targetObjectType = target->objectType;
-	maxExtent = g_modelTypeTable[targetObjectType].maxBoundsExtent;
+	maxExtent = g_objectTypeTable[targetObjectType].maxBoundsExtent;
 	if (target->genusId == CRAFT_GENUS_OTHER_PROJECTILE || target->genusId == CRAFT_GENUS_PLAYER_PROJECTILE) {
 		if (target->objectType != COUNTERMEASURE_PROJECTILE_OBJECT_TYPE)
 			maxExtent >>= 1;
@@ -2331,9 +2332,9 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 	}
 
 	craft = g_objectTable[victimObjIdx].mobj->pCraft;
-	savedRandState = (uint16_t)g_gameRandStateB;
+	savedRandState = (uint16_t)g_gameRandFeedbackState;
 	aiController = &craft->aiController;
-	g_gameRandStateB = aiController->savedRandSeed;
+	g_gameRandFeedbackState = aiController->savedRandSeed;
 
 	if (sourceObjIdx == SYNTHETIC_STARSHIP_SOURCE) {
 		syntheticStarshipDamage = 1;
@@ -2355,7 +2356,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 			unsigned int maxBoundsExtent;
 
 			damageObjectType = g_objectTable[sourceObjIdx].objectType;
-			maxBoundsExtent = (unsigned int)g_modelTypeTable[damageObjectType].maxBoundsExtent;
+			maxBoundsExtent = (unsigned int)g_objectTypeTable[damageObjectType].maxBoundsExtent;
 			if (maxBoundsExtent < MAX_MODEL_BOUNDS_EXTENT)
 				damageAmount = 4 * maxBoundsExtent;
 			else
@@ -2457,8 +2458,8 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 			}
 		}
 		if (g_players[g_localPlayer].objectIndex != victimObjIdx)
-			fsfx_speakorderack(g_localPlayer, victimObjIdx, 3, -1, victimObjIdx,
-							   GENERIC_IMPACT_ORDER_PROBABILITY);
+			fsfx_SpeakWingmanEvent(g_localPlayer, victimObjIdx, 3, -1, victimObjIdx,
+								   GENERIC_IMPACT_ORDER_PROBABILITY);
 	} else {
 		if (g_gameConfig.voiceTacticalOfficerLevel == 2 &&
 			g_objectTable[victimObjIdx].genusId != CRAFT_GENUS_STARFIGHTER && *shieldEnergy != 0 &&
@@ -2661,8 +2662,8 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 					result = 0;
 				}
 				if (g_players[g_localPlayer].objectIndex != victimObjIdx)
-					fsfx_speakorderack(g_localPlayer, victimObjIdx, 3, -1, victimObjIdx,
-									   HULL_IMPACT_ORDER_PROBABILITY);
+					fsfx_SpeakWingmanEvent(g_localPlayer, victimObjIdx, 3, -1, victimObjIdx,
+										   HULL_IMPACT_ORDER_PROBABILITY);
 			} else {
 				uint16_t featureMask = g_subsystemFailureHudMaskByRandomSlot[GameRand() & 0xF];
 
@@ -2700,8 +2701,8 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 				}
 				if (craft->objectKind == CRAFT_OBJECT_KIND_ACTIVE &&
 					g_players[g_localPlayer].objectIndex != victimObjIdx)
-					fsfx_speakorderack(g_localPlayer, victimObjIdx, 5, -1, victimObjIdx,
-									   SYSTEM_FAILURE_ORDER_PROBABILITY);
+					fsfx_SpeakWingmanEvent(g_localPlayer, victimObjIdx, 5, -1, victimObjIdx,
+										   SYSTEM_FAILURE_ORDER_PROBABILITY);
 			}
 
 			if (cockpitStatusDirty != 0 && g_objectTable[victimObjIdx].playerOwnerIdx == g_localPlayer &&
@@ -2759,19 +2760,20 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 		msg_emitCraftMessage(victimObjIdx, craft, 136);
 
 		if (g_objectTable[victimObjIdx].flightGroupIdx == g_players[g_localPlayer].boundFlightGroupIdx) {
-			if (fsfx_speakorderack(g_localPlayer, victimObjIdx, 6, -1, victimObjIdx,
-								   FRIENDLY_LOSS_ORDER_PROBABILITY) == 0)
-				fsfx_speakorderack(g_localPlayer, -1, 16, -1, victimObjIdx, FRIENDLY_LOSS_ORDER_PROBABILITY);
+			if (fsfx_SpeakWingmanEvent(g_localPlayer, victimObjIdx, 6, -1, victimObjIdx,
+									   FRIENDLY_LOSS_ORDER_PROBABILITY) == 0)
+				fsfx_SpeakWingmanEvent(g_localPlayer, -1, 16, -1, victimObjIdx,
+									   FRIENDLY_LOSS_ORDER_PROBABILITY);
 		} else if (attackerSourceObjIdx < g_activeRegionCraftObjectSlotEnd &&
 				   g_players[g_localPlayer].objectIndex != attackerSourceObjIdx &&
 				   g_objectTable[attackerSourceObjIdx].flightGroupIdx ==
 					   g_players[g_localPlayer].boundFlightGroupIdx) {
 			if (g_objectTable[victimObjIdx].genusId == CRAFT_GENUS_STARFIGHTER ||
 				g_objectTable[victimObjIdx].genusId == CRAFT_GENUS_TRANSPORT)
-				fsfx_speakorderack(g_localPlayer, attackerSourceObjIdx, 9, -1, victimObjIdx, UINT16_MAX);
+				fsfx_SpeakWingmanEvent(g_localPlayer, attackerSourceObjIdx, 9, -1, victimObjIdx, UINT16_MAX);
 			else
-				fsfx_speakorderack(g_localPlayer, attackerSourceObjIdx, 10, -1, victimObjIdx,
-								   WINGMAN_KILL_ORDER_PROBABILITY);
+				fsfx_SpeakWingmanEvent(g_localPlayer, attackerSourceObjIdx, 10, -1, victimObjIdx,
+									   WINGMAN_KILL_ORDER_PROBABILITY);
 		}
 
 		if (fsfx_SpeakTacticalOfficerEvent(TACTICAL_VOICE_STATUS, TACTICAL_MSG_DESTROYED, victimObjIdx,
@@ -2821,8 +2823,8 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 					g_objectTable[victimObjIdx].mobj->lifetimeTimer =
 						SIMULATION_TICKS_PER_SECOND * ((GameRand() & 7) + 8);
 				craft->objectKind = CRAFT_OBJECT_KIND_BREAKING_UP;
-			} else if ((g_modelTypeTable[damageObjectType].maxBoundsExtent <= 1095 ||
-						g_modelTypeTable[damageObjectType].familyId != CRAFT_FAMILY_SPACE_CRAFT) &&
+			} else if ((g_objectTypeTable[damageObjectType].maxBoundsExtent <= 1095 ||
+						g_objectTypeTable[damageObjectType].familyId != CRAFT_FAMILY_SPACE_CRAFT) &&
 					   damageObjectType != CONTAINER_CLASS_H_OBJECT_TYPE &&
 					   g_objectTable[victimObjIdx].mobj->speed != 0) {
 				if ((uint16_t)GameRand() < 0x4000u && g_objectTable[victimObjIdx].playerOwnerIdx != -1) {
@@ -2857,7 +2859,8 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 								meshType = ModelMesh_GetObjectTypeMeshType(victimObjectType, componentIndex);
 
 							if (craft->componentState[componentIndex] == 0 &&
-								(meshType == MESH_COMPONENT_02_WING || meshType == MESH_COMPONENT_20_WING)) {
+								(meshType == MESH_COMPONENT_02_WING ||
+								 meshType == MESH_COMPONENT_20_ROTATING_WING)) {
 								if (side != 0) {
 									if (ModelMesh_GetCenterX(victimObjectType, componentIndex) < 0)
 										break;
@@ -2942,8 +2945,8 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 		craft->hullDamage = craft->hullMax - 1;
 	}
 
-	aiController->savedRandSeed = g_gameRandStateB;
-	g_gameRandStateB = (int16_t)savedRandState;
+	aiController->savedRandSeed = g_gameRandFeedbackState;
+	g_gameRandFeedbackState = (int16_t)savedRandState;
 	return (int16_t)result;
 }
 
@@ -3388,7 +3391,7 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx, uint16_t targetObjId
 #ifdef XVT_MODERN
 	/* Gunner obstruction checks can include ACT explosions left in craft slots.
 	 * Relocating their data as a native OPT corrupts the sprite frame table. */
-	if ((g_modelTypeTable[target->objectType].assetFlags & 1) == 0) {
+	if ((g_objectTypeTable[target->objectType].assetFlags & 1) == 0) {
 		g_collideSweepCurrentMeshOrdinal = 0;
 		g_collideCurrentMeshVertsNode = NULL;
 		return 0;
@@ -3414,7 +3417,7 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx, uint16_t targetObjId
 			int componentType;
 			if (targetType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 				if (componentIndex < 0)
-					componentType = MESH_COMPONENT_00_HULL;
+					componentType = MESH_COMPONENT_00_DEFAULT;
 				else {
 					int count = g_objectTypeMeshCache[targetType].meshCount;
 					if (componentIndex >= count)
@@ -3425,7 +3428,7 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx, uint16_t targetObjId
 				componentType = ModelMesh_GetObjectTypeMeshType(targetType, componentIndex);
 			}
 			if (componentType == MESH_COMPONENT_04_LASR_TUR || componentType == MESH_COMPONENT_05_LASR_GUN ||
-				componentType == MESH_COMPONENT_21_LASR_TUR ||
+				componentType == MESH_COMPONENT_21_ROTATING_LASR_TUR ||
 				(g_objectTable[targetObjIdx].objectType == SUPER_STAR_DESTROYER_OBJECT_TYPE &&
 				 g_collideSweepCurrentMeshOrdinal - g_turretFireHullMeshOrdinal == 1))
 				continue;
@@ -3525,9 +3528,9 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject* object, OptNode* node) 
 
 		switch (node->nodeType) {
 			case OPT_FACEDATA:
-			case OPT_FACEDATA_15:
-			case OPT_FACEDATA_16:
-			case OPT_FACEDATA_17:
+			case OPT_FACEDATA_QUAD_MESH:
+			case OPT_FACEDATA_FACE_SET:
+			case OPT_FACEDATA_TRIANGLE_STRIP_SET:
 				faceData = (OptPackedFaceData*)node->payload;
 				face = faceData->records;
 				faceNormal = (const OptVector*)&faceData->records[node->payloadCount];
@@ -3829,7 +3832,7 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx) {
 	int meshCount;
 	int localSide;
 	int localForward;
-	int sourceBoundsExtent = g_modelTypeTable[source->objectType].maxBoundsExtent;
+	int sourceBoundsExtent = g_objectTypeTable[source->objectType].maxBoundsExtent;
 	int victimObjectIndex = victimObjIdx;
 	int deltaX = g_objectTable[victimObjectIndex].world_x - source->world_x;
 	int deltaY = g_objectTable[victimObjectIndex].world_y - source->world_y;
@@ -3958,7 +3961,7 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx) {
 // FUNCTION: XVT 0x4A8CC0
 void collide_ApplyHostileProximityWeaponDisruption(int ownerObjIdx, int hostileObjIdx) {
 	ObjectRecord* hostile = &g_objectTable[hostileObjIdx];
-	int hostileBoundsExtent = g_modelTypeTable[hostile->objectType].maxBoundsExtent;
+	int hostileBoundsExtent = g_objectTypeTable[hostile->objectType].maxBoundsExtent;
 	int deltaX = g_objectTable[ownerObjIdx].world_x - hostile->world_x;
 	int deltaY = g_objectTable[ownerObjIdx].world_y - hostile->world_y;
 	int deltaZ = g_objectTable[ownerObjIdx].world_z - hostile->world_z;
@@ -4040,7 +4043,7 @@ void collide_ApplyHostileProximityWeaponDisruption(int ownerObjIdx, int hostileO
 					MeshComponentType meshType;
 					if (objectType < CRAFT_SPECIES_SAT_4) {
 						if (meshIndex < 0)
-							meshType = MESH_COMPONENT_00_HULL;
+							meshType = MESH_COMPONENT_00_DEFAULT;
 						else {
 							int meshTypeIndex = meshIndex;
 							if (meshIndex >= g_objectTypeMeshCache[objectType].meshCount)

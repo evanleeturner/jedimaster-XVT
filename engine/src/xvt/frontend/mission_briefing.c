@@ -143,8 +143,8 @@ int MissionBriefing_Update(int frameCounter) {
 		ModelPreview_LoadModel(g_shipList[g_shipTypeToShipListIndex[craftType]].modelFileName);
 		ModelPreview_SetNodeSwitchIndex(
 			g_frontendMission.flightGroups[g_missionSetupSelectedFlightGroupIndex].markings);
-		ModelPreview_SetWhiteDirectionalLight(-1, 0, 1);
-		ModelPreview_SetObjectAngleDDegrees(0.0f);
+		ModelPreview_SetLightDirection(-1, 0, 1);
+		ModelPreview_SetObjectUpAxisAngleDegrees(0.0f);
 
 		if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
 			g_frontendQuickStartLaunchFlag == 1) {
@@ -377,7 +377,7 @@ int MissionBriefing_Update(int frameCounter) {
 			if (g_gameConfig.craftSelection == CRAFT_SELECTION_HOST_ONLY && Net_IsHost() == 0) {
 				craftType = MissionSetup_GetCraftType(-1);
 				ModelPreview_LoadModel(g_shipList[g_shipTypeToShipListIndex[craftType]].modelFileName);
-				ModelPreview_SetWhiteDirectionalLight(-1, 0, 1);
+				ModelPreview_SetLightDirection(-1, 0, 1);
 			}
 		} else if (packetType == PACKET_COUNTDOWN) {
 			packetCountdownMs = g_frontendNetPacketArg0;

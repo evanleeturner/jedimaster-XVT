@@ -44,7 +44,7 @@ int Craft_GetObjectMaxShield(uint16_t objIdx) {
 }
 
 // FUNCTION: XVT 0x4269E0
-ModelIndex GetModelIndexFromType(ObjectTypeId objectType) { return g_modelTypeTable[objectType].modelIndex; }
+ModelIndex GetModelIndexFromType(ObjectTypeId objectType) { return g_objectTypeTable[objectType].modelIndex; }
 
 // FUNCTION: XVT 0x426A00
 int BuildCraftTechStats(CraftTechStats* stats) {
@@ -57,7 +57,7 @@ int BuildCraftTechStats(CraftTechStats* stats) {
 	int groupIndex;
 	uint8_t weaponType;
 
-	stats->genusId = g_modelTypeTable[stats->craftType].genusId;
+	stats->genusId = g_objectTypeTable[stats->craftType].genusId;
 	modelIndex = GetModelIndexFromType((unsigned int)stats->craftType);
 	if (modelIndex == MODEL_INDEX_NONE) {
 		return 0;
@@ -110,7 +110,7 @@ int BuildCraftTechStats(CraftTechStats* stats) {
 	stats->warheadRating = 0;
 	do {
 		if (g_modelDefs[modelIndex].warheadLauncherType[groupIndex] != 0) {
-			stats->warheadRating += g_modelDefs[modelIndex].warheadLauncherValue[groupIndex] *
+			stats->warheadRating += g_modelDefs[modelIndex].warheadLauncherCapacity[groupIndex] *
 									g_modelDefs[modelIndex].warheadLauncherSlotCount[groupIndex];
 		}
 		++groupIndex;
@@ -291,7 +291,7 @@ int Craft_IsSelectableDamageComponentMesh(int objectType, int meshIndex) {
 	adjustedMeshIndex = meshIndex;
 	if (objectType < 73) {
 		if (meshIndex < 0) {
-			meshType = MESH_COMPONENT_00_HULL;
+			meshType = MESH_COMPONENT_00_DEFAULT;
 		} else {
 			meshCount = g_objectTypeMeshCache[objectType].meshCount;
 			if (meshCount <= meshIndex) {
@@ -302,14 +302,14 @@ int Craft_IsSelectableDamageComponentMesh(int objectType, int meshIndex) {
 	} else {
 		meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshIndex);
 	}
-	if (meshType == MESH_COMPONENT_18_HULL || meshType == MESH_COMPONENT_19_ANTENNA) {
+	if (meshType == MESH_COMPONENT_18_MISC_HULL || meshType == MESH_COMPONENT_19_ANTENNA) {
 		return 0;
 	}
 	targetId = ModelMesh_GetTargetId(objectType, meshIndex);
 	if (targetId == 0) {
 		return 1;
 	}
-	if (targetId == 1 && meshType != MESH_COMPONENT_01_HULL && meshType != MESH_COMPONENT_03_FUSELAGE) {
+	if (targetId == 1 && meshType != MESH_COMPONENT_01_MAIN_HULL && meshType != MESH_COMPONENT_03_FUSELAGE) {
 		return 1;
 	}
 	if (objectType < 73) {
@@ -323,7 +323,7 @@ int Craft_IsSelectableDamageComponentMesh(int objectType, int meshIndex) {
 			adjustedCandidateIndex = candidateMeshIndex;
 			if (objectType < 73) {
 				if (candidateMeshIndex < 0) {
-					candidateMeshType = MESH_COMPONENT_00_HULL;
+					candidateMeshType = MESH_COMPONENT_00_DEFAULT;
 				} else {
 					candidateMeshCount = g_objectTypeMeshCache[objectType].meshCount;
 					if (candidateMeshCount <= candidateMeshIndex) {
@@ -369,7 +369,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 		objectType = g_objectTable[victimObjIdx].objectType;
 		if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (adjustedIndex < 0)
-				meshType = MESH_COMPONENT_00_HULL;
+				meshType = MESH_COMPONENT_00_DEFAULT;
 			else {
 				meshCount = g_objectTypeMeshCache[objectType].meshCount;
 				if (meshCount <= meshIndex)
@@ -391,7 +391,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 		int objectType = g_objectTable[victimObjIdx].objectType;
 		if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (adjustedIndex < 0)
-				meshType = MESH_COMPONENT_00_HULL;
+				meshType = MESH_COMPONENT_00_DEFAULT;
 			else {
 				meshCount = g_objectTypeMeshCache[objectType].meshCount;
 				if (meshCount <= meshIndex)
@@ -415,7 +415,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 				objectType = g_objectTable[victimObjIdx].objectType;
 				if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 					if (candidateIndex < 0)
-						meshType = MESH_COMPONENT_00_HULL;
+						meshType = MESH_COMPONENT_00_DEFAULT;
 					else {
 						int candidateMeshCount = g_objectTypeMeshCache[objectType].meshCount;
 						if (candidateMeshCount <= candidateIndex)
@@ -456,7 +456,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 			int objectType = g_objectTable[victimObjIdx].objectType;
 			if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 				if (adjustedIndex < 0)
-					meshType = MESH_COMPONENT_00_HULL;
+					meshType = MESH_COMPONENT_00_DEFAULT;
 				else {
 					if (g_objectTypeMeshCache[objectType].meshCount <= meshIndex)
 						adjustedIndex = g_objectTypeMeshCache[objectType].meshCount - 1;
@@ -481,7 +481,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 					objectType = g_objectTable[victimObjIdx].objectType;
 					if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 						if (candidateIndex < 0)
-							meshType = MESH_COMPONENT_00_HULL;
+							meshType = MESH_COMPONENT_00_DEFAULT;
 						else {
 							int candidateMeshCount = g_objectTypeMeshCache[objectType].meshCount;
 							if (candidateMeshCount <= candidateIndex)
@@ -607,7 +607,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 				int objectType = g_objectTable[victimIdx].objectType;
 				if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 					if (adjustedIndex < 0)
-						meshType = MESH_COMPONENT_00_HULL;
+						meshType = MESH_COMPONENT_00_DEFAULT;
 					else {
 						meshCount = g_objectTypeMeshCache[objectType].meshCount;
 						if (meshCount <= meshIndex)
@@ -620,21 +620,21 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 				switch (meshType) {
 					case MESH_COMPONENT_04_LASR_TUR:
 					case MESH_COMPONENT_05_LASR_GUN:
-					case MESH_COMPONENT_21_LASR_TUR:
-						fsfx_speakorderack(g_localPlayer, -1, 23, 2, victimObjIdx, 0x4000);
+					case MESH_COMPONENT_21_ROTATING_LASR_TUR:
+						fsfx_SpeakWingmanEvent(g_localPlayer, -1, 23, 2, victimObjIdx, 0x4000);
 						break;
 					case MESH_COMPONENT_08_SHLD_GEN:
-						fsfx_speakorderack(g_localPlayer, -1, 23, 3, victimObjIdx, UINT16_MAX);
+						fsfx_SpeakWingmanEvent(g_localPlayer, -1, 23, 3, victimObjIdx, UINT16_MAX);
 						break;
 					case MESH_COMPONENT_10_WHEAD_LN:
 					case MESH_COMPONENT_22_WHEAD_LN:
-						fsfx_speakorderack(g_localPlayer, -1, 23, 1, victimObjIdx, UINT16_MAX);
+						fsfx_SpeakWingmanEvent(g_localPlayer, -1, 23, 1, victimObjIdx, UINT16_MAX);
 						break;
 					case MESH_COMPONENT_11_COMM_SYS:
 					case MESH_COMPONENT_12_BEAM_SYS:
 					case MESH_COMPONENT_23_COMM_SYS:
 					case MESH_COMPONENT_24_BEAM_SYS:
-						fsfx_speakorderack(g_localPlayer, -1, 23, 4, victimObjIdx, UINT16_MAX);
+						fsfx_SpeakWingmanEvent(g_localPlayer, -1, 23, 4, victimObjIdx, UINT16_MAX);
 						break;
 					default:
 						break;
@@ -682,7 +682,7 @@ void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx, int16_t forceMainEx
 		int meshType;
 		if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (lookupIndex < 0)
-				meshType = MESH_COMPONENT_00_HULL;
+				meshType = MESH_COMPONENT_00_DEFAULT;
 			else {
 				int cachedMeshCount = g_objectTypeMeshCache[objectType].meshCount;
 				if (lookupIndex >= cachedMeshCount)
@@ -692,7 +692,7 @@ void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx, int16_t forceMainEx
 		} else {
 			meshType = ModelMesh_GetObjectTypeMeshType(objectType, lookupIndex);
 		}
-		if (meshType == MESH_COMPONENT_01_HULL)
+		if (meshType == MESH_COMPONENT_01_MAIN_HULL)
 			hullMeshes[hullCount++] = (uint8_t)meshIndex;
 		if (hullCount == MAX_HULL_MESHES)
 			break;
@@ -711,7 +711,7 @@ void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx, int16_t forceMainEx
 		for (clearedSlots = 0; clearedSlots < MAIN_EXPLOSION_SLOT_COUNT; ++clearedSlots)
 			g_objectTable[explosionSlot++].objectType = 0;
 		mainMesh = hullMeshes[0];
-		mainExtent = g_modelTypeTable[objectType].maxBoundsExtent;
+		mainExtent = g_objectTypeTable[objectType].maxBoundsExtent;
 		Craft_SpawnExplosionObjectAtMesh(object, mainMesh, mainExtent, 0);
 		fsfx_PlaySound(FLIGHT_SOUND_LARGE_EXPLOSION, objectIdx, g_localPlayer);
 	} else {
@@ -719,7 +719,7 @@ void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx, int16_t forceMainEx
 		uint8_t selectedMesh = hullMeshes[randomValue % hullCount];
 		uint8_t componentHp = g_curCraft->componentHp[selectedMesh];
 		if (componentHp != 0) {
-			int explosionSize = g_modelTypeTable[objectType].maxBoundsExtent >> 4;
+			int explosionSize = g_objectTypeTable[objectType].maxBoundsExtent >> 4;
 			uint16_t explosionIdx = Craft_SpawnExplosionObjectAtMesh(object, selectedMesh, explosionSize, 1);
 			if (explosionIdx != UINT16_MAX)
 				fsfx_PlaySound((GameRand2() & 3) + FLIGHT_SOUND_SMALL_EXPLOSION_FIRST, explosionIdx,

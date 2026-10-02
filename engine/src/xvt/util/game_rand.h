@@ -8,8 +8,8 @@
 extern "C" {
 #endif
 
-extern int16_t g_gameRandStateA;
-extern int16_t g_gameRandStateB;
+extern int16_t g_gameRandValueState;
+extern int16_t g_gameRandFeedbackState;
 extern uint16_t g_gameRand2ValueState;
 extern uint16_t g_gameRand2FeedbackState;
 

@@ -73,7 +73,7 @@ XvtFlightClock XvtFlightTiming_EnterReference(void) {
 
 void XvtFlightTiming_RestoreClock(XvtFlightClock saved) {
 	g_elapsedTicks = saved.elapsed;
-	g_simStepsPerSecond = saved.scale;
+	g_simStepsPerSecond = saved.steps_per_second;
 }
 
 void XvtFlightTiming_AnimationEvent(void) {

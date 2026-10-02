@@ -14,17 +14,17 @@ void XvtKeyboardSettings_CancelCapture(XvtKeyboardSettings* settings, AeronUiCon
 	settings->conflict_open = settings->restore_open = 0;
 }
 
-static void Changed(XvtKeyboardSettings* settings) {
+static void XvtKeyboardSettings_RefreshDraftState(XvtKeyboardSettings* settings) {
 	XvtKeyboardMapping_Sort(&settings->draft);
 	settings->dirty =
 		settings->restore_defaults || !XvtKeyboardMapping_Equal(&settings->original, &settings->draft);
 	settings->restore_defaults = false;
-	settings->editor.binding_selected = SIZE_MAX;
+	settings->editor.highlighted_binding_row = SIZE_MAX;
 	settings->error[0] = 0;
 }
 
-static bool Captured(XvtKeyboardSettings* settings, AeronUiContext* ui, const char* label,
-					 const char* display, AeronKeyChord* chord) {
+static bool XvtKeyboardSettings_CaptureChord(XvtKeyboardSettings* settings, AeronUiContext* ui,
+											 const char* label, const char* display, AeronKeyChord* chord) {
 	if (AeronUi_KeyboardCapture(ui, label, display, chord) != AERON_UI_KEYBOARD_CAPTURE_CAPTURED)
 		return false;
 	if (XvtKeyboardMapping_Shortcut(*chord) != XVT_KEYBOARD_SHORTCUT_NONE) {
@@ -48,9 +48,9 @@ static void AddBinding(XvtKeyboardSettings* settings, AeronKeyChord source) {
 			size_t position = 0;
 			for (size_t i = 0; i < existing; ++i)
 				position += settings->draft.bindings[i].action == action;
-			settings->editor.binding_selected = position;
+			settings->editor.highlighted_binding_row = position;
 		} else {
-			settings->pending = source;
+			settings->pending_chord = source;
 			settings->conflicting_action = action;
 			settings->conflict_open = 1;
 		}
@@ -62,17 +62,17 @@ static void AddBinding(XvtKeyboardSettings* settings, AeronKeyChord source) {
 	}
 	settings->draft.bindings[settings->draft.count++] =
 		(XvtKeyboardBinding) { source, settings->editor.selected_action };
-	Changed(settings);
+	XvtKeyboardSettings_RefreshDraftState(settings);
 }
 
-static void DescribeAction(const XvtKeyboardBindings* profile, XvtInputAction action, char* text,
+static void DescribeAction(const XvtKeyboardBindings* bindings, XvtInputAction action, char* text,
 						   size_t capacity) {
 	text[0] = 0;
-	for (size_t i = 0; i < profile->count; ++i) {
-		if (profile->bindings[i].action != action)
+	for (size_t i = 0; i < bindings->count; ++i) {
+		if (bindings->bindings[i].action != action)
 			continue;
 		char label[128];
-		XvtKeyboardMapping_FormatSource(label, sizeof label, profile->bindings[i].source);
+		XvtKeyboardMapping_FormatSource(label, sizeof label, bindings->bindings[i].source);
 		size_t length = strlen(text);
 		int written = snprintf(text + length, capacity - length, "%s%s", length ? "   " : "", label);
 		if (written < 0 || (size_t)written >= capacity - length)
@@ -86,9 +86,9 @@ void XvtKeyboardSettings_Draw(XvtKeyboardSettings* settings, AeronUiContext* ui)
 	AeronUi_Help(ui, "Flight and map controls share the original commands. Changing a binding changes both "
 					 "uses shown in its name. Chat typing and navigation use the standard keys. Escape opens "
 					 "settings; Tab switches renderers.");
-	XvtBindingsEditor_Category(&settings->editor, ui);
+	XvtBindingsEditor_CategorySelector(&settings->editor, ui);
 	AeronKeyChord source;
-	if (Captured(settings, ui, "Find Binding...", "Press to identify", &source)) {
+	if (XvtKeyboardSettings_CaptureChord(settings, ui, "Find Binding...", "Press to identify", &source)) {
 		size_t index = XvtKeyboardMapping_Find(&settings->draft, source);
 		if (index == SIZE_MAX)
 			snprintf(settings->error, sizeof settings->error, "This key combination is not bound.");
@@ -124,7 +124,7 @@ void XvtKeyboardSettings_Draw(XvtKeyboardSettings* settings, AeronUiContext* ui)
 	}
 }
 
-static void Detail(XvtKeyboardSettings* settings, AeronUiContext* ui) {
+static void XvtKeyboardSettings_DetailModal(XvtKeyboardSettings* settings, AeronUiContext* ui) {
 	if (!XvtBindingsEditor_BeginDetail(&settings->editor, ui))
 		return;
 	AeronUiListItem items[XVT_KEYBOARD_BINDING_CAP];
@@ -138,14 +138,16 @@ static void Detail(XvtKeyboardSettings* settings, AeronUiContext* ui) {
 		items[count] = (AeronUiListItem) { .id = i, .label = labels[count] };
 		++count;
 	}
-	XvtBindingsEditor_List(&settings->editor, ui, items, count, "This action has no keyboard binding.");
-	if (settings->editor.binding_selected < count && XvtBindingsEditor_RemoveButton(ui)) {
-		XvtKeyboardMapping_Remove(&settings->draft, (size_t)items[settings->editor.binding_selected].id);
-		Changed(settings);
+	XvtBindingsEditor_BindingList(&settings->editor, ui, items, count,
+								  "This action has no keyboard binding.");
+	if (settings->editor.highlighted_binding_row < count && XvtBindingsEditor_RemoveButton(ui)) {
+		XvtKeyboardMapping_Remove(&settings->draft,
+								  (size_t)items[settings->editor.highlighted_binding_row].id);
+		XvtKeyboardSettings_RefreshDraftState(settings);
 	}
 	AeronUi_Separator(ui);
 	AeronKeyChord source;
-	if (Captured(settings, ui, "Add Binding...", "Press to add", &source))
+	if (XvtKeyboardSettings_CaptureChord(settings, ui, "Add Binding...", "Press to add", &source))
 		AddBinding(settings, source);
 	if (settings->error[0])
 		AeronUi_Error(ui, settings->error);
@@ -174,19 +176,20 @@ static void XvtKeyboardSettings_RestoreModal(XvtKeyboardSettings* settings, Aero
 void XvtKeyboardSettings_DrawModals(XvtKeyboardSettings* settings, AeronUiContext* ui) {
 	if (settings->conflict_open) {
 		char label[128];
-		XvtKeyboardMapping_FormatSource(label, sizeof label, settings->pending);
-		if (XvtBindingsEditor_Conflict(ui, &settings->conflict_open, label, settings->conflicting_action,
-									   settings->editor.selected_action)) {
-			size_t existing = XvtKeyboardMapping_Find(&settings->draft, settings->pending);
+		XvtKeyboardMapping_FormatSource(label, sizeof label, settings->pending_chord);
+		if (XvtBindingsEditor_ConfirmReplace(ui, &settings->conflict_open, label,
+											 settings->conflicting_action,
+											 settings->editor.selected_action)) {
+			size_t existing = XvtKeyboardMapping_Find(&settings->draft, settings->pending_chord);
 			if (existing != SIZE_MAX) {
 				settings->draft.bindings[existing].action = settings->editor.selected_action;
-				Changed(settings);
+				XvtKeyboardSettings_RefreshDraftState(settings);
 			}
 		}
 	} else if (settings->restore_open) {
 		XvtKeyboardSettings_RestoreModal(settings, ui);
 	} else {
-		Detail(settings, ui);
+		XvtKeyboardSettings_DetailModal(settings, ui);
 	}
 }
 

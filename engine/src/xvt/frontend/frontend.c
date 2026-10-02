@@ -266,7 +266,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 			Keyboard_DiscardChar();
 		}
 #ifdef XVT_MODERN
-		actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_COMMON, 1, actionTriggered);
+		actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 1, actionTriggered);
 #endif
 		if (actionTriggered != 0) {
 			if (g_frontendGameSessionInProgress != 0) {
@@ -492,7 +492,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 				FrontendButton_HandleSpriteButton(&rect, NULL, "joinindown", g_frontendScratchBuffer,
 												  BUTTON_FONT_SIZE, 0, JOIN_HOVER_SLOT, "buttonsound");
 #ifdef XVT_MODERN
-			actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_COMMON, 2, actionTriggered);
+			actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 2, actionTriggered);
 #endif
 			if (actionTriggered != 0) {
 				if (g_frontendGameSessionInProgress != 0) {
@@ -624,7 +624,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 					FrontendButton_HandleSpriteButton(&rect, NULL, "creategamedown", g_frontendScratchBuffer,
 													  BUTTON_FONT_SIZE, 0, HOST_HOVER_SLOT, "buttonsound");
 #ifdef XVT_MODERN
-				actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_COMMON, 3, actionTriggered);
+				actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 3, actionTriggered);
 #endif
 				if (actionTriggered != 0) {
 					if (g_frontendGameSessionInProgress != 0) {
@@ -728,7 +728,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 					&rect, "NULL", "flysolodown", FrontendString_Get(FRONTSTR_002_FLY_SOLO), BUTTON_FONT_SIZE,
 					0, SOLO_HOVER_SLOT, "buttonsound");
 #ifdef XVT_MODERN
-				actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_COMMON, 4, actionTriggered);
+				actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 4, actionTriggered);
 #endif
 				if (actionTriggered != 0) {
 					if (g_frontendGameSessionInProgress != 0 &&
@@ -839,7 +839,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 				&rect, NULL, "pilotregdown", FrontendString_Get(FRONTSTR_000_PILOT_RECORDS), BUTTON_FONT_SIZE,
 				0, PILOT_HOVER_SLOT, "buttonsound");
 #ifdef XVT_MODERN
-			actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_COMMON, 5, actionTriggered);
+			actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 5, actionTriggered);
 #endif
 			if (actionTriggered != 0) {
 				if (g_frontendGameSessionInProgress != 0) {
@@ -935,7 +935,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 
 	FrontendButton_DisableOverlayText();
 #ifdef XVT_MODERN
-	XvtFrontendAction_Finish(XVT_ACTION_COMMON);
+	XvtFrontendAction_Finish(XVT_ACTION_OWNER_COMMON);
 #endif
 	return 0;
 }

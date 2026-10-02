@@ -1452,7 +1452,7 @@ void Hud_DrawRadarBlips(void) {
 	for (objectIdx = g_activeRegionObjectSlotStart; objectIdx < g_activeRegionCraftObjectSlotEnd;
 		 ++objectIdx) {
 		ObjectRecord* object = &g_objectTable[objectIdx];
-		if (objectIdx != playerObjectIdx && (g_modelTypeTable[object->objectType].behaviorFlags & 1) != 0) {
+		if (objectIdx != playerObjectIdx && (g_objectTypeTable[object->objectType].behaviorFlags & 1) != 0) {
 			CraftData* craft = object->mobj->pCraft;
 			if (g_players[g_localPlayer].currentTargetObjectIdx == objectIdx ||
 				(!Object_HasActiveDecoyBeam((uint16_t)objectIdx) &&
@@ -1462,12 +1462,12 @@ void Hud_DrawRadarBlips(void) {
 		}
 	}
 	for (objectIdx = g_projectileObjectSlotStart; objectIdx < g_projectileObjectSlotEnd; ++objectIdx) {
-		if ((g_modelTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0)
+		if ((g_objectTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0)
 			Hud_AddBlipToRadar((int16_t)objectIdx);
 	}
 	for (objectIdx = g_regionMainObjectSlotEnd;
 		 objectIdx < g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount; ++objectIdx) {
-		if ((g_modelTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0)
+		if ((g_objectTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0)
 			Hud_AddBlipToRadar((int16_t)objectIdx);
 	}
 
@@ -5949,7 +5949,7 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 			object = &g_objectTable[objectTableIndex];
 			objectType = g_objectTable[objectTableIndex].objectType;
 			if (objectType != 0) {
-				g_currentObjectBoundsExtent = g_modelTypeTable[objectType].maxBoundsExtent;
+				g_currentObjectBoundsExtent = g_objectTypeTable[objectType].maxBoundsExtent;
 				genusId = object->genusId;
 				if (genusId >= CRAFT_GENUS_PLAYER_PROJECTILE) {
 					if (object->genusId <= CRAFT_GENUS_OTHER_PROJECTILE) {
@@ -6162,7 +6162,7 @@ void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale, int playerId
 			maxExtent = (int)((unsigned int)(largestA + largestB) >> 1)
 						<< g_modelDefs[modelIndex].boundSizeShift;
 		} else {
-			maxExtent = g_modelTypeTable[target->objectType].maxBoundsExtent;
+			maxExtent = g_objectTypeTable[target->objectType].maxBoundsExtent;
 		}
 	}
 	if (useHudLayoutScale != 0) {

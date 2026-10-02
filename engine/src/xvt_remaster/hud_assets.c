@@ -155,8 +155,8 @@ static int DecodePart(const XvtOriginal2d* source, const XvtHudPartRequest* requ
 	return 1;
 }
 
-static const AeronIndexedFrame* FindDecodedPart(DecodedPart* decoded, unsigned* count,
-												const XvtHudPartRequest* request) {
+static const AeronIndexedFrame* FindOrDecodePart(DecodedPart* decoded, unsigned* count,
+												 const XvtHudPartRequest* request) {
 	unsigned unshifted = request->color_mode != XVT_HUD_PART_ORIGINAL;
 	for (unsigned index = 0; index < *count; ++index)
 		if (decoded[index].source.asset_id == request->source.asset_id &&
@@ -207,7 +207,7 @@ static int BuildParts(AeronCommandBuffer* cmd, XvtHudAssetSet* set,
 			binding->atlas_frame = set->bindings[previous].atlas_frame;
 			continue;
 		}
-		const AeronIndexedFrame* bitmap = FindDecodedPart(decoded, &decoded_count, request);
+		const AeronIndexedFrame* bitmap = FindOrDecodePart(decoded, &decoded_count, request);
 		const XvtOriginal2d* source = XvtRemasterAssets_FindDecodedImage(request->source.asset_id);
 		if (!bitmap) {
 			ok = 0;
@@ -325,17 +325,17 @@ int XvtHudAssets_HasResources(uint64_t generation) {
 static int CompileLoadedView(const XvtCockpitResources* resources, unsigned view, XvtCockpitState* state,
 							 XvtHudLayout* layout) {
 	unsigned owner = view;
-	unsigned enabled = resources->definition.layout.descriptors[view].enabled;
-	if (enabled >= 0xc0)
-		owner = enabled - 0xc0;
-	else if (enabled >= 0x80)
-		owner = enabled - 0x80;
+	unsigned resource_ref = resources->definition.layout.descriptors[view].enabled;
+	if (resource_ref >= 0xc0)
+		owner = resource_ref - 0xc0;
+	else if (resource_ref >= 0x80)
+		owner = resource_ref - 0x80;
 	if (owner >= 28)
 		return 0;
 	state->view = resources->view;
 	state->view.hud_state = (uint16_t)view;
 	state->view.resource_descriptor = (uint16_t)owner;
-	state->view.mirrored = enabled >= 0xc0;
+	state->view.mirrored = resource_ref >= 0xc0;
 	state->view.instrument_base = view == HUD_VIEW_HUD_ONLY     ? HUD_ONLY_VIEW_INSTRUMENT_BASE_INDEX
 								  : view == HUD_VIEW_CRAFT_LIST ? HUD_CRAFT_LIST_INSTRUMENT_BASE_INDEX
 																: HUD_COCKPIT_INSTRUMENT_BASE_INDEX;

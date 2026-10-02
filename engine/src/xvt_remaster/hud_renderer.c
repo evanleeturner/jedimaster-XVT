@@ -66,7 +66,7 @@ static HudPreparationKey MakePreparationKey(const XvtCockpitState* state, const 
 		key.markers[index].object = marker->object;
 		key.markers[index].component = marker->component;
 		key.markers[index].color_index = marker->color_index;
-		key.markers[index].layer = marker->layer;
+		key.markers[index].scope = marker->scope;
 		key.markers[index].extent = marker->extent;
 		memcpy(key.markers[index].world_pos, marker->world_pos, sizeof marker->world_pos);
 	}

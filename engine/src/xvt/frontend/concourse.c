@@ -147,14 +147,14 @@ int Concourse_Update(int frameCounter) {
 #ifdef XVT_MODERN
 	if (XvtFrontendMovies_ResumeViewer())
 		return 0;
-	if (XvtFrontendAction_Pending(XVT_ACTION_COMMON))
+	if (XvtFrontendAction_Pending(XVT_ACTION_OWNER_COMMON))
 		return Frontend_HandleCommonScreenControls(0) == 1;
-	if (frameCounter == 0 && !XvtFrontendAction_Pending(XVT_ACTION_PILOT)) {
+	if (frameCounter == 0 && !XvtFrontendAction_Pending(XVT_ACTION_OWNER_PILOT)) {
 #else
 	if (frameCounter == 0) {
 #endif
 #ifdef XVT_MODERN
-		if (!XvtFrontendAction_Pending(XVT_ACTION_CONCOURSE)) {
+		if (!XvtFrontendAction_Pending(XVT_ACTION_OWNER_CONCOURSE)) {
 #endif
 			Keyboard_FlushCharBuffer();
 #ifndef XVT_MODERN
@@ -276,10 +276,10 @@ int Concourse_Update(int frameCounter) {
 				"Check BalanceOfPower/MUSIC/TrackNN.ogg in the selected installation.", NULL,
 				FrontendString_Get(FRONTSTR_523_OKAY), NULL);
 			if (XvtDialog_IsActive()) {
-				XvtFrontendAction_Trigger(XVT_ACTION_CONCOURSE, 1, 1);
+				XvtFrontendAction_Trigger(XVT_ACTION_OWNER_CONCOURSE, 1, 1);
 				return 0;
 			}
-			XvtFrontendAction_Finish(XVT_ACTION_CONCOURSE);
+			XvtFrontendAction_Finish(XVT_ACTION_OWNER_CONCOURSE);
 #else
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_765_CD_MUSIC_NOT_AVAILABLE),

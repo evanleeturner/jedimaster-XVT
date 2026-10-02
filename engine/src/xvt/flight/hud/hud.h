@@ -72,7 +72,7 @@ struct RadarEllipseClampLimit {
 	uint8_t yLimit;
 };
 
-extern RadarEllipseClampLimit g_radarEllipseClampMode19Preset[37];
+extern RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37];
 extern RadarEllipseClampLimit g_radarEllipseClampTable[37];
 extern int g_radarEllipseClampCachedResolutionMode;
 extern int16_t radarx;

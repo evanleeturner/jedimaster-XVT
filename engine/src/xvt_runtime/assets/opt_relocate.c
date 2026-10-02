@@ -41,7 +41,7 @@ static void XvtOpt_MoveNode(XvtOptRelocation* state, OptNode* node, unsigned dep
 	node->payload = XvtOpt_Move(node->payload, state->delta);
 	if (node->nodeType == OPT_TEXTURE && node->payload && !XvtOpt_TestAndMarkSeen(state, node->payload)) {
 		OptTextureData* texture = node->payload;
-		if (!texture->paletteType)
+		if (!texture->inlinePaletteCount)
 			texture->palette = XvtOpt_Move(texture->palette, state->delta);
 	}
 	if (node->nodeType == OPT_NODEREF)

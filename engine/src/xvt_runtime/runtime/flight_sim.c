@@ -10,9 +10,9 @@
 #include "xvt_runtime/timing/reference_motion.h"
 
 static struct {
-	int paused, entityPending, replayPending, stepPending, zeroStep;
+	int paused, playerStepPending, replayPending, stepPending, zeroStep;
 	int target, advanceTarget, stepGameTime, player, frameIndex, frameIteration, frameCount;
-	int savedElapsed, savedScale, savedGameTime;
+	int savedElapsed, savedSimStepsPerSecond, savedGameTime;
 } g_sim;
 
 void XvtFlightSim_Reset(void) {
@@ -48,7 +48,7 @@ int XvtFlightSim_Resume(void) {
  * 4. process the player's actions or chat input, update flight controls and camera, and apply a
  *    recorded throttle unless the player changed craft during the tick.
  * It stays one function: each part is short and runs in this order on the same player record. */
-int XvtFlightSim_UpdateEntity(int playerIdx) {
+int XvtFlightSim_UpdatePlayerStep(int playerIdx) {
 	enum {
 		PALETTED_BYTES_PER_PIXEL = 1,
 		BRIGHTNESS_STEP_Q8 = 0x40,
@@ -69,7 +69,7 @@ int XvtFlightSim_UpdateEntity(int playerIdx) {
 	uint16_t* keyModsHoldTimer;
 	int16_t newTargetObjectIndex;
 
-	if (!g_sim.entityPending) {
+	if (!g_sim.playerStepPending) {
 		if (g_flightMissionState.missionEndPending == 1)
 			return 1;
 
@@ -163,7 +163,7 @@ int XvtFlightSim_UpdateEntity(int playerIdx) {
 							g_replayInputs[playerIdx].flags = 0;
 							g_replayInputs[playerIdx].throttle = 0;
 							g_sim.paused = 1;
-							g_sim.entityPending = 1;
+							g_sim.playerStepPending = 1;
 							g_sim.player = playerIdx;
 							return 0;
 						}
@@ -192,7 +192,7 @@ int XvtFlightSim_UpdateEntity(int playerIdx) {
 			}
 		}
 	}
-	g_sim.entityPending = 0;
+	g_sim.playerStepPending = 0;
 	if (g_flightRuntimeStateInitialized > 1 && g_dormantFlightRegionSessionEarlyReturnFlag != 0)
 		return 1;
 
@@ -303,7 +303,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 		for (frameIteration = g_sim.replayPending ? g_sim.frameIteration : 0; frameIteration < frameCount;
 			 ++frameIteration, ++frame) {
 			int savedGameTime;
-			uint8_t connectedFlag;
+			uint8_t participationState;
 
 			if (!g_sim.replayPending) {
 				if (!((suppressSideEffects != 0 && XvtFlightTiming_IsNetwork125()) ||
@@ -433,10 +433,10 @@ int XvtFlightSim_Advance(int targetGameTime) {
 					}
 				}
 				g_sim.savedElapsed = savedElapsedTicks;
-				g_sim.savedScale = savedSimStepsPerSecond;
+				g_sim.savedSimStepsPerSecond = savedSimStepsPerSecond;
 				g_sim.savedGameTime = savedGameTime;
 			}
-			if (!XvtFlightSim_UpdateEntity(playerIdx)) {
+			if (!XvtFlightSim_UpdatePlayerStep(playerIdx)) {
 				g_sim.replayPending = 1;
 				g_sim.player = playerIdx;
 				g_sim.frameIndex = (int)(frame - g_inputHistory[playerIdx]);
@@ -449,14 +449,14 @@ int XvtFlightSim_Advance(int targetGameTime) {
 				frame->unconfirmed == XVT_INPUT_AUTHORITATIVE)
 				XvtFlightPrediction_Confirm(playerIdx, frame->timestamp, &frame->input);
 			savedElapsedTicks = g_sim.savedElapsed;
-			savedSimStepsPerSecond = g_sim.savedScale;
+			savedSimStepsPerSecond = g_sim.savedSimStepsPerSecond;
 			savedGameTime = g_sim.savedGameTime;
 			g_elapsedTicks = (uint16_t)savedElapsedTicks;
 			g_simStepsPerSecond = (uint16_t)savedSimStepsPerSecond;
-			connectedFlag = g_players[playerIdx].participationState;
+			participationState = g_players[playerIdx].participationState;
 			g_gameTime = savedGameTime;
 			g_flightSfxSideEffectGate = 0;
-			if (connectedFlag == 0)
+			if (participationState == 0)
 				break;
 		}
 	}

@@ -44,7 +44,7 @@
 #include <string.h>
 
 static uint64_t g_nextFrameDueUs;
-static uint64_t g_nextJoystick;
+static uint64_t g_nextJoystickPollDueUs;
 static int g_quit;
 static int g_initialized;
 static int g_startupMode;
@@ -86,17 +86,17 @@ int XvtFrontendTask_Init(int skip_intro) {
 		skip_intro ? Concourse_Exit : FrontendBootstrap_ExitIntroAndLoadCredits;
 	g_startupMode = skip_intro ? 2 : 1;
 	g_nextFrameDueUs = XvtTime_GetElapsedUs();
-	g_nextJoystick = g_nextFrameDueUs;
+	g_nextJoystickPollDueUs = g_nextFrameDueUs;
 	XVT_LOG_INFO("frontend.ready");
 	return 1;
 }
 
 void XvtFrontendTask_ServiceFrameSystems(void) {
 	uint64_t now = XvtTime_GetElapsedUs();
-	if (now >= g_nextJoystick) {
+	if (now >= g_nextJoystickPollDueUs) {
 		Joystick_UpdateState(0);
 		Joystick_UpdateState(1);
-		g_nextJoystick = now + 100000;
+		g_nextJoystickPollDueUs = now + 100000;
 	}
 	if (!XvtNetworkTask_IsActive())
 		Net_PumpIncomingPackets();
@@ -107,13 +107,13 @@ int XvtFrontendTask_RunFrame(void) {
 	FrontendScreenExitFn exitFn;
 	FrontendScreenUpdateFn updateFn;
 	int result;
-	int stack = g_frontState.screenStackTop;
-	int modal = XvtDialog_IsActive();
+	int stackTop = g_frontState.screenStackTop;
+	int dialogWasActive = XvtDialog_IsActive();
 	g_continuationFrame = 0;
 	g_frontState.netReadyPlayerLeftThisFrame = 0;
 	if (g_frontState.textFadeFramesLeft)
 		memset(&g_frontState.textFadeColorCache, 0, sizeof(g_frontState.textFadeColorCache));
-	updateFn = g_frontState.screenStates[stack].updateFn;
+	updateFn = g_frontState.screenStates[stackTop].updateFn;
 	if (!updateFn)
 		return 0;
 	XvtPresentation_RequireClassic();
@@ -123,7 +123,7 @@ int XvtFrontendTask_RunFrame(void) {
 		XvtStorage_Fatal("Cannot lock frontend display", 1);
 		return 2;
 	}
-	exitFn = g_frontState.screenStates[stack].exitFn;
+	exitFn = g_frontState.screenStates[stackTop].exitFn;
 	g_continuationFrame = XvtNetworkTask_Resume(&result);
 	if (!g_continuationFrame)
 		g_continuationFrame = XvtDialog_ResumeContinuation(&result);
@@ -141,7 +141,7 @@ int XvtFrontendTask_RunFrame(void) {
 		}
 		return 0;
 	}
-	if (!modal && XvtDialog_IsActive()) {
+	if (!dialogWasActive && XvtDialog_IsActive()) {
 		FrontendDisplay_UnlockBackBuffer();
 		return 0;
 	}

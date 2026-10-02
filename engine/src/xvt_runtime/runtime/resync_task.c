@@ -22,7 +22,7 @@ enum {
 
 static struct {
 	int phase, peer_dpid, image_size, elapsed, pulse, retries, blink;
-	int offset, slot, free_bytes, payload_offset;
+	int offset, chunk_index, free_bytes, payload_offset;
 	int ack_count, ack_previous, ack_retries, ack_elapsed, final_batch, owns_alert;
 	uint8_t* world;
 	uint8_t* pinned;
@@ -117,14 +117,14 @@ static void XvtResync_SendRequest(void) {
 	XvtFlightNetwork_SendWire(g_resync.peer_dpid, &request, sizeof request);
 }
 
-int XvtResync_BeginSend(int player, uint8_t* world, int size) {
+int XvtResync_BeginSend(int peer_dpid, uint8_t* world, int size) {
 	char text[256];
 	char* name;
 	if (g_resync.phase)
 		return -1;
 	free(g_resync.pinned);
 	memset(&g_resync, 0, sizeof(g_resync));
-	g_resync.peer_dpid = player;
+	g_resync.peer_dpid = peer_dpid;
 	g_resync.world = world;
 	g_resync.image_size = size;
 	g_resync.phase = RESYNC_CHECKSUMS;
@@ -133,12 +133,12 @@ int XvtResync_BeginSend(int player, uint8_t* world, int size) {
 	FlightAlert_SaveBoxBackground();
 	g_resync.owns_alert = 1;
 	strcpy(text, g_strDiskIoMessages[DISK_IO_STR_COM_FAILURE_SENDING]);
-	name = NetSession_GetPlayerName(NetSession_FindPlayerSlotByDpid(player));
+	name = NetSession_GetPlayerName(NetSession_FindPlayerSlotByDpid(peer_dpid));
 	if (name)
 		strcat(text, name);
 	FlightAlert_DrawBox(1, text, 0x30);
 	g_flightNetScratchPacket.packetType = NET_PACKET_RESYNC_NOTICE;
-	g_flightNetScratchPacket.payloadDwords[0] = player;
+	g_flightNetScratchPacket.payloadDwords[0] = peer_dpid;
 	XvtFlightNetwork_Broadcast((unsigned*)&g_flightNetScratchPacket, 8);
 	size_t prefix;
 	if (!XvtFlightCheckpoint_Validate(world, size, &prefix, &g_resync.completed_tick)) {
@@ -169,20 +169,20 @@ int XvtResync_BeginSend(int player, uint8_t* world, int size) {
 }
 
 static void XvtResync_NewChunk(void) {
-	FlightNetWorldStateChunkPacket* packet = &g_flightNetWorldStateChunkPackets[g_resync.slot];
+	FlightNetWorldStateChunkPacket* packet = &g_flightNetWorldStateChunkPackets[g_resync.chunk_index];
 	packet->packetType = NET_PACKET_RESYNC_CHUNK;
 	packet->checksumEpoch = (int)g_resync.epoch;
-	packet->chunkIndex = g_resync.slot;
+	packet->chunkIndex = g_resync.chunk_index;
 	g_resync.free_bytes = XVT_FLIGHT_PACKET_BYTES - sizeof(XvtFlightChunkHeader) - 2 * sizeof(XvtWireU32);
 	g_resync.payload_offset = 0;
 }
 
 static void XvtResync_SendChunk(void) {
-	FlightNetWorldStateChunkPacket* packet = &g_flightNetWorldStateChunkPackets[g_resync.slot];
+	FlightNetWorldStateChunkPacket* packet = &g_flightNetWorldStateChunkPackets[g_resync.chunk_index];
 	XvtWire_Set32(packet->payload + g_resync.payload_offset, UINT32_MAX);
 	size_t packet_bytes = sizeof(XvtFlightChunkHeader) + g_resync.payload_offset + sizeof(XvtWireU32);
 	XvtFlightNetwork_SendPacket(g_resync.peer_dpid, (unsigned*)packet, (int)packet_bytes);
-	++g_resync.slot;
+	++g_resync.chunk_index;
 }
 
 static void XvtResync_Checksums(void) {
@@ -224,11 +224,11 @@ static void XvtResync_Checksums(void) {
 }
 
 static void XvtResync_BeginAcks(int final) {
-	XVT_LOG_DEBUG("resync.batch_sent chunks=%d offset=%d bytes=%d final=%d", g_resync.slot, g_resync.offset,
-				  g_resync.image_size, final);
+	XVT_LOG_DEBUG("resync.batch_sent chunks=%d offset=%d bytes=%d final=%d", g_resync.chunk_index,
+				  g_resync.offset, g_resync.image_size, final);
 	g_resync.final_batch = final;
 	g_resync.phase = RESYNC_ACKS;
-	g_resync.ack_count = g_resync.slot;
+	g_resync.ack_count = g_resync.chunk_index;
 	g_resync.ack_previous = 0;
 	g_resync.ack_retries = XVT_RESYNC_ACK_RETRIES;
 	g_resync.ack_elapsed = 0;
@@ -239,7 +239,7 @@ static void XvtResync_BeginAcks(int final) {
 static void XvtResync_Build(void) {
 	/* Send the pinned complete image in bounded batches. */
 	while (g_resync.offset < g_resync.image_size) {
-		FlightNetWorldStateChunkPacket* packet = &g_flightNetWorldStateChunkPackets[g_resync.slot];
+		FlightNetWorldStateChunkPacket* packet = &g_flightNetWorldStateChunkPackets[g_resync.chunk_index];
 		int bytes = g_resync.image_size - g_resync.offset + sizeof(FlightNetWorldStateChunkRecordHeader);
 		if (bytes > g_resync.free_bytes)
 			bytes = g_resync.free_bytes;
@@ -252,7 +252,7 @@ static void XvtResync_Build(void) {
 		g_resync.payload_offset += bytes;
 		if (g_resync.free_bytes < XVT_RESYNC_CHUNK_MIN_FREE) {
 			XvtResync_SendChunk();
-			if (g_resync.slot == XVT_RESYNC_CHUNKS_PER_BATCH) {
+			if (g_resync.chunk_index == XVT_RESYNC_CHUNKS_PER_BATCH) {
 				XvtResync_BeginAcks(g_resync.offset == g_resync.image_size);
 				return;
 			}
@@ -262,13 +262,13 @@ static void XvtResync_Build(void) {
 	if (g_resync.payload_offset != 0) {
 		XvtResync_SendChunk();
 		XvtResync_BeginAcks(1);
-	} else if (g_resync.slot != 0)
+	} else if (g_resync.chunk_index != 0)
 		XvtResync_BeginAcks(1);
 	else
 		XvtResync_EndSend(1);
 }
 
-int XvtResync_WaitAcks(int player, int count) {
+int XvtResync_WaitAcks(int peer_dpid, int count) {
 	int ack = 0, saved = g_inputTimestamp;
 	if (XvtResync_TakeEscapeKey()) {
 		g_resync.ack_elapsed = XVT_RESYNC_RETRY_TICKS;
@@ -303,14 +303,14 @@ int XvtResync_WaitAcks(int player, int count) {
 		XVT_LOG_DEBUG("resync.retry stage=\"acks\" left=%d", g_resync.ack_retries);
 		return -1;
 	}
-	XVT_LOG_WARN("resync.peer_dropped slot=%d stage=\"acks\"", NetSession_FindPlayerSlotByDpid(player));
-	FlightNet_BroadcastPlayerAbort(NetSession_FindPlayerSlotByDpid(player));
+	XVT_LOG_WARN("resync.peer_dropped slot=%d stage=\"acks\"", NetSession_FindPlayerSlotByDpid(peer_dpid));
+	FlightNet_BroadcastPlayerAbort(NetSession_FindPlayerSlotByDpid(peer_dpid));
 	return 0;
 }
 
-void XvtResync_BeginApply(int player, int size) {
+void XvtResync_BeginApply(int peer_dpid, int size) {
 	g_resync.phase = RESYNC_APPLY;
-	g_resync.peer_dpid = player;
+	g_resync.peer_dpid = peer_dpid;
 	g_resync.image_size = size;
 	g_resync.retries = XVT_RESYNC_RETRIES;
 	g_resync.pulse = 0;
@@ -319,7 +319,7 @@ void XvtResync_BeginApply(int player, int size) {
 	g_flightNetScratchPacket.payloadDwords[0] = (int)g_resync.epoch;
 	g_flightNetScratchPacket.payloadDwords[1] = size;
 	g_flightNetScratchPacket.payloadDwords[2] = g_inputTimestamp;
-	XvtFlightNetwork_SendPacket(player, (unsigned*)&g_flightNetScratchPacket, 16);
+	XvtFlightNetwork_SendPacket(peer_dpid, (unsigned*)&g_flightNetScratchPacket, 16);
 	Time_ConsumeElapsedTicks();
 	g_flightNetPendingAckCount = 1;
 }
@@ -494,7 +494,7 @@ void XvtResync_Update(void) {
 				XvtResync_EndSend(result);
 			else {
 				XvtResync_Pulse(0);
-				g_resync.slot = 0;
+				g_resync.chunk_index = 0;
 				memset(g_flightNetWorldStateChunkAcked, 0, sizeof(g_flightNetWorldStateChunkAcked));
 				XvtResync_NewChunk();
 				g_resync.phase = RESYNC_BUILD;

@@ -75,8 +75,8 @@ void XvtRenderCapture_Crt(int x, int y, int width, int height, int masked);
 void XvtRenderCapture_CrtMarker(int x, int y, int z);
 /* Copies the hyperspace streaks into the pending view. Copies nothing when the view is invalid
  * or count exceeds XVT_SNAP_STREAKS. */
-void XvtRenderCapture_Hyperspace(unsigned count, const int* x, const int* y, const int* z, const int* width,
-								 const int* roll);
+void XvtRenderCapture_Hyperspace(unsigned count, const int* x, const int* y, const int* z,
+								 const int* half_width, const int* roll);
 /* Returns the next draw-order number in the open frame, starting at 0. Returns 0 when no frame
  * is open, which a caller cannot tell from the first number. */
 uint32_t XvtRenderSnapshot_NextOrder(void);

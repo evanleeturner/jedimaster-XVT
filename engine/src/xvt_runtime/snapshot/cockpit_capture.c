@@ -21,7 +21,7 @@
  * working content before the original can refresh it for another presentation. */
 static XvtCockpitState g_working, g_pending, g_completed;
 static uint64_t g_presentationSerial;
-static uint64_t g_preparedResources;
+static uint64_t g_preparedResourceGeneration;
 static int g_compositionSelected, g_sealed;
 
 void XvtCockpit_CopyState(XvtCockpitState* destination, const XvtCockpitState* source) {
@@ -38,7 +38,7 @@ void XvtCockpit_CopyState(XvtCockpitState* destination, const XvtCockpitState* s
 }
 
 void XvtCockpit_Reset(void) {
-	g_preparedResources = 0;
+	g_preparedResourceGeneration = 0;
 	XvtCockpitText_ResetFields();
 	XvtCockpitReadouts_Reset();
 	XvtCockpitPages_Reset();
@@ -62,8 +62,8 @@ static void CaptureView(XvtCockpitView* view) {
 	view->map_active = player->mapCameraState != 0;
 	view->external_camera = player->viewState.externalCameraActive != 0;
 	view->mission_ending = g_flightMissionState.missionEndPending != 0;
-	view->region_session = player->awaitingNewCraft != 0;
-	view->instruments_visible = !view->mission_ending && !view->region_session;
+	view->awaiting_new_craft = player->awaitingNewCraft != 0;
+	view->instruments_visible = !view->mission_ending && !view->awaiting_new_craft;
 	view->viewport = (XvtSnapRect) { g_flightVpX, g_flightVpY, g_flightVpWidth, g_flightVpHeight };
 	view->projection_offset_y = g_projOffsetY;
 	unsigned resource = view->hud_state;
@@ -127,7 +127,7 @@ static void SelectPagePlacement(XvtCockpitPage* page, unsigned index) {
 	page->page_id = (uint16_t)index;
 	page->original_state = g_mfdPageStates[index];
 	page->focused = g_mfdActivePage == index;
-	page->layer = XVT_COCKPIT_AFTER_CRT;
+	page->phase = XVT_COCKPIT_AFTER_CRT;
 	if (page->original_state == MFD_PAGE_STATE_CLOSED)
 		return;
 	switch (index) {
@@ -213,7 +213,7 @@ void XvtCockpit_LatchMessages(void) {
 	const HudElementLayout* layout = &g_hudElementLayouts[page->layout_id];
 	page->placement = (XvtSnapRect) { layout->x, layout->y, g_readyMessagePaneRight - g_readyMessagePaneLeft,
 									  g_readyMessagePaneBottom - g_readyMessagePaneTop };
-	page->layer = XVT_COCKPIT_AFTER_CRT;
+	page->phase = XVT_COCKPIT_AFTER_CRT;
 	if (g_flightPlayerCount >= 1)
 		page->placement.width += 4 * g_flightFontDigitWidth + 1;
 	if (page->visible)
@@ -302,10 +302,10 @@ void XvtCockpit_Presented(int standalone_overlay) {
 
 void XvtCockpit_Export(XvtCockpitState* destination) { XvtCockpit_CopyState(destination, &g_completed); }
 
-void XvtCockpit_ResourcesPrepared(uint64_t generation) { g_preparedResources = generation; }
+void XvtCockpit_ResourcesPrepared(uint64_t generation) { g_preparedResourceGeneration = generation; }
 
 int XvtCockpit_LoadingAssetsReady(void) {
-	return g_working.valid && g_preparedResources == g_working.definition.resource_generation;
+	return g_working.valid && g_preparedResourceGeneration == g_working.definition.resource_generation;
 }
 
 void XvtCockpit_ExportResources(XvtCockpitResources* out) {
@@ -317,7 +317,7 @@ void XvtCockpit_ExportResources(XvtCockpitResources* out) {
 		return;
 	out->view.screen_width = g_working.view.screen_width;
 	out->view.screen_height = g_working.view.screen_height;
-	out->view.compact_instruments = g_working.view.compact_instruments;
+	out->view.rebel_fighter = g_working.view.rebel_fighter;
 	out->view.laser_slots = g_working.view.laser_slots;
 	out->installed_hud_features = g_working.systems.installed_hud_features;
 	for (unsigned color = 0; color < 256; ++color)

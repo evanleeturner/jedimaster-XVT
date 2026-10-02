@@ -47,9 +47,9 @@ typedef struct XvtReferenceMotionWire {
 
 typedef struct XvtIntegrationWire {
 	XvtWireU16 slot, signature;
-	uint8_t type, state;
+	uint8_t type, family;
 	XvtWireU16 carried_slot, target_slot, target_signature;
-	XvtWireU64 position[XVT_STATE_POSITION_AXES], remainder[XVT_STATE_INTEGRATION_CHANNELS];
+	XvtWireU64 position_remainder[XVT_STATE_POSITION_AXES], remainder[XVT_STATE_INTEGRATION_CHANNELS];
 	int8_t direction[XVT_STATE_INTEGRATION_CHANNELS];
 } XvtIntegrationWire;
 
@@ -58,7 +58,7 @@ typedef struct XvtPlayerTimingWire {
 	XvtWireU16 slot, signature, reserved;
 	XvtWireU64 remainder[XVT_STATE_PLAYER_CHANNELS];
 	int8_t direction[XVT_STATE_PLAYER_CHANNELS];
-	uint8_t lock_mode, lock_half, control_valid;
+	uint8_t lock_mode, lock_odd_tick, control_valid;
 	XvtWireU32 control_mode;
 	XvtWireU16 lock_signature, lock_target, lock_target_signature, lock_weapon;
 	XvtWireU64 lock_serial;

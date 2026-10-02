@@ -17,7 +17,7 @@ extern struct IDirectInputDeviceA* g_dinputKeyboardDevice;
 extern int g_dinputShiftDown, g_dinputCtrlDown, g_dinputAltDown;
 
 int DInput_Init(void);
-int DInput_HasKeyReady(void);
+int DInput_SkipToPendingKeyPress(void);
 uint8_t DInput_GetKey(void);
 void DInput_UpdateKeyboardModifierState(void);
 HRESULT DInput_ReadKeyboardState(void);

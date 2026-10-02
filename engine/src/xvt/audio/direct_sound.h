@@ -17,7 +17,7 @@ struct DirectSoundBufferSet {
 };
 
 IDirectSoundBuffer* DirectSound_LoadWaveBuffer(IDirectSound* directSound, const char* fileName,
-											   int create3DFlags);
+											   int omitSoftwareAndFrequencyCaps);
 int DirectSound_ReloadWaveBuffer(IDirectSoundBuffer* buffer, const char* fileName);
 int DirectSound_LoadFileAndFindAudioData(int unused, const char* fileName, WAVEFORMATEX** format,
 										 const void** sampleData, unsigned int* sampleBytes);

@@ -99,12 +99,12 @@ static void XvtNetworkTask_LoadPreview(void) {
 		directory == MISSION_DIRECTORY_CAMPAIGNS) {
 		char line[256], *end;
 		if (File_Gets(line, sizeof(line), file)) {
-			long skipped = strtol(line, &end, 10);
-			if (end != line && skipped >= 0 && skipped <= 65536) {
-				while (skipped > 0 && File_Gets(line, sizeof(line), file))
-					--skipped;
+			long lines_to_skip = strtol(line, &end, 10);
+			if (end != line && lines_to_skip >= 0 && lines_to_skip <= 65536) {
+				while (lines_to_skip > 0 && File_Gets(line, sizeof(line), file))
+					--lines_to_skip;
 				size_t used = 0;
-				while (!skipped && used + 1 < sizeof(text) && File_Gets(line, sizeof(line), file)) {
+				while (!lines_to_skip && used + 1 < sizeof(text) && File_Gets(line, sizeof(line), file)) {
 					for (size_t i = 0; line[i] && used + 1 < sizeof(text); ++i)
 						if ((uint8_t)line[i] >= 32 || line[i] == '\n')
 							text[used++] = line[i];
@@ -246,16 +246,16 @@ void XvtNetworkTask_Begin(int action) {
 	const AeronDplayDirectoryRoom* room = XvtNetworkTask_SelectedRoom();
 	if (!host && !XvtNetworkTask_CanJoin())
 		return;
-	char info[2] = { (char)(g_pilotData.rating + 1), 0 };
+	char rating_text[2] = { (char)(g_pilotData.rating + 1), 0 };
 	g_network.action = action;
 	g_network.active = 1;
 	if (host)
-		XvtNetworkSession_BeginHost(info, g_pilotData.name, g_pilotData.multiplayerGameName,
+		XvtNetworkSession_BeginHost(rating_text, g_pilotData.name, g_pilotData.multiplayerGameName,
 									g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER);
 	else {
 		XvtNetworkMetadata_FromUtf8(g_pilotData.multiplayerGameName, sizeof(g_pilotData.multiplayerGameName),
 									room->metadata.name);
-		XvtNetworkSession_BeginJoin(info, g_pilotData.name, &room->room_id);
+		XvtNetworkSession_BeginJoin(rating_text, g_pilotData.name, &room->room_id);
 	}
 }
 

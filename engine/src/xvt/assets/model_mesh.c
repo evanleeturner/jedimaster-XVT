@@ -23,7 +23,7 @@ int g_optHardpointSearchIndex = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4285A0
-void ModelMesh_ApplyAnimatedMeshRotationToPoint(int16_t angleQ16, int modelType, int meshIndex, int localX,
+void ModelMesh_ApplyAnimatedMeshRotationToPoint(int16_t angleQ16, int objectType, int meshIndex, int localX,
 												int localY, int localZ) {
 	float* rotScaleData;
 	int axisX;
@@ -47,7 +47,7 @@ void ModelMesh_ApplyAnimatedMeshRotationToPoint(int16_t angleQ16, int modelType,
 	g_rotatedX = localX;
 	g_rotatedY = localY;
 	g_rotatedZ = localZ;
-	rotScaleData = ModelMesh_GetRotScaleData(modelType, meshIndex);
+	rotScaleData = ModelMesh_GetRotScaleData(objectType, meshIndex);
 	if (rotScaleData == NULL)
 		return;
 
@@ -109,7 +109,7 @@ int ModelMesh_GetObjectTypeMeshCount(int objectType) {
 	modelHandle = g_loadedModels[objectType];
 	if (modelHandle == 0)
 		return 0;
-	if ((g_modelTypeTable[objectType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
 	model = (OptimizedPolyObject*)Memory_LockHandle(modelHandle);
@@ -201,21 +201,21 @@ MeshDescriptor* ModelMesh_FindDescriptorNodeRecursive(OptNode* node, OptimizedPo
 }
 
 // FUNCTION: XVT 0x4AE200
-MeshDescriptor* ModelMesh_GetDescriptor(int modelType, int meshIndex) {
+MeshDescriptor* ModelMesh_GetDescriptor(int objectType, int meshIndex) {
 	uint16_t modelHandle;
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 
-	modelHandle = g_loadedModels[modelType];
+	modelHandle = g_loadedModels[objectType];
 	if (modelHandle == 0)
 		return NULL;
 	if (meshIndex < 0)
 		return NULL;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return NULL;
 
 	model = (OptimizedPolyObject*)Memory_LockHandle(modelHandle);
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -236,11 +236,11 @@ MeshComponentType ModelMesh_GetObjectTypeMeshType(int objectType, int meshIndex)
 
 	modelHandle = g_loadedModels[objectType];
 	if (modelHandle == 0)
-		return MESH_COMPONENT_00_HULL;
+		return MESH_COMPONENT_00_DEFAULT;
 	if (meshIndex < 0)
-		return MESH_COMPONENT_00_HULL;
-	if ((g_modelTypeTable[objectType].assetFlags & 1) == 0)
-		return MESH_COMPONENT_00_HULL;
+		return MESH_COMPONENT_00_DEFAULT;
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
+		return MESH_COMPONENT_00_DEFAULT;
 
 	model = (OptimizedPolyObject*)Memory_LockHandle(modelHandle);
 	if (model->selfMarker != model)
@@ -256,24 +256,24 @@ MeshComponentType ModelMesh_GetObjectTypeMeshType(int objectType, int meshIndex)
 	if (descriptor != NULL)
 		meshIndex = descriptor->meshType;
 	else
-		meshIndex = MESH_COMPONENT_00_HULL;
+		meshIndex = MESH_COMPONENT_00_DEFAULT;
 
 	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return meshIndex;
 }
 
 // FUNCTION: XVT 0x4AE340
-int ModelMesh_GetVertexCount(int modelType, int meshIndex) {
+int ModelMesh_GetVertexCount(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	int nodeType;
 	OptNode* vertexNode;
 	int vertexCount;
 
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -287,12 +287,12 @@ int ModelMesh_GetVertexCount(int modelType, int meshIndex) {
 	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
 	vertexCount = vertexNode->payloadCount;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return vertexCount;
 }
 
 // FUNCTION: XVT 0x4AE3C0
-int ModelMesh_GetVertexX(int modelType, int meshIndex, int vertexIndex) {
+int ModelMesh_GetVertexX(int objectType, int meshIndex, int vertexIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	OptNode* vertexNode;
@@ -300,10 +300,10 @@ int ModelMesh_GetVertexX(int modelType, int meshIndex, int vertexIndex) {
 	int clampedVertexIndex;
 	int result;
 
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -320,12 +320,12 @@ int ModelMesh_GetVertexX(int modelType, int meshIndex, int vertexIndex) {
 		clampedVertexIndex = vertexNode->payloadCount - 1;
 	result = (int)vertices[clampedVertexIndex].x;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AE460
-int ModelMesh_GetVertexY(int modelType, int meshIndex, int vertexIndex) {
+int ModelMesh_GetVertexY(int objectType, int meshIndex, int vertexIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	OptNode* vertexNode;
@@ -333,10 +333,10 @@ int ModelMesh_GetVertexY(int modelType, int meshIndex, int vertexIndex) {
 	int clampedVertexIndex;
 	int result;
 
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -353,12 +353,12 @@ int ModelMesh_GetVertexY(int modelType, int meshIndex, int vertexIndex) {
 		clampedVertexIndex = vertexNode->payloadCount - 1;
 	result = (int)vertices[clampedVertexIndex].y;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AE500
-int ModelMesh_GetVertexZ(int modelType, int meshIndex, int vertexIndex) {
+int ModelMesh_GetVertexZ(int objectType, int meshIndex, int vertexIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	OptNode* vertexNode;
@@ -366,10 +366,10 @@ int ModelMesh_GetVertexZ(int modelType, int meshIndex, int vertexIndex) {
 	int clampedVertexIndex;
 	int result;
 
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -386,12 +386,12 @@ int ModelMesh_GetVertexZ(int modelType, int meshIndex, int vertexIndex) {
 		clampedVertexIndex = vertexNode->payloadCount - 1;
 	result = (int)vertices[clampedVertexIndex].z;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AE5A0
-int ModelMesh_GetCenterX(int modelType, int meshIndex) {
+int ModelMesh_GetCenterX(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -400,10 +400,10 @@ int ModelMesh_GetCenterX(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -420,12 +420,12 @@ int ModelMesh_GetCenterX(int modelType, int meshIndex) {
 	else
 		result = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AE640
-int ModelMesh_GetCenterY(int modelType, int meshIndex) {
+int ModelMesh_GetCenterY(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -434,10 +434,10 @@ int ModelMesh_GetCenterY(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -454,12 +454,12 @@ int ModelMesh_GetCenterY(int modelType, int meshIndex) {
 	else
 		result = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AE6E0
-int ModelMesh_GetCenterZ(int modelType, int meshIndex) {
+int ModelMesh_GetCenterZ(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -467,10 +467,10 @@ int ModelMesh_GetCenterZ(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -485,12 +485,12 @@ int ModelMesh_GetCenterZ(int modelType, int meshIndex) {
 	else
 		result = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AE780
-int ModelMesh_GetBoundsMinX(int modelType, int meshIndex) {
+int ModelMesh_GetBoundsMinX(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -499,10 +499,10 @@ int ModelMesh_GetBoundsMinX(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -519,12 +519,12 @@ int ModelMesh_GetBoundsMinX(int modelType, int meshIndex) {
 	else
 		result = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AE820
-int ModelMesh_GetBoundsMinY(int modelType, int meshIndex) {
+int ModelMesh_GetBoundsMinY(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -533,10 +533,10 @@ int ModelMesh_GetBoundsMinY(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -552,12 +552,12 @@ int ModelMesh_GetBoundsMinY(int modelType, int meshIndex) {
 	else
 		result = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AE8C0
-int ModelMesh_GetBoundsMinZ(int modelType, int meshIndex) {
+int ModelMesh_GetBoundsMinZ(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -565,10 +565,10 @@ int ModelMesh_GetBoundsMinZ(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -583,12 +583,12 @@ int ModelMesh_GetBoundsMinZ(int modelType, int meshIndex) {
 	else
 		result = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AE960
-int ModelMesh_GetBoundsMaxX(int modelType, int meshIndex) {
+int ModelMesh_GetBoundsMaxX(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -597,10 +597,10 @@ int ModelMesh_GetBoundsMaxX(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -617,12 +617,12 @@ int ModelMesh_GetBoundsMaxX(int modelType, int meshIndex) {
 	else
 		result = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AEA00
-int ModelMesh_GetBoundsMaxY(int modelType, int meshIndex) {
+int ModelMesh_GetBoundsMaxY(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -630,10 +630,10 @@ int ModelMesh_GetBoundsMaxY(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -648,12 +648,12 @@ int ModelMesh_GetBoundsMaxY(int modelType, int meshIndex) {
 	else
 		result = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AEAA0
-int ModelMesh_GetBoundsMaxZ(int modelType, int meshIndex) {
+int ModelMesh_GetBoundsMaxZ(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -661,10 +661,10 @@ int ModelMesh_GetBoundsMaxZ(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -679,22 +679,22 @@ int ModelMesh_GetBoundsMaxZ(int modelType, int meshIndex) {
 	else
 		result = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AEB40
-int ModelMesh_GetTargetId(int modelType, int meshIndex) {
+int ModelMesh_GetTargetId(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -710,12 +710,12 @@ int ModelMesh_GetTargetId(int modelType, int meshIndex) {
 	else
 		meshIndex = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return meshIndex;
 }
 
 // FUNCTION: XVT 0x4AEBE0
-int ModelMesh_GetComponentFocusX(int modelType, int meshIndex) {
+int ModelMesh_GetComponentFocusX(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -723,10 +723,10 @@ int ModelMesh_GetComponentFocusX(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -746,12 +746,12 @@ int ModelMesh_GetComponentFocusX(int modelType, int meshIndex) {
 		value = 0;
 	}
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return value;
 }
 
 // FUNCTION: XVT 0x4AEC90
-int ModelMesh_GetComponentFocusY(int modelType, int meshIndex) {
+int ModelMesh_GetComponentFocusY(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -759,10 +759,10 @@ int ModelMesh_GetComponentFocusY(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -782,12 +782,12 @@ int ModelMesh_GetComponentFocusY(int modelType, int meshIndex) {
 		value = 0;
 	}
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return value;
 }
 
 // FUNCTION: XVT 0x4AED40
-int ModelMesh_GetComponentFocusZ(int modelType, int meshIndex) {
+int ModelMesh_GetComponentFocusZ(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -795,10 +795,10 @@ int ModelMesh_GetComponentFocusZ(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -818,12 +818,12 @@ int ModelMesh_GetComponentFocusZ(int modelType, int meshIndex) {
 		value = 0;
 	}
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return value;
 }
 
 // FUNCTION: XVT 0x4AEDF0
-int ModelMesh_GetComponentMaxExtent(int modelType, int meshIndex) {
+int ModelMesh_GetComponentMaxExtent(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
@@ -833,9 +833,9 @@ int ModelMesh_GetComponentMaxExtent(int modelType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	rootNodes = model->rootNodes;
@@ -855,7 +855,7 @@ int ModelMesh_GetComponentMaxExtent(int modelType, int meshIndex) {
 	} else {
 		extentX = 0;
 	}
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return extentX;
 }
 
@@ -867,7 +867,7 @@ int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex) {
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[objectType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
 	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
@@ -882,7 +882,7 @@ int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex) {
 
 	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex], model);
 	if (descriptor != NULL)
-		meshIndex = descriptor->explosionType & 2;
+		meshIndex = descriptor->componentFlags & 2;
 	else
 		meshIndex = 0;
 
@@ -891,17 +891,17 @@ int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex) {
 }
 
 // FUNCTION: XVT 0x4AEF60
-int ModelMesh_HasExplosionTypeBit0(int modelType, int meshIndex) {
+int ModelMesh_HasExplosionTypeBit0(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	MeshDescriptor* descriptor;
 
 	if (meshIndex < 0)
 		return 0;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -913,25 +913,25 @@ int ModelMesh_HasExplosionTypeBit0(int modelType, int meshIndex) {
 
 	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex], model);
 	if (descriptor != NULL)
-		meshIndex = descriptor->explosionType & 1;
+		meshIndex = descriptor->componentFlags & 1;
 	else
 		meshIndex = 0;
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return meshIndex;
 }
 
 // FUNCTION: XVT 0x4AF000
-float* ModelMesh_GetRotScaleData(int modelType, int meshIndex) {
+float* ModelMesh_GetRotScaleData(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	OptNode* rotScaleNode;
 	float* result;
 
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -947,7 +947,7 @@ float* ModelMesh_GetRotScaleData(int modelType, int meshIndex) {
 		result = (float*)rotScaleNode->payload;
 	else
 		result = 0;
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
@@ -1011,7 +1011,7 @@ OptNode* ModelMesh_FindNthHardpointNode(OptNode* node, OptimizedPolyObject* mode
 }
 
 // FUNCTION: XVT 0x4AF180
-int ModelMesh_CountHardpointNodesRecursive(OptNode* node, OptimizedPolyObject* object) {
+int ModelMesh_CountHardpointNodesRecursive(OptNode* node, OptimizedPolyObject* model) {
 	OptNode* resolvedNode;
 	int count;
 	int childIndex;
@@ -1027,20 +1027,20 @@ int ModelMesh_CountHardpointNodesRecursive(OptNode* node, OptimizedPolyObject* o
 	while (resolvedNode->nodeType == OPT_NODEREF) {
 		if (g_cacheResolvedOptNodeRefs != 0) {
 #ifdef XVT_MODERN
-			resolvedNode = XvtOpt_ResolveCached(object, resolvedNode);
+			resolvedNode = XvtOpt_ResolveCached(model, resolvedNode);
 #else
 
 			referenceName = (char**)&resolvedNode->payload;
 			if (**referenceName == '\0') {
 				resolvedNode = (OptNode*)resolvedNode->pName;
 			} else {
-				resolvedNode->pName = (char*)OptModel_ResolveNodeRef(object, *referenceName);
+				resolvedNode->pName = (char*)OptModel_ResolveNodeRef(model, *referenceName);
 				**referenceName = '\0';
 				resolvedNode = (OptNode*)resolvedNode->pName;
 			}
 #endif
 		} else {
-			resolvedNode = OptModel_ResolveNodeRef(object, (const char*)resolvedNode->payload);
+			resolvedNode = OptModel_ResolveNodeRef(model, (const char*)resolvedNode->payload);
 		}
 		if (resolvedNode == NULL)
 			return 0;
@@ -1051,7 +1051,7 @@ int ModelMesh_CountHardpointNodesRecursive(OptNode* node, OptimizedPolyObject* o
 	if (resolvedNode->childCount > 0) {
 		childIndex = 0;
 		do {
-			count += ModelMesh_CountHardpointNodesRecursive(resolvedNode->pChildren[childIndex], object);
+			count += ModelMesh_CountHardpointNodesRecursive(resolvedNode->pChildren[childIndex], model);
 			++childIndex;
 			++visitedChildCount;
 		} while (resolvedNode->childCount > visitedChildCount);
@@ -1060,14 +1060,14 @@ int ModelMesh_CountHardpointNodesRecursive(OptNode* node, OptimizedPolyObject* o
 }
 
 // FUNCTION: XVT 0x4AF250
-int ModelMesh_CountHardpoints(int modelType, int meshIndex) {
+int ModelMesh_CountHardpoints(int objectType, int meshIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	int hardpointCount;
 
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	rootNodes = model->rootNodes;
@@ -1076,29 +1076,29 @@ int ModelMesh_CountHardpoints(int modelType, int meshIndex) {
 	if (meshIndex >= model->rootNodeCount)
 		meshIndex = model->rootNodeCount - 1;
 	hardpointCount = ModelMesh_CountHardpointNodesRecursive(rootNodes[meshIndex], model);
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return hardpointCount;
 }
 
 // FUNCTION: XVT 0x4AF2D0
-int ModelMesh_GetAlternateHardpointIndex(int modelType, int meshIndex, int hardpointIndex) {
-	(void)modelType;
+int ModelMesh_GetAlternateHardpointIndex(int objectType, int meshIndex, int hardpointIndex) {
+	(void)objectType;
 	(void)meshIndex;
 
 	return hardpointIndex;
 }
 
 // FUNCTION: XVT 0x4AF2E0
-int ModelMesh_GetHardpointX(int modelIndex, int meshIndex, int hardpointIndex) {
+int ModelMesh_GetHardpointX(int objectType, int meshIndex, int hardpointIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	OptNode* rootNode;
 	OptNode* hardpointNode;
 	int result;
 
-	if ((g_modelTypeTable[modelIndex].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelIndex]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	rootNodes = model->rootNodes;
@@ -1112,21 +1112,21 @@ int ModelMesh_GetHardpointX(int modelIndex, int meshIndex, int hardpointIndex) {
 		result = (int)((OptHardpoint*)hardpointNode->payload)->position.x;
 	else
 		result = 0;
-	Memory_UnlockHandle(g_loadedModels[modelIndex]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AF380
-int ModelMesh_GetHardpointY(int modelIndex, int meshIndex, int hardpointIndex) {
+int ModelMesh_GetHardpointY(int objectType, int meshIndex, int hardpointIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	OptNode* rootNode;
 	OptNode* hardpointNode;
 	int result;
 
-	if ((g_modelTypeTable[modelIndex].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelIndex]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	rootNodes = model->rootNodes;
@@ -1140,12 +1140,12 @@ int ModelMesh_GetHardpointY(int modelIndex, int meshIndex, int hardpointIndex) {
 		result = (int)((OptHardpoint*)hardpointNode->payload)->position.y;
 	else
 		result = 0;
-	Memory_UnlockHandle(g_loadedModels[modelIndex]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return -result;
 }
 
 // FUNCTION: XVT 0x4AF420
-int ModelMesh_GetHardpointZ(int modelIndex, int meshIndex, int hardpointIndex) {
+int ModelMesh_GetHardpointZ(int objectType, int meshIndex, int hardpointIndex) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
 	OptNode* rootNode;
@@ -1153,9 +1153,9 @@ int ModelMesh_GetHardpointZ(int modelIndex, int meshIndex, int hardpointIndex) {
 	int rootNodeCount;
 	int result;
 
-	if ((g_modelTypeTable[modelIndex].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelIndex]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	rootNodes = model->rootNodes;
@@ -1170,12 +1170,12 @@ int ModelMesh_GetHardpointZ(int modelIndex, int meshIndex, int hardpointIndex) {
 		result = (int)((OptHardpoint*)hardpointNode->payload)->position.z;
 	else
 		result = 0;
-	Memory_UnlockHandle(g_loadedModels[modelIndex]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return result;
 }
 
 // FUNCTION: XVT 0x4AF4C0
-void ModelMesh_GetHardpoint(int modelType, int meshIndex, int hardpointIndex, int* outType, int* outX,
+void ModelMesh_GetHardpoint(int objectType, int meshIndex, int hardpointIndex, int* outType, int* outX,
 							int* outY, int* outZ) {
 	OptimizedPolyObject* model;
 	OptNode** rootNodes;
@@ -1183,11 +1183,11 @@ void ModelMesh_GetHardpoint(int modelType, int meshIndex, int hardpointIndex, in
 	const OptHardpoint* hardpoint;
 	const OptVector* position;
 
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0) {
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return;
 	}
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	}
@@ -1213,18 +1213,18 @@ void ModelMesh_GetHardpoint(int modelType, int meshIndex, int hardpointIndex, in
 		*outZ = (int)position->z;
 	}
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 }
 
 // FUNCTION: XVT 0x4AF5B0
-int ModelMesh_HasFuselage(int modelType) {
+int ModelMesh_HasFuselage(int objectType) {
 	OptimizedPolyObject* model;
 	int rootIndex;
 
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -1236,18 +1236,18 @@ int ModelMesh_HasFuselage(int modelType) {
 		if (rootNode != NULL && rootNode->nodeType != OPT_TEXTURE) {
 			descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNode, model);
 			if (descriptor != NULL && descriptor->meshType == MESH_COMPONENT_03_FUSELAGE) {
-				Memory_UnlockHandle(g_loadedModels[modelType]);
+				Memory_UnlockHandle(g_loadedModels[objectType]);
 				return 1;
 			}
 		}
 	}
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return 0;
 }
 
 // FUNCTION: XVT 0x4AF660
-int ModelMesh_FindNearestLiveMainHullByBounds(int modelType, int localX, int localY, int localZ) {
+int ModelMesh_FindNearestMainHullByBounds(int objectType, int localX, int localY, int localZ) {
 	float pointX;
 	float pointY;
 	float pointZ;
@@ -1264,10 +1264,10 @@ int ModelMesh_FindNearestLiveMainHullByBounds(int modelType, int localX, int loc
 	pointY = (float)localY;
 	nearestDistance = 2147483648.0f;
 	pointZ = (float)localZ;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0)
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0)
 		return 0;
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model)
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 
@@ -1277,7 +1277,7 @@ int ModelMesh_FindNearestLiveMainHullByBounds(int modelType, int localX, int loc
 			continue;
 
 		descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNode, model);
-		if (descriptor == NULL || descriptor->meshType != MESH_COMPONENT_01_HULL)
+		if (descriptor == NULL || descriptor->meshType != MESH_COMPONENT_01_MAIN_HULL)
 			continue;
 
 		if (pointX > descriptor->boxMax.x)
@@ -1316,12 +1316,12 @@ int ModelMesh_FindNearestLiveMainHullByBounds(int modelType, int localX, int loc
 
 	if (model->rootNodes[0]->nodeType == OPT_TEXTURE)
 		--nearestMeshIndex;
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return nearestMeshIndex;
 }
 
 // FUNCTION: XVT 0x4AF850
-int ModelMesh_FindNearestVertexForPoint(int modelType, int localX, int localY, int localZ, int meshIndex,
+int ModelMesh_FindNearestVertexForPoint(int objectType, int localX, int localY, int localZ, int meshIndex,
 										int nearestRank) {
 	float nearestDistanceSq;
 	float pointX;
@@ -1348,11 +1348,11 @@ int ModelMesh_FindNearestVertexForPoint(int modelType, int localX, int localY, i
 	pointX = (float)localX;
 	pointY = (float)localY;
 	pointZ = (float)localZ;
-	if ((g_modelTypeTable[modelType].assetFlags & 1) == 0) {
+	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return 0;
 	}
 
-	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[modelType]);
+	model = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	}
@@ -1406,7 +1406,7 @@ int ModelMesh_FindNearestVertexForPoint(int modelType, int localX, int localY, i
 		} while (nearestRank + 1 > selectedCount);
 	}
 
-	Memory_UnlockHandle(g_loadedModels[modelType]);
+	Memory_UnlockHandle(g_loadedModels[objectType]);
 	return vertexIndices[nearestRank];
 }
 

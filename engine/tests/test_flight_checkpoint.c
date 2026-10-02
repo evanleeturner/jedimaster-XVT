@@ -187,7 +187,7 @@ static void CheckAppendRead(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_Read(g_image, size, &view), 1);
 	XVT_ASSERT_INT_EQ(view.prefix, PREFIX);
 	XVT_ASSERT_INT_EQ(view.tick, TICK);
-	XVT_ASSERT_INT_EQ(view.objects, kSharedSlots);
+	XVT_ASSERT_INT_EQ(view.object_count, kSharedSlots);
 	XVT_ASSERT_INT_EQ(view.membership.initial, 0x03);
 	XVT_ASSERT_INT_EQ(view.membership.confirmed, 0x03);
 	/* The view points into the image, after the world bytes. */

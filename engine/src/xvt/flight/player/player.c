@@ -959,7 +959,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 #endif
 				;
 			targetClearance =
-				g_modelTypeTable[g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].objectType]
+				g_objectTypeTable[g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].objectType]
 					.maxBoundsExtent +
 				CAMERA_CLEARANCE;
 			if (g_players[playerIdx].viewState.cameraDistance < targetClearance)
@@ -1021,13 +1021,13 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 										targetObject->world_y - g_players[playerIdx].viewState.cameraWorldY,
 										targetObject->world_z - g_players[playerIdx].viewState.cameraWorldZ);
 			targetClearance =
-				g_modelTypeTable[g_objectTable[g_players[playerIdx].viewState.aimTargetIdx].objectType]
+				g_objectTypeTable[g_objectTable[g_players[playerIdx].viewState.aimTargetIdx].objectType]
 					.maxBoundsExtent +
 				CAMERA_CLEARANCE;
 			if (targetClearance > distance) {
 				targetClearance =
-					g_modelTypeTable[g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx]
-										 .objectType]
+					g_objectTypeTable[g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx]
+										  .objectType]
 						.maxBoundsExtent +
 					CAMERA_CLEARANCE;
 				movement = distance - targetClearance;
@@ -1492,7 +1492,7 @@ uint16_t Player_PickTargetInSight(int playerIdx) {
 	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart; objectIdx < g_regionMainObjectSlotEnd;
 		 ++objectIdx) {
 		if (g_objectTable[objectIdx].objectType != 0 && g_players[playerIdx].objectIndex != objectIdx &&
-			(g_modelTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0) {
+			(g_objectTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0) {
 			if (Targeting_TestAimCone(objectIdx, 1, playerIdx)) {
 				if (bestRange > (unsigned int)g_lastRoughDistance) {
 					bestTarget = objectIdx;
@@ -1509,7 +1509,7 @@ uint16_t Player_PickTargetInSight(int playerIdx) {
 	for (objectIdx = (uint16_t)g_regionMainObjectSlotEnd;
 		 objectIdx < g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd; ++objectIdx) {
 		if (g_objectTable[objectIdx].objectType != 0 &&
-			(g_modelTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0) {
+			(g_objectTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0) {
 			if (Targeting_TestAimCone(objectIdx, 1, playerIdx)) {
 				if (bestRange > (unsigned int)g_lastRoughDistance) {
 					bestTarget = objectIdx;
@@ -1563,7 +1563,7 @@ uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction, int
 
 		if (g_players[playerIdx].objectIndex != currentObjIdx) {
 			object = &g_objectTable[currentObjIdx];
-			if (object->objectType != 0 && (g_modelTypeTable[object->objectType].behaviorFlags & 1) != 0) {
+			if (object->objectType != 0 && (g_objectTypeTable[object->objectType].behaviorFlags & 1) != 0) {
 				if (object->mobj == NULL) {
 					break;
 				}
@@ -1621,7 +1621,7 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 			((targetFlags & 2) == 0 || g_projectileObjectSlotEnd > objectIndex)) {
 			object = &g_objectTable[objectIndex];
 			objectType = object->objectType;
-			if (objectType != 0 && (g_modelTypeTable[objectType].behaviorFlags & 1) != 0 &&
+			if (objectType != 0 && (g_objectTypeTable[objectType].behaviorFlags & 1) != 0 &&
 				((targetFlags & 1) == 0 || object->genusId != CRAFT_GENUS_MINE)) {
 				objectIff = object->mobj == NULL ? g_missionFlightGroups[object->flightGroupIdx].fg.team
 												 : object->mobj->team;
@@ -1731,7 +1731,8 @@ void Player_SetTarget(int newTargetObjIdx, int playerIdx) {
 							meshType = ModelMesh_GetCachedObjectTypeMeshType(objectType, cachedMeshIndex);
 						else
 							meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshIndex);
-						if (meshType == MESH_COMPONENT_01_HULL || meshType == MESH_COMPONENT_03_FUSELAGE) {
+						if (meshType == MESH_COMPONENT_01_MAIN_HULL ||
+							meshType == MESH_COMPONENT_03_FUSELAGE) {
 							g_players[playerIdx].selectedTargetComponent = meshIndex;
 							break;
 						}
@@ -1799,7 +1800,7 @@ uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int pl
 			} else {
 				meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshIndex);
 			}
-			if (meshType == MESH_COMPONENT_01_HULL || meshType == MESH_COMPONENT_03_FUSELAGE) {
+			if (meshType == MESH_COMPONENT_01_MAIN_HULL || meshType == MESH_COMPONENT_03_FUSELAGE) {
 				unsigned int distance = Object_DirectionAndDistanceToMeshCenter(
 					g_players[playerIdx].objectIndex, targetObjIdx, meshIndex);
 				if (distance < nearestDistance) {
@@ -1826,7 +1827,7 @@ uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int pl
 		} else {
 			meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshTypeIndex);
 		}
-		if (meshType == MESH_COMPONENT_01_HULL || meshType == MESH_COMPONENT_03_FUSELAGE) {
+		if (meshType == MESH_COMPONENT_01_MAIN_HULL || meshType == MESH_COMPONENT_03_FUSELAGE) {
 			return meshIndex;
 		}
 	}
@@ -2299,8 +2300,8 @@ void Player_EndFlightParticipation(int playerIdx) {
 				g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx].world_y;
 			g_players[playerIdx].viewState.cameraDistance =
 				CAMERA_TARGET_EXTENT_SCALE *
-				g_modelTypeTable[g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx]
-									 .objectType]
+				g_objectTypeTable[g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx]
+									  .objectType]
 					.maxBoundsExtent;
 		}
 		g_players[playerIdx].awaitingNewCraft = 0;

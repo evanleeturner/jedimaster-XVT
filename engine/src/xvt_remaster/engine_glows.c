@@ -47,12 +47,13 @@ static int Ensure(AeronCommandBuffer* cmd) {
 }
 
 static float Power(const XvtSnapObject* o) {
-	return fmaxf(0, (float)(16 - o->laser_redirect - o->shield_redirect - o->beam_level)) * .0625f *
-		   ((float)o->engine_output / 65535);
+	return fmaxf(0,
+				 (float)(16 - o->laser_recharge_level - o->shield_recharge_level - o->beam_recharge_level)) *
+		   .0625f * ((float)o->overdrive_off / 65535);
 }
 
 static float Scale(const XvtSnapObject* o, int32_t ticks) {
-	if (!o->has_craft || !o->engine_output || !(o->working_subsystems & CRAFT_SUBSYSTEM_FLAG_ENGINES))
+	if (!o->has_craft || !o->overdrive_off || !(o->working_subsystems & CRAFT_SUBSYSTEM_FLAG_ENGINES))
 		return 0;
 	if (o->object_kind == CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE ||
 		o->object_kind == CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE) {

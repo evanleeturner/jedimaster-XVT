@@ -242,7 +242,7 @@ void pai_UpdateAllCraftAI(void) {
 	uint16_t objectIndex;
 	int16_t savedRandState;
 
-	savedRandState = g_gameRandStateB;
+	savedRandState = g_gameRandFeedbackState;
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 		 objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 		ObjectRecord* object = &g_objectTable[objectIndex];
@@ -261,13 +261,13 @@ void pai_UpdateAllCraftAI(void) {
 			continue;
 		if (object->playerOwnerIdx == -1) {
 			pai_setupcraftcontext(objectIndex);
-			g_gameRandStateB = controller->savedRandSeed;
+			g_gameRandFeedbackState = controller->savedRandSeed;
 			pai_ProcessPlan();
-			controller->savedRandSeed = g_gameRandStateB;
+			controller->savedRandSeed = g_gameRandFeedbackState;
 		}
 		controller->thinkTimer += controller->thinkInterval;
 	}
-	g_gameRandStateB = savedRandState;
+	g_gameRandFeedbackState = savedRandState;
 }
 
 // FUNCTION: XVT 0x402970
@@ -758,7 +758,7 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 		ObjectRecord* object = &g_objectTable[objectIdx];
 		uint16_t objectType = object->objectType;
 
-		if (objectType != 0 && (g_modelTypeTable[objectType].behaviorFlags & 2) != 0) {
+		if (objectType != 0 && (g_objectTypeTable[objectType].behaviorFlags & 2) != 0) {
 			firstMatch =
 				Mission_FlightGroupMatchesTriggerVariable(object->flightGroupIdx, target1Type, target1);
 			secondMatch = Mission_FlightGroupMatchesTriggerVariable(g_objectTable[objectIdx].flightGroupIdx,

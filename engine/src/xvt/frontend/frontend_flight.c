@@ -107,7 +107,7 @@ int FrontendFlight_LaunchSession(int frameCounter) {
 #else
 	enum {
 		MUSIC_VOLUME_MAX = 0xFFFF,
-		MUSIC_VOLUME_LEVEL_COUNT = 9,
+		MUSIC_VOLUME_MAX_LEVEL = 9,
 		MUSIC_FADE_DIVISOR = 8,
 		MUSIC_FADE_DURATION_MS = 1000,
 		FLIGHT_WINDOW_PROC_MODE = 1,
@@ -162,7 +162,7 @@ int FrontendFlight_LaunchSession(int frameCounter) {
 		}
 
 		if (g_gameConfig.datapadMusicEnabled != 0 && CDAudio_IsPlaybackComplete() == 0) {
-			musicVolume = MUSIC_VOLUME_MAX * g_gameConfig.musicVolume / MUSIC_VOLUME_LEVEL_COUNT;
+			musicVolume = MUSIC_VOLUME_MAX * g_gameConfig.musicVolume / MUSIC_VOLUME_MAX_LEVEL;
 			CDAudio_FadeAuxVolume((unsigned int)musicVolume, (unsigned int)musicVolume / MUSIC_FADE_DIVISOR,
 								  MUSIC_FADE_DURATION_MS);
 		}
@@ -209,7 +209,7 @@ int FrontendFlight_LaunchSession(int frameCounter) {
 		CDAudio_EnableLoopCurrentTrack();
 		if (g_gameConfig.datapadMusicEnabled != 0) {
 			CDAudio_PlayTrackFromTime(FRONTEND_MUSIC_TRACK, 0, 0);
-			musicVolume = MUSIC_VOLUME_MAX * g_gameConfig.musicVolume / MUSIC_VOLUME_LEVEL_COUNT;
+			musicVolume = MUSIC_VOLUME_MAX * g_gameConfig.musicVolume / MUSIC_VOLUME_MAX_LEVEL;
 			CDAudio_SetAuxVolume((unsigned int)musicVolume);
 		}
 	}

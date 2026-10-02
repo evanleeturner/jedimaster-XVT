@@ -18,7 +18,7 @@ typedef enum XvtFlightQueue { XVT_QUEUE_PENDING, XVT_QUEUE_REPLAY, XVT_QUEUE_COU
 typedef struct XvtFlightMessage {
 	uint32_t target_flags;
 	uint16_t count;
-	uint8_t mask;
+	uint8_t participant_mask;
 	XvtFlightWorldInputWire records[XVT_WORLD_RECORDS];
 } XvtFlightMessage;
 

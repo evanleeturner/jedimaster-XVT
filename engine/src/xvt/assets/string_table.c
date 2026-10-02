@@ -21,22 +21,22 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 	enum {
 		STRING_LINE_CAPACITY = 1024,
 		DEFAULT_STRING_DATA_CAPACITY = 0x7D00,
-		FILE_ERROR_STRING_COUNT = 36,
-		FILE_ERROR_PREFIX_COUNT = 4,
+		FILE_AND_DISK_IO_STRING_COUNT = 36,
+		FILE_ERROR_MESSAGE_COUNT = 4,
 		MODEL_STRING_COUNT = 73,
-		GOAL_CONDITION_COUNT = 188,
-		GOAL_VARIANT_COUNT = 47,
+		GOAL_CONDITION_TEXT_ROW_COUNT = 188,
+		GOAL_CONDITIONS_PER_ROW_BLOCK = 47,
 	};
 
 	XvtFile* stream;
-	int hasGender;
+	int genderUsedByAnyCraft;
 	int entryIndex;
 	char* writePtr;
 	char** modelName;
 	char line[STRING_LINE_CAPACITY];
 	size_t fileSize;
 	int lineLength;
-	int conditionVariantIndex;
+	int conditionIndex;
 	int variantIndex;
 
 	if (loadFromDisk == 0) {
@@ -82,7 +82,7 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < FILE_ERROR_STRING_COUNT) {
+				while (entryIndex < FILE_AND_DISK_IO_STRING_COUNT) {
 					if (File_Gets(line, sizeof(line), stream) == NULL) {
 						writePtr = NULL;
 						break;
@@ -95,12 +95,12 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 					if (line[lineLength - 1] == '\n') {
 						line[--lineLength] = '\0';
 					}
-					if (entryIndex < FILE_ERROR_PREFIX_COUNT) {
+					if (entryIndex < FILE_ERROR_MESSAGE_COUNT) {
 						memcpy(writePtr, line, lineLength + 1);
 						g_strFileErrorMessages[entryIndex] = writePtr;
 					} else {
 						memcpy(writePtr, line, lineLength + 1);
-						g_strDiskIoMessages[entryIndex - FILE_ERROR_PREFIX_COUNT] = writePtr;
+						g_strDiskIoMessages[entryIndex - FILE_ERROR_MESSAGE_COUNT] = writePtr;
 					}
 					writePtr += lineLength + 1;
 					++entryIndex;
@@ -153,10 +153,10 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 			}
 
 			if (writePtr != NULL) {
-				for (entryIndex = 0; entryIndex < GOAL_CONDITION_COUNT; ++entryIndex) {
-					conditionVariantIndex = entryIndex % GOAL_VARIANT_COUNT;
+				for (entryIndex = 0; entryIndex < GOAL_CONDITION_TEXT_ROW_COUNT; ++entryIndex) {
+					conditionIndex = entryIndex % GOAL_CONDITIONS_PER_ROW_BLOCK;
 					variantIndex = 0;
-					while (variantIndex < g_goalConditionTextVariantCount[conditionVariantIndex]) {
+					while (variantIndex < g_goalConditionTextVariantCount[conditionIndex]) {
 						if (File_Gets(line, sizeof(line), stream) == NULL) {
 							writePtr = NULL;
 							break;
@@ -660,19 +660,19 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				hasGender = 0;
+				genderUsedByAnyCraft = 0;
 				while (entryIndex < MODEL_STRING_COUNT) {
 					if (g_craftGender[entryIndex] == CRAFT_GENDER_FEMININE) {
-						hasGender = 1;
+						genderUsedByAnyCraft = 1;
 						break;
 					}
 					++entryIndex;
 				}
-				if (hasGender != 0) {
-					for (entryIndex = 0; entryIndex < GOAL_CONDITION_COUNT; ++entryIndex) {
-						conditionVariantIndex = entryIndex % GOAL_VARIANT_COUNT;
+				if (genderUsedByAnyCraft != 0) {
+					for (entryIndex = 0; entryIndex < GOAL_CONDITION_TEXT_ROW_COUNT; ++entryIndex) {
+						conditionIndex = entryIndex % GOAL_CONDITIONS_PER_ROW_BLOCK;
 						variantIndex = 0;
-						while (variantIndex < g_goalConditionTextVariantCount[conditionVariantIndex]) {
+						while (variantIndex < g_goalConditionTextVariantCount[conditionIndex]) {
 							if (File_Gets(line, sizeof(line), stream) == NULL) {
 								writePtr = NULL;
 								break;
@@ -699,19 +699,19 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				hasGender = 0;
+				genderUsedByAnyCraft = 0;
 				while (entryIndex < MODEL_STRING_COUNT) {
 					if (g_craftGender[entryIndex] == CRAFT_GENDER_NEUTERED) {
-						hasGender = 1;
+						genderUsedByAnyCraft = 1;
 						break;
 					}
 					++entryIndex;
 				}
-				if (hasGender != 0) {
-					for (entryIndex = 0; entryIndex < GOAL_CONDITION_COUNT; ++entryIndex) {
-						conditionVariantIndex = entryIndex % GOAL_VARIANT_COUNT;
+				if (genderUsedByAnyCraft != 0) {
+					for (entryIndex = 0; entryIndex < GOAL_CONDITION_TEXT_ROW_COUNT; ++entryIndex) {
+						conditionIndex = entryIndex % GOAL_CONDITIONS_PER_ROW_BLOCK;
 						variantIndex = 0;
-						while (variantIndex < g_goalConditionTextVariantCount[conditionVariantIndex]) {
+						while (variantIndex < g_goalConditionTextVariantCount[conditionIndex]) {
 							if (File_Gets(line, sizeof(line), stream) == NULL) {
 								writePtr = NULL;
 								break;

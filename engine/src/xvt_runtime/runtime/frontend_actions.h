@@ -5,7 +5,12 @@
 extern "C" {
 #endif
 
-enum { XVT_ACTION_COMMON = 1, XVT_ACTION_PILOT, XVT_ACTION_CONFIG, XVT_ACTION_CONCOURSE };
+enum {
+	XVT_ACTION_OWNER_COMMON = 1,
+	XVT_ACTION_OWNER_PILOT,
+	XVT_ACTION_OWNER_CONFIG,
+	XVT_ACTION_OWNER_CONCOURSE
+};
 
 /* One pending frontend action at a time, held by the screen that triggered it (an XVT_ACTION_*
  * owner, never 0) until that screen finishes it, so a suspended screen can resume the action on a

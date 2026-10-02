@@ -36,7 +36,7 @@ typedef struct XvtSnapMap {
 } XvtSnapMap;
 
 typedef struct XvtSnapSky {
-	uint16_t star_density;
+	uint16_t star_grid_divisor;
 	uint16_t checkpoint_slot, craft_slot_end;
 	uint8_t backdrop_enabled, debris_enabled, proving_grounds;
 	uint8_t backdrop_types[64], backdrop_directions[64];

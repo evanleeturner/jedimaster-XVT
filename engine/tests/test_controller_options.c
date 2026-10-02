@@ -365,7 +365,7 @@ static void CheckAddModel(void) {
 	memset(&g_input, 0, sizeof g_input);
 	AeronControllerSnapshot* joystick = Connect(0, kGuidB, AERON_CONTROLLER_KIND_JOYSTICK, 4);
 
-	XVT_ASSERT_TRUE(XvtControllerOptions_AddModel(&g_options, joystick, g_error, sizeof g_error));
+	XVT_ASSERT_TRUE(XvtControllerOptions_EnsureModel(&g_options, joystick, g_error, sizeof g_error));
 	XVT_ASSERT_INT_EQ(g_options.count, 2);
 	const XvtControllerModel* added = &g_options.models[1];
 	XVT_ASSERT_INT_EQ(strcmp(added->guid, kGuidB), 0);
@@ -376,14 +376,14 @@ static void CheckAddModel(void) {
 	XVT_ASSERT_TRUE(OptionsValid(&g_options));
 
 	/* A GUID already listed adds nothing and succeeds. */
-	XVT_ASSERT_TRUE(XvtControllerOptions_AddModel(&g_options, joystick, g_error, sizeof g_error));
+	XVT_ASSERT_TRUE(XvtControllerOptions_EnsureModel(&g_options, joystick, g_error, sizeof g_error));
 	XVT_ASSERT_INT_EQ(g_options.count, 2);
 
 	/* A device without a valid GUID fails. */
 	AeronControllerSnapshot* unnamed = Connect(1, kGuidC, AERON_CONTROLLER_KIND_GAMEPAD, 5);
 	unnamed->guid[0] = 'Z';
 	g_error[0] = '\0';
-	XVT_ASSERT_TRUE(!XvtControllerOptions_AddModel(&g_options, unnamed, g_error, sizeof g_error));
+	XVT_ASSERT_TRUE(!XvtControllerOptions_EnsureModel(&g_options, unnamed, g_error, sizeof g_error));
 	XVT_ASSERT_TRUE(g_error[0] != '\0');
 	XVT_ASSERT_INT_EQ(g_options.count, 2);
 
@@ -395,7 +395,7 @@ static void CheckAddModel(void) {
 		g_options.models[i].guid[0] = (char)('0' + i);
 	}
 	g_error[0] = '\0';
-	XVT_ASSERT_TRUE(!XvtControllerOptions_AddModel(&g_options, gamepad, g_error, sizeof g_error));
+	XVT_ASSERT_TRUE(!XvtControllerOptions_EnsureModel(&g_options, gamepad, g_error, sizeof g_error));
 	XVT_ASSERT_TRUE(g_error[0] != '\0');
 	XVT_ASSERT_INT_EQ(g_options.count, XVT_CONTROLLER_MODEL_CAP);
 }

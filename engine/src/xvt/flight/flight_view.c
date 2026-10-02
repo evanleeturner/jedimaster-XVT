@@ -363,7 +363,7 @@ void FlightView_UpdatePlayerCamera(int playerIdx) {
 
 			extentShift = 0;
 			g_currentObjectBoundsExtent =
-				g_modelTypeTable[g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].objectType]
+				g_objectTypeTable[g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].objectType]
 					.maxBoundsExtent;
 			while (g_currentObjectBoundsExtent > MAX_UNSCALED_EXTENT) {
 				++extentShift;
@@ -431,7 +431,7 @@ void FlightView_UpdatePlayerCamera(int playerIdx) {
 			FVIEW_BuildCameraOrient(hyperspaceCameraRoll, CAMERA_PITCH_LEVEL, 0, 0, 0, 0, NULL);
 			cameraY =
 				g_objectTable[g_players[playerIdx].objectIndex].world_y -
-				g_modelTypeTable[g_objectTable[g_players[playerIdx].objectIndex].objectType].maxBoundsExtent;
+				g_objectTypeTable[g_objectTable[g_players[playerIdx].objectIndex].objectType].maxBoundsExtent;
 			g_players[playerIdx].viewState.cameraWorldY = cameraY;
 			cameraDropTicks = (int)g_players[playerIdx].hyperspaceRuntime.phaseElapsedTicks -
 							  HYPERSPACE_EXTERNAL_CAMERA_TICKS;
@@ -534,7 +534,7 @@ void FlightView_Render(void) {
 				object = &g_objectTable[mainObjectIndex];
 				objectType = object->objectType;
 				if (objectType != 0) {
-					g_currentObjectBoundsExtent = g_modelTypeTable[objectType].maxBoundsExtent;
+					g_currentObjectBoundsExtent = g_objectTypeTable[objectType].maxBoundsExtent;
 					switch (object->genusId) {
 						case CRAFT_GENUS_STARFIGHTER:
 						case CRAFT_GENUS_TRANSPORT:
@@ -591,7 +591,7 @@ void FlightView_Render(void) {
 			if (objectType == 0) {
 				continue;
 			}
-			g_currentObjectBoundsExtent = g_modelTypeTable[objectType].maxBoundsExtent;
+			g_currentObjectBoundsExtent = g_objectTypeTable[objectType].maxBoundsExtent;
 			genusId = object->genusId;
 			if (genusId >= CRAFT_GENUS_MINE && genusId <= CRAFT_GENUS_SMALL_DEBRIS &&
 				FlightView_CullWorldSphereToViewport(object->world_x, object->world_y, object->world_z,

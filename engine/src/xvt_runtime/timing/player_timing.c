@@ -17,7 +17,7 @@ typedef struct PlayerTiming {
 	int32_t recovery[3];
 	uint64_t recovery_serial, lock_serial;
 	uint16_t slot, signature, lock_signature, lock_target, lock_target_signature, lock_weapon;
-	unsigned lock_mode, lock_half;
+	unsigned lock_mode, lock_odd_tick;
 	unsigned control_mode;
 	uint16_t camera_focus;
 	int control_valid;
@@ -155,7 +155,7 @@ unsigned XvtPlayerTiming_LockHalf(unsigned player, unsigned mode) {
 		s->lock_signature != signature || s->lock_target != target ||
 		s->lock_target_signature != target_signature ||
 		s->lock_weapon != g_players[player].selectedWeaponBank) {
-		s->lock_half = 0;
+		s->lock_odd_tick = 0;
 	}
 	s->lock_serial = XvtFlightTiming_AdvanceSerial();
 	s->lock_mode = mode;
@@ -164,11 +164,11 @@ unsigned XvtPlayerTiming_LockHalf(unsigned player, unsigned mode) {
 	s->lock_target_signature = target_signature;
 	s->lock_weapon = g_players[player].selectedWeaponBank;
 	if (!mode) {
-		s->lock_half = 0;
+		s->lock_odd_tick = 0;
 		return 0;
 	}
-	unsigned elapsed = s->lock_half + g_elapsedTicks;
-	s->lock_half = elapsed % 2;
+	unsigned elapsed = s->lock_odd_tick + g_elapsedTicks;
+	s->lock_odd_tick = elapsed % 2;
 	return elapsed / 2;
 }
 
@@ -222,7 +222,7 @@ void XvtPlayerTiming_ResetShared(void) {
 		}
 		s->slot = s->signature = s->lock_signature = s->lock_target = s->lock_target_signature =
 			s->lock_weapon = 0;
-		s->lock_mode = s->lock_half = s->control_mode = s->control_valid = 0;
+		s->lock_mode = s->lock_odd_tick = s->control_mode = s->control_valid = 0;
 		s->lock_serial = 0;
 		s->camera_focus = 0;
 	}
@@ -246,7 +246,7 @@ void XvtPlayerTiming_Encode(unsigned player, XvtPlayerTimingWire* out) {
 		out->direction[i] = state->direction[g_sharedChannels[i]];
 	}
 	out->lock_mode = state->lock_mode;
-	out->lock_half = state->lock_half;
+	out->lock_odd_tick = state->lock_odd_tick;
 	out->control_valid = state->control_valid;
 	XvtWire_Set32(out->control_mode, state->control_mode);
 	XvtWire_Set16(out->lock_signature, state->lock_signature);
@@ -260,8 +260,9 @@ void XvtPlayerTiming_Encode(unsigned player, XvtPlayerTimingWire* out) {
 int XvtPlayerTiming_Decode(const XvtPlayerTimingWire* record, int apply) {
 	unsigned player = record->player, slot = XvtWire_Get16(record->slot);
 	if (player >= XVT_FLIGHT_PLAYERS || record->valid > 1 || XvtWire_Get16(record->reserved) ||
-		record->lock_mode > XVT_LOCK_HALF_TARGET_LOSS || record->lock_half > 1 || record->control_valid > 1 ||
-		(XvtWire_Get32(record->control_mode) & ~XVT_CONTROL_MASK) || XvtWire_Get16(record->reserved_tail))
+		record->lock_mode > XVT_LOCK_HALF_TARGET_LOSS || record->lock_odd_tick > 1 ||
+		record->control_valid > 1 || (XvtWire_Get32(record->control_mode) & ~XVT_CONTROL_MASK) ||
+		XvtWire_Get16(record->reserved_tail))
 		return 0;
 	if (!record->valid) {
 		XvtPlayerTimingWire empty = { 0 };
@@ -287,7 +288,7 @@ int XvtPlayerTiming_Decode(const XvtPlayerTimingWire* record, int apply) {
 		state->direction[g_sharedChannels[i]] = record->direction[i];
 	}
 	state->lock_mode = record->lock_mode;
-	state->lock_half = record->lock_half;
+	state->lock_odd_tick = record->lock_odd_tick;
 	state->control_valid = record->control_valid;
 	state->control_mode = XvtWire_Get32(record->control_mode);
 	state->lock_signature = XvtWire_Get16(record->lock_signature);

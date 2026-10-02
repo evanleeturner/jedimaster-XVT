@@ -17,12 +17,12 @@ struct InventorNodeDef {
 	const struct InventorFieldDef* const* fieldDefs;
 };
 
-void InventorAscii_SkipToOpenBrace(XvtFile* stream);
-void InventorAscii_SkipToOpenBracket(XvtFile* stream);
+void InventorAscii_SkipPastOpenBrace(XvtFile* stream);
+void InventorAscii_SkipPastOpenBracket(XvtFile* stream);
 void InventorAscii_SkipListSeparator(XvtFile* stream);
-void InventorAscii_SkipToQuote(XvtFile* stream);
-void InventorAscii_SkipToCloseBrace(XvtFile* stream);
-void InventorAscii_SkipToCloseBracket(XvtFile* stream);
+void InventorAscii_SkipPastQuote(XvtFile* stream);
+void InventorAscii_SkipPastCloseBrace(XvtFile* stream);
+void InventorAscii_SkipPastCloseBracket(XvtFile* stream);
 int InventorAscii_PeekNextIsQuote(XvtFile* stream);
 int InventorAscii_PeekNextIsCloseBrace(XvtFile* stream);
 int InventorAscii_PeekNextIsOpenBrace(XvtFile* stream);

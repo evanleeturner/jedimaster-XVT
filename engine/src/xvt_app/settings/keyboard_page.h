@@ -13,7 +13,7 @@ typedef struct XvtKeyboardSettings {
 	XvtKeyboardBindings original;
 	XvtKeyboardBindings draft;
 	XvtBindingsEditor editor;
-	AeronKeyChord pending;
+	AeronKeyChord pending_chord;
 	XvtInputAction conflicting_action;
 	int conflict_open;
 	int restore_open;

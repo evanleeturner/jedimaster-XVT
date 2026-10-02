@@ -7,7 +7,7 @@ static const char g_inventorAsciiCharScanFormat[] = " %c";
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4138A0
-void InventorAscii_SkipToOpenBrace(XvtFile* stream) {
+void InventorAscii_SkipPastOpenBrace(XvtFile* stream) {
 	char character;
 
 	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != '{') {
@@ -15,7 +15,7 @@ void InventorAscii_SkipToOpenBrace(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x4138E0
-void InventorAscii_SkipToOpenBracket(XvtFile* stream) {
+void InventorAscii_SkipPastOpenBracket(XvtFile* stream) {
 	char character;
 
 	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != '[') {
@@ -33,7 +33,7 @@ void InventorAscii_SkipListSeparator(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x413970
-void InventorAscii_SkipToQuote(XvtFile* stream) {
+void InventorAscii_SkipPastQuote(XvtFile* stream) {
 	char character;
 
 	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != '"') {
@@ -41,7 +41,7 @@ void InventorAscii_SkipToQuote(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x4139B0
-void InventorAscii_SkipToCloseBrace(XvtFile* stream) {
+void InventorAscii_SkipPastCloseBrace(XvtFile* stream) {
 	char character;
 
 	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != '}') {
@@ -49,7 +49,7 @@ void InventorAscii_SkipToCloseBrace(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x4139F0
-void InventorAscii_SkipToCloseBracket(XvtFile* stream) {
+void InventorAscii_SkipPastCloseBracket(XvtFile* stream) {
 	char character;
 
 	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != ']') {

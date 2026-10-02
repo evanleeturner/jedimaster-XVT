@@ -35,8 +35,8 @@ enum {
 static struct {
 	int phase, host, online, opened, registered, closing, cancel_join, flight, flight_ready, lost;
 	GUID app, instance;
-	char rating_text[16], player[16], name[32];
-	uint64_t deadline, retry;
+	char rating_text[16], player_name[16], name[32];
+	uint64_t deadline, next_retry_us;
 	AeronDplayDirectoryError error;
 	XvtNetworkMetadata metadata;
 	AeronDplayRoomMetadata published;
@@ -135,8 +135,8 @@ static int XvtNetworkSession_Fail(AeronDplayDirectoryError error) {
 	return 0;
 }
 
-static int XvtNetworkSession_Start(const char* info, const char* player, const char* name, int host,
-								   int online, const GUID* room) {
+static int XvtNetworkSession_Start(const char* rating_text, const char* player_name, const char* name,
+								   int host, int online, const GUID* room) {
 	if (g_session.phase != SESSION_IDLE && g_session.phase != SESSION_FAILED &&
 		g_session.phase != SESSION_ESTABLISHED)
 		return XVT_NETWORK_PENDING;
@@ -149,17 +149,17 @@ static int XvtNetworkSession_Start(const char* info, const char* player, const c
 	g_session.app = g_application;
 	g_session.host = host;
 	g_session.online = online;
-	if (!info || !player || !name || (!host && !room))
+	if (!rating_text || !player_name || !name || (!host && !room))
 		return XvtNetworkSession_Fail(AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
-	if (strlen(info) >= sizeof(g_session.rating_text) || strlen(player) >= sizeof(g_session.player) ||
-		strlen(name) >= sizeof(g_session.name))
+	if (strlen(rating_text) >= sizeof(g_session.rating_text) ||
+		strlen(player_name) >= sizeof(g_session.player_name) || strlen(name) >= sizeof(g_session.name))
 		return XvtNetworkSession_Fail(AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
-	strcpy(g_session.rating_text, info);
-	strcpy(g_session.player, player);
+	strcpy(g_session.rating_text, rating_text);
+	strcpy(g_session.player_name, player_name);
 	if (*name)
 		strcpy(g_session.name, name);
 	else
-		snprintf(g_session.name, sizeof(g_session.name), "%s's Game.", player);
+		snprintf(g_session.name, sizeof(g_session.name), "%s's Game.", player_name);
 	if (room)
 		g_session.instance = *room;
 	g_missionSetupIsHost = host;
@@ -168,17 +168,18 @@ static int XvtNetworkSession_Start(const char* info, const char* player, const c
 			host ? FRONTEND_MISSION_SESSION_NET_HOST : FRONTEND_MISSION_SESSION_NET_CLIENT;
 	g_session.phase = SESSION_CLOSE;
 	XVT_LOG_INFO("network.session_begin role=\"%s\" online=%d", XvtNetworkSession_Role(), online);
-	XVT_LOG_DEBUG("network.session_names pilot=\"%s\" game=\"%s\" rating=\"%s\"", g_session.player,
+	XVT_LOG_DEBUG("network.session_names pilot=\"%s\" game=\"%s\" rating=\"%s\"", g_session.player_name,
 				  g_session.name, g_session.rating_text);
 	return XVT_NETWORK_PENDING;
 }
 
-int XvtNetworkSession_BeginHost(const char* info, const char* player, const char* name, int online) {
-	return XvtNetworkSession_Start(info, player, name, 1, online, NULL);
+int XvtNetworkSession_BeginHost(const char* rating_text, const char* player_name, const char* name,
+								int online) {
+	return XvtNetworkSession_Start(rating_text, player_name, name, 1, online, NULL);
 }
 
-int XvtNetworkSession_BeginJoin(const char* info, const char* player, const GUID* room) {
-	return XvtNetworkSession_Start(info, player, "", 0, 1, room);
+int XvtNetworkSession_BeginJoin(const char* rating_text, const char* player_name, const GUID* room) {
+	return XvtNetworkSession_Start(rating_text, player_name, "", 0, 1, room);
 }
 
 static int XvtNetworkSession_Factory(void) {
@@ -222,7 +223,7 @@ static int XvtNetworkSession_Factory(void) {
 	g_frontState.netAppGuid = g_session.app;
 	g_frontState.netIsHost = g_session.host;
 	strcpy(g_frontState.netPlayers[0].playerInfo, g_session.rating_text);
-	strcpy(g_frontState.netPlayers[0].playerName, g_session.player);
+	strcpy(g_frontState.netPlayers[0].playerName, g_session.player_name);
 	strcpy(g_frontState.netSessionName, g_session.name);
 	result = DirectPlayCreate(provider, &temporary, NULL);
 	if (result)
@@ -365,7 +366,7 @@ int XvtNetworkSession_Update(void) {
 			break;
 		}
 		case SESSION_PLAYER: {
-			int player = Net_CreateDirectPlayPlayer(g_session.rating_text, g_session.player);
+			int player = Net_CreateDirectPlayPlayer(g_session.rating_text, g_session.player_name);
 			if (player == XVT_NETWORK_PENDING)
 				break;
 			if (!player)
@@ -394,7 +395,7 @@ int XvtNetworkSession_Update(void) {
 			if (g_session.host) {
 				g_frontState.netHostPlayerId = g_frontState.netRuntimeLocalPlayer.playerId;
 				Net_SetPlayerReady(Net_GetLocalPlayerId());
-				snprintf(g_mpRoster[0].name, sizeof(g_mpRoster[0].name), "%s", g_session.player);
+				snprintf(g_mpRoster[0].name, sizeof(g_mpRoster[0].name), "%s", g_session.player_name);
 				g_mpRoster[0].playerId = Net_GetLocalPlayerId();
 				g_mpRoster[0].pilotRating = g_pilotData.rating;
 				if (g_session.online)
@@ -501,10 +502,10 @@ void XvtNetworkSession_Service(void) {
 	AeronDplayDirectoryStatus status;
 	AeronDplayDirectory_GetHostStatus(&status);
 	uint64_t now = Aeron_NowUs();
-	if (status.state == AERON_DPLAY_DIRECTORY_FAILED && now >= g_session.retry) {
+	if (status.state == AERON_DPLAY_DIRECTORY_FAILED && now >= g_session.next_retry_us) {
 		XVT_LOG_WARN("network.directory_retry");
 		AeronDplayDirectory_StartHosting(&g_session.instance, &g_session.published);
-		g_session.retry = now + 15000000;
+		g_session.next_retry_us = now + 15000000;
 	}
 }
 

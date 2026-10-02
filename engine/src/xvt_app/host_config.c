@@ -15,13 +15,13 @@ int XvtLaunchOptions_Parse(int argc, char* argv[], XvtLaunchOptions* options) {
 		struct {
 			const char* name;
 			const char** value;
-		} paths[] = { { "--resource-root", &options->resource_root },
-					  { "--game-data", &options->game_data },
-					  { "--import-config", &options->import_config },
-					  { "--import-pilot", &options->import_pilot },
-					  { "--pilot-name", &options->pilot_name },
-					  { "--log-level", &options->log_level },
-					  { "--log-file", &options->log_file } };
+		} value_options[] = { { "--resource-root", &options->resource_root },
+							  { "--game-data", &options->game_data },
+							  { "--import-config", &options->import_config },
+							  { "--import-pilot", &options->import_pilot },
+							  { "--pilot-name", &options->pilot_name },
+							  { "--log-level", &options->log_level },
+							  { "--log-file", &options->log_file } };
 
 		struct {
 			const char* name;
@@ -44,9 +44,10 @@ int XvtLaunchOptions_Parse(int argc, char* argv[], XvtLaunchOptions* options) {
 		}
 		if (handled)
 			continue;
-		for (size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); ++i) {
-			if (strlen(paths[i].name) == length && !strncmp(argument, paths[i].name, length)) {
-				destination = paths[i].value;
+		for (size_t i = 0; i < sizeof(value_options) / sizeof(value_options[0]); ++i) {
+			if (strlen(value_options[i].name) == length &&
+				!strncmp(argument, value_options[i].name, length)) {
+				destination = value_options[i].value;
 				break;
 			}
 		}
@@ -70,7 +71,7 @@ int XvtLaunchOptions_Parse(int argc, char* argv[], XvtLaunchOptions* options) {
 	return 1;
 }
 
-void XvtHostConfig_InitAeron(const XvtLaunchOptions* options, AeronConfig* config) {
+void XvtHostConfig_FillAeronConfig(const XvtLaunchOptions* options, AeronConfig* config) {
 	memset(config, 0, sizeof(*config));
 	config->org_name = "TotallyOpen";
 	config->app_name = "OpenXvT";
@@ -89,7 +90,7 @@ void XvtHostConfig_InitAeron(const XvtLaunchOptions* options, AeronConfig* confi
 
 int XvtHostConfig_ResolveResourceRoot(const XvtLaunchOptions* options, char* out, size_t capacity) {
 	AeronConfig config;
-	XvtHostConfig_InitAeron(options, &config);
+	XvtHostConfig_FillAeronConfig(options, &config);
 	if (config.resource_root && config.resource_root[0]) {
 		if (strlen(config.resource_root) >= capacity)
 			return 0;

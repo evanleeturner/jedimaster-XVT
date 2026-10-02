@@ -114,7 +114,7 @@ typedef struct ModelMeshObjectTypeCache ModelMeshObjectTypeCache;
 typedef struct ModelPreviewCraftPosition ModelPreviewCraftPosition;
 typedef struct ModelTextureDefaultTexture ModelTextureDefaultTexture;
 typedef struct ModelTextureDefaultTextureData ModelTextureDefaultTextureData;
-typedef struct ModelTypeInfo ModelTypeInfo;
+typedef struct ObjectTypeInfo ObjectTypeInfo;
 typedef struct ModelWeaponHardpoint ModelWeaponHardpoint;
 typedef struct MovieDirtyRect MovieDirtyRect;
 typedef struct MovieMultiplayerSyncPlayer MovieMultiplayerSyncPlayer;

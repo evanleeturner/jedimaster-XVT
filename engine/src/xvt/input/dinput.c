@@ -195,7 +195,7 @@ int DInput_Init(void) {
 }
 
 // FUNCTION: XVT 0x4434F0
-int DInput_HasKeyReady(void) {
+int DInput_SkipToPendingKeyPress(void) {
 	DIDEVICEOBJECTDATA keyEvent[2];
 	uint32_t eventCount;
 	HRESULT result;

@@ -62,11 +62,11 @@ static void RotateAxes(double m[9], double ax, double ay, double az, int16_t ang
 	}
 }
 
-void XvtRenderCamera_Build(int16_t roll, int16_t pitch, int16_t yaw, int16_t angle_d, int16_t aim_x,
+void XvtRenderCamera_Build(int16_t roll, int16_t pitch, int16_t yaw, int16_t up_axis_angle, int16_t aim_x,
 						   int16_t aim_y) {
 	double* m = g_camera.rows;
 	RotMove(m, pitch, yaw);
-	RotateAxes(m, m[3], m[4], m[5], angle_d);
+	RotateAxes(m, m[3], m[4], m[5], up_axis_angle);
 	RotateAxes(m, m[6], m[7], m[8], roll);
 	for (int i = 3; i < 9; ++i)
 		m[i] = -m[i];

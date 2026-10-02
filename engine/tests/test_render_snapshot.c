@@ -139,7 +139,7 @@ static void CheckBeginFrameClearsCounts(void) {
 	slot->copy_count = 10;
 	slot->surface_event_count = 11;
 	slot->preview_count = 2;
-	slot->sky.star_density = 4321;
+	slot->sky.star_grid_divisor = 4321;
 	XvtRenderSnapshot_Commit(0, 1, 0);
 	XVT_ASSERT_TRUE(slot->image_asset_count > 0);
 
@@ -168,7 +168,7 @@ static void CheckBeginFrameClearsCounts(void) {
 	XVT_ASSERT_INT_EQ(slot->opt_asset_count, 0);
 	XVT_ASSERT_INT_EQ(slot->texture_asset_count, 0);
 	XVT_ASSERT_INT_EQ(slot->image_asset_count, 0);
-	XVT_ASSERT_INT_EQ(slot->sky.star_density, 4321);
+	XVT_ASSERT_INT_EQ(slot->sky.star_grid_divisor, 4321);
 	XvtRenderSnapshot_Commit(3, 1, 0);
 	XvtRenderCapture_EndMission();
 }

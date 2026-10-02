@@ -57,9 +57,9 @@ void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry* quadRecord) {
 	g_camRelWorldZ = object->world_z - g_players[g_localPlayer].viewState.cameraWorldZ;
 	g_viewSpaceDepth = quadRecord->depthZ;
 	screenSize = (uint16_t)SceneBillboard_ComputeProjectedSize(
-		quadRecord->depthZ, (uint16_t)g_modelTypeTable[modelType].maxBoundsExtent,
+		quadRecord->depthZ, (uint16_t)g_objectTypeTable[modelType].maxBoundsExtent,
 		(uint16_t)quadRecord->screenSize);
-	handle = g_modelTypeTable[modelType].curTexLevel;
+	handle = g_objectTypeTable[modelType].resourceHandle;
 	modelData = (const uint8_t*)Memory_LockHandle(handle);
 	frame &= 0x7Fu;
 	Memory_UnlockHandle(handle);

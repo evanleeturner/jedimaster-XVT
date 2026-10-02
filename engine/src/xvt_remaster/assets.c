@@ -19,8 +19,8 @@ typedef struct ImageVariant {
 } ImageVariant;
 
 typedef struct ImageAsset {
-	uint64_t id, seen;
-	int texture, pending_new;
+	uint64_t id, seen_generation;
+	int is_texture, pending_new;
 	uint32_t kind;
 	uint8_t frontend_pixel_format_555;
 	char path[XVT_SNAP_PATH];
@@ -240,10 +240,10 @@ const XvtOriginal2d* XvtRemasterAssets_FindDecodedImage(uint64_t id) {
 }
 
 static int Load(AeronCommandBuffer* cmd, const XvtSnapImageAsset* source, const XvtRenderSnapshot* snapshot,
-				int texture) {
+				int is_texture) {
 	ImageAsset* image = Find(source->id);
 	if (image) {
-		image->seen = g_batchGeneration[texture];
+		image->seen_generation = g_batchGeneration[is_texture];
 		if (image->kind == XVT_IMAGE_BMP || image->kind == XVT_IMAGE_BUILTIN_CURSOR)
 			return 1;
 		memcpy(image->default_palette, snapshot->flight_palette_argb, sizeof image->default_palette);
@@ -251,7 +251,7 @@ static int Load(AeronCommandBuffer* cmd, const XvtSnapImageAsset* source, const 
 			return 1;
 		if (!XvtRemasterAssets_PrepareImage(cmd, source->id, NULL, UINT16_MAX, UINT16_MAX))
 			return 0;
-		if (!texture && source->kind != XVT_IMAGE_BUILTIN_CURSOR)
+		if (!is_texture && source->kind != XVT_IMAGE_BUILTIN_CURSOR)
 			if (!XvtRemasterAssets_PrepareImage(cmd, source->id, NULL, 0, UINT16_MAX))
 				return 0;
 		return 1;
@@ -266,10 +266,10 @@ static int Load(AeronCommandBuffer* cmd, const XvtSnapImageAsset* source, const 
 		return 0;
 	}
 	image->id = source->id;
-	image->texture = texture;
+	image->is_texture = is_texture;
 	image->kind = source->kind;
 	image->pending_new = 1;
-	image->seen = g_batchGeneration[texture];
+	image->seen_generation = g_batchGeneration[is_texture];
 	snprintf(image->path, sizeof image->path, "%s", source->path);
 	memcpy(image->default_palette, snapshot->flight_palette_argb, sizeof image->default_palette);
 	if (source->kind == XVT_IMAGE_BMP) {
@@ -284,8 +284,8 @@ static int Load(AeronCommandBuffer* cmd, const XvtSnapImageAsset* source, const 
 				DecodeFrontendColor(colors.color_lut[color], colors.pixel_format_555);
 	}
 	char error[1280];
-	int ok = texture ? XvtOriginal2d_LoadAct(source->path, &image->decoded, error, sizeof error)
-					 : XvtOriginal2d_Load(source, &image->decoded, error, sizeof error);
+	int ok = is_texture ? XvtOriginal2d_LoadAct(source->path, &image->decoded, error, sizeof error)
+						: XvtOriginal2d_Load(source, &image->decoded, error, sizeof error);
 	if (!ok) {
 		XVT_LOG_ERROR("remaster.asset_failed error=\"%s\"", error);
 		Aeron_CommandBufferSetFailure(cmd, error);
@@ -368,12 +368,12 @@ int XvtRemasterAssets_SyncTextures(AeronCommandBuffer* cmd, const XvtRenderSnaps
 	return 1;
 }
 
-static void Commit(int texture) {
+static void Commit(int is_texture) {
 	for (unsigned i = 0; i < sizeof g_images / sizeof g_images[0]; ++i) {
 		ImageAsset* image = &g_images[i];
-		if (!image->id || image->texture != texture)
+		if (!image->id || image->is_texture != is_texture)
 			continue;
-		if (g_batchActive[texture] && image->seen != g_batchGeneration[texture]) {
+		if (g_batchActive[is_texture] && image->seen_generation != g_batchGeneration[is_texture]) {
 			Release(image);
 			continue;
 		}
@@ -381,11 +381,11 @@ static void Commit(int texture) {
 		for (ImageVariant* variant = image->variants; variant; variant = variant->next)
 			variant->committed = 1;
 	}
-	if (!texture && g_batchActive[0])
+	if (!is_texture && g_batchActive[0])
 		memcpy(g_palette, g_pendingPalette, sizeof g_palette);
-	if (g_batchActive[texture])
-		g_generations[texture] = g_batchGeneration[texture];
-	g_batchActive[texture] = 0;
+	if (g_batchActive[is_texture])
+		g_generations[is_texture] = g_batchGeneration[is_texture];
+	g_batchActive[is_texture] = 0;
 }
 
 void XvtRemasterAssets_CommitImages(void) { Commit(0); }
@@ -399,7 +399,7 @@ void XvtRemasterAssets_Abort(void) {
 			Release(image);
 			continue;
 		}
-		if (!image->texture && image->kind != XVT_IMAGE_BMP)
+		if (!image->is_texture && image->kind != XVT_IMAGE_BMP)
 			memcpy(image->default_palette, g_palette, sizeof image->default_palette);
 		ImageVariant** link = &image->variants;
 		while (*link) {

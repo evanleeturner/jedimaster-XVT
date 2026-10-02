@@ -128,7 +128,7 @@ int16_t Targeting_TestAimCone(uint16_t objectIdx, int16_t narrowCone, int player
 		boundShift = g_modelDefs[modelIndex].boundSizeShift;
 		targetExtent = (boundSum / 3) << boundShift;
 	} else {
-		targetExtent = g_modelTypeTable[target->objectType].maxBoundsExtent;
+		targetExtent = g_objectTypeTable[target->objectType].maxBoundsExtent;
 	}
 	extentSlope =
 		(int)(((uint64_t)(unsigned int)(targetExtent >> scaleShift) << 8) + 128) / (unsigned int)forward;
@@ -364,10 +364,10 @@ int Targeting_GetObjectBoxExtent(unsigned int objectIdx) {
 			return (int)((unsigned int)averageExtent << g_modelDefs[modelIndex].boundSizeShift);
 		}
 
-		return g_modelTypeTable[object->objectType].maxBoundsExtent;
+		return g_objectTypeTable[object->objectType].maxBoundsExtent;
 	}
 
-	return g_modelTypeTable[object->objectType].maxBoundsExtent;
+	return g_objectTypeTable[object->objectType].maxBoundsExtent;
 }
 
 // FUNCTION: XVT 0x4830D0
@@ -467,7 +467,7 @@ void Targeting_ComputeProjectedObjectExtent(uint16_t objectIdx, uint16_t* outWid
 		averageExtent += g_modelDefs[craft->modelIndex].boundSizeZ;
 		maxBoundsExtent = (averageExtent / 3) << g_modelDefs[craft->modelIndex].boundSizeShift;
 	} else {
-		maxBoundsExtent = g_modelTypeTable[g_objectTable[objectIndex].objectType].maxBoundsExtent;
+		maxBoundsExtent = g_objectTypeTable[g_objectTable[objectIndex].objectType].maxBoundsExtent;
 	}
 
 	maxBoundsExtent >>= distanceShift;

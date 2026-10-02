@@ -50,7 +50,7 @@ static void Build(Block* block) {
 
 	block->texture0.nodeType = OPT_TEXTURE;
 	block->texture0.payload = &block->textureData[0];
-	block->textureData[0].paletteType = 0;
+	block->textureData[0].inlinePaletteCount = 0;
 	block->textureData[0].palette = block->palettes[0];
 
 	block->wing.pName = block->names[1];
@@ -62,7 +62,7 @@ static void Build(Block* block) {
 
 	block->texture1.nodeType = OPT_TEXTURE;
 	block->texture1.payload = &block->textureData[1];
-	block->textureData[1].paletteType = 1;
+	block->textureData[1].inlinePaletteCount = 1;
 	block->textureData[1].palette = block->palettes[1];
 
 	block->reference.nodeType = OPT_NODEREF;

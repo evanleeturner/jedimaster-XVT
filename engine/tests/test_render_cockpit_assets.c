@@ -206,7 +206,8 @@ static void CheckDefinitionCopy(void) {
 	const XvtCockpitDefinition* d = Definition();
 	XVT_ASSERT_INT_EQ(d->layout.elements[5].x, 4321);
 	XVT_ASSERT_INT_EQ(d->layout.elements[400].selector, 77);
-	XVT_ASSERT_INT_EQ(memcmp(d->beam_fades, g_hudBeamSegmentColorByChargeStep, sizeof d->beam_fades), 0);
+	XVT_ASSERT_INT_EQ(
+		memcmp(d->beam_segment_colors, g_hudBeamSegmentColorByChargeStep, sizeof d->beam_segment_colors), 0);
 	XVT_ASSERT_INT_EQ(memcmp(d->shield_colors, g_hudShieldColors, sizeof d->shield_colors), 0);
 	free(first);
 }

@@ -110,7 +110,7 @@ enum TacticalMessageId {
 extern uint8_t g_fsfxLoaded;
 
 extern char g_fsfxSfxNameTable[838][24];
-extern uint16_t g_fsfxMinDistanceOrRolloffBySfxSlot[96];
+extern uint16_t g_fsfxFalloffDistanceBySfxSlot[96];
 extern uint8_t g_fsfxBaseVolumeBySfxSlot[96];
 extern uint8_t g_playerEngineLoopObjectType;
 extern char g_currentMissionFile[128];
@@ -120,11 +120,11 @@ void fsfx_ResetFlightSfxState(void);
 void fsfx_UnloadAllEffects_Thunk(void);
 int fsfx_LoadSfxList(char* fileNameBuffer, uint16_t firstSoundId);
 void fsfx_LoadMissionVoiceSfx(void);
-void fsfx_StopHyperZoomImp(int playerIdx);
-int fsfx_PlaySound(unsigned int soundId, int objOrMissionPointRef, int playerIdx);
+void fsfx_StopHyperspaceExitSounds(int playerIdx);
+int fsfx_PlaySound(unsigned int soundId, int emitterObjIdx, int playerIdx);
 int fsfx_triggerweaponsfx(unsigned int projectileObjectIndex, int playerIdx);
-unsigned int fsfx_ComputeSourceVolume(int objOrMissionPointRef, unsigned int soundId);
-int fsfx_ComputeSourcePan(int objOrMissionPointRef, int* volume);
+unsigned int fsfx_ComputeSourceVolume(int emitterObjIdx, unsigned int soundId);
+int fsfx_ComputeSourcePan(int emitterObjIdx, int* volume);
 int fsfx_UpdateTargetingTone(unsigned int toneState);
 void fsfx_UpdateBeamSystemLoop(int active, int playerIdx);
 void fsfx_UpdateIncomingMissileWarning(int warningState);
@@ -132,15 +132,15 @@ void fsfx_UpdateChaffLoop(void);
 void fsfx_UpdatePlayerEngineLoop(void);
 void fsfx_UpdateBeamEffectLoops(void);
 void fsfx_UpdateFlightSfx(void);
-int fsfx_speakorderack(int playerIdx, int speakerObjIdx, int voiceCategory, int responseIndex,
-					   int targetObjIdx, uint16_t probability);
+int fsfx_SpeakWingmanEvent(int playerIdx, int speakerObjIdx, int voiceCategory, int responseIndex,
+						   int targetObjIdx, uint16_t probability);
 int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx, uint16_t probability);
 int fsfx_QueueCommanderVoiceCategory(int voiceCategory, int objectSignature);
-int fsfx_SelectAvailableVoiceVariant(int voiceCategory, int waveNumber);
+int fsfx_SelectAvailableVoiceVariant(int voiceCategory, int craftOrdinal);
 uint16_t fsfx_RandomIndex(uint16_t count);
 int fsfx_IsVoiceQueueEmpty(void);
 int fsfx_QueueVoiceSfx(int sfxSlot, char speakerType, char voiceCategory, char chainFlag,
-					   uint16_t objectSerial);
+					   uint16_t objectSignature);
 void fsfx_UpdateVoiceQueue(void);
 void fsfx_PruneStaleVoiceQueueEntries(void);
 void fsfx_RemoveVoiceQueueEntryChain(unsigned int queueIndex);

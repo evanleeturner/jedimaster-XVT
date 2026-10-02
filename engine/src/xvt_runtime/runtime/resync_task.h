@@ -34,15 +34,15 @@ int XvtResync_ReceivePacket(int sender, const uint8_t* bytes, unsigned size);
  * shows the alert and sends the checksum table and request from a pinned copy. Returns -1 when
  * started, and also, doing nothing, while a transfer is under way; returns 0, ending the send,
  * when the image fails validation, copying or checksumming. */
-int XvtResync_BeginSend(int player, uint8_t* world, int size);
+int XvtResync_BeginSend(int peer_dpid, uint8_t* world, int size);
 /* Sends player the apply for size bytes, stamped with the input tick, and waits in the apply phase
  * for the acknowledgement, resending each retry interval and booting player after
  * XVT_RESYNC_RETRIES attempts. */
-void XvtResync_BeginApply(int player, int size);
+void XvtResync_BeginApply(int peer_dpid, int size);
 /* Processes packets and returns 1 once chunks 0 through count - 1 are acknowledged, and -1 while
  * waiting or after a restart request. After XVT_RESYNC_ACK_RETRIES intervals without progress,
  * or on Escape, boots player and returns 0. */
-int XvtResync_WaitAcks(int player, int count);
+int XvtResync_WaitAcks(int peer_dpid, int count);
 /* 1 while a send, receive or replay runs. */
 int XvtResync_IsActive(void);
 /* On a client: 1 while a state request is out or an image is received or replayed; incoming input

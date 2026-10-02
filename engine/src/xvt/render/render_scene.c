@@ -1413,7 +1413,7 @@ void RenderScene_DrawObjectModel(ObjectRecord* obj) {
 		g_defaultWhiteTextureDescPtr = &g_defaultWhiteTexture.header;
 		g_defaultWhiteTexture.header.height = DEFAULT_WHITE_TEXTURE_DIMENSION;
 		g_defaultWhiteTextureDescPtr->width = DEFAULT_WHITE_TEXTURE_DIMENSION;
-		g_defaultWhiteTextureDescPtr->paletteType = 16;
+		g_defaultWhiteTextureDescPtr->inlinePaletteCount = 16;
 		g_defaultWhiteTextureDescPtr->palette = (uint16_t*)(uintptr_t)256;
 		ModelTexture_BuildPalettedShadeTable(g_defaultWhiteTexture.data.baseTexels,
 											 g_defaultWhiteTextureRgb24, DEFAULT_WHITE_TEXTURE_DIMENSION,
@@ -1425,7 +1425,7 @@ void RenderScene_DrawObjectModel(ObjectRecord* obj) {
 	restoreMesh = 0;
 	g_curTextureDesc = g_defaultWhiteTextureDescPtr;
 	rootIndex = 0;
-	g_curMeshFlags = NULL;
+	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 	meshOrdinal = 0;
 
@@ -1553,7 +1553,7 @@ void RenderScene_DrawSelectedRootNode(ObjectRecord* obj, int rootNodeIndex) {
 		g_defaultWhiteTextureDescPtr = &g_defaultWhiteTexture.header;
 		g_defaultWhiteTexture.header.height = DEFAULT_WHITE_TEXTURE_DIMENSION;
 		g_defaultWhiteTextureDescPtr->width = DEFAULT_WHITE_TEXTURE_DIMENSION;
-		g_defaultWhiteTextureDescPtr->paletteType = 16;
+		g_defaultWhiteTextureDescPtr->inlinePaletteCount = 16;
 		g_defaultWhiteTextureDescPtr->palette = (uint16_t*)(uintptr_t)256;
 		ModelTexture_BuildPalettedShadeTable(g_defaultWhiteTexture.data.baseTexels,
 											 g_defaultWhiteTextureRgb24, DEFAULT_WHITE_TEXTURE_DIMENSION,
@@ -1563,7 +1563,7 @@ void RenderScene_DrawSelectedRootNode(ObjectRecord* obj, int rootNodeIndex) {
 	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshFlags = NULL;
+	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 
 	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
@@ -1634,9 +1634,9 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 		parameters = (OptVector*)nodeData;
 		switch (currentNode->nodeType) {
 			case OPT_FACEDATA:
-			case OPT_FACEDATA_15:
-			case OPT_FACEDATA_16:
-			case OPT_FACEDATA_17: {
+			case OPT_FACEDATA_QUAD_MESH:
+			case OPT_FACEDATA_FACE_SET:
+			case OPT_FACEDATA_TRIANGLE_STRIP_SET: {
 				OptPackedFaceData* faceData;
 				FaceRecord* faceGeometry;
 				OptVector* faceNormals;
@@ -1659,7 +1659,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 					mesh->pMaterial = g_curTextureDesc;
 					mesh->pTexels = mesh->pMaterial;
 					mesh->pTexels = (uint8_t*)mesh->pTexels + sizeof(OptTextureData);
-					if (g_curTextureDesc->paletteType != 0) {
+					if (g_curTextureDesc->inlinePaletteCount != 0) {
 						mesh->pPalette = mesh->pTexels;
 						paletteOffset = ((OptTextureData*)mesh->pMaterial)->width *
 										((OptTextureData*)mesh->pMaterial)->height;
@@ -1748,13 +1748,13 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 				mesh->viewToModelOrient[8] = mesh->viewToModelOrient[8] * inverseScale;
 				break;
 			}
-			case OPT_TYPE_10:
+			case OPT_MATERIAL_BINDING:
 				if (currentNode->payloadCount == 8 || currentNode->payloadCount == 7)
-					memcpy(&mesh->nodeType10Flags78, &g_curMeshFlags, sizeof(mesh->nodeType10Flags78));
+					memcpy(&mesh->perVertexMaterials, &g_curMeshMaterials, sizeof(mesh->perVertexMaterials));
 				else if (currentNode->payloadCount == 6 || currentNode->payloadCount == 5)
-					memcpy(&mesh->nodeType10Flags56, &g_curMeshFlags, sizeof(mesh->nodeType10Flags56));
+					memcpy(&mesh->perFaceMaterials, &g_curMeshMaterials, sizeof(mesh->perFaceMaterials));
 				else
-					memcpy(&mesh->nodeFlags[3], &g_curMeshFlags, sizeof(mesh->nodeFlags[3]));
+					memcpy(&mesh->nodeFlags[3], &g_curMeshMaterials, sizeof(mesh->nodeFlags[3]));
 				break;
 			case OPT_VERTNORMALS:
 				g_curVertNormals = parameters;
@@ -1763,7 +1763,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 			case OPT_TEXCOORDS:
 				mesh->pUVs = (OptTexCoord*)nodeData;
 				break;
-			case OPT_TYPE_19:
+			case OPT_BASE_COLOR:
 				mesh->nodeFlags[0] = ((int*)nodeData)[0];
 				mesh->nodeFlags[1] = ((int*)nodeData)[1];
 				mesh->nodeFlags[2] = ((int*)nodeData)[2];
@@ -1776,7 +1776,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 				g_curTextureDesc = (OptTextureData*)mesh->pMaterial;
 				mesh->pTexels = mesh->pMaterial;
 				mesh->pTexels = (uint8_t*)mesh->pTexels + sizeof(OptTextureData);
-				if (g_curTextureDesc->paletteType != 0) {
+				if (g_curTextureDesc->inlinePaletteCount != 0) {
 					mesh->pPalette = mesh->pTexels;
 					paletteOffset = ((OptTextureData*)mesh->pMaterial)->width *
 									((OptTextureData*)mesh->pMaterial)->height;
@@ -1855,13 +1855,13 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 		}
 	} else {
 		switch (currentNode->nodeType) {
-			case OPT_TYPE_10:
+			case OPT_MATERIAL_BINDING:
 				if (currentNode->payloadCount == 8 || currentNode->payloadCount == 7)
-					memcpy(&mesh->nodeType10Flags78, &g_curMeshFlags, sizeof(mesh->nodeType10Flags78));
+					memcpy(&mesh->perVertexMaterials, &g_curMeshMaterials, sizeof(mesh->perVertexMaterials));
 				else if (currentNode->payloadCount == 6 || currentNode->payloadCount == 5)
-					memcpy(&mesh->nodeType10Flags56, &g_curMeshFlags, sizeof(mesh->nodeType10Flags56));
+					memcpy(&mesh->perFaceMaterials, &g_curMeshMaterials, sizeof(mesh->perFaceMaterials));
 				else
-					memcpy(&mesh->nodeFlags[3], &g_curMeshFlags, sizeof(mesh->nodeFlags[3]));
+					memcpy(&mesh->nodeFlags[3], &g_curMeshMaterials, sizeof(mesh->nodeFlags[3]));
 				break;
 			case OPT_TEXTURE: {
 				int paletteOffset;
@@ -1871,7 +1871,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 				g_curTextureDesc = (OptTextureData*)mesh->pMaterial;
 				mesh->pTexels = mesh->pMaterial;
 				mesh->pTexels = (uint8_t*)mesh->pTexels + sizeof(OptTextureData);
-				if (g_curTextureDesc->paletteType != 0) {
+				if (g_curTextureDesc->inlinePaletteCount != 0) {
 					mesh->pPalette = mesh->pTexels;
 					paletteOffset = ((OptTextureData*)mesh->pMaterial)->width *
 									((OptTextureData*)mesh->pMaterial)->height;
@@ -1891,7 +1891,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 				if (selection.nodeSwitchSelection > currentNode->childCount)
 					selection.nodeSwitchSelection = currentNode->childCount;
 				break;
-			case OPT_TYPE_14:
+			case OPT_TEXCOORD_BINDING:
 			default:
 				break;
 		}
@@ -1913,7 +1913,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 		g_curMeshTexCoords = NULL;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshFlags = NULL;
+		g_curMeshMaterials = NULL;
 		g_curVertexCount = 0;
 		for (childIndex = 0; childIndex < currentNode->childCount; ++childIndex) {
 			++g_curLayerId;
@@ -1971,7 +1971,7 @@ int RenderScene_IsSegmentOccludedByObjectModel(ObjectRecord* object, const OptVe
 	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshFlags = NULL;
+	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
 		if (RenderScene_TestSegmentAgainstModelNode(model, model->rootNodes[rootIndex], &mesh, segmentStart,
@@ -2002,9 +2002,9 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 	if (nodePayload != NULL) {
 		switch (node->nodeType) {
 			case OPT_FACEDATA:
-			case OPT_FACEDATA_15:
-			case OPT_FACEDATA_16:
-			case OPT_FACEDATA_17: {
+			case OPT_FACEDATA_QUAD_MESH:
+			case OPT_FACEDATA_FACE_SET:
+			case OPT_FACEDATA_TRIANGLE_STRIP_SET: {
 				OptPackedFaceData* faceData = (OptPackedFaceData*)nodePayload;
 				FaceRecord* faceGeometry;
 				int hit;
@@ -2115,7 +2115,7 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 		g_curMeshTexCoords = NULL;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshFlags = NULL;
+		g_curMeshMaterials = NULL;
 		g_curVertexCount = 0;
 		childIndex = 0;
 		if (node->childCount > 0) {

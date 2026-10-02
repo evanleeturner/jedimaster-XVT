@@ -17,8 +17,8 @@ void XvtUi_Color(uint32_t argb, float out[4]);
 void XvtUi_Glyph(AeronDrawList2D* list, const XvtSnapGlyph* glyph, float scale, float ox, float oy);
 /* Draws text in the font asset at x, y scaled, in color, centered on x when asked; a character outside
  * the font draws nothing and advances nothing. Nothing without the font or text. */
-void XvtUi_Text(AeronDrawList2D* list, uint64_t font, const char* text, float x, float y, float scale,
-				uint32_t color, int centered);
+void XvtUi_Text(AeronDrawList2D* list, uint64_t font_asset_id, const char* text, float x, float y,
+				float scale, uint32_t color, int centered);
 /* Draws frame of the asset's map-icon atlas under palette and remap (prepared through the image cache
  * with cmd when absent) at x, y scaled, cut to width x height. Returns 0 only when the atlas cannot be
  * prepared; 1 also when the frame is absent. */

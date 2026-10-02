@@ -1289,7 +1289,7 @@ int16_t paiman_escortmaneuver(void) {
 		targetCraft = g_objectTable[targetIdx].mobj->pCraft;
 		targetController = &targetCraft->aiController;
 		escortRange =
-			g_modelTypeTable[g_objectTable[targetIdx].objectType].maxBoundsExtent < 3000 ? 0x8000 : 0x20000;
+			g_objectTypeTable[g_objectTable[targetIdx].objectType].maxBoundsExtent < 3000 ? 0x8000 : 0x20000;
 		if ((unsigned int)trig2_polardistance > escortRange || targetCraft->workingSubsystems == 0) {
 			g_paiContext.controller->aimPointX = g_objectTable[targetIdx].world_x;
 			g_paiContext.controller->aimPointY = g_objectTable[targetIdx].world_y;
@@ -1367,7 +1367,7 @@ int16_t paiman_escortmaneuver(void) {
 		pai_calcrotatedpoint(&g_objectTable[targetIdx], g_aiEscortStationOffsetXByVariable[variable1],
 							 g_aiEscortStationOffsetYByVariable[variable1],
 							 g_aiEscortStationOffsetZByVariable[variable1]);
-		if (g_modelTypeTable[g_objectTable[targetIdx].objectType].maxBoundsExtent >= 3000) {
+		if (g_objectTypeTable[g_objectTable[targetIdx].objectType].maxBoundsExtent >= 3000) {
 			g_rotatedX *= 16;
 			g_rotatedY *= 16;
 			g_rotatedZ *= 16;
@@ -1686,9 +1686,9 @@ int16_t paiman_boardmaneuver(void) {
 
 						if (launcherIndex == WARHEAD_LAUNCHER_SECONDARY)
 							warhead = SECONDARY_WARHEAD_TYPE;
-						desiredCount =
-							MATH2_fraction(g_modelDefs[targetModelIndex].warheadLauncherValue[launcherIndex],
-										   g_warheadAmmoFractionQ16[warhead]);
+						desiredCount = MATH2_fraction(
+							g_modelDefs[targetModelIndex].warheadLauncherCapacity[launcherIndex],
+							g_warheadAmmoFractionQ16[warhead]);
 						if (desiredCount == 0)
 							desiredCount = MINIMUM_WARHEAD_COUNT;
 						flightGroupStatus =

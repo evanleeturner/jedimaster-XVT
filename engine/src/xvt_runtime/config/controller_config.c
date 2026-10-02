@@ -72,7 +72,7 @@ static bool XvtControllerConfig_ReadString(const AeronConfigFile* document, cons
 	return true;
 }
 
-static bool XvtControllerConfig_ParseAxisMapping(const AeronConfigFile* document, const char* domain,
+static bool XvtControllerConfig_ParseAxisMapping(const AeronConfigFile* document, const char* profile_path,
 												 bool gamepad, XvtControllerProfile* profile, char* error,
 												 size_t capacity) {
 	static const char* const names[] = { "yaw", "pitch", "roll", "throttle" };
@@ -82,13 +82,13 @@ static bool XvtControllerConfig_ParseAxisMapping(const AeronConfigFile* document
 		const AeronConfigNode* node;
 		XvtInputAxisBinding* binding = &profile->mapping.axes[index];
 		int source;
-		snprintf(path, sizeof path, "%s.axes.%s", domain, names[index]);
+		snprintf(path, sizeof path, "%s.axes.%s", profile_path, names[index]);
 		node = AeronConfigFile_GetNode(document, path);
 		if (!node)
 			continue;
 		if (AeronConfigNode_Type(node) != AERON_CONFIG_MAP)
 			return XvtControllerConfig_ConfigError(error, capacity, "'%s' must be an axis mapping", path);
-		snprintf(path, sizeof path, "%s.axes.%s.source", domain, names[index]);
+		snprintf(path, sizeof path, "%s.axes.%s.source", profile_path, names[index]);
 		node = AeronConfigFile_GetNode(document, path);
 		if (gamepad) {
 			const char* name = AeronConfigNode_String(node, NULL);
@@ -117,10 +117,10 @@ static bool XvtControllerConfig_ParseAxisMapping(const AeronConfigFile* document
 												   path);
 		}
 		binding->source = (int8_t)source;
-		snprintf(path, sizeof path, "%s.axes.%s.invert", domain, names[index]);
+		snprintf(path, sizeof path, "%s.axes.%s.invert", profile_path, names[index]);
 		if (!XvtControllerConfig_ReadBool(document, path, &binding->invert, error, capacity))
 			return false;
-		snprintf(path, sizeof path, "%s.axes.%s.deadzone", domain, names[index]);
+		snprintf(path, sizeof path, "%s.axes.%s.deadzone", profile_path, names[index]);
 		if (index != XVT_INPUT_AXIS_THROTTLE || AeronConfigFile_Has(document, path)) {
 			if (!XvtControllerConfig_ReadFloat(document, path, 0.0, 1.0, &binding->deadzone, error, capacity))
 				return false;
@@ -276,8 +276,8 @@ static bool XvtControllerConfig_ParseBindingValue(const AeronConfigNode* node, b
 	return true;
 }
 
-static bool Keys(const AeronConfigNode* node, const char* const* keys, size_t count, char* error,
-				 size_t capacity) {
+static bool XvtControllerConfig_CheckKnownKeys(const AeronConfigNode* node, const char* const* keys,
+											   size_t count, char* error, size_t capacity) {
 	if (!node)
 		return true;
 	if (AeronConfigNode_Type(node) != AERON_CONFIG_MAP)
@@ -305,17 +305,20 @@ bool XvtControllerConfig_ReadProfile(const AeronConfigFile* document, const char
 		return XvtControllerConfig_ConfigError(error, capacity, "layout must be gamepad or joystick");
 	if (!strcmp(path, "input.gamepad_defaults")) {
 		static const char* const keys[] = { "axes", "buttons" };
-		if (!Keys(AeronConfigFile_GetNode(document, path), keys, 2, error, capacity))
+		if (!XvtControllerConfig_CheckKnownKeys(AeronConfigFile_GetNode(document, path), keys, 2, error,
+												capacity))
 			return false;
 	}
 	char sub[192];
 	XvtControllerOptions_ClearProfile(profile, kind);
 	snprintf(sub, sizeof sub, "%s.axes", path);
-	if (!Keys(AeronConfigFile_GetNode(document, sub), axis_names, 4, error, capacity))
+	if (!XvtControllerConfig_CheckKnownKeys(AeronConfigFile_GetNode(document, sub), axis_names, 4, error,
+											capacity))
 		return false;
 	for (int i = 0; i < 4; ++i) {
 		snprintf(sub, sizeof sub, "%s.axes.%s", path, axis_names[i]);
-		if (!Keys(AeronConfigFile_GetNode(document, sub), fields, 3, error, capacity))
+		if (!XvtControllerConfig_CheckKnownKeys(AeronConfigFile_GetNode(document, sub), fields, 3, error,
+												capacity))
 			return false;
 	}
 	if (!XvtControllerConfig_ParseAxisMapping(document, path, kind == AERON_CONTROLLER_KIND_GAMEPAD, profile,
@@ -351,7 +354,7 @@ bool XvtControllerConfig_Parse(const AeronConfigFile* document, XvtControllerOpt
 		return XvtControllerConfig_ConfigError(error, capacity, "controller model capacity exceeded");
 	for (size_t i = 0; i < options->count; ++i) {
 		const AeronConfigNode* node = AeronConfigNode_SequenceGet(list, i);
-		if (!Keys(node, keys, 5, error, capacity))
+		if (!XvtControllerConfig_CheckKnownKeys(node, keys, 5, error, capacity))
 			return false;
 		XvtControllerModel* m = &options->models[i];
 		char path[128], field[160];

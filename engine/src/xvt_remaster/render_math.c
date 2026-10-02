@@ -91,10 +91,10 @@ static void fl_transformaxes(float cur[3][3], const float axis[3], int angle_q16
  * FVIEW_calcrotatemove + FVIEW_calcrotateorient (statics and dirty
  * orientations). */
 static void fl_curmat_from_euler(const XvtSnapObject* f, float cur[3][3]) {
-	const float aA = (float)(int16_t)(0xc000 - f->pitch) * FL_Q16_TO_RAD;
-	const float aB = (float)(int16_t)(-(int16_t)f->yaw) * FL_Q16_TO_RAD;
-	const float cB = cosf(aB), sB = sinf(aB);
-	const float cA = cosf(aA), sA = sinf(aA);
+	const float pitch_angle = (float)(int16_t)(0xc000 - f->pitch) * FL_Q16_TO_RAD;
+	const float yaw_angle = (float)(int16_t)(-(int16_t)f->yaw) * FL_Q16_TO_RAD;
+	const float cB = cosf(yaw_angle), sB = sinf(yaw_angle);
+	const float cA = cosf(pitch_angle), sA = sinf(pitch_angle);
 	cur[0][0] = cB;
 	cur[0][1] = sB;
 	cur[0][2] = 0.0f;
@@ -254,13 +254,14 @@ int XvtRenderMath_PoseChanged(const XvtRenderSnapshot* current, const XvtRenderS
 			a->pitch != b->pitch || a->yaw != b->yaw || a->roll != b->roll ||
 			a->has_mobile != b->has_mobile || a->orient_dirty != b->orient_dirty ||
 			a->has_craft != b->has_craft || a->source_type != b->source_type ||
-			a->node_switch != b->node_switch || a->state != b->state || a->genus != b->genus ||
+			a->node_switch != b->node_switch || a->family != b->family || a->genus != b->genus ||
 			a->slot_class != b->slot_class || a->source_slot != b->source_slot ||
 			a->light_scale != b->light_scale || a->throttle != b->throttle ||
-			a->engine_output != b->engine_output || a->working_subsystems != b->working_subsystems ||
+			a->overdrive_off != b->overdrive_off || a->working_subsystems != b->working_subsystems ||
 			a->object_kind != b->object_kind || a->speed != b->speed || a->max_speed != b->max_speed ||
-			a->laser_redirect != b->laser_redirect || a->shield_redirect != b->shield_redirect ||
-			a->beam_level != b->beam_level ||
+			a->laser_recharge_level != b->laser_recharge_level ||
+			a->shield_recharge_level != b->shield_recharge_level ||
+			a->beam_recharge_level != b->beam_recharge_level ||
 			memcmp(a->type_specific, b->type_specific, sizeof a->type_specific) ||
 			memcmp(a->cached_rows_q15, b->cached_rows_q15, sizeof a->cached_rows_q15) ||
 			memcmp(a->mesh_rotation, b->mesh_rotation, sizeof a->mesh_rotation) ||

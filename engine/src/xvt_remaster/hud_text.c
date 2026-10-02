@@ -150,7 +150,7 @@ int XvtHudText_DrawField(const XvtHudDraw* draw, const XvtCockpitTextField* fiel
 	return DrawStyledField(draw, field, 0);
 }
 
-int XvtHudText_DrawNumber(const XvtHudDraw* draw, const XvtCockpitNumber* number, int score) {
+int XvtHudText_DrawNumber(const XvtHudDraw* draw, const XvtCockpitNumber* number, int signed_value) {
 	if (!number->visible)
 		return 1;
 	if (number->font_tier >= XVT_HUD_FONT_TIERS || number->field_width > 9)
@@ -173,7 +173,7 @@ int XvtHudText_DrawNumber(const XvtHudDraw* draw, const XvtCockpitNumber* number
 	field.narrow = number->narrow;
 	field.keyed = number->keyed;
 	field.color_key_argb = number->color_key_argb;
-	int64_t value = score ? number->value : (uint16_t)number->value;
+	int64_t value = signed_value ? number->value : (uint16_t)number->value;
 	int started = 0;
 	for (unsigned index = 0; index < number->field_width; ++index) {
 		unsigned remaining = number->field_width - index;
@@ -181,12 +181,12 @@ int XvtHudText_DrawNumber(const XvtHudDraw* draw, const XvtCockpitNumber* number
 		for (unsigned place = 1; place < remaining; ++place)
 			divisor *= 10;
 		int digit = (int)(value / divisor);
-		value = score ? (int32_t)((uint32_t)value - (uint32_t)divisor * (uint16_t)digit)
-					  : (uint16_t)(value - (int64_t)divisor * (uint16_t)digit);
+		value = signed_value ? (int32_t)((uint32_t)value - (uint32_t)divisor * (uint16_t)digit)
+							 : (uint16_t)(value - (int64_t)divisor * (uint16_t)digit);
 		started |= remaining <= number->minimum_digits || (uint16_t)digit != 0;
 		field.caption.text[index] = started ? (char)('0' + ((uint16_t)digit > 9 ? 9 : digit)) : ' ';
 	}
-	if (!score && (uint16_t)number->value == UINT16_MAX) {
+	if (!signed_value && (uint16_t)number->value == UINT16_MAX) {
 		memset(field.caption.text, '0', number->field_width);
 		field.shadow_enabled = 0;
 	}

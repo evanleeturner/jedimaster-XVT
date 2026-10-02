@@ -130,7 +130,7 @@ int XvtMovieTask_Begin(const char* name, int synchronize) {
 	return XVT_MOVIE_PENDING;
 }
 
-static void XvtMovieTask_SubmitSubtitles(uint64_t frame, int bottom) {
+static void XvtMovieTask_SubmitSubtitles(uint64_t frame, int margin_height) {
 	AeronPixelLayerDesc layer = { 0 };
 	RECT clip;
 	RECT rect;
@@ -138,7 +138,7 @@ static void XvtMovieTask_SubmitSubtitles(uint64_t frame, int bottom) {
 	int saved_pitch;
 	int line;
 	int waiting = g_movie.synchronize && g_moviePlaybackCompletionState;
-	if ((!g_movieSubtitleFile && !g_movie.synchronize) || bottom <= 0)
+	if ((!g_movieSubtitleFile && !g_movie.synchronize) || margin_height <= 0)
 		return;
 	/* Each file record supplies the next boundary and the text for this interval. */
 	while (!waiting && g_movieSubtitleFile && g_movie.next_cue != UINT16_MAX && g_movie.next_cue <= frame) {
@@ -156,14 +156,14 @@ static void XvtMovieTask_SubmitSubtitles(uint64_t frame, int bottom) {
 	FrontendDisplay_SetScreenClipRect640x480(&rect);
 	g_drawSurfacePtr = (uint8_t*)g_movie.overlay;
 	g_frontState.drawSurfacePitch = 640 * sizeof(uint16_t);
-	rect.top = 480 - bottom;
+	rect.top = 480 - margin_height;
 	for (line = 0; !waiting && line < 3; ++line) {
-		rect.bottom = rect.top + bottom / 3;
+		rect.bottom = rect.top + margin_height / 3;
 		FrontendText_DrawCentered(12, g_movie.lines[line], &rect, 0xffff);
 		rect.top = rect.bottom;
 	}
 	if (g_movie.synchronize)
-		XvtMovieSync_Draw(bottom, bottom);
+		XvtMovieSync_Draw(margin_height, margin_height);
 	g_drawSurfacePtr = saved_pixels;
 	g_frontState.drawSurfacePitch = saved_pitch;
 	FrontendDisplay_SetScreenClipRect640x480(&clip);

@@ -16,10 +16,10 @@
 #include "xvt_runtime/runtime/flight_sim.h"
 #include "xvt_runtime/runtime/flight_task.h"
 #include <string.h>
-static bool g_captured, g_rendererTab;
+static bool g_captured, g_rendererTabSuppressed;
 static uint8_t g_blockedKeys[AERON_KEY_COUNT];
 static uint32_t g_blockedMouse;
-static uint64_t g_mouseResumeFrame = UINT64_MAX;
+static uint64_t g_mouseIgnoredFrame = UINT64_MAX;
 static bool g_mouseReleased, g_mouseCaptureFailed, g_mouseSession;
 static int g_mouseContext = -1;
 static XvtMouseOptions g_mouseOptions;
@@ -43,10 +43,10 @@ void XvtInput_FlushRawKeyboard(void) {
 static void XvtInput_ApplyKeySuppression(void) {
 	for (int key = 0; key < AERON_KEY_COUNT; ++key)
 		AeronCompat_SetKeySuppressed(key, g_captured || g_blockedKeys[key] ||
-											  (key == AERON_KEY_TAB && g_rendererTab));
+											  (key == AERON_KEY_TAB && g_rendererTabSuppressed));
 }
 
-void XvtInput_SuppressKey(int key) {
+void XvtInput_BlockKeyUntilReleased(int key) {
 	if ((unsigned)key >= AERON_KEY_COUNT)
 		return;
 	g_blockedKeys[key] = 1;
@@ -76,7 +76,7 @@ void XvtInput_SetCaptured(bool capture) {
 		for (int key = 0; key < AERON_KEY_COUNT; ++key)
 			g_blockedKeys[key] = input->key_down[key];
 		g_blockedMouse = input->mouse.buttons;
-		g_mouseResumeFrame = input->frame_id;
+		g_mouseIgnoredFrame = input->frame_id;
 	}
 	XvtInput_FlushKeyboard();
 	g_actionKey = 0;
@@ -111,20 +111,21 @@ bool XvtInput_IsCaptured(void) { return g_captured; }
 
 bool XvtInput_MouseMotionAllowed(void) {
 	const AeronInputSnapshot* input = Aeron_InputSnapshot();
-	return !g_captured && input && input->has_focus && input->frame_id != g_mouseResumeFrame;
+	return !g_captured && input && input->has_focus && input->frame_id != g_mouseIgnoredFrame;
 }
 
 uint32_t XvtInput_FilterMouseButtons(uint32_t buttons) { return g_captured ? 0 : buttons & ~g_blockedMouse; }
 
 void XvtInput_SuppressRendererTab(bool suppress) {
-	g_rendererTab = suppress;
-	AeronCompat_SetKeySuppressed(AERON_KEY_TAB, g_captured || g_blockedKeys[AERON_KEY_TAB] || g_rendererTab);
+	g_rendererTabSuppressed = suppress;
+	AeronCompat_SetKeySuppressed(AERON_KEY_TAB,
+								 g_captured || g_blockedKeys[AERON_KEY_TAB] || g_rendererTabSuppressed);
 }
 
 void XvtInput_ResetCapture(void) {
-	g_captured = g_rendererTab = false;
+	g_captured = g_rendererTabSuppressed = false;
 	g_blockedMouse = 0;
-	g_mouseResumeFrame = UINT64_MAX;
+	g_mouseIgnoredFrame = UINT64_MAX;
 	memset(g_blockedKeys, 0, sizeof g_blockedKeys);
 	XvtInput_ApplyKeySuppression();
 	g_mouseReleased = g_mouseCaptureFailed = g_mouseSession = false;
@@ -149,7 +150,7 @@ void XvtInput_UpdateMouseCapture(const AeronInputSnapshot* input) {
 		XvtMouseFlight_SetOptions(&g_mouseOptions);
 		g_mouseCaptureFailed = false;
 		g_blockedMouse |= input ? input->mouse.buttons : 0;
-		g_mouseResumeFrame = input ? input->frame_id : UINT64_MAX;
+		g_mouseIgnoredFrame = input ? input->frame_id : UINT64_MAX;
 	}
 	bool session = XvtFlightTask_IsActive() && !XvtFlightTask_IsLoading();
 	if (session != g_mouseSession) {
@@ -170,22 +171,22 @@ void XvtInput_UpdateMouseCapture(const AeronInputSnapshot* input) {
 	if (session && g_mouseOptions.mouse_flight_enabled && input && input->has_focus && !g_captured &&
 		!XvtDialog_IsActive() && !Aeron_DebugUiVisible()) {
 		bool chord = !g_blockedKeys[MOUSE_CAPTURE_KEY] &&
-					 XvtKeyboardMapping_Trigger(input, XVT_KEYBOARD_SHORTCUT_MOUSE) >= 0;
+					 XvtKeyboardMapping_FindShortcutPress(input, XVT_KEYBOARD_SHORTCUT_MOUSE) >= 0;
 		bool click = g_mouseReleased && input->mouse.inside_content && input->mouse.pressed_buttons;
 		if (chord || click) {
 			g_mouseReleased = chord ? !g_mouseReleased : false;
 			g_mouseCaptureFailed = false;
 			g_blockedKeys[MOUSE_CAPTURE_KEY] |= chord;
 			g_blockedMouse |= input->mouse.buttons | input->mouse.pressed_buttons;
-			g_mouseResumeFrame = input->frame_id;
+			g_mouseIgnoredFrame = input->frame_id;
 			XvtMouseFlight_Reset();
 			XvtInput_ApplyKeySuppression();
 		}
 	}
-	bool capture = XvtInput_MouseFlightAllowed();
+	bool want_relative_mouse = XvtInput_MouseFlightAllowed();
 	bool was_relative = Aeron_RelativeMouseMode() != 0;
-	if (capture != was_relative) {
-		if (!Aeron_SetRelativeMouseMode(capture) && capture) {
+	if (want_relative_mouse != was_relative) {
+		if (!Aeron_SetRelativeMouseMode(want_relative_mouse) && want_relative_mouse) {
 			g_mouseCaptureFailed = true;
 			g_mouseReleased = true;
 			XVT_LOG_ERROR("input.capture_failed device=mouse");

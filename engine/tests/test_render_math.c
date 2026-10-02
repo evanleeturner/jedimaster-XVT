@@ -517,7 +517,7 @@ static const Field kObjectFields[] = {
 	OBJECT_FIELD(has_craft, 1),
 	OBJECT_FIELD(orient_dirty, 1),
 	OBJECT_FIELD(move_dirty, 0),
-	OBJECT_FIELD(state, 1),
+	OBJECT_FIELD(family, 1),
 	OBJECT_FIELD(iff, 0),
 	OBJECT_FIELD(team, 0),
 	OBJECT_FIELD(node_switch, 1),
@@ -535,11 +535,11 @@ static const Field kObjectFields[] = {
 	OBJECT_FIELD(working_subsystems, 1),
 	OBJECT_FIELD(installed_subsystems, 0),
 	OBJECT_FIELD(throttle, 1),
-	OBJECT_FIELD(engine_output, 1),
+	OBJECT_FIELD(overdrive_off, 1),
 	OBJECT_FIELD(max_speed, 1),
-	OBJECT_FIELD(laser_redirect, 1),
-	OBJECT_FIELD(shield_redirect, 1),
-	OBJECT_FIELD(beam_level, 1),
+	OBJECT_FIELD(laser_recharge_level, 1),
+	OBJECT_FIELD(shield_recharge_level, 1),
+	OBJECT_FIELD(beam_recharge_level, 1),
 };
 
 #define SNAPSHOT_FIELD(member)                                                                               \

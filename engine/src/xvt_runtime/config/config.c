@@ -291,8 +291,8 @@ static int XvtConfig_ApplyDocument(const AeronConfigFile* document, GameConfig* 
 	return 1;
 }
 
-static int XvtConfig_Validate(const AeronConfigFile* document, XvtSettings* settings, char* error,
-							  size_t capacity) {
+static int XvtConfig_ValidateAndParse(const AeronConfigFile* document, XvtSettings* settings, char* error,
+									  size_t capacity) {
 	GameConfig game = { 0 };
 	return XvtConfig_CheckVersion(document, XVT_CONFIG_VERSION, error, capacity) &&
 		   XvtConfig_ApplyDocument(document, &game, error, capacity) &&
@@ -365,7 +365,7 @@ int XvtConfig_UpdateUser(const AeronConfigFile* candidate, int save, char* error
 		goto done;
 	}
 	if (!XvtKeyboardConfig_Resolve(&g_defaultSettings.keyboard, updated, resolved, error, capacity) ||
-		!XvtConfig_Validate(resolved, &settings, error, capacity))
+		!XvtConfig_ValidateAndParse(resolved, &settings, error, capacity))
 		goto done;
 	if (save && !AeronConfigFile_SaveYaml(g_configVfs, updated, &detail)) {
 		XvtSettings_FileError(&detail, error, capacity);
@@ -422,7 +422,7 @@ int XvtConfig_Load(AeronVfs* vfs, char* error, size_t capacity) {
 		return XvtSettings_FileError(&detail, error, capacity);
 	if (!AeronConfigFile_LoadYamlEx(vfs, AERON_VFS_ROOT_RESOURCE, "config.yaml", &g_defaults, &detail))
 		return XvtSettings_FileError(&detail, error, capacity);
-	if (!XvtConfig_Validate(g_defaults, &g_defaultSettings, error, capacity)) {
+	if (!XvtConfig_ValidateAndParse(g_defaults, &g_defaultSettings, error, capacity)) {
 		AeronConfigFile_Destroy(g_defaults);
 		g_defaults = NULL;
 		return 0;
@@ -548,7 +548,7 @@ int XvtConfig_Import(const char* path, char* error, size_t capacity) {
 	AeronConfigError detail;
 	int success = 1, recognized = 0;
 	const char* base = strrchr(path, '/');
-	int legacy = strcmp(base ? base + 1 : path, "config.cfg") == 0;
+	int is_config_cfg = strcmp(base ? base + 1 : path, "config.cfg") == 0;
 	if (!g_writable)
 		return XvtConfig_Error(error, capacity, "Configuration saving is disabled", "config.yaml");
 	file = XvtStorage_OpenRoot(AERON_VFS_ROOT_ASSET, path, "r");
@@ -588,7 +588,7 @@ int XvtConfig_Import(const char* path, char* error, size_t capacity) {
 				while (isspace((unsigned char)*end))
 					++end;
 				success = !errno && end != value && !*end;
-				if (legacy && strncmp(line, "joybutton", 9) == 0 && number >= 124 && number <= 229)
+				if (is_config_cfg && strncmp(line, "joybutton", 9) == 0 && number >= 124 && number <= 229)
 					number += 4;
 				success = success && number >= 0 && number <= field->maximum &&
 						  AeronConfigFile_SetInt(imported, field->path, number, &detail);

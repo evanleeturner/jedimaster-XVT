@@ -161,7 +161,7 @@ uint8_t g_modelType113Palette[16] = {
 };
 
 // GLOBAL: XVT 0x521F18
-ModelTypeInfo g_modelTypeTable[201] = {
+ObjectTypeInfo g_objectTypeTable[201] = {
 	/* 000 */ { 0x00, 0x00, 0, 0, 0, 0, 0, NULL, NULL, 0x00, MODEL_INDEX_NONE, 2, 0 },
 	/* 001 */ { 0x03, 0x01, 0, 0, 508, 125, 0, NULL, NULL, 0x43, 0, 0, 0 },
 	/* 002 */ { 0x03, 0x01, 0, 0, 651, 125, 0, NULL, NULL, 0x43, 1, 0, 1 },

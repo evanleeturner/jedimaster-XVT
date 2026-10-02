@@ -41,7 +41,7 @@ static struct {
 	XvtSnapObject objects[XVT_SNAP_OBJECTS];
 	XvtSnapType types[XVT_SNAP_TYPES];
 	int16_t fuselage[25];
-	uint32_t count, dropped;
+	uint32_t object_count, dropped;
 	int32_t time;
 	uint64_t component_event_serial;
 	int32_t component_event_time;
@@ -149,7 +149,7 @@ static void CaptureCamera(XvtSnapCamera* out, XvtSnapLighting* lighting, unsigne
 	out->view_pitch = (uint16_t)v->viewPitch;
 	out->view_yaw = (uint16_t)v->viewYaw;
 	out->view_roll = (uint16_t)v->viewRoll;
-	out->view_angle_d = (uint16_t)v->viewAngleD;
+	out->view_up_axis_angle = (uint16_t)v->viewAngleD;
 	out->hud_aim_x = v->hudAimX;
 	out->hud_aim_y = v->hudAimY;
 	out->external = v->externalCameraActive;
@@ -158,21 +158,21 @@ static void CaptureCamera(XvtSnapCamera* out, XvtSnapLighting* lighting, unsigne
 	out->hyperspace_phase = p->hyperspacePhase;
 	out->hud_state = v->hudStateLive;
 	out->valid = g_flightVpWidth && g_flightVpHeight && g_screenWidth && g_screenHeight;
-	*lighting = (XvtSnapLighting) { { g_modelPreviewLightDirectionX, g_modelPreviewLightDirectionY,
-									  g_modelPreviewLightDirectionZ },
-									g_localLightsEnabled,
-									g_dirLightingEnabled };
+	*lighting =
+		(XvtSnapLighting) { { g_worldLightDirectionX, g_worldLightDirectionY, g_worldLightDirectionZ },
+							g_localLightsEnabled,
+							g_dirLightingEnabled };
 }
 
 static void CaptureObject(unsigned slot) {
 	const ObjectRecord* o = &g_objectTable[slot];
 	if (!o->objectType)
 		return;
-	if (g_pending.count == XVT_SNAP_OBJECTS) {
+	if (g_pending.object_count == XVT_SNAP_OBJECTS) {
 		++g_pending.dropped;
 		return;
 	}
-	XvtSnapObject* out = &g_pending.objects[g_pending.count++];
+	XvtSnapObject* out = &g_pending.objects[g_pending.object_count++];
 	memset(out, 0, sizeof *out);
 	out->id = (XvtSnapObjectId) { (uint16_t)slot, o->objectSignature };
 	out->object_type = o->objectType;
@@ -198,7 +198,7 @@ static void CaptureObject(unsigned slot) {
 	if (!m)
 		return;
 	out->has_mobile = 1;
-	out->state = m->family;
+	out->family = m->family;
 	out->light_scale = m->effectSize;
 	out->prev_world_pos[0] = m->prevWorldX;
 	out->prev_world_pos[1] = m->prevWorldY;
@@ -226,11 +226,11 @@ static void CaptureObject(unsigned slot) {
 	out->working_subsystems = c->workingSubsystems;
 	out->installed_subsystems = c->systemFlags;
 	out->throttle = c->throttleSpeed;
-	out->engine_output = c->engineOverdriveOff;
+	out->overdrive_off = c->engineOverdriveOff;
 	out->max_speed = c->aiFlight.maxSpeedCache;
-	out->laser_redirect = c->laserRechargeLevel;
-	out->shield_redirect = c->shieldRechargeLevel;
-	out->beam_level = c->beamRechargeLevel;
+	out->laser_recharge_level = c->laserRechargeLevel;
+	out->shield_recharge_level = c->shieldRechargeLevel;
+	out->beam_recharge_level = c->beamRechargeLevel;
 	memcpy(out->component_state, c->componentState, sizeof out->component_state);
 	memcpy(out->component_hp, c->componentHp, sizeof out->component_hp);
 	memcpy(out->mesh_rotation, c->meshRotation, sizeof out->mesh_rotation);
@@ -260,10 +260,10 @@ static const Sequence g_sequences[] = {
 
 static void CaptureTypes(void) {
 	for (unsigned i = 0; i < XVT_SNAP_TYPES; ++i) {
-		const ModelTypeInfo* t = &g_modelTypeTable[i];
+		const ObjectTypeInfo* t = &g_objectTypeTable[i];
 		XvtSnapType* out = &g_pending.types[i];
 		memset(out, 0, sizeof *out);
-		uint64_t id = XvtRenderAssets_HandleId(t->curTexLevel);
+		uint64_t id = XvtRenderAssets_HandleId(t->resourceHandle);
 		if (t->assetFlags & 1)
 			out->model_asset_id = id;
 		else if (t->assetFlags & 2)
@@ -272,7 +272,7 @@ static void CaptureTypes(void) {
 		out->half_extent = t->halfBoundsExtent;
 		out->record_flags = t->recordFlags;
 		out->asset_flags = t->assetFlags;
-		out->flags = t->behaviorFlags;
+		out->behavior_flags = t->behaviorFlags;
 		out->model_index = t->modelIndex;
 		out->family = t->familyId;
 		out->genus = t->genusId;
@@ -302,7 +302,7 @@ static void CaptureTypes(void) {
 void XvtRenderCapture_CaptureView(void) {
 	XvtRenderDraw_Scope(XVT_SCOPE_WORLD);
 	g_pending.valid = g_pending.sealed = 0;
-	g_pending.count = g_pending.dropped = 0;
+	g_pending.object_count = g_pending.dropped = 0;
 	if (!g_active || !XvtRenderSnapshot_Writer() || !g_objectTable || !g_objectTableHandle ||
 		(unsigned)g_localPlayer >= 8)
 		return;
@@ -323,7 +323,7 @@ void XvtRenderCapture_CaptureView(void) {
 	g_pending.flight_unlocked = XvtFlightTiming_IsUnlocked();
 	g_pending.sky.debris_enabled = g_debrisEnabled;
 	g_pending.sky.proving_grounds = g_flightMissionState.provingGroundsModeActive;
-	g_pending.sky.star_density = g_starDensity;
+	g_pending.sky.star_grid_divisor = g_starGridDivisor;
 	g_pending.sky.backdrop_enabled = g_backdropsEnabled;
 	g_pending.sky.checkpoint_slot = g_provingGroundsCurrentCheckpointObjIdx;
 	g_pending.sky.craft_slot_end = (uint16_t)g_activeRegionCraftObjectSlotEnd;
@@ -343,7 +343,7 @@ void XvtRenderCapture_CaptureView(void) {
 	g_pending.hyperspace.count = 0;
 	for (unsigned i = 0; i < end; ++i)
 		CaptureObject(i);
-	XvtRenderMap_Capture(&g_pending.map, g_pending.objects, g_pending.count);
+	XvtRenderMap_Capture(&g_pending.map, g_pending.objects, g_pending.object_count);
 	if (g_pending.map.active)
 		XvtRenderDraw_Scope(XVT_SCOPE_MAP);
 	CaptureTypes();
@@ -387,7 +387,7 @@ void XvtRenderCapture_Presented(int succeeded) {
 	XvtRenderFrontend_PresentedScene(XVT_SCENE_FLIGHT);
 	out->sky = g_pending.sky;
 	out->hyperspace = g_pending.hyperspace;
-	out->object_count = g_pending.count;
+	out->object_count = g_pending.object_count;
 	memcpy(out->objects, g_pending.objects, out->object_count * sizeof out->objects[0]);
 	memcpy(out->types, g_pending.types, sizeof out->types);
 	memcpy(out->fuselage_sequence, g_pending.fuselage, sizeof out->fuselage_sequence);
@@ -448,14 +448,14 @@ void XvtRenderCapture_BeginClassicFrame(void) {
 	XvtRenderHud_BeginFrame();
 }
 
-void XvtRenderCapture_Hyperspace(unsigned count, const int* x, const int* y, const int* z, const int* width,
-								 const int* roll) {
+void XvtRenderCapture_Hyperspace(unsigned count, const int* x, const int* y, const int* z,
+								 const int* half_width, const int* roll) {
 	if (!g_pending.valid || count > XVT_SNAP_STREAKS)
 		return;
 	g_pending.hyperspace.count = count;
 	for (unsigned i = 0; i < count; ++i)
 		g_pending.hyperspace.streaks[i] =
-			(XvtSnapStreak) { { x[i], y[i], z[i] }, width[i], (uint16_t)roll[i] };
+			(XvtSnapStreak) { { x[i], y[i], z[i] }, half_width[i], (uint16_t)roll[i] };
 }
 
 void XvtRenderCapture_FrontendPreview(uint16_t handle, const float position[3], const float orientation[9],
@@ -501,7 +501,7 @@ void XvtRenderCapture_Crt(int x, int y, int width, int height, int masked) {
 	const ObjectRecord* object = &g_objectTable[target];
 	if (object->objectType >= XVT_SNAP_TYPES)
 		return;
-	out->opt_asset_id = XvtRenderAssets_HandleId(g_modelTypeTable[object->objectType].curTexLevel);
+	out->opt_asset_id = XvtRenderAssets_HandleId(g_objectTypeTable[object->objectType].resourceHandle);
 	CaptureCamera(&out->camera, &out->lighting, capacity);
 	out->node_switch = object->mobj ? object->mobj->nodeSwitchIndex : 0;
 	out->model_scale = 1;
@@ -522,7 +522,7 @@ void XvtRenderCapture_CrtMarker(int x, int y, int z) {
 			(int32_t)((uint32_t)v[i] + (uint32_t)g_pending.crt.camera.world_pos[i]);
 }
 
-static XvtAuthoritativePose XvtRenderCapture_AuthoritativePose(unsigned slot) {
+static XvtAuthoritativePose XvtRenderCapture_CaptureLivePose(unsigned slot) {
 	XvtAuthoritativePose pose = { 0 };
 	const ObjectRecord* o = &g_objectTable[slot];
 	if (!o->objectType)
@@ -549,7 +549,7 @@ void XvtRenderCapture_CheckNetworkCorrection(void) {
 	for (unsigned slot = 0; slot < end; ++slot) {
 		if (slot >= (unsigned)g_localTransientSlotStart && slot < (unsigned)g_localDebrisSlotEnd)
 			continue;
-		XvtAuthoritativePose pose = XvtRenderCapture_AuthoritativePose(slot);
+		XvtAuthoritativePose pose = XvtRenderCapture_CaptureLivePose(slot);
 		const XvtAuthoritativePose* previous = &g_authoritativePoses[slot];
 		if (pose.type != previous->type || pose.signature != previous->signature ||
 			pose.yaw != previous->yaw || pose.pitch != previous->pitch || pose.roll != previous->roll ||
@@ -572,7 +572,7 @@ void XvtRenderCapture_CompleteNetworkWorld(void) {
 	if (end > XVT_SNAP_OBJECTS)
 		end = XVT_SNAP_OBJECTS;
 	for (unsigned slot = 0; slot < end; ++slot)
-		g_candidatePoses[slot] = XvtRenderCapture_AuthoritativePose(slot);
+		g_candidatePoses[slot] = XvtRenderCapture_CaptureLivePose(slot);
 	g_candidateTick = g_gameTime;
 }
 

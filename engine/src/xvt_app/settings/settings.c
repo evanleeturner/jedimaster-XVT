@@ -20,7 +20,7 @@
 static struct {
 	AeronUiContext* ui;
 	XvtSettingsPageFn pages[5];
-	bool open, close_requested, captures_controller, ready;
+	bool open, close_requested, capture_owns_frame, ready;
 	int page;
 	int exit_confirmation_open;
 	char error[1024];
@@ -120,7 +120,7 @@ bool XvtSettingsMenu_CapturesKeyboard(void) {
 	return g_menu.open && AeronUi_KeyboardCaptureActive(g_menu.ui);
 }
 
-bool XvtSettingsMenu_CapturesController(void) { return g_menu.open && g_menu.captures_controller; }
+bool XvtSettingsMenu_CaptureOwnsFrame(void) { return g_menu.open && g_menu.capture_owns_frame; }
 
 void XvtSettingsMenu_Show(void) {
 	if (g_menu.ui && !g_menu.open) {
@@ -147,7 +147,7 @@ void XvtSettingsMenu_CompleteClose(void) {
 	XvtControllerSettings_CancelCapture(&g_menu.controller, g_menu.ui);
 	XvtInstallationPage_CancelPicker();
 	AeronUi_CancelControllerCapture(g_menu.ui);
-	g_menu.open = g_menu.close_requested = g_menu.captures_controller = false;
+	g_menu.open = g_menu.close_requested = g_menu.capture_owns_frame = false;
 	g_menu.exit_confirmation_open = 0;
 	XvtPort_SetSettingsOpen(0);
 }
@@ -217,13 +217,13 @@ void XvtSettingsMenu_Frame(const AeronInputSnapshot* input, float seconds) {
 	}
 	XvtInstallationPage_DrawPicker(g_menu.ui);
 	AeronUiOutput output = AeronUi_EndFrame(g_menu.ui);
-	g_menu.captures_controller = output.capture_all != 0;
+	g_menu.capture_owns_frame = output.capture_all != 0;
 	if (output.cancel_pressed)
 		XvtSettingsMenu_RequestClose();
 	AeronUi_Submit(g_menu.ui);
 }
 
-static bool XvtSettingsMenu_ControllerStart(const AeronInputSnapshot* input) {
+static bool XvtSettingsMenu_PollStartPress(const AeronInputSnapshot* input) {
 	if (!input) {
 		memset(g_menu.start, 0, sizeof g_menu.start);
 		return false;
@@ -269,10 +269,10 @@ bool XvtSettingsMenu_BeginFrame(const AeronInputSnapshot* input) {
 			XvtSettingsMenu_ReportError(error);
 	}
 	bool opened = false;
-	bool start = XvtSettingsMenu_ControllerStart(input);
+	bool start_pressed = XvtSettingsMenu_PollStartPress(input);
 	if (input && input->has_focus && !XvtDialog_IsActive()) {
 
-		if (!g_menu.close_requested && start && !g_menu.captures_controller &&
+		if (!g_menu.close_requested && start_pressed && !g_menu.capture_owns_frame &&
 			!XvtSettingsMenu_CapturesKeyboard() && !XvtInstallationPage_PickerOpen() &&
 			(g_menu.open || !XvtFlightTask_IsActive())) {
 			if (g_menu.open)
@@ -284,7 +284,7 @@ bool XvtSettingsMenu_BeginFrame(const AeronInputSnapshot* input) {
 		}
 	}
 	if (input && input->has_focus && !was_open && !g_menu.open &&
-		XvtKeyboardMapping_Trigger(input, XVT_KEYBOARD_SHORTCUT_SETTINGS) >= 0) {
+		XvtKeyboardMapping_FindShortcutPress(input, XVT_KEYBOARD_SHORTCUT_SETTINGS) >= 0) {
 		XvtSettingsMenu_Show();
 		opened = true;
 	}

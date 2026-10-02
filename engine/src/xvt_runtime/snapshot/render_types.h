@@ -71,7 +71,7 @@ typedef struct XvtSnapCamera {
 	uint16_t screen_width, screen_height, aspect_y_q16;
 	uint8_t perspective_shift, valid;
 	XvtSnapObjectId player, focus;
-	uint16_t view_pitch, view_yaw, view_roll, view_angle_d;
+	uint16_t view_pitch, view_yaw, view_roll, view_up_axis_angle;
 	int16_t hud_aim_x, hud_aim_y;
 	uint16_t external, replay_view;
 	uint8_t map_mode, hyperspace_phase, hud_state;
@@ -84,16 +84,16 @@ typedef struct XvtSnapObject {
 	uint16_t yaw, pitch, roll, type_specific_word;
 	uint8_t type_specific[2];
 	uint8_t has_mobile, has_craft, orient_dirty, move_dirty;
-	uint8_t state, iff, team, node_switch, source_type, light_scale;
+	uint8_t family, iff, team, node_switch, source_type, light_scale;
 	uint16_t source_slot, speed;
 	int16_t cached_rows_q15[9], move_q15[3];
 	uint8_t component_state[50], mesh_rotation[50], component_hp[50];
 	uint8_t sfoil_state;
 	uint8_t object_kind;
 	uint16_t working_subsystems, installed_subsystems;
-	uint16_t throttle, engine_output;
+	uint16_t throttle, overdrive_off;
 	int16_t max_speed;
-	uint8_t laser_redirect, shield_redirect, beam_level;
+	uint8_t laser_recharge_level, shield_recharge_level, beam_recharge_level;
 } XvtSnapObject;
 
 enum { XVT_SLOT_MAIN, XVT_SLOT_LOCAL_TRANSIENT, XVT_SLOT_STATIC };
@@ -101,7 +101,7 @@ enum { XVT_SLOT_MAIN, XVT_SLOT_LOCAL_TRANSIENT, XVT_SLOT_STATIC };
 typedef struct XvtSnapType {
 	uint64_t model_asset_id, texture_asset_id;
 	int32_t max_extent, half_extent;
-	uint8_t record_flags, asset_flags, flags, model_index;
+	uint8_t record_flags, asset_flags, behavior_flags, model_index;
 	int8_t family;
 	uint8_t genus, texture_group, resource_entry;
 	uint8_t sequence_count, remap_count;
@@ -225,7 +225,7 @@ typedef struct XvtSnapRadarBlip {
 typedef struct XvtSnapTargetBox {
 	XvtSnapObjectId object;
 	uint16_t component, color_index;
-	uint8_t layer;
+	uint8_t scope;
 	int32_t extent;
 	int32_t world_pos[3];
 } XvtSnapTargetBox;

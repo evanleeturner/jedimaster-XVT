@@ -1444,7 +1444,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 								CONFIG_RESTORE_BUTTON_BOTTOM);
 #ifdef XVT_MODERN
 		if (XvtFrontendAction_Trigger(
-				XVT_ACTION_CONFIG, 1,
+				XVT_ACTION_OWNER_CONFIG, 1,
 				FrontendButton_HandleSpriteButton(
 					&ui.rect, "config6u", "config6d", FrontendString_Get(FRONTSTR_420_RESTORE_DEFAULTS),
 					CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_RESTORE_HOVER_SLOT, "jewelsound"))) {
@@ -1455,7 +1455,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 				FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL));
 			if (result == XVT_DIALOG_PENDING)
 				return 0;
-			XvtFrontendAction_Finish(XVT_ACTION_CONFIG);
+			XvtFrontendAction_Finish(XVT_ACTION_OWNER_CONFIG);
 			if (result) {
 #else
 		if (FrontendButton_HandleSpriteButton(

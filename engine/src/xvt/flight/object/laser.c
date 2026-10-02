@@ -1583,7 +1583,7 @@ void laser_warnplayer(uint16_t projectileGuidanceIdx) {
 	g_players[playerOwnerIdx].pendingActionTimer = 1416;
 	if (playerOwnerIdx == g_localPlayer) {
 		msg_emitInFlightMessage(IFMSG_116_MISSILE_WARNING_KEY_TO_TARGET, playerOwnerIdx);
-		fsfx_speakorderack(g_localPlayer, -1, 12, -1, g_players[playerOwnerIdx].objectIndex, UINT16_MAX);
+		fsfx_SpeakWingmanEvent(g_localPlayer, -1, 12, -1, g_players[playerOwnerIdx].objectIndex, UINT16_MAX);
 	}
 }
 
@@ -1987,8 +1987,8 @@ void laser_fireturretslot(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, uint16_
 								   sourceObject->mobj->cachedFwdZ, localX, localY, localZ);
 		g_rotatedZ = Math_Dot3Q15(sourceObject->mobj->cachedUpX, sourceObject->mobj->cachedUpY,
 								  sourceObject->mobj->cachedUpZ, localX, localY, localZ);
-		mainHullMeshIdx = (uint16_t)ModelMesh_FindNearestLiveMainHullByBounds(
-			sourceObject->objectType, g_rotatedX, g_rotatedY, g_rotatedZ);
+		mainHullMeshIdx = (uint16_t)ModelMesh_FindNearestMainHullByBounds(sourceObject->objectType,
+																		  g_rotatedX, g_rotatedY, g_rotatedZ);
 		nearestRank = 0;
 		for (previousSlotIdx = 0; previousSlotIdx < weaponSlotIdx; ++previousSlotIdx) {
 			if (g_curCraft->turretTargetStates[previousSlotIdx].targetObjIdx == targetRef)
@@ -2036,7 +2036,7 @@ void laser_fireturretslot(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, uint16_
 			else
 				meshType = ModelMesh_GetObjectTypeMeshType(sourceObjectType, meshIdx);
 		}
-		if (meshType == MESH_COMPONENT_21_LASR_TUR) {
+		if (meshType == MESH_COMPONENT_21_ROTATING_LASR_TUR) {
 			g_rotatedX = hardpointX;
 			g_rotatedY = hardpointY;
 			g_rotatedZ = hardpointZ;

@@ -167,8 +167,8 @@ bool XvtControllerOptions_Validate(const XvtControllerOptions* options, char* er
 	return true;
 }
 
-bool XvtControllerOptions_AddModel(XvtControllerOptions* options, const AeronControllerSnapshot* device,
-								   char* error, size_t capacity) {
+bool XvtControllerOptions_EnsureModel(XvtControllerOptions* options, const AeronControllerSnapshot* device,
+									  char* error, size_t capacity) {
 	if (!device || !GuidValid(device->guid))
 		return XvtControllerOptions_ValidationError(error, capacity, "controller has no usable model GUID");
 	if (XvtControllerOptions_FindModel(options, device->guid) >= 0)
@@ -204,7 +204,7 @@ bool XvtControllerOptions_AddNewGamepads(XvtControllerOptions* options, const Xv
 	for (int i = 0; i < count; ++i) {
 		if (XvtControllerOptions_FindModel(options, sorted[i]->guid) >= 0)
 			continue;
-		if (!XvtControllerOptions_AddModel(options, sorted[i], error, capacity))
+		if (!XvtControllerOptions_EnsureModel(options, sorted[i], error, capacity))
 			return false;
 		XvtControllerProfile* p = &options->models[options->count - 1].profile;
 		*p = *defaults;

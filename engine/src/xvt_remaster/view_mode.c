@@ -16,7 +16,7 @@
 
 static AeronBlendRamp g_blend;
 static int g_waitClassic, g_consumedTab, g_worldReady;
-static uint64_t g_classicSerial, g_worldSerial, g_mission;
+static uint64_t g_classicSerial, g_readyFlightFrameSerial, g_mission;
 static int g_width, g_height;
 
 enum { DISPLAY_NONE, DISPLAY_FRONTEND, DISPLAY_FLIGHT, DISPLAY_LOADING };
@@ -27,7 +27,7 @@ void XvtRemasterView_Init(void) {
 	Aeron_BlendRampInit(&g_blend);
 	g_blend.alpha = 0;
 	g_waitClassic = g_consumedTab = g_worldReady = 0;
-	g_worldSerial = g_mission = g_classicSerial = 0;
+	g_readyFlightFrameSerial = g_mission = g_classicSerial = 0;
 	g_width = g_height = 0;
 	g_display = DISPLAY_NONE;
 	XvtInput_SuppressRendererTab(0);
@@ -36,7 +36,7 @@ void XvtRemasterView_Init(void) {
 static int FlightReady(const XvtRenderSnapshot* s) {
 	return s && s->flight_valid && s->scene_kind == XVT_SCENE_FLIGHT &&
 		   s->presented_target == XVT_TARGET_FLIGHT_MAIN && g_worldReady &&
-		   s->flight_frame_serial == g_worldSerial && s->mission_generation == g_mission;
+		   s->flight_frame_serial == g_readyFlightFrameSerial && s->mission_generation == g_mission;
 }
 
 void XvtRemasterView_BeginFrame(const AeronInputSnapshot* in) {
@@ -46,7 +46,7 @@ void XvtRemasterView_BeginFrame(const AeronInputSnapshot* in) {
 	if (g_consumedTab && in && !in->key_down[AERON_KEY_TAB] && !in->key_released[AERON_KEY_TAB])
 		g_consumedTab = 0;
 	if (in && !g_consumedTab && in->has_focus &&
-		XvtKeyboardMapping_Trigger(in, XVT_KEYBOARD_SHORTCUT_RENDERER) >= 0 && s &&
+		XvtKeyboardMapping_FindShortcutPress(in, XVT_KEYBOARD_SHORTCUT_RENDERER) >= 0 && s &&
 		s->scene_kind != XVT_SCENE_NONE && s->scene_kind != XVT_SCENE_MOVIE && XvtRemaster_Output() &&
 		XvtInput_RendererShortcutAllowed()) {
 		g_consumedTab = 1;
@@ -85,7 +85,7 @@ int XvtRemasterView_TryEnableDirect(const XvtRenderSnapshot* s, int width, int h
 void XvtRemasterView_Present(const XvtRenderSnapshot* s, int32_t delta_us, int world_ready, int direct) {
 	if (world_ready && s->flight_valid) {
 		g_worldReady = 1;
-		g_worldSerial = s->flight_frame_serial;
+		g_readyFlightFrameSerial = s->flight_frame_serial;
 		g_mission = s->mission_generation;
 		const XvtPreparedFlight* frame = XvtRemasterFlight_Current();
 		if (frame) {

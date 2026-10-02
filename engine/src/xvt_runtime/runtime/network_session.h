@@ -37,9 +37,10 @@ AeronDplayDirectoryError XvtNetworkSession_Configure(void);
 /* Starts hosting as player with rating info under name ("<player>'s Game." when empty), listed in
  * the directory when online. Returns -1 when started, and also, doing nothing, while another
  * setup is under way; a missing or over-long argument fails the session and returns 0. */
-int XvtNetworkSession_BeginHost(const char* info, const char* player, const char* name, int online);
+int XvtNetworkSession_BeginHost(const char* rating_text, const char* player_name, const char* name,
+								int online);
 /* BeginHost's rules for joining room through the directory, always online. */
-int XvtNetworkSession_BeginJoin(const char* info, const char* player, const GUID* room);
+int XvtNetworkSession_BeginJoin(const char* rating_text, const char* player_name, const GUID* room);
 /* FAILED, ESTABLISHED or ADMISSION for those phases, PENDING for any other setup phase or while a
  * close completes, else IDLE; error is the last failure's. */
 XvtNetworkSessionStatus XvtNetworkSession_GetStatus(void);

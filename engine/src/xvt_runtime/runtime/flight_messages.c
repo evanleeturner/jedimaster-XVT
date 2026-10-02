@@ -82,7 +82,7 @@ size_t XvtFlightMessages_EncodePart(uint8_t* out, const XvtFlightMessage* messag
 	header.part_index = part;
 	header.part_count = parts;
 	header.record_count = count;
-	header.participant_mask = message->mask;
+	header.participant_mask = message->participant_mask;
 	memcpy(out, &header, sizeof header);
 	memcpy(out + sizeof header, message->records + first, count * sizeof message->records[0]);
 	return sizeof header + count * sizeof message->records[0];
@@ -124,7 +124,7 @@ int XvtFlightMessages_ReceivePart(const uint8_t* bytes, size_t size, uint32_t co
 		unsigned expected_count = first <= g_lastAssembled.count ? g_lastAssembled.count - first : 0;
 		if (expected_count > XVT_WORLD_PART_RECORDS)
 			expected_count = XVT_WORLD_PART_RECORDS;
-		return flags == g_lastAssembled.target_flags && mask == g_lastAssembled.mask &&
+		return flags == g_lastAssembled.target_flags && mask == g_lastAssembled.participant_mask &&
 					   parts == XvtFlightMessages_PartCount(g_lastAssembled.count) &&
 					   count == expected_count &&
 					   !memcmp(g_lastAssembled.records + first, payload, payload_size)
@@ -133,20 +133,20 @@ int XvtFlightMessages_ReceivePart(const uint8_t* bytes, size_t size, uint32_t co
 	}
 	for (unsigned i = 0; i < count; ++i) {
 		XvtFlightWorldInputWire record;
-		int time;
+		int record_tick;
 		FlightInputFrameRecord input;
 		memcpy(&record, payload + i * sizeof record, sizeof record);
 		if (record.player >= XVT_FLIGHT_PLAYERS || !(mask & (1u << record.player)) ||
-			!XvtFlightWire_DecodeInput(&record.input, &time, &input) || (unsigned)time > tick)
+			!XvtFlightWire_DecodeInput(&record.input, &record_tick, &input) || (unsigned)record_tick > tick)
 			return -1;
 	}
-	if (g_parts.parts &&
-		(g_parts.message.target_flags != flags || g_parts.parts != parts || g_parts.message.mask != mask))
+	if (g_parts.parts && (g_parts.message.target_flags != flags || g_parts.parts != parts ||
+						  g_parts.message.participant_mask != mask))
 		return -1;
 	if (!g_parts.parts) {
 		g_parts.parts = parts;
 		g_parts.message.target_flags = flags;
-		g_parts.message.mask = mask;
+		g_parts.message.participant_mask = mask;
 	}
 	XvtFlightWorldInputWire* dest = g_parts.message.records + first;
 	if (g_parts.seen[part])
@@ -233,12 +233,12 @@ void XvtFlightMessages_Reset(void) {
 	memset(&g_parts, 0, sizeof g_parts);
 }
 
-static size_t XvtFlightMessages_StoreBytes(const XvtFlightMessage* message) {
+static size_t XvtFlightMessages_StoredSize(const XvtFlightMessage* message) {
 	return offsetof(XvtFlightMessage, records) + message->count * sizeof message->records[0];
 }
 
 int XvtFlightMessages_Enqueue(const XvtFlightMessage* message, XvtFlightQueue queue) {
-	return XvtFlightMessages_Push(queue, message, XvtFlightMessages_StoreBytes(message));
+	return XvtFlightMessages_Push(queue, message, XvtFlightMessages_StoredSize(message));
 }
 
 static void XvtFlightMessages_DiscardThrough(XvtFlightQueue queue, unsigned tick) {

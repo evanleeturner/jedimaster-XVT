@@ -11,7 +11,7 @@ extern "C" {
 
 /* For a craft object whose mesh has emitters, else nothing. Adds a point light per enabled, visible
  * emitter wider or taller than 2000 units while the engines work and the craft has power (16 less the
- * laser, shield and beam redirects, times engine_output), in the emitter's core color. Then, with draw,
+ * laser, shield and beam redirects, times overdrive_off), in the emitter's core color. Then, with draw,
  * a positive glow scale and a positive engine_emissive_strength setting, submits one billboard per
  * enabled, visible emitter that lies in front of the eye and spans at least a pixel at the classic
  * focal length. The glow scale is throttle times power with a per-tick flicker, never under 0.35, or,

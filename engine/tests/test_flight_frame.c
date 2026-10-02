@@ -54,7 +54,7 @@ static void Clocks(XvtFlightTimingProfile profile) {
 static void QueueReplay(unsigned target) {
 	memset(&g_message, 0, sizeof g_message);
 	g_message.target_flags = target;
-	g_message.mask = 0x01;
+	g_message.participant_mask = 0x01;
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Enqueue(&g_message, XVT_QUEUE_REPLAY), 1);
 }
 
@@ -84,13 +84,13 @@ static void CheckBegin(void) {
 	Clocks(XVT_FLIGHT_TIMING_NETWORK_125);
 	g_predictedFrameDelta = 99;
 	g_flightLastStepTargetTimestamp = 1234;
-	g_flightPingDropScore = 7;
+	g_flightPacketDropScore = 7;
 	for (int i = 0; i < 20; ++i)
 		g_flightUpdateDurationHistogram[i] = (unsigned)i + 1;
 	XvtFlightFrame_Begin();
 	XVT_ASSERT_INT_EQ(g_predictedFrameDelta, XVT_NETWORK_STEP_TICKS);
 	XVT_ASSERT_INT_EQ(g_flightLastStepTargetTimestamp, 0);
-	XVT_ASSERT_INT_EQ(g_flightPingDropScore, 0);
+	XVT_ASSERT_INT_EQ(g_flightPacketDropScore, 0);
 	for (int i = 0; i < 20; ++i)
 		XVT_ASSERT_INT_EQ(g_flightUpdateDurationHistogram[i], 0);
 }

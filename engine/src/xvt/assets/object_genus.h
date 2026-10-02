@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-/* Four-byte classification enum in general/frontend structures. ModelTypeInfo stores the same values in a
+/* Four-byte classification enum in general/frontend structures. ObjectTypeInfo stores the same values in a
  * packed one-byte field. */
 /* Stored as uint32_t in the binary (IDB enum CraftGenus). */
 typedef uint32_t CraftGenus;

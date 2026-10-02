@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 
-enum { ACTION_QUEUE_CAPACITY = 256 };
+enum { KEY_QUEUE_CAPACITY = 256 };
 
 typedef struct ControllerInstance {
 	uint32_t id;
@@ -25,19 +25,19 @@ typedef struct ControllerInstance {
 static struct {
 	XvtControllerOptions options, pending;
 	ControllerInstance instances[AERON_CONTROLLER_MAX];
-	uint32_t analog[XVT_CONTROLLER_MODEL_CAP];
+	uint32_t analog_instance[XVT_CONTROLLER_MODEL_CAP];
 	bool has_pending_options, suspended, present, throttle_valid;
 	int axes[3], menu_axes[3];
 	uint16_t holds[XVT_INPUT_ACTION_COUNT], throttle;
 	uint8_t menu_buttons, menu_hat;
 	uint32_t throttle_instance, generation;
-	uint16_t queue[ACTION_QUEUE_CAPACITY];
+	uint16_t queue[KEY_QUEUE_CAPACITY];
 	unsigned read, write;
 	uint64_t frame;
 } g_controller;
 
 static void XvtControllerMapping_QueueKey(uint16_t key) {
-	unsigned next = (g_controller.write + 1) % ACTION_QUEUE_CAPACITY;
+	unsigned next = (g_controller.write + 1) % KEY_QUEUE_CAPACITY;
 	if (next == g_controller.read) {
 		XVT_LOG_WARN("input.queue_full queue=controller");
 		return;
@@ -46,7 +46,7 @@ static void XvtControllerMapping_QueueKey(uint16_t key) {
 	g_controller.write = next;
 }
 
-static void XvtControllerMapping_DispatchAction(XvtInputAction action, bool pressed) {
+static void XvtControllerMapping_QueueActionKey(XvtInputAction action, bool pressed) {
 	if (!XvtFlightTask_IsActive() || XvtFlightTask_IsLoading())
 		return;
 	if (action == XVT_INPUT_ACTION_FIRE_WEAPON || action == XVT_INPUT_ACTION_TARGET_ROLL_MODIFIER)
@@ -82,7 +82,7 @@ static void XvtControllerMapping_Dispatch(XvtInputAction action, bool pressed) {
 		} else if (!g_controller.holds[action] || --g_controller.holds[action])
 			return;
 	}
-	XvtControllerMapping_DispatchAction(action, pressed);
+	XvtControllerMapping_QueueActionKey(action, pressed);
 }
 
 const AeronControllerSnapshot* XvtControllerMapping_Resolve(const XvtControllerModel* model,
@@ -138,7 +138,7 @@ static void XvtControllerMapping_Install(const XvtControllerOptions* options) {
 	for (size_t i = 0; i < options->count; ++i) {
 		int old = XvtControllerOptions_FindModel(&g_controller.options, options->models[i].guid);
 		if (old >= 0 && options->models[i].kind == g_controller.options.models[old].kind)
-			analog[i] = g_controller.analog[old];
+			analog[i] = g_controller.analog_instance[old];
 	}
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
 		ControllerInstance* state = &g_controller.instances[i];
@@ -159,7 +159,7 @@ static void XvtControllerMapping_Install(const XvtControllerOptions* options) {
 			++g_controller.generation;
 	}
 	g_controller.options = *options;
-	memcpy(g_controller.analog, analog, sizeof analog);
+	memcpy(g_controller.analog_instance, analog, sizeof analog);
 }
 
 void XvtControllerMapping_Init(const XvtControllerOptions* options) {
@@ -350,8 +350,8 @@ void XvtControllerMapping_Update(const AeronInputSnapshot* input) {
 
 	for (size_t model = 0; model < g_controller.options.count; ++model) {
 		const AeronControllerSnapshot* analog = XvtControllerMapping_Resolve(
-			&g_controller.options.models[model], input, g_controller.analog[model]);
-		g_controller.analog[model] = analog ? analog->instance_id : 0;
+			&g_controller.options.models[model], input, g_controller.analog_instance[model]);
+		g_controller.analog_instance[model] = analog ? analog->instance_id : 0;
 		if (analog) {
 			g_controller.present = true;
 			if (!g_controller.suspended)
@@ -395,7 +395,7 @@ void XvtControllerMapping_Update(const AeronInputSnapshot* input) {
 
 uint32_t XvtControllerMapping_AnalogInstance(const char* guid) {
 	int i = XvtControllerOptions_FindModel(&g_controller.options, guid);
-	return i < 0 ? 0 : g_controller.analog[i];
+	return i < 0 ? 0 : g_controller.analog_instance[i];
 }
 
 bool XvtControllerMapping_ThrottleSample(uint16_t* position, uint32_t* generation) {
@@ -425,7 +425,7 @@ uint16_t XvtControllerMapping_ReadKey(void) {
 	if (g_controller.read == g_controller.write)
 		return 0;
 	uint16_t key = g_controller.queue[g_controller.read];
-	g_controller.read = (g_controller.read + 1) % ACTION_QUEUE_CAPACITY;
+	g_controller.read = (g_controller.read + 1) % KEY_QUEUE_CAPACITY;
 	return key;
 }
 

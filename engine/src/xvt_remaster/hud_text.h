@@ -18,5 +18,5 @@ int XvtHudText_DrawField(const XvtHudDraw* draw, const XvtCockpitTextField* fiel
  * with score) fills field_width places left to right, blank until the first nonzero digit or
  * minimum_digits, a digit over 9 shown as 9, a 16-bit value of 0xFFFF shown as zeros with no shadow, a
  * trailing space when asked. Returns 0 for a tier out of range or a width over 9, or as DrawField. */
-int XvtHudText_DrawNumber(const XvtHudDraw* draw, const XvtCockpitNumber* number, int score);
+int XvtHudText_DrawNumber(const XvtHudDraw* draw, const XvtCockpitNumber* number, int signed_value);
 #endif

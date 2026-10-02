@@ -14,7 +14,7 @@ enum {
 	STAR_DENSITY_LOW = 1,
 	LOD_CONFIG_OFFSET = 5,
 	LOD_CONFIG_MAX_VALUE = 20,
-	LOD_CONFIG_CURVE_THRESHOLD_VALUE = 1,
+	LOD_SCALE_INVERSION_NUMERATOR = 1,
 	MIPMAPPING_DISABLED_VALUE = 19,
 	DISPLAY_WIDTH_LOW = 320,
 	DISPLAY_HEIGHT_LOW = 240,
@@ -33,8 +33,8 @@ enum {
 };
 
 static int g_gameSessionStarted;
-static int g_sound;
-static int g_devices;
+static int g_soundEngineStarted;
+static int g_flightDevicesCreated;
 
 /* Sets the flight's start-up flags: flicker (off when a flicker.txt file exists), laser timing,
  * the async option and the launch switches. Each switch is found by substring anywhere in the
@@ -145,7 +145,7 @@ int XvtFlightEntry_Prepare(char* missionCmdLine) {
 	int commandLineOffset;
 	int quotedArgument;
 
-	g_gameSessionStarted = g_sound = g_devices = 0;
+	g_gameSessionStarted = g_soundEngineStarted = g_flightDevicesCreated = 0;
 	ModelPreview_FreeResources();
 	g_flightRenderToFrontend = 0;
 	if (missionCmdLine == NULL) {
@@ -246,7 +246,7 @@ static void XvtFlightEntry_ConfigureLodDistance(void) {
 		g_lodDistanceScale = g_lodConfigCurveThreshold / (g_lodConfigCurveDouble - g_lodDistanceScale);
 	}
 	g_forcedLodLevel = 0;
-	g_lodDistanceScale = (float)LOD_CONFIG_CURVE_THRESHOLD_VALUE / g_lodDistanceScale;
+	g_lodDistanceScale = (float)LOD_SCALE_INVERSION_NUMERATOR / g_lodDistanceScale;
 }
 
 /* Turns mipmapping off when the mipmap setting is at its disabled value; otherwise turns it on and
@@ -267,7 +267,7 @@ static void XvtFlightEntry_ConfigureMipmaps(void) {
 			g_mipLodScale = g_lodConfigCurveThreshold / (g_lodConfigCurveDouble - g_mipLodScale);
 		}
 		g_mipmappingEnabled = 1;
-		g_mipLodScale = (float)LOD_CONFIG_CURVE_THRESHOLD_VALUE / g_mipLodScale;
+		g_mipLodScale = (float)LOD_SCALE_INVERSION_NUMERATOR / g_mipLodScale;
 	} else {
 		g_mipmappingEnabled = 0;
 	}
@@ -325,13 +325,13 @@ static void XvtFlightEntry_Configure(void) {
 	g_debrisEnabled = g_gameConfig.debris[NetSession_GetPlayerCount() > 1];
 	switch (g_gameConfig.starDensity[NetSession_GetPlayerCount() > 1]) {
 		case 0:
-			g_starDensity = STAR_DENSITY_HIGH;
+			g_starGridDivisor = STAR_DENSITY_HIGH;
 			break;
 		case 1:
-			g_starDensity = STAR_DENSITY_MEDIUM;
+			g_starGridDivisor = STAR_DENSITY_MEDIUM;
 			break;
 		case 2:
-			g_starDensity = STAR_DENSITY_LOW;
+			g_starGridDivisor = STAR_DENSITY_LOW;
 			break;
 		default:
 			break;
@@ -411,7 +411,7 @@ static void XvtFlightEntry_Configure(void) {
 
 int XvtFlightEntry_CreateDevices(void) {
 	XvtFlightEntry_Configure();
-	g_devices = 1;
+	g_flightDevicesCreated = 1;
 	if (FlightDisplay_Init() == 0) {
 		return 0;
 	}
@@ -446,7 +446,7 @@ int XvtFlightEntry_CreateDevices(void) {
 	}
 	DebugPrintf("Init Dsound\n");
 	g_flightSoundInitStartTimeMs = timeGetTime();
-	g_sound = 1;
+	g_soundEngineStarted = 1;
 	if (Sound_Init_Sound_Engine(g_flightMainWindowHandle) == 0) {
 		FlightDisplay_CleanupAndReportError(DISPLAY_INIT_SOUND_ERROR);
 		return 0;
@@ -458,10 +458,10 @@ int XvtFlightEntry_CreateDevices(void) {
 
 void XvtFlightEntry_Cleanup(void) {
 	g_sw3dSkipOddScanlines = 0;
-	if (g_sound)
+	if (g_soundEngineStarted)
 		Sound_Shutdown_Sound_Engine();
-	g_sound = 0;
-	if (g_devices) {
+	g_soundEngineStarted = 0;
+	if (g_flightDevicesCreated) {
 		DInput_Shutdown();
 	}
 	if (g_gameSessionStarted) {
@@ -469,12 +469,12 @@ void XvtFlightEntry_Cleanup(void) {
 		XvtNetworkSession_EndFlight();
 	}
 	g_gameSessionStarted = 0;
-	if (g_devices && g_useHardware3D != 0) {
+	if (g_flightDevicesCreated && g_useHardware3D != 0) {
 		std3D_DetachAndReleaseZBufferSurface();
 		std3D_Close();
 		std3D_Shutdown();
 	}
-	if (g_devices && g_flightFullscreen != 0) {
+	if (g_flightDevicesCreated && g_flightFullscreen != 0) {
 		if (g_flightPrimarySurface)
 			FlightDisplay_ClearSurface(g_flightPrimarySurface);
 		if (g_flightPageFlip != 0) {
@@ -504,6 +504,6 @@ void XvtFlightEntry_Cleanup(void) {
 	}
 	g_flightRenderToFrontend = 1;
 	g_useHardware3D = 0;
-	g_devices = 0;
+	g_flightDevicesCreated = 0;
 	g_flightRenderSurface = NULL;
 }

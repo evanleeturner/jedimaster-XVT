@@ -147,7 +147,7 @@ uint16_t XvtFlightControls_ReadLocal(void) {
 			g_flightMouseDeltaY = 127;
 	}
 	uint16_t key = keyboard == XVT_KEYBOARD_GAMEPLAY ? XvtKeyboardMapping_ReadKey()
-													 : (DInput_HasKeyReady() ? DInput_GetKey() : 0);
+													 : (DInput_SkipToPendingKeyPress() ? DInput_GetKey() : 0);
 	if (!key)
 		key = XvtControllerMapping_ReadKey();
 	if (!key)

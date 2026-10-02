@@ -170,8 +170,8 @@ size_t XvtSnapshot_Encode(uint8_t* image, size_t capacity) {
 	cursor += sizeof(g_unusedWorldStateSerializedDword);
 	memcpy(cursor, g_builtinPlanIdByNameIndex, 256);
 	cursor += 256;
-	memcpy(cursor, &g_gameRandStateB, sizeof(g_gameRandStateB));
-	cursor += sizeof(g_gameRandStateB);
+	memcpy(cursor, &g_gameRandFeedbackState, sizeof(g_gameRandFeedbackState));
+	cursor += sizeof(g_gameRandFeedbackState);
 	memcpy(cursor, &g_nextObjectSignature, sizeof(g_nextObjectSignature));
 	cursor += sizeof(g_nextObjectSignature);
 	memcpy(cursor, &g_laserFireTimestampTrackingEnabled, sizeof(g_laserFireTimestampTrackingEnabled));
@@ -253,8 +253,8 @@ static void XvtSnapshot_DecodePrefix(const uint8_t* image) {
 	cursor += sizeof(g_unusedWorldStateSerializedDword);
 	memcpy(g_builtinPlanIdByNameIndex, cursor, sizeof(g_builtinPlanIdByNameIndex));
 	cursor += sizeof(g_builtinPlanIdByNameIndex);
-	memcpy(&g_gameRandStateB, cursor, sizeof(g_gameRandStateB));
-	cursor += sizeof(g_gameRandStateB);
+	memcpy(&g_gameRandFeedbackState, cursor, sizeof(g_gameRandFeedbackState));
+	cursor += sizeof(g_gameRandFeedbackState);
 	memcpy(&g_nextObjectSignature, cursor, sizeof(g_nextObjectSignature));
 	cursor += sizeof(g_nextObjectSignature);
 	memcpy(&g_laserFireTimestampTrackingEnabled, cursor, sizeof(g_laserFireTimestampTrackingEnabled));
@@ -836,7 +836,7 @@ int XvtSnapshot_LiveChecksum(void) {
 	checksum = XvtSnapshot_MixChecksum(checksum, g_planCount);
 	checksum = XvtSnapshot_MixChecksum(checksum, Flight_ChecksumBufferRotateXor(g_planOrderData, 0x1FFFF));
 	checksum = XvtSnapshot_MixChecksum(checksum, g_unusedWorldStateSerializedDword);
-	checksum = XvtSnapshot_MixChecksum(checksum, (uint16_t)g_gameRandStateB);
+	checksum = XvtSnapshot_MixChecksum(checksum, (uint16_t)g_gameRandFeedbackState);
 	checksum = XvtSnapshot_MixChecksum(checksum, g_flightConfNewNet);
 
 	for (playerIndex = 0; playerIndex < 8; playerIndex++) {
@@ -853,7 +853,7 @@ static int XvtSnapshot_IsPoolLink(uint32_t value, size_t stride, unsigned count)
 }
 
 typedef struct XvtSnapshotWorldRanges {
-	int32_t craft_capacity, character_count, projectile_count, debris_count, reserved;
+	int32_t craft_capacity, character_count, projectile_count, debris_count, debris_slot_count;
 	int32_t main_start, active_start, craft_end, character_start, character_end;
 	int32_t projectile_start, projectile_end, debris_start, debris_end, explosion_start, explosion_end;
 	int32_t local_start, local_end, main_end, static_count;
@@ -868,7 +868,7 @@ static int XvtSnapshot_RangesMatchLive(const uint8_t* image_ranges) {
 											  .character_count = g_mobileObjectCharDataCount,
 											  .projectile_count = g_projectileObjectSlotsTotal,
 											  .debris_count = g_debrisObjectSlotsTotal,
-											  .reserved = g_worldStateDebrisSlotCount,
+											  .debris_slot_count = g_worldStateDebrisSlotCount,
 											  .main_start = g_regionMainObjectSlotStart,
 											  .active_start = g_activeRegionObjectSlotStart,
 											  .craft_end = g_activeRegionCraftObjectSlotEnd,
@@ -959,7 +959,7 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t* image, size_t size,
 		memcpy(&mobile, cursor, sizeof mobile);
 		cursor += sizeof mobile;
 		left -= sizeof mobile;
-		if (network && integration.type && integration.state != mobile.family)
+		if (network && integration.type && integration.family != mobile.family)
 			return 0;
 		if (!XvtSnapshot_IsPoolLink(mobile.pCraft, sizeof(XvtSnapshotCraftData), g_craftDataPoolCapacity) ||
 			!XvtSnapshot_IsPoolLink(mobile.pWarheadGuidance, sizeof(WarheadGuidanceState),
@@ -990,7 +990,7 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t* image, size_t size,
 						   sizeof(g_flightPlayerCount) + sizeof(g_worldStateReservedByte);
 	size_t after_ranges =
 		sizeof(g_planTable) + sizeof(g_planCount) + sizeof(g_unusedWorldStateSerializedDword) +
-		sizeof(g_builtinPlanIdByNameIndex) + sizeof(g_gameRandStateB) + sizeof(g_nextObjectSignature) +
+		sizeof(g_builtinPlanIdByNameIndex) + sizeof(g_gameRandFeedbackState) + sizeof(g_nextObjectSignature) +
 		sizeof(g_laserFireTimestampTrackingEnabled) + XVT_FLIGHT_PLAYERS * sizeof(XvtSnapshotPlayerData);
 	if (left != before_ranges + sizeof(XvtSnapshotWorldRanges) + after_ranges)
 		return 0;

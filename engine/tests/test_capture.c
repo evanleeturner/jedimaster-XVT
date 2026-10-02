@@ -94,13 +94,13 @@ static void PressT(void) {
 static void CheckSuppressKey(void) {
 	Start();
 	XVT_ASSERT_INT_EQ(SuppressedCount(), 0);
-	XvtInput_SuppressKey(kA);
+	XvtInput_BlockKeyUntilReleased(kA);
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(kA), 1);
 	XVT_ASSERT_INT_EQ(SuppressedCount(), 1);
 
 	/* A key out of range is ignored. */
-	XvtInput_SuppressKey(-1);
-	XvtInput_SuppressKey(AERON_KEY_COUNT);
+	XvtInput_BlockKeyUntilReleased(-1);
+	XvtInput_BlockKeyUntilReleased(AERON_KEY_COUNT);
 	XVT_ASSERT_INT_EQ(SuppressedCount(), 1);
 
 	/* Blocked until released: held, then just released, then up. */
@@ -278,7 +278,7 @@ static void CheckResetCapture(void) {
 	Host()->mouse.buttons = AERON_MOUSE_BUTTON_LEFT;
 	XvtInput_SetCaptured(true);
 	XvtInput_SuppressRendererTab(true);
-	XvtInput_SuppressKey(kD);
+	XvtInput_BlockKeyUntilReleased(kD);
 
 	XvtInput_ResetCapture();
 	XVT_ASSERT_INT_EQ(XvtInput_IsCaptured(), 0);

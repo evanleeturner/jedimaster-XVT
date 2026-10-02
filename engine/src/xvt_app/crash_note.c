@@ -137,18 +137,18 @@ size_t XvtCrashNote_FormatLine(char* out, size_t capacity, uint32_t ms_of_day, c
 
 static uint32_t XvtCrashNote_MsOfDay(void) {
 	FILETIME now;
-	ULARGE_INTEGER ticks;
+	ULARGE_INTEGER filetime_100ns;
 	GetSystemTimeAsFileTime(&now);
-	ticks.LowPart = now.dwLowDateTime;
-	ticks.HighPart = now.dwHighDateTime;
+	filetime_100ns.LowPart = now.dwLowDateTime;
+	filetime_100ns.HighPart = now.dwHighDateTime;
 	/* FILETIME counts 100 ns steps from midnight UTC, 1 January 1601. */
-	return (uint32_t)(ticks.QuadPart / 10000u % 86400000u);
+	return (uint32_t)(filetime_100ns.QuadPart / 10000u % 86400000u);
 }
 
 static void XvtCrashNote_Output(const char* line, size_t length) {
-	HANDLE error = GetStdHandle(STD_ERROR_HANDLE);
-	if (error && error != INVALID_HANDLE_VALUE)
-		XvtLogFile_Write((XvtLogFileHandle)error, line, length);
+	HANDLE stderr_handle = GetStdHandle(STD_ERROR_HANDLE);
+	if (stderr_handle && stderr_handle != INVALID_HANDLE_VALUE)
+		XvtLogFile_Write((XvtLogFileHandle)stderr_handle, line, length);
 	XvtLogFile_Write(g_crashNoteFile, line, length);
 }
 

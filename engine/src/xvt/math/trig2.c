@@ -68,7 +68,7 @@ int16_t g_arctantable[260] = {
 };
 
 // GLOBAL: XVT 0x524E30
-uint16_t g_squarerootable[257] = {
+uint16_t g_hypotExcessQ16Table[257] = {
 	0,     0,     2,     4,     8,     12,    18,    24,    32,    40,    50,    60,    72,    84,    98,
 	112,   128,   144,   162,   180,   200,   220,   242,   264,   287,   312,   337,   363,   391,   419,
 	448,   479,   510,   542,   575,   610,   645,   681,   718,   756,   795,   835,   876,   918,   961,
@@ -132,7 +132,7 @@ int trig2_zmovedist = 0;
 int trig2_zoffset = 0;
 
 // GLOBAL: XVT 0xA00740
-int trig2_divisorhilo = 0;
+int trig2_largerLeg = 0;
 
 // GLOBAL: XVT 0xA07C5C
 uint16_t trig2_theta = 0;
@@ -499,18 +499,18 @@ void trig2_ctop2dim(int dx, int dy) {
 
 // FUNCTION: XVT 0x46AA70
 int trig2_calcangleplanedistance(int magnitudeA, int magnitudeB) {
-	int16_t outRatio;
-	int16_t outAngle;
+	int16_t angle;
+	int16_t ratioIndex;
 	uint32_t scale;
 	uint32_t divisor;
 	uint32_t highProduct;
 	uint32_t lowProduct;
 	uint16_t roundedLowProduct;
 
-	trig2_calcarctan_core(magnitudeA, magnitudeB, &outRatio, &outAngle);
-	trig2_angleplane = outRatio;
-	scale = g_squarerootable[(uint16_t)outAngle];
-	divisor = (uint32_t)trig2_divisorhilo;
+	trig2_calcarctan_core(magnitudeA, magnitudeB, &angle, &ratioIndex);
+	trig2_angleplane = angle;
+	scale = g_hypotExcessQ16Table[(uint16_t)ratioIndex];
+	divisor = (uint32_t)trig2_largerLeg;
 	highProduct = (divisor >> 16) * scale;
 	lowProduct = (divisor & 0xFFFFu) * scale;
 	lowProduct += 0x8000u;
@@ -521,7 +521,7 @@ int trig2_calcangleplanedistance(int magnitudeA, int magnitudeB) {
 }
 
 // FUNCTION: XVT 0x46AAF0
-int16_t trig2_calcarctan_core(int a, int b, int16_t* outRatio, int16_t* outAngle) {
+int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t* outAngle, int16_t* outRatioIndex) {
 	uint32_t numerator;
 	uint32_t fraction;
 	uint32_t divisor;
@@ -530,13 +530,13 @@ int16_t trig2_calcarctan_core(int a, int b, int16_t* outRatio, int16_t* outAngle
 	uint32_t swap;
 	int16_t result;
 
-	numerator = (uint32_t)b;
-	divisor = (uint32_t)a;
+	numerator = (uint32_t)opposite;
+	divisor = (uint32_t)adjacent;
 	fraction = 0;
 	trig2_signswap = 0;
 	if (numerator == divisor) {
 		numerator = 256;
-		trig2_divisorhilo = (int)divisor;
+		trig2_largerLeg = (int)divisor;
 	} else {
 		if ((int32_t)numerator >= (int32_t)divisor) {
 			trig2_signswap = 1;
@@ -544,7 +544,7 @@ int16_t trig2_calcarctan_core(int a, int b, int16_t* outRatio, int16_t* outAngle
 			numerator = divisor;
 			divisor = swap;
 		}
-		trig2_divisorhilo = (int)divisor;
+		trig2_largerLeg = (int)divisor;
 		if (divisor != 0) {
 			if ((divisor & 0xFF000000u) == 0) {
 				divisor <<= 8;
@@ -569,19 +569,19 @@ int16_t trig2_calcarctan_core(int a, int b, int16_t* outRatio, int16_t* outAngle
 		}
 	}
 
-	*outAngle = (int16_t)numerator;
-	*outRatio = g_arctantable[(uint16_t)numerator + 1];
-	tableDelta = (uint16_t)(*outRatio - g_arctantable[(uint16_t)*outAngle]);
-	*outRatio = (int16_t)tableDelta;
+	*outRatioIndex = (int16_t)numerator;
+	*outAngle = g_arctantable[(uint16_t)numerator + 1];
+	tableDelta = (uint16_t)(*outAngle - g_arctantable[(uint16_t)*outRatioIndex]);
+	*outAngle = (int16_t)tableDelta;
 	interpolation = ((fraction & 0xFF00u) * tableDelta) >> 16;
-	*outRatio = (int16_t)interpolation;
-	result = (int16_t)(interpolation + g_arctantable[(uint16_t)*outAngle]);
-	*outRatio = result;
+	*outAngle = (int16_t)interpolation;
+	result = (int16_t)(interpolation + g_arctantable[(uint16_t)*outRatioIndex]);
+	*outAngle = result;
 	if (trig2_signswap != 0) {
 		result = (int16_t)-result;
-		*outRatio = result;
+		*outAngle = result;
 		result = (int16_t)(result + 0x4000);
-		*outRatio = result;
+		*outAngle = result;
 	}
 	return result;
 }
@@ -590,8 +590,8 @@ int16_t trig2_calcarctan_core(int a, int b, int16_t* outRatio, int16_t* outAngle
 int16_t trig2_arctan(int y, int x) {
 	int magnitudeY;
 	int magnitudeX;
-	int16_t outAngle;
-	int16_t outRatio;
+	int16_t ratioIndex;
+	int16_t angle;
 
 	magnitudeY = y;
 	if (magnitudeY < 0) {
@@ -607,12 +607,12 @@ int16_t trig2_arctan(int y, int x) {
 	} else {
 		trig2_signx = 0;
 	}
-	trig2_calcarctan_core(magnitudeX, magnitudeY, &outRatio, &outAngle);
+	trig2_calcarctan_core(magnitudeX, magnitudeY, &angle, &ratioIndex);
 	if (trig2_signy != 0) {
-		outRatio = (int16_t)-outRatio;
+		angle = (int16_t)-angle;
 	}
 	if (trig2_signx != 0) {
-		outRatio = (int16_t)(0x8000u - (uint16_t)outRatio);
+		angle = (int16_t)(0x8000u - (uint16_t)angle);
 	}
-	return outRatio;
+	return angle;
 }

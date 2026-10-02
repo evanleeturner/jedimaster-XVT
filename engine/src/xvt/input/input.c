@@ -40,9 +40,9 @@ int Input_ProbeActiveJoystickDevices(void) {
 	int buttons;
 	int axisZ;
 
-	Joystick_PollRawAxes(0, &axisX, &axisY, &axisZ, &buttons);
+	Joystick_PollScaledAxes(0, &axisX, &axisY, &axisZ, &buttons);
 	if (axisX == 32000 && axisY == 32000) {
-		Joystick_PollRawAxes(1, &axisX, &axisY, &axisZ, &buttons);
+		Joystick_PollScaledAxes(1, &axisX, &axisY, &axisZ, &buttons);
 		if (axisX == 32000 && axisY == 32000) {
 			return 0;
 		}

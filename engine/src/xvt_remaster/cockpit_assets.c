@@ -98,17 +98,17 @@ int XvtCockpitAssets_ApplyMask(XvtOriginal2d* image, const XvtSnapRect* rect) {
 	for (int y = 0; y < rect->height; ++y) {
 		if (p == end)
 			return 1;
-		int8_t state = (int8_t)*p++;
+		int8_t parity = (int8_t)*p++;
 		for (int x = 0; x < rect->width;) {
 			int run = MaskRun(&p, end, frame->width);
 			if (run <= 0)
 				return 0;
 			int visible = run < rect->width - x ? run : rect->width - x;
-			if (state >= 0)
+			if (parity >= 0)
 				memset(frame->coverage + (size_t)(rect->y + y) * frame->width + rect->x + x, 0,
 					   (size_t)visible);
 			x += visible;
-			state = (int8_t)-state;
+			parity = (int8_t)-parity;
 		}
 	}
 	return 1;

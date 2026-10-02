@@ -109,7 +109,7 @@ static int XvtLogFile_EventIs(const char* line, size_t length, const char* event
 }
 
 XvtLogFileEnding XvtLogFile_ReadEnding(const char* tail, size_t length, char* last_event, size_t capacity) {
-	const char* runs = tail;
+	const char* newest_run = tail;
 	const char* last = NULL;
 	size_t last_length = 0;
 	int header = 0;
@@ -120,14 +120,14 @@ XvtLogFileEnding XvtLogFile_ReadEnding(const char* tail, size_t length, char* la
 		const char* end = memchr(line, '\n', (size_t)(tail + length - line));
 		size_t line_length = end ? (size_t)(end - line) : (size_t)(tail + length - line);
 		if (XvtLogFile_IsRunHeader(line, line_length)) {
-			runs = line;
+			newest_run = line;
 			header = 1;
 		}
 		if (!end)
 			break;
 		line = end + 1;
 	}
-	for (const char* line = runs; line < tail + length;) {
+	for (const char* line = newest_run; line < tail + length;) {
 		const char* end = memchr(line, '\n', (size_t)(tail + length - line));
 		size_t line_length = end ? (size_t)(end - line) : (size_t)(tail + length - line);
 		if (XvtLogFile_HasStamp(line, line_length)) {

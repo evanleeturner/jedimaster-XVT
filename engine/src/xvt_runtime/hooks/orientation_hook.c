@@ -36,20 +36,21 @@ static void XvtOrientation_ToRadians(XvtOrientationAngles angles, float* pitch, 
 
 static XvtOrientationAngles XvtOrientation_FromRadians(float pitch, float yaw, float roll) {
 	XvtOrientationAngles result;
-	int16_t headingXY;
-	int16_t headingZ;
-	int16_t headingRoll;
+	int16_t yawBinaryAngle;
+	int16_t pitchBinaryAngle;
+	int16_t rollBinaryAngle;
 
-	headingXY = XvtOrientation_RoundAngle(XvtOrientation_WrapRadians(-yaw) * XVT_ORIENTATION_RAD_TO_BAM);
-	headingZ = XvtOrientation_RoundAngle(XvtOrientation_WrapRadians(-XVT_ORIENTATION_HALF_PI - pitch) *
-										 XVT_ORIENTATION_RAD_TO_BAM);
-	headingRoll = XvtOrientation_RoundAngle(XvtOrientation_WrapRadians(-roll) * XVT_ORIENTATION_RAD_TO_BAM);
+	yawBinaryAngle = XvtOrientation_RoundAngle(XvtOrientation_WrapRadians(-yaw) * XVT_ORIENTATION_RAD_TO_BAM);
+	pitchBinaryAngle = XvtOrientation_RoundAngle(
+		XvtOrientation_WrapRadians(-XVT_ORIENTATION_HALF_PI - pitch) * XVT_ORIENTATION_RAD_TO_BAM);
+	rollBinaryAngle =
+		XvtOrientation_RoundAngle(XvtOrientation_WrapRadians(-roll) * XVT_ORIENTATION_RAD_TO_BAM);
 
 	/* As in OpenXWA, select the equivalent Euler representation offset by
 	 * half a turn in yaw and roll. */
-	result.yaw = (uint16_t)((uint16_t)headingXY + 0x8000u);
-	result.pitch = (uint16_t)(uint16_t)(int16_t)-headingZ;
-	result.roll = (uint16_t)((uint16_t)headingRoll + 0x8000u);
+	result.yaw = (uint16_t)((uint16_t)yawBinaryAngle + 0x8000u);
+	result.pitch = (uint16_t)(uint16_t)(int16_t)-pitchBinaryAngle;
+	result.roll = (uint16_t)((uint16_t)rollBinaryAngle + 0x8000u);
 	return result;
 }
 
@@ -152,10 +153,10 @@ static void XvtOrientation_QuaternionToEuler(const float quaternion[4], float* p
 	float m31 = 2.0f * x * z + 2.0f * y * w;
 	float m32 = 2.0f * y * z - 2.0f * x * w;
 	float m33 = 1.0f - 2.0f * xx - 2.0f * yy;
-	float cosYaw = sqrtf(m33 * m33 + m31 * m31);
+	float cosPitch = sqrtf(m33 * m33 + m31 * m31);
 
-	*pitch = atan2f(-m32, cosYaw);
-	if (cosYaw > XVT_ORIENTATION_GIMBAL_EPSILON) {
+	*pitch = atan2f(-m32, cosPitch);
+	if (cosPitch > XVT_ORIENTATION_GIMBAL_EPSILON) {
 		float m12 = 2.0f * x * y + 2.0f * z * w;
 		float m22 = 1.0f - 2.0f * xx - 2.0f * zz;
 

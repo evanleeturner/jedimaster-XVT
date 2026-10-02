@@ -70,7 +70,7 @@ struct ModelDef {
 	uint8_t warheadLauncherFirstSlot[2];
 	uint8_t warheadLauncherLastSlot[2];
 	uint8_t warheadLauncherSlotCount[2];
-	uint8_t warheadLauncherValue[2];
+	uint8_t warheadLauncherCapacity[2];
 	ModelWeaponHardpoint weaponHardpoints[16];
 	uint8_t countermeasureCount;
 	int16_t primaryHardpointY;
@@ -105,7 +105,7 @@ struct OptVector {
 extern void* g_curMeshVertices;
 extern void* g_curMeshTexCoords;
 extern void* g_modelNodeWalkUnusedScratch2;
-extern void* g_curMeshFlags;
+extern void* g_curMeshMaterials;
 extern int g_curVertexCount;
 extern OptVector* g_curVertNormals;
 
@@ -118,18 +118,18 @@ typedef enum OptNodeType {
 	OPT_ROTATION = 0x5,
 	OPT_SCALE = 0x6,
 	OPT_NODEREF = 0x7,
-	OPT_TYPE_8 = 0x8,
-	OPT_TYPE_9 = 0x9,
-	OPT_TYPE_10 = 0xA,
+	OPT_DEF = 0x8,
+	OPT_MATERIAL = 0x9,
+	OPT_MATERIAL_BINDING = 0xA,
 	OPT_VERTNORMALS = 0xB,
-	OPT_TYPE_12 = 0xC,
+	OPT_NORMAL_BINDING = 0xC,
 	OPT_TEXCOORDS = 0xD,
-	OPT_TYPE_14 = 0xE,
-	OPT_FACEDATA_15 = 0xF,
-	OPT_FACEDATA_16 = 0x10,
-	OPT_FACEDATA_17 = 0x11,
-	OPT_TYPE_18 = 0x12,
-	OPT_TYPE_19 = 0x13,
+	OPT_TEXCOORD_BINDING = 0xE,
+	OPT_FACEDATA_QUAD_MESH = 0xF,
+	OPT_FACEDATA_FACE_SET = 0x10,
+	OPT_FACEDATA_TRIANGLE_STRIP_SET = 0x11,
+	OPT_INVENTOR_GROUP = 0x12,
+	OPT_BASE_COLOR = 0x13,
 	OPT_TEXTURE = 0x14,
 	OPT_FACEGROUP = 0x15,
 	OPT_HARDPOINT = 0x16,
@@ -186,7 +186,7 @@ struct OptTexCoord {
 
 struct OptTextureData {
 	uint16_t* palette;
-	int paletteType;
+	int inlinePaletteCount;
 	int textureSize;
 	int dataSize;
 	int width;
@@ -268,7 +268,7 @@ void OptModel_RelocateLoadedPointers(OptimizedPolyObject* model);
 void OptModel_RelocateNodePointersRecursive(OptNode* node, XvtOptValue relocationDelta);
 #endif
 void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject* model);
-void OptModel_AdjustOptimizedNodePointers(OptNode* node, XvtOptValue base);
+void OptModel_AdjustOptimizedNodePointers(OptNode* node, XvtOptValue relocationDelta);
 uint16_t OptModel_LoadFileToHandle(char* filename);
 unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize);
 void* OptModel_FindSharedTextureDataInNodeBeforeTarget(const void* textureData, OptNode* node,

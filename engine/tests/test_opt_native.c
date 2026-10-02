@@ -327,7 +327,7 @@ static void CheckPayloadSizes(void) {
 	} payloads[] = {
 		{ OPT_TRANSFORM, 48 },       { OPT_ROTSCALE, 48 },     { OPT_MESHVERTS, 3 * 12 },
 		{ OPT_VERTNORMALS, 3 * 12 }, { OPT_TRANSLATION, 12 },  { OPT_SCALE, 12 },
-		{ OPT_TYPE_19, 12 },         { OPT_ROTATION, 36 },     { OPT_TYPE_9, 3 * 56 },
+		{ OPT_BASE_COLOR, 12 },      { OPT_ROTATION, 36 },     { OPT_MATERIAL, 3 * 56 },
 		{ OPT_TEXCOORDS, 3 * 8 },    { OPT_FACEGROUP, 3 * 4 }, { OPT_HARDPOINT, 16 },
 		{ OPT_MESHDESC, 72 },
 	};
@@ -342,7 +342,8 @@ static void CheckPayloadSizes(void) {
 
 	/* Face data of 2 faces after a list of 5 vertices: a 4-byte count, then 84 bytes a face in version 0
 	 * files and 100 in later ones, then 12 bytes a vertex unless a list of normals was read before it. */
-	static const int32_t faceTypes[] = { OPT_FACEDATA, OPT_FACEDATA_15, OPT_FACEDATA_16, OPT_FACEDATA_17 };
+	static const int32_t faceTypes[] = { OPT_FACEDATA, OPT_FACEDATA_QUAD_MESH, OPT_FACEDATA_FACE_SET,
+										 OPT_FACEDATA_TRIANGLE_STRIP_SET };
 	for (int version = 0; version <= 2; ++version)
 		for (size_t t = 0; t < sizeof faceTypes / sizeof faceTypes[0]; ++t)
 			for (uint32_t normals = 0; normals <= 1; ++normals) {

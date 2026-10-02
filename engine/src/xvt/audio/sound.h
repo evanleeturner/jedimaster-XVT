@@ -30,7 +30,7 @@ extern IDirectSound* g_directSound;
 extern IDirectSoundBuffer* g_soundPrimaryBuffer;
 
 struct ActiveSoundInstance {
-	int soundId;
+	int effectIndex;
 	unsigned int sequence;
 	IDirectSoundBuffer* buffer;
 };
@@ -44,7 +44,7 @@ extern int g_soundCount;
 int Sound_Init_Sound_Engine(void* hwnd);
 int Sound_Shutdown_Sound_Engine(void);
 int Sound_LoadEffect(const char* fileName, const char* name);
-int Sound_LoadEffectEx(const char* fileName, const char* name, int createFlags);
+int Sound_LoadEffectEx(const char* fileName, const char* name, int omitSoftwareAndFrequencyCaps);
 void Sound_UnloadAllEffects(void);
 int Sound_UnloadEffectByName(const char* name);
 void Sound_FlushQueuedEffects(void);
@@ -64,14 +64,14 @@ int Sound_SetEffectCurrentPriority(const char* name, int priority);
 int Sound_GetEffectCurrentPriority(const char* name);
 int Sound_CountPlayingInstances(const char* name);
 void Sound_InsertEffectDefSorted(const SoundEffectDef* effect);
-void Sound_RemoveEffectDef(int soundId);
+void Sound_RemoveEffectDef(int effectIndex);
 int Sound_FindLoadedEffectByName(const char* name);
 int Sound_FindEffectByName(const SoundEffectDef* records, int lastIndex, const char* name);
 int Sound_SetParam(int flightSoundId, int param, int value);
 int Sound_GetParam(int flightSoundId, int param);
 int Sound_UnusedFourArgStub(int arg1, int arg2, int arg3, int arg4);
 int Sound_StopOldestInstanceById(int flightSoundId);
-void nullsub_10(void);
+void Sound_EmptyStub(void);
 
 #ifdef __cplusplus
 }

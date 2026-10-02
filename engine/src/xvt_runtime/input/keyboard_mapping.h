@@ -34,7 +34,7 @@ typedef enum XvtKeyboardShortcut {
 void XvtKeyboardMapping_SetPolicy(bool debug_available);
 /* The key of this frame's first fresh press of that shortcut; -1 when there is none, the window lacks
  * focus, or the snapshot's key events overflowed. */
-int XvtKeyboardMapping_Trigger(const AeronInputSnapshot* input, XvtKeyboardShortcut shortcut);
+int XvtKeyboardMapping_FindShortcutPress(const AeronInputSnapshot* input, XvtKeyboardShortcut shortcut);
 /* Escape with any modifiers is SETTINGS; Tab alone is RENDERER; grave is DEBUG when the debug policy
  * allows it; M with Ctrl and Alt is MOUSE; anything else is NONE. */
 XvtKeyboardShortcut XvtKeyboardMapping_Shortcut(AeronKeyChord source);

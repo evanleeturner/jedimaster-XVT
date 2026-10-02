@@ -6,7 +6,7 @@
 #include "xvt/render/flight_sw.h"
 
 // GLOBAL: XVT 0x51C4C0
-RadarEllipseClampLimit g_radarEllipseClampMode19Preset[37] = {
+RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37] = {
 	{ 0, 18 },  { 1, 18 },  { 2, 18 },  { 3, 18 },  { 4, 17 },  { 5, 17 },  { 6, 17 },  { 7, 17 },
 	{ 8, 16 },  { 9, 16 },  { 10, 16 }, { 10, 15 }, { 11, 15 }, { 12, 15 }, { 12, 14 }, { 13, 14 },
 	{ 14, 14 }, { 14, 13 }, { 15, 13 }, { 15, 12 }, { 16, 12 }, { 16, 11 }, { 17, 11 }, { 17, 10 },
@@ -137,7 +137,7 @@ unsigned int MATH2_mphconvert(int16_t speed, uint16_t divisor) {
 }
 
 // FUNCTION: XVT 0x425E30
-int16_t MATH2_getradarcoord(int a1, int a2, int a3) {
+int16_t MATH2_getradarcoord(int side, int up, int forward) {
 	int angle;
 	int tableIndex;
 	int projectedY;
@@ -154,9 +154,9 @@ int16_t MATH2_getradarcoord(int a1, int a2, int a3) {
 			tableIndex = 0;
 			remaining = 37;
 			do {
-				yLimit = g_radarEllipseClampMode19Preset[tableIndex].yLimit;
+				yLimit = g_radarEllipseClamp320x240Preset[tableIndex].yLimit;
 				g_radarEllipseClampTable[tableIndex].xLimit =
-					g_radarEllipseClampMode19Preset[tableIndex].xLimit;
+					g_radarEllipseClamp320x240Preset[tableIndex].xLimit;
 				g_radarEllipseClampTable[tableIndex].yLimit = yLimit;
 				++tableIndex;
 				--remaining;
@@ -185,10 +185,10 @@ int16_t MATH2_getradarcoord(int a1, int a2, int a3) {
 		g_radarEllipseClampCachedResolutionMode = g_flightResolutionMode;
 	}
 
-	projectedY = a2;
-	projectedX = a1;
-	if (a1 < 0) {
-		projectedX = (int)(0u - (uint32_t)a1);
+	projectedY = up;
+	projectedX = side;
+	if (side < 0) {
+		projectedX = (int)(0u - (uint32_t)side);
 	}
 #ifdef XVT_MODERN
 	shift = (uint8_t)(g_perspectiveShift - 5);
@@ -197,23 +197,23 @@ int16_t MATH2_getradarcoord(int a1, int a2, int a3) {
 	shift = g_perspectiveShift - 5;
 	projectedX <<= shift;
 #endif
-	if (a3 != 0) {
-		projectedX /= a3;
+	if (forward != 0) {
+		projectedX /= forward;
 	}
 	if (projectedX > INT16_MAX) {
 		projectedX = INT16_MAX;
 	}
 
-	if (a2 < 0) {
-		projectedY = (int)(0u - (uint32_t)a2);
+	if (up < 0) {
+		projectedY = (int)(0u - (uint32_t)up);
 	}
 #ifdef XVT_MODERN
 	projectedY = (int)((uint32_t)projectedY << (shift & 31u));
 #else
 	projectedY <<= shift;
 #endif
-	if (a3 != 0) {
-		projectedY /= a3;
+	if (forward != 0) {
+		projectedY /= forward;
 	}
 	if (projectedY > INT16_MAX) {
 		projectedY = INT16_MAX;
@@ -232,7 +232,7 @@ int16_t MATH2_getradarcoord(int a1, int a2, int a3) {
 	if (radarx > (int)(uint16_t)arctanValues[0]) {
 		radarx = arctanValues[0];
 	}
-	if (a1 < 0) {
+	if (side < 0) {
 		radarx = (int16_t)-radarx;
 	}
 
@@ -240,7 +240,7 @@ int16_t MATH2_getradarcoord(int a1, int a2, int a3) {
 	if (radary > (int)(uint16_t)arctanValues[0]) {
 		radary = arctanValues[0];
 	}
-	if (a2 < 0) {
+	if (up < 0) {
 		radary = (int16_t)-radary;
 	}
 	return radary;

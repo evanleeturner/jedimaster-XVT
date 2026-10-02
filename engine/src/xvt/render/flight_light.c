@@ -252,7 +252,7 @@ void FlightLight_SetupObjectLighting(ObjectRecord* object) {
 	g_objectPointLightCount = 0;
 	if (g_localLightsEnabled == 0)
 		return;
-	maxDistance = g_modelTypeTable[object->objectType].maxBoundsExtent + 0x4000;
+	maxDistance = g_objectTypeTable[object->objectType].maxBoundsExtent + 0x4000;
 	worldX = object->world_x;
 	worldY = object->world_y;
 	worldZ = object->world_z;

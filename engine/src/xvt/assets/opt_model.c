@@ -29,11 +29,11 @@ int access(const char* filename, int mode);
 #endif
 
 #ifndef XVT_MODERN
-typedef struct OptLegacyParamRecord {
-	int value0;
-	int value1;
+typedef struct InventorFieldRecord {
+	int fieldType;
+	int itemCount;
 	void* data;
-} OptLegacyParamRecord;
+} InventorFieldRecord;
 
 typedef struct OptExternalTexHeader {
 	uint8_t prefix[8];
@@ -76,27 +76,27 @@ typedef struct InventorFieldDef {
 	const char* fieldName;
 	InventorFieldType fieldType;
 	const InventorEnumDef* enumDef;
-	const OptLegacyParamRecord* defaultRecord;
+	const InventorFieldRecord* defaultRecord;
 	const void* defaultData;
 	size_t defaultDataSize;
 } InventorFieldDef;
 
 // GLOBAL: XVT 0x51AF28
-static const OptLegacyParamRecord g_defaultIntegerListRecord = { INVENTOR_FIELD_INTEGER_LIST, 4, NULL };
+static const InventorFieldRecord g_defaultIntegerListRecord = { INVENTOR_FIELD_INTEGER_LIST, 4, NULL };
 // GLOBAL: XVT 0x51AF38
 static const int g_defaultIntegerList[4] = { 0, 1, 2, -1 };
 // GLOBAL: XVT 0x51AF58
-static const OptLegacyParamRecord g_defaultIntegerRecord = { INVENTOR_FIELD_INTEGER, 1, NULL };
+static const InventorFieldRecord g_defaultIntegerRecord = { INVENTOR_FIELD_INTEGER, 1, NULL };
 // GLOBAL: XVT 0x51AF64
 static const int g_defaultInteger = 0;
 // GLOBAL: XVT 0x51AF48
-static const OptLegacyParamRecord g_defaultStringRecord = { INVENTOR_FIELD_STRING, 1, NULL };
+static const InventorFieldRecord g_defaultStringRecord = { INVENTOR_FIELD_STRING, 1, NULL };
 // GLOBAL: XVT 0x51AF54
 static const char g_defaultString[1] = { '\0' };
 // GLOBAL: XVT 0x51AFB8
-static const OptLegacyParamRecord g_defaultVector3ListRecord = { INVENTOR_FIELD_VECTOR3_LIST, 1, NULL };
+static const InventorFieldRecord g_defaultVector3ListRecord = { INVENTOR_FIELD_VECTOR3_LIST, 1, NULL };
 // GLOBAL: XVT 0x51AFF0
-static const OptLegacyParamRecord g_defaultVector3Record = { INVENTOR_FIELD_VECTOR3, 1, NULL };
+static const InventorFieldRecord g_defaultVector3Record = { INVENTOR_FIELD_VECTOR3, 1, NULL };
 // GLOBAL: XVT 0x51AFC8
 static const OptVector g_defaultZeroVector = { 0.0f, 0.0f, 0.0f };
 // GLOBAL: XVT 0x51B000
@@ -104,13 +104,13 @@ static const OptVector g_defaultZeroScalarVector = { 0.0f, 0.0f, 0.0f };
 // GLOBAL: XVT 0x51B020
 static const OptVector g_defaultUnitVector = { 1.0f, 1.0f, 1.0f };
 // GLOBAL: XVT 0x51B030
-static const OptLegacyParamRecord g_defaultRotationRecord = { INVENTOR_FIELD_ROTATION, 1, NULL };
+static const InventorFieldRecord g_defaultRotationRecord = { INVENTOR_FIELD_ROTATION, 1, NULL };
 // GLOBAL: XVT 0x51B040
 static const float g_defaultRotation[4] = { 0.0f, 0.0f, 1.0f, 0.0f };
 // GLOBAL: XVT 0x51B050
-static const OptLegacyParamRecord g_defaultColorListRecord = { INVENTOR_FIELD_COLOR_LIST, 1, NULL };
+static const InventorFieldRecord g_defaultColorListRecord = { INVENTOR_FIELD_COLOR_LIST, 1, NULL };
 // GLOBAL: XVT 0x51B090
-static const OptLegacyParamRecord g_defaultColorRecord = { INVENTOR_FIELD_COLOR, 1, NULL };
+static const InventorFieldRecord g_defaultColorRecord = { INVENTOR_FIELD_COLOR, 1, NULL };
 // GLOBAL: XVT 0x51B060
 static const OptVector g_defaultAmbientColor = { 0.2f, 0.2f, 0.2f };
 // GLOBAL: XVT 0x51B070
@@ -120,17 +120,17 @@ static const OptVector g_defaultBlackColor = { 0.0f, 0.0f, 0.0f };
 // GLOBAL: XVT 0x51B0A0
 static const OptVector g_defaultRgbColor = { 0.8f, 0.8f, 0.8f };
 // GLOBAL: XVT 0x51B0B0
-static const OptLegacyParamRecord g_defaultFloatRecord = { INVENTOR_FIELD_FLOAT, 1, NULL };
+static const InventorFieldRecord g_defaultFloatRecord = { INVENTOR_FIELD_FLOAT, 1, NULL };
 // GLOBAL: XVT 0x51B0BC
 static const float g_defaultZeroFloat = 0.0f;
 // GLOBAL: XVT 0x51B0C0
 static const float g_defaultShininess = 0.2f;
 // GLOBAL: XVT 0x51AFD8
-static const OptLegacyParamRecord g_defaultVector2ListRecord = { INVENTOR_FIELD_VECTOR2_LIST, 1, NULL };
+static const InventorFieldRecord g_defaultVector2ListRecord = { INVENTOR_FIELD_VECTOR2_LIST, 1, NULL };
 // GLOBAL: XVT 0x51AFE8
 static const float g_defaultVector2[2] = { 0.0f, 0.0f };
 // GLOBAL: XVT 0x51AF18
-static const OptLegacyParamRecord g_defaultEnumRecord = { INVENTOR_FIELD_ENUM, 1, NULL };
+static const InventorFieldRecord g_defaultEnumRecord = { INVENTOR_FIELD_ENUM, 1, NULL };
 // GLOBAL: XVT 0x51AF24
 static const int g_defaultEnum = 0;
 
@@ -591,7 +591,7 @@ int g_curVertexCount = 0;
 // GLOBAL: XVT 0x60F1C0
 void* g_curMeshVertices = NULL;
 // GLOBAL: XVT 0x60F1D8
-void* g_curMeshFlags = NULL;
+void* g_curMeshMaterials = NULL;
 // GLOBAL: XVT 0x60F1E8
 void* g_curMeshTexCoords = NULL;
 // GLOBAL: XVT 0x60F1F0
@@ -772,7 +772,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 	char* cursor;
 	char* nodeName;
 	OptNode* node;
-	OptLegacyParamRecord* fieldRecords;
+	InventorFieldRecord* fieldRecords;
 	const InventorNodeDef* const* nodeDefSlot;
 	int nodeType;
 	int totalSize;
@@ -815,7 +815,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 	}
 
 	nodeName = NULL;
-	if (nodeType == OPT_TYPE_8) {
+	if (nodeType == OPT_DEF) {
 		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
 			printf("READ NODE ERROR!\n");
 			return 0;
@@ -854,20 +854,20 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 		}
 		totalSize += sizeof(OptNode);
 		if (cursor != NULL) {
-			fieldRecords = (OptLegacyParamRecord*)cursor;
+			fieldRecords = (InventorFieldRecord*)cursor;
 			node->payload = fieldRecords;
 			cursor += (*nodeDefSlot)->fieldCount * sizeof(*fieldRecords);
 		}
-		totalSize += (*nodeDefSlot)->fieldCount * sizeof(OptLegacyParamRecord);
+		totalSize += (*nodeDefSlot)->fieldCount * sizeof(InventorFieldRecord);
 
 		if (nodeType != OPT_NODEREF) {
-			InventorAscii_SkipToOpenBrace(stream);
+			InventorAscii_SkipPastOpenBrace(stream);
 			for (fieldIndex = 0; fieldIndex < (*nodeDefSlot)->fieldCount; ++fieldIndex) {
 				g_inventorFieldSeen[fieldIndex] = 0;
 			}
 
 			for (fieldScanIndex = 0; fieldScanIndex < (*nodeDefSlot)->fieldCount; ++fieldScanIndex) {
-				OptLegacyParamRecord* fieldRecord;
+				InventorFieldRecord* fieldRecord;
 
 				if (InventorAscii_PeekNextIsCloseBrace(stream) != 0) {
 					break;
@@ -895,11 +895,11 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 				switch ((*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType) {
 					case INVENTOR_FIELD_STRING:
 						if (InventorAscii_PeekNextIsQuote(stream) != 0) {
-							InventorAscii_SkipToQuote(stream);
+							InventorAscii_SkipPastQuote(stream);
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
-								fieldRecord->value1 = 1;
-								fieldRecord->value0 = INVENTOR_FIELD_STRING;
+								fieldRecord->itemCount = 1;
+								fieldRecord->fieldType = INVENTOR_FIELD_STRING;
 							}
 							while (1) {
 								character = (char)File_Getc(stream);
@@ -920,8 +920,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							}
 						} else if (cursor != NULL) {
 							fieldRecord->data = cursor;
-							fieldRecord->value1 = 1;
-							fieldRecord->value0 = INVENTOR_FIELD_STRING;
+							fieldRecord->itemCount = 1;
+							fieldRecord->fieldType = INVENTOR_FIELD_STRING;
 							if (File_Scanf(stream, " %s", cursor) != 1) {
 								printf("READ NODE ERROR!\n");
 								return totalSize;
@@ -943,8 +943,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							parsedSize = OptModel_ParseInventorAsciiNode(stream, cursor,
 																		 (OptNode**)&fieldRecord->data);
 							cursor += parsedSize;
-							fieldRecord->value1 = 1;
-							fieldRecord->value0 = INVENTOR_FIELD_NODE;
+							fieldRecord->itemCount = 1;
+							fieldRecord->fieldType = INVENTOR_FIELD_NODE;
 							totalSize += parsedSize;
 						} else {
 							totalSize += OptModel_ParseInventorAsciiNode(stream, NULL, NULL);
@@ -953,7 +953,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 
 					case INVENTOR_FIELD_NODE_LIST:
 						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipToOpenBracket(stream);
+							InventorAscii_SkipPastOpenBracket(stream);
 							rewindPosition = File_RawTell(stream);
 							itemCount = 0;
 							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
@@ -968,8 +968,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
 								cursor += itemCount * sizeof(OptNode*);
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = INVENTOR_FIELD_NODE_LIST;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = INVENTOR_FIELD_NODE_LIST;
 							}
 							itemIndex = 0;
 							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
@@ -990,14 +990,14 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 									}
 								}
 							}
-							InventorAscii_SkipToCloseBracket(stream);
+							InventorAscii_SkipPastCloseBracket(stream);
 						} else {
 							totalSize += sizeof(OptNode*);
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
 								cursor += sizeof(OptNode*);
-								fieldRecord->value1 = 1;
-								fieldRecord->value0 = INVENTOR_FIELD_NODE_LIST;
+								fieldRecord->itemCount = 1;
+								fieldRecord->fieldType = INVENTOR_FIELD_NODE_LIST;
 								parsedSize = OptModel_ParseInventorAsciiNode(
 									stream, cursor, &((OptNode**)fieldRecord->data)[0]);
 								cursor += parsedSize;
@@ -1018,15 +1018,15 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							fieldRecord->data = cursor;
 							*(int*)cursor = integerValue;
 							cursor += sizeof(integerValue);
-							fieldRecord->value1 = 1;
-							fieldRecord->value0 = INVENTOR_FIELD_INTEGER;
+							fieldRecord->itemCount = 1;
+							fieldRecord->fieldType = INVENTOR_FIELD_INTEGER;
 						}
 						totalSize += sizeof(integerValue);
 						break;
 
 					case INVENTOR_FIELD_INTEGER_LIST:
 						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipToOpenBracket(stream);
+							InventorAscii_SkipPastOpenBracket(stream);
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
 							}
@@ -1046,10 +1046,10 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 								InventorAscii_SkipListSeparator(stream);
 							}
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = INVENTOR_FIELD_INTEGER_LIST;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = INVENTOR_FIELD_INTEGER_LIST;
 							}
-							InventorAscii_SkipToCloseBracket(stream);
+							InventorAscii_SkipPastCloseBracket(stream);
 						} else {
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
@@ -1066,8 +1066,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							itemCount = 1;
 							totalSize += sizeof(integerValue);
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = INVENTOR_FIELD_INTEGER_LIST;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = INVENTOR_FIELD_INTEGER_LIST;
 							}
 						}
 						break;
@@ -1080,15 +1080,15 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							fieldRecord->data = cursor;
 							*(float*)cursor = floatValue;
 							cursor += sizeof(floatValue);
-							fieldRecord->value1 = 0;
-							fieldRecord->value0 = INVENTOR_FIELD_INTEGER;
+							fieldRecord->itemCount = 0;
+							fieldRecord->fieldType = INVENTOR_FIELD_INTEGER;
 						}
 						totalSize += sizeof(floatValue);
 						break;
 
 					case INVENTOR_FIELD_FLOAT:
 						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipToOpenBracket(stream);
+							InventorAscii_SkipPastOpenBracket(stream);
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
 							}
@@ -1106,10 +1106,10 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 								InventorAscii_SkipListSeparator(stream);
 							}
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = INVENTOR_FIELD_FLOAT;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = INVENTOR_FIELD_FLOAT;
 							}
-							InventorAscii_SkipToCloseBracket(stream);
+							InventorAscii_SkipPastCloseBracket(stream);
 						} else {
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
@@ -1124,8 +1124,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							itemCount = 1;
 							totalSize += sizeof(floatValue);
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = INVENTOR_FIELD_FLOAT;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = INVENTOR_FIELD_FLOAT;
 							}
 						}
 						break;
@@ -1149,8 +1149,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 						if (cursor != NULL) {
 							fieldRecord->data = cursor;
 							*cursor++ = character;
-							fieldRecord->value1 = 1;
-							fieldRecord->value0 = INVENTOR_FIELD_BOOLEAN;
+							fieldRecord->itemCount = 1;
+							fieldRecord->fieldType = INVENTOR_FIELD_BOOLEAN;
 						}
 						break;
 
@@ -1161,8 +1161,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 						}
 						if (cursor != NULL) {
 							fieldRecord->data = cursor;
-							fieldRecord->value1 = 1;
-							fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+							fieldRecord->itemCount = 1;
+							fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							((float*)cursor)[0] = component0;
 							((float*)cursor)[1] = component1;
 							((float*)cursor)[2] = component2;
@@ -1174,7 +1174,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 					case INVENTOR_FIELD_VECTOR3_LIST:
 					case INVENTOR_FIELD_COLOR_LIST:
 						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipToOpenBracket(stream);
+							InventorAscii_SkipPastOpenBracket(stream);
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
 							}
@@ -1195,10 +1195,10 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 								InventorAscii_SkipListSeparator(stream);
 							}
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							}
-							InventorAscii_SkipToCloseBracket(stream);
+							InventorAscii_SkipPastCloseBracket(stream);
 						} else {
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
@@ -1215,8 +1215,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							itemCount = 1;
 							totalSize += 3 * sizeof(float);
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							}
 						}
 						break;
@@ -1224,8 +1224,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 					case INVENTOR_FIELD_MATRIX:
 						if (cursor != NULL) {
 							fieldRecord->data = cursor;
-							fieldRecord->value1 = 1;
-							fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+							fieldRecord->itemCount = 1;
+							fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 						}
 						totalSize += 16 * sizeof(float);
 						for (itemCount = 16; itemCount > 0; --itemCount) {
@@ -1241,7 +1241,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 
 					case INVENTOR_FIELD_MATRIX_LIST:
 						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipToOpenBracket(stream);
+							InventorAscii_SkipPastOpenBracket(stream);
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
 							}
@@ -1261,10 +1261,10 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 								InventorAscii_SkipListSeparator(stream);
 							}
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							}
-							InventorAscii_SkipToCloseBracket(stream);
+							InventorAscii_SkipPastCloseBracket(stream);
 						} else {
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
@@ -1281,8 +1281,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							}
 							itemCount = 1;
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							}
 						}
 						break;
@@ -1290,8 +1290,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 					case INVENTOR_FIELD_ROTATION:
 						if (cursor != NULL) {
 							fieldRecord->data = cursor;
-							fieldRecord->value1 = 1;
-							fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+							fieldRecord->itemCount = 1;
+							fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 						}
 						totalSize += 4 * sizeof(float);
 						for (itemCount = 4; itemCount > 0; --itemCount) {
@@ -1307,7 +1307,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 
 					case INVENTOR_FIELD_ROTATION_LIST:
 						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipToOpenBracket(stream);
+							InventorAscii_SkipPastOpenBracket(stream);
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
 							}
@@ -1327,10 +1327,10 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 								InventorAscii_SkipListSeparator(stream);
 							}
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							}
-							InventorAscii_SkipToCloseBracket(stream);
+							InventorAscii_SkipPastCloseBracket(stream);
 						} else {
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
@@ -1347,8 +1347,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							}
 							itemCount = 1;
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							}
 						}
 						break;
@@ -1359,8 +1359,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 						}
 						if (cursor != NULL) {
 							fieldRecord->data = cursor;
-							fieldRecord->value1 = 1;
-							fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+							fieldRecord->itemCount = 1;
+							fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							((float*)cursor)[0] = component0;
 							((float*)cursor)[1] = component1;
 							cursor += 2 * sizeof(float);
@@ -1370,7 +1370,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 
 					case INVENTOR_FIELD_VECTOR2_LIST:
 						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipToOpenBracket(stream);
+							InventorAscii_SkipPastOpenBracket(stream);
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
 							}
@@ -1389,10 +1389,10 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 								InventorAscii_SkipListSeparator(stream);
 							}
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							}
-							InventorAscii_SkipToCloseBracket(stream);
+							InventorAscii_SkipPastCloseBracket(stream);
 						} else {
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
@@ -1408,8 +1408,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							itemCount = 1;
 							totalSize += 2 * sizeof(float);
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							}
 						}
 						break;
@@ -1444,8 +1444,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							fieldRecord->data = cursor;
 							*(int*)cursor = integerValue;
 							cursor += sizeof(integerValue);
-							fieldRecord->value1 = 1;
-							fieldRecord->value0 = INVENTOR_FIELD_ENUM;
+							fieldRecord->itemCount = 1;
+							fieldRecord->fieldType = INVENTOR_FIELD_ENUM;
 						}
 						totalSize += sizeof(integerValue);
 						break;
@@ -1457,7 +1457,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 						const int* enumValues;
 
 						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipToOpenBracket(stream);
+							InventorAscii_SkipPastOpenBracket(stream);
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
 							}
@@ -1491,10 +1491,10 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 								InventorAscii_SkipListSeparator(stream);
 							}
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							}
-							InventorAscii_SkipToCloseBracket(stream);
+							InventorAscii_SkipPastCloseBracket(stream);
 						} else {
 							if (cursor != NULL) {
 								fieldRecord->data = cursor;
@@ -1525,8 +1525,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							itemCount = 1;
 							totalSize += sizeof(integerValue);
 							if (cursor != NULL) {
-								fieldRecord->value1 = itemCount;
-								fieldRecord->value0 = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								fieldRecord->itemCount = itemCount;
+								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
 							}
 						}
 						break;
@@ -1590,15 +1590,15 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 				node->pChildren = NULL;
 				node->childCount = 0;
 			}
-			InventorAscii_SkipToCloseBrace(stream);
+			InventorAscii_SkipPastCloseBrace(stream);
 			return totalSize;
 		} else {
 			if (InventorAscii_PeekNextIsQuote(stream) != 0) {
-				InventorAscii_SkipToQuote(stream);
+				InventorAscii_SkipPastQuote(stream);
 				if (cursor != NULL) {
 					fieldRecords[0].data = cursor;
-					fieldRecords[0].value1 = 1;
-					fieldRecords[0].value0 = INVENTOR_FIELD_STRING;
+					fieldRecords[0].itemCount = 1;
+					fieldRecords[0].fieldType = INVENTOR_FIELD_STRING;
 				}
 				while (1) {
 					character = (char)File_Getc(stream);
@@ -1630,8 +1630,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 					strcpy(cursor, g_optModelLoadScratchBuffer);
 					fieldRecords[0].data = cursor;
 					cursor += parsedSize;
-					fieldRecords[0].value1 = 1;
-					fieldRecords[0].value0 = INVENTOR_FIELD_STRING;
+					fieldRecords[0].itemCount = 1;
+					fieldRecords[0].fieldType = INVENTOR_FIELD_STRING;
 				}
 				totalSize += parsedSize;
 			}
@@ -1645,8 +1645,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 
 	printf("Node Type Not Supported, ignored\n");
 	if (InventorAscii_PeekNextIsOpenBrace(stream) != 0) {
-		InventorAscii_SkipToOpenBrace(stream);
-		InventorAscii_SkipToCloseBrace(stream);
+		InventorAscii_SkipPastOpenBrace(stream);
+		InventorAscii_SkipPastCloseBrace(stream);
 	}
 	return totalSize;
 }
@@ -1739,10 +1739,10 @@ void OptModel_RelocateNodePointersRecursive(OptNode* node, XvtOptValue relocatio
 	if (node->pName != NULL)
 		node->pName += relocationDelta;
 	if (node->payload != NULL) {
-		OptLegacyParamRecord* records;
+		InventorFieldRecord* records;
 
 		node->payload = (uint8_t*)node->payload + relocationDelta;
-		records = (OptLegacyParamRecord*)node->payload;
+		records = (InventorFieldRecord*)node->payload;
 		for (paramIndex = 0; paramIndex < node->payloadCount; ++paramIndex) {
 			if (records->data != NULL)
 				records->data = (uint8_t*)records->data + relocationDelta;
@@ -1792,33 +1792,33 @@ void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject* model) {
 }
 
 // FUNCTION: XVT 0x472050
-void OptModel_AdjustOptimizedNodePointers(OptNode* node, XvtOptValue base) {
+void OptModel_AdjustOptimizedNodePointers(OptNode* node, XvtOptValue relocationDelta) {
 #ifdef XVT_MODERN
-	XvtOpt_RelocateNode(node, base);
+	XvtOpt_RelocateNode(node, relocationDelta);
 #else
 
 	int childIndex;
 
 	if (node->pName != NULL)
-		node->pName += base;
+		node->pName += relocationDelta;
 	if (node->payload != NULL)
-		node->payload = (uint8_t*)node->payload + base;
+		node->payload = (uint8_t*)node->payload + relocationDelta;
 	if (node->nodeType == OPT_TEXTURE) {
 		OptTextureData* textureData;
 
 		textureData = (OptTextureData*)node->payload;
-		if (textureData->paletteType == 0)
-			textureData->palette = (uint16_t*)((uint8_t*)textureData->palette + base);
+		if (textureData->inlinePaletteCount == 0)
+			textureData->palette = (uint16_t*)((uint8_t*)textureData->palette + relocationDelta);
 	}
 	if (node->pChildren != NULL) {
-		node->pChildren = (OptNode**)((uint8_t*)node->pChildren + base);
+		node->pChildren = (OptNode**)((uint8_t*)node->pChildren + relocationDelta);
 		for (childIndex = 0; childIndex < node->childCount; ++childIndex) {
 			OptNode** childSlot;
 
 			childSlot = &node->pChildren[childIndex];
 			if (*childSlot != NULL) {
-				*childSlot = (OptNode*)((uint8_t*)*childSlot + base);
-				OptModel_AdjustOptimizedNodePointers(node->pChildren[childIndex], base);
+				*childSlot = (OptNode*)((uint8_t*)*childSlot + relocationDelta);
+				OptModel_AdjustOptimizedNodePointers(node->pChildren[childIndex], relocationDelta);
 			}
 		}
 	}
@@ -1856,7 +1856,7 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshFlags = NULL;
+	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex)
 		OptModel_MeasureNodeAndRaiseCapacities(model->rootNodes[rootIndex], &meshState);
@@ -1959,7 +1959,7 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshFlags = NULL;
+	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 	serializedSize = sizeof(*model) + sizeof(*model->rootNodes) * model->rootNodeCount;
 	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex)
@@ -2023,7 +2023,7 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize) {
 	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshFlags = NULL;
+	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 	destinationModel->rootNodeCount = 0;
 	rootIndex = 0;
@@ -2068,7 +2068,7 @@ void* OptModel_FindSharedTextureDataInNodeBeforeTarget(const void* textureData, 
 		if (nodeTexture->textureSize == textureByteCount)
 			textureByteCount = nodeTexture->dataSize;
 		nodeTextureData += textureByteCount;
-		if (nodeTexture->paletteType == 0) {
+		if (nodeTexture->inlinePaletteCount == 0) {
 			if (nodeTexture->palette == (uint16_t*)nodeTextureData) {
 				textureData = (const uint8_t*)textureData + 4096;
 				nodeTextureData += 4096;
@@ -2159,9 +2159,9 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 
 	switch ((*sourceNode)->nodeType) {
 		case OPT_FACEDATA:
-		case OPT_FACEDATA_15:
-		case OPT_FACEDATA_16:
-		case OPT_FACEDATA_17:
+		case OPT_FACEDATA_QUAD_MESH:
+		case OPT_FACEDATA_FACE_SET:
+		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
 			if (*(int*)(*sourceNode)->payload < 0) {
 				emitNode = 0;
 				break;
@@ -2274,9 +2274,9 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				g_optConvertSourceTextureNode = destinationNode;
 			break;
 
-		case OPT_TYPE_9:
+		case OPT_MATERIAL:
 			payloadSize = 56 * (*sourceNode)->payloadCount;
-			g_curMeshFlags = (*sourceNode)->payload;
+			g_curMeshMaterials = (*sourceNode)->payload;
 			break;
 
 		case OPT_VERTNORMALS:
@@ -2296,7 +2296,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				payloadSize = sizeof(OptTexCoord) * (*sourceNode)->payloadCount;
 			break;
 
-		case OPT_TYPE_19:
+		case OPT_BASE_COLOR:
 			payloadSize = 12;
 			break;
 
@@ -2312,8 +2312,8 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				payloadSize = sizeof(*texture) + texture->dataSize;
 			else
 				payloadSize = sizeof(*texture) + textureDataSize;
-			if (texture->paletteType != 0) {
-				payloadSize += 768 * texture->paletteType;
+			if (texture->inlinePaletteCount != 0) {
+				payloadSize += 768 * texture->inlinePaletteCount;
 			} else {
 				embeddedPalette = (uint16_t*)((uint8_t*)texture + sizeof(*texture));
 				if (textureDataSize == texture->textureSize)
@@ -2541,7 +2541,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			int textureDataSize;
 
 			sourceTexture = (OptTextureData*)(*sourceNode)->payload;
-			if (sourceTexture->paletteType == 0) {
+			if (sourceTexture->inlinePaletteCount == 0) {
 				embeddedPalette = (uint16_t*)((uint8_t*)sourceTexture + sizeof(*sourceTexture));
 				textureDataSize = sourceTexture->width * sourceTexture->height;
 				if (sourceTexture->textureSize == textureDataSize)
@@ -2874,9 +2874,9 @@ void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNod
 	destinationNode = dstNormalNode;
 	switch (node->nodeType) {
 		case OPT_FACEDATA:
-		case OPT_FACEDATA_15:
-		case OPT_FACEDATA_16:
-		case OPT_FACEDATA_17:
+		case OPT_FACEDATA_QUAD_MESH:
+		case OPT_FACEDATA_FACE_SET:
+		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
 			if (meshState->pVertNormals == NULL) {
 				OptLegacyFacePayload* faceData;
 
@@ -3105,9 +3105,9 @@ void OptModel_AppendConvertedFacesForNode(OptNode* dstFaceNode, OptNode* targetF
 
 	switch (node->nodeType) {
 		case OPT_FACEDATA:
-		case OPT_FACEDATA_15:
-		case OPT_FACEDATA_16:
-		case OPT_FACEDATA_17:
+		case OPT_FACEDATA_QUAD_MESH:
+		case OPT_FACEDATA_FACE_SET:
+		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
 			if (g_optConvertTargetFaceFound != 0 &&
 				g_optConvertFaceTextureNode == g_optConvertSourceTextureNode && *(int*)node->payload > 0) {
 				destinationData = dstFaceNode->payload;
@@ -3291,7 +3291,7 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle) {
 	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshFlags = NULL;
+	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 
 	serializedSize = sizeof(OptNode*) * (unsigned int)sourceModel->rootNodeCount + sizeof(*runtimeModel);
@@ -3354,8 +3354,8 @@ void OptModel_FixupRuntimeTexturePointers(OptNode* node, OptimizedPolyObject* ds
 
 		if (currentNode->nodeType == OPT_TEXTURE) {
 			textureData = (OptTextureData*)currentNode->payload;
-			if (textureData->paletteType != 0) {
-				textureData->paletteType = 0;
+			if (textureData->inlinePaletteCount != 0) {
+				textureData->inlinePaletteCount = 0;
 				palette = (uint8_t*)textureData + sizeof(*textureData);
 				textureDataSize = textureData->width * textureData->height;
 				if (textureData->textureSize == textureDataSize)
@@ -3434,7 +3434,7 @@ OptNode* OptModel_FindCorrespondingTextureNode(OptNode* srcNode, OptNode* dstNod
 		if (textureData->textureSize == textureDataSize)
 			textureDataSize = textureData->dataSize;
 		embeddedPalette = (uint16_t*)((uint8_t*)embeddedPalette + textureDataSize);
-		if ((textureData->palette == embeddedPalette || textureData->paletteType != 0) &&
+		if ((textureData->palette == embeddedPalette || textureData->inlinePaletteCount != 0) &&
 			sourcePalette == embeddedPalette)
 			return destination;
 	}
@@ -3505,7 +3505,7 @@ void OptModel_SaveHandleToFile(const char* filename, uint16_t handle) {
 		g_curMeshTexCoords = NULL;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshFlags = NULL;
+		g_curMeshMaterials = NULL;
 		g_curVertexCount = 0;
 		serializedSize = 4 * model->rootNodeCount + 14;
 		if (model->rootNodeCount > 0) {
@@ -3555,9 +3555,9 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* pa
 	if (paramData != NULL) {
 		switch (nodeType) {
 			case OPT_FACEDATA:
-			case OPT_FACEDATA_15:
-			case OPT_FACEDATA_16:
-			case OPT_FACEDATA_17:
+			case OPT_FACEDATA_QUAD_MESH:
+			case OPT_FACEDATA_FACE_SET:
+			case OPT_FACEDATA_TRIANGLE_STRIP_SET:
 				if (g_sceneEdgeFlagsCapacity < paramData[0])
 					g_sceneEdgeFlagsCapacity = paramData[0];
 				serializedSize += 4;
@@ -3594,12 +3594,12 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* pa
 				serializedSize += (unsigned int)strlen((const char*)paramData) + 1;
 				break;
 
-			case OPT_TYPE_9: {
+			case OPT_MATERIAL: {
 				int recordCount;
 				int scaledRecordCount;
 
 				recordCount = node->payloadCount;
-				g_curMeshFlags = node->payload;
+				g_curMeshMaterials = node->payload;
 				scaledRecordCount = recordCount << 3;
 				scaledRecordCount -= recordCount;
 				serializedSize += scaledRecordCount << 3;
@@ -3620,7 +3620,7 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* pa
 				serializedSize += 8 * node->payloadCount;
 				break;
 
-			case OPT_TYPE_19:
+			case OPT_BASE_COLOR:
 				serializedSize += 12;
 				break;
 
@@ -3636,8 +3636,8 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* pa
 					serializedSize += textureData->dataSize;
 				else
 					serializedSize += textureByteCount;
-				if (textureData->paletteType != 0) {
-					serializedSize += 768 * textureData->paletteType;
+				if (textureData->inlinePaletteCount != 0) {
+					serializedSize += 768 * textureData->inlinePaletteCount;
 				} else {
 					embeddedPalette = (uint8_t*)(textureData + 1);
 					if (textureByteCount == textureData->textureSize)
@@ -3681,8 +3681,8 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* pa
 			serializedSize += textureData->dataSize;
 		else
 			serializedSize += textureByteCount;
-		if (textureData->paletteType != 0) {
-			serializedSize += 768 * textureData->paletteType;
+		if (textureData->inlinePaletteCount != 0) {
+			serializedSize += 768 * textureData->inlinePaletteCount;
 		} else {
 			embeddedPalette = (uint8_t*)(textureData + 1);
 			if (textureByteCount == textureData->textureSize)
@@ -3700,7 +3700,7 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* pa
 		g_curMeshTexCoords = NULL;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshFlags = NULL;
+		g_curMeshMaterials = NULL;
 		childIndex = 0;
 
 		serializedSize += sizeof(OptNode*) * node->childCount;
@@ -3805,9 +3805,9 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 	sourcePayload = srcNode->payload;
 	switch (srcNode->nodeType) {
 		case OPT_FACEDATA:
-		case OPT_FACEDATA_15:
-		case OPT_FACEDATA_16:
-		case OPT_FACEDATA_17:
+		case OPT_FACEDATA_QUAD_MESH:
+		case OPT_FACEDATA_FACE_SET:
+		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
 			if (g_sceneEdgeFlagsCapacity < *(const int*)sourcePayload)
 				g_sceneEdgeFlagsCapacity = *(const int*)sourcePayload;
 			payloadSize =
@@ -3878,14 +3878,14 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 			}
 			totalSize += payloadSize;
 			break;
-		case OPT_TYPE_9:
+		case OPT_MATERIAL:
 			payloadSize = 56u * (unsigned int)srcNode->payloadCount;
 			if (dst != NULL) {
 				runtimeNode->payload = dst;
 				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
-			g_curMeshFlags = sourcePayload;
+			g_curMeshMaterials = sourcePayload;
 			totalSize += payloadSize;
 			break;
 		case OPT_VERTNORMALS:
@@ -3908,7 +3908,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 			}
 			totalSize += payloadSize;
 			break;
-		case OPT_TYPE_19:
+		case OPT_BASE_COLOR:
 			payloadSize = 12;
 			if (dst != NULL) {
 				runtimeNode->payload = dst;
@@ -3995,7 +3995,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 					memcpy(dst, srcNode->payload, texturePayloadSize);
 					dst += texturePayloadSize;
 					sourceTexels = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
-					if (sourceTexture->paletteType == 0)
+					if (sourceTexture->inlinePaletteCount == 0)
 						sourcePalette = (const uint8_t*)sourceTexture->palette;
 					else
 						sourcePalette = sourceTexels + sourceTexture->height * sourceTexture->width;
@@ -4074,9 +4074,10 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 			}
 
 			sourceTexture = (const OptTextureData*)srcNode->payload;
-			if (sourceTexture->paletteType != 0) {
-				texturePayloadSize += (unsigned int)(sourceTexture->paletteType * g_flightBytesPerPixel) *
-									  OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
+			if (sourceTexture->inlinePaletteCount != 0) {
+				texturePayloadSize +=
+					(unsigned int)(sourceTexture->inlinePaletteCount * g_flightBytesPerPixel) *
+					OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
 				if (dst != NULL) {
 					sourcePalette = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
 					sourcePaletteOffset = (unsigned int)(sourceTexture->height * sourceTexture->width);
@@ -4084,8 +4085,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 						sourcePaletteOffset = (unsigned int)sourceTexture->dataSize;
 					sourcePalette += sourcePaletteOffset;
 					if (g_flightBytesPerPixel == 2)
-						sourcePalette +=
-							(unsigned int)sourceTexture->paletteType * OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
+						sourcePalette += (unsigned int)sourceTexture->inlinePaletteCount *
+										 OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
 					if (g_flightBytesPerPixel == 1) {
 						sourcePalette16 = (const uint16_t*)(sourcePalette + OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 						for (paletteIndex = 0; paletteIndex < OPT_TEXTURE_PALETTE_ENTRY_COUNT;
@@ -4102,7 +4103,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 							DebugPrintf("%s:", srcNode->pName);
 						OptModel_PrepareTexturePalette((uint16_t*)dst, OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 					}
-					dst += (unsigned int)(sourceTexture->paletteType * g_flightBytesPerPixel) *
+					dst += (unsigned int)(sourceTexture->inlinePaletteCount * g_flightBytesPerPixel) *
 						   OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
 				}
 			} else {
@@ -4190,7 +4191,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 		g_curMeshTexCoords = NULL;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshFlags = NULL;
+		g_curMeshMaterials = NULL;
 		for (childIndex = 0; childIndex < srcNode->childCount; ++childIndex) {
 			if (dst != NULL)
 				((OptNode**)runtimeNode->pChildren)[childIndex] = (OptNode*)dst;
@@ -4252,7 +4253,7 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle) {
 	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshFlags = NULL;
+	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 	g_optImportScratchVectorCount = 1;
 	allocatedSize = sizeof(*sourceModel) + sizeof(*sourceModel->rootNodes) * sourceModel->rootNodeCount;
@@ -4300,7 +4301,7 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle) {
 	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshFlags = NULL;
+	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount; ++rootIndex) {
 		size_t nodeSize;
@@ -4332,7 +4333,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 													 const OptNode* sourceNode, void* conversionState,
 													 uint8_t* destBuffer) {
 	OptNode* packedNode;
-	OptLegacyParamRecord* params;
+	InventorFieldRecord* params;
 	OptNodeType nodeType;
 	uint8_t* dest;
 	int childIndex;
@@ -4371,11 +4372,11 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 
 				faceNode->faceCount = 0;
 				dest += sizeof(faceData->edgeCount);
-				if (params[3].value1 == params[0].value1)
+				if (params[3].itemCount == params[0].itemCount)
 					texCoordIndices = params[3].data;
-				if (params[2].value1 == params[0].value1)
+				if (params[2].itemCount == params[0].itemCount)
 					normalIndices = params[2].data;
-				while (dataIndex < params[0].value1) {
+				while (dataIndex < params[0].itemCount) {
 					int polygonStart = dataIndex;
 					int scanIndex = dataIndex + 1;
 					while (1) {
@@ -4516,7 +4517,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 			}
 
 			case OPT_MESHVERTS:
-				packedNode->payloadCount = params[0].value1;
+				packedNode->payloadCount = params[0].itemCount;
 				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)packedNode->payloadCount);
 				g_curMeshVertices = dest;
 				g_curVertexCount = packedNode->payloadCount;
@@ -4551,29 +4552,29 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 				break;
 			}
 
-			case OPT_TYPE_9: {
-				int maxRecordCount = params[0].value1;
+			case OPT_MATERIAL: {
+				int maxRecordCount = params[0].itemCount;
 				const float* sourceValues;
 				float* destValues;
 				int fillCount;
-				if (maxRecordCount < params[1].value1)
-					maxRecordCount = params[1].value1;
-				if (maxRecordCount < params[2].value1)
-					maxRecordCount = params[2].value1;
-				if (maxRecordCount < params[3].value1)
-					maxRecordCount = params[3].value1;
-				if (maxRecordCount < params[4].value1)
-					maxRecordCount = params[4].value1;
-				if (maxRecordCount < params[5].value1)
-					maxRecordCount = params[5].value1;
+				if (maxRecordCount < params[1].itemCount)
+					maxRecordCount = params[1].itemCount;
+				if (maxRecordCount < params[2].itemCount)
+					maxRecordCount = params[2].itemCount;
+				if (maxRecordCount < params[3].itemCount)
+					maxRecordCount = params[3].itemCount;
+				if (maxRecordCount < params[4].itemCount)
+					maxRecordCount = params[4].itemCount;
+				if (maxRecordCount < params[5].itemCount)
+					maxRecordCount = params[5].itemCount;
 				packedNode->payloadCount = maxRecordCount;
 
-				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)params[0].value1);
-				destValues = (float*)dest + 3 * params[0].value1;
+				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)params[0].itemCount);
+				destValues = (float*)dest + 3 * params[0].itemCount;
 				dest += sizeof(OptVector) * (size_t)maxRecordCount;
-				if (params[0].value1 < maxRecordCount) {
-					sourceValues = (const float*)params[0].data + 3 * params[0].value1 - 3;
-					fillCount = maxRecordCount - params[0].value1;
+				if (params[0].itemCount < maxRecordCount) {
+					sourceValues = (const float*)params[0].data + 3 * params[0].itemCount - 3;
+					fillCount = maxRecordCount - params[0].itemCount;
 					do {
 						destValues[0] = sourceValues[0];
 						destValues[1] = sourceValues[1];
@@ -4582,12 +4583,12 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 					} while (--fillCount != 0);
 				}
 				if (params[1].data != NULL) {
-					memcpy(dest, params[1].data, sizeof(OptVector) * (size_t)params[1].value1);
-					destValues = (float*)dest + 3 * params[1].value1;
+					memcpy(dest, params[1].data, sizeof(OptVector) * (size_t)params[1].itemCount);
+					destValues = (float*)dest + 3 * params[1].itemCount;
 					dest += sizeof(OptVector) * (size_t)maxRecordCount;
-					if (params[1].value1 < maxRecordCount) {
-						sourceValues = (const float*)params[1].data + 3 * params[1].value1 - 3;
-						fillCount = maxRecordCount - params[1].value1;
+					if (params[1].itemCount < maxRecordCount) {
+						sourceValues = (const float*)params[1].data + 3 * params[1].itemCount - 3;
+						fillCount = maxRecordCount - params[1].itemCount;
 						do {
 							destValues[0] = sourceValues[0];
 							destValues[1] = sourceValues[1];
@@ -4596,12 +4597,12 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 						} while (--fillCount != 0);
 					}
 					if (params[2].data != NULL) {
-						memcpy(dest, params[2].data, sizeof(OptVector) * (size_t)params[2].value1);
-						destValues = (float*)dest + 3 * params[2].value1;
+						memcpy(dest, params[2].data, sizeof(OptVector) * (size_t)params[2].itemCount);
+						destValues = (float*)dest + 3 * params[2].itemCount;
 						dest += sizeof(OptVector) * (size_t)maxRecordCount;
-						if (params[2].value1 < maxRecordCount) {
-							sourceValues = (const float*)params[2].data + 3 * params[2].value1 - 3;
-							fillCount = maxRecordCount - params[2].value1;
+						if (params[2].itemCount < maxRecordCount) {
+							sourceValues = (const float*)params[2].data + 3 * params[2].itemCount - 3;
+							fillCount = maxRecordCount - params[2].itemCount;
 							do {
 								destValues[0] = sourceValues[0];
 								destValues[1] = sourceValues[1];
@@ -4610,12 +4611,12 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 							} while (--fillCount != 0);
 						}
 						if (params[3].data != NULL) {
-							memcpy(dest, params[3].data, sizeof(OptVector) * (size_t)params[3].value1);
-							destValues = (float*)dest + 3 * params[3].value1;
+							memcpy(dest, params[3].data, sizeof(OptVector) * (size_t)params[3].itemCount);
+							destValues = (float*)dest + 3 * params[3].itemCount;
 							dest += sizeof(OptVector) * (size_t)maxRecordCount;
-							if (params[3].value1 < maxRecordCount) {
-								sourceValues = (const float*)params[3].data + 3 * params[3].value1 - 3;
-								fillCount = maxRecordCount - params[3].value1;
+							if (params[3].itemCount < maxRecordCount) {
+								sourceValues = (const float*)params[3].data + 3 * params[3].itemCount - 3;
+								fillCount = maxRecordCount - params[3].itemCount;
 								do {
 									destValues[0] = sourceValues[0];
 									destValues[1] = sourceValues[1];
@@ -4624,23 +4625,23 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 								} while (--fillCount != 0);
 							}
 							if (params[4].data != NULL) {
-								memcpy(dest, params[4].data, sizeof(float) * (size_t)params[4].value1);
-								destValues = (float*)dest + params[4].value1;
+								memcpy(dest, params[4].data, sizeof(float) * (size_t)params[4].itemCount);
+								destValues = (float*)dest + params[4].itemCount;
 								dest += sizeof(float) * (size_t)maxRecordCount;
-								if (params[4].value1 < maxRecordCount) {
-									sourceValues = (const float*)params[4].data + params[4].value1 - 1;
-									fillCount = maxRecordCount - params[4].value1;
+								if (params[4].itemCount < maxRecordCount) {
+									sourceValues = (const float*)params[4].data + params[4].itemCount - 1;
+									fillCount = maxRecordCount - params[4].itemCount;
 									do {
 										*destValues++ = *sourceValues;
 									} while (--fillCount != 0);
 								}
 								if (params[5].data != NULL) {
-									memcpy(dest, params[5].data, sizeof(float) * (size_t)params[5].value1);
-									destValues = (float*)dest + params[5].value1;
+									memcpy(dest, params[5].data, sizeof(float) * (size_t)params[5].itemCount);
+									destValues = (float*)dest + params[5].itemCount;
 									dest += sizeof(float) * (size_t)maxRecordCount;
-									if (params[5].value1 < maxRecordCount) {
-										sourceValues = (const float*)params[5].data + params[5].value1 - 1;
-										fillCount = maxRecordCount - params[5].value1;
+									if (params[5].itemCount < maxRecordCount) {
+										sourceValues = (const float*)params[5].data + params[5].itemCount - 1;
+										fillCount = maxRecordCount - params[5].itemCount;
 										do {
 											*destValues++ = *sourceValues;
 										} while (--fillCount != 0);
@@ -4653,13 +4654,13 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 				break;
 			}
 
-			case OPT_TYPE_10:
-			case OPT_TYPE_14:
+			case OPT_MATERIAL_BINDING:
+			case OPT_TEXCOORD_BINDING:
 				packedNode->payloadCount = *(const int*)params[0].data;
 				break;
 
 			case OPT_VERTNORMALS:
-				packedNode->payloadCount = params[0].value1;
+				packedNode->payloadCount = params[0].itemCount;
 				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)packedNode->payloadCount);
 				g_curVertNormals = (OptVector*)dest;
 				((SceneMesh*)conversionState)->pVertNormals = (OptVector*)dest;
@@ -4667,13 +4668,13 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 				break;
 
 			case OPT_TEXCOORDS:
-				packedNode->payloadCount = params[0].value1;
+				packedNode->payloadCount = params[0].itemCount;
 				memcpy(dest, params[0].data, sizeof(OptTexCoord) * (size_t)packedNode->payloadCount);
 				g_curMeshTexCoords = dest;
 				dest += sizeof(OptTexCoord) * (size_t)packedNode->payloadCount;
 				break;
 
-			case OPT_FACEDATA_15: {
+			case OPT_FACEDATA_QUAD_MESH: {
 				OptPackedFaceNode* faceNode = (OptPackedFaceNode*)packedNode;
 				OptPackedFaceData* faceData = (OptPackedFaceData*)dest;
 				const int* widthData = params[1].data;
@@ -4731,7 +4732,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 				break;
 			}
 
-			case OPT_FACEDATA_16: {
+			case OPT_FACEDATA_FACE_SET: {
 				OptPackedFaceNode* faceNode = (OptPackedFaceNode*)packedNode;
 				OptPackedFaceData* faceData = (OptPackedFaceData*)dest;
 				const int* polygonVertexCounts = params[0].data;
@@ -4740,7 +4741,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 				int polygonIndex;
 				dest += sizeof(faceData->edgeCount);
 				faceNode->faceCount = 0;
-				for (polygonIndex = 0; polygonIndex < params[0].value1; ++polygonIndex) {
+				for (polygonIndex = 0; polygonIndex < params[0].itemCount; ++polygonIndex) {
 					int polygonVertexCount = polygonVertexCounts[polygonIndex];
 					if (polygonVertexCount >= 3) {
 						int polygonStart = vertexCursor;
@@ -4790,7 +4791,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 				break;
 			}
 
-			case OPT_FACEDATA_17: {
+			case OPT_FACEDATA_TRIANGLE_STRIP_SET: {
 				OptPackedFaceNode* faceNode = (OptPackedFaceNode*)packedNode;
 				OptPackedFaceData* faceData = (OptPackedFaceData*)dest;
 				const int* stripVertexCounts = params[1].data;
@@ -4800,7 +4801,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 				dest += sizeof(faceData->edgeCount);
 				if (stripVertexCounts != NULL) {
 					faceNode->faceCount = 0;
-					for (stripIndex = 0; stripIndex < params[1].value1; ++stripIndex) {
+					for (stripIndex = 0; stripIndex < params[1].itemCount; ++stripIndex) {
 						int stripVertexCount = stripVertexCounts[stripIndex];
 						int vertexIndex;
 						for (vertexIndex = 2; vertexIndex < stripVertexCount; ++vertexIndex) {
@@ -4856,7 +4857,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 				const float* sourceValues = params[0].data;
 				int sourceIndex;
 				packedNode->payloadCount = 0;
-				for (sourceIndex = 0; sourceIndex < params[0].value1; ++sourceIndex) {
+				for (sourceIndex = 0; sourceIndex < params[0].itemCount; ++sourceIndex) {
 					if (mutableSourceNode->pChildren[sourceIndex] != NULL &&
 						(sourceIndex == 0 || sourceValues[sourceIndex - 1] != sourceValues[sourceIndex])) {
 						*(float*)dest = sourceValues[sourceIndex];
@@ -4914,7 +4915,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 		childState = *(SceneMesh*)conversionState;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshFlags = NULL;
+		g_curMeshMaterials = NULL;
 		packedNode->childCount = sourceNode->childCount;
 		packedNode->pChildren = (OptNode**)dest;
 		dest += sizeof(*packedNode->pChildren) * (size_t)packedNode->childCount;
@@ -4931,7 +4932,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sourceModel,
 												 const OptNode* sourceNode, void* conversionState) {
 	size_t packedSize;
-	OptLegacyParamRecord* params;
+	InventorFieldRecord* params;
 	OptNodeType nodeType;
 	int* data;
 	int* scanData;
@@ -4964,7 +4965,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 			case OPT_FACEDATA:
 				faceCount = 0;
 				dataIndex = 0;
-				recordCount = params->value1;
+				recordCount = params->itemCount;
 				if (recordCount > 0) {
 					do {
 						scanData = &data[dataIndex + 1];
@@ -4996,7 +4997,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 				break;
 
 			case OPT_MESHVERTS:
-				g_curVertexCount = params->value1;
+				g_curVertexCount = params->itemCount;
 				packedSize += 12 * g_curVertexCount;
 				break;
 
@@ -5016,24 +5017,24 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 				packedSize += strlen((const char*)params->data) + 1;
 				break;
 
-			case OPT_TYPE_9:
-				maxRecordCount = params->value1;
-				marker = params[1].value1;
+			case OPT_MATERIAL:
+				maxRecordCount = params->itemCount;
+				marker = params[1].itemCount;
 				++params;
 				if (marker > maxRecordCount) {
 					maxRecordCount = marker;
 				}
-				marker = params[1].value1;
+				marker = params[1].itemCount;
 				++params;
 				if (marker > maxRecordCount) {
 					maxRecordCount = marker;
 				}
-				marker = params[1].value1;
+				marker = params[1].itemCount;
 				++params;
 				if (marker > maxRecordCount) {
 					maxRecordCount = marker;
 				}
-				marker = params[1].value1;
+				marker = params[1].itemCount;
 				if (marker > maxRecordCount) {
 					maxRecordCount = marker;
 				}
@@ -5042,17 +5043,17 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 				break;
 
 			case OPT_VERTNORMALS:
-				recordCount = 3 * params->value1;
+				recordCount = 3 * params->itemCount;
 				g_curVertNormals = (OptVector*)sourceNode->payload;
 				packedSize += 4 * recordCount;
 				((SceneMesh*)conversionState)->pVertNormals = (OptVector*)params;
 				break;
 
 			case OPT_TEXCOORDS:
-				packedSize += 8 * params->value1;
+				packedSize += 8 * params->itemCount;
 				break;
 
-			case OPT_FACEDATA_15:
+			case OPT_FACEDATA_QUAD_MESH:
 				data = params[1].data;
 				++params;
 				if (data != NULL) {
@@ -5068,10 +5069,10 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 				}
 				break;
 
-			case OPT_FACEDATA_16:
+			case OPT_FACEDATA_FACE_SET:
 				dataIndex = 0;
 				faceCount = 0;
-				recordCount = params->value1;
+				recordCount = params->itemCount;
 				if (recordCount > 0) {
 					do {
 						polygonVertexCount = *data;
@@ -5099,12 +5100,12 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 				packedSize += 12 * g_curVertexCount;
 				break;
 
-			case OPT_FACEDATA_17:
+			case OPT_FACEDATA_TRIANGLE_STRIP_SET:
 				data = params[1].data;
 				++params;
 				if (data != NULL) {
 					faceCount = 0;
-					recordCount = params->value1;
+					recordCount = params->itemCount;
 					if (recordCount > 0) {
 						do {
 							faceCount += *data - 2;
@@ -5124,7 +5125,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 				break;
 
 			case OPT_FACEGROUP:
-				packedSize += 4 * params->value1;
+				packedSize += 4 * params->itemCount;
 				break;
 
 			case OPT_HARDPOINT:
@@ -5150,7 +5151,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 		childIndex = 0;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshFlags = NULL;
+		g_curMeshMaterials = NULL;
 
 		packedSize += 4 * sourceNode->childCount;
 

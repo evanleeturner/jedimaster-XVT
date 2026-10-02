@@ -107,7 +107,7 @@ void XvtFlightNetwork_ClearCookies(void);
 /* Marks the network session's flight ready and starts the roster exchange: the host waits for
  * players startup-ready packets (none when 0) and then sends the roster; a client waits for it,
  * or returns 1 at once for an in-progress launch. Returns -1 otherwise. */
-int XvtFlightNetwork_BeginRosterExchange(int players, int in_progress);
+int XvtFlightNetwork_BeginRosterExchange(int player_count, int in_progress);
 /* Advances the roster exchange. Returns -1 while pending, 1 when done (at once for a host
  * expecting at most one player), and 0 after 60 seconds without a packet. */
 int XvtFlightNetwork_ExchangeRoster(void);

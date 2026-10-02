@@ -226,13 +226,13 @@ static void Rows(unsigned count) {
 
 static void CheckRowLimit(void) {
 	Start();
-	Rows(XVT_HUD_VISIBLE_ROWS_PER_PAGE);
+	Rows(XVT_HUD_ROWS_PER_SECTION);
 	const XvtCockpitState* state = Exported(PAGE, -1);
 	XVT_ASSERT_INT_EQ(state->valid, 1);
-	XVT_ASSERT_INT_EQ(state->pages[PAGE].row_count, XVT_HUD_VISIBLE_ROWS_PER_PAGE);
+	XVT_ASSERT_INT_EQ(state->pages[PAGE].row_count, XVT_HUD_ROWS_PER_SECTION);
 
 	Start();
-	Rows(XVT_HUD_VISIBLE_ROWS_PER_PAGE + 1);
+	Rows(XVT_HUD_ROWS_PER_SECTION + 1);
 	XVT_ASSERT_INT_EQ(Exported(PAGE, -1)->valid, 0);
 }
 

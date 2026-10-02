@@ -148,7 +148,7 @@ static void CheckEnterReference(void) {
 	g_simStepsPerSecond = 77;
 	XvtFlightClock saved = XvtFlightTiming_EnterReference();
 	XVT_ASSERT_INT_EQ(saved.elapsed, 3);
-	XVT_ASSERT_INT_EQ(saved.scale, 77);
+	XVT_ASSERT_INT_EQ(saved.steps_per_second, 77);
 	XVT_ASSERT_INT_EQ(g_elapsedTicks, XVT_REFERENCE_TICKS);
 	XVT_ASSERT_INT_EQ(g_simStepsPerSecond, SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS);
 	XvtFlightTiming_RestoreClock(saved);
@@ -167,7 +167,7 @@ static void CheckEnterReference(void) {
 	g_simStepsPerSecond = 21;
 	saved = XvtFlightTiming_EnterReference();
 	XVT_ASSERT_INT_EQ(saved.elapsed, 11);
-	XVT_ASSERT_INT_EQ(saved.scale, 21);
+	XVT_ASSERT_INT_EQ(saved.steps_per_second, 21);
 	XVT_ASSERT_INT_EQ(g_elapsedTicks, 11);
 	XVT_ASSERT_INT_EQ(g_simStepsPerSecond, 21);
 }
