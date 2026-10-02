@@ -4154,7 +4154,7 @@ void Mission_InitFlightRuntimeState(void) {
 		ARRIVAL_STATE_FAILED = 2,
 		ARRIVAL_STATE_PENDING = 4,
 		ANY_TEAM = 10,
-		COUNTABLE_MODEL_FLAG = 0x20,
+		MODEL_FLAG_BACKDROP = 0x20,
 		DEFAULT_CAMERA_DISTANCE = 1024,
 		DEFAULT_SIM_STEP = 15,
 		GOAL_STATE_BATCH_SIZE = 8,
@@ -4353,7 +4353,7 @@ void Mission_InitFlightRuntimeState(void) {
 			if ((g_objectTypeTable
 					 [g_craftTypeToObjectType[g_missionFlightGroups[g_currentFlightGroupIdx].fg.craftType]]
 						 .behaviorFlags &
-				 COUNTABLE_MODEL_FLAG) == 0) {
+				 MODEL_FLAG_BACKDROP) == 0) {
 				teamIndex = g_missionFlightGroups[g_currentFlightGroupIdx].fg.team;
 				g_flightMissionState.runtime.teamHasCountableCraft[teamIndex] = 1;
 			}
@@ -6333,7 +6333,7 @@ int Mission_LoadFile(char* fileName) {
 		BRIEFING_TEAM_FLAG_COUNT = 10,
 		BRIEFING_STRING_COUNT = 32,
 		OVERRIDE_STRING_SIZE = 64,
-		FG_OVERRIDE_GROUP_COUNT = 8,
+		FG_GOAL_COUNT = 8,
 		OVERRIDE_STRING_COUNT = 3,
 		GLOBAL_GOAL_COUNT = 7,
 		GLOBAL_GOAL_TRIGGER_COUNT = 4,
@@ -6459,7 +6459,7 @@ int Mission_LoadFile(char* fileName) {
 		}
 
 		for (outerIdx = 0; outerIdx < (int16_t)g_missionHeader.numFlightGroups; ++outerIdx) {
-			for (index = 0; index < FG_OVERRIDE_GROUP_COUNT; ++index) {
+			for (index = 0; index < FG_GOAL_COUNT; ++index) {
 				for (slotIdx = 0; slotIdx < OVERRIDE_STRING_COUNT; ++slotIdx) {
 					uint16_t handle;
 					FeDiskIo_ReadWithRetryPrompt(stringBuffer, OVERRIDE_STRING_SIZE, 1, stream);
@@ -6862,7 +6862,7 @@ int Mission_SyncPilotNetworkPlayersToSessionSlots(void) {
 // FUNCTION: XVT 0x45C2D0
 void Mission_FreeOverrideStringHandles(void) {
 	int flightGroupIdx;
-	int groupIdx;
+	int fgGoalIdx;
 	int slotIdx;
 	int teamIdx;
 	int goalIdx;
@@ -6872,9 +6872,9 @@ void Mission_FreeOverrideStringHandles(void) {
 	uint16_t goalHandle;
 
 	for (flightGroupIdx = 0; flightGroupIdx < (int16_t)g_missionHeader.numFlightGroups; ++flightGroupIdx) {
-		for (groupIdx = 0; groupIdx < 8; ++groupIdx) {
+		for (fgGoalIdx = 0; fgGoalIdx < 8; ++fgGoalIdx) {
 			for (slotIdx = 0; slotIdx < 3; ++slotIdx) {
-				handle = g_missionFgOverrideStringHandles[flightGroupIdx][groupIdx][slotIdx];
+				handle = g_missionFgOverrideStringHandles[flightGroupIdx][fgGoalIdx][slotIdx];
 				if (handle != 0)
 					Memory_FreeHandle(handle);
 			}
