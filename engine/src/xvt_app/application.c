@@ -63,7 +63,7 @@ static int XvtApplication_FrameLoop(void) {
 			XvtInput_SuppressKey(debug_key);
 		}
 		XvtRemaster_BeginFrame(input);
-		XvtPort_Tick(delta_us);
+		XvtPort_Update(delta_us);
 		menu_opened |= XvtSettingsMenu_ConsumeRuntimeRequest();
 		if (XvtPort_ServiceQuit())
 			break;

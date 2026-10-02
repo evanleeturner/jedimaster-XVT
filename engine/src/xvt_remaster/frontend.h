@@ -9,7 +9,7 @@ extern "C" {
  * and the saved screen-stack images, at the 640 x 480 frame's fit into the window. The cursor is kept
  * as a layer of its own. Static state. */
 
-/* Whether the snapshot carries frontend drawing not yet replayed for its tick (a frontend-scoped sprite,
+/* Whether the snapshot carries frontend drawing not yet replayed for its serial (a frontend-scoped sprite,
  * glyph, paint or copy, a frontend surface event, or any preview), or, after a first replay, the fitted
  * frame size changed while the main flight target is not the presented one. */
 int XvtFrontend_NeedsReplay(const XvtRenderSnapshot* snapshot, int width, int height);
@@ -19,7 +19,7 @@ int XvtFrontend_AssetsNeedPreparation(const XvtRenderSnapshot* snapshot);
  * when one fails. */
 int XvtFrontend_PrepareAssets(AeronCommandBuffer* cmd, const XvtRenderSnapshot* snapshot);
 /* Sizes the surfaces to the 640 x 480 fit (copying existing ones over) and replays the snapshot's
- * frontend drawing in z-order into their targets, once per tick. The cursor sprite is kept aside and
+ * frontend drawing in z-order into their targets, once per snapshot. The cursor sprite is kept aside and
  * baked into its own target at each present; a present copies the back surface into the presented one;
  * a movie present only marks the movie surface shown; a reset clears every working surface but the
  * presented and saved ones; another event clears its target to the event's color; a copy moves a

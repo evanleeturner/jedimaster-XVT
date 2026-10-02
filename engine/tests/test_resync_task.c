@@ -10,7 +10,7 @@
  *
  * Not checked here: a send (BeginSend, the chunks, WaitAcks) and a receive (the request, chunks, apply and
  * replay) need a peer on a second machine, and both draw the waiting box on the flight's display surface,
- * which needs a window; Tick past the idle state reads packets from that peer. */
+ * which needs a window; Update past the idle state reads packets from that peer. */
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
 #include "xvt/net/flight_net.h"

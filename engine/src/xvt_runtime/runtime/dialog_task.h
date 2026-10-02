@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 /* One modal frontend dialog at a time, run without blocking. Begin records the parent screen's
- * state, Tick runs the dialog as a pushed screen, and ending it restores the parent. The result is
+ * state, Update runs the dialog as a pushed screen, and ending it restores the parent. The result is
  * held until taken, by the caller or by a registered continuation. */
 
 enum { XVT_DIALOG_PENDING = -1 };
@@ -30,7 +30,7 @@ int XvtDialog_Begin(FrontendScreenUpdateFn update, const RECT* rect);
  * program). Escape after the first frame ends it with result 0; an update returning 1 ends it
  * with the dialog's result, or for the pilot-name prompt, 1 when a name was typed. Ending
  * restores the parent's saved state, flushes the keyboard and clears the click latches. */
-void XvtDialog_Tick(void);
+void XvtDialog_Update(void);
 /* 1 while a dialog is open. */
 int XvtDialog_IsActive(void);
 /* 1 while the pilot-name prompt is open. */

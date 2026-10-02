@@ -56,7 +56,7 @@ uint64_t XvtResync_NextWakeDelayUs(void);
  * ends the mission. A replay that confirms every buffered message acknowledges the host, resets
  * the input clock to the server tick plus the lead allowance, recovers the controls and returns to
  * idle. A pending mission end resets a running resync. */
-void XvtResync_Tick(void);
+void XvtResync_Update(void);
 /* Drops any send, receive, pinned image and deferred reports, restoring the alert box. */
 void XvtResync_Reset(void);
 /* Queues a checksum report from sender to be handled after the current transfer; a full queue logs

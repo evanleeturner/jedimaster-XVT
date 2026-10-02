@@ -76,7 +76,7 @@ static void Fresh(const char* present_a, const char* present_b) {
 static void FinishMovie(void) {
 	struct timespec pause = { 0, 1000000 };
 	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
-		XvtMovieTask_Tick();
+		XvtMovieTask_Update();
 		nanosleep(&pause, NULL);
 	}
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);

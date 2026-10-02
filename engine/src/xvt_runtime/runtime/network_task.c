@@ -301,7 +301,7 @@ int XvtNetworkTask_Resume(int* result) {
 		XvtNetworkTask_Cancel();
 		return 1;
 	}
-	int status = XvtNetworkSession_Tick();
+	int status = XvtNetworkSession_Update();
 	if (status != XVT_NETWORK_PENDING)
 		XvtNetworkTask_FinishSession(status);
 	return 1;

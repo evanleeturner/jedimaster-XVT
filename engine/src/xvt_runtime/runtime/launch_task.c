@@ -83,7 +83,7 @@ int XvtLaunchTask_Queue(void) {
 	return 0;
 }
 
-void XvtLaunchTask_Tick(void) {
+void XvtLaunchTask_Update(void) {
 	if (g_phase == XVT_LAUNCH_FADE && !XvtCdTask_IsFading()) {
 		g_phase = XVT_LAUNCH_PENDING;
 		XVT_LOG_INFO("launch.queued");

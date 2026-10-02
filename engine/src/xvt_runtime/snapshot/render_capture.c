@@ -88,7 +88,7 @@ void XvtRenderCapture_Reset(void) {
 	g_overlayDepth = 0;
 }
 
-void XvtRenderCapture_BeginTick(void) { g_pending.valid = g_pending.sealed = g_published = 0; }
+void XvtRenderCapture_BeginFrame(void) { g_pending.valid = g_pending.sealed = g_published = 0; }
 
 static void InvalidateWorldHistory(void) {
 	g_authoritativeTick = g_candidateTick = -1;

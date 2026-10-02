@@ -283,7 +283,7 @@ static void CheckDebriefWaitsForCutscene(void) {
 	/* The movie fails on the empty file; single-player, the debrief goes on and finishes. */
 	struct timespec pause = { 0, 1000000 };
 	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
-		XvtMovieTask_Tick();
+		XvtMovieTask_Update();
 		nanosleep(&pause, NULL);
 	}
 	XvtMovieTask_ReapFinished();

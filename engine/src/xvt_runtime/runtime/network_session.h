@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-/* The DirectPlay session behind hosting and joining, set up without blocking: Tick advances through
+/* The DirectPlay session behind hosting and joining, set up without blocking: Update advances through
  * closing the previous session, configuring the directory (online), creating DirectPlay, preparing
  * the join through the directory, opening, creating the local player, the host's group, the
  * roster, then registration with the directory (online host) or the handshake and the host's
@@ -33,7 +33,7 @@ typedef struct XvtNetworkSessionStatus {
  * unchanged URL returns NONE at once. Returns NOT_CONFIGURED for an empty URL and INVALID_REQUEST
  * for one too long. */
 AeronDplayDirectoryError XvtNetworkSession_Configure(void);
-/* Close the previous session, then advance setup through Tick without blocking. */
+/* Close the previous session, then advance setup through Update without blocking. */
 /* Starts hosting as player with rating info under name ("<player>'s Game." when empty), listed in
  * the directory when online. Returns -1 when started, and also, doing nothing, while another
  * setup is under way; a missing or over-long argument fails the session and returns 0. */
@@ -65,7 +65,7 @@ int XvtNetworkSession_AcceptAdmission(DPID sender, DPID player);
 /* For a refused join: leaves the session, finishes the directory join and drops a deferred
  * cancel. */
 void XvtNetworkSession_Reject(void);
-/* Marks the session lost; outside flight, the next Service or Tick fails it. */
+/* Marks the session lost; outside flight, the next Service or Update fails it. */
 void XvtNetworkSession_HostLost(void);
 /* 1 once the session is marked lost. */
 int XvtNetworkSession_IsLost(void);
@@ -79,7 +79,7 @@ void XvtNetworkSession_EndFlight(void);
 
 /* Advances setup; returns -1 while pending, 1 in admission or established, and 0 once failed or
  * idle. A lost session outside flight fails. */
-int XvtNetworkSession_Tick(void);
+int XvtNetworkSession_Update(void);
 /* Leave; it keeps the session state, which Shutdown clears. */
 void XvtNetworkSession_Reset(void);
 /* Forgets the session state and the configured lobby URL, without closing DirectPlay. */

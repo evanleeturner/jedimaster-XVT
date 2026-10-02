@@ -1,5 +1,5 @@
 /* Checks the flight-view capture (xvt_runtime/snapshot/render_capture.h) against the promises in its
- * header. The render snapshot runs as the game runs it (its Init starts the capture, each tick's BeginTick
+ * header. The render snapshot runs as the game runs it (its Init starts the capture, each frame's BeginFrame
  * and Commit call into it), and the recovered game's object table, memory handle, local player, viewport
  * and game time are set here; no game data is read. Each check starts from four object slots (three main,
  * one static; slot 1 empty), a 320x200 viewport on a 640x480 screen, and game time 100.
@@ -67,7 +67,7 @@ static void Fresh(void) {
 static void FreshMission(void) {
 	Fresh();
 	XvtRenderCapture_BeginMission();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 }
 
 static XvtRenderSnapshot* Writer(void) { return XvtRenderSnapshot_Writer(); }
@@ -81,7 +81,7 @@ static const XvtRenderSnapshot* Commit(void) {
 /* Commits the open tick and opens the next; returns the snapshot just committed. */
 static const XvtRenderSnapshot* NextTick(void) {
 	const XvtRenderSnapshot* committed = Commit();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	return committed;
 }
 
@@ -103,7 +103,7 @@ static int HasObject(const XvtRenderSnapshot* s, unsigned slot, uint16_t signatu
 static void CheckInactive(void) {
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtRenderCapture_LastViewTick(), -1);
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	PublishView();
 	XVT_ASSERT_INT_EQ(Writer()->flight_valid, 0);
 	const XvtRenderSnapshot* s = Commit();
@@ -269,7 +269,7 @@ static void CheckFlips(void) {
 	XVT_ASSERT_TRUE(!HasObject(Writer(), 2, 0x0A02));
 }
 
-/* EndPresentation discards the pending view, sealed or not, and so does BeginTick. */
+/* EndPresentation discards the pending view, sealed or not, and so does BeginFrame. */
 static void CheckDiscardedViews(void) {
 	FreshMission();
 	XvtRenderCapture_CaptureView();
@@ -280,7 +280,7 @@ static void CheckDiscardedViews(void) {
 
 	XvtRenderCapture_CaptureView();
 	XvtRenderCapture_SealView();
-	XvtRenderCapture_BeginTick();
+	XvtRenderCapture_BeginFrame();
 	XvtRenderCapture_Presented(1);
 	XVT_ASSERT_INT_EQ(Writer()->flight_valid, 0);
 }
@@ -538,7 +538,7 @@ static void CheckOverlay(void) {
  * dropped record. */
 static void CheckFrontendPreview(void) {
 	Fresh();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	const float position[3] = { 1.5f, -2.5f, 300.0f };
 	const float orientation[9] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 	XvtRenderCapture_FrontendPreview(9, position, orientation, 2.5f, 3, 10, 20, 100, 80);

@@ -36,7 +36,7 @@ void XvtMovieSync_Wait(void) {
 	g_movieMultiplayerSyncDeadlineMs = GetTickCount() + (Net_IsHost() ? 5000 : 20000);
 }
 
-int XvtMovieSync_Tick(void) {
+int XvtMovieSync_Update(void) {
 	int index;
 	int waiting = 0;
 	FrontendNet_ProcessNetworkPackets();

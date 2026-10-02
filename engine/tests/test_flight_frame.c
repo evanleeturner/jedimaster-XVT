@@ -1,13 +1,13 @@
 /* Checks the flight frame loop (xvt_runtime/runtime/flight_frame.h) against the promises in its header, for
  * the parts that hold without a running flight: DelayForTicks on the host and frame-delta clocks, what Begin
  * and ResetReplay clear, ReplayBuffered with an empty queue, an old message and a gap, NextWakeDelayUs in
- * the native and network125 profiles, and a native Tick before a step's worth of input time has passed. No
+ * the native and network125 profiles, and a native Update before a step's worth of input time has passed. No
  * game data is read: the test drives the host clock and sets the clocks and globals it reads itself. Every
  * check starts with the host clock on a whole millisecond, the frame-delta clock reset, an empty world
  * message queue and no recovery request.
  *
  * Not checked here: confirming a message (it restores the saved world and steps the recovered game's
- * simulation), and Tick past that first wait (it runs the simulation, renders a frame, and on the network
+ * simulation), and Update past that first wait (it runs the simulation, renders a frame, and on the network
  * reads and sends packets); they need a running flight of the recovered game. */
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
@@ -185,13 +185,13 @@ static void CheckNextWakeNetwork(void) {
 }
 
 static void CheckNativeTickWaits(void) {
-	/* Before a step's worth of input time has passed, a native Tick only moves the input clock on. */
+	/* Before a step's worth of input time has passed, a native Update only moves the input clock on. */
 	Clocks(XVT_FLIGHT_TIMING_NATIVE);
 	g_gameTime = 100;
 	g_inputTimestamp = 100;
 	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), 0);
 	XvtTime_AdvanceHostClock(TICK_US);
-	XVT_ASSERT_INT_EQ(XvtFlightFrame_Tick(), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightFrame_Update(), 0);
 	XVT_ASSERT_INT_EQ(g_gameTime, 100);
 	XVT_ASSERT_INT_EQ(g_inputTimestamp, 101);
 	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() ==

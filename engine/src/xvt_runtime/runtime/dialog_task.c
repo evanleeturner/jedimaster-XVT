@@ -101,7 +101,7 @@ static void XvtDialog_End(void) {
 	XVT_LOG_INFO("dialog.closed result=%d", g_dialog.result);
 }
 
-void XvtDialog_Tick(void) {
+void XvtDialog_Update(void) {
 	int result;
 	if (!g_dialog.active)
 		return;

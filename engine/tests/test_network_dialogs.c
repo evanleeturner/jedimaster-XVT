@@ -44,9 +44,9 @@ static FrontendScreenUpdateFn TopScreen(void) {
 /* Runs the open dialog's first frame, then dismisses it with Escape. */
 static void DismissDialog(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	g_frontState.charRingBuffer[g_frontState.charWriteIdx++] = 27;
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 }
 

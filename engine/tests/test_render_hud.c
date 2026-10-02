@@ -31,7 +31,7 @@ static void FreshTick(void) {
 	worldlocy = 0;
 	worldlocz = 0;
 	XvtRenderSnapshot_Init();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() != NULL);
 	XvtRenderHud_Reset();
 }

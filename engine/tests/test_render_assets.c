@@ -115,7 +115,7 @@ static void CheckBeforeInit(void) {
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_CopyFrontendColors(1, &colors), 0);
 	XvtRenderAssets_RetireHandle(3);
 	XvtRenderAssets_RetireImage(&g_ownerA);
-	XvtRenderAssets_BeginTick();
+	XvtRenderAssets_BeginFrame();
 }
 
 /* Init restarts ids and generations at 1 and registers the built-in default cursor, the first id. */
@@ -429,7 +429,7 @@ static void CheckExportPalette(void) {
 
 /* A freed source stays exported until the renderer has consumed the last export and neither the current
  * nor the previous snapshot uses it. The render snapshot runs here as the game runs it: its Init starts
- * the registry, each tick's BeginTick runs the registry's, and each Commit exports. */
+ * the registry, each frame's BeginFrame runs the registry's, and each Commit exports. */
 static void CheckRetiredLifetime(void) {
 	XvtRenderAssets_Shutdown();
 	XvtRenderSnapshot_Shutdown();
@@ -439,8 +439,8 @@ static void CheckRetiredLifetime(void) {
 	uint64_t id = XvtRenderAssets_HandleId(7);
 	XVT_ASSERT_TRUE(id != 0);
 
-	/* Tick 1 publishes a flight view whose model type 3 uses the source. */
-	XvtRenderSnapshot_BeginTick();
+	/* Frame 1 publishes a flight view whose model type 3 uses the source. */
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot* writer = XvtRenderSnapshot_Writer();
 	writer->flight_valid = 1;
 	writer->types[3].model_asset_id = id;
@@ -449,8 +449,8 @@ static void CheckRetiredLifetime(void) {
 	/* From now on no view is published: later snapshots do not use the source. */
 	XvtRenderCapture_EndMission();
 
-	/* Tick 2: the export of tick 1 is not consumed yet, and tick 1 uses the source. */
-	XvtRenderSnapshot_BeginTick();
+	/* Frame 2: the export of frame 1 is not consumed yet, and frame 1 uses the source. */
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(2, 1, 0);
 	const XvtRenderSnapshot* current = XvtRenderSnapshot_Current();
 	int listed = 0;
@@ -458,9 +458,9 @@ static void CheckRetiredLifetime(void) {
 		listed |= current->opt_assets[i].id == id;
 	XVT_ASSERT_TRUE(listed);
 
-	/* Tick 3: consumed, but the previous snapshot (tick 1) still uses it. */
+	/* Frame 3: consumed, but the previous snapshot (frame 1) still uses it. */
 	XvtRenderAssets_Consumed(current->snapshot_serial);
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(3, 1, 0);
 	current = XvtRenderSnapshot_Current();
 	listed = 0;
@@ -468,8 +468,8 @@ static void CheckRetiredLifetime(void) {
 		listed |= current->opt_assets[i].id == id;
 	XVT_ASSERT_TRUE(listed);
 
-	/* Tick 4: neither snapshot uses it, but the export of tick 3 is not consumed. */
-	XvtRenderSnapshot_BeginTick();
+	/* Frame 4: neither snapshot uses it, but the export of frame 3 is not consumed. */
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(4, 1, 0);
 	current = XvtRenderSnapshot_Current();
 	listed = 0;
@@ -479,7 +479,7 @@ static void CheckRetiredLifetime(void) {
 
 	/* Consuming an older export is not enough. */
 	XvtRenderAssets_Consumed(current->snapshot_serial - 1);
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(5, 1, 0);
 	current = XvtRenderSnapshot_Current();
 	listed = 0;
@@ -487,9 +487,9 @@ static void CheckRetiredLifetime(void) {
 		listed |= current->opt_assets[i].id == id;
 	XVT_ASSERT_TRUE(listed);
 
-	/* Tick 6: the last export is consumed and no snapshot uses it: it is gone. */
+	/* Frame 6: the last export is consumed and no snapshot uses it: it is gone. */
 	XvtRenderAssets_Consumed(current->snapshot_serial);
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(6, 1, 0);
 	current = XvtRenderSnapshot_Current();
 	for (uint32_t i = 0; i < current->opt_asset_count; ++i)

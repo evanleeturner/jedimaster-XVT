@@ -15,9 +15,9 @@ static void Fresh(void) {
 	XvtRenderSnapshot_Init();
 }
 
-/* One whole tick: open, then commit at game time time. */
-static const XvtRenderSnapshot* Tick(int32_t time) {
-	XvtRenderSnapshot_BeginTick();
+/* One whole host frame: open, then commit at game time time. */
+static const XvtRenderSnapshot* RunFrame(int32_t time) {
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(time, 1, 0);
 	return XvtRenderSnapshot_Current();
 }
@@ -34,7 +34,7 @@ static int AllZero(const void* data, size_t size) {
 static void CheckBeforeInit(void) {
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Current() == NULL);
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Previous() == NULL);
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() == NULL);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 0);
 	XvtRenderSnapshot_Commit(1, 1, 0);
@@ -47,14 +47,14 @@ static void CheckFirstPublication(void) {
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Current() == NULL);
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Previous() == NULL);
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() == NULL);
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot* writer = XvtRenderSnapshot_Writer();
 	XVT_ASSERT_TRUE(writer != NULL);
 	XvtRenderSnapshot_Commit(10, 1, 0);
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() == NULL);
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Current() == writer);
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Previous() == NULL);
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(20, 1, 0);
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Previous() == writer);
 }
@@ -66,7 +66,7 @@ static void CheckRotation(void) {
 	const XvtRenderSnapshot* seen[3] = { NULL, NULL, NULL };
 	const XvtRenderSnapshot* current = NULL;
 	for (int tick = 0; tick < 7; ++tick) {
-		XvtRenderSnapshot_BeginTick();
+		XvtRenderSnapshot_BeginFrame();
 		XvtRenderSnapshot* writer = XvtRenderSnapshot_Writer();
 		XVT_ASSERT_TRUE(writer != NULL);
 		XVT_ASSERT_TRUE(writer != XvtRenderSnapshot_Current());
@@ -83,17 +83,17 @@ static void CheckRotation(void) {
 }
 
 /* Commit stamps game time, host time, focus and pause, and advances the tick index that the next
- * BeginTick stamps. */
+ * BeginFrame stamps. */
 static void CheckCommitStamps(void) {
 	Fresh();
-	const XvtRenderSnapshot* first = Tick(1234);
+	const XvtRenderSnapshot* first = RunFrame(1234);
 	uint64_t index = first->snapshot_serial;
 	uint64_t host = first->capture_host_us;
 	XVT_ASSERT_INT_EQ(first->game_time_ticks, 1234);
 	XVT_ASSERT_TRUE(first->focused != 0);
 	XVT_ASSERT_INT_EQ(first->paused, 0);
 
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(-5, 0, 7);
 	const XvtRenderSnapshot* second = XvtRenderSnapshot_Current();
 	XVT_ASSERT_INT_EQ(second->game_time_ticks, -5);
@@ -101,26 +101,26 @@ static void CheckCommitStamps(void) {
 	XVT_ASSERT_TRUE(second->paused != 0);
 	XVT_ASSERT_INT_EQ(second->snapshot_serial, index + 1);
 	XVT_ASSERT_TRUE(second->capture_host_us >= host);
-	XVT_ASSERT_INT_EQ(Tick(0)->snapshot_serial, index + 2);
+	XVT_ASSERT_INT_EQ(RunFrame(0)->snapshot_serial, index + 2);
 }
 
 /* Commit runs the asset export into the writer: the built-in cursor that Init registers is listed. */
 static void CheckCommitExportsAssets(void) {
 	Fresh();
-	const XvtRenderSnapshot* snapshot = Tick(0);
+	const XvtRenderSnapshot* snapshot = RunFrame(0);
 	int cursor = 0;
 	for (uint32_t i = 0; i < snapshot->image_asset_count; ++i)
 		cursor |= snapshot->image_assets[i].kind == XVT_IMAGE_BUILTIN_CURSOR;
 	XVT_ASSERT_TRUE(cursor);
 }
 
-/* BeginTick zeroes the record counts and the flight, camera, map, hyperspace and cursor flags of the slot
+/* BeginFrame zeroes the record counts and the flight, camera, map, hyperspace and cursor flags of the slot
  * it opens; other fields keep what the slot last held. Capture is active here so that Commit leaves the
  * flight view the tick wrote. */
-static void CheckBeginTickClearsCounts(void) {
+static void CheckBeginFrameClearsCounts(void) {
 	Fresh();
 	XvtRenderCapture_BeginMission();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot* slot = XvtRenderSnapshot_Writer();
 	slot->dropped_records = 3;
 	slot->flight_valid = 1;
@@ -144,9 +144,9 @@ static void CheckBeginTickClearsCounts(void) {
 	XVT_ASSERT_TRUE(slot->image_asset_count > 0);
 
 	/* Two more ticks, and the slot is the writer again. */
-	Tick(1);
-	Tick(2);
-	XvtRenderSnapshot_BeginTick();
+	RunFrame(1);
+	RunFrame(2);
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() == slot);
 	XVT_ASSERT_INT_EQ(slot->dropped_records, 0);
 	XVT_ASSERT_INT_EQ(slot->flight_valid, 0);
@@ -173,15 +173,15 @@ static void CheckBeginTickClearsCounts(void) {
 	XvtRenderCapture_EndMission();
 }
 
-/* BeginTick does nothing while a tick is open: what the tick wrote stays, and the draw order goes on. */
-static void CheckBeginTickIdempotent(void) {
+/* BeginFrame does nothing while a frame is open: what the frame wrote stays, and the draw order goes on. */
+static void CheckBeginFrameIdempotent(void) {
 	Fresh();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot* writer = XvtRenderSnapshot_Writer();
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 0);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 1);
 	writer->sprite_count = 3;
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() == writer);
 	XVT_ASSERT_INT_EQ(writer->sprite_count, 3);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 2);
@@ -192,13 +192,13 @@ static void CheckBeginTickIdempotent(void) {
 static void CheckNextOrder(void) {
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 0);
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	for (uint32_t i = 0; i < 5; ++i)
 		XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), i);
 	XvtRenderSnapshot_Commit(0, 1, 0);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 0);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 0);
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 0);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 1);
 	XvtRenderSnapshot_Commit(0, 1, 0);
@@ -207,13 +207,13 @@ static void CheckNextOrder(void) {
 /* The scene kind applies to the open tick and to every later one until it is changed. */
 static void CheckSceneKind(void) {
 	Fresh();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_Writer()->scene_kind, XVT_SCENE_NONE);
 	XvtRenderSnapshot_SetSceneKind(XVT_SCENE_FRONTEND);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_Writer()->scene_kind, XVT_SCENE_FRONTEND);
 	XvtRenderSnapshot_Commit(0, 1, 0);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_Current()->scene_kind, XVT_SCENE_FRONTEND);
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_Writer()->scene_kind, XVT_SCENE_FRONTEND);
 	XvtRenderSnapshot_Commit(0, 1, 0);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_Current()->scene_kind, XVT_SCENE_FRONTEND);
@@ -221,13 +221,13 @@ static void CheckSceneKind(void) {
 	/* Set between ticks, it applies from the next one. */
 	XvtRenderSnapshot_SetSceneKind(XVT_SCENE_MOVIE);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_Current()->scene_kind, XVT_SCENE_FRONTEND);
-	XVT_ASSERT_INT_EQ(Tick(0)->scene_kind, XVT_SCENE_MOVIE);
+	XVT_ASSERT_INT_EQ(RunFrame(0)->scene_kind, XVT_SCENE_MOVIE);
 }
 
 /* A second Init before Shutdown does nothing: the published views stay as they were. */
 static void CheckSecondInit(void) {
 	Fresh();
-	const XvtRenderSnapshot* first = Tick(77);
+	const XvtRenderSnapshot* first = RunFrame(77);
 	XvtRenderSnapshot_Init();
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Current() == first);
 	XVT_ASSERT_INT_EQ(first->game_time_ticks, 77);
@@ -239,7 +239,7 @@ static void CheckShutdown(void) {
 	Fresh();
 	const XvtRenderSnapshot* slots[3];
 	for (int i = 0; i < 3; ++i)
-		slots[i] = Tick(100 + i);
+		slots[i] = RunFrame(100 + i);
 	XvtRenderSnapshot_SetSceneKind(XVT_SCENE_FLIGHT);
 
 	XvtRenderSnapshot_Shutdown();
@@ -248,7 +248,7 @@ static void CheckShutdown(void) {
 	for (int i = 0; i < 3; ++i)
 		XVT_ASSERT_INT_EQ(slots[i]->game_time_ticks, 100 + i);
 
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() == NULL);
 	XvtRenderSnapshot_Commit(5, 1, 0);
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Current() == NULL);
@@ -257,7 +257,7 @@ static void CheckShutdown(void) {
 	for (int i = 0; i < 3; ++i)
 		XVT_ASSERT_TRUE(AllZero(slots[i], sizeof *slots[i]));
 	/* Shutdown reset the scene kind. */
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_Writer()->scene_kind, XVT_SCENE_NONE);
 	XvtRenderSnapshot_Commit(0, 1, 0);
 }
@@ -268,8 +268,8 @@ int main(void) {
 	CheckRotation();
 	CheckCommitStamps();
 	CheckCommitExportsAssets();
-	CheckBeginTickClearsCounts();
-	CheckBeginTickIdempotent();
+	CheckBeginFrameClearsCounts();
+	CheckBeginFrameIdempotent();
 	CheckNextOrder();
 	CheckSceneKind();
 	CheckSecondInit();

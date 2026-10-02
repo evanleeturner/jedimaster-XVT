@@ -18,7 +18,7 @@ extern "C" {
 int XvtLaunchTask_Queue(void);
 /* Moves fade to pending once the fade ends. Escape during fade or pending cancels the launch
  * through Complete(0). */
-void XvtLaunchTask_Tick(void);
+void XvtLaunchTask_Update(void);
 /* 1 in any phase but idle. */
 int XvtLaunchTask_IsActive(void);
 /* 1 in the pending phase. */

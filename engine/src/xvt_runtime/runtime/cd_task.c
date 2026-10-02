@@ -39,7 +39,7 @@ int XvtCdTask_IsFading(void) { return g_fade.active; }
 
 void XvtCdTask_CancelFade(void) { g_fade.active = 0; }
 
-void XvtCdTask_Tick(void) {
+void XvtCdTask_Update(void) {
 	uint64_t now = XvtTime_GetElapsedUs();
 	uint32_t nowMs = XvtTime_GetElapsedMs();
 	if (g_fade.active && now >= g_fade.next) {

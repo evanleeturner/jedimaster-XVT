@@ -506,7 +506,7 @@ void XvtFlightFrame_ResetReplay(void) {
 	XvtFlightSim_Reset();
 }
 
-static int XvtFlightFrame_NetworkTick(void) {
+static int XvtFlightFrame_NetworkUpdate(void) {
 	if (g_confirm.phase == XVT_CONFIRM_TERMINAL)
 		return XvtFlightFrame_End("mission_ended");
 	XvtFlightFrame_NetworkBudget();
@@ -596,9 +596,9 @@ static int XvtFlightFrame_NetworkTick(void) {
 	return 0;
 }
 
-int XvtFlightFrame_Tick(void) {
+int XvtFlightFrame_Update(void) {
 	if (XvtFlightTiming_IsNetwork125())
-		return XvtFlightFrame_NetworkTick();
+		return XvtFlightFrame_NetworkUpdate();
 	if (XvtFlightSim_IsPaused() && !XvtFlightSim_Resume())
 		return 0;
 	if (g_frame.phase == XVT_FRAME_ADVANCE)

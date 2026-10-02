@@ -1,6 +1,6 @@
 /* Checks the frontend-to-flight hand-off (xvt_runtime/runtime/launch_task.h) against the promises in its
  * header that hold while no launch is queued: the idle phase reports no launch, BeginPendingLaunch refuses,
- * Complete and Tick do nothing, and Shutdown leaves the task idle. The test sets the frontend state it
+ * Complete and Update do nothing, and Shutdown leaves the task idle. The test sets the frontend state it
  * watches; every case starts from Shutdown and a cleared frontend with a placeholder screen at frame 4.
  *
  * Not checked here: Queue and every phase after it. Queue writes the settings file and the pilot file,
@@ -53,7 +53,7 @@ static void CheckTickIgnoredWhenIdle(void) {
 	/* Escape cancels only a fade or a pending launch; idle, it stays in the keyboard buffer. */
 	g_frontState.charRingBuffer[0] = 27;
 	g_frontState.charWriteIdx = 1;
-	XvtLaunchTask_Tick();
+	XvtLaunchTask_Update();
 	XVT_ASSERT_INT_EQ(g_frontState.charReadIdx, 0);
 	XVT_ASSERT_INT_EQ(g_frontState.charWriteIdx, 1);
 	XVT_ASSERT_TRUE(g_frontState.screenStates[0].updateFn == Placeholder);

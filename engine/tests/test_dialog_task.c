@@ -75,10 +75,10 @@ static FrontendScreenUpdateFn TopScreen(void) {
 
 /* Runs the open dialog's first frame, then ends it with Escape. */
 static void EscapeDialog(void) {
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 	QueueKeys("\x1b");
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 }
 
@@ -95,7 +95,7 @@ static void CheckNothingOpen(void) {
 	XVT_ASSERT_INT_EQ(result, 123);
 	XVT_ASSERT_INT_EQ(g_continuationCalls, 0);
 	/* A tick with no dialog does nothing. */
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(g_frontState.screenStackTop, 0);
 	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, PARENT_FRAME);
 }
@@ -120,11 +120,11 @@ static void CheckBeginSavesAndEndRestores(void) {
 	g_frontState.mouseX = 5;
 	g_frontState.mouseY = 5;
 
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(g_updateFrames, 1);
 	XVT_ASSERT_INT_EQ(g_updateLastFrame, 0);
 	XVT_ASSERT_TRUE(TopScreen() == TestUpdate);
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(g_updateFrames, 2);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 
@@ -134,7 +134,7 @@ static void CheckBeginSavesAndEndRestores(void) {
 	QueueKeys("xy");
 	g_frontState.mouseClickLatch = 1;
 	g_frontState.mouseRightClickLatch = 1;
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
 
@@ -174,14 +174,14 @@ static void CheckEscape(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
 	/* Escape before the first frame does not end the dialog. */
 	QueueKeys("\x1b");
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 	XVT_ASSERT_INT_EQ(g_updateFrames, 1);
 
 	/* After it, Escape ends the dialog with result 0, whatever the dialog's result says. */
 	g_dialogResult = 9;
 	QueueKeys("\x1b");
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 	int result = -5;
 	XVT_ASSERT_INT_EQ(XvtDialog_TakeResult(&result), 1);
@@ -195,10 +195,10 @@ static void CheckBeginRefusals(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
 	/* While a dialog is open another Begin does nothing. */
 	XVT_ASSERT_INT_EQ(XvtDialog_Begin(OtherUpdate, NULL), XVT_DIALOG_PENDING);
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_TRUE(TopScreen() == TestUpdate);
 	QueueKeys("\x1b");
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
 
 	/* While a result is untaken, Begin does nothing either. */
@@ -222,10 +222,10 @@ static void CheckConfirm(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("other", "b", "c", "d", "e", 0), XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogText0, "one"), 0);
 
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_TRUE(TopScreen() == FrontendDialog_ConfirmUpdateCallback);
 	QueueKeys("\x1b");
-	XvtDialog_Tick();
+	XvtDialog_Update();
 
 	/* The untaken result comes back first, and no dialog opens. */
 	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("two", NULL, NULL, NULL, NULL, 0), 0);
@@ -235,20 +235,20 @@ static void CheckConfirm(void) {
 	/* With network set, the network abort dialog opens instead. */
 	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("net", NULL, NULL, NULL, "Cancel", 1), XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogCancelLabel, "Cancel"), 0);
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_TRUE(TopScreen() == FrontendDialog_NetworkAbortErrorCallback);
 	QueueKeys("\x1b");
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 }
 
 static void CheckConfirmReturnsAnyResult(void) {
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	g_updateEnds = 1;
 	g_updateResult = 4;
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	/* The result of a dialog Confirm did not open is returned all the same. */
 	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("a", "b", "c", "d", "e", 0), 4);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
@@ -261,13 +261,13 @@ static void CheckPilotNameTyped(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsTextPrompt(), 1);
 	XVT_ASSERT_INT_EQ(XvtDialog_PilotName(name), XVT_DIALOG_PENDING);
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_TRUE(TopScreen() == FrontendDialog_CreatePilotNameCallback);
 
 	/* The prompt takes one typed character a frame, and Enter. */
 	QueueKeys("Luke\r");
 	for (int frame = 0; frame < 10 && XvtDialog_IsActive(); ++frame)
-		XvtDialog_Tick();
+		XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsTextPrompt(), 0);
 	memset(name, 'Z', sizeof name);
@@ -303,11 +303,11 @@ static void CheckContinuation(void) {
 	int frame_result = 0;
 	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(XvtDialog_ContinueWith(Continuation, 42), 0);
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_ResumeContinuation(&frame_result), 0);
 	g_updateEnds = 1;
 	g_updateResult = 7;
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 
 	/* The continuation runs once with the result and context, and its return is the frame's. */
@@ -348,7 +348,7 @@ static void CheckShutdown(void) {
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
 	XvtDialog_ContinueWith(Continuation, 3);
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(g_frontState.screenStackTop, 1);
 
 	/* Shutdown ends the open dialog, restoring its parent, and leaves no result. */

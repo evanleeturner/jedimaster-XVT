@@ -306,7 +306,7 @@ static int XvtNetworkSession_Register(void) {
 	return 1;
 }
 
-int XvtNetworkSession_Tick(void) {
+int XvtNetworkSession_Update(void) {
 	HRESULT result;
 	if (g_session.lost && !g_session.flight)
 		return XvtNetworkSession_Fail(AERON_DPLAY_DIRECTORY_ERROR_CONNECTION_FAILED);

@@ -97,7 +97,7 @@ static int SnapshotReferencesSource(const XvtRenderSnapshot* snapshot, uint64_t 
 	return 0;
 }
 
-void XvtRenderAssets_BeginTick(void) {
+void XvtRenderAssets_BeginFrame(void) {
 	if (!g_initialized || g_consumedSnapshotSerial != g_exportedSnapshotSerial)
 		return;
 	/* A held presentation can still reference an original source after its

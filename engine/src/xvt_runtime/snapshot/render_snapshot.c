@@ -43,12 +43,12 @@ void XvtRenderSnapshot_Shutdown(void) {
 	g_sceneKind = XVT_SCENE_NONE;
 }
 
-void XvtRenderSnapshot_BeginTick(void) {
+void XvtRenderSnapshot_BeginFrame(void) {
 	XvtRenderSnapshot* snapshot;
 	if (!g_initialized || g_snapshotOpen)
 		return;
-	XvtRenderAssets_BeginTick();
-	XvtRenderCapture_BeginTick();
+	XvtRenderAssets_BeginFrame();
+	XvtRenderCapture_BeginFrame();
 	snapshot = &g_slots[g_writeSlot];
 	snapshot->snapshot_serial = g_snapshotSerial;
 	g_drawOrder = 0;

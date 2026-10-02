@@ -36,7 +36,7 @@ static void Fresh(void) {
 	g_frontState.clipMaxY = 400;
 	g_activeTextFieldId = -1;
 	XvtRenderSnapshot_Init();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() != NULL);
 	g_image = (ImageResource) { .width = 32, .height = 16, .pixels = g_pixels };
 	XVT_ASSERT_TRUE(XvtRenderAssets_RegisterImage(&g_image, 0, "", XVT_IMAGE_BUILTIN_CURSOR, 0, 1, 0, 0, 0) !=
@@ -49,7 +49,7 @@ static XvtRenderSnapshot* Writer(void) { return XvtRenderSnapshot_Writer(); }
 static const XvtRenderSnapshot* NextTick(void) {
 	XvtRenderSnapshot_Commit(0, 1, 0);
 	const XvtRenderSnapshot* committed = XvtRenderSnapshot_Current();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	return committed;
 }
 
@@ -366,7 +366,7 @@ static void CheckCursorRefusals(void) {
 	XvtRenderSnapshot_Commit(0, 1, 0);
 	XvtRenderFrontend_Cursor(0);
 	XvtRenderFrontend_EndCursor();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_TRUE(!PresentShowsCursor());
 }
 

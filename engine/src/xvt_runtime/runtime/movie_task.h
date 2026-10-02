@@ -24,7 +24,7 @@ int XvtMovieTask_Begin(const char* name, int synchronize);
  * it, or in a network session goes to the multiplayer skip handler. Completes when playback ends,
  * fails or the frame proves larger than 640x480, or in a network session when every player has
  * finished or the skip aborted it. */
-void XvtMovieTask_Tick(void);
+void XvtMovieTask_Update(void);
 /* Pauses the active movie and redraws its current frame. */
 void XvtMovieTask_PausedFrame(void);
 /* Once the movie has completed, closes its player and subtitles and restores the saved window

@@ -1,8 +1,8 @@
 /* Checks the frontend's frame loop (xvt_runtime/runtime/frontend_task.h) against the promises in its
  * header that hold without the game's window and files: RunFrame's update, frame counter, exit callback
  * and pending screen push, a dialog continuation run in place of the update, and the frame held for an
- * opened dialog or the network task; Tick's pacing, the dialog that ticks alone, a quit result, and when a
- * frame is presented; the wake delay; the joystick polling interval and the CD task tick of
+ * opened dialog or the network task; Update's pacing, the dialog that updates alone, a quit result, and when
+ * a frame is presented; the wake delay; the joystick polling interval and the CD task tick of
  * ServiceFrameSystems; and Shutdown before Init. The frontend runs on a display with no window
  * (test_frontend_display.h); presented frames are counted through Aeron's classic frame serial, which rises
  * once for each frame the frontend presents. The test's own screens stand in for the game's. Init is never
@@ -11,7 +11,7 @@
  * that quits runs last, since nothing but Init clears the quit.
  *
  * Not checked here: Init and Shutdown after it, which need the main window, the game's files and the
- * config; the launch task's turn in Tick, which needs a queued launch; the hold for a pending campaign
+ * config; the launch task's turn in Update, which needs a queued launch; the hold for a pending campaign
  * prefix, which takes the same path as the network task's hold checked here; drawing the cursor; and the
  * end of the program when the back buffer cannot be locked. */
 #include "aeron/compat/host.h"
@@ -108,7 +108,7 @@ static void Fresh(void) {
 static void AdvanceMs(int ms) { XvtTime_AdvanceHostClock(ms * 1000); }
 
 /* The clock runs on across cases, and so does the frame deadline: move past any deadline an earlier case
- * left, so the next Tick runs a frame. */
+ * left, so the next Update runs a frame. */
 static void FrameDue(void) { AdvanceMs(1000); }
 
 static void CheckRunFrameWithoutUpdate(void) {
@@ -175,9 +175,9 @@ static void CheckContinuationReplacesUpdate(void) {
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtDialog_Begin(DialogScreen, NULL), XVT_DIALOG_PENDING);
 	XvtDialog_ContinueWith(Continuation, 0);
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	g_frontState.charRingBuffer[g_frontState.charWriteIdx++] = 27;
-	XvtDialog_Tick();
+	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
 
 	/* The parent's next frame runs the continuation in place of its update. */
@@ -203,18 +203,18 @@ static void CheckNetworkTaskHoldsFrame(void) {
 static void CheckTickPacing(void) {
 	Fresh();
 	FrameDue();
-	XvtFrontendTask_Tick();
+	XvtFrontendTask_Update();
 	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
-	XvtFrontendTask_Tick();
+	XvtFrontendTask_Update();
 	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), FRAME_MS * 1000);
 	AdvanceMs(FRAME_MS - 1);
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), 1000);
-	XvtFrontendTask_Tick();
+	XvtFrontendTask_Update();
 	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
 	AdvanceMs(1);
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), 0);
-	XvtFrontendTask_Tick();
+	XvtFrontendTask_Update();
 	XVT_ASSERT_INT_EQ(g_screenCalls, 2);
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_ShouldQuit(), 0);
 }
@@ -223,7 +223,7 @@ static void CheckTickPresents(void) {
 	Fresh();
 	FrameDue();
 	uint64_t serial = AeronDx5_GetClassicFlightFrameSerial();
-	XvtFrontendTask_Tick();
+	XvtFrontendTask_Update();
 	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
 	XVT_ASSERT_INT_EQ(AeronDx5_GetClassicFlightFrameSerial(), serial + 1);
 }
@@ -232,7 +232,7 @@ static void CheckTickRunsOnlyTheDialog(void) {
 	Fresh();
 	FrameDue();
 	XVT_ASSERT_INT_EQ(XvtDialog_Begin(DialogScreen, NULL), XVT_DIALOG_PENDING);
-	XvtFrontendTask_Tick();
+	XvtFrontendTask_Update();
 	XVT_ASSERT_INT_EQ(g_dialogCalls, 1);
 	XVT_ASSERT_INT_EQ(g_screenCalls, 0);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
@@ -241,7 +241,7 @@ static void CheckTickRunsOnlyTheDialog(void) {
 	g_frontState.charRingBuffer[g_frontState.charWriteIdx++] = 27;
 	AdvanceMs(FRAME_MS);
 	uint64_t serial = AeronDx5_GetClassicFlightFrameSerial();
-	XvtFrontendTask_Tick();
+	XvtFrontendTask_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(AeronDx5_GetClassicFlightFrameSerial(), serial);
 	XVT_ASSERT_INT_EQ(g_screenCalls, 0);
@@ -250,7 +250,7 @@ static void CheckTickRunsOnlyTheDialog(void) {
 static void CheckWakeDelayTakesCdSooner(void) {
 	Fresh();
 	FrameDue();
-	XvtFrontendTask_Tick();
+	XvtFrontendTask_Update();
 	g_musicCdMciDeviceId = 1;
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 512, 0), 1);
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), 1000);
@@ -306,12 +306,12 @@ static void CheckQuit(void) {
 	Fresh();
 	FrameDue();
 	g_screenReturn = 2;
-	XvtFrontendTask_Tick();
+	XvtFrontendTask_Update();
 	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_ShouldQuit(), 1);
 	/* Nothing runs once the quit is set. */
 	AdvanceMs(FRAME_MS * 5);
-	XvtFrontendTask_Tick();
+	XvtFrontendTask_Update();
 	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_ShouldQuit(), 1);
 }

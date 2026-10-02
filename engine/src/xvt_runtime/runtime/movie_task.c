@@ -221,7 +221,7 @@ void XvtMovieTask_Stop(void) {
 		XvtMovieSync_Wait();
 }
 
-void XvtMovieTask_Tick(void) {
+void XvtMovieTask_Update(void) {
 	AeronVideoState state;
 	int key;
 	int synchronized = 0;
@@ -241,7 +241,7 @@ void XvtMovieTask_Tick(void) {
 			Movie_MultiplayerInputCallback(0, 0x202, 0, 0, 0, &playing);
 		if (!playing)
 			XvtMovieTask_Stop();
-		synchronized = XvtMovieSync_Tick();
+		synchronized = XvtMovieSync_Update();
 	} else if (key || g_frontState.mouseClickLatch || g_frontState.mouseRightClickLatch) {
 		XvtMovieTask_Stop();
 	}

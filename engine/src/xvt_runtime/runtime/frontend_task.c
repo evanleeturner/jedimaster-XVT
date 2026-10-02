@@ -100,7 +100,7 @@ void XvtFrontendTask_ServiceFrameSystems(void) {
 	}
 	if (!XvtNetworkTask_IsActive())
 		Net_PumpIncomingPackets();
-	XvtCdTask_Tick();
+	XvtCdTask_Update();
 }
 
 int XvtFrontendTask_RunFrame(void) {
@@ -166,7 +166,7 @@ int XvtFrontendTask_RunFrame(void) {
 	return result;
 }
 
-void XvtFrontendTask_Tick(void) {
+void XvtFrontendTask_Update(void) {
 	uint64_t now = XvtTime_GetElapsedUs();
 	int result;
 	if (g_quit || now < g_nextFrameDueUs)
@@ -183,14 +183,14 @@ void XvtFrontendTask_Tick(void) {
 		}
 	}
 	if (XvtLaunchTask_IsActive()) {
-		XvtLaunchTask_Tick();
+		XvtLaunchTask_Update();
 		return;
 	}
 	int credits_frame =
 		!XvtDialog_IsActive() &&
 		g_frontState.screenStates[g_frontState.screenStackTop].updateFn == Config_CreditsScreen;
 	if (XvtDialog_IsActive()) {
-		XvtDialog_Tick();
+		XvtDialog_Update();
 		result = 0;
 	} else {
 		result = XvtFrontendTask_RunFrame();

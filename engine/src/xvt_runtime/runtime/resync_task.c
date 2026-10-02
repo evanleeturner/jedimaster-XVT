@@ -422,7 +422,7 @@ static void XvtResync_ServiceChecksums(void) {
 	}
 }
 
-void XvtResync_Tick(void) {
+void XvtResync_Update(void) {
 	if (g_resync.phase != RESYNC_IDLE && NetSession_IsLocalHost() && g_resync.restart_requested) {
 		XVT_LOG_DEBUG("resync.send_restart slot=%d", XvtResync_PeerSlot());
 		if (g_resync.owns_alert)

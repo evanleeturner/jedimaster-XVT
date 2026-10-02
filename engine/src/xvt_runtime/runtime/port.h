@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-/* The game runtime as seen by the host application: one Tick per host frame drives, in order, the
+/* The game runtime as seen by the host application: one Update per host frame drives, in order, the
  * input, the host clock, the CD task, the movie, flight or frontend task, a finished or pending
  * flight launch, the network session and the render snapshot. */
 
@@ -25,11 +25,11 @@ int XvtPort_IsInitialized(void);
  * or the window lacks focus and no movie or campaign wait continues without it, unless the network
  * requires progress. The first frame after Init, a pause, or a flight's start or end does not
  * advance the host clock by delta_us. */
-void XvtPort_Tick(int32_t delta_us);
+void XvtPort_Update(int32_t delta_us);
 /* Marks the port paused (pausing audio on the first such frame), discards input, keeps a movie
- * paused, presents and commits the snapshot; the next Tick resumes without advancing the clock. */
+ * paused, presents and commits the snapshot; the next Update resumes without advancing the clock. */
 void XvtPort_PausedFrame(void);
-/* Records whether the settings menu is open; an open menu pauses Tick unless the network requires
+/* Records whether the settings menu is open; an open menu pauses Update unless the network requires
  * progress. */
 void XvtPort_SetSettingsOpen(int open);
 /* Latches a request to open the settings menu. */
@@ -37,7 +37,7 @@ void XvtPort_RequestSettings(void);
 /* Returns and clears the settings request latch. */
 int XvtPort_ConsumeSettingsRequest(void);
 /* 1 while DirectPlay, the network task or the game browser is active, or a multiplayer flight
- * runs; Tick then keeps running without focus or with settings open. */
+ * runs; Update then keeps running without focus or with settings open. */
 int XvtPort_NetworkRequiresProgress(void);
 /* 1 when not initialized or on a fatal error. The first call after Aeron or the frontend asks to
  * quit starts quitting: it shuts down the network task and the DirectPlay session. Once quitting,

@@ -38,8 +38,8 @@ void XvtFlightFrame_ResetReplay(void);
  * local player, a host abort, a client whose host timeout (reset by the network code) passes
  * 7080 input-clock ticks, or an input clock near INT32_MAX (announcing that the local player
  * left). */
-int XvtFlightFrame_Tick(void);
-/* Microseconds until Tick has work. Network125: 0 while confirmation or prediction work remains,
+int XvtFlightFrame_Update(void);
+/* Microseconds until Update has work. Network125: 0 while confirmation or prediction work remains,
  * else the sooner of the network's next event and the next simulation step. Native: UINT64_MAX
  * while paused, else the time until a step's worth of input time. */
 uint64_t XvtFlightFrame_NextWakeDelayUs(void);

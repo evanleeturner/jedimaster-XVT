@@ -138,17 +138,17 @@ static void CheckBeginWhileUnderWay(void) {
 
 static void CheckTick(void) {
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Tick(), 0);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_Update(), 0);
 
 	/* A failed session ticks as 0. */
 	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost(NULL, "Luke", "", 0), 0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Tick(), 0);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_Update(), 0);
 	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_FAILED);
 
 	/* While the previous session's close completes, setup is pending. */
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost("\x02", "Luke", "", 0), XVT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Tick(), XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_Update(), XVT_NETWORK_PENDING);
 	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
 }
 
@@ -160,11 +160,11 @@ static void CheckLost(void) {
 	XvtNetworkSession_HostLost();
 	XVT_ASSERT_INT_EQ(XvtNetworkSession_IsLost(), 1);
 
-	/* Outside flight, the next Tick fails a lost session. */
+	/* Outside flight, the next Update fails a lost session. */
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost("\x02", "Luke", "", 0), XVT_NETWORK_PENDING);
 	XvtNetworkSession_HostLost();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Tick(), 0);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_Update(), 0);
 	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_FAILED);
 
 	/* ...and so does the next Service. */
@@ -186,7 +186,7 @@ static void CheckClose(void) {
 	XvtNetworkSession_OnClose();
 	XVT_ASSERT_INT_EQ(XvtNetworkSession_IsLost(), 0);
 	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Tick(), 0);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_Update(), 0);
 
 	/* Service finishes the close once DirectPlay is inactive. */
 	FinishClose();

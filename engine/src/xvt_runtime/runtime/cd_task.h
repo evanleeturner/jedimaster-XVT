@@ -21,11 +21,11 @@ int XvtCdTask_IsFading(void);
 /* Stops the fade, leaving the volume at its last step. */
 void XvtCdTask_CancelFade(void);
 /* Applies every fade step now due in one volume change. Outside flight, also resumes suspended CD
- * playback once its resume tick has passed, and at the end of the current track replays it when
+ * playback once its resume time has passed, and at the end of the current track replays it when
  * looping or marks playback complete. */
-void XvtCdTask_Tick(void);
+void XvtCdTask_Update(void);
 /* Microseconds until the next fade step, and outside flight the resume or track end (1 ms late,
- * matching Tick's strict comparison); 0 when overdue, UINT64_MAX when nothing is due. */
+ * matching Update's strict comparison); 0 when overdue, UINT64_MAX when nothing is due. */
 uint64_t XvtCdTask_NextWakeDelayUs(void);
 
 #ifdef __cplusplus

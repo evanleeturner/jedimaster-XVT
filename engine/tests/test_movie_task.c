@@ -44,7 +44,7 @@ static void EndMovies(void) {
 static void TickUntilComplete(void) {
 	struct timespec pause = { 0, 1000000 };
 	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
-		XvtMovieTask_Tick();
+		XvtMovieTask_Update();
 		nanosleep(&pause, NULL);
 	}
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
@@ -58,8 +58,8 @@ static void CheckIdle(void) {
 	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
 	XVT_ASSERT_INT_EQ(result, 77);
 	XVT_ASSERT_INT_EQ(XvtMovieTask_NextWakeDelayUs(), 10000);
-	/* With no movie, Tick, PausedFrame, Stop and ReapFinished change nothing. */
-	XvtMovieTask_Tick();
+	/* With no movie, Update, PausedFrame, Stop and ReapFinished change nothing. */
+	XvtMovieTask_Update();
 	XvtMovieTask_PausedFrame();
 	XvtMovieTask_Stop();
 	XvtMovieTask_ReapFinished();
@@ -130,7 +130,7 @@ static void CheckStop(void) {
 	XvtMovieTask_Stop();
 	/* A stopped movie counts as finished and completes on its next tick. Its result is 0, unless the
 	 * decoder has already reported the empty file, which makes it 2. */
-	XvtMovieTask_Tick();
+	XvtMovieTask_Update();
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
 	XvtMovieTask_ReapFinished();
 	int result = 77;

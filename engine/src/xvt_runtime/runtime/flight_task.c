@@ -182,7 +182,7 @@ static int XvtFlightTask_StartWorld(void) {
  * and an active resync holds it in place; otherwise the current phase runs one stage (preparation,
  * session, devices, the loading steps, options, world, start, frames, cleanup, fade) and picks the
  * next phase. Each change of phase, and the way the flight ended, is logged. */
-void XvtFlightTask_Tick(void) {
+void XvtFlightTask_Update(void) {
 	XvtFlightPhase previous = g_flight.phase;
 	if (XvtNetworkSession_IsLost() && g_flight.phase < XVT_FLIGHT_CLEANUP) {
 		XVT_LOG_INFO("flight.end result=0 reason=\"session_lost\"");
@@ -190,7 +190,7 @@ void XvtFlightTask_Tick(void) {
 		g_flight.result = 0;
 		g_flight.phase = XVT_FLIGHT_CLEANUP;
 	}
-	XvtResync_Tick();
+	XvtResync_Update();
 	if (XvtResync_IsActive())
 		return;
 	switch (g_flight.phase) {
@@ -292,7 +292,7 @@ void XvtFlightTask_Tick(void) {
 			break;
 		}
 		case XVT_FLIGHT_FRAMES:
-			if (XvtFlightFrame_Tick())
+			if (XvtFlightFrame_Update())
 				g_flight.phase = XVT_FLIGHT_CLEANUP;
 			break;
 		case XVT_FLIGHT_CLEANUP:

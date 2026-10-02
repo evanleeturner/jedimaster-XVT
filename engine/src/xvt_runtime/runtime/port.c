@@ -89,7 +89,7 @@ int XvtPort_Init(void) {
 	g_xvtRebaseClock = 1;
 	g_xvtInitialized = 1;
 	XvtInput_Init();
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_SetSceneKind(XVT_SCENE_FRONTEND);
 	if (!XvtFrontendTask_Init(g_skipIntro)) {
 		XvtPort_CommitSnapshot(0);
@@ -108,7 +108,7 @@ void XvtPort_PausedFrame(void) {
 	int movieActive;
 	if (!g_xvtInitialized)
 		return;
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	if (!g_xvtPaused) {
 		g_xvtPaused = 1;
 		Aeron_AudioSetPaused(1);
@@ -124,12 +124,12 @@ void XvtPort_PausedFrame(void) {
 	XvtPort_CommitSnapshot(movieActive);
 }
 
-void XvtPort_Tick(int32_t delta_us) {
+void XvtPort_Update(int32_t delta_us) {
 	const AeronInputSnapshot* input;
 	int movieActive;
 	if (XvtPort_ServiceQuit())
 		return;
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	input = Aeron_InputSnapshot();
 	XvtInput_UpdateMouseCapture(input);
 	AeronDplay_Update();
@@ -163,16 +163,16 @@ void XvtPort_Tick(int32_t delta_us) {
 	else
 		XvtTime_AdvanceHostClock(delta_us);
 	if (XvtFlightTask_IsActive())
-		XvtCdTask_Tick();
+		XvtCdTask_Update();
 	else
 		XvtFrontendTask_ServiceFrameSystems();
 	movieActive = XvtMovieTask_IsActive();
 	if (movieActive)
-		XvtMovieTask_Tick();
+		XvtMovieTask_Update();
 	else if (XvtFlightTask_IsActive())
-		XvtFlightTask_Tick();
+		XvtFlightTask_Update();
 	else
-		XvtFrontendTask_Tick();
+		XvtFrontendTask_Update();
 	if (XvtFlightTask_IsComplete()) {
 		int result = XvtFlightTask_GetResult();
 		XvtFlightTask_Shutdown();
@@ -225,7 +225,7 @@ void XvtPort_Shutdown(void) {
 	XvtPresentation_RequireClassic();
 	if (!g_xvtInitialized)
 		return;
-	XvtRenderSnapshot_BeginTick();
+	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_SetSceneKind(XVT_SCENE_NONE);
 	XvtMovieTask_Shutdown();
 	XvtFlightTask_Shutdown();

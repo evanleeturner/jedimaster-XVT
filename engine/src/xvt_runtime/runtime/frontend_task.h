@@ -18,11 +18,11 @@ extern "C" {
 int XvtFrontendTask_Init(int skip_intro);
 /* Runs at most one frame per frame interval, and nothing once ShouldQuit is set. The first frame
  * after Init finishes startup: resource loading with skip_intro, bootstrap mode otherwise. While a
- * launch is active only the launch task ticks; while a dialog is active only the dialog ticks;
+ * launch is active only the launch task updates; while a dialog is active only the dialog updates;
  * otherwise runs RunFrame, where a result of 1 or 2 sets ShouldQuit. Then presents the frame
  * unless a movie, dialog result, continuation, campaign prefix or network task is holding the last
  * presented one, or the credits screen is fading out. */
-void XvtFrontendTask_Tick(void);
+void XvtFrontendTask_Update(void);
 /* Runs one frame of the top screen; returns 0 when it has no update callback. A waiting network
  * task or dialog continuation is resumed in place of the update. While a campaign prefix is pending
  * or the network task is active, or when the update opened a dialog, returns 0 with the frame
@@ -32,9 +32,9 @@ void XvtFrontendTask_Tick(void);
  * that cannot be locked ends the program. */
 int XvtFrontendTask_RunFrame(void);
 /* Per host frame outside flight: polls both joysticks at most every 100 ms, pumps network packets
- * unless the network task is active, and ticks the CD task. */
+ * unless the network task is active, and updates the CD task. */
 void XvtFrontendTask_ServiceFrameSystems(void);
-/* 1 once a frame returned 1 or 2 through Tick. */
+/* 1 once a frame returned 1 or 2 through Update. */
 int XvtFrontendTask_ShouldQuit(void);
 /* Microseconds until the next frame or CD task event, whichever is sooner; 0 when overdue. */
 uint64_t XvtFrontendTask_NextWakeDelayUs(void);

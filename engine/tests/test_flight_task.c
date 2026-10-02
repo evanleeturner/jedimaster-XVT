@@ -174,7 +174,7 @@ static void CheckLostSession(void) {
 	/* A lost session sends the task to cleanup with a result of 0: the mission is released in that tick,
 	 * and with no CD fade the next tick finishes the task. */
 	XvtNetworkSession_HostLost();
-	XvtFlightTask_Tick();
+	XvtFlightTask_Update();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_GetResult(), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsLoading(), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_Profile(), XVT_FLIGHT_TIMING_NATIVE);
@@ -183,12 +183,12 @@ static void CheckLostSession(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 0);
 	/* Without the integration table, Rate returns the plain truncated result (flight_integration.h). */
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PUSH_X, 1, 1, 4), 0);
-	XvtFlightTask_Tick();
+	XvtFlightTask_Update();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsComplete(), 1);
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightTask_GetResult(), 0);
 	/* Complete until Shutdown or the next Begin. */
-	XvtFlightTask_Tick();
+	XvtFlightTask_Update();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsComplete(), 1);
 	XvtNetworkSession_Shutdown();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_Begin("mission"), 1);
@@ -199,8 +199,8 @@ static void CheckLostSession(void) {
 	/* The header warns that this happens to an idle task too. */
 	World();
 	XvtNetworkSession_HostLost();
-	XvtFlightTask_Tick();
-	XvtFlightTask_Tick();
+	XvtFlightTask_Update();
+	XvtFlightTask_Update();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsComplete(), 1);
 	XVT_ASSERT_INT_EQ(XvtFlightTask_GetResult(), 0);
 }

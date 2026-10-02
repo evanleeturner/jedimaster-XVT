@@ -32,15 +32,15 @@ void XvtRenderAssets_Init(void);
 void XvtRenderAssets_Shutdown(void);
 /* Once the renderer has consumed the last export, removes the retired sources that neither the
  * current nor the previous snapshot uses. Does nothing before Init. */
-void XvtRenderAssets_BeginTick(void);
+void XvtRenderAssets_BeginFrame(void);
 /* Writes every registered source, retired ones included, into snapshot's OPT, texture and
  * image asset lists; a texture entry names the first model type bound to it (UINT16_MAX when
  * none). Without a valid flight view it also refills the model types' asset ids from the
  * bindings. Stamps the three generations and the flight palette, and records the snapshot's
- * tick as the export awaiting consumption. A source past its list's capacity counts a dropped
+ * serial as the export awaiting consumption. A source past its list's capacity counts a dropped
  * record and requests a fatal renderer error. Does nothing before Init or for NULL. */
 void XvtRenderAssets_Export(XvtRenderSnapshot* snapshot);
-/* Records that the renderer is done with the export of tick. */
+/* Records that the renderer is done with the export of snapshot_serial. */
 void XvtRenderAssets_Consumed(uint64_t snapshot_serial);
 /* Register the model or texture file loaded into a classic handle, keyed by that handle.
  * Handle 0 is ignored. */

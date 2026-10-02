@@ -37,7 +37,7 @@ static void Fresh(void) {
 static void FinishMovie(void) {
 	struct timespec pause = { 0, 1000000 };
 	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
-		XvtMovieTask_Tick();
+		XvtMovieTask_Update();
 		nanosleep(&pause, NULL);
 	}
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
@@ -62,7 +62,7 @@ static void CheckViewerWaitsForResult(void) {
 	/* Completed but not reaped: the result has not arrived. */
 	struct timespec pause = { 0, 1000000 };
 	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
-		XvtMovieTask_Tick();
+		XvtMovieTask_Update();
 		nanosleep(&pause, NULL);
 	}
 	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 1);
