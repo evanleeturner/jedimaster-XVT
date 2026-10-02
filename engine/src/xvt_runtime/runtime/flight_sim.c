@@ -754,6 +754,10 @@ static XvtFlightStepResult XvtFlightSim_FinishedAdvance(void)
 		       : XVT_STEP_COMPLETE;
 }
 
+/* Runs whole simulation steps up to the target time. Each step calls the
+ * recovered game's per-tick stages in their original order, with a stop
+ * after each stage that can end the mission, so the order reads in one
+ * place. */
 XvtFlightStepResult XvtFlightSim_StepToTime(int targetGameTime)
 {
 	enum { MINIMUM_SIM_STEP_TICKS = 1, MINIMUM_SIM_STEPS_PER_SECOND = 1 };

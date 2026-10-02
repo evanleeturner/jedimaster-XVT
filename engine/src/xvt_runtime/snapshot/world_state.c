@@ -708,6 +708,10 @@ static int XvtSnapshot_RangesMatchLive(const uint8_t *image_ranges)
 	return memcmp(&ranges, &expected, sizeof ranges) == 0;
 }
 
+/* Walks the image once, in its layout order: the player records at its end,
+ * then each object slot (against the checkpoint's timing rows in the network
+ * profile), then the fixed tables. Each check reads the cursor and the bytes
+ * left where the previous check stopped, so the walk stays in one place. */
 static int XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
 				      const XvtFlightCheckpointView *timing)
 {

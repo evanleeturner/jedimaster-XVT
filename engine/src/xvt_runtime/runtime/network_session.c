@@ -431,6 +431,9 @@ static void XvtNetworkSession_Roster(void)
 	}
 }
 
+/* One update of the session state machine: each phase does its step (the
+ * longer steps are the functions above) and names the next phase, so the
+ * whole host and join sequence reads in one switch. */
 int XvtNetworkSession_Update(void)
 {
 	HRESULT result;
