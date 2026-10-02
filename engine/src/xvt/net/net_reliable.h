@@ -65,7 +65,7 @@ struct NetPiggybackPayload {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetPendingPayload[(sizeof(NetPendingPayload) == 520) ? 1 : -1];
+typedef char xvt_size_NetPendingPayload[(sizeof(NetPiggybackPayload) == 520) ? 1 : -1];
 
 extern int g_netRecvQueueReadIndex;
 extern int g_netRecvQueueWriteIndex;

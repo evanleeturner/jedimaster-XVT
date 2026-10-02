@@ -126,12 +126,12 @@ int8_t g_radarTargetMarkerShape16bpp[20] = {
 	-1, 1, -2, 1, -2, 0, -2, -1, -1, -1, 1, -1, 2, -1, 2, 0, 2, 1, 1, 1,
 };
 // GLOBAL: XVT 0x51A7E8
-static FlightCursorShapeOffset g_radarTargetMarkerShape10[12] = {
+static FlightRadarMarkerOffset g_radarTargetMarkerShape10[12] = {
 	{ -1, 1 }, { -2, 1 }, { -2, 0 }, { -2, -1 }, { -1, -1 }, { 1, -1 },
 	{ 2, -1 }, { 2, 0 },  { 2, 1 },  { 1, 1 },   { 0, 0 },   { 0, 0 },
 };
 // GLOBAL: XVT 0x51A800
-static FlightCursorShapeOffset g_radarTargetMarkerShape12[12] = {
+static FlightRadarMarkerOffset g_radarTargetMarkerShape12[12] = {
 	{ -1, 2 }, { -2, 2 }, { -2, 1 }, { -2, 0 }, { -2, -1 }, { -1, -1 },
 	{ 1, -1 }, { 2, -1 }, { 2, 0 },  { 2, 1 },  { 2, 2 },   { 1, 2 },
 };

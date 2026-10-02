@@ -143,9 +143,9 @@ struct FrontendGlobalState {
 	NetPlayerInfo netPlayers[32];
 	NetPlayerInfo netRuntimeLocalPlayer;
 	int netRuntimeBroadcastSeqCounter;
-	NetPendingPayload netRuntimeBroadcastPendingPayload;
+	NetPiggybackPayload netRuntimeBroadcastPendingPayload;
 	int netRuntimeGroupSeqCounter;
-	NetPendingPayload netRuntimeGroupPendingPayload;
+	NetPiggybackPayload netRuntimeGroupPendingPayload;
 	uint8_t unknownNetState_28865[4];
 	int frontendPostResetMarker;
 	int netReliableRetryLongTimeoutMode;
