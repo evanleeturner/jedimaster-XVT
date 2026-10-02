@@ -19,7 +19,7 @@ enum {
 	BILLBOARD_INVALID_FRAME_START = 0xFF00,
 	BILLBOARD_SCREEN_COORD_HIGH_MASK = -65536,
 	BILLBOARD_DEFAULT_SCREEN_SIZE = 256,
-	BILLBOARD_LIGHT_SIZE_SHIFT = 6,
+	BILLBOARD_EFFECT_SIZE_SHIFT = 6,
 	BILLBOARD_ALIGNMENT_QUARTER_TURN = 0x4000,
 };
 
@@ -37,7 +37,7 @@ static SceneBillboardQueueEntry g_sceneBillboardQueue[32] = { { 0 } };
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x401000
-void SceneBillboard_QueueObjectTextured(int objectIndex) {
+void SceneBillboard_DrawOrQueueObject(int objectIndex) {
 	ObjectRecord* object;
 	uint16_t sourceObjectType;
 	uint16_t frame;
@@ -75,7 +75,7 @@ void SceneBillboard_QueueObjectTextured(int objectIndex) {
 			sourceObjectType = object->mobj->sourceObjectType;
 		}
 		g_billboardModelNodeSwitchIndex = frame;
-		RenderScene_DrawNoAssetSourceModel(object, frame);
+		RenderScene_DrawSelectedRootNode(object, frame);
 		if (sourceObjectType == COMPONENT_OBJECT_TYPE) {
 			g_billboardTextureSequenceIndex = g_objectTable[objectIndex].typeSpecificByte[1];
 			frame = g_modelType132TextureFrameSequence[g_billboardTextureSequenceIndex];
@@ -121,7 +121,7 @@ void SceneBillboard_QueueObjectTextured(int objectIndex) {
 	screenY = g_flightVpHeight - projectedY;
 	screenSize = g_objectTable[objectIndex].mobj->effectSize;
 	if (screenSize != 0) {
-		screenSize = (uint16_t)(screenSize << BILLBOARD_LIGHT_SIZE_SHIFT);
+		screenSize = (uint16_t)(screenSize << BILLBOARD_EFFECT_SIZE_SHIFT);
 		if (screenSize >= BILLBOARD_DEFAULT_SCREEN_SIZE) {
 			screenSize = (uint16_t)(screenSize + BILLBOARD_DEFAULT_SCREEN_SIZE);
 		}

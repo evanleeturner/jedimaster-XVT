@@ -249,7 +249,8 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 							int targetFlags);
 void Player_SetTarget(int newTargetObjIdx, int playerIdx);
 uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int playerIdx);
-int16_t USER_calcdeltapitch(int16_t angleQ16, int16_t yawAngleQ16, uint16_t objectIndex, CraftData* craft);
+int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16, uint16_t objectIndex,
+							CraftData* craft);
 int16_t Player_CanRadioCommandCraft(int playerIdx);
 void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId, uint16_t responseIndex,
 									  int playerIdx);

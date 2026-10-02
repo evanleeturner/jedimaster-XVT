@@ -396,7 +396,7 @@ void FlightMap_DrawObjectPass(int drawAboveGridPlane) {
 						FVIEW_SetObjectTransform(g_objectTable[objectIdx].roll,
 												 g_objectTable[objectIdx].pitch, g_objectTable[objectIdx].yaw,
 												 0, &g_objectTable[objectIdx]);
-						SceneBillboard_QueueObjectTextured(objectIdx);
+						SceneBillboard_DrawOrQueueObject(objectIdx);
 					} else {
 						FVIEW_SetObjectTransform(g_objectTable[objectIdx].roll,
 												 g_objectTable[objectIdx].pitch, g_objectTable[objectIdx].yaw,
@@ -416,7 +416,7 @@ void FlightMap_DrawObjectPass(int drawAboveGridPlane) {
 						FVIEW_SetObjectTransform(g_objectTable[objectIdx].roll,
 												 g_objectTable[objectIdx].pitch, g_objectTable[objectIdx].yaw,
 												 0, &g_objectTable[objectIdx]);
-						SceneBillboard_QueueObjectTextured(objectIdx);
+						SceneBillboard_DrawOrQueueObject(objectIdx);
 					} else {
 						FVIEW_SetObjectTransform(g_objectTable[objectIdx].roll,
 												 g_objectTable[objectIdx].pitch, g_objectTable[objectIdx].yaw,

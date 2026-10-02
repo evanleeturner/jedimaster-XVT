@@ -875,7 +875,7 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 }
 
 // FUNCTION: XVT 0x46DD80
-int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t localSeq, uint8_t sequence,
+int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t packetClass, uint8_t sequence,
 									   const unsigned int* packet, unsigned int packetSize) {
 	int appendTerminator;
 	HRESULT sendResult;
@@ -901,7 +901,7 @@ int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t localSeq, uint8_
 	packetFlags |= 0x80;
 	packetFlags &= 0x7FFF;
 	encodedPacket.packetTypeHeader = (int16_t)packetFlags;
-	encodedPacket.packetClass = localSeq;
+	encodedPacket.packetClass = packetClass;
 	encodedPayload = (uint8_t*)&encodedPacket.payloadSize;
 	encodedSize = 3;
 	if (appendTerminator) {
@@ -938,7 +938,7 @@ int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t localSeq, uint8_
 			g_netSessionRecvQueue[queueIndex].directPlayId = (DPID)g_netSession.localPlayerInfo.directPlayId;
 			g_netSessionRecvQueue[queueIndex].payloadSize = packetDataSize;
 			queueCount = g_netRecvQueueCount;
-			g_netSessionRecvQueue[queueIndex].packetClass = localSeq;
+			g_netSessionRecvQueue[queueIndex].packetClass = packetClass;
 			++queueCount;
 			g_netSessionRecvQueue[queueIndex].sequenceByte = sequence;
 			g_netRecvQueueCount = queueCount;

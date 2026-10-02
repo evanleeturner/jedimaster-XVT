@@ -17,15 +17,15 @@ typedef enum FrontendNavigationSlotState {
 
 extern const char* g_buttonOverlayText;
 
-int FrontendButton_HandleTextButton(RECT* rect, const char* text, int fontSize, int normalColor,
-									int hoverSlot, const char* clickSoundName);
-int FrontendButton_DrawSpriteHitTest(RECT* rect, const char* normalSprite, const char* pressedSprite,
-									 const char* tooltipText, int fontSize, int textColor, int hoverSlot,
-									 const char* hoverSound);
-int FrontendButton_DrawTextButtonState(RECT* rect, const char* text, int fontSize, int normalColor,
-									   char state);
+int FrontendButton_HandleTextButton(RECT* rect, const char* text, int fontSize, int unusedColor,
+									int heldStateSlot, const char* clickSoundName);
+int FrontendButton_HandleSpriteButton(RECT* rect, const char* normalSprite, const char* pressedSprite,
+									  const char* tooltipText, int fontSize, int unusedColor,
+									  int heldStateSlot, const char* pressSoundName);
+int FrontendButton_DrawTextButtonState(RECT* rect, const char* text, int fontSize, int unusedColor,
+									   char isPressed);
 void FrontendButton_DrawSpriteAndTooltip(RECT* rect, const char* spriteName, const char* tooltipText,
-										 int fontSize, int textColor);
+										 int fontSize, int unusedColor);
 void FrontendButton_DrawEightSlotNavigationState(const FrontendNavigationSlotState* slotStates);
 int FrontendButton_DrawOverlayText(RECT* rect, const char* str);
 void FrontendButton_EnableOverlayText(void);

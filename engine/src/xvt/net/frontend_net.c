@@ -428,9 +428,9 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 			FrontendButton_EnableOverlayText();
 		}
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_258_RETURN_TO_PILOT_RECORDS), 12, 0,
-											 8, "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_258_RETURN_TO_PILOT_RECORDS), 12, 0,
+											  8, "buttonsound") != 0) {
 			g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
 			Net_ShutdownDirectPlaySession();
 			FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
@@ -441,9 +441,9 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 			g_frontendNetSessionList[g_frontendNetSelectedSessionIdx].version ==
 				FRONTEND_NET_PROTOCOL_VERSION) {
 			FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_018_JOIN));
-			if (FrontendButton_DrawSpriteHitTest(&rect, "nextup", "nextdown",
-												 FrontendString_Get(FRONTSTR_018_JOIN), 12, 0, 7,
-												 "flysound") != 0) {
+			if (FrontendButton_HandleSpriteButton(&rect, "nextup", "nextdown",
+												  FrontendString_Get(FRONTSTR_018_JOIN), 12, 0, 7,
+												  "flysound") != 0) {
 				g_missionSetupIsHost = 0;
 				strcpy(g_pilotData.multiplayerGameName,
 					   g_frontendNetSessionList[g_frontendNetSelectedSessionIdx].gameName);
@@ -597,7 +597,7 @@ int FrontendNet_AwaitJoinAdmissionScreen(int frameCounter) {
 	}
 	FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_019_CANCEL));
 	FrontendDraw_RectAssign(&rect, 85, 447, 176, 471);
-	cancelPressed = FrontendButton_DrawSpriteHitTest(
+	cancelPressed = FrontendButton_HandleSpriteButton(
 		&rect, "leaveup", "leavedown", FrontendString_Get(FRONTSTR_019_CANCEL), 12, 0, 8, "buttonsound");
 	FrontendButton_DisableOverlayText();
 #ifdef XVT_MODERN
@@ -743,7 +743,7 @@ int FrontendNet_UpdateAndDrawChatPanel(int frameCounter) {
 	}
 
 	FrontendDraw_RectAssign(&rect, 461, 406, 595, 424);
-	if (FrontendText_DrawEditableField(&rect, g_frontendChatInputBuffer, 100, 0, 12, NULL) != 0 &&
+	if (FrontendText_HandleEditableField(&rect, g_frontendChatInputBuffer, 100, 0, 12, NULL) != 0 &&
 		g_frontendChatInputBuffer[0] != 0) {
 		g_frontendNetPacketScratch.packetType = NET_PACKET_CHAT;
 		localPlayerId = Net_GetLocalPlayerId();
@@ -770,7 +770,7 @@ int FrontendNet_UpdateAndDrawChatPanel(int frameCounter) {
 		if (teamMessage != 0) {
 			playerIndex = 0;
 			while (playerIndex < 8 &&
-				   Net_GetLocalPlayerId() != g_missionSetupPlayerAssignments.activePlayerIds[playerIndex])
+				   Net_GetLocalPlayerId() != g_missionSetupPlayerAssignments.assignedPlayerIds[playerIndex])
 				++playerIndex;
 			if (playerIndex == 8) {
 				Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, strlen(g_frontendScratchBuffer) + 4);
@@ -957,7 +957,7 @@ int FrontendNet_ConnectToSelectedGameScreen(int frameCounter) {
 				FrontendDisplay_FlipDirectDrawToGDISurface();
 				FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT, CONNECT_MESSAGE_TOP,
 										CONNECT_MESSAGE_RIGHT, CONNECT_GDI_MESSAGE_BOTTOM);
-				FrontendDisplay_DrawGdiTextOnSecondaryDisplay(
+				FrontendDisplay_DrawGdiTextOnDesktop(
 					&rect, FrontendString_Get(FRONTSTR_645_CONNECTING),
 					FrontendString_Get(
 						FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES));
@@ -995,7 +995,7 @@ int FrontendNet_ConnectToSelectedGameScreen(int frameCounter) {
 			case NET_TRANSPORT_TCPIP:
 				FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT, CONNECT_MESSAGE_TOP,
 										CONNECT_MESSAGE_RIGHT, CONNECT_GDI_MESSAGE_BOTTOM);
-				FrontendDisplay_ClearSecondaryDisplayGdi(&rect);
+				FrontendDisplay_ClearDesktopGdi(&rect);
 				break;
 			default:
 				break;
@@ -1044,14 +1044,14 @@ int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void) {
 	FrontendButton_DrawEightSlotNavigationState(slotStates);
 	FrontendDraw_RectAssign(&rect, QUERY_BUTTON_LEFT, QUERY_BUTTON_TOP, QUERY_BUTTON_RIGHT,
 							QUERY_BUTTON_BOTTOM);
-	if (FrontendButton_DrawSpriteHitTest(&rect, "join1u", "join1d",
+	if (FrontendButton_HandleSpriteButton(&rect, "join1u", "join1d",
 #ifdef XVT_MODERN
-										 "Refresh",
+										  "Refresh",
 #else
-										 FrontendString_Get(FRONTSTR_734_QUERY_ALL_GAMES),
+										  FrontendString_Get(FRONTSTR_734_QUERY_ALL_GAMES),
 #endif
-										 QUERY_BUTTON_FONT_SIZE, 0, QUERY_BUTTON_HOVER_SLOT,
-										 "jewelsound") != 0) {
+										  QUERY_BUTTON_FONT_SIZE, 0, QUERY_BUTTON_HOVER_SLOT,
+										  "jewelsound") != 0) {
 #ifdef XVT_MODERN
 		XvtNetworkTask_Refresh();
 #else
@@ -1448,8 +1448,8 @@ int FrontendNet_HostGameScreen(int frameCounter) {
 		FrontendDraw_RectAssign(&rect, 245, 225, 445, 245);
 		FrontendText_DrawCentered(15, FrontendString_Get(FRONTSTR_017_NAME_THE_GAME_SESSION), &rect, 0xFFFF);
 		FrontendDraw_RectAssign(&rect, 250, 245, 440, 265);
-		hostRequested = FrontendText_DrawEditableField(&rect, g_pilotData.multiplayerGameName,
-													   HOST_NAME_MAX_CHARS, HOST_TEXT_FIELD_ID, 12, NULL);
+		hostRequested = FrontendText_HandleEditableField(&rect, g_pilotData.multiplayerGameName,
+														 HOST_NAME_MAX_CHARS, HOST_TEXT_FIELD_ID, 12, NULL);
 		FrontendDraw_RectAssign(&rect, 250, 275, 440, 295);
 		hostRequested |= FrontendButton_HandleTextButton(&rect, FrontendString_Get(FRONTSTR_004_HOST_GAME),
 														 15, 0xFFFF, HOST_BUTTON_HOVER_SLOT, "buttonsound");
@@ -1504,9 +1504,9 @@ int FrontendNet_HostGameScreen(int frameCounter) {
 			FrontendButton_EnableOverlayText();
 		}
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_258_RETURN_TO_PILOT_RECORDS), 12, 0,
-											 8, "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_258_RETURN_TO_PILOT_RECORDS), 12, 0,
+											  8, "buttonsound") != 0) {
 			g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
 			FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
 		}
@@ -1541,7 +1541,7 @@ int FrontendNet_HostGameScreen(int frameCounter) {
 		case NET_TRANSPORT_TCPIP:
 			FrontendDisplay_FlipDirectDrawToGDISurface();
 			FrontendDraw_RectAssign(&rect, 84, 90, 605, 429);
-			FrontendDisplay_DrawGdiTextOnSecondaryDisplay(
+			FrontendDisplay_DrawGdiTextOnDesktop(
 				&rect, FrontendString_Get(FRONTSTR_020_ACCESSING_IMPERIAL_NETWORK), NULL);
 			FrontendCursor_ShowOsCursor();
 			strcpy(g_frontendScratchBuffer, g_gameConfig.ipAddress);
@@ -1580,7 +1580,7 @@ int FrontendNet_HostGameScreen(int frameCounter) {
 	switch ((NetworkTransportType)g_gameConfig.networkType) {
 		case NET_TRANSPORT_TCPIP:
 			FrontendDraw_RectAssign(&rect, 84, 90, 605, 429);
-			FrontendDisplay_ClearSecondaryDisplayGdi(&rect);
+			FrontendDisplay_ClearDesktopGdi(&rect);
 			break;
 		default:
 			break;
@@ -1867,8 +1867,8 @@ int FrontendNet_ProcessNetworkPackets(void) {
 				break;
 			if (payload[1] == 10) {
 				for (playerIndex = 0; playerIndex < MAX_PLAYERS; ++playerIndex) {
-					if (g_missionSetupPlayerAssignments.activePlayerIds[playerIndex] == payload[0]) {
-						g_missionSetupPlayerAssignments.activePlayerIds[playerIndex] = 0;
+					if (g_missionSetupPlayerAssignments.assignedPlayerIds[playerIndex] == payload[0]) {
+						g_missionSetupPlayerAssignments.assignedPlayerIds[playerIndex] = 0;
 						break;
 					}
 				}
@@ -1895,13 +1895,13 @@ int FrontendNet_ProcessNetworkPackets(void) {
 			if (rosterIndex < MAX_PLAYERS && g_gameConfig.sfxDatapadEnabled != 0)
 				FrontendSound_PlayUISound("slotsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 			for (playerIndex = 0; playerIndex < MAX_PLAYERS; ++playerIndex) {
-				if (g_missionSetupPlayerAssignments.activePlayerIds[playerIndex] == payload[0])
+				if (g_missionSetupPlayerAssignments.assignedPlayerIds[playerIndex] == payload[0])
 					break;
 			}
 			if (playerIndex == MAX_PLAYERS) {
 				for (playerIndex = 0; playerIndex < MAX_PLAYERS; ++playerIndex) {
-					if (g_missionSetupPlayerAssignments.activePlayerIds[playerIndex] == 0) {
-						g_missionSetupPlayerAssignments.activePlayerIds[playerIndex] = payload[0];
+					if (g_missionSetupPlayerAssignments.assignedPlayerIds[playerIndex] == 0) {
+						g_missionSetupPlayerAssignments.assignedPlayerIds[playerIndex] = payload[0];
 						break;
 					}
 				}
@@ -1959,16 +1959,16 @@ int FrontendNet_ProcessNetworkPackets(void) {
 
 		case NET_PACKET_CLEAR_TEAM_ASSIGNMENTS:
 			memset(&g_missionSetupPlayerAssignments, 0, MISSION_ASSIGNMENT_TEAM_BYTES);
-			memset(g_missionSetupPlayerAssignments.activePlayerIds, 0,
-				   sizeof(g_missionSetupPlayerAssignments.activePlayerIds));
+			memset(g_missionSetupPlayerAssignments.assignedPlayerIds, 0,
+				   sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds));
 			break;
 
 		case NET_PACKET_TEAM_ASSIGNMENTS:
 			memcpy(g_missionSetupPlayerAssignments.teamPlayerIds, payload,
 				   sizeof(g_missionSetupPlayerAssignments.teamPlayerIds));
-			memcpy(g_missionSetupPlayerAssignments.activePlayerIds,
+			memcpy(g_missionSetupPlayerAssignments.assignedPlayerIds,
 				   &payload[sizeof(g_missionSetupPlayerAssignments.teamPlayerIds) / sizeof(payload[0])],
-				   sizeof(g_missionSetupPlayerAssignments.activePlayerIds));
+				   sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds));
 			break;
 
 		case NET_PACKET_CLEAR_FLIGHT_ASSIGNMENTS:
@@ -2211,7 +2211,7 @@ int FrontendNet_ProcessNetworkPackets(void) {
 			break;
 
 		case NET_PACKET_BATTLE_PROGRESS:
-			g_remoteBattleSequenceActive = payload[0];
+			g_remoteBattleContinuationActive = payload[0];
 			g_remoteBattleSequenceContinuationChoice = payload[1];
 			g_remoteBattleLastCompletedMissionIndex = payload[2];
 			g_remoteBattleRebelVictoryCount = payload[3];

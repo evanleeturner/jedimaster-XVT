@@ -15,7 +15,7 @@ typedef struct TexLevelHeader {
 	uint32_t reserved04[2];
 	uint32_t paletteOffset;
 	uint32_t imageOffsetTableOffset;
-	uint32_t palette8Offset;
+	uint32_t convertedPaletteOffset;
 	uint32_t imageCount;
 	uint32_t reserved1C[4];
 	uint32_t bitsPerPixel;
@@ -26,7 +26,7 @@ typedef struct TexLevelImageHeader {
 	uint32_t reserved00;
 	uint32_t paletteOffset;
 	uint32_t encodedImageOffset;
-	uint32_t palette8Offset;
+	uint32_t convertedPaletteOffset;
 	uint32_t width;
 	uint32_t height;
 	uint32_t reserved18[2];

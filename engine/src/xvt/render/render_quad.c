@@ -40,7 +40,7 @@ void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry* quadRecord) {
 	uint16_t modelType;
 	uint16_t screenSize;
 	uint16_t handle;
-	int savedTargetY;
+	int cameraWorldY;
 	ObjectRecord* object;
 	const uint8_t* modelData;
 	const TexLevelHeader* textureHeader;
@@ -51,9 +51,9 @@ void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry* quadRecord) {
 	modelType = frame >> 7;
 	g_billboardObjectOrTypeIndex = quadRecord->objectOrTypeIndex;
 	object = &g_objectTable[g_billboardObjectOrTypeIndex];
-	savedTargetY = g_players[g_localPlayer].viewState.cameraWorldY;
+	cameraWorldY = g_players[g_localPlayer].viewState.cameraWorldY;
 	g_camRelWorldX = object->world_x - g_players[g_localPlayer].viewState.cameraWorldX;
-	g_camRelWorldY = object->world_y - savedTargetY;
+	g_camRelWorldY = object->world_y - cameraWorldY;
 	g_camRelWorldZ = object->world_z - g_players[g_localPlayer].viewState.cameraWorldZ;
 	g_viewSpaceDepth = quadRecord->depthZ;
 	screenSize = (uint16_t)SceneBillboard_ComputeProjectedSize(
@@ -72,14 +72,14 @@ void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry* quadRecord) {
 									 screenSize, sprite);
 	else {
 		FlightSw_PrepareSpriteRotationTables(quadRecord->rotationAngle, FLIGHT_SW_16BPP_BYTES_PER_PIXEL);
-		FlightSw_BuildSpriteTintRemapTables(sprite);
+		FlightSw_LoadSpritePaletteTables(sprite);
 		FlightSw_DrawRotatedSpriteQuad(quadRecord->screenX, quadRecord->screenY, screenSize, sprite);
 	}
 }
 
 // FUNCTION: XVT 0x40BBF0
 void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t screenSize,
-								  const void* textureLevel) {
+								  const void* textureImage) {
 	enum {
 		EXPLOSION_FRAME_COUNT = 32,
 		CLIP_VERTEX_CAPACITY = 40,
@@ -129,8 +129,8 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 		return;
 #endif
 
-	textureBytes = (const uint8_t*)textureLevel;
-	imageHeader = (const TexLevelImageHeader*)textureLevel;
+	textureBytes = (const uint8_t*)textureImage;
+	imageHeader = (const TexLevelImageHeader*)textureImage;
 	screenY = g_flightVpHeight - screenY;
 #ifdef XVT_MODERN
 	color = UINT32_MAX;
@@ -155,12 +155,12 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	if ((unsigned int)g_viewSpaceDepth > 0x1000000u) {
 		color = UINT32_MAX;
 		computedDepth = 0.00012205541f;
-		if (g_std3DZBufferBitDepth == 2)
+		if (g_std3DZCompareCap == 2)
 			computedDepth = 0.99987793f;
 	} else {
 		computedDepth =
 			g_renderUnitFloat / ((float)g_viewSpaceDepth * g_invDepthProjScale + g_renderUnitFloat);
-		if (g_std3DZBufferBitDepth == 2)
+		if (g_std3DZCompareCap == 2)
 			computedDepth = g_renderUnitFloat - computedDepth;
 	}
 	depth = computedDepth;
@@ -217,15 +217,15 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 
 	vertices[0].x = (float)(screenX + xOffset);
 	vertices[0].y = (float)(screenY + yOffset);
-	vertices[0].z = depth;
-	memset(&vertices[0].rhw, 0, sizeof(float) * 3);
+	vertices[0].scaledInverseDepth = depth;
+	memset(&vertices[0].lightIntensity, 0, sizeof(float) * 3);
 	negativeHalfWidth = -halfWidth;
 	xOffset = trig2_cosinedwordmult(negativeHalfWidth, angle) + trig2_sinedwordmult(halfHeight, angle);
 	yOffset = trig2_cosinedwordmult(halfHeight, angle) - trig2_sinedwordmult(negativeHalfWidth, angle);
 	vertices[1].x = (float)(screenX + xOffset);
 	vertices[1].y = (float)(screenY + yOffset);
-	vertices[1].z = depth;
-	vertices[1].rhw = 0.0f;
+	vertices[1].scaledInverseDepth = depth;
+	vertices[1].lightIntensity = 0.0f;
 	vertices[1].u = maxU;
 	vertices[1].v = 0.0f;
 	negativeHalfHeight = -halfHeight;
@@ -235,16 +235,16 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 		trig2_cosinedwordmult(negativeHalfHeight, angle) - trig2_sinedwordmult(negativeHalfWidth, angle);
 	vertices[2].x = (float)(screenX + xOffset);
 	vertices[2].y = (float)(screenY + yOffset);
-	vertices[2].z = depth;
-	vertices[2].rhw = 0.0f;
+	vertices[2].scaledInverseDepth = depth;
+	vertices[2].lightIntensity = 0.0f;
 	vertices[2].u = maxU;
 	vertices[2].v = maxV;
 	xOffset = trig2_cosinedwordmult(halfWidth, angle) + trig2_sinedwordmult(negativeHalfHeight, angle);
 	yOffset = trig2_cosinedwordmult(negativeHalfHeight, angle) - trig2_sinedwordmult(halfWidth, angle);
 	vertices[3].x = (float)(screenX + xOffset);
 	vertices[3].y = (float)(screenY + yOffset);
-	vertices[3].z = depth;
-	vertices[3].rhw = 0.0f;
+	vertices[3].scaledInverseDepth = depth;
+	vertices[3].lightIntensity = 0.0f;
 	vertices[3].u = 0.0f;
 	vertices[3].v = maxV;
 
@@ -337,7 +337,7 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 		sourceY = vertices[sourceIndex].y;
 		sourceU = vertices[sourceIndex].u;
 		sourceV = vertices[sourceIndex].v;
-		sourceDepth = vertices[sourceIndex].z;
+		sourceDepth = vertices[sourceIndex].scaledInverseDepth;
 		g_flightVertexBuffer[g_d3dVertexCount].sx = vertices[sourceIndex].x + g_flightVpOriginX;
 		g_flightVertexBuffer[g_d3dVertexCount].sy = sourceY + g_flightVpOriginY;
 		g_flightVertexBuffer[g_d3dVertexCount].sz = sourceDepth;
@@ -349,7 +349,7 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 		g_clipIdxA[vertexIndex] = g_d3dVertexCount;
 		++g_d3dVertexCount;
 	}
-	palette = (uint16_t*)(textureBytes + imageHeader->palette8Offset);
+	palette = (uint16_t*)(textureBytes + imageHeader->convertedPaletteOffset);
 	pixels = textureBytes + imageHeader->encodedImageOffset + 16;
 	rleFormat = (int32_t)imageHeader->packingMode;
 	texture = RenderTexture_GetOrCreateBitmap(width, height, palette, pixels, rleFormat);

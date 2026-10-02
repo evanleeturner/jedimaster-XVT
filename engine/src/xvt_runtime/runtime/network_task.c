@@ -40,7 +40,7 @@ static int XvtNetworkTask_MissionFile(const AeronDplayDirectoryMission* mission,
 	char list[256], line[256], filename[256], title[256];
 	if (!mission->present || mission->directory >= 6)
 		return 0;
-	snprintf(list, sizeof(list), "%s/mission.lst", g_campaignDirNames[mission->directory]);
+	snprintf(list, sizeof(list), "%s/mission.lst", g_missionDirectoryNames[mission->directory]);
 	XvtFile* file = File_Open(list, "r");
 	if (!file)
 		return 0;
@@ -70,7 +70,7 @@ static int XvtNetworkTask_MissionFile(const AeronDplayDirectoryMission* mission,
 			name = strlen(name) >= 2 ? name + 2 : NULL;
 		if (!name || !*name)
 			break;
-		int length = snprintf(path, capacity, "%s/%s", g_campaignDirNames[mission->directory], name);
+		int length = snprintf(path, capacity, "%s/%s", g_missionDirectoryNames[mission->directory], name);
 		if (length < 0 || (size_t)length >= capacity)
 			break;
 		snprintf(g_browser.preview.title, sizeof(g_browser.preview.title), "%s", title);

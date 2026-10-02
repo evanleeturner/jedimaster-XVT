@@ -47,7 +47,7 @@ FrontendMissionSessionMode g_frontendMissionSessionMode = FRONTEND_MISSION_SESSI
 // GLOBAL: XVT 0x52C6D4
 int g_briefingSkipPlayerAssignment = 0;
 // GLOBAL: XVT 0x665D78
-int g_missionBriefingTickNowMs = 0;
+int g_missionBriefingNowMs = 0;
 // GLOBAL: XVT 0x665D80
 MissionBriefingLaunchCountdownState g_missionBriefingLaunchCountdownState = MISSION_BRIEFING_COUNTDOWN_IDLE;
 // GLOBAL: XVT 0x665D84
@@ -55,7 +55,7 @@ int g_missionBriefingLaunchCountdownMs = 0;
 // GLOBAL: XVT 0x665D88
 int g_missionBriefingUnusedState = 0;
 // GLOBAL: XVT 0x665D8C
-int g_missionBriefingLastTickMs = 0;
+int g_missionBriefingLastUpdateMs = 0;
 // GLOBAL: XVT 0x665D90
 int g_missionBriefingLastCountdownSecondSent = 0;
 
@@ -247,8 +247,8 @@ int MissionBriefing_Update(int frameCounter) {
 								   sizeof(g_frontendNetPacketScratch.packetType));
 		}
 		g_missionBriefingLaunchCountdownMs = LAUNCH_COUNTDOWN_MS;
-		g_missionBriefingTickNowMs = GetTickCount();
-		g_missionBriefingLastTickMs = g_missionBriefingTickNowMs;
+		g_missionBriefingNowMs = GetTickCount();
+		g_missionBriefingLastUpdateMs = g_missionBriefingNowMs;
 	}
 
 	FrontendDraw_RectAssign(&rect, 158, 52, 491, 68);
@@ -482,8 +482,8 @@ int MissionBriefing_Update(int frameCounter) {
 		FrontendDraw_RectAssign(&rect, 507, 452, 562, 464);
 		if (Net_CountReadyPlayers() <= g_frontendBriefingEnteredCount) {
 			if (g_missionBriefingLaunchCountdownState == MISSION_BRIEFING_COUNTDOWN_IDLE) {
-				g_missionBriefingTickNowMs = GetTickCount();
-				g_missionBriefingLastTickMs = g_missionBriefingTickNowMs;
+				g_missionBriefingNowMs = GetTickCount();
+				g_missionBriefingLastUpdateMs = g_missionBriefingNowMs;
 				g_missionBriefingLastCountdownSecondSent = LAUNCH_COUNTDOWN_MS / 1000;
 				g_missionBriefingLaunchCountdownState = MISSION_BRIEFING_COUNTDOWN_ACTIVE;
 			} else {
@@ -501,7 +501,7 @@ int MissionBriefing_Update(int frameCounter) {
 		if (g_briefingSkipPlayerAssignment != 0) {
 			if (g_missionSetupTeamAssignmentSkipped != 0) {
 				FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_216_ABORT));
-				actionTriggered = FrontendButton_DrawSpriteHitTest(
+				actionTriggered = FrontendButton_HandleSpriteButton(
 					&rect, "leaveup", "leavedown", FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION),
 					12, 0, 8, "buttonsound");
 				if (actionTriggered != 0) {
@@ -516,13 +516,13 @@ int MissionBriefing_Update(int frameCounter) {
 				}
 			} else {
 				FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
-				actionTriggered = FrontendButton_DrawSpriteHitTest(
+				actionTriggered = FrontendButton_HandleSpriteButton(
 					&rect, "leaveup", "leavedown", FrontendString_Get(FRONTSTR_261_RETURN_TO_SELECT_TEAMS),
 					12, 0, 8, "buttonsound");
 			}
 		} else {
 			FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
-			actionTriggered = FrontendButton_DrawSpriteHitTest(
+			actionTriggered = FrontendButton_HandleSpriteButton(
 				&rect, "leaveup", "leavedown",
 				FrontendString_Get(FRONTSTR_262_RETURN_TO_BRIEFING_AND_PILOT_ASSIGNMENT), 12, 0, 8,
 				"buttonsound");
@@ -553,9 +553,9 @@ int MissionBriefing_Update(int frameCounter) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_668_RESTART));
 
 #ifdef XVT_MODERN
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12, 0,
-											 8, "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12,
+											  0, 8, "buttonsound") != 0) {
 			FrontendDialog_ShowConfirmDialog(FrontendString_Get(FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
 											 FrontendString_Get(FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
 											 FrontendString_Get(FRONTSTR_754_TO_SELECT_MISSION),
@@ -564,9 +564,9 @@ int MissionBriefing_Update(int frameCounter) {
 			return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_HOST_RESTART);
 		}
 #else
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12, 0,
-											 8, "buttonsound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12,
+											  0, 8, "buttonsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(FrontendString_Get(FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
 											 FrontendString_Get(FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
 											 FrontendString_Get(FRONTSTR_754_TO_SELECT_MISSION),
@@ -582,9 +582,9 @@ int MissionBriefing_Update(int frameCounter) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_204_LEAVE));
 
 #ifdef XVT_MODERN
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
-											 "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
+											  "buttonsound") != 0) {
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
@@ -593,9 +593,9 @@ int MissionBriefing_Update(int frameCounter) {
 			return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_CLIENT_LEAVE);
 		}
 #else
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
-											 "buttonsound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
+											  "buttonsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
@@ -615,8 +615,8 @@ int MissionBriefing_Update(int frameCounter) {
 	FrontendDraw_RectAssign(&rect, 8, 405, 71, 470);
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_200_FLY));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "flyup", "flydown", FrontendString_Get(FRONTSTR_200_FLY),
-											 12, 0, 7, "flysound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "flyup", "flydown", FrontendString_Get(FRONTSTR_200_FLY),
+											  12, 0, 7, "flysound") != 0 &&
 			g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 			if (g_missionSetupSelectedPresetCraftOptionIndex == 0) {
 				g_mpRoster[0].craftTypeOverride = 0;
@@ -638,9 +638,9 @@ int MissionBriefing_Update(int frameCounter) {
 		if (g_gameConfig.craftSelection == CRAFT_SELECTION_HOST_ONLY) {
 			if (Net_IsHost() != 0 && Net_CountReadyPlayers() <= g_frontendBriefingEnteredCount) {
 				FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_200_FLY));
-				if (FrontendButton_DrawSpriteHitTest(&rect, "flyup", "flydown",
-													 FrontendString_Get(FRONTSTR_200_FLY), 12, 0, 7,
-													 "flysound") != 0) {
+				if (FrontendButton_HandleSpriteButton(&rect, "flyup", "flydown",
+													  FrontendString_Get(FRONTSTR_200_FLY), 12, 0, 7,
+													  "flysound") != 0) {
 					MissionBriefing_BroadcastRosterAndAssignments();
 				}
 			}
@@ -653,18 +653,18 @@ int MissionBriefing_Update(int frameCounter) {
 			}
 			if (g_mpRosterReadyFlags[rosterIndex] != 0) {
 				FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_575_RECONFIGURE));
-				if (FrontendButton_DrawSpriteHitTest(&rect, "flydown", "flyup",
-													 FrontendString_Get(FRONTSTR_575_RECONFIGURE), 12, 0, 7,
-													 "flysound") != 0) {
+				if (FrontendButton_HandleSpriteButton(&rect, "flydown", "flyup",
+													  FrontendString_Get(FRONTSTR_575_RECONFIGURE), 12, 0, 7,
+													  "flysound") != 0) {
 					g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_UNREADY;
 					Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
 										   sizeof(g_frontendNetPacketScratch.packetType));
 				}
 			} else {
 				FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_574_READY));
-				if (FrontendButton_DrawSpriteHitTest(&rect, "flyup", "flydown",
-													 FrontendString_Get(FRONTSTR_574_READY), 12, 0, 7,
-													 "flysound") != 0) {
+				if (FrontendButton_HandleSpriteButton(&rect, "flyup", "flydown",
+													  FrontendString_Get(FRONTSTR_574_READY), 12, 0, 7,
+													  "flysound") != 0) {
 					g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_READY;
 					Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
 										   sizeof(g_frontendNetPacketScratch.packetType));
@@ -680,8 +680,8 @@ int MissionBriefing_Update(int frameCounter) {
 	}
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
 		g_missionBriefingLaunchCountdownState == MISSION_BRIEFING_COUNTDOWN_ACTIVE) {
-		g_missionBriefingTickNowMs = GetTickCount();
-		g_missionBriefingLaunchCountdownMs += g_missionBriefingLastTickMs - g_missionBriefingTickNowMs;
+		g_missionBriefingNowMs = GetTickCount();
+		g_missionBriefingLaunchCountdownMs += g_missionBriefingLastUpdateMs - g_missionBriefingNowMs;
 		if (Net_IsHost() != 0 &&
 			g_missionBriefingLastCountdownSecondSent != g_missionBriefingLaunchCountdownMs / 1000) {
 			g_missionBriefingLastCountdownSecondSent = g_missionBriefingLaunchCountdownMs / 1000;
@@ -697,7 +697,7 @@ int MissionBriefing_Update(int frameCounter) {
 			}
 			return 0;
 		}
-		g_missionBriefingLastTickMs = g_missionBriefingTickNowMs;
+		g_missionBriefingLastUpdateMs = g_missionBriefingNowMs;
 	}
 
 	MissionSetup_UpdateCraftLoadout();
@@ -758,18 +758,18 @@ int MissionBriefing_BroadcastRosterAndAssignments(void) {
 // FUNCTION: XVT 0x4F68C0
 int16_t MissionBriefing_HandleMapMouseInput(RECT* viewportRect, RECT* clipRect, int16_t suppressInput,
 											int leftDown, int rightDown, int16_t mouseX, int16_t mouseY) {
-	RECT rect;
-	RECT dst;
+	RECT insetClipRect;
+	RECT insetViewportRect;
 
-	FrontendDraw_RectCopy(&dst, viewportRect);
-	FrontendDraw_RectInsetXY(&dst, 1, 1);
-	FrontendDraw_RectCopy(&rect, clipRect);
-	FrontendDraw_RectInsetXY(&rect, 1, 1);
+	FrontendDraw_RectCopy(&insetViewportRect, viewportRect);
+	FrontendDraw_RectInsetXY(&insetViewportRect, 1, 1);
+	FrontendDraw_RectCopy(&insetClipRect, clipRect);
+	FrontendDraw_RectInsetXY(&insetClipRect, 1, 1);
 	if (suppressInput != 0) {
 		return 0;
 	}
-	return BriefingMap_MouseInputStub(&dst, &rect, leftDown, rightDown, (int16_t)(mouseX - 1),
-									  (int16_t)(mouseY - 1));
+	return BriefingMap_SelectFlightGroupAtCursor(&insetViewportRect, &insetClipRect, leftDown, rightDown,
+												 (int16_t)(mouseX - 1), (int16_t)(mouseY - 1));
 }
 
 // FUNCTION: XVT 0x4F6970

@@ -1658,7 +1658,7 @@ int Net_SendDirectPlayPacket(int destPlayerId, const void* packet, int packetSiz
 }
 
 // FUNCTION: XVT 0x4CF980
-int Net_SendSequencedDirectPlayPacket(int destPlayerId, int sequenceMode, int sequenceId, const void* packet,
+int Net_SendSequencedDirectPlayPacket(int destPlayerId, int packetClass, int sequenceId, const void* packet,
 									  unsigned int packetSize) {
 	unsigned int packetType;
 	uint8_t packetTypeByte;
@@ -1677,7 +1677,7 @@ int Net_SendSequencedDirectPlayPacket(int destPlayerId, int sequenceMode, int se
 	packetType = *(const uint32_t*)packet;
 	packetTypeByte = (uint8_t)packetType & 0x7F;
 	appendTerminator = packetType < NET_PACKET_RESYNC_CHECKSUMS || packetType >= NET_PACKET_PROBE_REQUEST;
-	switch (sequenceMode) {
+	switch (packetClass) {
 		case 0:
 			sprintf(debugText, "(RSB %u) ", sequenceId);
 			break;
@@ -1692,7 +1692,7 @@ int Net_SendSequencedDirectPlayPacket(int destPlayerId, int sequenceMode, int se
 	encodedHeaderSize = 3;
 	encodedPacket.packetTypeHeader =
 		(int16_t)(((((sequenceId & 0x7F) << 8) | packetTypeByte) & 0x7F7F) | 0x80);
-	encodedPacket.packetClass = (uint8_t)sequenceMode;
+	encodedPacket.packetClass = (uint8_t)packetClass;
 	if (appendTerminator) {
 		if (NetSession_GetFixedPayloadSize(packetType) == 0) {
 			encodedPayload = encodedPacket.payload;
@@ -1722,7 +1722,7 @@ int Net_SendSequencedDirectPlayPacket(int destPlayerId, int sequenceMode, int se
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].payloadSize =
 				packetSize;
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].packetClass =
-				(uint8_t)sequenceMode;
+				(uint8_t)packetClass;
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].sequenceByte =
 				(uint8_t)sequenceId;
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].isResentCopy = 1;

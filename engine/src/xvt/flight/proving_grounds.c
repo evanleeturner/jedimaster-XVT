@@ -168,7 +168,7 @@ void ProvingGrounds_DrawCourseObject(uint16_t objectIndex) {
 	}
 	savedNodeSwitchIndex = g_objectTable[objectIndex].mobj->nodeSwitchIndex;
 	g_objectTable[objectIndex].mobj->nodeSwitchIndex = PROVING_GROUNDS_SELECTED_NODE_STATE;
-	RenderScene_DrawNoAssetSourceModel(&g_objectTable[objectIndex], selectedNodeIndex);
+	RenderScene_DrawSelectedRootNode(&g_objectTable[objectIndex], selectedNodeIndex);
 	g_objectTable[objectIndex].mobj->nodeSwitchIndex = savedNodeSwitchIndex;
 	g_renderObjectRef = savedRenderObjectRef;
 }

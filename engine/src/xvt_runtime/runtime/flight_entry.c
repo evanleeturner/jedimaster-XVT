@@ -341,7 +341,7 @@ static void XvtFlightEntry_Configure(void) {
 	{
 		int bppConfigValue;
 
-		bppConfigValue = g_gameConfig.bpp[NetSession_GetPlayerCount() > 1];
+		bppConfigValue = g_gameConfig.colorDepthChoice[NetSession_GetPlayerCount() > 1];
 		switch (bppConfigValue) {
 			case DISPLAY_CONFIG_LOW:
 				g_flightBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
@@ -359,22 +359,22 @@ static void XvtFlightEntry_Configure(void) {
 	XvtFlightEntry_ConfigureMipmaps();
 	switch (g_gameConfig.textureRes[NetSession_GetPlayerCount() > 1]) {
 		case 0:
-			g_keepFullResTextures = 0;
+			g_textureResolutionLevel = 0;
 			break;
 		case 1:
-			g_keepFullResTextures = 1;
+			g_textureResolutionLevel = 1;
 			break;
 		default:
-			g_keepFullResTextures = 2;
+			g_textureResolutionLevel = 2;
 			break;
 	}
 	{
 		int localLightsEnabled;
 
 		localLightsEnabled = g_gameConfig.localLights[NetSession_GetPlayerCount() > 1];
-		g_localLightsLevel = 1;
+		g_localLightsEnabled = 1;
 		if (localLightsEnabled == 0) {
-			g_localLightsLevel = 0;
+			g_localLightsEnabled = 0;
 		}
 	}
 	{
@@ -431,10 +431,10 @@ int XvtFlightEntry_CreateDevices(void) {
 	}
 	switch (g_flightBytesPerPixel) {
 		case PALETTED_BYTES_PER_PIXEL:
-			g_gameConfig.bpp[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_LOW;
+			g_gameConfig.colorDepthChoice[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_LOW;
 			break;
 		case HIGH_COLOR_BYTES_PER_PIXEL:
-			g_gameConfig.bpp[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_MEDIUM;
+			g_gameConfig.colorDepthChoice[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_MEDIUM;
 			break;
 		default:
 			break;

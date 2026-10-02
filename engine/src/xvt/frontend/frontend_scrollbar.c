@@ -27,12 +27,12 @@ int FrontendScrollbar_RestoreState(void) {
 }
 
 // FUNCTION: XVT 0x4D9D70
-int FrontendScrollbar_Draw(const RECT* src, int currentValue, int maximumExclusive, int minimum, int pageStep,
-						   unsigned int color, int controlId) {
+int FrontendScrollbar_Draw(const RECT* barRect, int currentValue, int maximumExclusive, int minimum,
+						   int pageStep, unsigned int color, int controlId) {
 	RECT thumb;
 
 	struct {
-		RECT track;
+		RECT partRect;
 		int cursorX;
 		int gateId;
 	} drawState;
@@ -48,8 +48,8 @@ int FrontendScrollbar_Draw(const RECT* src, int currentValue, int maximumExclusi
 
 	Frontend_RegisterScrollableControl(controlId);
 	FrontendCursor_GetPos(&drawState.cursorX, &cursorY);
-	width = src->right - src->left;
-	height = src->bottom - src->top;
+	width = barRect->right - barRect->left;
+	height = barRect->bottom - barRect->top;
 	travel = height - 2 * width;
 	range = maximumExclusive - minimum;
 #ifdef XVT_MODERN
@@ -73,15 +73,15 @@ int FrontendScrollbar_Draw(const RECT* src, int currentValue, int maximumExclusi
 				g_scrollbarRepeatCountdown = 0;
 				g_scrollbarRepeatInterval = 0;
 			}
-			FrontendDraw_RectCopy(&drawState.track, src);
-			FrontendDraw_RectAssign(&thumb, drawState.track.left,
-									width + travel * currentValue / range + drawState.track.top,
-									drawState.track.right,
-									width + travel * currentValue / range + drawState.track.top + thumbSize);
-			drawState.track.top += width;
-			drawState.track.bottom -= width;
-			FrontendDraw_FillRectTranslucent(&drawState.track, 0, 0, color);
-			if (FrontendDraw_PointInRect(&drawState.track, drawState.cursorX, cursorY) &&
+			FrontendDraw_RectCopy(&drawState.partRect, barRect);
+			FrontendDraw_RectAssign(
+				&thumb, drawState.partRect.left,
+				width + travel * currentValue / range + drawState.partRect.top, drawState.partRect.right,
+				width + travel * currentValue / range + drawState.partRect.top + thumbSize);
+			drawState.partRect.top += width;
+			drawState.partRect.bottom -= width;
+			FrontendDraw_FillRectTranslucent(&drawState.partRect, 0, 0, color);
+			if (FrontendDraw_PointInRect(&drawState.partRect, drawState.cursorX, cursorY) &&
 				(FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick())) {
 				if (cursorY < thumb.top) {
 					value = currentValue - pageStep;
@@ -104,10 +104,11 @@ int FrontendScrollbar_Draw(const RECT* src, int currentValue, int maximumExclusi
 						value = maximumExclusive - 1;
 				}
 			}
-			FrontendDraw_RectAssign(&drawState.track, src->left, src->top, src->right, src->top + width);
-			if (FrontendDraw_PointInRect(&drawState.track, drawState.cursorX, cursorY) &&
+			FrontendDraw_RectAssign(&drawState.partRect, barRect->left, barRect->top, barRect->right,
+									barRect->top + width);
+			if (FrontendDraw_PointInRect(&drawState.partRect, drawState.cursorX, cursorY) &&
 				(FrontendMouse_GetLeftDown() || FrontendMouse_GetRightDown())) {
-				FrontImage_DrawSprite("slideud", src->left, src->top);
+				FrontImage_DrawSprite("slideud", barRect->left, barRect->top);
 				if (g_scrollbarRepeatCountdown == 0) {
 					if (currentValue > minimum)
 						value = currentValue - 1;
@@ -123,7 +124,7 @@ int FrontendScrollbar_Draw(const RECT* src, int currentValue, int maximumExclusi
 					--g_scrollbarRepeatCountdown;
 				}
 			} else {
-				FrontImage_DrawSprite("slideuu", src->left, src->top);
+				FrontImage_DrawSprite("slideuu", barRect->left, barRect->top);
 			}
 			if (g_scrollableControlIds[0] == controlId) {
 				if (Keyboard_IsKeyDown(0x26)) {
@@ -131,11 +132,11 @@ int FrontendScrollbar_Draw(const RECT* src, int currentValue, int maximumExclusi
 						value = currentValue - 1;
 				}
 			}
-			FrontendDraw_RectAssign(&drawState.track, src->left, src->bottom - width, src->right,
-									src->bottom);
-			if (FrontendDraw_PointInRect(&drawState.track, drawState.cursorX, cursorY) &&
+			FrontendDraw_RectAssign(&drawState.partRect, barRect->left, barRect->bottom - width,
+									barRect->right, barRect->bottom);
+			if (FrontendDraw_PointInRect(&drawState.partRect, drawState.cursorX, cursorY) &&
 				(FrontendMouse_GetLeftDown() || FrontendMouse_GetRightDown())) {
-				FrontImage_DrawSprite("slidedd", src->left, src->bottom - width);
+				FrontImage_DrawSprite("slidedd", barRect->left, barRect->bottom - width);
 				if (g_scrollbarRepeatCountdown == 0) {
 					if (currentValue < maximumExclusive - 1)
 						value = currentValue + 1;
@@ -151,7 +152,7 @@ int FrontendScrollbar_Draw(const RECT* src, int currentValue, int maximumExclusi
 					--g_scrollbarRepeatCountdown;
 				}
 			} else {
-				FrontImage_DrawSprite("slidedu", src->left, src->bottom - width);
+				FrontImage_DrawSprite("slidedu", barRect->left, barRect->bottom - width);
 			}
 			if (g_scrollableControlIds[0] == controlId) {
 				if (Keyboard_IsKeyDown(0x28) && currentValue < maximumExclusive - 1)
@@ -176,14 +177,15 @@ int FrontendScrollbar_Draw(const RECT* src, int currentValue, int maximumExclusi
 				FrontendMouse_ClearInputGate();
 				FrontendMouse_ClearClicks();
 			}
-			FrontendDraw_RectCopy(&drawState.track, src);
-			FrontendDraw_FillRectTranslucent(&drawState.track, 0, 0, color);
-			FrontendDraw_RectAssign(&drawState.track, src->left, src->top, src->right, src->top + width);
-			FrontImage_DrawSprite("slideuu", src->left, src->top);
-			FrontendDraw_RectAssign(&drawState.track, src->left, src->bottom - width, src->right,
-									src->bottom);
-			FrontImage_DrawSprite("slidedu", src->left, src->bottom - width);
-			top = src->top;
+			FrontendDraw_RectCopy(&drawState.partRect, barRect);
+			FrontendDraw_FillRectTranslucent(&drawState.partRect, 0, 0, color);
+			FrontendDraw_RectAssign(&drawState.partRect, barRect->left, barRect->top, barRect->right,
+									barRect->top + width);
+			FrontImage_DrawSprite("slideuu", barRect->left, barRect->top);
+			FrontendDraw_RectAssign(&drawState.partRect, barRect->left, barRect->bottom - width,
+									barRect->right, barRect->bottom);
+			FrontImage_DrawSprite("slidedu", barRect->left, barRect->bottom - width);
+			top = barRect->top;
 			value = (cursorY - width - top) * range / travel;
 			if (value < minimum)
 				value = minimum;
@@ -192,14 +194,15 @@ int FrontendScrollbar_Draw(const RECT* src, int currentValue, int maximumExclusi
 			thumbY = cursorY;
 			if (thumbY < top + width)
 				thumbY = top + width;
-			else if (thumbY >= src->bottom - width - thumbSize)
-				thumbY = src->bottom - width - thumbSize - 1;
-			FrontendDraw_RectAssign(&drawState.track, src->left, thumbY, src->right, thumbY + thumbSize);
-			FrontendDraw_Rect(&drawState.track, 0, 0, 0xFFFF, 0);
+			else if (thumbY >= barRect->bottom - width - thumbSize)
+				thumbY = barRect->bottom - width - thumbSize - 1;
+			FrontendDraw_RectAssign(&drawState.partRect, barRect->left, thumbY, barRect->right,
+									thumbY + thumbSize);
+			FrontendDraw_Rect(&drawState.partRect, 0, 0, 0xFFFF, 0);
 			if (Frontend_IsScrollableControlFocused(controlId)) {
-				FrontendDraw_RectInsetXY(&drawState.track, 2, 2);
-				FrontendDraw_Rect(&drawState.track, 0, 0, g_colorTeal, 1);
-				FrontendDraw_RectInsetXY(&drawState.track, -2, -2);
+				FrontendDraw_RectInsetXY(&drawState.partRect, 2, 2);
+				FrontendDraw_Rect(&drawState.partRect, 0, 0, g_colorTeal, 1);
+				FrontendDraw_RectInsetXY(&drawState.partRect, -2, -2);
 			}
 		}
 	}

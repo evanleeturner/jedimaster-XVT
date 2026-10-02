@@ -135,7 +135,7 @@ int XvtFrontendTask_RunFrame(void) {
 		if (g_continuationFrame && XvtNetworkTask_IsActive()) {
 			FrontendCursor_Draw();
 			FrontendDisplay_PresentFrame();
-			g_frontState.mouseClickLatch = 0;
+			g_frontState.mouseLeftClickLatch = 0;
 			g_frontState.mouseRightClickLatch = 0;
 			memset(g_frontState.joystickButtonReleased, 0, sizeof(g_frontState.joystickButtonReleased));
 		}
@@ -161,7 +161,7 @@ int XvtFrontendTask_RunFrame(void) {
 	++g_frontState.frameCounter;
 	if (g_frontState.textFadeFramesLeft)
 		--g_frontState.textFadeFramesLeft;
-	g_frontState.mouseClickLatch = 0;
+	g_frontState.mouseLeftClickLatch = 0;
 	g_frontState.mouseRightClickLatch = 0;
 	return result;
 }
@@ -188,7 +188,7 @@ void XvtFrontendTask_Update(void) {
 	}
 	int credits_frame =
 		!XvtDialog_IsActive() &&
-		g_frontState.screenStates[g_frontState.screenStackTop].updateFn == Config_CreditsScreen;
+		g_frontState.screenStates[g_frontState.screenStackTop].updateFn == Credits_UpdateScreen;
 	if (XvtDialog_IsActive()) {
 		XvtDialog_Update();
 		result = 0;

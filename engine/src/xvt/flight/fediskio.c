@@ -454,7 +454,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					g_pilotData.currentRatingWorsePromoPoints = 0;
 					g_pilotData.promotionDelta = PILOT_PROMOTION_PROMOTION;
 					++g_pilotData.rating;
-					g_pilotData.totalMissionsPlayedCountPerRating[g_pilotData.rating] =
+					g_pilotData.ratingAchievedOnMission[g_pilotData.rating] =
 						g_pilotData.totalMissionsPlayedCount;
 				}
 				if (g_pilotData.currentRatingPromoPoints >= 0) {
@@ -487,7 +487,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 				g_pilotData.nextPromotionPercent = 0;
 				g_pilotData.promotionDelta = PILOT_PROMOTION_DEMOTION;
 				if ((unsigned int)g_pilotData.rating < PILOT_RATING_TRAINEE) {
-					g_pilotData.totalMissionsPlayedCountPerRating[g_pilotData.rating] =
+					g_pilotData.ratingAchievedOnMission[g_pilotData.rating] =
 						g_pilotData.totalMissionsPlayedCount;
 				}
 			}
@@ -507,7 +507,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					g_pilotData.currentRatingPromoPoints -= promotionThreshold;
 					g_pilotData.promotionDelta = PILOT_PROMOTION_PROMOTION;
 					++g_pilotData.rating;
-					g_pilotData.totalMissionsPlayedCountPerRating[g_pilotData.rating] =
+					g_pilotData.ratingAchievedOnMission[g_pilotData.rating] =
 						g_pilotData.totalMissionsPlayedCount;
 				}
 				if (g_pilotData.currentRatingPromoPoints >= 0) {
@@ -540,7 +540,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 				g_pilotData.nextPromotionPercent = 0;
 				g_pilotData.promotionDelta = PILOT_PROMOTION_DEMOTION;
 				if ((unsigned int)g_pilotData.rating < PILOT_RATING_TRAINEE) {
-					g_pilotData.totalMissionsPlayedCountPerRating[g_pilotData.rating] =
+					g_pilotData.ratingAchievedOnMission[g_pilotData.rating] =
 						g_pilotData.totalMissionsPlayedCount;
 				}
 			}
@@ -913,7 +913,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 							oldAward =
 								(unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.spCampaignMissions[missionId - 1]
-									.awardId;
+									.awardLevel;
 							if (oldAward > (unsigned int)award || oldAward == 0) {
 								if (oldAward != 0 &&
 									g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -923,16 +923,16 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 								}
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.spCampaignMissions[missionId - 1]
-									.awardId = (int)award;
+									.awardLevel = (int)award;
 								++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									  .missionEvaluations[award - 1];
 							}
 						} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									   .spCampaignMissions[missionId - 1]
-									   .awardId == FAILED_AWARD) {
+									   .awardLevel == FAILED_AWARD) {
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.spCampaignMissions[missionId - 1]
-								.awardId = 0;
+								.awardLevel = 0;
 							if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.missionEvaluations[FAILED_AWARD - 1] != 0) {
 								--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -986,7 +986,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 							oldAward =
 								(unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.spTrainingMissions[missionId]
-									.awardId;
+									.awardLevel;
 							if (oldAward > (unsigned int)award || oldAward == 0) {
 								if (oldAward != 0 &&
 									g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -996,16 +996,16 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 								}
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.spTrainingMissions[missionId]
-									.awardId = (int)award;
+									.awardLevel = (int)award;
 								++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									  .missionEvaluations[award - 1];
 							}
 						} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									   .spTrainingMissions[missionId]
-									   .awardId == FAILED_AWARD) {
+									   .awardLevel == FAILED_AWARD) {
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.spTrainingMissions[missionId]
-								.awardId = 0;
+								.awardLevel = 0;
 							if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.missionEvaluations[FAILED_AWARD - 1] != 0) {
 								--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1084,7 +1084,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					if (award != 0) {
 						oldAward = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									   .spMeleeMissions[missionId]
-									   .awardId;
+									   .awardLevel;
 						if (oldAward > (unsigned int)award || oldAward == 0) {
 							if (oldAward != 0 && g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 														 .meleePlaques[oldAward - 1] != 0) {
@@ -1093,16 +1093,16 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 							}
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.spMeleeMissions[missionId]
-								.awardId = (int)award;
+								.awardLevel = (int)award;
 							++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .meleePlaques[award - 1];
 						}
 					} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								   .spMeleeMissions[missionId]
-								   .awardId == FAILED_AWARD) {
+								   .awardLevel == FAILED_AWARD) {
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.spMeleeMissions[missionId]
-							.awardId = 0;
+							.awardLevel = 0;
 						if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.meleePlaques[FAILED_AWARD - 1] != 0) {
 							--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1160,7 +1160,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					if (award != 0) {
 						oldAward = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									   .spCombatMissions[missionId]
-									   .awardId;
+									   .awardLevel;
 						if (oldAward > (unsigned int)award || oldAward == 0) {
 							if (oldAward != 0 && g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 														 .missionEvaluations[oldAward - 1] != 0) {
@@ -1169,16 +1169,16 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 							}
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.spCombatMissions[missionId]
-								.awardId = (int)award;
+								.awardLevel = (int)award;
 							++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .missionEvaluations[award - 1];
 						}
 					} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								   .spCombatMissions[missionId]
-								   .awardId == FAILED_AWARD) {
+								   .awardLevel == FAILED_AWARD) {
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.spCombatMissions[missionId]
-							.awardId = 0;
+							.awardLevel = 0;
 						if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.missionEvaluations[FAILED_AWARD - 1] != 0) {
 							--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1241,7 +1241,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 							oldAward =
 								(unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.mpCampaignMissions[missionId - 1]
-									.awardId;
+									.awardLevel;
 							if (oldAward > (unsigned int)award || oldAward == 0) {
 								if (oldAward == FAILED_AWARD &&
 									g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1251,21 +1251,21 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 								}
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.mpCampaignMissions[missionId - 1]
-									.awardId = (int)award;
+									.awardLevel = (int)award;
 							}
 							if (award != FAILED_AWARD ||
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 										.mpCampaignMissions[missionId - 1]
-										.awardId == 0) {
+										.awardLevel == 0) {
 								++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									  .missionEvaluations[award - 1];
 							}
 						} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									   .mpCampaignMissions[missionId - 1]
-									   .awardId == FAILED_AWARD) {
+									   .awardLevel == FAILED_AWARD) {
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.mpCampaignMissions[missionId - 1]
-								.awardId = 0;
+								.awardLevel = 0;
 							if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.missionEvaluations[FAILED_AWARD - 1] != 0) {
 								--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1319,7 +1319,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 							oldAward =
 								(unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.mpTrainingMissions[missionId]
-									.awardId;
+									.awardLevel;
 							if (oldAward > (unsigned int)award || oldAward == 0) {
 								if (oldAward == FAILED_AWARD &&
 									g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1329,21 +1329,21 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 								}
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.mpTrainingMissions[missionId]
-									.awardId = (int)award;
+									.awardLevel = (int)award;
 							}
 							if (award != FAILED_AWARD ||
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 										.mpTrainingMissions[missionId]
-										.awardId == 0) {
+										.awardLevel == 0) {
 								++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									  .missionEvaluations[award - 1];
 							}
 						} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									   .mpTrainingMissions[missionId]
-									   .awardId == FAILED_AWARD) {
+									   .awardLevel == FAILED_AWARD) {
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.mpTrainingMissions[missionId]
-								.awardId = 0;
+								.awardLevel = 0;
 							if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.missionEvaluations[FAILED_AWARD - 1] != 0) {
 								--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1435,7 +1435,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					if (award != 0) {
 						oldAward = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									   .mpMeleeMissions[missionId]
-									   .awardId;
+									   .awardLevel;
 						if (oldAward > (unsigned int)award || oldAward == 0) {
 							if (oldAward == FAILED_AWARD &&
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1445,21 +1445,21 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 							}
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.mpMeleeMissions[missionId]
-								.awardId = (int)award;
+								.awardLevel = (int)award;
 						}
 						if (award != FAILED_AWARD ||
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.mpMeleeMissions[missionId]
-									.awardId == 0) {
+									.awardLevel == 0) {
 							++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .meleePlaques[award - 1];
 						}
 					} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								   .mpMeleeMissions[missionId]
-								   .awardId == FAILED_AWARD) {
+								   .awardLevel == FAILED_AWARD) {
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.mpMeleeMissions[missionId]
-							.awardId = 0;
+							.awardLevel = 0;
 						if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.meleePlaques[FAILED_AWARD - 1] != 0) {
 							--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1517,7 +1517,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					if (award != 0) {
 						oldAward = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									   .mpCombatMissions[missionId]
-									   .awardId;
+									   .awardLevel;
 						if (oldAward > (unsigned int)award || oldAward == 0) {
 							if (oldAward == FAILED_AWARD &&
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1527,21 +1527,21 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 							}
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.mpCombatMissions[missionId]
-								.awardId = (int)award;
+								.awardLevel = (int)award;
 						}
 						if (award != FAILED_AWARD ||
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.mpCombatMissions[missionId]
-									.awardId == 0) {
+									.awardLevel == 0) {
 							++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .missionEvaluations[award - 1];
 						}
 					} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								   .mpCombatMissions[missionId]
-								   .awardId == FAILED_AWARD) {
+								   .awardLevel == FAILED_AWARD) {
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.mpCombatMissions[missionId]
-							.awardId = 0;
+							.awardLevel = 0;
 						if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.missionEvaluations[FAILED_AWARD - 1] != 0) {
 							--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1811,7 +1811,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					if (tournamentAward != 0) {
 						oldAward = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									   .spTournaments[tournamentId]
-									   .awardId;
+									   .awardLevel;
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId].missionAwards[1] =
 							(int)tournamentAward;
 						if (oldAward > (unsigned int)tournamentAward || oldAward == 0) {
@@ -1822,16 +1822,16 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 							}
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.spTournaments[tournamentId]
-								.awardId = (int)tournamentAward;
+								.awardLevel = (int)tournamentAward;
 							++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .tournamentTrophies[tournamentAward - 1];
 						}
 					} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								   .spTournaments[tournamentId]
-								   .awardId == FAILED_AWARD) {
+								   .awardLevel == FAILED_AWARD) {
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.spTournaments[tournamentId]
-							.awardId = 0;
+							.awardLevel = 0;
 						if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.tournamentTrophies[FAILED_AWARD - 1] != 0) {
 							--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1894,7 +1894,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					if (tournamentAward != 0) {
 						oldAward = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									   .mpTournaments[tournamentId]
-									   .awardId;
+									   .awardLevel;
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId].missionAwards[1] =
 							(int)tournamentAward;
 						if (oldAward > (unsigned int)tournamentAward || oldAward == 0) {
@@ -1906,16 +1906,16 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 							}
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.mpTournaments[tournamentId]
-								.awardId = (int)tournamentAward;
+								.awardLevel = (int)tournamentAward;
 						}
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .tournamentTrophies[tournamentAward - 1];
 					} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								   .mpTournaments[tournamentId]
-								   .awardId == FAILED_AWARD) {
+								   .awardLevel == FAILED_AWARD) {
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.mpTournaments[tournamentId]
-							.awardId = 0;
+							.awardLevel = 0;
 						if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.tournamentTrophies[FAILED_AWARD - 1] != 0) {
 							--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -2085,7 +2085,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 
 					oldAward = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								   .spBattles[battleId]
-								   .awardId;
+								   .awardLevel;
 					if (oldAward > battleAward || oldAward == 0) {
 						if (oldAward != 0 && g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 													 .battleMedallions[oldAward - 1] != 0) {
@@ -2094,15 +2094,16 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 						}
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.spBattles[battleId]
-							.awardId = (int)battleAward;
+							.awardLevel = (int)battleAward;
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .battleMedallions[battleAward - 1];
 					}
 				} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							   .spBattles[battleId]
-							   .awardId == FAILED_AWARD) {
-					g_pilotData.factionStatistics[g_pilotData.currentFactionId].spBattles[battleId].awardId =
-						0;
+							   .awardLevel == FAILED_AWARD) {
+					g_pilotData.factionStatistics[g_pilotData.currentFactionId]
+						.spBattles[battleId]
+						.awardLevel = 0;
 					if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.battleMedallions[FAILED_AWARD - 1] != 0) {
 						--g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -2155,7 +2156,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 
 					oldAward = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								   .mpBattles[battleId]
-								   .awardId;
+								   .awardLevel;
 					if (oldAward > battleAward || oldAward == 0) {
 						if (oldAward == FAILED_AWARD &&
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -2165,15 +2166,16 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 						}
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.mpBattles[battleId]
-							.awardId = (int)battleAward;
+							.awardLevel = (int)battleAward;
 					}
 					++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 						  .battleMedallions[battleAward - 1];
 				} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							   .mpBattles[battleId]
-							   .awardId == FAILED_AWARD) {
-					g_pilotData.factionStatistics[g_pilotData.currentFactionId].mpBattles[battleId].awardId =
-						0;
+							   .awardLevel == FAILED_AWARD) {
+					g_pilotData.factionStatistics[g_pilotData.currentFactionId]
+						.mpBattles[battleId]
+						.awardLevel = 0;
 					if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.battleMedallions[FAILED_AWARD - 1] != 0) {
 						--g_pilotData.factionStatistics[g_pilotData.currentFactionId]

@@ -18,19 +18,19 @@ float g_mipLodScale = 1.0f;
 // GLOBAL: XVT 0x5233B4
 int g_ditheringEnabled = 1;
 // GLOBAL: XVT 0x5233B8
-int g_localLightsLevel = 1;
+int g_localLightsEnabled = 1;
 // GLOBAL: XVT 0x5233BC
 int g_specularEnabled = 1;
 // GLOBAL: XVT 0x5233C0
 int g_dirLightingEnabled = 1;
 // GLOBAL: XVT 0x5233C4
-int g_keepFullResTextures = 1;
+int g_textureResolutionLevel = 1;
 // GLOBAL: XVT 0x66DDD4
 IDirectDraw* g_flightDirectDraw;
 // GLOBAL: XVT 0x5233C8
 uint8_t g_flightTransparentColorIndex = 0xfb;
 // GLOBAL: XVT 0x9A7A30
-uint8_t g_palettePackedMode = 0;
+uint8_t g_flightPixelMode = 0;
 // GLOBAL: XVT 0x5233F8
 uint8_t g_flightGraphicsDetailPreset = 3;
 // GLOBAL: XVT 0xA08290
@@ -120,9 +120,9 @@ FlightDrawPointArrayFn g_flightDrawPointArrayMaskedFn = 0;
 // GLOBAL: XVT 0x9E95F4
 FlightDrawPixelFn g_flightDrawPixelFn = 0;
 // GLOBAL: XVT 0x9EC46C
-void (*g_flightSaveDrawCursorFn)(void) = 0;
+void (*g_flightDrawRadarTargetMarkerFn)(void) = 0;
 // GLOBAL: XVT 0x9A1FEC
-void (*g_flightRestoreCursorFn)(void) = 0;
+void (*g_flightRestoreRadarTargetMarkerFn)(void) = 0;
 // GLOBAL: XVT 0x9CC454
 FlightDrawLineFn g_flightDrawLineFn = 0;
 // GLOBAL: XVT 0xA0048C

@@ -38,9 +38,9 @@ int XvtNetworkDialogs_Connecting(void) {
 	FrontImage_DrawSpriteOpaque("background", 0, 0);
 	FrontendText_DrawCentered(15, FrontendString_Get(FRONTSTR_645_CONNECTING), &message, 0xffff);
 	FrontendCursor_Show();
-	return FrontendButton_DrawSpriteHitTest(&cancel, "leaveup", "leavedown",
-											FrontendString_Get(FRONTSTR_019_CANCEL), 12, 0, 8,
-											"buttonsound") != 0;
+	return FrontendButton_HandleSpriteButton(&cancel, "leaveup", "leavedown",
+											 FrontendString_Get(FRONTSTR_019_CANCEL), 12, 0, 8,
+											 "buttonsound") != 0;
 }
 
 void XvtNetworkDialogs_Return(int host) {

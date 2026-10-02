@@ -212,9 +212,10 @@ int Flight_UpdateAndFocusMainWindow(void);
 int32_t Flight_PumpWindowMessages(void);
 int32_t Flight_WndProc(void* hWnd, unsigned int Msg, uint32_t wParam, int32_t lParam);
 void Flight_UpdateCraftSteeringAndSpeed(void);
-void Flight_SlewObjectSpeedTowardTarget(unsigned int objectIdx, int targetSpeed, int allowDecel, int fracQ16);
+void Flight_SlewObjectSpeedTowardTarget(unsigned int objectIdx, int targetSpeed, int allowDecel,
+										int throttleFraction);
 void Flight_AccelerateObjectSpeed(int objectIdx, int accelerationPerSecond);
-void Flight_DecelerateObjectSpeed(int objectIdx, int deceleration);
+void Flight_DecelerateObjectSpeed(int objectIdx, int decelerationPerSecond);
 void Flight_UpdateDivePulloutPitchTarget(int objectIdx);
 
 #ifdef __cplusplus

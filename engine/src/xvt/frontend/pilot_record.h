@@ -74,7 +74,7 @@ struct PilotMission {
 	int bestScore;
 	int bestTime;
 	int bestPlacement;
-	int awardId;
+	int awardLevel;
 	unsigned int bestBonus;
 	int field20;
 };
@@ -94,7 +94,7 @@ struct PilotMultiplayerMission {
 	int bestScore;
 	int bestTime;
 	int bestPlacement;
-	int awardId;
+	int awardLevel;
 	unsigned int bestBonus;
 	int field2C;
 };
@@ -112,7 +112,7 @@ struct PilotTournament {
 	int thirdPlaceCount;
 	int bestScore;
 	int bestPlacement;
-	int awardId;
+	int awardLevel;
 	unsigned int bestMargin;
 	int field24;
 };
@@ -131,7 +131,7 @@ struct PilotMultiplayerTournament {
 	int bestScore;
 	int bestPlacement;
 	int field1C;
-	int awardId;
+	int awardLevel;
 	unsigned int bestMargin;
 	int field28;
 };
@@ -148,7 +148,7 @@ struct PilotBattle {
 	int drawCount; ///< Battles reaching the sequence mission limit without either side winning.
 	int bestScore;
 	int field14;
-	int awardId;
+	int awardLevel;
 	unsigned int bestVictoryMargin;
 	int field20;
 };
@@ -166,7 +166,7 @@ struct PilotMultiplayerBattle {
 	int bestScore;
 	int field14;
 	int field18;
-	int awardId;
+	int awardLevel;
 	unsigned int bestVictoryMargin;
 	int field24;
 };
@@ -198,7 +198,7 @@ struct PilotCampaignMission {
 	int numberTimesFlown;
 	int awardEligible;
 	unsigned int bestScore;
-	int awardId;
+	int awardLevel;
 	int bestTime;
 	int isCompleted;
 	int field1C;
@@ -319,7 +319,7 @@ struct PilotData {
 	BattleSequenceState battleSequenceState;
 	PilotRating rating;
 	int totalMissionsPlayedCount;
-	int totalMissionsPlayedCountPerRating[25];
+	int ratingAchievedOnMission[25];
 	char ratingName[32];
 	int missionScore;
 	int killsFullOnPlayer[8];

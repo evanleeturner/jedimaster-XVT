@@ -11,12 +11,12 @@ extern "C" {
 
 extern int g_flightBytesPerPixel;
 extern int g_flightBrightnessScaleQ8;
-extern uint16_t g_flightTextPalette[256];
+extern uint16_t g_flightPalette16Bpp[256];
 extern RgbTriplet g_swPalette[256];
 extern uint8_t g_paletteDirtyFlags;
 
 void FlightPalette_BuildRgbRange(const RgbTriplet* srcRgb, RgbTriplet* dstRgb, int startIndex, int count);
-void FlightPalette_Reset(void);
+void FlightPalette_ApplyToDisplay(void);
 void FlightPalette_SetRange(RgbTriplet* rgbTriples, int16_t startIdx, uint16_t count);
 void FlightPalette_GetFull(RgbTriplet* dstPalette);
 void FlightPalette_SetFull(RgbTriplet* rgbTriples);

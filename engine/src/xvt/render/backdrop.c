@@ -68,13 +68,13 @@ void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY, 
 	else {
 		softwareAngle = (uint16_t)angle;
 		FlightSw_PrepareSpriteRotationTables(softwareAngle, FLIGHT_SW_16BPP_BYTES_PER_PIXEL);
-		FlightSw_BuildSpriteTintRemapTables(sprite);
+		FlightSw_LoadSpritePaletteTables(sprite);
 		FlightSw_DrawRotatedSpriteQuad((int16_t)screenX, (int16_t)screenY, 256, sprite);
 	}
 }
 
 // FUNCTION: XVT 0x426080
-void Backdrop_RenderCurrentRegion(void) {
+void Backdrop_BuildStarOffsetsAndRender(void) {
 	int accumR0X;
 	int accumR0Y;
 	int accumR0Z;
@@ -378,7 +378,7 @@ void Backdrop_RenderCurrentRegion(void) {
 }
 
 // FUNCTION: XVT 0x426860
-void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angle, int backdropIndex) {
+void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angle, int backdropNumber) {
 	int projectedX;
 	int projectedY;
 	uint32_t projectionScale;
@@ -481,7 +481,7 @@ void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angl
 	projectedX += (int)g_flightVpCenterX;
 	projectedY += (int)g_flightVpCenterY;
 	projectedY += g_projOffsetY;
-	Backdrop_DrawModelTexQuadAtScreen(g_backdropModelTypes[backdropIndex - 1], projectedX,
+	Backdrop_DrawModelTexQuadAtScreen(g_backdropModelTypes[backdropNumber - 1], projectedX,
 									  (int)g_flightVpHeight - projectedY, angle);
 }
 

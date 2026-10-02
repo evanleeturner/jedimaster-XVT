@@ -442,8 +442,8 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 
 	g_viewSpaceDepth = (int)g_modelPreviewViewDelta.z;
 	g_modelPreviewObject.mobj->nodeSwitchIndex = (uint8_t)g_nodeSwitchIndex;
-	savedLocalLightsLevel = g_localLightsLevel;
-	g_localLightsLevel = 0;
+	savedLocalLightsLevel = g_localLightsEnabled;
+	g_localLightsEnabled = 0;
 	RenderScene_Initialize(1);
 #ifdef XVT_MODERN
 	XvtRenderCapture_FrontendPreview(g_loadedModels[0], &g_modelPreviewViewDelta.x, g_modelPreviewMatrix,
@@ -453,7 +453,7 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 	RenderScene_DrawObjectModel(&g_modelPreviewObject);
 	sw3d_DrawVisibleFacesToSurface();
 	RenderScene_UnlockBuffers();
-	g_localLightsLevel = savedLocalLightsLevel;
+	g_localLightsEnabled = savedLocalLightsLevel;
 	return 1;
 }
 
@@ -745,9 +745,9 @@ int ModelPreview_ResetViewAndRenderState(void) {
 	player->viewState.viewYaw = 0;
 	g_lodDistanceScale = 1.0f;
 	g_mipLodScale = 1.0f;
-	g_localLightsLevel = 1;
+	g_localLightsEnabled = 1;
 	g_specularEnabled = 1;
-	g_keepFullResTextures = 1;
+	g_textureResolutionLevel = 1;
 	g_dirLightingEnabled = 1;
 	g_ditheringEnabled = 1;
 	return 1;

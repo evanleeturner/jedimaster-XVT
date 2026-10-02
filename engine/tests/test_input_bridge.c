@@ -54,7 +54,7 @@ static void Start(void) {
 	memset(g_frontState.keyState, 0, sizeof g_frontState.keyState);
 	g_frontState.mouseX = g_frontState.mouseY = 0;
 	g_frontState.mouseLeftDown = g_frontState.mouseRightDown = 0;
-	g_frontState.mouseClickLatch = g_frontState.mouseRightClickLatch = 0;
+	g_frontState.mouseLeftClickLatch = g_frontState.mouseRightClickLatch = 0;
 	NewFrame();
 }
 
@@ -278,7 +278,7 @@ static void FillFrontend(void) {
 	XVT_ASSERT_TRUE(g_frontState.keyState['A'] & 0x80);
 	XVT_ASSERT_TRUE(Keyboard_PeekChar() == 'h');
 	g_frontState.mouseLeftDown = g_frontState.mouseRightDown = 1;
-	g_frontState.mouseClickLatch = g_frontState.mouseRightClickLatch = 1;
+	g_frontState.mouseLeftClickLatch = g_frontState.mouseRightClickLatch = 1;
 }
 
 static void AssertFrontendCleared(void) {
@@ -287,7 +287,7 @@ static void AssertFrontendCleared(void) {
 	XVT_ASSERT_INT_EQ(Keyboard_PeekChar(), 0);
 	XVT_ASSERT_INT_EQ(g_frontState.mouseLeftDown, 0);
 	XVT_ASSERT_INT_EQ(g_frontState.mouseRightDown, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.mouseClickLatch, 0);
+	XVT_ASSERT_INT_EQ(g_frontState.mouseLeftClickLatch, 0);
 	XVT_ASSERT_INT_EQ(g_frontState.mouseRightClickLatch, 0);
 }
 

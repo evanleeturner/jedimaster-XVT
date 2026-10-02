@@ -114,7 +114,7 @@ static void CheckConnecting(void) {
 	g_frontState.mouseY = 460;
 	XVT_ASSERT_INT_EQ(XvtNetworkDialogs_Connecting(), 0);
 	g_frontState.mouseX = 300;
-	g_frontState.mouseClickLatch = 1;
+	g_frontState.mouseLeftClickLatch = 1;
 	XVT_ASSERT_INT_EQ(XvtNetworkDialogs_Connecting(), 0);
 	/* Clicked on it. */
 	g_frontState.mouseX = 100;
@@ -132,7 +132,7 @@ static void CheckFailedWaitsForDismissal(void) {
 		/* The session is reset, and the message waits in a confirm dialog. */
 		XVT_ASSERT_TRUE(XvtNetworkSession_GetStatus().state != XVT_NETWORK_SESSION_FAILED);
 		XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
-		XVT_ASSERT_TRUE(g_frontDialogText0[0] != 0);
+		XVT_ASSERT_TRUE(g_frontDialogLine1OrEdit[0] != 0);
 		XVT_ASSERT_TRUE(TopScreen() == Placeholder);
 
 		/* Once dismissed, the frontend resumes the dialog's continuation, which returns to the screen. */
@@ -148,9 +148,9 @@ static void CheckFailedWaitsForDismissal(void) {
 static void CheckFailedEveryErrorHasAMessage(void) {
 	for (int error = AERON_DPLAY_DIRECTORY_ERROR_NONE; error <= AERON_DPLAY_DIRECTORY_ERROR_BUSY; ++error) {
 		Fresh();
-		memset(g_frontDialogText0, 0, sizeof g_frontDialogText0);
+		memset(g_frontDialogLine1OrEdit, 0, sizeof g_frontDialogLine1OrEdit);
 		XvtNetworkDialogs_ShowFailure((AeronDplayDirectoryError)error, 0);
-		XVT_ASSERT_TRUE(g_frontDialogText0[0] != 0);
+		XVT_ASSERT_TRUE(g_frontDialogLine1OrEdit[0] != 0);
 	}
 }
 

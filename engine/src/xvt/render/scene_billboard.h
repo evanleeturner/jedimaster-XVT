@@ -23,7 +23,7 @@ extern uint16_t g_billboardTargetSelectionState;
 extern uint16_t g_billboardObjectOrTypeIndex;
 extern int16_t g_sceneBillboardQueueCount;
 
-void SceneBillboard_QueueObjectTextured(int objectIndex);
+void SceneBillboard_DrawOrQueueObject(int objectIndex);
 void SceneBillboard_QueueProjectedTextured(int objectOrTypeIndex, int frame, int screenSize, int screenX,
 										   int screenY, int depthZ, int rotationAngle);
 void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers);

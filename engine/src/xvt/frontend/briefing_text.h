@@ -10,7 +10,7 @@ extern "C" {
 
 extern char* g_briefingMapLabelTexts[32];
 extern char* g_briefingTextBlocks[32];
-extern char* g_briefingTextBlockPaddingBuffers[20];
+extern char* g_briefingUnusedBuffers[20];
 extern char* g_briefingText;
 
 int16_t BriefingText_FreeAllocatedBuffersExit(void);

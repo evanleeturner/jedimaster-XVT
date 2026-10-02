@@ -34,7 +34,7 @@ int FrontendMouse_GetLeftClick(void) {
 	if (g_frontState.mouseInputGate != 0) {
 		return 0;
 	}
-	return g_frontState.mouseClickLatch;
+	return g_frontState.mouseLeftClickLatch;
 }
 
 // FUNCTION: XVT 0x4DC240
@@ -48,7 +48,7 @@ int FrontendMouse_GetRightClick(void) {
 // FUNCTION: XVT 0x4DC2A0
 int FrontendMouse_GetLeftClickFor(int gateId) {
 	if (gateId == g_frontState.mouseInputGate || g_frontState.mouseInputGate == 0) {
-		return g_frontState.mouseClickLatch;
+		return g_frontState.mouseLeftClickLatch;
 	}
 	return 0;
 }
@@ -69,7 +69,7 @@ int FrontendMouse_IsGateOpen(void) { return g_frontState.mouseInputGate == 0; }
 
 // FUNCTION: XVT 0x4DC310
 int FrontendMouse_ClearClicks(void) {
-	g_frontState.mouseClickLatch = 0;
+	g_frontState.mouseLeftClickLatch = 0;
 	g_frontState.mouseRightClickLatch = 0;
 	return 1;
 }

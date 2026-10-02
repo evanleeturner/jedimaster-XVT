@@ -26,7 +26,7 @@ BriefingMapS16Pair g_briefingMapScale = { 0, 0 };
 // GLOBAL: XVT 0x669210
 BriefingMapS16Pair g_briefingMapTargetScale = { 0, 0 };
 // GLOBAL: XVT 0x669214
-int g_briefingTeamIndex = 0;
+int g_activeBriefingIndex = 0;
 // GLOBAL: XVT 0x52C908
 int g_mapIconByCraftType[106] = {
 	0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  0,  0,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18,
@@ -65,7 +65,7 @@ int16_t g_briefingMapScaleDirty = 0;
 // GLOBAL: XVT 0x6696E4
 int16_t g_briefingMapFgMarkerActive[8] = { 0 };
 // GLOBAL: XVT 0x6696F4
-int16_t g_briefingMapFgMarkerIconIdx[8] = { 0 };
+int16_t g_briefingMapFgMarkerFlightGroupIdx[8] = { 0 };
 // GLOBAL: XVT 0x669704
 int16_t g_briefingMapFgMarkerAge[8] = { 0 };
 // GLOBAL: XVT 0x669714
@@ -218,7 +218,7 @@ void BriefingMap_AnimateViewState(void) {
 
 // FUNCTION: XVT 0x4F7DD0
 void BriefingMap_UpdateScriptPlaybackAfterAnimation(void) {
-	if (g_briefingScript.currentTime < g_briefingScript.durationFrames) {
+	if (g_briefingScript.currentFrame < g_briefingScript.durationFrames) {
 		BriefingScript_AdvanceFrame(0);
 	} else {
 		g_briefingLastNarratedTextBlockIdx = 0;
@@ -228,8 +228,8 @@ void BriefingMap_UpdateScriptPlaybackAfterAnimation(void) {
 }
 
 // FUNCTION: XVT 0x4F7E00
-int16_t BriefingMap_MouseInputStub(RECT* viewportRect, RECT* clipRect, int leftDown, int rightDown,
-								   int16_t mouseX, int16_t mouseY) {
+int16_t BriefingMap_SelectFlightGroupAtCursor(RECT* viewportRect, RECT* clipRect, int leftDown, int rightDown,
+											  int16_t mouseX, int16_t mouseY) {
 	RECT dst;
 
 	(void)viewportRect;
@@ -389,14 +389,13 @@ void BriefingMap_DrawOverlays(RECT* viewportRect, RECT* clipRect) {
 	index = 0;
 	do {
 		if (g_briefingMapFgMarkerActive[index] != 0) {
-			int16_t briefingIconIndex;
+			int16_t flightGroupIdx;
 
-			briefingIconIndex = g_briefingMapFgMarkerIconIdx[index];
+			flightGroupIdx = g_briefingMapFgMarkerFlightGroupIdx[index];
 			BriefingMap_ProjectPointToViewport(
-				&mapRect, g_frontendMission.flightGroups[briefingIconIndex].missionPointX[14],
-				g_frontendMission.flightGroups[briefingIconIndex].missionPointY[14], &projectedX,
-				&projectedY);
-			BriefingMap_DrawCraftIconHighlight(viewportRect, clipRect, briefingIconIndex,
+				&mapRect, g_frontendMission.flightGroups[flightGroupIdx].missionPointX[14],
+				g_frontendMission.flightGroups[flightGroupIdx].missionPointY[14], &projectedX, &projectedY);
+			BriefingMap_DrawCraftIconHighlight(viewportRect, clipRect, flightGroupIdx,
 											   g_briefingMapFgMarkerAge[index]);
 		}
 		++index;
@@ -433,7 +432,7 @@ void BriefingMap_DrawOverlays(RECT* viewportRect, RECT* clipRect) {
 		int missionPointIndex;
 
 		craftType = g_frontendMission.flightGroups[index].craftType;
-		missionPointIndex = g_briefingTeamIndex + 14;
+		missionPointIndex = g_activeBriefingIndex + 14;
 		mapX = g_frontendMission.flightGroups[index].missionPointX[missionPointIndex];
 		mapY = g_frontendMission.flightGroups[index].missionPointY[missionPointIndex];
 		if (g_frontendMission.flightGroups[index].missionPointEnabled[missionPointIndex] != 0) {
@@ -558,9 +557,9 @@ void BriefingMap_DrawRevealedLabel(const char* text, int16_t colorRampGroup, int
 }
 
 // FUNCTION: XVT 0x4F8B30
-void BriefingMap_DrawCraftIconHighlight(RECT* viewportRect, RECT* clipRect, int briefingIconIndex,
+void BriefingMap_DrawCraftIconHighlight(RECT* viewportRect, RECT* clipRect, int flightGroupIndex,
 										int highlightPhase) {
-	int iconIndex;
+	int flightGroupIdx;
 	int16_t craftType;
 	int16_t colorBase;
 	int16_t screenX;
@@ -574,11 +573,11 @@ void BriefingMap_DrawCraftIconHighlight(RECT* viewportRect, RECT* clipRect, int 
 
 	(void)clipRect;
 
-	iconIndex = (int16_t)briefingIconIndex;
-	craftType = g_frontendMission.flightGroups[iconIndex].craftType;
-	mapX = g_frontendMission.flightGroups[iconIndex].missionPointX[g_briefingTeamIndex + 14];
-	mapY = g_frontendMission.flightGroups[iconIndex].missionPointY[g_briefingTeamIndex + 14];
-	switch (g_frontendMission.flightGroups[iconIndex].iff) {
+	flightGroupIdx = (int16_t)flightGroupIndex;
+	craftType = g_frontendMission.flightGroups[flightGroupIdx].craftType;
+	mapX = g_frontendMission.flightGroups[flightGroupIdx].missionPointX[g_activeBriefingIndex + 14];
+	mapY = g_frontendMission.flightGroups[flightGroupIdx].missionPointY[g_activeBriefingIndex + 14];
+	switch (g_frontendMission.flightGroups[flightGroupIdx].iff) {
 		case 0:
 			colorBase = 0;
 			break;

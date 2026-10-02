@@ -172,13 +172,13 @@ Std3DTexCacheNode* RenderTexture_GetOrCreateBitmap(int width, int height, uint16
 	if (g_pStd3DCurDevice->caps.bColorKeyTexture != 0)
 		g_pStd3DCurDevice->caps.bAlphaTexture = 0;
 	if (g_pStd3DCurDevice->caps.bAlphaTexture != 0) {
-		palette[0] = g_flightTextPalette[g_flightTransparentColorIndex];
-		std3D_ConvertTexTo1555(palette, (int)maxColor + 1);
+		palette[0] = g_flightPalette16Bpp[g_flightTransparentColorIndex];
+		std3D_ConvertPaletteTo1555(palette, (int)maxColor + 1);
 	} else {
-		palette[0] = g_flightTextPalette[g_flightTransparentColorIndex];
+		palette[0] = g_flightPalette16Bpp[g_flightTransparentColorIndex];
 		std3D_CopyPaletteToScratch16(palette, (int)maxColor + 1);
 	}
-	if (std3D_CreateMipSurface(&source, node, 1, 0) == 0) {
+	if (std3D_AddToTextureCache(&source, node, 1, 0) == 0) {
 		DebugPrintf("AddToTextureCache returned NULL! (colorkey, (%d,%d))\n", width, height);
 		if (g_pStd3DCurDevice->caps.bColorKeyTexture != 0)
 			g_pStd3DCurDevice->caps.bAlphaTexture = oldAlphaTexture;
@@ -211,7 +211,7 @@ Std3DTexCacheNode* RenderTexture_GetOrCreateOpaque(int width, int height, const 
 	source.raster.bpp = INDEXED_TEXTURE_BITS_PER_PIXEL;
 	source.raster.colorMode = STDCOLOR_PAL;
 	std3D_CopyPaletteToScratch16(palette, PALETTE_COLOR_COUNT);
-	if (std3D_CreateMipSurface(&source, node, 0, 0) == 0) {
+	if (std3D_AddToTextureCache(&source, node, 0, 0) == 0) {
 		DebugPrintf("AddToTextureCache returned NULL! (nokey (%d,%d))\n", width, height);
 		return NULL;
 	}
@@ -224,7 +224,7 @@ Std3DTexCacheNode* RenderTexture_GetOrCreateColorKey(int width, int height, uint
 	enum { INDEXED_TEXTURE_BITS_PER_PIXEL = 8, PALETTE_COLOR_COUNT = 256 };
 
 	Std3DTexCacheNode* node;
-	int padCount;
+	int pixelCount;
 	Std3DVBuffer source;
 	int transparentIndex;
 	int hasVisiblePixels;
@@ -239,8 +239,8 @@ Std3DTexCacheNode* RenderTexture_GetOrCreateColorKey(int width, int height, uint
 	memset(&source, 0, sizeof(source));
 	transparentIndex = palette[PALETTE_COLOR_COUNT];
 	hasVisiblePixels = 0;
-	padCount = width * height;
-	for (pixelIndex = 0; pixelIndex < padCount; ++pixelIndex) {
+	pixelCount = width * height;
+	for (pixelIndex = 0; pixelIndex < pixelCount; ++pixelIndex) {
 		uint8_t colorIndex = *pixels++;
 		if (palette[colorIndex] == 0) {
 			g_renderTextureColorKeyScratch[pixelIndex] = 0;
@@ -266,19 +266,19 @@ Std3DTexCacheNode* RenderTexture_GetOrCreateColorKey(int width, int height, uint
 		g_pStd3DCurDevice->caps.bAlphaTexture = 0;
 	if (g_pStd3DCurDevice->caps.bAlphaTexture != 0) {
 		palette[transparentIndex] = palette[0];
-		palette[0] = g_flightTextPalette[g_flightTransparentColorIndex];
-		std3D_ConvertTexTo1555(palette, PALETTE_COLOR_COUNT);
+		palette[0] = g_flightPalette16Bpp[g_flightTransparentColorIndex];
+		std3D_ConvertPaletteTo1555(palette, PALETTE_COLOR_COUNT);
 		palette[0] = palette[transparentIndex];
 		palette[transparentIndex] = 0;
 	} else {
 		uint16_t* transparentColor = &palette[transparentIndex];
 		*transparentColor = palette[0];
-		palette[0] = g_flightTextPalette[g_flightTransparentColorIndex];
+		palette[0] = g_flightPalette16Bpp[g_flightTransparentColorIndex];
 		std3D_CopyPaletteToScratch16(palette, PALETTE_COLOR_COUNT);
 		palette[0] = *transparentColor;
 		*transparentColor = 0;
 	}
-	if (std3D_CreateMipSurface(&source, node, 1, 0) == 0) {
+	if (std3D_AddToTextureCache(&source, node, 1, 0) == 0) {
 		DebugPrintf("AlphaTex:AddToTextureCache returned NULL! (colorkey, (%d,%d))\n", width, height);
 		if (g_pStd3DCurDevice->caps.bColorKeyTexture != 0)
 			g_pStd3DCurDevice->caps.bAlphaTexture = oldAlphaTexture;

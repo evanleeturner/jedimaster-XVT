@@ -18,7 +18,7 @@ FrontendMission g_frontendMission = { 0 };
 // FUNCTION: XVT 0x4F6860
 int FrontendMission_LoadForBriefing(void) {
 	FrontendMission_InitForBriefing();
-	FrontendMission_LoadCurrentMissionData();
+	FrontendMission_LoadCurrentWithBriefing();
 	BriefingScript_ResetState();
 	return 1;
 }
@@ -33,7 +33,7 @@ void FrontendMission_InitForBriefing(void) {
 	g_briefingMapCenter.y = 0;
 	g_briefingMapTargetCenter.x = 0;
 	g_briefingMapTargetCenter.y = 0;
-	g_briefingTeamIndex = 0;
+	g_activeBriefingIndex = 0;
 	g_briefingMapScale.x = 32;
 	g_briefingLastNarratedTextBlockIdx = 0;
 	g_briefingMapScale.y = 32;
@@ -54,7 +54,7 @@ void FrontendMission_InitForBriefing(void) {
 		g_briefingTextBlocks[index] = malloc(320);
 	}
 	for (index = 0; index < 20; ++index) {
-		g_briefingTextBlockPaddingBuffers[index] = malloc(1024);
+		g_briefingUnusedBuffers[index] = malloc(1024);
 	}
 	for (index = 0; index < 2; ++index) {
 		g_briefingTextSlotActive[index] = 0;
@@ -69,7 +69,7 @@ void FrontendMission_InitForBriefing(void) {
 }
 
 // FUNCTION: XVT 0x4F6B80
-void FrontendMission_LoadCurrentMissionData(void) {
+void FrontendMission_LoadCurrentWithBriefing(void) {
 	enum {
 		MISSION_FILE_PATH_CAPACITY = 256,
 		BRIEFING_COUNT = 8,
@@ -107,7 +107,7 @@ void FrontendMission_LoadCurrentMissionData(void) {
 		}
 	}
 
-	sprintf(fileName, "%s\\%s", g_campaignDirNames[g_pilotData.missionDirectoryId],
+	sprintf(fileName, "%s\\%s", g_missionDirectoryNames[g_pilotData.missionDirectoryId],
 			g_missionList[g_selectedMissionListIndex].fileName);
 	stream = File_Open(fileName, g_fileModeReadBinary);
 	if (stream == NULL)
@@ -160,7 +160,7 @@ void FrontendMission_LoadCurrentMissionData(void) {
 			if (g_pilotData.team == (int)teamIndex && teamUsesBriefing != 0) {
 				g_briefingScript = briefingScript;
 				loadBriefingText = 1;
-				g_briefingTeamIndex = briefingIndex;
+				g_activeBriefingIndex = briefingIndex;
 			}
 		}
 
@@ -293,7 +293,7 @@ void FrontendMission_LoadCurrent(void) {
 		return;
 #endif
 
-	sprintf(fileName, "%s\\%s", g_campaignDirNames[g_pilotData.missionDirectoryId],
+	sprintf(fileName, "%s\\%s", g_missionDirectoryNames[g_pilotData.missionDirectoryId],
 			g_missionList[g_selectedMissionListIndex].fileName);
 	stream = File_Open(fileName, g_fileModeReadBinary);
 	if (stream == NULL)

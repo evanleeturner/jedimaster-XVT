@@ -589,11 +589,11 @@ unsigned int g_optConvertSourceBufSize = 0;
 // GLOBAL: XVT 0x60F204
 int g_curVertexCount = 0;
 // GLOBAL: XVT 0x60F1C0
-void* g_modelNodeWalkUnusedScratch0 = NULL;
+void* g_curMeshVertices = NULL;
 // GLOBAL: XVT 0x60F1D8
 void* g_curMeshFlags = NULL;
 // GLOBAL: XVT 0x60F1E8
-void* g_modelNodeWalkUnusedScratch1 = NULL;
+void* g_curMeshTexCoords = NULL;
 // GLOBAL: XVT 0x60F1F0
 void* g_modelNodeWalkUnusedScratch2 = NULL;
 // GLOBAL: XVT 0x60F208
@@ -1852,8 +1852,8 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 	}
 	model = Memory_LockHandle(handle);
 	memset(&meshState, 0, sizeof(meshState));
-	g_modelNodeWalkUnusedScratch0 = NULL;
-	g_modelNodeWalkUnusedScratch1 = NULL;
+	g_curMeshVertices = NULL;
+	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshFlags = NULL;
@@ -1955,8 +1955,8 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 	}
 
 	memset(&meshState, 0, sizeof(meshState));
-	g_modelNodeWalkUnusedScratch0 = NULL;
-	g_modelNodeWalkUnusedScratch1 = NULL;
+	g_curMeshVertices = NULL;
+	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshFlags = NULL;
@@ -2019,8 +2019,8 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize) {
 	serializedSize =
 		(unsigned int)(sizeof(*destinationModel) + sizeof(OptNode*) * (unsigned int)rootNodeCount);
 	memset(&meshState, 0, sizeof(meshState));
-	g_modelNodeWalkUnusedScratch0 = NULL;
-	g_modelNodeWalkUnusedScratch1 = NULL;
+	g_curMeshVertices = NULL;
+	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshFlags = NULL;
@@ -2242,7 +2242,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			break;
 
 		case OPT_MESHVERTS:
-			g_modelNodeWalkUnusedScratch0 = (*sourceNode)->payload;
+			g_curMeshVertices = (*sourceNode)->payload;
 			g_curVertexCount = (*sourceNode)->payloadCount;
 			if (g_optConvertVertexNode != NULL)
 				emitNode = 0;
@@ -2289,7 +2289,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			break;
 
 		case OPT_TEXCOORDS:
-			g_modelNodeWalkUnusedScratch1 = (*sourceNode)->payload;
+			g_curMeshTexCoords = (*sourceNode)->payload;
 			if (g_optConvertTexCoordNode != NULL)
 				emitNode = 0;
 			else
@@ -3137,17 +3137,13 @@ void OptModel_AppendConvertedFacesForNode(OptNode* dstFaceNode, OptNode* targetF
 					int sourceEdgeIndex;
 
 					*destinationCursor++ = OptModel_RemapVectorIndex(
-						g_optConvertVertexNode, (const OptVector*)g_modelNodeWalkUnusedScratch0,
-						*sourceCursor++);
+						g_optConvertVertexNode, (const OptVector*)g_curMeshVertices, *sourceCursor++);
 					*destinationCursor++ = OptModel_RemapVectorIndex(
-						g_optConvertVertexNode, (const OptVector*)g_modelNodeWalkUnusedScratch0,
-						*sourceCursor++);
+						g_optConvertVertexNode, (const OptVector*)g_curMeshVertices, *sourceCursor++);
 					*destinationCursor++ = OptModel_RemapVectorIndex(
-						g_optConvertVertexNode, (const OptVector*)g_modelNodeWalkUnusedScratch0,
-						*sourceCursor++);
+						g_optConvertVertexNode, (const OptVector*)g_curMeshVertices, *sourceCursor++);
 					*destinationCursor++ = OptModel_RemapVectorIndex(
-						g_optConvertVertexNode, (const OptVector*)g_modelNodeWalkUnusedScratch0,
-						*sourceCursor++);
+						g_optConvertVertexNode, (const OptVector*)g_curMeshVertices, *sourceCursor++);
 
 					*destinationCursor++ = destinationEdgeCount + *sourceCursor++;
 					*destinationCursor++ = destinationEdgeCount + *sourceCursor++;
@@ -3159,17 +3155,13 @@ void OptModel_AppendConvertedFacesForNode(OptNode* dstFaceNode, OptNode* targetF
 						*destinationCursor++ = destinationEdgeCount + sourceEdgeIndex;
 
 					*destinationCursor++ = OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode, (const OptTexCoord*)g_modelNodeWalkUnusedScratch1,
-						*sourceCursor++);
+						g_optConvertTexCoordNode, (const OptTexCoord*)g_curMeshTexCoords, *sourceCursor++);
 					*destinationCursor++ = OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode, (const OptTexCoord*)g_modelNodeWalkUnusedScratch1,
-						*sourceCursor++);
+						g_optConvertTexCoordNode, (const OptTexCoord*)g_curMeshTexCoords, *sourceCursor++);
 					*destinationCursor++ = OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode, (const OptTexCoord*)g_modelNodeWalkUnusedScratch1,
-						*sourceCursor++);
+						g_optConvertTexCoordNode, (const OptTexCoord*)g_curMeshTexCoords, *sourceCursor++);
 					*destinationCursor++ = OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode, (const OptTexCoord*)g_modelNodeWalkUnusedScratch1,
-						*sourceCursor++);
+						g_optConvertTexCoordNode, (const OptTexCoord*)g_curMeshTexCoords, *sourceCursor++);
 
 					if (g_optSourceIsVersion0)
 						sourceCursor -= 12;
@@ -3228,7 +3220,7 @@ void OptModel_AppendConvertedFacesForNode(OptNode* dstFaceNode, OptNode* targetF
 			break;
 
 		case OPT_MESHVERTS:
-			g_modelNodeWalkUnusedScratch0 = node->payload;
+			g_curMeshVertices = node->payload;
 			break;
 
 		case OPT_VERTNORMALS:
@@ -3236,7 +3228,7 @@ void OptModel_AppendConvertedFacesForNode(OptNode* dstFaceNode, OptNode* targetF
 			break;
 
 		case OPT_TEXCOORDS:
-			g_modelNodeWalkUnusedScratch1 = node->payload;
+			g_curMeshTexCoords = node->payload;
 			break;
 
 		case OPT_TEXTURE:
@@ -3295,8 +3287,8 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle) {
 	if (sourceModel->selfMarker != sourceModel)
 		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
 	memset(&meshState, 0, sizeof(meshState));
-	g_modelNodeWalkUnusedScratch0 = NULL;
-	g_modelNodeWalkUnusedScratch1 = NULL;
+	g_curMeshVertices = NULL;
+	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshFlags = NULL;
@@ -3509,8 +3501,8 @@ void OptModel_SaveHandleToFile(const char* filename, uint16_t handle) {
 		}
 		memset(&parentState, 0, sizeof(parentState));
 		rootIndex = 0;
-		g_modelNodeWalkUnusedScratch0 = NULL;
-		g_modelNodeWalkUnusedScratch1 = NULL;
+		g_curMeshVertices = NULL;
+		g_curMeshTexCoords = NULL;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
 		g_curMeshFlags = NULL;
@@ -3704,8 +3696,8 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* pa
 
 	if (node->childCount != 0) {
 		childState = *parentState;
-		g_modelNodeWalkUnusedScratch0 = NULL;
-		g_modelNodeWalkUnusedScratch1 = NULL;
+		g_curMeshVertices = NULL;
+		g_curMeshTexCoords = NULL;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
 		g_curMeshFlags = NULL;
@@ -3961,9 +3953,9 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 					sourcePalette = sourceTexels + sourceTexture->dataSize;
 				sourcePalette16 = (const uint16_t*)(sourcePalette + OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 				for (paletteIndex = OPT_TEXTURE_SUBPALETTE_COUNT; paletteIndex != 0; --paletteIndex) {
-					ImageQuantizer_ClassifyIndexed16BppImage(sourceTexels, sourcePalette16,
-															 (unsigned int)sourceTexture->width,
-															 (unsigned int)sourceTexture->height);
+					ImageQuantizer_ClassifyIndexedRgb565Image(sourceTexels, sourcePalette16,
+															  (unsigned int)sourceTexture->width,
+															  (unsigned int)sourceTexture->height);
 					sourcePalette16 += OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
 				}
 			}
@@ -3976,7 +3968,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 					sourceTexels = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
 					dst += sizeof(*sourceTexture);
 					runtimeTexture = (OptTextureData*)runtimeNode->payload;
-					if (g_keepFullResTextures == 0 &&
+					if (g_textureResolutionLevel == 0 &&
 						runtimeTexture->width > OPT_TEXTURE_FULL_RES_THRESHOLD &&
 						runtimeTexture->height > OPT_TEXTURE_FULL_RES_THRESHOLD) {
 						sourceTexels += runtimeTexture->height * runtimeTexture->width;
@@ -3990,7 +3982,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 					texturePayloadSize = (unsigned int)runtimeTexture->dataSize + sizeof(*sourceTexture);
 				} else {
 					texturePayloadSize = (unsigned int)sourceTexture->dataSize + sizeof(*sourceTexture);
-					if (g_keepFullResTextures == 0 && sourceTexture->width > OPT_TEXTURE_FULL_RES_THRESHOLD &&
+					if (g_textureResolutionLevel == 0 &&
+						sourceTexture->width > OPT_TEXTURE_FULL_RES_THRESHOLD &&
 						sourceTexture->height > OPT_TEXTURE_FULL_RES_THRESHOLD)
 						texturePayloadSize -= (unsigned int)(sourceTexture->height * sourceTexture->width);
 				}
@@ -4193,8 +4186,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 #endif
 	if (srcNode->childCount != 0) {
 		childMesh = *meshState;
-		g_modelNodeWalkUnusedScratch0 = NULL;
-		g_modelNodeWalkUnusedScratch1 = NULL;
+		g_curMeshVertices = NULL;
+		g_curMeshTexCoords = NULL;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
 		g_curMeshFlags = NULL;
@@ -4243,20 +4236,20 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle) {
 	conversionState.viewOrient[6] = 0.0f;
 	conversionState.viewOrient[7] = 0.0f;
 	conversionState.viewOrient[8] = 1.0f;
-	conversionState.orient[0] = 1.0f;
-	conversionState.orient[1] = 0.0f;
-	conversionState.orient[2] = 0.0f;
-	conversionState.orient[3] = 0.0f;
-	conversionState.orient[4] = 1.0f;
-	conversionState.orient[5] = 0.0f;
-	conversionState.orient[6] = 0.0f;
-	conversionState.orient[7] = 0.0f;
-	conversionState.orient[8] = 1.0f;
+	conversionState.viewToModelOrient[0] = 1.0f;
+	conversionState.viewToModelOrient[1] = 0.0f;
+	conversionState.viewToModelOrient[2] = 0.0f;
+	conversionState.viewToModelOrient[3] = 0.0f;
+	conversionState.viewToModelOrient[4] = 1.0f;
+	conversionState.viewToModelOrient[5] = 0.0f;
+	conversionState.viewToModelOrient[6] = 0.0f;
+	conversionState.viewToModelOrient[7] = 0.0f;
+	conversionState.viewToModelOrient[8] = 1.0f;
 	sourceModel = Memory_LockHandle(sourceHandle);
 	if (sourceModel->selfMarker != sourceModel)
 		OptModel_RelocateLoadedPointers(sourceModel);
-	g_modelNodeWalkUnusedScratch0 = NULL;
-	g_modelNodeWalkUnusedScratch1 = NULL;
+	g_curMeshVertices = NULL;
+	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshFlags = NULL;
@@ -4294,17 +4287,17 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle) {
 	conversionState.viewOrient[6] = 0.0f;
 	conversionState.viewOrient[7] = 0.0f;
 	conversionState.viewOrient[8] = 1.0f;
-	conversionState.orient[0] = 1.0f;
-	conversionState.orient[1] = 0.0f;
-	conversionState.orient[2] = 0.0f;
-	conversionState.orient[3] = 0.0f;
-	conversionState.orient[4] = 1.0f;
-	conversionState.orient[5] = 0.0f;
-	conversionState.orient[6] = 0.0f;
-	conversionState.orient[7] = 0.0f;
-	conversionState.orient[8] = 1.0f;
-	g_modelNodeWalkUnusedScratch0 = NULL;
-	g_modelNodeWalkUnusedScratch1 = NULL;
+	conversionState.viewToModelOrient[0] = 1.0f;
+	conversionState.viewToModelOrient[1] = 0.0f;
+	conversionState.viewToModelOrient[2] = 0.0f;
+	conversionState.viewToModelOrient[3] = 0.0f;
+	conversionState.viewToModelOrient[4] = 1.0f;
+	conversionState.viewToModelOrient[5] = 0.0f;
+	conversionState.viewToModelOrient[6] = 0.0f;
+	conversionState.viewToModelOrient[7] = 0.0f;
+	conversionState.viewToModelOrient[8] = 1.0f;
+	g_curMeshVertices = NULL;
+	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshFlags = NULL;
@@ -4525,7 +4518,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 			case OPT_MESHVERTS:
 				packedNode->payloadCount = params[0].value1;
 				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)packedNode->payloadCount);
-				g_modelNodeWalkUnusedScratch0 = dest;
+				g_curMeshVertices = dest;
 				g_curVertexCount = packedNode->payloadCount;
 				dest += sizeof(OptVector) * (size_t)g_curVertexCount;
 				if (packedNode->payloadCount > g_vertexRemapCapacity)
@@ -4676,7 +4669,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 			case OPT_TEXCOORDS:
 				packedNode->payloadCount = params[0].value1;
 				memcpy(dest, params[0].data, sizeof(OptTexCoord) * (size_t)packedNode->payloadCount);
-				g_modelNodeWalkUnusedScratch1 = dest;
+				g_curMeshTexCoords = dest;
 				dest += sizeof(OptTexCoord) * (size_t)packedNode->payloadCount;
 				break;
 
@@ -5294,43 +5287,43 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 	float duA, dvA, duB, dvB, determinant;
 	float normalLengthSquared;
 
-	if (g_modelNodeWalkUnusedScratch0 == NULL) {
+	if (g_curMeshVertices == NULL) {
 		return;
 	}
 	records = faceData->records;
 	if (faceCount > 0) {
 		const OptPackedFaceRecord* face = records;
 		for (faceIndex = 0; faceIndex < faceCount; ++faceIndex) {
-			edgeAx = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[1]].x -
-					 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[0]].x;
-			edgeAy = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[1]].y -
-					 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[0]].y;
-			edgeAz = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[1]].z -
-					 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[0]].z;
-			edgeBx = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[1]].x -
-					 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[2]].x;
-			edgeBy = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[1]].y -
-					 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[2]].y;
-			edgeBz = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[1]].z -
-					 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[2]].z;
+			edgeAx = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].x -
+					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].x;
+			edgeAy = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].y -
+					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].y;
+			edgeAz = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].z -
+					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].z;
+			edgeBx = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].x -
+					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].x;
+			edgeBy = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].y -
+					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].y;
+			edgeBz = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].z -
+					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].z;
 			dest[0] = edgeBz * edgeAy - edgeBy * edgeAz;
 			dest[1] = edgeBx * edgeAz - edgeBz * edgeAx;
 			dest[2] = edgeBy * edgeAx - edgeBx * edgeAy;
 			normalLengthSquared = dest[2] * dest[2] + dest[0] * dest[0] + dest[1] * dest[1];
 			if (normalLengthSquared == g_sw3dZeroFloat) {
 				if (face->vertexIndices[3] != -1) {
-					edgeAx = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[3]].x -
-							 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[0]].x;
-					edgeAy = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[3]].y -
-							 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[0]].y;
-					edgeAz = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[3]].z -
-							 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[0]].z;
-					edgeBx = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[3]].x -
-							 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[2]].x;
-					edgeBy = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[3]].y -
-							 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[2]].y;
-					edgeBz = ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[3]].z -
-							 ((const OptVector*)g_modelNodeWalkUnusedScratch0)[face->vertexIndices[2]].z;
+					edgeAx = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].x -
+							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].x;
+					edgeAy = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].y -
+							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].y;
+					edgeAz = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].z -
+							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].z;
+					edgeBx = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].x -
+							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].x;
+					edgeBy = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].y -
+							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].y;
+					edgeBz = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].z -
+							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].z;
 					dest[0] = edgeBz * edgeAy - edgeBy * edgeAz;
 					dest[1] = edgeBx * edgeAz - edgeBz * edgeAx;
 					dest[2] = edgeBy * edgeAx - edgeBx * edgeAy;
@@ -5358,7 +5351,7 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 		}
 	}
 	records = faceData->records;
-	if (g_modelNodeWalkUnusedScratch1 != NULL) {
+	if (g_curMeshTexCoords != NULL) {
 		int tangentFaceIndex;
 		if (faceCount > 0)
 			for (tangentFaceIndex = 0; tangentFaceIndex < faceCount; ++tangentFaceIndex) {
@@ -5366,14 +5359,14 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 				float lengthSquared;
 				const OptVector* vertices;
 				const OptTexCoord* texCoords;
-				vertices = (const OptVector*)g_modelNodeWalkUnusedScratch0;
+				vertices = (const OptVector*)g_curMeshVertices;
 				edgeAx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[1]].x;
 				edgeAy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[1]].y;
 				edgeAz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[1]].z;
 				edgeBx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[2]].x;
 				edgeBy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[2]].y;
 				edgeBz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[2]].z;
-				texCoords = (const OptTexCoord*)g_modelNodeWalkUnusedScratch1;
+				texCoords = (const OptTexCoord*)g_curMeshTexCoords;
 				duA = texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[1]].u;
 				dvA = texCoords[face->texCoordIndices[0]].v - texCoords[face->texCoordIndices[1]].v;
 				duB = texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[2]].u;
@@ -5385,14 +5378,14 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 				lengthSquared = dest[2] * dest[2] + dest[0] * dest[0] + dest[1] * dest[1];
 				if (determinant == 0.0f || lengthSquared == g_sw3dZeroFloat) {
 					if (face->vertexIndices[3] != -1) {
-						vertices = (const OptVector*)g_modelNodeWalkUnusedScratch0;
+						vertices = (const OptVector*)g_curMeshVertices;
 						edgeAx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[1]].x;
 						edgeAy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[1]].y;
 						edgeAz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[1]].z;
 						edgeBx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[3]].x;
 						edgeBy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[3]].y;
 						edgeBz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[3]].z;
-						texCoords = (const OptTexCoord*)g_modelNodeWalkUnusedScratch1;
+						texCoords = (const OptTexCoord*)g_curMeshTexCoords;
 						duA = texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[1]].u;
 						dvA = texCoords[face->texCoordIndices[0]].v - texCoords[face->texCoordIndices[1]].v;
 						duB = texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[3]].u;
@@ -5403,14 +5396,14 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 						dest[2] = edgeBz * dvA - dvB * edgeAz;
 						lengthSquared = dest[2] * dest[2] + dest[0] * dest[0] + dest[1] * dest[1];
 						if (determinant == 0.0f || lengthSquared == g_sw3dZeroFloat) {
-							vertices = (const OptVector*)g_modelNodeWalkUnusedScratch0;
+							vertices = (const OptVector*)g_curMeshVertices;
 							edgeAx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[2]].x;
 							edgeAy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[2]].y;
 							edgeAz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[2]].z;
 							edgeBx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[3]].x;
 							edgeBy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[3]].y;
 							edgeBz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[3]].z;
-							texCoords = (const OptTexCoord*)g_modelNodeWalkUnusedScratch1;
+							texCoords = (const OptTexCoord*)g_curMeshTexCoords;
 							duA =
 								texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[2]].u;
 							dvA =
@@ -5425,7 +5418,7 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 							dest[2] = edgeBz * dvA - dvB * edgeAz;
 							lengthSquared = dest[2] * dest[2] + dest[0] * dest[0] + dest[1] * dest[1];
 							if (determinant == 0.0f || lengthSquared == g_sw3dZeroFloat) {
-								vertices = (const OptVector*)g_modelNodeWalkUnusedScratch0;
+								vertices = (const OptVector*)g_curMeshVertices;
 								edgeAx =
 									vertices[face->vertexIndices[1]].x - vertices[face->vertexIndices[2]].x;
 								edgeAy =
@@ -5438,7 +5431,7 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 									vertices[face->vertexIndices[1]].y - vertices[face->vertexIndices[3]].y;
 								edgeBz =
 									vertices[face->vertexIndices[1]].z - vertices[face->vertexIndices[3]].z;
-								texCoords = (const OptTexCoord*)g_modelNodeWalkUnusedScratch1;
+								texCoords = (const OptTexCoord*)g_curMeshTexCoords;
 								duA = texCoords[face->texCoordIndices[1]].u -
 									  texCoords[face->texCoordIndices[2]].u;
 								dvA = texCoords[face->texCoordIndices[1]].v -

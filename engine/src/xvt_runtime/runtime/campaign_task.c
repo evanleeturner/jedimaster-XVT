@@ -113,7 +113,7 @@ int XvtCampaignTask_EnterTeams(void) {
 			return result;
 		}
 		if (result == 0) {
-			g_remoteBattleSequenceActive = 0;
+			g_remoteBattleContinuationActive = 0;
 			g_remoteBattleSequenceContinuationChoice = 0;
 			g_remoteBattleLastCompletedMissionIndex = 0;
 			g_remoteBattleRebelVictoryCount = 0;

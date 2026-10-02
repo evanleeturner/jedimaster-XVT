@@ -41,8 +41,8 @@ void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx);
 int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx, uint16_t targetObjIdx);
 int16_t collide_checkboxcollision(int radius);
 int collide_WouldShotHitTarget(uint16_t sourceObjIdx, uint16_t targetObjIdx, uint16_t hardpointIndex);
-uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx, int16_t lookaheadSteps);
-void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t hitMeshIndex);
+uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx, int16_t lookaheadSeconds);
+void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx, int16_t hitMeshIndex);
 int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_t sourceObjIdx,
 							uint16_t hitSideOrDamageAmount);
 int collide_ConvertObjectToExplosion(unsigned int objectIndex, uint8_t explosionObjectType);

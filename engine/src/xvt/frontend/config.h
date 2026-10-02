@@ -36,7 +36,7 @@ struct GameConfig {
 	uint8_t lod[2];
 	uint8_t screenRes[2];
 	uint8_t windowSize[2];
-	uint8_t bpp[2];
+	uint8_t colorDepthChoice[2];
 	uint8_t brightness[2];
 	uint8_t use3dHardware[2];
 	uint8_t bilinear[2];
@@ -51,8 +51,8 @@ struct GameConfig {
 	uint8_t sfxExteriorEnabled;
 	uint8_t sfxInteriorEnabled;
 	uint8_t sfxEngineEnabled;
-	uint8_t voicePilotEnabled;
-	uint8_t voiceTacticalOfficerEnabled;
+	uint8_t voicePilotLevel;
+	uint8_t voiceTacticalOfficerLevel;
 	uint8_t voiceCommanderEnabled;
 	uint8_t voiceSpecialEnabled;
 	uint8_t musicEnabled;
@@ -93,7 +93,7 @@ extern int g_configConnectionTypeEditable;
 
 int Config_OptionsDatapadUpdate(int frameCounter);
 void Config_DrawVideoOptionRows(void);
-void Config_DrawScreenResolutionOptionRow(int configIndex);
+void Config_DrawScreenResolutionOptionRow(int isMultiplayer);
 void Config_DrawWindowSizeOptionRow(int configIndex);
 void Config_DrawBitsPerPixelOptionRow(int configIndex);
 void Config_DrawBrightnessOptionRow(int configIndex);
@@ -109,28 +109,28 @@ void Config_DrawSpecularOptionRow(int configIndex);
 void Config_DrawDiffuseLightingOptionRow(int configIndex);
 void Config_DrawUse3dHardwareOptionRow(int configIndex);
 void Config_DrawBilinearOptionRow(int configIndex);
-void Config_DrawOptionCycleDisabled(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
-void Config_DrawOptionCycle(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
-void Config_DrawOptionCycleReadOnly(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
-void Config_DrawOptionCycleImpl(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId,
-								int translucentSelection, int disableInput);
+void Config_DrawOptionCycleDimmed(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
+void Config_DrawTwoChoiceOption(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
+void Config_DrawTwoChoiceOptionReadOnly(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
+void Config_DrawTwoChoiceOptionImpl(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId,
+									int translucentSelection, int disableInput);
 void Config_DrawThreeChoiceOption(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
-void Config_DrawOptionSliderImpl(uint8_t* value, RECT* rect, int valueCount, FrontendStringId rangeLabelId,
-								 int playSoundOnChange);
+void Config_DrawOptionSlider(uint8_t* value, RECT* rect, int valueCount, FrontendStringId rangeLabelId,
+							 int playSoundOnChange);
 void Config_Load(void);
 void Config_Write(void);
 int Config_UpdateNavigationAndRestoreDefaults(void);
 void Config_NetworkOptionsScreen(void);
 void Config_DrawNetworkOptionCycleDisabled(const uint8_t* value, const RECT* rect,
 										   FrontendStringId valueBaseStrId);
-void Config_DrawThreeOptionBar(const uint8_t* selectedOption, const RECT* barRect,
-							   FrontendStringId firstOptionStringId);
+void Config_DrawThreeChoiceOptionReadOnly(const uint8_t* selectedOption, const RECT* barRect,
+										  FrontendStringId firstOptionStringId);
 void Config_SoundOptionsScreen(void);
 void Config_JoystickRemapScreen(void);
 int Config_LoadJoystickActionDictionary(void);
 uint8_t Config_ReadJoystickActionPickerKey(void);
 void Config_DrawCustomTauntsPage(void);
-int Config_CreditsScreen(int frameCounter);
+int Credits_UpdateScreen(int frameCounter);
 
 #ifdef __cplusplus
 }

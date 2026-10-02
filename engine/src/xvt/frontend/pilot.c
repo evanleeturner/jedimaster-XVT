@@ -582,7 +582,7 @@ typedef struct PilotXvtRecord {
 	int launchSessionMarker;
 	int isHost;
 	unsigned int numHumanPlayersLastMission;
-	int gameMode;
+	int sessionMode;
 	uint8_t xvtRecordCombatPayload[320];
 	uint8_t xvtRecordIdentityPayload[32];
 	uint8_t xvtRecordObjectPayload[320];
@@ -595,7 +595,7 @@ typedef struct PilotXvtRecord {
 	uint8_t missionSequenceState[3348];
 	PilotRating rating;
 	int totalMissionsPlayedCount;
-	int totalMissionsPlayedCountPerRating[25];
+	int ratingAchievedOnMission[25];
 	char ratingName[32];
 	int missionScore;
 	int killsFullOnPlayer[8];
@@ -607,7 +607,7 @@ typedef struct PilotXvtRecord {
 	int killsFullFromFlightGroup[48];
 	int killsSharedFromFlightGroup[48];
 	int flightGroupRating[48];
-	PilotXvtStats objectStats;
+	PilotXvtStats lastMissionStats;
 	PilotNetworkPlayer networkPlayers[8];
 	PilotTeam teams[10];
 	int currentFactionId;
@@ -664,7 +664,7 @@ int Pilot_LoadXvtRecord(XvtFile* stream) {
 	g_pilotData.launchSessionMarker = record.launchSessionMarker;
 	g_pilotData.isHost = record.isHost;
 	g_pilotData.numHumanPlayersLastMission = record.numHumanPlayersLastMission;
-	g_pilotData.sessionMode = record.gameMode;
+	g_pilotData.sessionMode = record.sessionMode;
 	memcpy(g_pilotData.xvtRecordPayload, record.xvtRecordCombatPayload,
 		   sizeof(record.xvtRecordCombatPayload));
 	memcpy(&g_pilotData.xvtRecordPayload[sizeof(record.xvtRecordCombatPayload)],
@@ -826,8 +826,8 @@ int Pilot_LoadXvtRecord(XvtFile* stream) {
 
 	g_pilotData.rating = record.rating;
 	g_pilotData.totalMissionsPlayedCount = record.totalMissionsPlayedCount;
-	memcpy(g_pilotData.totalMissionsPlayedCountPerRating, record.totalMissionsPlayedCountPerRating,
-		   sizeof(record.totalMissionsPlayedCountPerRating));
+	memcpy(g_pilotData.ratingAchievedOnMission, record.ratingAchievedOnMission,
+		   sizeof(record.ratingAchievedOnMission));
 	memcpy(g_pilotData.ratingName, record.ratingName, sizeof(record.ratingName));
 	g_pilotData.missionScore = record.missionScore;
 	memcpy(g_pilotData.killsFullOnPlayer, record.killsFullOnPlayer, sizeof(record.killsFullOnPlayer));
@@ -845,18 +845,19 @@ int Pilot_LoadXvtRecord(XvtFile* stream) {
 		   sizeof(record.killsSharedFromFlightGroup));
 	memcpy(g_pilotData.flightGroupRating, record.flightGroupRating, sizeof(record.flightGroupRating));
 
-	memcpy(g_pilotData.objectStats.totalScorePerMT, record.objectStats.totalScorePerMT,
-		   sizeof(record.objectStats.totalScorePerMT));
+	memcpy(g_pilotData.objectStats.totalScorePerMT, record.lastMissionStats.totalScorePerMT,
+		   sizeof(record.lastMissionStats.totalScorePerMT));
 	memcpy(g_pilotData.objectStats.standaloneMissionsPlayedPerMT,
-		   record.objectStats.standaloneMissionsPlayedPerMT,
-		   sizeof(record.objectStats.standaloneMissionsPlayedPerMT));
+		   record.lastMissionStats.standaloneMissionsPlayedPerMT,
+		   sizeof(record.lastMissionStats.standaloneMissionsPlayedPerMT));
 	memcpy(g_pilotData.objectStats.sequenceMissionsPlayedPerMT,
-		   record.objectStats.sequenceMissionsPlayedPerMT,
-		   sizeof(record.objectStats.sequenceMissionsPlayedPerMT));
-	memcpy(g_pilotData.objectStats.totalKillsPerMT, record.objectStats.totalKillsPerMT,
-		   sizeof(record.objectStats.totalKillsPerMT));
-	memcpy(g_pilotData.objectStats.totalFriendliesKilledPerMT, record.objectStats.totalFriendliesKilledPerMT,
-		   sizeof(record.objectStats.totalFriendliesKilledPerMT));
+		   record.lastMissionStats.sequenceMissionsPlayedPerMT,
+		   sizeof(record.lastMissionStats.sequenceMissionsPlayedPerMT));
+	memcpy(g_pilotData.objectStats.totalKillsPerMT, record.lastMissionStats.totalKillsPerMT,
+		   sizeof(record.lastMissionStats.totalKillsPerMT));
+	memcpy(g_pilotData.objectStats.totalFriendliesKilledPerMT,
+		   record.lastMissionStats.totalFriendliesKilledPerMT,
+		   sizeof(record.lastMissionStats.totalFriendliesKilledPerMT));
 	for (missionType = 0; missionType < MISSION_TYPE_COUNT; ++missionType) {
 		preservedCraftStats.bWing =
 			g_pilotData.objectStats.killsPerCraftPerMT[missionType][B_WING_CRAFT_INDEX];
@@ -873,8 +874,8 @@ int Pilot_LoadXvtRecord(XvtFile* stream) {
 		preservedCraftStats.gunEmplacement =
 			g_pilotData.objectStats.killsPerCraftPerMT[missionType][GUN_EMPLACEMENT_CRAFT_INDEX];
 		memcpy(g_pilotData.objectStats.killsPerCraftPerMT[missionType],
-			   record.objectStats.killsPerCraftPerMT[missionType],
-			   sizeof(record.objectStats.killsPerCraftPerMT[missionType]));
+			   record.lastMissionStats.killsPerCraftPerMT[missionType],
+			   sizeof(record.lastMissionStats.killsPerCraftPerMT[missionType]));
 		g_pilotData.objectStats.killsPerCraftPerMT[missionType][B_WING_CRAFT_INDEX] =
 			preservedCraftStats.bWing;
 		g_pilotData.objectStats.killsPerCraftPerMT[missionType][DREADNAUGHT_CRAFT_INDEX] =
@@ -905,8 +906,8 @@ int Pilot_LoadXvtRecord(XvtFile* stream) {
 		preservedCraftStats.gunEmplacement =
 			g_pilotData.objectStats.killsSharedPerCraftPerMT[missionType][GUN_EMPLACEMENT_CRAFT_INDEX];
 		memcpy(g_pilotData.objectStats.killsSharedPerCraftPerMT[missionType],
-			   record.objectStats.killsSharedPerCraftPerMT[missionType],
-			   sizeof(record.objectStats.killsSharedPerCraftPerMT[missionType]));
+			   record.lastMissionStats.killsSharedPerCraftPerMT[missionType],
+			   sizeof(record.lastMissionStats.killsSharedPerCraftPerMT[missionType]));
 		g_pilotData.objectStats.killsSharedPerCraftPerMT[missionType][B_WING_CRAFT_INDEX] =
 			preservedCraftStats.bWing;
 		g_pilotData.objectStats.killsSharedPerCraftPerMT[missionType][DREADNAUGHT_CRAFT_INDEX] =
@@ -937,8 +938,8 @@ int Pilot_LoadXvtRecord(XvtFile* stream) {
 		preservedCraftStats.gunEmplacement =
 			g_pilotData.objectStats.killsAssistsPerCraftPerMT[missionType][GUN_EMPLACEMENT_CRAFT_INDEX];
 		memcpy(g_pilotData.objectStats.killsAssistsPerCraftPerMT[missionType],
-			   record.objectStats.killsAssistsPerCraftPerMT[missionType],
-			   sizeof(record.objectStats.killsAssistsPerCraftPerMT[missionType]));
+			   record.lastMissionStats.killsAssistsPerCraftPerMT[missionType],
+			   sizeof(record.lastMissionStats.killsAssistsPerCraftPerMT[missionType]));
 		g_pilotData.objectStats.killsAssistsPerCraftPerMT[missionType][B_WING_CRAFT_INDEX] =
 			preservedCraftStats.bWing;
 		g_pilotData.objectStats.killsAssistsPerCraftPerMT[missionType][DREADNAUGHT_CRAFT_INDEX] =
@@ -956,42 +957,45 @@ int Pilot_LoadXvtRecord(XvtFile* stream) {
 	}
 
 	memcpy(g_pilotData.objectStats.killsFullOnPlayerRatingPerMT,
-		   record.objectStats.killsFullOnPlayerRatingPerMT,
-		   sizeof(record.objectStats.killsFullOnPlayerRatingPerMT));
+		   record.lastMissionStats.killsFullOnPlayerRatingPerMT,
+		   sizeof(record.lastMissionStats.killsFullOnPlayerRatingPerMT));
 	memcpy(g_pilotData.objectStats.killsSharedOnPlayerRatingPerMT,
-		   record.objectStats.killsSharedOnPlayerRatingPerMT,
-		   sizeof(record.objectStats.killsSharedOnPlayerRatingPerMT));
+		   record.lastMissionStats.killsSharedOnPlayerRatingPerMT,
+		   sizeof(record.lastMissionStats.killsSharedOnPlayerRatingPerMT));
 	memcpy(g_pilotData.objectStats.killsAssistOnPlayerRatingPerMT,
-		   record.objectStats.killsAssistOnPlayerRatingPerMT,
-		   sizeof(record.objectStats.killsAssistOnPlayerRatingPerMT));
-	memcpy(g_pilotData.objectStats.killsFullOnAIRatingPerMT, record.objectStats.killsFullOnAIRatingPerMT,
-		   sizeof(record.objectStats.killsFullOnAIRatingPerMT));
-	memcpy(g_pilotData.objectStats.killsSharedOnAIRatingPerMT, record.objectStats.killsSharedOnAIRatingPerMT,
-		   sizeof(record.objectStats.killsSharedOnAIRatingPerMT));
-	memcpy(g_pilotData.objectStats.killsAssistOnAIRatingPerMT, record.objectStats.killsAssistOnAIRatingPerMT,
-		   sizeof(record.objectStats.killsAssistOnAIRatingPerMT));
-	memcpy(g_pilotData.objectStats.numSpecialInspectedPerMT, record.objectStats.numSpecialInspectedPerMT,
-		   sizeof(record.objectStats.numSpecialInspectedPerMT));
-	memcpy(g_pilotData.objectStats.energyHitsPerMT, record.objectStats.energyHitsPerMT,
-		   sizeof(record.objectStats.energyHitsPerMT));
-	memcpy(g_pilotData.objectStats.energyFiredPerMT, record.objectStats.energyFiredPerMT,
-		   sizeof(record.objectStats.energyFiredPerMT));
-	memcpy(g_pilotData.objectStats.warheadsHitsPerMT, record.objectStats.warheadsHitsPerMT,
-		   sizeof(record.objectStats.warheadsHitsPerMT));
-	memcpy(g_pilotData.objectStats.warheadsFiredPerMT, record.objectStats.warheadsFiredPerMT,
-		   sizeof(record.objectStats.warheadsFiredPerMT));
-	memcpy(g_pilotData.objectStats.totalCraftLossesPerMT, record.objectStats.totalCraftLossesPerMT,
-		   sizeof(record.objectStats.totalCraftLossesPerMT));
-	memcpy(g_pilotData.objectStats.lossesByCollisionsPerMT, record.objectStats.lossesByCollisionsPerMT,
-		   sizeof(record.objectStats.lossesByCollisionsPerMT));
-	memcpy(g_pilotData.objectStats.lossesByStarshipsPerMT, record.objectStats.lossesByStarshipsPerMT,
-		   sizeof(record.objectStats.lossesByStarshipsPerMT));
-	memcpy(g_pilotData.objectStats.lossesByMinesPerMT, record.objectStats.lossesByMinesPerMT,
-		   sizeof(record.objectStats.lossesByMinesPerMT));
-	memcpy(g_pilotData.objectStats.killedByPlayerRatingPerMT, record.objectStats.killedByPlayerRatingPerMT,
-		   sizeof(record.objectStats.killedByPlayerRatingPerMT));
-	memcpy(g_pilotData.objectStats.killedByAIRatingPerMT, record.objectStats.killedByAIRatingPerMT,
-		   sizeof(record.objectStats.killedByAIRatingPerMT));
+		   record.lastMissionStats.killsAssistOnPlayerRatingPerMT,
+		   sizeof(record.lastMissionStats.killsAssistOnPlayerRatingPerMT));
+	memcpy(g_pilotData.objectStats.killsFullOnAIRatingPerMT, record.lastMissionStats.killsFullOnAIRatingPerMT,
+		   sizeof(record.lastMissionStats.killsFullOnAIRatingPerMT));
+	memcpy(g_pilotData.objectStats.killsSharedOnAIRatingPerMT,
+		   record.lastMissionStats.killsSharedOnAIRatingPerMT,
+		   sizeof(record.lastMissionStats.killsSharedOnAIRatingPerMT));
+	memcpy(g_pilotData.objectStats.killsAssistOnAIRatingPerMT,
+		   record.lastMissionStats.killsAssistOnAIRatingPerMT,
+		   sizeof(record.lastMissionStats.killsAssistOnAIRatingPerMT));
+	memcpy(g_pilotData.objectStats.numSpecialInspectedPerMT, record.lastMissionStats.numSpecialInspectedPerMT,
+		   sizeof(record.lastMissionStats.numSpecialInspectedPerMT));
+	memcpy(g_pilotData.objectStats.energyHitsPerMT, record.lastMissionStats.energyHitsPerMT,
+		   sizeof(record.lastMissionStats.energyHitsPerMT));
+	memcpy(g_pilotData.objectStats.energyFiredPerMT, record.lastMissionStats.energyFiredPerMT,
+		   sizeof(record.lastMissionStats.energyFiredPerMT));
+	memcpy(g_pilotData.objectStats.warheadsHitsPerMT, record.lastMissionStats.warheadsHitsPerMT,
+		   sizeof(record.lastMissionStats.warheadsHitsPerMT));
+	memcpy(g_pilotData.objectStats.warheadsFiredPerMT, record.lastMissionStats.warheadsFiredPerMT,
+		   sizeof(record.lastMissionStats.warheadsFiredPerMT));
+	memcpy(g_pilotData.objectStats.totalCraftLossesPerMT, record.lastMissionStats.totalCraftLossesPerMT,
+		   sizeof(record.lastMissionStats.totalCraftLossesPerMT));
+	memcpy(g_pilotData.objectStats.lossesByCollisionsPerMT, record.lastMissionStats.lossesByCollisionsPerMT,
+		   sizeof(record.lastMissionStats.lossesByCollisionsPerMT));
+	memcpy(g_pilotData.objectStats.lossesByStarshipsPerMT, record.lastMissionStats.lossesByStarshipsPerMT,
+		   sizeof(record.lastMissionStats.lossesByStarshipsPerMT));
+	memcpy(g_pilotData.objectStats.lossesByMinesPerMT, record.lastMissionStats.lossesByMinesPerMT,
+		   sizeof(record.lastMissionStats.lossesByMinesPerMT));
+	memcpy(g_pilotData.objectStats.killedByPlayerRatingPerMT,
+		   record.lastMissionStats.killedByPlayerRatingPerMT,
+		   sizeof(record.lastMissionStats.killedByPlayerRatingPerMT));
+	memcpy(g_pilotData.objectStats.killedByAIRatingPerMT, record.lastMissionStats.killedByAIRatingPerMT,
+		   sizeof(record.lastMissionStats.killedByAIRatingPerMT));
 	memcpy(g_pilotData.networkPlayers, record.networkPlayers, sizeof(record.networkPlayers));
 	memcpy(g_pilotData.teams, record.teams, sizeof(record.teams));
 	g_pilotData.currentFactionId = record.currentFactionId;
@@ -1227,7 +1231,7 @@ int Pilot_WriteXvtRecord(const char* fileName, XvtFile* stream) {
 	record.launchSessionMarker = g_pilotData.launchSessionMarker;
 	record.isHost = g_pilotData.isHost;
 	record.numHumanPlayersLastMission = g_pilotData.numHumanPlayersLastMission;
-	record.gameMode = g_pilotData.sessionMode;
+	record.sessionMode = g_pilotData.sessionMode;
 	memcpy(record.xvtRecordCombatPayload, g_pilotData.xvtRecordPayload,
 		   sizeof(record.xvtRecordCombatPayload));
 	memcpy(record.xvtRecordIdentityPayload, &g_pilotData.xvtRecordPayload[320],
@@ -1321,8 +1325,8 @@ int Pilot_WriteXvtRecord(const char* fileName, XvtFile* stream) {
 
 	record.rating = g_pilotData.rating;
 	record.totalMissionsPlayedCount = g_pilotData.totalMissionsPlayedCount;
-	memcpy(record.totalMissionsPlayedCountPerRating, g_pilotData.totalMissionsPlayedCountPerRating,
-		   sizeof(record.totalMissionsPlayedCountPerRating));
+	memcpy(record.ratingAchievedOnMission, g_pilotData.ratingAchievedOnMission,
+		   sizeof(record.ratingAchievedOnMission));
 	memcpy(record.ratingName, g_pilotData.ratingName, sizeof(record.ratingName));
 	record.missionScore = g_pilotData.missionScore;
 	memcpy(record.killsFullOnPlayer, g_pilotData.killsFullOnPlayer, sizeof(record.killsFullOnPlayer));
@@ -1340,87 +1344,91 @@ int Pilot_WriteXvtRecord(const char* fileName, XvtFile* stream) {
 		   sizeof(record.killsSharedFromFlightGroup));
 	memcpy(record.flightGroupRating, g_pilotData.flightGroupRating, sizeof(record.flightGroupRating));
 
-	memcpy(record.objectStats.totalScorePerMT, g_pilotData.objectStats.totalScorePerMT,
-		   sizeof(record.objectStats.totalScorePerMT));
-	memcpy(record.objectStats.standaloneMissionsPlayedPerMT,
+	memcpy(record.lastMissionStats.totalScorePerMT, g_pilotData.objectStats.totalScorePerMT,
+		   sizeof(record.lastMissionStats.totalScorePerMT));
+	memcpy(record.lastMissionStats.standaloneMissionsPlayedPerMT,
 		   g_pilotData.objectStats.standaloneMissionsPlayedPerMT,
-		   sizeof(record.objectStats.standaloneMissionsPlayedPerMT));
-	memcpy(record.objectStats.sequenceMissionsPlayedPerMT,
+		   sizeof(record.lastMissionStats.standaloneMissionsPlayedPerMT));
+	memcpy(record.lastMissionStats.sequenceMissionsPlayedPerMT,
 		   g_pilotData.objectStats.sequenceMissionsPlayedPerMT,
-		   sizeof(record.objectStats.sequenceMissionsPlayedPerMT));
-	memcpy(record.objectStats.totalKillsPerMT, g_pilotData.objectStats.totalKillsPerMT,
-		   sizeof(record.objectStats.totalKillsPerMT));
-	memcpy(record.objectStats.totalFriendliesKilledPerMT, g_pilotData.objectStats.totalFriendliesKilledPerMT,
-		   sizeof(record.objectStats.totalFriendliesKilledPerMT));
+		   sizeof(record.lastMissionStats.sequenceMissionsPlayedPerMT));
+	memcpy(record.lastMissionStats.totalKillsPerMT, g_pilotData.objectStats.totalKillsPerMT,
+		   sizeof(record.lastMissionStats.totalKillsPerMT));
+	memcpy(record.lastMissionStats.totalFriendliesKilledPerMT,
+		   g_pilotData.objectStats.totalFriendliesKilledPerMT,
+		   sizeof(record.lastMissionStats.totalFriendliesKilledPerMT));
 	for (missionType = 0; missionType < 3; ++missionType) {
-		memcpy(record.objectStats.killsPerCraftPerMT[missionType],
+		memcpy(record.lastMissionStats.killsPerCraftPerMT[missionType],
 			   g_pilotData.objectStats.killsPerCraftPerMT[missionType],
-			   sizeof(record.objectStats.killsPerCraftPerMT[missionType]));
-		memcpy(record.objectStats.killsSharedPerCraftPerMT[missionType],
+			   sizeof(record.lastMissionStats.killsPerCraftPerMT[missionType]));
+		memcpy(record.lastMissionStats.killsSharedPerCraftPerMT[missionType],
 			   g_pilotData.objectStats.killsSharedPerCraftPerMT[missionType],
-			   sizeof(record.objectStats.killsSharedPerCraftPerMT[missionType]));
-		memcpy(record.objectStats.killsAssistsPerCraftPerMT[missionType],
+			   sizeof(record.lastMissionStats.killsSharedPerCraftPerMT[missionType]));
+		memcpy(record.lastMissionStats.killsAssistsPerCraftPerMT[missionType],
 			   g_pilotData.objectStats.killsAssistsPerCraftPerMT[missionType],
-			   sizeof(record.objectStats.killsAssistsPerCraftPerMT[missionType]));
-		record.objectStats.killsPerCraftPerMT[missionType][78] = 0;
-		record.objectStats.killsPerCraftPerMT[missionType][54] = 0;
-		record.objectStats.killsPerCraftPerMT[missionType][45] = 0;
-		record.objectStats.killsPerCraftPerMT[missionType][43] = 0;
-		record.objectStats.killsPerCraftPerMT[missionType][41] = 0;
-		record.objectStats.killsPerCraftPerMT[missionType][36] = 0;
-		record.objectStats.killsPerCraftPerMT[missionType][4] = 0;
-		record.objectStats.killsSharedPerCraftPerMT[missionType][78] = 0;
-		record.objectStats.killsSharedPerCraftPerMT[missionType][54] = 0;
-		record.objectStats.killsSharedPerCraftPerMT[missionType][45] = 0;
-		record.objectStats.killsSharedPerCraftPerMT[missionType][43] = 0;
-		record.objectStats.killsSharedPerCraftPerMT[missionType][41] = 0;
-		record.objectStats.killsSharedPerCraftPerMT[missionType][36] = 0;
-		record.objectStats.killsSharedPerCraftPerMT[missionType][4] = 0;
-		record.objectStats.killsAssistsPerCraftPerMT[missionType][78] = 0;
-		record.objectStats.killsAssistsPerCraftPerMT[missionType][54] = 0;
-		record.objectStats.killsAssistsPerCraftPerMT[missionType][45] = 0;
-		record.objectStats.killsAssistsPerCraftPerMT[missionType][43] = 0;
-		record.objectStats.killsAssistsPerCraftPerMT[missionType][41] = 0;
-		record.objectStats.killsAssistsPerCraftPerMT[missionType][36] = 0;
-		record.objectStats.killsAssistsPerCraftPerMT[missionType][4] = 0;
+			   sizeof(record.lastMissionStats.killsAssistsPerCraftPerMT[missionType]));
+		record.lastMissionStats.killsPerCraftPerMT[missionType][78] = 0;
+		record.lastMissionStats.killsPerCraftPerMT[missionType][54] = 0;
+		record.lastMissionStats.killsPerCraftPerMT[missionType][45] = 0;
+		record.lastMissionStats.killsPerCraftPerMT[missionType][43] = 0;
+		record.lastMissionStats.killsPerCraftPerMT[missionType][41] = 0;
+		record.lastMissionStats.killsPerCraftPerMT[missionType][36] = 0;
+		record.lastMissionStats.killsPerCraftPerMT[missionType][4] = 0;
+		record.lastMissionStats.killsSharedPerCraftPerMT[missionType][78] = 0;
+		record.lastMissionStats.killsSharedPerCraftPerMT[missionType][54] = 0;
+		record.lastMissionStats.killsSharedPerCraftPerMT[missionType][45] = 0;
+		record.lastMissionStats.killsSharedPerCraftPerMT[missionType][43] = 0;
+		record.lastMissionStats.killsSharedPerCraftPerMT[missionType][41] = 0;
+		record.lastMissionStats.killsSharedPerCraftPerMT[missionType][36] = 0;
+		record.lastMissionStats.killsSharedPerCraftPerMT[missionType][4] = 0;
+		record.lastMissionStats.killsAssistsPerCraftPerMT[missionType][78] = 0;
+		record.lastMissionStats.killsAssistsPerCraftPerMT[missionType][54] = 0;
+		record.lastMissionStats.killsAssistsPerCraftPerMT[missionType][45] = 0;
+		record.lastMissionStats.killsAssistsPerCraftPerMT[missionType][43] = 0;
+		record.lastMissionStats.killsAssistsPerCraftPerMT[missionType][41] = 0;
+		record.lastMissionStats.killsAssistsPerCraftPerMT[missionType][36] = 0;
+		record.lastMissionStats.killsAssistsPerCraftPerMT[missionType][4] = 0;
 	}
-	memcpy(record.objectStats.killsFullOnPlayerRatingPerMT,
+	memcpy(record.lastMissionStats.killsFullOnPlayerRatingPerMT,
 		   g_pilotData.objectStats.killsFullOnPlayerRatingPerMT,
-		   sizeof(record.objectStats.killsFullOnPlayerRatingPerMT));
-	memcpy(record.objectStats.killsSharedOnPlayerRatingPerMT,
+		   sizeof(record.lastMissionStats.killsFullOnPlayerRatingPerMT));
+	memcpy(record.lastMissionStats.killsSharedOnPlayerRatingPerMT,
 		   g_pilotData.objectStats.killsSharedOnPlayerRatingPerMT,
-		   sizeof(record.objectStats.killsSharedOnPlayerRatingPerMT));
-	memcpy(record.objectStats.killsAssistOnPlayerRatingPerMT,
+		   sizeof(record.lastMissionStats.killsSharedOnPlayerRatingPerMT));
+	memcpy(record.lastMissionStats.killsAssistOnPlayerRatingPerMT,
 		   g_pilotData.objectStats.killsAssistOnPlayerRatingPerMT,
-		   sizeof(record.objectStats.killsAssistOnPlayerRatingPerMT));
-	memcpy(record.objectStats.killsFullOnAIRatingPerMT, g_pilotData.objectStats.killsFullOnAIRatingPerMT,
-		   sizeof(record.objectStats.killsFullOnAIRatingPerMT));
-	memcpy(record.objectStats.killsSharedOnAIRatingPerMT, g_pilotData.objectStats.killsSharedOnAIRatingPerMT,
-		   sizeof(record.objectStats.killsSharedOnAIRatingPerMT));
-	memcpy(record.objectStats.killsAssistOnAIRatingPerMT, g_pilotData.objectStats.killsAssistOnAIRatingPerMT,
-		   sizeof(record.objectStats.killsAssistOnAIRatingPerMT));
-	memcpy(record.objectStats.numSpecialInspectedPerMT, g_pilotData.objectStats.numSpecialInspectedPerMT,
-		   sizeof(record.objectStats.numSpecialInspectedPerMT));
-	memcpy(record.objectStats.energyHitsPerMT, g_pilotData.objectStats.energyHitsPerMT,
-		   sizeof(record.objectStats.energyHitsPerMT));
-	memcpy(record.objectStats.energyFiredPerMT, g_pilotData.objectStats.energyFiredPerMT,
-		   sizeof(record.objectStats.energyFiredPerMT));
-	memcpy(record.objectStats.warheadsHitsPerMT, g_pilotData.objectStats.warheadsHitsPerMT,
-		   sizeof(record.objectStats.warheadsHitsPerMT));
-	memcpy(record.objectStats.warheadsFiredPerMT, g_pilotData.objectStats.warheadsFiredPerMT,
-		   sizeof(record.objectStats.warheadsFiredPerMT));
-	memcpy(record.objectStats.totalCraftLossesPerMT, g_pilotData.objectStats.totalCraftLossesPerMT,
-		   sizeof(record.objectStats.totalCraftLossesPerMT));
-	memcpy(record.objectStats.lossesByCollisionsPerMT, g_pilotData.objectStats.lossesByCollisionsPerMT,
-		   sizeof(record.objectStats.lossesByCollisionsPerMT));
-	memcpy(record.objectStats.lossesByStarshipsPerMT, g_pilotData.objectStats.lossesByStarshipsPerMT,
-		   sizeof(record.objectStats.lossesByStarshipsPerMT));
-	memcpy(record.objectStats.lossesByMinesPerMT, g_pilotData.objectStats.lossesByMinesPerMT,
-		   sizeof(record.objectStats.lossesByMinesPerMT));
-	memcpy(record.objectStats.killedByPlayerRatingPerMT, g_pilotData.objectStats.killedByPlayerRatingPerMT,
-		   sizeof(record.objectStats.killedByPlayerRatingPerMT));
-	memcpy(record.objectStats.killedByAIRatingPerMT, g_pilotData.objectStats.killedByAIRatingPerMT,
-		   sizeof(record.objectStats.killedByAIRatingPerMT));
+		   sizeof(record.lastMissionStats.killsAssistOnPlayerRatingPerMT));
+	memcpy(record.lastMissionStats.killsFullOnAIRatingPerMT, g_pilotData.objectStats.killsFullOnAIRatingPerMT,
+		   sizeof(record.lastMissionStats.killsFullOnAIRatingPerMT));
+	memcpy(record.lastMissionStats.killsSharedOnAIRatingPerMT,
+		   g_pilotData.objectStats.killsSharedOnAIRatingPerMT,
+		   sizeof(record.lastMissionStats.killsSharedOnAIRatingPerMT));
+	memcpy(record.lastMissionStats.killsAssistOnAIRatingPerMT,
+		   g_pilotData.objectStats.killsAssistOnAIRatingPerMT,
+		   sizeof(record.lastMissionStats.killsAssistOnAIRatingPerMT));
+	memcpy(record.lastMissionStats.numSpecialInspectedPerMT, g_pilotData.objectStats.numSpecialInspectedPerMT,
+		   sizeof(record.lastMissionStats.numSpecialInspectedPerMT));
+	memcpy(record.lastMissionStats.energyHitsPerMT, g_pilotData.objectStats.energyHitsPerMT,
+		   sizeof(record.lastMissionStats.energyHitsPerMT));
+	memcpy(record.lastMissionStats.energyFiredPerMT, g_pilotData.objectStats.energyFiredPerMT,
+		   sizeof(record.lastMissionStats.energyFiredPerMT));
+	memcpy(record.lastMissionStats.warheadsHitsPerMT, g_pilotData.objectStats.warheadsHitsPerMT,
+		   sizeof(record.lastMissionStats.warheadsHitsPerMT));
+	memcpy(record.lastMissionStats.warheadsFiredPerMT, g_pilotData.objectStats.warheadsFiredPerMT,
+		   sizeof(record.lastMissionStats.warheadsFiredPerMT));
+	memcpy(record.lastMissionStats.totalCraftLossesPerMT, g_pilotData.objectStats.totalCraftLossesPerMT,
+		   sizeof(record.lastMissionStats.totalCraftLossesPerMT));
+	memcpy(record.lastMissionStats.lossesByCollisionsPerMT, g_pilotData.objectStats.lossesByCollisionsPerMT,
+		   sizeof(record.lastMissionStats.lossesByCollisionsPerMT));
+	memcpy(record.lastMissionStats.lossesByStarshipsPerMT, g_pilotData.objectStats.lossesByStarshipsPerMT,
+		   sizeof(record.lastMissionStats.lossesByStarshipsPerMT));
+	memcpy(record.lastMissionStats.lossesByMinesPerMT, g_pilotData.objectStats.lossesByMinesPerMT,
+		   sizeof(record.lastMissionStats.lossesByMinesPerMT));
+	memcpy(record.lastMissionStats.killedByPlayerRatingPerMT,
+		   g_pilotData.objectStats.killedByPlayerRatingPerMT,
+		   sizeof(record.lastMissionStats.killedByPlayerRatingPerMT));
+	memcpy(record.lastMissionStats.killedByAIRatingPerMT, g_pilotData.objectStats.killedByAIRatingPerMT,
+		   sizeof(record.lastMissionStats.killedByAIRatingPerMT));
 	memcpy(record.networkPlayers, g_pilotData.networkPlayers, sizeof(record.networkPlayers));
 	memcpy(record.teams, g_pilotData.teams, sizeof(record.teams));
 	record.currentFactionId = g_pilotData.currentFactionId;

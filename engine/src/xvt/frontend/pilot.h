@@ -57,7 +57,7 @@ struct PilotDataSelection {
 							 ///< XVT reader is identified.
 	int isHost;
 	unsigned int numHumanPlayersLastMission;
-	int gameMode;
+	int sessionMode;
 	uint8_t xvtRecordPayload[672]; ///< Opaque 672-byte payload from the XvT-compatible pilot-record prefix.
 	int team;
 	MissionDirectoryId missionDirectoryId;

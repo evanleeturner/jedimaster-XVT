@@ -55,7 +55,7 @@ int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence, int c
 /* Finds a queued reliable receive packet matching sequence, channel, and peer
  * filters. Returns the ring index or -1. */
 // FUNCTION: XVT 0x46FCE0
-int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int wantType0, int channelB, int peerSlot) {
+int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA, int channelB, int peerSlot) {
 	unsigned int i;
 	int index;
 	int sequenceByte;
@@ -85,7 +85,7 @@ int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int wantType0, i
 				}
 			}
 			if (slot == (unsigned int)peerSlot) {
-				if (wantType0 != 0) {
+				if (channelA != 0) {
 					if (isClass0 && sequenceByte == remoteSeq)
 						return index;
 				} else if (channelB != 0) {

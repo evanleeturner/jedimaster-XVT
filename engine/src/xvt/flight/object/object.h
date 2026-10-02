@@ -119,7 +119,7 @@ extern ObjectSlotRange g_objectSlotRangeByGenus[20];
 extern ObjectRecord* g_objectTable;
 
 void Object_UpdateLifetimeAndMovement(void);
-int Object_AddTrigMoveDeltaAndClampWorldPosition(uint32_t* mobileObject);
+int Object_AddTrigMoveDeltaAndClampWorldPosition(uint32_t* objectWords);
 void RenderNonCraftSceneObject(uint16_t objectIndex);
 uint16_t Object_SpawnDetachedComponent(uint16_t sourceObjectIndex, int16_t meshIndex);
 uint16_t Object_SpawnEffectFragment(uint16_t sourceObjIdx);

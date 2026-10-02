@@ -36,7 +36,7 @@ extern int g_pulseColorRamp[12];
 extern int g_pilotRecordPagesNeedRebuild;
 extern int g_editableFieldBackgroundColor;
 extern char g_frontendScratchBuffer[256];
-extern char g_nextMissionDescription[256];
+extern char g_missionSequenceDescription[256];
 extern int g_hostCdAvailable;
 extern int g_cdAudioWarningPending;
 extern int g_skipMovieChecks;

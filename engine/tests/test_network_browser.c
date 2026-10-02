@@ -53,7 +53,7 @@ static FrontendScreenUpdateFn TopScreen(void) {
 static void Click(int x, int y) {
 	g_frontState.mouseX = x;
 	g_frontState.mouseY = y;
-	g_frontState.mouseClickLatch = 1;
+	g_frontState.mouseLeftClickLatch = 1;
 }
 
 static void CheckDrawsWithNoRooms(void) {

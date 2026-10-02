@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 struct TechLibrarySpecText {
-	char designation[64];
+	char craftName[64];
 	char manufacturer[64];
 	char inUseBy[64];
 	char description[256];

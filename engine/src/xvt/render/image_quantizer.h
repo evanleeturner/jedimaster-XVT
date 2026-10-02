@@ -52,9 +52,9 @@ void ImageQuantizer_CompressPixelRuns(unsigned int* image);
 void ImageQuantizer_DestroyImage(void* image);
 int ImageQuantizer_ExpandPixelRuns(uint32_t* image);
 void ImageQuantizer_QuantizeImage(unsigned int* image, unsigned int paletteSize, int treeDepth, int dither,
-								  int outputMode);
+								  int colorspace);
 unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int paletteSize, int dither,
-												int outputMode);
+												int colorspace);
 void ImageQuantizer_ClassifyImageColors(unsigned int* image);
 void ImageQuantizer_FindNearestPaletteEntryRecursive(ImageQuantizerNode* node);
 void ImageQuantizer_BuildPaletteEntriesRecursive(ImageQuantizerNode* node);
@@ -67,11 +67,11 @@ unsigned int ImageQuantizer_MergeNodeIntoParent(ImageQuantizerNode* node);
 void ImageQuantizer_ReduceColorTree(unsigned int targetColorCount);
 void ImageQuantizer_ReduceColorTreePassRecursive(ImageQuantizerNode* node);
 void ImageQuantizer_QuantizeImageLists(unsigned int** imageListHeads, unsigned int listCount,
-									   unsigned int paletteSize, int treeDepth, int dither, int outputMode);
+									   unsigned int paletteSize, int treeDepth, int dither, int colorspace);
 int ImageQuantizer_BeginPaletteCollection(int targetColorCount, int treeDepth);
 void ImageQuantizer_ExportPalette6BitAndDestroy(int colorCount, int treeDepth, uint8_t* paletteRgb);
-void ImageQuantizer_ClassifyIndexed16BppImage(const uint8_t* indexedPixels, const uint16_t* palette16,
-											  unsigned int width, unsigned int height);
+void ImageQuantizer_ClassifyIndexedRgb565Image(const uint8_t* indexedPixels, const uint16_t* palette16,
+											   unsigned int width, unsigned int height);
 void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t* encodedImage, const uint8_t* paletteRgba,
 												 unsigned int width, unsigned int height, int packingMode);
 

@@ -877,11 +877,11 @@ int Movie_Play(const char* name, int synchronizeMultiplayer) {
 }
 
 // FUNCTION: XVT 0x4F0070
-int Movie_SingleplayerInputCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
-									int eventArg4, uint32_t* playbackFlag) {
-	(void)context;
-	(void)eventArg3;
-	(void)eventArg4;
+int Movie_SingleplayerInputCallback(int window, unsigned int eventCode, int keyCode, int lParam,
+									int callbackContext, uint32_t* playbackFlag) {
+	(void)window;
+	(void)lParam;
+	(void)callbackContext;
 
 	switch (eventCode) {
 		case 0x0F:
@@ -915,22 +915,22 @@ int Movie_SingleplayerInputCallback(int context, unsigned int eventCode, int key
 }
 
 // FUNCTION: XVT 0x4F0140
-int Movie_MultiplayerInputCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
-								   int eventArg4, uint32_t* playbackFlag) {
+int Movie_MultiplayerInputCallback(int window, unsigned int eventCode, int keyCode, int lParam,
+								   int callbackContext, uint32_t* playbackFlag) {
 	enum {
 		moviePaintEvent = 15,
-		movieKeyDownEvent = 0x102,
-		movieMouseAbortEvent = 0x202,
-		movieMouseContinueEvent = 0x205,
-		movieMouseCloseEvent = 0x208,
+		MOVIE_EVENT_CHAR = 0x102,
+		MOVIE_EVENT_LEFT_BUTTON_UP = 0x202,
+		MOVIE_EVENT_RIGHT_BUTTON_UP = 0x205,
+		MOVIE_EVENT_MIDDLE_BUTTON_UP = 0x208,
 	};
 
 	int stopPlayback = 0;
 	int packet[2];
 
-	(void)context;
-	(void)eventArg3;
-	(void)eventArg4;
+	(void)window;
+	(void)lParam;
+	(void)callbackContext;
 	switch (eventCode) {
 		case moviePaintEvent:
 			FrontendDisplay_ClearBackBuffer();
@@ -938,7 +938,7 @@ int Movie_MultiplayerInputCallback(int context, unsigned int eventCode, int keyC
 			FrontendDisplay_PresentFrame();
 			FrontendDisplay_ClearBackBuffer();
 			break;
-		case movieKeyDownEvent:
+		case MOVIE_EVENT_CHAR:
 			switch (keyCode) {
 				case 8:
 				case 13:
@@ -965,9 +965,9 @@ int Movie_MultiplayerInputCallback(int context, unsigned int eventCode, int keyC
 					break;
 			}
 			break;
-		case movieMouseAbortEvent:
-		case movieMouseContinueEvent:
-		case movieMouseCloseEvent:
+		case MOVIE_EVENT_LEFT_BUTTON_UP:
+		case MOVIE_EVENT_RIGHT_BUTTON_UP:
+		case MOVIE_EVENT_MIDDLE_BUTTON_UP:
 			stopPlayback = 1;
 			break;
 		default:
@@ -1134,14 +1134,14 @@ void Movie_UpdateMultiplayerSyncTimeout(void) {
 }
 
 // FUNCTION: XVT 0x4F07D0
-int Movie_MultiplayerSyncCallback(int initialize) {
+int Movie_MultiplayerSyncCallback(int currentFrame) {
 	enum { MAX_MULTIPLAYER_PLAYERS = 8 };
 
 	unsigned int playerIndex;
 	unsigned int readyPlayerCount;
-	int waitingPlayerCount;
+	int watchingPlayerCount;
 
-	if (initialize == 0) {
+	if (currentFrame == 0) {
 		readyPlayerCount = Net_CountReadyPlayers();
 		for (playerIndex = 0; playerIndex < MAX_MULTIPLAYER_PLAYERS; ++playerIndex) {
 			if (playerIndex < readyPlayerCount) {
@@ -1155,13 +1155,13 @@ int Movie_MultiplayerSyncCallback(int initialize) {
 	}
 
 	FrontendNet_ProcessNetworkPackets();
-	waitingPlayerCount = 0;
+	watchingPlayerCount = 0;
 	for (playerIndex = 0; playerIndex < MAX_MULTIPLAYER_PLAYERS; ++playerIndex) {
 		if (g_movieMultiplayerSyncPlayers[playerIndex].playerId != 0 &&
 			g_movieMultiplayerSyncPlayers[playerIndex].isWaiting == 0)
-			++waitingPlayerCount;
+			++watchingPlayerCount;
 	}
-	if (waitingPlayerCount == 0)
+	if (watchingPlayerCount == 0)
 		return 1;
 
 	Movie_DrawMultiplayerSyncStatus();

@@ -140,9 +140,9 @@ OptTextureData* g_curTextureDesc = NULL;
 // GLOBAL: XVT 0x60F210
 ModelTextureDefaultTexture g_defaultWhiteTexture = { 0 };
 // GLOBAL: XVT 0x999446
-static int g_phongSlotIndex = 0;
+static int g_lightSampleSlotIndex = 0;
 // GLOBAL: XVT 0x999410
-static int g_phongSlotStride = 0;
+static int g_lightSampleSlotStride = 0;
 // GLOBAL: XVT 0x999424
 uint16_t g_sceneSpanDataHandle = 0;
 // GLOBAL: XVT 0x999426
@@ -160,9 +160,9 @@ static int g_sceneSpanPtrCapacity = 0;
 // GLOBAL: XVT 0x99943C
 int g_sceneSpanPtrAvail = 0;
 // GLOBAL: XVT 0x999440
-static uint8_t* g_scenePhongData = NULL;
+static uint8_t* g_sceneLightSampleData = NULL;
 // GLOBAL: XVT 0x999444
-uint16_t g_scenePhongDataHandle = 0;
+uint16_t g_sceneLightSampleDataHandle = 0;
 // GLOBAL: XVT 0x99944A
 SceneFace* g_visFaceList = NULL;
 // GLOBAL: XVT 0x55635C
@@ -259,15 +259,15 @@ void RenderScene_ProjectMeshVertices(SceneMesh* mesh) {
 		RenderScene_TransformFaceTextureGradients(face, &mesh->pFaceTexturing[face->faceIndex],
 												  &mesh->viewPosX);
 		geometry = &mesh->pFaceGeom[face->faceIndex];
-		face->maxVertW = 0.0f;
+		face->maxScaledInverseDepth = 0.0f;
 		totalW = 0.0f;
-		face->minVertW = (float)(unsigned int)g_projScaleInt;
+		face->minScaledInverseDepth = (float)(unsigned int)g_projScaleInt;
 		for (cornerIndex = 0; cornerIndex < 4; ++cornerIndex) {
 			const int modelVertexIndex = geometry->vertexIdx[cornerIndex];
 			const int uvIndex = geometry->uvIdx[cornerIndex];
 			const int normalIndex = geometry->normalIdx[cornerIndex];
 			int remappedVertex;
-			float vertexW;
+			float vertexScaledInverseDepth;
 
 			if (modelVertexIndex == -1) {
 				break;
@@ -284,18 +284,18 @@ void RenderScene_ProjectMeshVertices(SceneMesh* mesh) {
 				transformed.y += mesh->viewPosY;
 				transformed.z += mesh->viewPosZ;
 				if (transformed.z < g_renderUnitFloat) {
-					output->w = transformed.z - g_renderUnitFloat;
+					output->scaledInverseDepth = transformed.z - g_renderUnitFloat;
 					output->sx = transformed.x;
 					output->sy = transformed.y;
 					face->nearClipState = -1;
-					vertexW = (float)(unsigned int)g_projScaleInt;
+					vertexScaledInverseDepth = (float)(unsigned int)g_projScaleInt;
 				} else {
-					output->w = (float)(unsigned int)g_projScaleInt / transformed.z;
-					output->sx = output->w * transformed.x;
-					output->sy = output->w * transformed.y;
+					output->scaledInverseDepth = (float)(unsigned int)g_projScaleInt / transformed.z;
+					output->sx = output->scaledInverseDepth * transformed.x;
+					output->sy = output->scaledInverseDepth * transformed.y;
 					output->sx += (float)(g_flightVpWidth >> 1);
 					output->sy += (float)(g_projOffsetY + (g_flightVpHeight >> 1));
-					vertexW = output->w;
+					vertexScaledInverseDepth = output->scaledInverseDepth;
 				}
 				RenderScene_ComputeVertexLighting(mesh, output, &mesh->pVertNormals[normalIndex],
 												  &mesh->pModelVerts[modelVertexIndex], &g_meshEyePos);
@@ -304,19 +304,19 @@ void RenderScene_ProjectMeshVertices(SceneMesh* mesh) {
 				++output;
 			} else {
 				const ProjVertex* projected = &g_projVertList[mesh->vertBaseIndex + remappedVertex];
-				if (projected->w < 0.0f) {
+				if (projected->scaledInverseDepth < 0.0f) {
 					face->nearClipState = -1;
-					vertexW = (float)(unsigned int)g_projScaleInt;
+					vertexScaledInverseDepth = (float)(unsigned int)g_projScaleInt;
 				} else {
-					vertexW = projected->w;
+					vertexScaledInverseDepth = projected->scaledInverseDepth;
 				}
 			}
-			totalW += vertexW;
-			if (face->maxVertW < vertexW) {
-				face->maxVertW = vertexW;
+			totalW += vertexScaledInverseDepth;
+			if (face->maxScaledInverseDepth < vertexScaledInverseDepth) {
+				face->maxScaledInverseDepth = vertexScaledInverseDepth;
 			}
-			if (face->minVertW > vertexW) {
-				face->minVertW = vertexW;
+			if (face->minScaledInverseDepth > vertexScaledInverseDepth) {
+				face->minScaledInverseDepth = vertexScaledInverseDepth;
 			}
 		}
 
@@ -373,16 +373,16 @@ void RenderScene_ProjectMeshVertices(SceneMesh* mesh) {
 			}
 			{
 				const OptTextureData* material = (const OptTextureData*)mesh->pMaterial;
-				float lodScale;
+				float meanViewDepth;
 
 				if (geometry->vertexIdx[3] == -1) {
 					totalW = g_renderTriangleCornerCount / totalW;
 				} else {
 					totalW = g_renderQuadCornerCount / totalW;
 				}
-				lodScale = (float)(unsigned int)g_projScaleInt * totalW;
-				face->mipLevel = (int)((float)((material->width * material->height) << 8) *
-									   (area * (lodScale * lodScale)));
+				meanViewDepth = (float)(unsigned int)g_projScaleInt * totalW;
+				face->texelsPerPixelQ8 = (int)((float)((material->width * material->height) << 8) *
+											   (area * (meanViewDepth * meanViewDepth)));
 			}
 		}
 	}
@@ -411,13 +411,13 @@ void RenderScene_ProjectDistantMeshVertices(SceneMesh* mesh) {
 		const FaceRecord* geometry = &mesh->pFaceGeom[face->faceIndex];
 		int cornerIndex;
 
-		face->maxVertW = 0.0f;
-		face->minVertW = (float)g_projScaleInt;
+		face->maxScaledInverseDepth = 0.0f;
+		face->minScaledInverseDepth = (float)g_projScaleInt;
 		for (cornerIndex = 0; cornerIndex < 4; ++cornerIndex) {
 			const int modelVertexIndex = geometry->vertexIdx[cornerIndex];
 			const int uvIndex = geometry->uvIdx[cornerIndex];
 			const int normalIndex = geometry->normalIdx[cornerIndex];
-			float vertexW;
+			float vertexScaledInverseDepth;
 
 			if (modelVertexIndex == -1) {
 				break;
@@ -434,25 +434,26 @@ void RenderScene_ProjectDistantMeshVertices(SceneMesh* mesh) {
 				transformed.y += mesh->viewPosY;
 				transformed.z += mesh->viewPosZ;
 				transformed.z += g_renderDistantDepth;
-				output->w = projectionScale / transformed.z;
-				output->sx = output->w * transformed.x;
-				output->sy = output->w * transformed.y;
+				output->scaledInverseDepth = projectionScale / transformed.z;
+				output->sx = output->scaledInverseDepth * transformed.x;
+				output->sy = output->scaledInverseDepth * transformed.y;
 				output->sx += (float)(g_flightVpWidth >> 1);
 				output->sy += (float)(g_projOffsetY + (g_flightVpHeight >> 1));
-				vertexW = output->w;
+				vertexScaledInverseDepth = output->scaledInverseDepth;
 				RenderScene_ComputeVertexLighting(mesh, output, &mesh->pVertNormals[normalIndex],
 												  &mesh->pModelVerts[modelVertexIndex], &g_meshEyePos);
 				output->tu = mesh->pUVs[uvIndex].u;
 				output->tv = mesh->pUVs[uvIndex].v;
 				++output;
 			} else {
-				vertexW = g_projVertList[mesh->vertBaseIndex + g_vertexRemap[modelVertexIndex]].w;
+				vertexScaledInverseDepth =
+					g_projVertList[mesh->vertBaseIndex + g_vertexRemap[modelVertexIndex]].scaledInverseDepth;
 			}
-			if (face->maxVertW < vertexW) {
-				face->maxVertW = vertexW;
+			if (face->maxScaledInverseDepth < vertexScaledInverseDepth) {
+				face->maxScaledInverseDepth = vertexScaledInverseDepth;
 			}
-			if (face->minVertW > vertexW) {
-				face->minVertW = vertexW;
+			if (face->minScaledInverseDepth > vertexScaledInverseDepth) {
+				face->minScaledInverseDepth = vertexScaledInverseDepth;
 			}
 		}
 	}
@@ -476,7 +477,7 @@ void RenderScene_DrawMeshFaces(const SceneMesh* mesh) {
 	int textureWidth;
 	int textureHeight;
 	int texelOffset;
-	int mipLevel;
+	int texelsPerPixelQ8;
 	int triangleCorner;
 	int colorKeyVertexBase;
 
@@ -566,8 +567,8 @@ void RenderScene_DrawMeshFaces(const SceneMesh* mesh) {
 					duplicate = &vertices[g_clipVertCursor];
 					duplicate->x = source->x;
 					duplicate->y = source->y;
-					duplicate->rhw = source->rhw;
-					duplicate->z = source->z;
+					duplicate->lightIntensity = source->lightIntensity;
+					duplicate->scaledInverseDepth = source->scaledInverseDepth;
 					duplicate->u = uv.u;
 					duplicate->v = uv.v;
 					*clipOutput = g_clipVertCursor++;
@@ -589,8 +590,8 @@ void RenderScene_DrawMeshFaces(const SceneMesh* mesh) {
 					duplicate = &vertices[g_clipVertCursor];
 					duplicate->x = source->x;
 					duplicate->y = source->y;
-					duplicate->rhw = source->rhw;
-					duplicate->z = source->z;
+					duplicate->lightIntensity = source->lightIntensity;
+					duplicate->scaledInverseDepth = source->scaledInverseDepth;
 					duplicate->u = mesh->pUVs[geometry->uvIdx[vertexIndex]].u;
 					duplicate->v = mesh->pUVs[geometry->uvIdx[vertexIndex]].v;
 					g_clipIdxA[vertexIndex] = g_clipVertCursor++;
@@ -675,10 +676,10 @@ void RenderScene_DrawMeshFaces(const SceneMesh* mesh) {
 			textureHeight = material->height;
 			texelOffset = 0;
 			if (textureWidth * textureHeight == material->textureSize) {
-				mipLevel = (int)((float)currentFace->mipLevel * g_mipLodScale);
-				while (mipLevel > MIP_LEVEL_REDUCTION_THRESHOLD && textureWidth != MIP_MINIMUM_DIMENSION &&
-					   textureHeight != MIP_MINIMUM_DIMENSION) {
-					mipLevel >>= MIP_LEVEL_REDUCTION_SHIFT;
+				texelsPerPixelQ8 = (int)((float)currentFace->texelsPerPixelQ8 * g_mipLodScale);
+				while (texelsPerPixelQ8 > MIP_LEVEL_REDUCTION_THRESHOLD &&
+					   textureWidth != MIP_MINIMUM_DIMENSION && textureHeight != MIP_MINIMUM_DIMENSION) {
+					texelsPerPixelQ8 >>= MIP_LEVEL_REDUCTION_SHIFT;
 					texelOffset += textureWidth * textureHeight;
 					textureWidth >>= 1;
 					textureHeight >>= 1;
@@ -760,7 +761,7 @@ void RenderScene_DrawMeshFaces(const SceneMesh* mesh) {
 }
 
 // FUNCTION: XVT 0x40B010
-void RenderScene_DrawMesh(const SceneMesh* mesh) {
+void RenderScene_DrawMeshHardware(const SceneMesh* mesh) {
 	SceneMesh* queuedMesh;
 	int previousVisibleFaceCount;
 
@@ -870,8 +871,8 @@ int RenderScene_EmitFlightVertex(int vertexIndex, const RenderClipVertex* vertic
 	uint32_t zBits;
 	float x;
 	float y;
-	float z;
-	float rhw;
+	float scaledInverseDepth;
+	float lightIntensity;
 	float u;
 	float v;
 	float depth;
@@ -880,27 +881,27 @@ int RenderScene_EmitFlightVertex(int vertexIndex, const RenderClipVertex* vertic
 
 	(void)face;
 	source = &vertices[vertexIndex];
-	rhw = source->rhw;
+	lightIntensity = source->lightIntensity;
 	x = source->x;
 	y = source->y;
-	z = source->z;
+	scaledInverseDepth = source->scaledInverseDepth;
 	u = source->u;
 	v = source->v;
-	memcpy(&zBits, &z, sizeof(zBits));
+	memcpy(&zBits, &scaledInverseDepth, sizeof(zBits));
 	if (zBits > 0x80000000u) {
-		z = (float)(unsigned int)g_projScaleInt;
+		scaledInverseDepth = (float)(unsigned int)g_projScaleInt;
 	}
-	depth = 1.0f / ((float)(unsigned int)g_projScaleInt / z * g_invDepthProjScale + 1.0f);
-	if (g_std3DZBufferBitDepth == 2) {
+	depth = 1.0f / ((float)(unsigned int)g_projScaleInt / scaledInverseDepth * g_invDepthProjScale + 1.0f);
+	if (g_std3DZCompareCap == 2) {
 		depth = 1.0f - depth;
 	}
 	g_flightVertexBuffer[g_d3dVertexCount].sx = x + g_flightVpOriginX;
 	g_flightVertexBuffer[g_d3dVertexCount].sy = y + g_flightVpOriginY;
 	g_flightVertexBuffer[g_d3dVertexCount].sz = depth;
-	g_flightVertexBuffer[g_d3dVertexCount].rhw = z;
+	g_flightVertexBuffer[g_d3dVertexCount].rhw = scaledInverseDepth;
 	g_flightVertexBuffer[g_d3dVertexCount].tu = u;
 	g_flightVertexBuffer[g_d3dVertexCount].tv = v;
-	intensity = (int)(rhw * 320.0f) + 48;
+	intensity = (int)(lightIntensity * 320.0f) + 48;
 	if (intensity > 255) {
 		intensity = 255;
 	}
@@ -932,7 +933,7 @@ void std3D_FillZBufferFromViewportMask(void) {
 	unsigned int decodedWidth;
 	unsigned int row;
 
-	if (g_std3DZBufferBitDepth == 16) {
+	if (g_std3DZCompareCap == 16) {
 		foregroundByte = 0xFF;
 		backgroundByte = 0;
 	} else {
@@ -998,7 +999,7 @@ int RenderScene_ClearFrameBuffers(void) {
 	memset(&effects, 0, sizeof(effects));
 	effects.dwSize = sizeof(effects);
 	effects.dwROP = DDROP_SRCCOPY;
-	effects.dwFillColor = g_flightTextPalette[g_flightTransparentColorIndex];
+	effects.dwFillColor = g_flightPalette16Bpp[g_flightTransparentColorIndex];
 	g_flightBackBuffer->lpVtbl->Blt(g_flightBackBuffer, NULL, NULL, NULL, DDBLT_WAIT | DDBLT_COLORFILL,
 									&effects);
 	return std3D_ClearZBuffer();
@@ -1169,14 +1170,14 @@ void RenderScene_ComputeVertexLighting(SceneMesh* mesh, ProjVertex* outVert, con
 // FUNCTION: XVT 0x420DB0
 void RenderScene_TransformFaceTextureGradients(SceneFace* face, const FaceTextureGradients* faceTexGradients,
 											   const float* viewPosAndOrient) {
-	face->gradients[0] = faceTexGradients->gradient0.x;
-	face->gradients[1] = faceTexGradients->gradient0.y;
-	face->gradients[2] = faceTexGradients->gradient0.z;
+	face->gradients[0] = faceTexGradients->uAxis.x;
+	face->gradients[1] = faceTexGradients->uAxis.y;
+	face->gradients[2] = faceTexGradients->uAxis.z;
 	Math3D_RotateVec3(&face->gradients[0], viewPosAndOrient + 3);
 
-	face->gradients[3] = faceTexGradients->gradient1.x;
-	face->gradients[4] = faceTexGradients->gradient1.y;
-	face->gradients[5] = faceTexGradients->gradient1.z;
+	face->gradients[3] = faceTexGradients->vAxis.x;
+	face->gradients[4] = faceTexGradients->vAxis.y;
+	face->gradients[5] = faceTexGradients->vAxis.z;
 	Math3D_RotateVec3(&face->gradients[3], viewPosAndOrient + 3);
 }
 
@@ -1232,17 +1233,17 @@ void RenderScene_CullMeshFacesFromView(SceneMesh* mesh) {
 	int faceIndex;
 
 	mesh->faceBaseIndex = g_visFaceCount;
-	g_meshEyePos.x = mesh->posX;
-	g_meshEyePos.y = mesh->posY;
-	g_meshEyePos.z = mesh->posZ;
+	g_meshEyePos.x = mesh->eyeModelSpaceX;
+	g_meshEyePos.y = mesh->eyeModelSpaceY;
+	g_meshEyePos.z = mesh->eyeModelSpaceZ;
 	if (g_bBackdropMeshMode) {
 		g_meshEyePos.x = 0.0f;
 		g_meshEyePos.y = 0.0f;
 		g_meshEyePos.z = -100000.0f;
-		Math3D_RotateVec3(&g_meshEyePos.x, mesh->orient);
-		g_meshEyePos.x += mesh->posX;
-		g_meshEyePos.y += mesh->posY;
-		g_meshEyePos.z += mesh->posZ;
+		Math3D_RotateVec3(&g_meshEyePos.x, mesh->viewToModelOrient);
+		g_meshEyePos.x += mesh->eyeModelSpaceX;
+		g_meshEyePos.y += mesh->eyeModelSpaceY;
+		g_meshEyePos.z += mesh->eyeModelSpaceZ;
 	}
 
 	faceNormal = mesh->pFaceNormals;
@@ -1253,7 +1254,7 @@ void RenderScene_CullMeshFacesFromView(SceneMesh* mesh) {
 	if (mesh->faceCount > 0) {
 		do {
 			float viewVec[3];
-			int phongOffset;
+			int lightSampleOffset;
 			int vertexIndex;
 
 			vertexIndex = 3 * faceRecord[faceIndex].vertexIdx[0];
@@ -1263,11 +1264,11 @@ void RenderScene_CullMeshFacesFromView(SceneMesh* mesh) {
 			if (Math3D_Dot3(viewVec, &faceNormal[faceIndex].x) >= g_sw3dZeroFloat) {
 				outFace->faceIndex = faceIndex;
 				outFace->pMesh = mesh;
-				phongOffset = g_phongSlotStride;
-				phongOffset *= g_phongSlotIndex;
-				outFace->pPhongData = g_scenePhongData + 12 * phongOffset;
-				if (g_phongSlotIndex < 199) {
-					++g_phongSlotIndex;
+				lightSampleOffset = g_lightSampleSlotStride;
+				lightSampleOffset *= g_lightSampleSlotIndex;
+				outFace->pLightSamples = g_sceneLightSampleData + 12 * lightSampleOffset;
+				if (g_lightSampleSlotIndex < 199) {
+					++g_lightSampleSlotIndex;
 				}
 				outFace->faceAndLayerId = faceIndex + (g_curLayerId << 16);
 				outFace->pScanEdge = NULL;
@@ -1287,7 +1288,7 @@ void RenderScene_DrawSceneMesh(SceneMesh* mesh) {
 	SceneMesh* queuedMesh;
 
 	if (g_useHardware3D != 0) {
-		RenderScene_DrawMesh(mesh);
+		RenderScene_DrawMeshHardware(mesh);
 		return;
 	}
 	g_projVertCount = 0;
@@ -1323,8 +1324,8 @@ void RenderScene_ApplyBwingBridgeRotation(OptimizedPolyObject* unusedModel, Obje
 	axisAngle[2] = 0.0f;
 	axisAngle[1] = -1.0f;
 	Math3D_BuildAxisAngleMatrix(rotationMatrix, axisAngle);
-	Math3D_MulMatrix3x3(mesh->orient, rotationMatrix);
-	Math3D_RotateVec3(&mesh->posX, rotationMatrix);
+	Math3D_MulMatrix3x3(mesh->viewToModelOrient, rotationMatrix);
+	Math3D_RotateVec3(&mesh->eyeModelSpaceX, rotationMatrix);
 	Math3D_MulMatrix3x3T(mesh->viewOrient, rotationMatrix);
 }
 
@@ -1391,23 +1392,23 @@ void RenderScene_DrawObjectModel(ObjectRecord* obj) {
 	mesh.viewOrient[6] = objectViewR2X;
 	objectViewR2Y = (float)g_objViewMat_R2_Y * g_renderMatrixQ15ToFloatScale;
 	objectViewR2Z = (float)g_objViewMat_R2_Z * g_renderMatrixQ15ToFloatScale;
-	mesh.posX = -mesh.viewPosX;
-	mesh.posY = -mesh.viewPosY;
-	mesh.posZ = -mesh.viewPosZ;
-	mesh.orient[0] = objectViewR0X;
+	mesh.eyeModelSpaceX = -mesh.viewPosX;
+	mesh.eyeModelSpaceY = -mesh.viewPosY;
+	mesh.eyeModelSpaceZ = -mesh.viewPosZ;
+	mesh.viewToModelOrient[0] = objectViewR0X;
 	mesh.viewOrient[7] = objectViewR2Y;
-	mesh.orient[1] = objectViewR1X;
-	mesh.orient[2] = objectViewR2X;
+	mesh.viewToModelOrient[1] = objectViewR1X;
+	mesh.viewToModelOrient[2] = objectViewR2X;
 	mesh.viewOrient[8] = objectViewR2Z;
-	mesh.orient[3] = objectViewR0Y;
-	mesh.orient[4] = objectViewR1Y;
-	mesh.orient[5] = objectViewR2Y;
-	mesh.orient[6] = objectViewR0Z;
-	mesh.orient[7] = objectViewR1Z;
-	mesh.orient[8] = objectViewR2Z;
-	Math3D_RotateVec3(&mesh.posX, mesh.orient);
+	mesh.viewToModelOrient[3] = objectViewR0Y;
+	mesh.viewToModelOrient[4] = objectViewR1Y;
+	mesh.viewToModelOrient[5] = objectViewR2Y;
+	mesh.viewToModelOrient[6] = objectViewR0Z;
+	mesh.viewToModelOrient[7] = objectViewR1Z;
+	mesh.viewToModelOrient[8] = objectViewR2Z;
+	Math3D_RotateVec3(&mesh.eyeModelSpaceX, mesh.viewToModelOrient);
 
-	g_modelNodeWalkUnusedScratch0 = NULL;
+	g_curMeshVertices = NULL;
 	if (g_defaultWhiteTextureDescPtr == NULL) {
 		g_defaultWhiteTextureDescPtr = &g_defaultWhiteTexture.header;
 		g_defaultWhiteTexture.header.height = DEFAULT_WHITE_TEXTURE_DIMENSION;
@@ -1418,7 +1419,7 @@ void RenderScene_DrawObjectModel(ObjectRecord* obj) {
 											 g_defaultWhiteTextureRgb24, DEFAULT_WHITE_TEXTURE_DIMENSION,
 											 DEFAULT_WHITE_TEXTURE_DIMENSION);
 	}
-	g_modelNodeWalkUnusedScratch1 = NULL;
+	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	restoreMesh = 0;
@@ -1467,7 +1468,7 @@ void RenderScene_DrawObjectModel(ObjectRecord* obj) {
 }
 
 // FUNCTION: XVT 0x4728D0
-void RenderScene_DrawNoAssetSourceModel(ObjectRecord* obj, int nodeSwitchIndex) {
+void RenderScene_DrawSelectedRootNode(ObjectRecord* obj, int rootNodeIndex) {
 	int objectType;
 	uint16_t modelHandle;
 	OptimizedPolyObject* model;
@@ -1531,23 +1532,23 @@ void RenderScene_DrawNoAssetSourceModel(ObjectRecord* obj, int nodeSwitchIndex) 
 	mesh.viewOrient[6] = objectViewR2X;
 	objectViewR2Y = (float)g_objViewMat_R2_Y * g_renderMatrixQ15ToFloatScale;
 	objectViewR2Z = (float)g_objViewMat_R2_Z * g_renderMatrixQ15ToFloatScale;
-	mesh.posX = -mesh.viewPosX;
-	mesh.posY = -mesh.viewPosY;
-	mesh.posZ = -mesh.viewPosZ;
-	mesh.orient[0] = objectViewR0X;
+	mesh.eyeModelSpaceX = -mesh.viewPosX;
+	mesh.eyeModelSpaceY = -mesh.viewPosY;
+	mesh.eyeModelSpaceZ = -mesh.viewPosZ;
+	mesh.viewToModelOrient[0] = objectViewR0X;
 	mesh.viewOrient[7] = objectViewR2Y;
-	mesh.orient[1] = objectViewR1X;
-	mesh.orient[2] = objectViewR2X;
+	mesh.viewToModelOrient[1] = objectViewR1X;
+	mesh.viewToModelOrient[2] = objectViewR2X;
 	mesh.viewOrient[8] = objectViewR2Z;
-	mesh.orient[3] = objectViewR0Y;
-	mesh.orient[4] = objectViewR1Y;
-	mesh.orient[5] = objectViewR2Y;
-	mesh.orient[6] = objectViewR0Z;
-	mesh.orient[7] = objectViewR1Z;
-	mesh.orient[8] = objectViewR2Z;
-	Math3D_RotateVec3(&mesh.posX, mesh.orient);
+	mesh.viewToModelOrient[3] = objectViewR0Y;
+	mesh.viewToModelOrient[4] = objectViewR1Y;
+	mesh.viewToModelOrient[5] = objectViewR2Y;
+	mesh.viewToModelOrient[6] = objectViewR0Z;
+	mesh.viewToModelOrient[7] = objectViewR1Z;
+	mesh.viewToModelOrient[8] = objectViewR2Z;
+	Math3D_RotateVec3(&mesh.eyeModelSpaceX, mesh.viewToModelOrient);
 
-	g_modelNodeWalkUnusedScratch0 = NULL;
+	g_curMeshVertices = NULL;
 	if (g_defaultWhiteTextureDescPtr == NULL) {
 		g_defaultWhiteTextureDescPtr = &g_defaultWhiteTexture.header;
 		g_defaultWhiteTexture.header.height = DEFAULT_WHITE_TEXTURE_DIMENSION;
@@ -1559,7 +1560,7 @@ void RenderScene_DrawNoAssetSourceModel(ObjectRecord* obj, int nodeSwitchIndex) 
 											 DEFAULT_WHITE_TEXTURE_DIMENSION);
 	}
 	g_curTextureDesc = g_defaultWhiteTextureDescPtr;
-	g_modelNodeWalkUnusedScratch1 = NULL;
+	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshFlags = NULL;
@@ -1569,12 +1570,12 @@ void RenderScene_DrawNoAssetSourceModel(ObjectRecord* obj, int nodeSwitchIndex) 
 		OptNode* rootNode = model->rootNodes[rootIndex];
 
 		if (rootNode->nodeType == OPT_TEXTURE) {
-			++nodeSwitchIndex;
+			++rootNodeIndex;
 			++g_curLayerId;
 			RenderScene_DrawModelNode(model, rootNode, &mesh);
 			continue;
 		}
-		if (rootIndex == nodeSwitchIndex) {
+		if (rootIndex == rootNodeIndex) {
 			++g_curLayerId;
 			RenderScene_DrawModelNode(model, rootNode, &mesh);
 		}
@@ -1583,7 +1584,7 @@ void RenderScene_DrawNoAssetSourceModel(ObjectRecord* obj, int nodeSwitchIndex) 
 }
 
 // FUNCTION: XVT 0x472C90
-void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, SceneMesh* mesh) {
+void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneMesh* mesh) {
 	struct ModelNodeSelectionState {
 		float lodThreshold;
 		int nodeSwitchSelection;
@@ -1605,7 +1606,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 	while (currentNode->nodeType == OPT_NODEREF) {
 		if (g_cacheResolvedOptNodeRefs != 0) {
 #ifdef XVT_MODERN
-			currentNode = XvtOpt_ResolveCached(object, currentNode);
+			currentNode = XvtOpt_ResolveCached(model, currentNode);
 #else
 
 			char** referenceName;
@@ -1614,13 +1615,13 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 			if (**referenceName == '\0') {
 				currentNode = (OptNode*)currentNode->pName;
 			} else {
-				currentNode->pName = (char*)OptModel_ResolveNodeRef(object, *referenceName);
+				currentNode->pName = (char*)OptModel_ResolveNodeRef(model, *referenceName);
 				**referenceName = '\0';
 				currentNode = (OptNode*)currentNode->pName;
 			}
 #endif
 		} else {
-			currentNode = OptModel_ResolveNodeRef(object, (const char*)currentNode->payload);
+			currentNode = OptModel_ResolveNodeRef(model, (const char*)currentNode->payload);
 		}
 		if (currentNode == NULL)
 			return;
@@ -1651,7 +1652,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				mesh->pFaceNormals = faceNormals;
 				faceTexturing = (FaceTextureGradients*)&faceNormals[currentNode->payloadCount];
 				mesh->pFaceTexturing = faceTexturing;
-				generatedNormals = &faceTexturing[currentNode->payloadCount].gradient0;
+				generatedNormals = &faceTexturing[currentNode->payloadCount].uAxis;
 				if (mesh->pMaterial == NULL) {
 					int paletteOffset;
 
@@ -1689,10 +1690,10 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				mesh->viewPosX += parameters->x;
 				mesh->viewPosY += parameters->y;
 				mesh->viewPosZ += parameters->z;
-				Math3D_MulMatrix3x3T(mesh->orient, &parameters[1].x);
-				mesh->posX -= Math3D_RotateVec3X(&parameters->x, mesh->orient);
-				mesh->posY -= Math3D_RotateVec3Y(&parameters->x, mesh->orient);
-				mesh->posZ -= Math3D_RotateVec3Z(&parameters->x, mesh->orient);
+				Math3D_MulMatrix3x3T(mesh->viewToModelOrient, &parameters[1].x);
+				mesh->eyeModelSpaceX -= Math3D_RotateVec3X(&parameters->x, mesh->viewToModelOrient);
+				mesh->eyeModelSpaceY -= Math3D_RotateVec3Y(&parameters->x, mesh->viewToModelOrient);
+				mesh->eyeModelSpaceZ -= Math3D_RotateVec3Z(&parameters->x, mesh->viewToModelOrient);
 				break;
 			case OPT_MESHVERTS:
 				mesh->vertexCount = currentNode->payloadCount;
@@ -1702,14 +1703,14 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				mesh->viewPosX += parameters->x;
 				mesh->viewPosY += parameters->y;
 				mesh->viewPosZ += parameters->z;
-				mesh->posX -= Math3D_RotateVec3X(&parameters->x, mesh->orient);
-				mesh->posY -= Math3D_RotateVec3Y(&parameters->x, mesh->orient);
-				mesh->posZ -= Math3D_RotateVec3Z(&parameters->x, mesh->orient);
+				mesh->eyeModelSpaceX -= Math3D_RotateVec3X(&parameters->x, mesh->viewToModelOrient);
+				mesh->eyeModelSpaceY -= Math3D_RotateVec3Y(&parameters->x, mesh->viewToModelOrient);
+				mesh->eyeModelSpaceZ -= Math3D_RotateVec3Z(&parameters->x, mesh->viewToModelOrient);
 				break;
 			case OPT_ROTATION:
 				Math3D_MulMatrix3x3(mesh->viewOrient, (const float*)nodeData);
 				Math3D_RotateVec3(&mesh->viewPosX, (const float*)nodeData);
-				Math3D_MulMatrix3x3T(mesh->orient, (const float*)nodeData);
+				Math3D_MulMatrix3x3T(mesh->viewToModelOrient, (const float*)nodeData);
 				break;
 			case OPT_SCALE: {
 				float* scaleX;
@@ -1734,17 +1735,17 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				mesh->viewPosZ = mesh->viewPosZ * *scaleZ;
 
 				inverseScale = 1.0f / *scaleX;
-				mesh->orient[0] = mesh->orient[0] * inverseScale;
-				mesh->orient[1] = mesh->orient[1] * inverseScale;
-				mesh->orient[2] = mesh->orient[2] * inverseScale;
+				mesh->viewToModelOrient[0] = mesh->viewToModelOrient[0] * inverseScale;
+				mesh->viewToModelOrient[1] = mesh->viewToModelOrient[1] * inverseScale;
+				mesh->viewToModelOrient[2] = mesh->viewToModelOrient[2] * inverseScale;
 				inverseScale = 1.0f / *scaleY;
-				mesh->orient[3] = mesh->orient[3] * inverseScale;
-				mesh->orient[4] = mesh->orient[4] * inverseScale;
-				mesh->orient[5] = mesh->orient[5] * inverseScale;
+				mesh->viewToModelOrient[3] = mesh->viewToModelOrient[3] * inverseScale;
+				mesh->viewToModelOrient[4] = mesh->viewToModelOrient[4] * inverseScale;
+				mesh->viewToModelOrient[5] = mesh->viewToModelOrient[5] * inverseScale;
 				inverseScale = 1.0f / *scaleZ;
-				mesh->orient[6] = mesh->orient[6] * inverseScale;
-				mesh->orient[7] = mesh->orient[7] * inverseScale;
-				mesh->orient[8] = mesh->orient[8] * inverseScale;
+				mesh->viewToModelOrient[6] = mesh->viewToModelOrient[6] * inverseScale;
+				mesh->viewToModelOrient[7] = mesh->viewToModelOrient[7] * inverseScale;
+				mesh->viewToModelOrient[8] = mesh->viewToModelOrient[8] * inverseScale;
 				break;
 			}
 			case OPT_TYPE_10:
@@ -1822,9 +1823,9 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 					axis = pivot + 1;
 					pivotY = &pivot->y;
 					pivotZ = &pivot->z;
-					mesh->posX -= pivot->x;
-					mesh->posY -= *pivotY;
-					mesh->posZ -= *pivotZ;
+					mesh->eyeModelSpaceX -= pivot->x;
+					mesh->eyeModelSpaceY -= *pivotY;
+					mesh->eyeModelSpaceZ -= *pivotZ;
 					mesh->viewPosX += Math3D_RotateVec3X(&pivot->x, mesh->viewOrient);
 					mesh->viewPosY += Math3D_RotateVec3Y(&pivot->x, mesh->viewOrient);
 					mesh->viewPosZ += Math3D_RotateVec3Z(&pivot->x, mesh->viewOrient);
@@ -1833,12 +1834,12 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 					axisAngle[2] = axis->z * g_optAxisQ15ToFloatScale;
 					axisAngle[3] = mesh->rotAngle;
 					Math3D_BuildAxisAngleMatrix(rotationMatrix, axisAngle);
-					Math3D_MulMatrix3x3(mesh->orient, rotationMatrix);
-					Math3D_RotateVec3(&mesh->posX, rotationMatrix);
+					Math3D_MulMatrix3x3(mesh->viewToModelOrient, rotationMatrix);
+					Math3D_RotateVec3(&mesh->eyeModelSpaceX, rotationMatrix);
 					Math3D_MulMatrix3x3T(mesh->viewOrient, rotationMatrix);
-					mesh->posX += pivot->x;
-					mesh->posY += *pivotY;
-					mesh->posZ += *pivotZ;
+					mesh->eyeModelSpaceX += pivot->x;
+					mesh->eyeModelSpaceY += *pivotY;
+					mesh->eyeModelSpaceZ += *pivotZ;
 					mesh->viewPosX -= Math3D_RotateVec3X(&pivot->x, mesh->viewOrient);
 					mesh->viewPosY -= Math3D_RotateVec3Y(&pivot->x, mesh->viewOrient);
 					mesh->viewPosZ -= Math3D_RotateVec3Z(&pivot->x, mesh->viewOrient);
@@ -1900,23 +1901,23 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 		return;
 	if (selection.nodeSwitchSelection != 0) {
 		++g_curLayerId;
-		RenderScene_DrawModelNode(object, currentNode->pChildren[selection.nodeSwitchSelection - 1], mesh);
+		RenderScene_DrawModelNode(model, currentNode->pChildren[selection.nodeSwitchSelection - 1], mesh);
 	} else if (lodChildSelection != 0) {
 		if (lodChildSelection != -1) {
 			++g_curLayerId;
-			RenderScene_DrawModelNode(object, currentNode->pChildren[lodChildSelection - 1], mesh);
+			RenderScene_DrawModelNode(model, currentNode->pChildren[lodChildSelection - 1], mesh);
 		}
 	} else {
 		childMesh = *mesh;
-		g_modelNodeWalkUnusedScratch0 = NULL;
-		g_modelNodeWalkUnusedScratch1 = NULL;
+		g_curMeshVertices = NULL;
+		g_curMeshTexCoords = NULL;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
 		g_curMeshFlags = NULL;
 		g_curVertexCount = 0;
 		for (childIndex = 0; childIndex < currentNode->childCount; ++childIndex) {
 			++g_curLayerId;
-			RenderScene_DrawModelNode(object, currentNode->pChildren[childIndex], &childMesh);
+			RenderScene_DrawModelNode(model, currentNode->pChildren[childIndex], &childMesh);
 		}
 	}
 }
@@ -1957,17 +1958,17 @@ int RenderScene_IsSegmentOccludedByObjectModel(ObjectRecord* object, const OptVe
 	mesh.viewOrient[6] = 0.0f;
 	mesh.viewOrient[7] = 0.0f;
 	mesh.viewOrient[8] = 1.0f;
-	mesh.orient[0] = 1.0f;
-	mesh.orient[1] = 0.0f;
-	mesh.orient[2] = 0.0f;
-	mesh.orient[3] = 0.0f;
-	mesh.orient[4] = 1.0f;
-	mesh.orient[5] = 0.0f;
-	mesh.orient[6] = 0.0f;
-	mesh.orient[7] = 0.0f;
-	mesh.orient[8] = 1.0f;
-	g_modelNodeWalkUnusedScratch0 = NULL;
-	g_modelNodeWalkUnusedScratch1 = NULL;
+	mesh.viewToModelOrient[0] = 1.0f;
+	mesh.viewToModelOrient[1] = 0.0f;
+	mesh.viewToModelOrient[2] = 0.0f;
+	mesh.viewToModelOrient[3] = 0.0f;
+	mesh.viewToModelOrient[4] = 1.0f;
+	mesh.viewToModelOrient[5] = 0.0f;
+	mesh.viewToModelOrient[6] = 0.0f;
+	mesh.viewToModelOrient[7] = 0.0f;
+	mesh.viewToModelOrient[8] = 1.0f;
+	g_curMeshVertices = NULL;
+	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshFlags = NULL;
@@ -2021,7 +2022,7 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 				mesh->pFaceNormals = faceNormals;
 				texturing = (FaceTextureGradients*)&faceNormals[node->payloadCount];
 				mesh->pFaceTexturing = texturing;
-				generatedNormals = &texturing[node->payloadCount].gradient0;
+				generatedNormals = &texturing[node->payloadCount].uAxis;
 				vertexNormals = &mesh->pVertNormals;
 				if (*vertexNormals == NULL) {
 					mesh->pVertNormals = generatedNormals;
@@ -2044,10 +2045,10 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 				mesh->viewPosX = RenderScene_AddTranslation(mesh->viewPosX, nodePayload->x);
 				mesh->viewPosY += nodePayload->y;
 				mesh->viewPosZ += nodePayload->z;
-				Math3D_MulMatrix3x3T(mesh->orient, &nodePayload[1].x);
-				mesh->posX -= Math3D_RotateVec3X(&nodePayload->x, mesh->orient);
-				mesh->posY -= Math3D_RotateVec3Y(&nodePayload->x, mesh->orient);
-				mesh->posZ -= Math3D_RotateVec3Z(&nodePayload->x, mesh->orient);
+				Math3D_MulMatrix3x3T(mesh->viewToModelOrient, &nodePayload[1].x);
+				mesh->eyeModelSpaceX -= Math3D_RotateVec3X(&nodePayload->x, mesh->viewToModelOrient);
+				mesh->eyeModelSpaceY -= Math3D_RotateVec3Y(&nodePayload->x, mesh->viewToModelOrient);
+				mesh->eyeModelSpaceZ -= Math3D_RotateVec3Z(&nodePayload->x, mesh->viewToModelOrient);
 				break;
 			case OPT_MESHVERTS:
 				mesh->vertexCount = node->payloadCount;
@@ -2057,20 +2058,20 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 				mesh->viewPosX = RenderScene_AddTranslation(mesh->viewPosX, nodePayload->x);
 				mesh->viewPosY += nodePayload->y;
 				mesh->viewPosZ += nodePayload->z;
-				mesh->posX -= Math3D_RotateVec3X(&nodePayload->x, mesh->orient);
-				mesh->posY -= Math3D_RotateVec3Y(&nodePayload->x, mesh->orient);
-				mesh->posZ -= Math3D_RotateVec3Z(&nodePayload->x, mesh->orient);
+				mesh->eyeModelSpaceX -= Math3D_RotateVec3X(&nodePayload->x, mesh->viewToModelOrient);
+				mesh->eyeModelSpaceY -= Math3D_RotateVec3Y(&nodePayload->x, mesh->viewToModelOrient);
+				mesh->eyeModelSpaceZ -= Math3D_RotateVec3Z(&nodePayload->x, mesh->viewToModelOrient);
 				break;
 			case OPT_ROTATION:
 				Math3D_MulMatrix3x3(mesh->viewOrient, (const float*)nodePayload);
 				Math3D_RotateVec3(&mesh->viewPosX, &nodePayload->x);
-				Math3D_MulMatrix3x3T(mesh->orient, &nodePayload->x);
+				Math3D_MulMatrix3x3T(mesh->viewToModelOrient, &nodePayload->x);
 				break;
 			case OPT_SCALE: {
 				float* scaleX = &nodePayload->x;
 				float* scaleY = &nodePayload->y;
 				float* scaleZ = &nodePayload->z;
-				float* orientation = mesh->orient;
+				float* orientation = mesh->viewToModelOrient;
 				float inverseScale;
 
 				mesh->viewOrient[0] *= *scaleX;
@@ -2086,17 +2087,17 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 				mesh->viewPosY *= *scaleY;
 				mesh->viewPosZ *= *scaleZ;
 				inverseScale = 1.0f / *scaleX;
-				mesh->orient[0] = orientation[0] * inverseScale;
-				mesh->orient[1] = orientation[1] * inverseScale;
-				mesh->orient[2] = orientation[2] * inverseScale;
+				mesh->viewToModelOrient[0] = orientation[0] * inverseScale;
+				mesh->viewToModelOrient[1] = orientation[1] * inverseScale;
+				mesh->viewToModelOrient[2] = orientation[2] * inverseScale;
 				inverseScale = 1.0f / *scaleY;
-				mesh->orient[3] = orientation[3] * inverseScale;
-				mesh->orient[4] = orientation[4] * inverseScale;
-				mesh->orient[5] = orientation[5] * inverseScale;
+				mesh->viewToModelOrient[3] = orientation[3] * inverseScale;
+				mesh->viewToModelOrient[4] = orientation[4] * inverseScale;
+				mesh->viewToModelOrient[5] = orientation[5] * inverseScale;
 				inverseScale = 1.0f / *scaleZ;
-				mesh->orient[6] = orientation[6] * inverseScale;
-				mesh->orient[7] = orientation[7] * inverseScale;
-				mesh->orient[8] = orientation[8] * inverseScale;
+				mesh->viewToModelOrient[6] = orientation[6] * inverseScale;
+				mesh->viewToModelOrient[7] = orientation[7] * inverseScale;
+				mesh->viewToModelOrient[8] = orientation[8] * inverseScale;
 				break;
 			}
 			case OPT_VERTNORMALS:
@@ -2110,8 +2111,8 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 
 	if (node->childCount != 0) {
 		childMesh = *mesh;
-		g_modelNodeWalkUnusedScratch0 = NULL;
-		g_modelNodeWalkUnusedScratch1 = NULL;
+		g_curMeshVertices = NULL;
+		g_curMeshTexCoords = NULL;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
 		g_curMeshFlags = NULL;
@@ -2382,8 +2383,8 @@ void RenderScene_AllocateBuffers(void) {
 	g_sw3dLightSampleBlockShift = 4;
 	g_sw3dLightSampleBlockMask = 15;
 	g_sw3dLightSampleBlockSizeFloat = 16.0f;
-	g_scenePhongDataHandle = Memory_AllocHandle(0x25800, 0);
-	if (g_scenePhongDataHandle == 0) {
+	g_sceneLightSampleDataHandle = Memory_AllocHandle(0x25800, 0);
+	if (g_sceneLightSampleDataHandle == 0) {
 		FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
@@ -2414,8 +2415,8 @@ void RenderScene_Initialize(int resetSceneState) {
 #else
 	g_sw3dFpuControlWordScratch &= 0xFFFFFCFF;
 #endif
-	g_sw3dCockpitMaskSentinelFace.maxVertW = 1.0e32f;
-	g_sw3dCockpitMaskSentinelFace.minVertW = 1.0e32f;
+	g_sw3dCockpitMaskSentinelFace.maxScaledInverseDepth = 1.0e32f;
+	g_sw3dCockpitMaskSentinelFace.minScaledInverseDepth = 1.0e32f;
 	g_sw3dCockpitMaskSentinelFace.gradients[8] = 1.0e32f;
 	g_sw3dCockpitMaskSentinelFace.gradients[6] = 0.0f;
 	g_sw3dCockpitMaskSentinelFace.gradients[7] = 0.0f;
@@ -2428,14 +2429,14 @@ void RenderScene_Initialize(int resetSceneState) {
 	g_sceneEdgeFlags = Memory_LockHandle(g_sceneEdgeFlagsHandle);
 	g_sceneSclEdgeList = Memory_LockHandle(g_sceneSclEdgeListHandle);
 	g_scanlineSpanHeads = Memory_LockHandle(g_scanlineSpanHeadsHandle);
-	g_scenePhongData = Memory_LockHandle(g_scenePhongDataHandle);
+	g_sceneLightSampleData = Memory_LockHandle(g_sceneLightSampleDataHandle);
 	g_meshQueue = Memory_LockHandle(g_meshQueueHandle);
 	if (resetSceneState != 0) {
 		g_visFacePassStart = 0;
 		g_sceneSpanPtrAvail = g_sceneSpanPtrCapacity;
 		g_pSceneSpanDataCur = g_sceneSpanDataBase;
 		g_visFaceCount = 0;
-		g_phongSlotIndex = 0;
+		g_lightSampleSlotIndex = 0;
 		g_meshQueueIndex = 0;
 		mask = &g_flightAuxBuffer[g_viewportSpanMaskOffset];
 		scanY = 0;
@@ -2480,7 +2481,7 @@ void RenderScene_Initialize(int resetSceneState) {
 	} else {
 		g_visFacePassStart = g_visFaceCount;
 	}
-	g_phongSlotStride =
+	g_lightSampleSlotStride =
 		((unsigned int)g_flightVpWidth + g_sw3dLightSampleBlockSize - 1) / g_sw3dLightSampleBlockSize;
 	g_sw3dLightSampleCacheSceneStampBase += g_flightVpHeight;
 	g_invProjScale = 1.0f / (float)(unsigned int)g_projScaleInt;
@@ -2499,7 +2500,7 @@ int RenderScene_UnlockBuffers(void) {
 	Memory_UnlockHandle(g_sceneEdgeFlagsHandle);
 	Memory_UnlockHandle(g_sceneSclEdgeListHandle);
 	Memory_UnlockHandle(g_scanlineSpanHeadsHandle);
-	Memory_UnlockHandle(g_scenePhongDataHandle);
+	Memory_UnlockHandle(g_sceneLightSampleDataHandle);
 	Memory_UnlockHandle(g_meshQueueHandle);
 	g_sceneSpanDataBase = NULL;
 	g_sceneSpanPtrList = NULL;
@@ -2510,7 +2511,7 @@ int RenderScene_UnlockBuffers(void) {
 	g_sceneEdgeFlags = NULL;
 	g_sceneSclEdgeList = NULL;
 	g_scanlineSpanHeads = NULL;
-	g_scenePhongData = NULL;
+	g_sceneLightSampleData = NULL;
 	g_meshQueue = NULL;
 	return 0;
 }
@@ -2553,10 +2554,10 @@ void RenderScene_FreeBuffers(void) {
 		Memory_FreeHandle(RenderScene_GetMemoryHandle(&g_scanlineSpanHeadsHandle));
 	}
 	g_scanlineSpanHeadsHandle = 0;
-	if (g_scenePhongDataHandle != 0) {
-		Memory_FreeHandle(RenderScene_GetMemoryHandle(&g_scenePhongDataHandle));
+	if (g_sceneLightSampleDataHandle != 0) {
+		Memory_FreeHandle(RenderScene_GetMemoryHandle(&g_sceneLightSampleDataHandle));
 	}
-	g_scenePhongDataHandle = 0;
+	g_sceneLightSampleDataHandle = 0;
 	if (g_meshQueueHandle != 0) {
 		Memory_FreeHandle(RenderScene_GetMemoryHandle(&g_meshQueueHandle));
 	}

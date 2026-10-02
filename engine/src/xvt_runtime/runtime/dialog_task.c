@@ -94,7 +94,7 @@ static void XvtDialog_End(void) {
 	else
 		FrontendButton_DisableOverlayText();
 	Keyboard_FlushCharBuffer();
-	g_frontState.mouseClickLatch = g_frontState.mouseRightClickLatch = 0;
+	g_frontState.mouseLeftClickLatch = g_frontState.mouseRightClickLatch = 0;
 	g_dialog.active = 0;
 	g_dialog.pushed = 0;
 	g_dialog.complete = 1;
@@ -118,12 +118,12 @@ void XvtDialog_Update(void) {
 		g_frontState.screenCallbacksDirty = 0;
 		g_dialogResult = 0;
 		Keyboard_FlushCharBuffer();
-		g_frontState.mouseClickLatch = g_frontState.mouseRightClickLatch = 0;
+		g_frontState.mouseLeftClickLatch = g_frontState.mouseRightClickLatch = 0;
 	}
 	if (g_frontState.frameCounter > 0 && Keyboard_PeekChar() == 27) {
 		g_dialog.result = 0;
 		if (g_dialog.pilot) {
-			g_frontDialogText0[0] = 0;
+			g_frontDialogLine1OrEdit[0] = 0;
 			FrontImage_FreeResourceByName("backname");
 		}
 		XvtDialog_End();
@@ -131,7 +131,7 @@ void XvtDialog_Update(void) {
 	}
 	result = XvtFrontendTask_RunFrame();
 	if (result == 1) {
-		g_dialog.result = g_dialog.pilot ? g_frontDialogText0[0] != 0 : g_dialogResult;
+		g_dialog.result = g_dialog.pilot ? g_frontDialogLine1OrEdit[0] != 0 : g_dialogResult;
 		XvtDialog_End();
 	}
 }
@@ -157,9 +157,9 @@ int XvtDialog_Confirm(const char* a, const char* b, const char* c, const char* o
 		return result;
 	if (g_dialog.active)
 		return XVT_DIALOG_PENDING;
-	snprintf(g_frontDialogText0, sizeof(g_frontDialogText0), "%s", a ? a : "");
+	snprintf(g_frontDialogLine1OrEdit, sizeof(g_frontDialogLine1OrEdit), "%s", a ? a : "");
 	snprintf(g_frontDialogText1, sizeof(g_frontDialogText1), "%s", b ? b : "");
-	snprintf(g_frontDialogText2OrEdit, sizeof(g_frontDialogText2OrEdit), "%s", c ? c : "");
+	snprintf(g_frontDialogLine3, sizeof(g_frontDialogLine3), "%s", c ? c : "");
 	snprintf(g_frontDialogOkayLabel, sizeof(g_frontDialogOkayLabel), "%s", okay ? okay : "");
 	snprintf(g_frontDialogCancelLabel, sizeof(g_frontDialogCancelLabel), "%s", cancel ? cancel : "");
 	FrontendCursor_GetPos(&g_frontDialogSavedMouseX, &g_frontDialogSavedMouseY);
@@ -173,12 +173,12 @@ int XvtDialog_Confirm(const char* a, const char* b, const char* c, const char* o
 int XvtDialog_PilotName(char* name) {
 	int result;
 	if (XvtDialog_TakeResult(&result)) {
-		memcpy(name, g_frontDialogText0, 12);
+		memcpy(name, g_frontDialogLine1OrEdit, 12);
 		name[12] = 0;
 		return result;
 	}
 	if (!g_dialog.active) {
-		memset(g_frontDialogText0, 0, sizeof(g_frontDialogText0));
+		memset(g_frontDialogLine1OrEdit, 0, sizeof(g_frontDialogLine1OrEdit));
 		g_dialog.pilot = 1;
 		XvtDialog_Begin(FrontendDialog_CreatePilotNameCallback, NULL);
 	}

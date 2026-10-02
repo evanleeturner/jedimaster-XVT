@@ -49,7 +49,7 @@ int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn, RECT* screenRect) {
 	memset(g_frontState.joystickButtonReleased[1], 0, sizeof(g_frontState.joystickButtonReleased[1]));
 	if (g_frontState.textFadeFramesLeft != 0)
 		--g_frontState.textFadeFramesLeft;
-	g_frontState.mouseClickLatch = 0;
+	g_frontState.mouseLeftClickLatch = 0;
 	g_frontState.mouseRightClickLatch = 0;
 	for (;;) {
 		frameResult = FrontendDisplay_RunFrame();
@@ -61,7 +61,7 @@ int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn, RECT* screenRect) {
 	Keyboard_FlushCharBuffer();
 	FrontendScreen_PopState();
 	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
-	g_frontState.mouseClickLatch = 0;
+	g_frontState.mouseLeftClickLatch = 0;
 	g_frontState.mouseRightClickLatch = 0;
 	return 1;
 #endif

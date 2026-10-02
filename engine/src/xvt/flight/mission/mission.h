@@ -523,7 +523,7 @@ void Mission_UpdateLogic(void);
 int Mission_EvaluateTriggerPair(const MissionTriggerPair* triggerPair, int16_t flightGroupIdx);
 int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, uint16_t variable,
 								  int16_t amountType, int16_t includeDepartedAsDestroyed,
-								  uint16_t teamOrVariable);
+								  uint16_t teamFilter);
 int16_t Mission_FlightGroupMatchesTriggerVariable(uint16_t flightGroupIdx, int16_t variableType,
 												  uint16_t variable);
 int16_t Mission_ObjectMatchesTriggerVariable(uint16_t objectIdx, uint16_t variableType, uint16_t variable);
@@ -531,7 +531,7 @@ void Mission_RecordCraftOutcome(uint16_t objIdx, uint16_t flightGroupIdx, uint16
 int16_t Mission_CloseUnavailableFlightGroupAccounting(int flightGroupIdx);
 void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx, uint16_t victimObjIdx);
 void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx, int specialCargoFlag, int contributionTier,
-										  int playerIdx, int creditedOwnerIdx, int victimRating);
+										  int playerIdx, int victimOwnerIdx, int victimRating);
 void Mission_CreditTeamKillContribution(uint16_t victimObjIdx, int specialCargoFlag, int contributionTier,
 										int teamIdx);
 void Mission_RecordProjectileHitStats(uint16_t projectileObjIdx);

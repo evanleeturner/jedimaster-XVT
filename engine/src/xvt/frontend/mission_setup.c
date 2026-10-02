@@ -48,7 +48,7 @@
 #endif
 
 // GLOBAL: XVT 0x52C1E8
-const char* g_campaignDirNames[6] = { "train", "melee", "tourn", "combat", "battle", "campaign" };
+const char* g_missionDirectoryNames[6] = { "train", "melee", "tourn", "combat", "battle", "campaign" };
 // GLOBAL: XVT 0x52C6A8
 const int g_warheadTypeMap[11] = { 0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 2 };
 // GLOBAL: XVT 0x52C564
@@ -158,7 +158,7 @@ int g_missionSetupMissionListScrollOffset = 0;
 // GLOBAL: XVT 0x665D18
 int g_missionSetupSelectedPlayerRosterIndex = 0;
 // GLOBAL: XVT 0xAA6120
-int g_remoteBattleSequenceActive = 0;
+int g_remoteBattleContinuationActive = 0;
 // GLOBAL: XVT 0xAA6124
 int g_remoteBattleSequenceContinuationChoice = 0;
 // GLOBAL: XVT 0xAA6128
@@ -254,14 +254,14 @@ int MissionSetup_Update(int frameCounter) {
 	unsigned int nowMs;
 	int packetType;
 	int playerIndex;
-	int missionTypeChanged;
+	int missionTypeControlsChanged;
 	int missionCount;
 	int buttonPressed;
 
 	if (frameCounter == 0) {
 		FrontendCursor_SetPos(37, 445);
 		MpRoster_CompactActiveEntries();
-		g_remoteBattleSequenceActive = 0;
+		g_remoteBattleContinuationActive = 0;
 		g_frontendBriefingEnteredCount = 0;
 		g_missionSetupBeginButtonLockoutFrames = 0;
 		g_remoteBattleSequenceContinuationChoice = 0;
@@ -425,7 +425,7 @@ int MissionSetup_Update(int frameCounter) {
 			g_mpRoster[0].playerId = 1;
 			g_mpRoster[0].pilotRating = g_pilotData.rating;
 		}
-		MissionSetup_DrawBackgroundAndPreview();
+		MissionSetup_DrawBackground();
 		FrontendText_StartTextFadeIn(20);
 	}
 
@@ -451,7 +451,7 @@ int MissionSetup_Update(int frameCounter) {
 				g_frontendNetReceivedMissionDescriptionId;
 			FrontendMission_LoadCurrent();
 			FrontImage_FreeResourceByName("background");
-			MissionSetup_DrawBackgroundAndPreview();
+			MissionSetup_DrawBackground();
 			MissionSetup_LoadMissionDescText(g_briefingText);
 			MissionSetup_UpdateTeamCounts();
 			if (g_missionList != NULL) {
@@ -647,9 +647,9 @@ int MissionSetup_Update(int frameCounter) {
 	}
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_659_QUICK_START));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "quickflyup", "quickflydown",
-											 FrontendString_Get(FRONTSTR_659_QUICK_START), BUTTON_FONT_SIZE,
-											 0, HOVER_PREVIOUS, "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "quickflyup", "quickflydown",
+											  FrontendString_Get(FRONTSTR_659_QUICK_START), BUTTON_FONT_SIZE,
+											  0, HOVER_PREVIOUS, "buttonsound") != 0) {
 			if ((g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TOURNAMENTS ||
 				 g_pilotData.missionDirectoryId == MISSION_DIRECTORY_BATTLES ||
 				 g_pilotData.missionDirectoryId == MISSION_DIRECTORY_CAMPAIGNS) &&
@@ -672,7 +672,7 @@ int MissionSetup_Update(int frameCounter) {
 		}
 	} else if (Net_IsHost() != 0) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
-		buttonPressed = FrontendButton_DrawSpriteHitTest(
+		buttonPressed = FrontendButton_HandleSpriteButton(
 			&rect, "leaveup", "leavedown", FrontendString_Get(FRONTSTR_258_RETURN_TO_PILOT_RECORDS),
 			BUTTON_FONT_SIZE, 0, HOVER_PREVIOUS, "buttonsound");
 		if (buttonPressed != 0) {
@@ -700,9 +700,9 @@ int MissionSetup_Update(int frameCounter) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
 
 #ifdef XVT_MODERN
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_259_RETURN_TO_JOIN_GAME),
-											 BUTTON_FONT_SIZE, 0, HOVER_PREVIOUS, "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_259_RETURN_TO_JOIN_GAME),
+											  BUTTON_FONT_SIZE, 0, HOVER_PREVIOUS, "buttonsound") != 0) {
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
@@ -711,9 +711,9 @@ int MissionSetup_Update(int frameCounter) {
 			return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_CLIENT_LEAVE);
 		}
 #else
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_259_RETURN_TO_JOIN_GAME),
-											 BUTTON_FONT_SIZE, 0, HOVER_PREVIOUS, "buttonsound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_259_RETURN_TO_JOIN_GAME),
+											  BUTTON_FONT_SIZE, 0, HOVER_PREVIOUS, "buttonsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
@@ -735,9 +735,9 @@ int MissionSetup_Update(int frameCounter) {
 	FrontendDraw_RectAssign(&rect, 8, 405, 71, 470);
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_705_BEGIN));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "nextup", "nextdown",
-											 FrontendString_Get(FRONTSTR_705_BEGIN), BUTTON_FONT_SIZE, 0,
-											 HOVER_BEGIN, "flysound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "nextup", "nextdown",
+											  FrontendString_Get(FRONTSTR_705_BEGIN), BUTTON_FONT_SIZE, 0,
+											  HOVER_BEGIN, "flysound") != 0) {
 			if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TOURNAMENTS ||
 				g_pilotData.missionDirectoryId == MISSION_DIRECTORY_BATTLES ||
 				g_pilotData.missionDirectoryId == MISSION_DIRECTORY_CAMPAIGNS) {
@@ -761,9 +761,9 @@ int MissionSetup_Update(int frameCounter) {
 		}
 	} else if (Net_IsHost() != 0 && g_missionSetupBeginButtonLockoutFrames == 0) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_705_BEGIN));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "nextup", "nextdown",
-											 FrontendString_Get(FRONTSTR_705_BEGIN), BUTTON_FONT_SIZE, 0,
-											 HOVER_BEGIN, "flysound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "nextup", "nextdown",
+											  FrontendString_Get(FRONTSTR_705_BEGIN), BUTTON_FONT_SIZE, 0,
+											  HOVER_BEGIN, "flysound") != 0) {
 			g_missionSetupBeginButtonLockoutFrames = BEGIN_BUTTON_LOCKOUT_FRAMES;
 			if ((int)(uint8_t)g_missionList[g_selectedMissionListIndex].fileName[0] -
 					MISSION_PLAYER_COUNT_CHARACTER_OFFSET <
@@ -820,17 +820,17 @@ int MissionSetup_Update(int frameCounter) {
 	FrontendButton_DisableOverlayText();
 	if (Net_IsHost() != 0 || g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		FrontendDraw_RectAssign(&rect, 417, 112, 434, 130);
-		if (FrontendButton_DrawSpriteHitTest(&rect, "dropbtnup", "dropbtndown",
-											 FrontendString_Get(FRONTSTR_684_MISSION_LIST), TITLE_FONT_SIZE,
-											 TEXT_COLOR_WHITE, HOVER_MISSION_LIST, "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "dropbtnup", "dropbtndown",
+											  FrontendString_Get(FRONTSTR_684_MISSION_LIST), TITLE_FONT_SIZE,
+											  TEXT_COLOR_WHITE, HOVER_MISSION_LIST, "buttonsound") != 0) {
 			FrontendDraw_RectAssign(&rect, 0, 0, 639, 479);
 			FrontendScreen_QueuePush(MissionSetup_DrawMissionList, &rect);
 		}
 	}
 
-	missionTypeChanged = MissionSetup_DrawMissionTypeControls();
+	missionTypeControlsChanged = MissionSetup_DrawMissionTypeControls();
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER && Net_IsHost() != 0 &&
-		missionTypeChanged != 0) {
+		missionTypeControlsChanged != 0) {
 		MissionSetup_BroadcastStatePacket(0);
 	}
 	if (Frontend_HandleCommonScreenControls(1) == 1) {
@@ -843,9 +843,9 @@ int MissionSetup_Update(int frameCounter) {
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_HOST && Net_IsHost() != 0 &&
 		g_missionSetupActivePanel == MISSION_SETUP_PANEL_PLAYERS) {
 		FrontendDraw_RectAssign(&rect, 417, 309, 432, 336);
-		if (FrontendButton_DrawSpriteHitTest(&rect, "bootu", "bootd",
-											 FrontendString_Get(FRONTSTR_531_REMOVE_PLAYER_FROM_GAME),
-											 BUTTON_FONT_SIZE, 0, HOVER_BOOT_PLAYER, "buttonsound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "bootu", "bootd",
+											  FrontendString_Get(FRONTSTR_531_REMOVE_PLAYER_FROM_GAME),
+											  BUTTON_FONT_SIZE, 0, HOVER_BOOT_PLAYER, "buttonsound") != 0 &&
 			g_missionSetupSelectedPlayerRosterIndex != -1) {
 			g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_KICKED;
 			Net_SendPacketAndFlush(g_mpRoster[g_missionSetupSelectedPlayerRosterIndex].playerId,
@@ -862,8 +862,8 @@ int MissionSetup_Update(int frameCounter) {
 int MissionSetup_DrawMissionTypeControls(void) {
 	enum {
 		NAVIGATION_SLOT_COUNT = 8,
-		PLAYER_NAVIGATION_SLOT = 5,
-		SETTINGS_NAVIGATION_SLOT = 6,
+		PLAYERS_OR_REBEL_NAVIGATION_SLOT = 5,
+		SETTINGS_OR_IMPERIAL_NAVIGATION_SLOT = 6,
 		CAMPAIGN_NAVIGATION_SLOT = 7,
 		CAMPAIGN_CLIENT_CONTINUATION_OFFSET = 12,
 		PILOT_FACTION_REBEL = 0,
@@ -911,16 +911,17 @@ int MissionSetup_DrawMissionTypeControls(void) {
 	navigationSlotStates[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 	navigationSlotStates[MISSION_DIRECTORY_BATTLES] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NONE) {
-		navigationSlotStates[PLAYER_NAVIGATION_SLOT] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-		navigationSlotStates[SETTINGS_NAVIGATION_SLOT] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+		navigationSlotStates[PLAYERS_OR_REBEL_NAVIGATION_SLOT] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+		navigationSlotStates[SETTINGS_OR_IMPERIAL_NAVIGATION_SLOT] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
 	} else {
-		navigationSlotStates[PLAYER_NAVIGATION_SLOT] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-		navigationSlotStates[SETTINGS_NAVIGATION_SLOT] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+		navigationSlotStates[PLAYERS_OR_REBEL_NAVIGATION_SLOT] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+		navigationSlotStates[SETTINGS_OR_IMPERIAL_NAVIGATION_SLOT] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 		if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER)
 			navigationIndex = g_missionSetupActivePanel;
 		else
 			navigationIndex = g_pilotData.currentFactionId;
-		navigationSlotStates[PLAYER_NAVIGATION_SLOT + navigationIndex] = FRONTEND_NAVIGATION_SLOT_SELECTED;
+		navigationSlotStates[PLAYERS_OR_REBEL_NAVIGATION_SLOT + navigationIndex] =
+			FRONTEND_NAVIGATION_SLOT_SELECTED;
 	}
 	navigationSlotStates[CAMPAIGN_NAVIGATION_SLOT] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 	if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_CAMPAIGNS)
@@ -935,7 +936,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 	FrontendDraw_RectAssign(&rect, BUTTON_LEFT, BUTTON_TOP, BUTTON_RIGHT, BUTTON_BOTTOM);
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		if (g_pilotData.currentFactionId != PILOT_FACTION_IMPERIAL) {
-			if (FrontendButton_DrawSpriteHitTest(
+			if (FrontendButton_HandleSpriteButton(
 					&rect, "reg7u", "reg7u", FrontendString_Get(FRONTSTR_643_IMPERIAL_PILOT),
 					BUTTON_FONT_SIZE, 0, HOVER_SETTINGS_OR_IMPERIAL, "jewelsound") != 0) {
 				changed = 1;
@@ -972,7 +973,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 		}
 		FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
 		if (g_pilotData.currentFactionId != PILOT_FACTION_REBEL) {
-			if (FrontendButton_DrawSpriteHitTest(
+			if (FrontendButton_HandleSpriteButton(
 					&rect, "reg6u", "reg6u", FrontendString_Get(FRONTSTR_642_REBEL_PILOT), BUTTON_FONT_SIZE,
 					0, HOVER_PLAYERS_OR_REBEL, "jewelsound") != 0) {
 				changed = 1;
@@ -1069,9 +1070,9 @@ int MissionSetup_DrawMissionTypeControls(void) {
 			}
 		}
 	} else {
-		if (navigationSlotStates[SETTINGS_NAVIGATION_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE) {
+		if (navigationSlotStates[SETTINGS_OR_IMPERIAL_NAVIGATION_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE) {
 			if (g_missionSetupActivePanel != MISSION_SETUP_PANEL_SETTINGS) {
-				if (FrontendButton_DrawSpriteHitTest(
+				if (FrontendButton_HandleSpriteButton(
 						&rect, "game7u", "game7u", FrontendString_Get(FRONTSTR_203_SETTINGS),
 						BUTTON_FONT_SIZE, 0, HOVER_SETTINGS_OR_IMPERIAL, "jewelsound") != 0) {
 					changed = 1;
@@ -1083,9 +1084,9 @@ int MissionSetup_DrawMissionTypeControls(void) {
 			}
 		}
 		FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
-		if (navigationSlotStates[PLAYER_NAVIGATION_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE) {
+		if (navigationSlotStates[PLAYERS_OR_REBEL_NAVIGATION_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE) {
 			if (g_missionSetupActivePanel != MISSION_SETUP_PANEL_PLAYERS) {
-				if (FrontendButton_DrawSpriteHitTest(
+				if (FrontendButton_HandleSpriteButton(
 						&rect, "game6u", "game6u", FrontendString_Get(FRONTSTR_202_PLAYERS), BUTTON_FONT_SIZE,
 						0, HOVER_PLAYERS_OR_REBEL, "jewelsound") != 0) {
 					g_missionSetupActivePanel = MISSION_SETUP_PANEL_PLAYERS;
@@ -1101,9 +1102,9 @@ int MissionSetup_DrawMissionTypeControls(void) {
 	FrontendDraw_RectAssign(&rect, BUTTON_LEFT, CAMPAIGN_BUTTON_TOP, BUTTON_RIGHT, CAMPAIGN_BUTTON_BOTTOM);
 	if (g_pilotData.missionDirectoryId != MISSION_DIRECTORY_CAMPAIGNS) {
 		if (isHost != 0) {
-			if (FrontendButton_DrawSpriteHitTest(&rect, "game8u", "game8u",
-												 FrontendString_Get(FRONTSTR_199_CAMPAIGNS), BUTTON_FONT_SIZE,
-												 0, HOVER_CAMPAIGN, "jewelsound") != 0) {
+			if (FrontendButton_HandleSpriteButton(&rect, "game8u", "game8u",
+												  FrontendString_Get(FRONTSTR_199_CAMPAIGNS),
+												  BUTTON_FONT_SIZE, 0, HOVER_CAMPAIGN, "jewelsound") != 0) {
 				if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
 					g_pilotData.missionDirectoryId != MISSION_DIRECTORY_TRAINING_EXERCISES &&
 					g_pilotData.missionDirectoryId != MISSION_DIRECTORY_CAMPAIGNS) {
@@ -1297,9 +1298,9 @@ int MissionSetup_DrawMissionTypeControls(void) {
 	FrontendDraw_RectAssign(&rect, BUTTON_LEFT, BATTLE_BUTTON_TOP, BUTTON_RIGHT, BATTLE_BUTTON_BOTTOM);
 	if (g_pilotData.missionDirectoryId != MISSION_DIRECTORY_BATTLES) {
 		if (isHost != 0) {
-			if (FrontendButton_DrawSpriteHitTest(&rect, "game5u", "game5u",
-												 FrontendString_Get(FRONTSTR_198_BATTLES), BUTTON_FONT_SIZE,
-												 0, HOVER_BATTLE, "jewelsound") != 0) {
+			if (FrontendButton_HandleSpriteButton(&rect, "game5u", "game5u",
+												  FrontendString_Get(FRONTSTR_198_BATTLES), BUTTON_FONT_SIZE,
+												  0, HOVER_BATTLE, "jewelsound") != 0) {
 				if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 					if (g_pilotData.missionDirectoryId != MISSION_DIRECTORY_COMBAT_ENGAGEMENTS &&
 						g_pilotData.missionDirectoryId != MISSION_DIRECTORY_BATTLES) {
@@ -1511,7 +1512,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
 	if (g_pilotData.missionDirectoryId != MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
 		if (isHost != 0) {
-			if (FrontendButton_DrawSpriteHitTest(
+			if (FrontendButton_HandleSpriteButton(
 					&rect, "game4u", "game4u", FrontendString_Get(FRONTSTR_191_COMBAT_ENGAGEMENTS),
 					BUTTON_FONT_SIZE, 0, HOVER_COMBAT_ENGAGEMENT, "jewelsound") != 0) {
 				if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
@@ -1639,7 +1640,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 	if (navigationSlotStates[MISSION_DIRECTORY_TOURNAMENTS] != FRONTEND_NAVIGATION_SLOT_INACTIVE) {
 		if (g_pilotData.missionDirectoryId != MISSION_DIRECTORY_TOURNAMENTS) {
 			if (isHost != 0) {
-				if (FrontendButton_DrawSpriteHitTest(
+				if (FrontendButton_HandleSpriteButton(
 						&rect, "game3u", "game3u", FrontendString_Get(FRONTSTR_196_TOURNAMENTS),
 						BUTTON_FONT_SIZE, 0, HOVER_TOURNAMENT, "jewelsound") != 0) {
 					if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -1765,9 +1766,9 @@ int MissionSetup_DrawMissionTypeControls(void) {
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
 	if (g_pilotData.missionDirectoryId != MISSION_DIRECTORY_MELEES) {
 		if (isHost != 0) {
-			if (FrontendButton_DrawSpriteHitTest(&rect, "game2u", "game2u",
-												 FrontendString_Get(FRONTSTR_190_MELEES), BUTTON_FONT_SIZE, 0,
-												 HOVER_MELEE, "jewelsound") != 0) {
+			if (FrontendButton_HandleSpriteButton(&rect, "game2u", "game2u",
+												  FrontendString_Get(FRONTSTR_190_MELEES), BUTTON_FONT_SIZE,
+												  0, HOVER_MELEE, "jewelsound") != 0) {
 				if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
 					g_pilotData.missionDirectoryId != MISSION_DIRECTORY_MELEES &&
 					g_pilotData.missionDirectoryId != MISSION_DIRECTORY_TOURNAMENTS) {
@@ -1889,9 +1890,9 @@ int MissionSetup_DrawMissionTypeControls(void) {
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
 	if (g_pilotData.missionDirectoryId != MISSION_DIRECTORY_TRAINING_EXERCISES) {
 		if (isHost != 0) {
-			if (FrontendButton_DrawSpriteHitTest(&rect, "game1u", "game1u",
-												 FrontendString_Get(FRONTSTR_189_EXERCISE), BUTTON_FONT_SIZE,
-												 0, HOVER_TRAINING, "jewelsound") != 0) {
+			if (FrontendButton_HandleSpriteButton(&rect, "game1u", "game1u",
+												  FrontendString_Get(FRONTSTR_189_EXERCISE), BUTTON_FONT_SIZE,
+												  0, HOVER_TRAINING, "jewelsound") != 0) {
 				if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER)
 					g_gameConfig.missionTimeLimit = -1;
 				changed = 1;
@@ -2041,7 +2042,7 @@ int MissionSetup_DrawMissionTypeControls(void) {
 
 	if (changed != 0) {
 		FrontImage_FreeResourceByName("background");
-		MissionSetup_DrawBackgroundAndPreview();
+		MissionSetup_DrawBackground();
 	}
 	return changed;
 }
@@ -2067,22 +2068,24 @@ void MissionSetup_LoadMissionList(int missionDirectoryId) {
 	g_missionCount = 0;
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
 		g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_NONE) {
-		sprintf(g_frontendScratchBuffer, "%s\\mission.lst", g_campaignDirNames[missionDirectoryId]);
+		sprintf(g_frontendScratchBuffer, "%s\\mission.lst", g_missionDirectoryNames[missionDirectoryId]);
 	} else {
 		switch (missionDirectoryId) {
 			case MISSION_DIRECTORY_TRAINING_EXERCISES:
 			case MISSION_DIRECTORY_COMBAT_ENGAGEMENTS:
 			case MISSION_DIRECTORY_CAMPAIGNS:
 				if (g_pilotData.currentFactionId == 0)
-					sprintf(g_frontendScratchBuffer, "%s\\rebel.lst", g_campaignDirNames[missionDirectoryId]);
+					sprintf(g_frontendScratchBuffer, "%s\\rebel.lst",
+							g_missionDirectoryNames[missionDirectoryId]);
 				else
 					sprintf(g_frontendScratchBuffer, "%s\\imperial.lst",
-							g_campaignDirNames[missionDirectoryId]);
+							g_missionDirectoryNames[missionDirectoryId]);
 				break;
 			case MISSION_DIRECTORY_MELEES:
 			case MISSION_DIRECTORY_TOURNAMENTS:
 			case MISSION_DIRECTORY_BATTLES:
-				sprintf(g_frontendScratchBuffer, "%s\\mission.lst", g_campaignDirNames[missionDirectoryId]);
+				sprintf(g_frontendScratchBuffer, "%s\\mission.lst",
+						g_missionDirectoryNames[missionDirectoryId]);
 				break;
 			default:
 				break;
@@ -2226,7 +2229,7 @@ void MissionSetup_LoadMissionDescText(char* outText4096) {
 	if (missionListIndex >= g_missionCount)
 		return;
 
-	sprintf(g_frontendScratchBuffer, "%s\\%s", g_campaignDirNames[g_pilotData.missionDirectoryId],
+	sprintf(g_frontendScratchBuffer, "%s\\%s", g_missionDirectoryNames[g_pilotData.missionDirectoryId],
 			g_missionList[missionListIndex].fileName);
 	stream = File_Open(g_frontendScratchBuffer, "rb");
 	if (stream == NULL)
@@ -2308,7 +2311,7 @@ int MissionSetup_DrawMissionDescription(void) {
 				g_gameConfig.continueBattleOrCampaign != SEQUENCE_RESTART) {
 				continuationActive = 1;
 			}
-		} else if (g_remoteBattleSequenceActive != 0 && g_remoteBattleSequenceContinuationChoice != 0) {
+		} else if (g_remoteBattleContinuationActive != 0 && g_remoteBattleSequenceContinuationChoice != 0) {
 			continuationActive = 1;
 		}
 
@@ -2321,10 +2324,11 @@ int MissionSetup_DrawMissionDescription(void) {
 				rebelVictories = 0;
 				resultIndex = 0;
 				missionIndex = g_missionList[g_selectedMissionListIndex].missionIdx;
-				maxResultIndex = g_pilotData.spBattleContinuations[missionIndex].state.currentMissionIndex;
+				maxResultIndex =
+					g_pilotData.spBattleContinuations[missionIndex].sequenceState.currentMissionIndex;
 				while (resultIndex <= maxResultIndex && resultIndex < 10) {
-					switch (
-						g_pilotData.spBattleContinuations[missionIndex].state.missionResults[resultIndex]) {
+					switch (g_pilotData.spBattleContinuations[missionIndex]
+								.sequenceState.missionResults[resultIndex]) {
 						case BATTLE_MISSION_RESULT_IMPERIAL_VICTORY:
 							++imperialVictories;
 							break;
@@ -2341,10 +2345,11 @@ int MissionSetup_DrawMissionDescription(void) {
 				rebelVictories = 0;
 				resultIndex = 0;
 				missionIndex = g_missionList[g_selectedMissionListIndex].missionIdx;
-				maxResultIndex = g_pilotData.mpBattleContinuations[missionIndex].state.currentMissionIndex;
+				maxResultIndex =
+					g_pilotData.mpBattleContinuations[missionIndex].sequenceState.currentMissionIndex;
 				while (resultIndex <= maxResultIndex && resultIndex < 10) {
-					switch (
-						g_pilotData.mpBattleContinuations[missionIndex].state.missionResults[resultIndex]) {
+					switch (g_pilotData.mpBattleContinuations[missionIndex]
+								.sequenceState.missionResults[resultIndex]) {
 						case BATTLE_MISSION_RESULT_IMPERIAL_VICTORY:
 							++imperialVictories;
 							break;
@@ -2713,21 +2718,21 @@ int MissionSetup_BroadcastStatePacket(int toPlayerId) {
 				missionIndex = &g_missionList[g_selectedMissionListIndex].missionIdx;
 				packetWords[1] = g_pilotData.spBattleContinuations[*missionIndex].isActive;
 				packetWords[2] = (uint8_t)g_gameConfig.continueBattleOrCampaign;
-				packetWords[3] = g_pilotData.spBattleContinuations[*missionIndex].state.currentMissionIndex;
+				packetWords[3] =
+					g_pilotData.spBattleContinuations[*missionIndex].sequenceState.currentMissionIndex;
 				currentMissionIndex =
-					g_pilotData.spBattleContinuations[*missionIndex].state.currentMissionIndex;
+					g_pilotData.spBattleContinuations[*missionIndex].sequenceState.currentMissionIndex;
 				resultIndex = 0;
 				if (currentMissionIndex >= 0) {
 					do {
-						if (resultIndex >=
-							(int)(sizeof(
-									  g_pilotData.spBattleContinuations[*missionIndex].state.missionResults) /
-								  sizeof(g_pilotData.spBattleContinuations[*missionIndex]
-											 .state.missionResults[0]))) {
+						if (resultIndex >= (int)(sizeof(g_pilotData.spBattleContinuations[*missionIndex]
+															.sequenceState.missionResults) /
+												 sizeof(g_pilotData.spBattleContinuations[*missionIndex]
+															.sequenceState.missionResults[0]))) {
 							break;
 						}
 						switch (g_pilotData.spBattleContinuations[*missionIndex]
-									.state.missionResults[resultIndex]) {
+									.sequenceState.missionResults[resultIndex]) {
 							case BATTLE_MISSION_RESULT_IMPERIAL_VICTORY:
 								++imperialVictories;
 								break;
@@ -2744,21 +2749,21 @@ int MissionSetup_BroadcastStatePacket(int toPlayerId) {
 				missionIndex = &g_missionList[g_selectedMissionListIndex].missionIdx;
 				packetWords[1] = g_pilotData.mpBattleContinuations[*missionIndex].isActive;
 				packetWords[2] = (uint8_t)g_gameConfig.continueBattleOrCampaign;
-				packetWords[3] = g_pilotData.mpBattleContinuations[*missionIndex].state.currentMissionIndex;
+				packetWords[3] =
+					g_pilotData.mpBattleContinuations[*missionIndex].sequenceState.currentMissionIndex;
 				currentMissionIndex =
-					g_pilotData.mpBattleContinuations[*missionIndex].state.currentMissionIndex;
+					g_pilotData.mpBattleContinuations[*missionIndex].sequenceState.currentMissionIndex;
 				resultIndex = 0;
 				if (currentMissionIndex >= 0) {
 					do {
-						if (resultIndex >=
-							(int)(sizeof(
-									  g_pilotData.mpBattleContinuations[*missionIndex].state.missionResults) /
-								  sizeof(g_pilotData.mpBattleContinuations[*missionIndex]
-											 .state.missionResults[0]))) {
+						if (resultIndex >= (int)(sizeof(g_pilotData.mpBattleContinuations[*missionIndex]
+															.sequenceState.missionResults) /
+												 sizeof(g_pilotData.mpBattleContinuations[*missionIndex]
+															.sequenceState.missionResults[0]))) {
 							break;
 						}
 						switch (g_pilotData.mpBattleContinuations[*missionIndex]
-									.state.missionResults[resultIndex]) {
+									.sequenceState.missionResults[resultIndex]) {
 							case BATTLE_MISSION_RESULT_IMPERIAL_VICTORY:
 								++imperialVictories;
 								break;
@@ -2802,7 +2807,7 @@ int MissionSetup_BroadcastStatePacket(int toPlayerId) {
 
 // FUNCTION: XVT 0x4E6750
 int MissionSetup_BroadcastReadyRoster(int toPlayerId) {
-	enum { ROSTER_FIELD_COUNT = 8, PACKET_HEADER_WORD_COUNT = 3 };
+	enum { ROSTER_CAPACITY = 8, PACKET_HEADER_WORD_COUNT = 3 };
 
 	NetPlayerInfo* roster;
 	int rosterCount;
@@ -2812,7 +2817,7 @@ int MissionSetup_BroadcastReadyRoster(int toPlayerId) {
 
 	packetWords = (int*)&g_frontendNetPacketScratch;
 	packetWords[0] = NET_PACKET_READY_ROSTER;
-	packetWords[1] = ROSTER_FIELD_COUNT;
+	packetWords[1] = ROSTER_CAPACITY;
 	packetWordCount = PACKET_HEADER_WORD_COUNT;
 	packetWords[2] = Net_CountReadyPlayers();
 	roster = Net_GetPlayerRoster(&rosterCount);
@@ -2840,11 +2845,11 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 		MISSION_TEXT_INDENT = 37,
 		TEXT_FONT_SIZE = 12,
 		SCROLLBAR_CONTROL_ID = 8,
-		LOCKED_MULTIPLAYER_FILE_PREFIX = '1',
+		SINGLE_PLAYER_FILE_PREFIX = '1',
 		SOUND_VOLUME_SCALE = 12,
 		SOUND_CENTER_PAN = 63,
 		AWARD_TOOLTIP_MEDAL_BASE = FRONTSTR_381_BATTLE_MEDALLION,
-		AWARD_TOOLTIP_RATING_BASE = FRONTSTR_659_QUICK_START,
+		AWARD_TOOLTIP_CITATION_BASE = FRONTSTR_659_QUICK_START,
 		CAMPAIGN_CLIENT_CONTINUATION_OFFSET = 12,
 	};
 
@@ -2855,7 +2860,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 	int missionListIndex;
 	int displayRow;
 	unsigned int awardId;
-	int currentFactionId;
+	int awardFactionId;
 	unsigned int imperialAwardId;
 	unsigned int rebelAwardId;
 	unsigned short textColor;
@@ -2899,7 +2904,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 			g_frontendNetReceivedMissionDescriptionId;
 		FrontendMission_LoadCurrent();
 		FrontImage_FreeResourceByName("background");
-		MissionSetup_DrawBackgroundAndPreview();
+		MissionSetup_DrawBackground();
 		MissionSetup_LoadMissionDescText(g_briefingText);
 		MissionSetup_UpdateTeamCounts();
 		if (g_missionList != NULL) {
@@ -2954,7 +2959,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 		FrontendScreen_PopState();
 		Frontend_UnregisterScrollableControl(SCROLLBAR_CONTROL_ID);
 		FrontImage_FreeResourceByName("background");
-		MissionSetup_DrawBackgroundAndPreview();
+		MissionSetup_DrawBackground();
 	}
 
 	FrontendDraw_RectAssign(&rect, LIST_LEFT, LIST_TOP,
@@ -3005,7 +3010,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 					}
 
 					if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-						if (g_missionList[missionListIndex].fileName[0] != LOCKED_MULTIPLAYER_FILE_PREFIX) {
+						if (g_missionList[missionListIndex].fileName[0] != SINGLE_PLAYER_FILE_PREFIX) {
 							g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] =
 								g_missionList[missionListIndex].missionIdx;
 							g_selectedMissionListIndex = 0;
@@ -3087,7 +3092,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 							}
 							FrontendMission_LoadCurrent();
 							FrontImage_FreeResourceByName("background");
-							MissionSetup_DrawBackgroundAndPreview();
+							MissionSetup_DrawBackground();
 							MissionSetup_UpdateTeamCounts();
 							MissionSetup_LoadMissionDescText(g_briefingText);
 							g_frontendFirstVisibleLine = 0;
@@ -3147,7 +3152,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 						}
 						FrontendMission_LoadCurrent();
 						FrontImage_FreeResourceByName("background");
-						MissionSetup_DrawBackgroundAndPreview();
+						MissionSetup_DrawBackground();
 						MissionSetup_UpdateTeamCounts();
 						MissionSetup_LoadMissionDescText(g_briefingText);
 						g_frontendFirstVisibleLine = 0;
@@ -3157,7 +3162,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 					FrontendScreen_PopState();
 					Frontend_UnregisterScrollableControl(SCROLLBAR_CONTROL_ID);
 					FrontImage_FreeResourceByName("background");
-					MissionSetup_DrawBackgroundAndPreview();
+					MissionSetup_DrawBackground();
 				}
 			}
 
@@ -3166,7 +3171,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 				g_missionList[missionListIndex].missionIdx) {
 				textColor = g_colorYellow;
 			}
-			if (g_missionList[missionListIndex].fileName[0] == LOCKED_MULTIPLAYER_FILE_PREFIX &&
+			if (g_missionList[missionListIndex].fileName[0] == SINGLE_PLAYER_FILE_PREFIX &&
 				g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 				textColor = g_colorGray;
 			}
@@ -3212,34 +3217,34 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 			awardId = 0;
 			rebelAwardId = 0;
 			imperialAwardId = 0;
-			currentFactionId = 0;
+			awardFactionId = 0;
 			if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-				currentFactionId = g_pilotData.currentFactionId;
+				awardFactionId = g_pilotData.currentFactionId;
 				switch (g_pilotData.missionDirectoryId) {
 					case MISSION_DIRECTORY_TRAINING_EXERCISES:
-						awardId = g_pilotData.factionStatistics[currentFactionId]
+						awardId = g_pilotData.factionStatistics[awardFactionId]
 									  .spTrainingMissions[g_missionList[missionListIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						break;
 					case MISSION_DIRECTORY_MELEES:
-						awardId = g_pilotData.factionStatistics[currentFactionId]
+						awardId = g_pilotData.factionStatistics[awardFactionId]
 									  .spMeleeMissions[g_missionList[missionListIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						break;
 					case MISSION_DIRECTORY_TOURNAMENTS:
-						awardId = g_pilotData.factionStatistics[currentFactionId]
+						awardId = g_pilotData.factionStatistics[awardFactionId]
 									  .spTournaments[g_missionList[missionListIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						break;
 					case MISSION_DIRECTORY_COMBAT_ENGAGEMENTS:
-						awardId = g_pilotData.factionStatistics[currentFactionId]
+						awardId = g_pilotData.factionStatistics[awardFactionId]
 									  .spCombatMissions[g_missionList[missionListIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						break;
 					case MISSION_DIRECTORY_BATTLES:
-						awardId = g_pilotData.factionStatistics[currentFactionId]
+						awardId = g_pilotData.factionStatistics[awardFactionId]
 									  .spBattles[g_missionList[missionListIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						break;
 					default:
 						break;
@@ -3249,66 +3254,66 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 					case MISSION_DIRECTORY_TRAINING_EXERCISES:
 						rebelAwardId = g_pilotData.factionStatistics[0]
 										   .mpTrainingMissions[g_missionList[missionListIndex].missionIdx]
-										   .awardId;
+										   .awardLevel;
 						imperialAwardId = g_pilotData.factionStatistics[1]
 											  .mpTrainingMissions[g_missionList[missionListIndex].missionIdx]
-											  .awardId;
+											  .awardLevel;
 						awardId = rebelAwardId;
 						if (imperialAwardId != 0 && (imperialAwardId < awardId || awardId == 0)) {
 							awardId = imperialAwardId;
-							currentFactionId = 1;
+							awardFactionId = 1;
 						}
 						break;
 					case MISSION_DIRECTORY_MELEES:
 						rebelAwardId = g_pilotData.factionStatistics[0]
 										   .mpMeleeMissions[g_missionList[missionListIndex].missionIdx]
-										   .awardId;
+										   .awardLevel;
 						imperialAwardId = g_pilotData.factionStatistics[1]
 											  .mpMeleeMissions[g_missionList[missionListIndex].missionIdx]
-											  .awardId;
+											  .awardLevel;
 						awardId = rebelAwardId;
 						if (imperialAwardId != 0 && (imperialAwardId < awardId || awardId == 0)) {
 							awardId = imperialAwardId;
-							currentFactionId = 1;
+							awardFactionId = 1;
 						}
 						break;
 					case MISSION_DIRECTORY_TOURNAMENTS:
 						rebelAwardId = g_pilotData.factionStatistics[0]
 										   .mpTournaments[g_missionList[missionListIndex].missionIdx]
-										   .awardId;
+										   .awardLevel;
 						imperialAwardId = g_pilotData.factionStatistics[1]
 											  .mpTournaments[g_missionList[missionListIndex].missionIdx]
-											  .awardId;
+											  .awardLevel;
 						awardId = rebelAwardId;
 						if (imperialAwardId != 0 && (imperialAwardId < awardId || awardId == 0)) {
 							awardId = imperialAwardId;
-							currentFactionId = 1;
+							awardFactionId = 1;
 						}
 						break;
 					case MISSION_DIRECTORY_COMBAT_ENGAGEMENTS:
 						rebelAwardId = g_pilotData.factionStatistics[0]
 										   .mpCombatMissions[g_missionList[missionListIndex].missionIdx]
-										   .awardId;
+										   .awardLevel;
 						imperialAwardId = g_pilotData.factionStatistics[1]
 											  .mpCombatMissions[g_missionList[missionListIndex].missionIdx]
-											  .awardId;
+											  .awardLevel;
 						awardId = rebelAwardId;
 						if (imperialAwardId != 0 && (imperialAwardId < awardId || awardId == 0)) {
 							awardId = imperialAwardId;
-							currentFactionId = 1;
+							awardFactionId = 1;
 						}
 						break;
 					case MISSION_DIRECTORY_BATTLES:
 						rebelAwardId = g_pilotData.factionStatistics[0]
 										   .mpBattles[g_missionList[missionListIndex].missionIdx]
-										   .awardId;
+										   .awardLevel;
 						imperialAwardId = g_pilotData.factionStatistics[1]
 											  .mpBattles[g_missionList[missionListIndex].missionIdx]
-											  .awardId;
+											  .awardLevel;
 						awardId = rebelAwardId;
 						if (imperialAwardId != 0 && (imperialAwardId < awardId || awardId == 0)) {
 							awardId = imperialAwardId;
-							currentFactionId = 1;
+							awardFactionId = 1;
 						}
 						break;
 					default:
@@ -3358,8 +3363,7 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 							   FrontendString_Get((FrontendStringId)(AWARD_TOOLTIP_MEDAL_BASE + awardId)));
 					}
 				} else {
-					sprintf(g_frontendScratchBuffer, currentFactionId != 0 ? "citlvl%d" : "rcitlvl%d",
-							awardId);
+					sprintf(g_frontendScratchBuffer, awardFactionId != 0 ? "citlvl%d" : "rcitlvl%d", awardId);
 					FrontImage_DrawSprite(g_frontendScratchBuffer, awardRect.left, awardRect.top);
 					if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 						if (rebelAwardId != 0) {
@@ -3367,33 +3371,33 @@ int MissionSetup_DrawMissionList(int frameCounter) {
 								sprintf(g_frontendScratchBuffer, "%s: %s",
 										FrontendString_Get(FRONTSTR_760_REBEL),
 										FrontendString_Get(
-											(FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + rebelAwardId)));
+											(FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE + rebelAwardId)));
 							} else {
 								sprintf(g_frontendScratchBuffer, "%s: %s, %s: %s",
 										FrontendString_Get(FRONTSTR_760_REBEL),
 										FrontendString_Get(
-											(FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + rebelAwardId)),
+											(FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE + rebelAwardId)),
 										FrontendString_Get(FRONTSTR_759_IMPERIAL),
-										FrontendString_Get(
-											(FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + imperialAwardId)));
+										FrontendString_Get((FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE +
+																			  imperialAwardId)));
 							}
 						} else if (imperialAwardId != 0) {
 							sprintf(g_frontendScratchBuffer, "%s: %s",
 									FrontendString_Get(FRONTSTR_759_IMPERIAL),
 									FrontendString_Get(
-										(FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + imperialAwardId)));
+										(FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE + imperialAwardId)));
 						} else {
 							sprintf(g_frontendScratchBuffer, "%s: %s, %s: %s",
 									FrontendString_Get(FRONTSTR_760_REBEL),
 									FrontendString_Get(
-										(FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + rebelAwardId)),
+										(FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE + rebelAwardId)),
 									FrontendString_Get(FRONTSTR_759_IMPERIAL),
 									FrontendString_Get(
-										(FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + imperialAwardId)));
+										(FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE + imperialAwardId)));
 						}
 					} else {
 						strcpy(g_frontendScratchBuffer,
-							   FrontendString_Get((FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + awardId)));
+							   FrontendString_Get((FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE + awardId)));
 					}
 				}
 				FrontendButton_DrawSpriteAndTooltip(&awardRect, NULL, g_frontendScratchBuffer, TEXT_FONT_SIZE,
@@ -3438,7 +3442,7 @@ int MissionSetup_SelectFirstSequenceMission(void) {
 			}
 		}
 	}
-	sprintf(descriptorPath, "%s\\%s", g_campaignDirNames[g_pilotData.missionDirectoryId],
+	sprintf(descriptorPath, "%s\\%s", g_missionDirectoryNames[g_pilotData.missionDirectoryId],
 			g_missionList[descriptorMissionIndex].fileName);
 	stream = File_Open(descriptorPath, "r");
 	if (stream == NULL)
@@ -3681,7 +3685,7 @@ int MissionSetup_DrawGameSettings(void) {
 				++row;
 				y += SETTINGS_ROW_HEIGHT;
 			}
-		} else if (g_remoteBattleSequenceActive != 0) {
+		} else if (g_remoteBattleContinuationActive != 0) {
 			if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_BATTLES) {
 				strcpy(g_frontendScratchBuffer, FrontendString_Get(FRONTSTR_773_BATTLE_STATUS));
 			} else if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_CAMPAIGNS) {
@@ -4270,7 +4274,7 @@ int MissionSetup_CountMissionListEntries(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x4E9330
-int MissionSetup_DrawBackgroundAndPreview(void) {
+int MissionSetup_DrawBackground(void) {
 	int flightGroupIndex;
 	uint8_t* playerNumber;
 
@@ -4362,7 +4366,7 @@ int MissionSetup_UseRebelBackground(void) {
 	char filePath[256];
 	FrontendMission mission;
 
-	sprintf(filePath, "%s\\%s", g_campaignDirNames[MISSION_DIRECTORY_CAMPAIGNS],
+	sprintf(filePath, "%s\\%s", g_missionDirectoryNames[MISSION_DIRECTORY_CAMPAIGNS],
 			g_missionList[g_selectedMissionListIndex].fileName);
 	stream = File_Open(filePath, "r");
 	if (stream != NULL) {
@@ -4373,7 +4377,7 @@ int MissionSetup_UseRebelBackground(void) {
 			if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) - 1] == '\n') {
 				g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) - 1] = '\0';
 			}
-			sprintf(filePath, "%s\\%s", g_campaignDirNames[MISSION_DIRECTORY_TRAINING_EXERCISES],
+			sprintf(filePath, "%s\\%s", g_missionDirectoryNames[MISSION_DIRECTORY_TRAINING_EXERCISES],
 					g_frontendScratchBuffer);
 			FrontendMission_LoadFile(filePath, &mission);
 			{
@@ -5101,9 +5105,9 @@ int MissionSetup_UpdateCraftLoadout(void) {
 
 	FrontendDraw_RectAssign(&rect, 22, 226, 42, 250);
 	if (slotStates[COUNTERMEASURE_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE &&
-		FrontendButton_DrawSpriteHitTest(&rect, "craft5u", "craft5d",
-										 FrontendString_Get(FRONTSTR_271_NEXT_COUNTERMEASURE_CHOICE),
-										 BUTTON_FONT_SIZE, 0, COUNTERMEASURE_HOVER_SLOT, "jewelsound") != 0) {
+		FrontendButton_HandleSpriteButton(
+			&rect, "craft5u", "craft5d", FrontendString_Get(FRONTSTR_271_NEXT_COUNTERMEASURE_CHOICE),
+			BUTTON_FONT_SIZE, 0, COUNTERMEASURE_HOVER_SLOT, "jewelsound") != 0) {
 		leftClick = FrontendMouse_GetLeftClick();
 		selectedOptionIndex = g_missionSetupSelectedCountermeasureOptionIndex;
 		if (leftClick != 0) {
@@ -5125,9 +5129,9 @@ int MissionSetup_UpdateCraftLoadout(void) {
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
 	if (slotStates[BEAM_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE &&
-		FrontendButton_DrawSpriteHitTest(&rect, "craft4u", "craft4d",
-										 FrontendString_Get(FRONTSTR_272_NEXT_BEAM_WEAPON_CHOICE),
-										 BUTTON_FONT_SIZE, 0, BEAM_HOVER_SLOT, "jewelsound") != 0) {
+		FrontendButton_HandleSpriteButton(&rect, "craft4u", "craft4d",
+										  FrontendString_Get(FRONTSTR_272_NEXT_BEAM_WEAPON_CHOICE),
+										  BUTTON_FONT_SIZE, 0, BEAM_HOVER_SLOT, "jewelsound") != 0) {
 		leftClick = FrontendMouse_GetLeftClick();
 		selectedOptionIndex = g_missionSetupSelectedBeamOptionIndex;
 		if (leftClick != 0) {
@@ -5149,9 +5153,9 @@ int MissionSetup_UpdateCraftLoadout(void) {
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
 	if (slotStates[WARHEAD_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE &&
-		FrontendButton_DrawSpriteHitTest(&rect, "craft3u", "craft3d",
-										 FrontendString_Get(FRONTSTR_270_NEXT_WARHEAD_CHOICE),
-										 BUTTON_FONT_SIZE, 0, WARHEAD_HOVER_SLOT, "jewelsound") != 0) {
+		FrontendButton_HandleSpriteButton(&rect, "craft3u", "craft3d",
+										  FrontendString_Get(FRONTSTR_270_NEXT_WARHEAD_CHOICE),
+										  BUTTON_FONT_SIZE, 0, WARHEAD_HOVER_SLOT, "jewelsound") != 0) {
 		leftClick = FrontendMouse_GetLeftClick();
 		selectedOptionIndex = g_missionSetupSelectedWarheadOptionIndex;
 		if (leftClick != 0) {
@@ -5173,9 +5177,9 @@ int MissionSetup_UpdateCraftLoadout(void) {
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
 	if (slotStates[PREVIOUS_CRAFT_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE &&
-		FrontendButton_DrawSpriteHitTest(&rect, "craft2u", "craft2d",
-										 FrontendString_Get(FRONTSTR_269_PREVIOUS_CRAFT_CHOICE),
-										 BUTTON_FONT_SIZE, 0, PREVIOUS_CRAFT_HOVER_SLOT, "jewelsound") != 0) {
+		FrontendButton_HandleSpriteButton(
+			&rect, "craft2u", "craft2d", FrontendString_Get(FRONTSTR_269_PREVIOUS_CRAFT_CHOICE),
+			BUTTON_FONT_SIZE, 0, PREVIOUS_CRAFT_HOVER_SLOT, "jewelsound") != 0) {
 		loadoutChanged = 1;
 		selectedPresetCraftOptionIndex = g_missionSetupSelectedPresetCraftOptionIndex;
 		selectedFlightGroupCraftOptionIndex = g_missionSetupSelectedFlightGroupCraftOptionIndex;
@@ -5288,9 +5292,9 @@ int MissionSetup_UpdateCraftLoadout(void) {
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
 	if (slotStates[NEXT_CRAFT_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE &&
-		FrontendButton_DrawSpriteHitTest(&rect, "craft1u", "craft1d",
-										 FrontendString_Get(FRONTSTR_268_NEXT_CRAFT_CHOICE), BUTTON_FONT_SIZE,
-										 0, NEXT_CRAFT_HOVER_SLOT, "jewelsound") != 0) {
+		FrontendButton_HandleSpriteButton(&rect, "craft1u", "craft1d",
+										  FrontendString_Get(FRONTSTR_268_NEXT_CRAFT_CHOICE),
+										  BUTTON_FONT_SIZE, 0, NEXT_CRAFT_HOVER_SLOT, "jewelsound") != 0) {
 		loadoutChanged = 1;
 		selectedPresetCraftOptionIndex = g_missionSetupSelectedPresetCraftOptionIndex;
 		selectedFlightGroupCraftOptionIndex = g_missionSetupSelectedFlightGroupCraftOptionIndex;
@@ -5859,7 +5863,7 @@ int MissionSetup_GetCraftType(int playerRosterIndex) {
 void ShipList_Load(void) {
 	int shipCount;
 	int shipListIndex;
-	int typeId;
+	int craftType;
 	unsigned int extensionIndex;
 	XvtFile* stream;
 
@@ -5876,7 +5880,7 @@ void ShipList_Load(void) {
 		return;
 
 	for (;;) {
-		if (File_Scanf(stream, "%s %d\n", g_frontendScratchBuffer, &typeId) != 2) {
+		if (File_Scanf(stream, "%s %d\n", g_frontendScratchBuffer, &craftType) != 2) {
 			break;
 		}
 		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) - 1] == '\n') {
@@ -5893,9 +5897,9 @@ void ShipList_Load(void) {
 		strncpy(g_shipList[shipListIndex].modelFileName, g_frontendScratchBuffer,
 				sizeof(g_shipList[shipListIndex].modelFileName) - 1);
 		g_shipList[shipListIndex].modelFileName[sizeof(g_shipList[shipListIndex].modelFileName) - 1] = '\0';
-		g_shipList[shipListIndex].typeId = typeId;
-		if (typeId < 17) {
-			g_shipTypeToShipListIndex[typeId] = shipCount;
+		g_shipList[shipListIndex].craftType = craftType;
+		if (craftType < 17) {
+			g_shipTypeToShipListIndex[craftType] = shipCount;
 		}
 		++shipListIndex;
 		++shipCount;
@@ -6090,14 +6094,14 @@ int MissionSetup_PruneDisconnectedPlayers(void) {
 			do {
 				if (playerRoster[rosterIndex].readyFlag != 0 &&
 					playerRoster[rosterIndex].playerId ==
-						(DPID)g_missionSetupPlayerAssignments.activePlayerIds[activePlayerIndex]) {
+						(DPID)g_missionSetupPlayerAssignments.assignedPlayerIds[activePlayerIndex]) {
 					break;
 				}
 				rosterIndex++;
 			} while (playerCount > rosterIndex);
 		}
 		if (rosterIndex == 8) {
-			g_missionSetupPlayerAssignments.activePlayerIds[activePlayerIndex] = 0;
+			g_missionSetupPlayerAssignments.assignedPlayerIds[activePlayerIndex] = 0;
 			g_mpRoster[activePlayerIndex].playerId = 0;
 		}
 	}
@@ -6135,14 +6139,14 @@ int MissionSetup_PruneDisconnectedPlayers(void) {
 		rosterIndex = 0;
 		if (playerCount > 0) {
 			do {
-				if (g_missionSetupPlayerAssignments.activePlayerIds[activePlayerIndex] == 0) {
+				if (g_missionSetupPlayerAssignments.assignedPlayerIds[activePlayerIndex] == 0) {
 					break;
 				}
 				rosterIndex++;
 			} while (playerCount > rosterIndex);
 		}
 		if (playerCount != rosterIndex && g_teamCount > 0) {
-			removedPlayerId = g_missionSetupPlayerAssignments.activePlayerIds[activePlayerIndex];
+			removedPlayerId = g_missionSetupPlayerAssignments.assignedPlayerIds[activePlayerIndex];
 			for (teamIndex = 0; teamIndex < g_teamCount; teamIndex++) {
 				for (teamPlayerIndex = 0; teamPlayerIndex < 8; teamPlayerIndex++) {
 					if (g_missionSetupPlayerAssignments.teamPlayerIds[teamIndex][teamPlayerIndex] ==
@@ -6211,7 +6215,7 @@ int MissionSetup_SelectNextSequenceMission(void) {
 			   g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId]) {
 		++descriptorMissionIndex;
 	}
-	sprintf(descriptorPath, "%s\\%s", g_campaignDirNames[g_pilotData.missionDirectoryId],
+	sprintf(descriptorPath, "%s\\%s", g_missionDirectoryNames[g_pilotData.missionDirectoryId],
 			g_missionList[descriptorMissionIndex].fileName);
 	stream = File_Open(descriptorPath, "r");
 	if (stream == NULL)
@@ -6480,7 +6484,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 			g_pilotData.missionSequenceActive == 1) {
 			if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES) {
 				if (MissionSetup_TryContinueCampaign() == 0) {
-					g_remoteBattleSequenceActive = 0;
+					g_remoteBattleContinuationActive = 0;
 					g_remoteBattleSequenceContinuationChoice = 0;
 					g_remoteBattleLastCompletedMissionIndex = 0;
 					g_remoteBattleRebelVictoryCount = 0;
@@ -6500,7 +6504,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 				}
 			} else if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_COMBAT_ENGAGEMENTS &&
 					   MissionSetup_TryContinueBattle() == 0) {
-				g_remoteBattleSequenceActive = 0;
+				g_remoteBattleContinuationActive = 0;
 				g_remoteBattleSequenceContinuationChoice = 0;
 				g_remoteBattleLastCompletedMissionIndex = 0;
 				g_remoteBattleRebelVictoryCount = 0;
@@ -6535,8 +6539,8 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 		if (g_frontendSkipScreenEntrySetup == 0) {
 			memset(g_missionSetupPlayerAssignments.teamPlayerIds, 0,
 				   sizeof(g_missionSetupPlayerAssignments.teamPlayerIds));
-			memset(g_missionSetupPlayerAssignments.activePlayerIds, 0,
-				   sizeof(g_missionSetupPlayerAssignments.activePlayerIds));
+			memset(g_missionSetupPlayerAssignments.assignedPlayerIds, 0,
+				   sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds));
 			MissionSetup_UpdateTeamCounts();
 		} else {
 			MissionSetup_PruneTeamAssignments();
@@ -6554,7 +6558,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 					return 0;
 				}
 				g_missionSetupPlayerAssignments.teamPlayerIds[0][0] = g_mpRoster[0].playerId;
-				g_missionSetupPlayerAssignments.activePlayerIds[0] = g_mpRoster[0].playerId;
+				g_missionSetupPlayerAssignments.assignedPlayerIds[0] = g_mpRoster[0].playerId;
 				g_pilotData.team = 0;
 				FrontendScreen_SetCallbacks(MissionSetup_FlightAssignmentUpdate,
 											MissionSetup_FreeScreenResources);
@@ -6568,7 +6572,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 				do {
 					for (slotIndex = 0; slotIndex < g_teamPlayerFlightGroupCount[teamIndex]; ++slotIndex) {
 						if (g_missionSetupPlayerAssignments.teamPlayerIds[teamIndex][slotIndex] == 0) {
-							g_missionSetupPlayerAssignments.activePlayerIds[assignedPlayerCount] =
+							g_missionSetupPlayerAssignments.assignedPlayerIds[assignedPlayerCount] =
 								g_mpRoster[assignedPlayerCount].playerId;
 							g_missionSetupPlayerAssignments.teamPlayerIds[teamIndex][slotIndex] =
 								g_mpRoster[assignedPlayerCount].playerId;
@@ -6587,7 +6591,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 					if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_COMBAT_ENGAGEMENTS ||
 						g_pilotData.missionDirectoryId == MISSION_DIRECTORY_BATTLES) {
 						teamIndex = g_pilotData.currentFactionId ^ 1;
-						g_missionSetupPlayerAssignments.activePlayerIds[0] = g_mpRoster[0].playerId;
+						g_missionSetupPlayerAssignments.assignedPlayerIds[0] = g_mpRoster[0].playerId;
 						g_pilotData.team = teamIndex;
 						g_missionSetupPlayerAssignments.teamPlayerIds[teamIndex][0] = g_mpRoster[0].playerId;
 						useBattleChoice = 0;
@@ -6634,7 +6638,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 						for (slotIndex = 0; slotIndex < g_teamPlayerFlightGroupCount[teamIndex];
 							 ++slotIndex) {
 							if (g_missionSetupPlayerAssignments.teamPlayerIds[teamIndex][slotIndex] == 0) {
-								g_missionSetupPlayerAssignments.activePlayerIds[assignedPlayerCount] =
+								g_missionSetupPlayerAssignments.assignedPlayerIds[assignedPlayerCount] =
 									g_mpRoster[assignedPlayerCount].playerId;
 								g_missionSetupPlayerAssignments.teamPlayerIds[teamIndex][slotIndex] =
 									g_mpRoster[assignedPlayerCount].playerId;
@@ -6974,9 +6978,9 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 	}
 	if (Net_IsHost() != 0 || g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12, 0,
-											 8, "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12,
+											  0, 8, "buttonsound") != 0) {
 			if (g_pilotData.missionSequenceActive == 1 &&
 				g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES) {
 				FrontendDialog_ShowConfirmDialog(
@@ -7001,9 +7005,9 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
 
 #ifdef XVT_MODERN
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
-											 "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
+											  "buttonsound") != 0) {
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
@@ -7012,9 +7016,9 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 			return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_TEAM_CLIENT_LEAVE);
 		}
 #else
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
-											 "buttonsound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
+											  "buttonsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
@@ -7035,9 +7039,9 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		if (MissionSetup_IsTeamAssignmentValid()) {
 			FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_212_NEXT));
-			if (FrontendButton_DrawSpriteHitTest(&rect, "nextup", "nextdown",
-												 FrontendString_Get(FRONTSTR_475_GO_TO_BRIEFING), 12, 0, 7,
-												 "flysound") != 0) {
+			if (FrontendButton_HandleSpriteButton(&rect, "nextup", "nextdown",
+												  FrontendString_Get(FRONTSTR_475_GO_TO_BRIEFING), 12, 0, 7,
+												  "flysound") != 0) {
 				for (teamIndex = 0; teamIndex < g_teamCount; ++teamIndex) {
 					for (slotIndex = 0; slotIndex < MAX_PLAYERS; ++slotIndex) {
 						if (g_missionSetupPlayerAssignments.teamPlayerIds[teamIndex][slotIndex] == 1) {
@@ -7070,9 +7074,9 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 		}
 	} else if (Net_IsHost() != 0 && MissionSetup_IsTeamAssignmentValid()) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_212_NEXT));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "nextup", "nextdown",
-											 FrontendString_Get(FRONTSTR_475_GO_TO_BRIEFING), 12, 0, 7,
-											 "flysound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "nextup", "nextdown",
+											  FrontendString_Get(FRONTSTR_475_GO_TO_BRIEFING), 12, 0, 7,
+											  "flysound") != 0) {
 			MissionSetup_BroadcastTeamAssignments();
 		}
 	}
@@ -7132,7 +7136,7 @@ int MissionSetup_DrawUnassignedPlayers(int frameCounter) {
 	int playerId;
 	int reservedPlayerCount;
 	int index;
-	int assignedCount;
+	int teamSlotCount;
 	int localPlayerId;
 	int textColor;
 	int sessionMode;
@@ -7154,14 +7158,14 @@ int MissionSetup_DrawUnassignedPlayers(int frameCounter) {
 		reservedPlayerCount = g_missionSetupReservedPlayerCount;
 		for (rosterIndex = 0; rosterIndex < readyPlayerCount; ++rosterIndex) {
 			playerId = g_mpRoster[rosterIndex].playerId;
-			for (index = 0; index < (int)(sizeof(g_missionSetupPlayerAssignments.activePlayerIds) /
-										  sizeof(g_missionSetupPlayerAssignments.activePlayerIds[0]));
+			for (index = 0; index < (int)(sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds) /
+										  sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds[0]));
 				 ++index) {
-				if (g_missionSetupPlayerAssignments.activePlayerIds[index] == playerId)
+				if (g_missionSetupPlayerAssignments.assignedPlayerIds[index] == playerId)
 					break;
 			}
-			if (index != (int)(sizeof(g_missionSetupPlayerAssignments.activePlayerIds) /
-							   sizeof(g_missionSetupPlayerAssignments.activePlayerIds[0])) ||
+			if (index != (int)(sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds) /
+							   sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds[0])) ||
 				g_missionSetupDraggedPlayerId == playerId) {
 				continue;
 			}
@@ -7220,17 +7224,17 @@ int MissionSetup_DrawUnassignedPlayers(int frameCounter) {
 							*(int*)(g_frontendNetPacketScratch.payload + sizeof(int)) = 10;
 							Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, 3 * sizeof(int));
 							for (index = 0;
-								 index < (int)(sizeof(g_missionSetupPlayerAssignments.activePlayerIds) /
-											   sizeof(g_missionSetupPlayerAssignments.activePlayerIds[0]));
+								 index < (int)(sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds) /
+											   sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds[0]));
 								 ++index) {
-								if (g_missionSetupPlayerAssignments.activePlayerIds[index] ==
+								if (g_missionSetupPlayerAssignments.assignedPlayerIds[index] ==
 									g_missionSetupDraggedPlayerId) {
-									g_missionSetupPlayerAssignments.activePlayerIds[index] = 0;
+									g_missionSetupPlayerAssignments.assignedPlayerIds[index] = 0;
 								}
 							}
 							for (team = 0; team < g_teamCount; ++team) {
-								assignedCount = g_teamPlayerFlightGroupCount[team];
-								for (slot = 0; slot < assignedCount; ++slot) {
+								teamSlotCount = g_teamPlayerFlightGroupCount[team];
+								for (slot = 0; slot < teamSlotCount; ++slot) {
 									if (g_missionSetupPlayerAssignments.teamPlayerIds[team][slot] ==
 										g_missionSetupDraggedPlayerId) {
 										for (shift = slot + 1;
@@ -7305,7 +7309,7 @@ void MissionSetup_DrawTeamAssignments(int frameCounter) {
 		if ((g_teamCount == 8 || g_teamCount == 7) && teamIndex == 4)
 			FrontendDraw_RectAssign(&rect, 262, 207, 428, 221);
 		if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
-			if (g_remoteBattleSequenceActive != 0 && g_remoteBattleSequenceContinuationChoice != 0 &&
+			if (g_remoteBattleContinuationActive != 0 && g_remoteBattleSequenceContinuationChoice != 0 &&
 				g_pilotData.missionSequenceActive == 1) {
 				if (teamIndex == 0)
 					sprintf(g_frontendScratchBuffer, "%s - %c%s: %d", g_frontendMission.teams[teamIndex].name,
@@ -7333,9 +7337,9 @@ void MissionSetup_DrawTeamAssignments(int frameCounter) {
 
 					if (replacedPlayerId != 0) {
 						for (activeIndex = 0; activeIndex < 8; ++activeIndex)
-							if (g_missionSetupPlayerAssignments.activePlayerIds[activeIndex] ==
+							if (g_missionSetupPlayerAssignments.assignedPlayerIds[activeIndex] ==
 								replacedPlayerId)
-								g_missionSetupPlayerAssignments.activePlayerIds[activeIndex] = 0;
+								g_missionSetupPlayerAssignments.assignedPlayerIds[activeIndex] = 0;
 						if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 							g_frontendNetPacketScratch.packetType = NET_PACKET_TEAM_ASSIGNMENT;
 							*(int*)&g_frontendNetPacketScratch.payload[0] = replacedPlayerId;
@@ -7353,13 +7357,13 @@ void MissionSetup_DrawTeamAssignments(int frameCounter) {
 					g_missionSetupPlayerAssignments.teamPlayerIds[teamIndex][targetSlot] =
 						g_missionSetupDraggedPlayerId;
 					for (activeIndex = 0; activeIndex < 8; ++activeIndex)
-						if (g_missionSetupPlayerAssignments.activePlayerIds[activeIndex] ==
+						if (g_missionSetupPlayerAssignments.assignedPlayerIds[activeIndex] ==
 							g_missionSetupDraggedPlayerId)
 							break;
 					if (activeIndex == 8)
 						for (activeIndex = 0; activeIndex < 8; ++activeIndex)
-							if (g_missionSetupPlayerAssignments.activePlayerIds[activeIndex] == 0) {
-								g_missionSetupPlayerAssignments.activePlayerIds[activeIndex] =
+							if (g_missionSetupPlayerAssignments.assignedPlayerIds[activeIndex] == 0) {
+								g_missionSetupPlayerAssignments.assignedPlayerIds[activeIndex] =
 									g_missionSetupDraggedPlayerId;
 								break;
 							}
@@ -7439,9 +7443,10 @@ void MissionSetup_DrawTeamAssignments(int frameCounter) {
 									*(int*)&g_frontendNetPacketScratch.payload[4] = 10;
 									Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, 12);
 									for (activeIndex = 0; activeIndex < 8; ++activeIndex)
-										if (g_missionSetupPlayerAssignments.activePlayerIds[activeIndex] ==
+										if (g_missionSetupPlayerAssignments.assignedPlayerIds[activeIndex] ==
 											g_missionSetupDraggedPlayerId) {
-											g_missionSetupPlayerAssignments.activePlayerIds[activeIndex] = 0;
+											g_missionSetupPlayerAssignments.assignedPlayerIds[activeIndex] =
+												0;
 											break;
 										}
 									for (removeTeam = 0; removeTeam < g_teamCount; ++removeTeam)
@@ -7465,9 +7470,9 @@ void MissionSetup_DrawTeamAssignments(int frameCounter) {
 								g_missionSetupDraggedPlayerId = g_mpRoster[rosterIndex].playerId;
 								FrontendMouse_SetInputGate(2);
 								for (activeIndex = 0; activeIndex < 8; ++activeIndex)
-									if (g_missionSetupPlayerAssignments.activePlayerIds[activeIndex] ==
+									if (g_missionSetupPlayerAssignments.assignedPlayerIds[activeIndex] ==
 										g_missionSetupDraggedPlayerId) {
-										g_missionSetupPlayerAssignments.activePlayerIds[activeIndex] = 0;
+										g_missionSetupPlayerAssignments.assignedPlayerIds[activeIndex] = 0;
 										for (shift = slotIndex + 1; shift < 8; ++shift)
 											g_missionSetupPlayerAssignments
 												.teamPlayerIds[teamIndex][shift - 1] =
@@ -7508,7 +7513,7 @@ void MissionSetup_PruneTeamAssignments(void) {
 
 	activePlayerIndex = 0;
 	do {
-		activePlayerId = &g_missionSetupPlayerAssignments.activePlayerIds[activePlayerIndex];
+		activePlayerId = &g_missionSetupPlayerAssignments.assignedPlayerIds[activePlayerIndex];
 		rosterIndex = 0;
 		rosterPlayerId = &g_mpRoster[0].playerId;
 		do {
@@ -7574,7 +7579,7 @@ int MissionSetup_IsTeamAssignmentValid(void) {
 			playerId = g_mpRoster[readyPlayerIndex].playerId;
 			do {
 				if (playerId != 0 &&
-					g_missionSetupPlayerAssignments.activePlayerIds[assignmentIndex] == playerId) {
+					g_missionSetupPlayerAssignments.assignedPlayerIds[assignmentIndex] == playerId) {
 					break;
 				}
 				++assignmentIndex;
@@ -7651,16 +7656,16 @@ int MissionSetup_UpdateTeamControls(void) {
 
 	if (g_missionSetupShowDescriptionPanel == 0 && hostControls) {
 		FrontendDraw_RectAssign(&rect, 22, 334, 42, 358);
-		FrontendButton_DrawSpriteHitTest(
+		FrontendButton_HandleSpriteButton(
 			&rect, "clearu", "cleard", FrontendString_Get(FRONTSTR_215_CLEAR_LIST), 12, 0, 16, "jewelsound");
 		if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
 			(FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0)) {
 			MissionSetup_ClearTeamAssignments();
 		}
 		FrontendDraw_RectOffsetXY(&rect, 0, -28);
-		FrontendButton_DrawSpriteHitTest(&rect, "assignu", "assignd",
-										 FrontendString_Get(FRONTSTR_214_AUTO_ASSIGN), 12, 0, 17,
-										 "jewelsound");
+		FrontendButton_HandleSpriteButton(&rect, "assignu", "assignd",
+										  FrontendString_Get(FRONTSTR_214_AUTO_ASSIGN), 12, 0, 17,
+										  "jewelsound");
 		if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
 			(FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0)) {
 			MissionSetup_RandomizeTeamAssignments();
@@ -7672,9 +7677,9 @@ int MissionSetup_UpdateTeamControls(void) {
 		if (g_missionSetupShowDescriptionPanel == 1) {
 			FrontendButton_DrawSpriteAndTooltip(&rect, "team2d",
 												FrontendString_Get(FRONTSTR_798_MISSION_DESCRIPTION), 12, 0);
-		} else if (FrontendButton_DrawSpriteHitTest(&rect, "team2u", "team2u",
-													FrontendString_Get(FRONTSTR_798_MISSION_DESCRIPTION), 12,
-													0, 12, "jewelsound") != 0) {
+		} else if (FrontendButton_HandleSpriteButton(&rect, "team2u", "team2u",
+													 FrontendString_Get(FRONTSTR_798_MISSION_DESCRIPTION), 12,
+													 0, 12, "jewelsound") != 0) {
 			g_missionSetupShowDescriptionPanel = 1;
 			g_frontendFirstVisibleLine = 0;
 			FrontImage_RegisterResourceDefault("frontres\\soloteam.bmp", "background");
@@ -7698,9 +7703,9 @@ int MissionSetup_UpdateTeamControls(void) {
 			FrontendButton_DrawSpriteAndTooltip(&rect, "team1d",
 												FrontendString_Get(FRONTSTR_797_ASSIGN_TEAMS), 12, 0);
 		} else {
-			if (FrontendButton_DrawSpriteHitTest(&rect, "team1u", "team1u",
-												 FrontendString_Get(FRONTSTR_797_ASSIGN_TEAMS), 12, 0, 11,
-												 "jewelsound") != 0) {
+			if (FrontendButton_HandleSpriteButton(&rect, "team1u", "team1u",
+												  FrontendString_Get(FRONTSTR_797_ASSIGN_TEAMS), 12, 0, 11,
+												  "jewelsound") != 0) {
 				g_missionSetupShowDescriptionPanel = 0;
 				FrontImage_RegisterResourceDefault("frontres\\soloteam.bmp", "background");
 				FrontendDisplay_LockOffscreenSurface();
@@ -7749,8 +7754,8 @@ int MissionSetup_RandomizeTeamAssignments(void) {
 
 	memset(g_missionSetupPlayerAssignments.teamPlayerIds, 0,
 		   sizeof(g_missionSetupPlayerAssignments.teamPlayerIds));
-	memset(g_missionSetupPlayerAssignments.activePlayerIds, 0,
-		   sizeof(g_missionSetupPlayerAssignments.activePlayerIds));
+	memset(g_missionSetupPlayerAssignments.assignedPlayerIds, 0,
+		   sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds));
 	memset(assignedTeamCounts, 0, sizeof(assignedTeamCounts));
 	memset(usedRoster, 0, sizeof(usedRoster));
 	readyPlayerCount = 1;
@@ -7777,7 +7782,7 @@ int MissionSetup_RandomizeTeamAssignments(void) {
 				usedRoster[rosterIndex] = 1;
 				playerId = g_mpRoster[rosterIndex].playerId;
 				g_missionSetupPlayerAssignments.teamPlayerIds[team][assignmentSlot] = playerId;
-				g_missionSetupPlayerAssignments.activePlayerIds[rosterIndex] = playerId;
+				g_missionSetupPlayerAssignments.assignedPlayerIds[rosterIndex] = playerId;
 				break;
 			}
 			++teamAssignment;
@@ -7793,8 +7798,8 @@ int MissionSetup_RandomizeTeamAssignments(void) {
 		memcpy(g_frontendNetPacketScratch.payload, g_missionSetupPlayerAssignments.teamPlayerIds,
 			   sizeof(g_missionSetupPlayerAssignments.teamPlayerIds));
 		memcpy(g_frontendNetPacketScratch.payload + sizeof(g_missionSetupPlayerAssignments.teamPlayerIds),
-			   g_missionSetupPlayerAssignments.activePlayerIds,
-			   sizeof(g_missionSetupPlayerAssignments.activePlayerIds));
+			   g_missionSetupPlayerAssignments.assignedPlayerIds,
+			   sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds));
 		Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
 							   sizeof(g_missionSetupPlayerAssignments) +
 								   sizeof(g_frontendNetPacketScratch.packetType));
@@ -7806,8 +7811,8 @@ int MissionSetup_RandomizeTeamAssignments(void) {
 int MissionSetup_ClearTeamAssignments(void) {
 	memset(g_missionSetupPlayerAssignments.teamPlayerIds, 0,
 		   sizeof(g_missionSetupPlayerAssignments.teamPlayerIds));
-	memset(g_missionSetupPlayerAssignments.activePlayerIds, 0,
-		   sizeof(g_missionSetupPlayerAssignments.activePlayerIds));
+	memset(g_missionSetupPlayerAssignments.assignedPlayerIds, 0,
+		   sizeof(g_missionSetupPlayerAssignments.assignedPlayerIds));
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		g_frontendNetPacketScratch.packetType = NET_PACKET_CLEAR_TEAM_ASSIGNMENTS;
 		Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, sizeof(g_frontendNetPacketScratch.packetType));
@@ -7859,7 +7864,8 @@ int MissionSetup_TryContinueBattle(void) {
 			g_pilotData.spBattleContinuations[g_missionList[g_selectedMissionListIndex].missionIdx]
 					.isActive != 0) {
 			missionIndex = g_missionList[g_selectedMissionListIndex].missionIdx;
-			memcpy(&g_pilotData.battleSequenceState, &g_pilotData.spBattleContinuations[missionIndex].state,
+			memcpy(&g_pilotData.battleSequenceState,
+				   &g_pilotData.spBattleContinuations[missionIndex].sequenceState,
 				   sizeof(g_pilotData.battleSequenceState));
 			g_pilotData.launchSessionMarker = 1;
 			++g_pilotData.battleSequenceState.currentMissionIndex;
@@ -7907,13 +7913,15 @@ int MissionSetup_TryContinueBattle(void) {
 					.randomSeed,
 			   sizeof(g_pilotData.mpBattleContinuations[0].randomSeed));
 		memcpy(g_frontendNetPacketScratch.payload + sizeof(int) + sizeof(continuationSeed),
-			   &g_pilotData.mpBattleContinuations[g_missionList[g_selectedMissionListIndex].missionIdx].state,
-			   sizeof(g_pilotData.mpBattleContinuations[0].state));
+			   &g_pilotData.mpBattleContinuations[g_missionList[g_selectedMissionListIndex].missionIdx]
+					.sequenceState,
+			   sizeof(g_pilotData.mpBattleContinuations[0].sequenceState));
 		Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
 							   sizeof(g_frontendNetPacketScratch.packetType) + sizeof(int) +
 								   sizeof(continuationSeed) + sizeof(BattleSequenceState));
 		memcpy(&g_pilotData.battleSequenceState,
-			   &g_pilotData.mpBattleContinuations[g_missionList[g_selectedMissionListIndex].missionIdx].state,
+			   &g_pilotData.mpBattleContinuations[g_missionList[g_selectedMissionListIndex].missionIdx]
+					.sequenceState,
 			   sizeof(g_pilotData.battleSequenceState));
 	} else {
 #ifdef XVT_MODERN
@@ -7958,7 +7966,8 @@ int MissionSetup_TryContinueBattle(void) {
 		}
 
 		memcpy(&localSequenceState,
-			   &g_pilotData.mpBattleContinuations[g_missionList[g_selectedMissionListIndex].missionIdx].state,
+			   &g_pilotData.mpBattleContinuations[g_missionList[g_selectedMissionListIndex].missionIdx]
+					.sequenceState,
 			   sizeof(localSequenceState));
 		continuationSeed =
 			g_pilotData.mpBattleContinuations[g_missionList[g_selectedMissionListIndex].missionIdx]
@@ -8010,7 +8019,7 @@ int MissionSetup_TryContinueCampaign(void) {
 					.isActive != 0) {
 			missionIndex = g_missionList[g_selectedMissionListIndex].missionIdx;
 			memcpy(&g_pilotData.campaignSequenceState,
-				   &g_pilotData.spCampaignContinuations[missionIndex].state,
+				   &g_pilotData.spCampaignContinuations[missionIndex].sequenceState,
 				   sizeof(g_pilotData.campaignSequenceState));
 			g_pilotData.launchSessionMarker = 1;
 			++g_pilotData.campaignSequenceState.currentMissionIndex;
@@ -8057,17 +8066,17 @@ int MissionSetup_TryContinueCampaign(void) {
 			   &g_pilotData.mpCampaignContinuations[g_missionList[g_selectedMissionListIndex].missionIdx]
 					.randomSeed,
 			   sizeof(g_pilotData.mpCampaignContinuations[0].randomSeed));
-		memcpy(
-			g_frontendNetPacketScratch.payload + sizeof(int) + sizeof(continuationSeed),
-			&g_pilotData.mpCampaignContinuations[g_missionList[g_selectedMissionListIndex].missionIdx].state,
-			sizeof(g_pilotData.mpCampaignContinuations[0].state));
+		memcpy(g_frontendNetPacketScratch.payload + sizeof(int) + sizeof(continuationSeed),
+			   &g_pilotData.mpCampaignContinuations[g_missionList[g_selectedMissionListIndex].missionIdx]
+					.sequenceState,
+			   sizeof(g_pilotData.mpCampaignContinuations[0].sequenceState));
 		Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
 							   sizeof(g_frontendNetPacketScratch.packetType) + sizeof(int) +
 								   sizeof(continuationSeed) + sizeof(CampaignSequenceState));
-		memcpy(
-			&g_pilotData.campaignSequenceState,
-			&g_pilotData.mpCampaignContinuations[g_missionList[g_selectedMissionListIndex].missionIdx].state,
-			sizeof(g_pilotData.campaignSequenceState));
+		memcpy(&g_pilotData.campaignSequenceState,
+			   &g_pilotData.mpCampaignContinuations[g_missionList[g_selectedMissionListIndex].missionIdx]
+					.sequenceState,
+			   sizeof(g_pilotData.campaignSequenceState));
 	} else {
 #ifdef XVT_MODERN
 		int waitResult = XvtCampaignTask_WaitPacket(NET_PACKET_CAMPAIGN_CONTINUATION, &receivedPacket);
@@ -8115,7 +8124,7 @@ int MissionSetup_TryContinueCampaign(void) {
 			   &g_pilotData
 					.mpCampaignContinuations[g_missionList[g_selectedMissionListIndex].missionIdx +
 											 CAMPAIGN_CLIENT_CONTINUATION_OFFSET]
-					.state,
+					.sequenceState,
 			   sizeof(localSequenceState));
 		continuationSeed = g_pilotData
 							   .mpCampaignContinuations[g_missionList[g_selectedMissionListIndex].missionIdx +
@@ -8206,12 +8215,12 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 	int rosterIndex;
 	int packetType;
 	int flightGroupSlot;
-	int matchingTeamCount;
+	int drawnSlotCount;
 	int textIndex;
 	int animationFrame;
 	int cursorX;
 	int cursorY;
-	int readyPlayerCount;
+	int leaveConfirmed;
 	RECT rect;
 	RECT mapRect;
 	RECT savedClipRect;
@@ -8389,14 +8398,14 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 			FrontendDraw_FillRectTranslucent(&rect, 0, 0, g_colorBlue);
 			cursorX = 230;
 			cursorY = 352;
-			matchingTeamCount = 0;
+			drawnSlotCount = 0;
 			for (flightGroupIndex = 0; flightGroupIndex < (int16_t)g_frontendMission.flightGroupCount;
 				 ++flightGroupIndex) {
 				if (g_frontendMission.flightGroups[flightGroupIndex].playerNumber != 0 &&
 					g_frontendMission.flightGroups[flightGroupIndex].team == g_pilotData.team) {
-					++matchingTeamCount;
+					++drawnSlotCount;
 					FrontImage_DrawSpriteTranslucent("fgslotoverlay", cursorX, cursorY);
-					if (matchingTeamCount >= MAX_COMPACT_FLIGHT_GROUPS) {
+					if (drawnSlotCount >= MAX_COMPACT_FLIGHT_GROUPS) {
 						break;
 					}
 					cursorY += 17;
@@ -8506,7 +8515,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 			FrontendText_Draw(12, g_frontendScratchBuffer, 86, 92, 0xFFFF);
 			MissionSetup_DrawAssignedPlayers(frameCounter);
 		} else {
-			MissionSetup_DrawAssignmentBriefing();
+			MissionSetup_DrawAssignmentMissionDescription();
 			MissionSetup_DrawFlightAssignments(frameCounter);
 		}
 	} else {
@@ -8624,18 +8633,18 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
 		if (g_missionSetupTeamAssignmentSkipped != 0) {
-			readyPlayerCount = FrontendButton_DrawSpriteHitTest(
+			leaveConfirmed = FrontendButton_HandleSpriteButton(
 				&rect, "leaveup", "leavedown", FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12,
 				0, 8, "buttonsound");
 		} else {
-			readyPlayerCount = FrontendButton_DrawSpriteHitTest(
+			leaveConfirmed = FrontendButton_HandleSpriteButton(
 				&rect, "leaveup", "leavedown", FrontendString_Get(FRONTSTR_261_RETURN_TO_SELECT_TEAMS), 12, 0,
 				8, "buttonsound");
 		}
-		if (readyPlayerCount != 0) {
+		if (leaveConfirmed != 0) {
 			if (g_pilotData.missionSequenceActive == 1) {
 				if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_MELEES) {
-					readyPlayerCount = FrontendDialog_ShowConfirmDialog(
+					leaveConfirmed = FrontendDialog_ShowConfirmDialog(
 						FrontendString_Get(FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
 						FrontendString_Get(FRONTSTR_679_ARE_YOU_SURE_YOU_WANT_TO),
 						FrontendString_Get(FRONTSTR_680_TERMINATE_THIS_TOURNAMENT),
@@ -8644,7 +8653,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 					return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_SOLO_BACK_TO_TEAMS);
 #endif
 				} else if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
-					readyPlayerCount = FrontendDialog_ShowConfirmDialog(
+					leaveConfirmed = FrontendDialog_ShowConfirmDialog(
 						FrontendString_Get(FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
 						FrontendString_Get(FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
 						FrontendString_Get(FRONTSTR_683_TERMINATE_THIS_BATTLE),
@@ -8654,7 +8663,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 #endif
 				}
 			}
-			if (readyPlayerCount != 0) {
+			if (leaveConfirmed != 0) {
 				g_frontendSkipScreenEntrySetup = 1;
 				FrontendScreen_SetCallbacks(MissionSetup_TeamAssignmentUpdate,
 
@@ -8671,9 +8680,9 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_668_RESTART));
 
 #ifdef XVT_MODERN
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12, 0,
-											 8, "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12,
+											  0, 8, "buttonsound") != 0) {
 			FrontendDialog_ShowConfirmDialog(FrontendString_Get(FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
 											 FrontendString_Get(FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
 											 FrontendString_Get(FRONTSTR_754_TO_SELECT_MISSION),
@@ -8682,9 +8691,9 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 			return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_HOST_RESTART);
 		}
 #else
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12, 0,
-											 8, "buttonsound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12,
+											  0, 8, "buttonsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(FrontendString_Get(FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
 											 FrontendString_Get(FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
 											 FrontendString_Get(FRONTSTR_754_TO_SELECT_MISSION),
@@ -8700,9 +8709,9 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_204_LEAVE));
 
 #ifdef XVT_MODERN
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
-											 "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
+											  "buttonsound") != 0) {
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
@@ -8711,9 +8720,9 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 			return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_CLIENT_LEAVE);
 		}
 #else
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
-											 "buttonsound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
+											  "buttonsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
@@ -8734,9 +8743,9 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		if (MissionSetup_AreFlightAssignmentsComplete() != 0) {
 			FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_212_NEXT));
-			if (FrontendButton_DrawSpriteHitTest(&rect, "nextup", "nextdown",
-												 FrontendString_Get(FRONTSTR_667_GO_TO_CRAFT_SELECTION), 12,
-												 0, 7, "flysound") != 0) {
+			if (FrontendButton_HandleSpriteButton(&rect, "nextup", "nextdown",
+												  FrontendString_Get(FRONTSTR_667_GO_TO_CRAFT_SELECTION), 12,
+												  0, 7, "flysound") != 0) {
 				FrontendScreen_SetCallbacks(MissionBriefing_Update, MissionBriefing_Exit);
 				FrontendButton_DisableOverlayText();
 				return 0;
@@ -8745,9 +8754,9 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 	} else if (Net_GetLocalPlayerId() == g_missionSetupPlayerAssignments.teamPlayerIds[g_pilotData.team][0] &&
 			   MissionSetup_AreFlightAssignmentsComplete() != 0) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_212_NEXT));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "nextup", "nextdown",
-											 FrontendString_Get(FRONTSTR_667_GO_TO_CRAFT_SELECTION), 12, 0, 7,
-											 "flysound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "nextup", "nextdown",
+											  FrontendString_Get(FRONTSTR_667_GO_TO_CRAFT_SELECTION), 12, 0,
+											  7, "flysound") != 0) {
 			for (slotIndex = 0; slotIndex < MAX_PLAYERS; ++slotIndex) {
 				if (g_missionSetupPlayerAssignments.teamPlayerIds[g_pilotData.team][slotIndex] != 0) {
 					g_frontendNetPacketScratch.packetType = NET_PACKET_FLIGHT_ASSIGNMENTS_READY;
@@ -8805,13 +8814,13 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 // FUNCTION: XVT 0x4F8E40
 int MissionSetup_DrawAssignmentControls(void) {
 	enum {
-		NAV_SLOT_REWIND = 0,
+		NAV_SLOT_PLAY = 0,
 		NAV_SLOT_STOP = 1,
-		NAV_SLOT_MAP_HOVER = 3,
-		NAV_SLOT_EXPANDED_HOST = 4,
+		NAV_SLOT_REWIND = 3,
+		NAV_SLOT_EXPANDED_AUTO_ASSIGN = 4,
 		NAV_SLOT_FIRST_ASSIGNMENT = 5,
 		NAV_SLOT_SECOND_ASSIGNMENT = 6,
-		NAV_SLOT_EXPANDED_HOST_SECONDARY = 7,
+		NAV_SLOT_EXPANDED_CLEAR_LIST = 7,
 		NAV_SLOT_COUNT = 8,
 		COMPACT_FLIGHT_GROUP_LIMIT = 4,
 		SINGLE_FLIGHT_GROUP_COUNT = 1,
@@ -8851,36 +8860,36 @@ int MissionSetup_DrawAssignmentControls(void) {
 	RECT rect;
 	int cursorX;
 	int cursorY;
-	int hostControls;
+	int captainControls;
 	int expandedAtStart;
 	int teamFlightGroups;
 	FrontendNavigationSlotState slotStates[NAV_SLOT_COUNT];
 	int slotIndex;
 	int flightGroupIndex;
 
-	hostControls =
+	captainControls =
 		Net_GetLocalPlayerId() == g_missionSetupPlayerAssignments.teamPlayerIds[g_pilotData.team][0];
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER)
-		hostControls = 1;
+		captainControls = 1;
 	expandedAtStart = g_missionSetupUseExpandedAssignmentLayout;
 	if (expandedAtStart == 0) {
 		slotStates[2] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-		slotStates[NAV_SLOT_REWIND] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+		slotStates[NAV_SLOT_PLAY] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 		slotStates[NAV_SLOT_STOP] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-		slotStates[NAV_SLOT_MAP_HOVER] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-		slotStates[NAV_SLOT_EXPANDED_HOST] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-		slotStates[NAV_SLOT_EXPANDED_HOST_SECONDARY] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+		slotStates[NAV_SLOT_REWIND] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+		slotStates[NAV_SLOT_EXPANDED_AUTO_ASSIGN] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+		slotStates[NAV_SLOT_EXPANDED_CLEAR_LIST] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
 	} else {
-		slotStates[NAV_SLOT_REWIND] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+		slotStates[NAV_SLOT_PLAY] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
 		slotStates[NAV_SLOT_STOP] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
 		slotStates[2] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-		slotStates[NAV_SLOT_MAP_HOVER] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-		if (hostControls != 0) {
-			slotStates[NAV_SLOT_EXPANDED_HOST] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-			slotStates[NAV_SLOT_EXPANDED_HOST_SECONDARY] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+		slotStates[NAV_SLOT_REWIND] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+		if (captainControls != 0) {
+			slotStates[NAV_SLOT_EXPANDED_AUTO_ASSIGN] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+			slotStates[NAV_SLOT_EXPANDED_CLEAR_LIST] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 		} else {
-			slotStates[NAV_SLOT_EXPANDED_HOST] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-			slotStates[NAV_SLOT_EXPANDED_HOST_SECONDARY] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+			slotStates[NAV_SLOT_EXPANDED_AUTO_ASSIGN] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+			slotStates[NAV_SLOT_EXPANDED_CLEAR_LIST] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
 		}
 	}
 
@@ -8892,7 +8901,7 @@ int MissionSetup_DrawAssignmentControls(void) {
 		slotStates[NAV_SLOT_SECOND_ASSIGNMENT] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 		slotStates[NAV_SLOT_FIRST_ASSIGNMENT + g_missionSetupUseExpandedAssignmentLayout] =
 			FRONTEND_NAVIGATION_SLOT_SELECTED;
-	} else if (hostControls != 0 && teamFlightGroups > SINGLE_FLIGHT_GROUP_COUNT) {
+	} else if (captainControls != 0 && teamFlightGroups > SINGLE_FLIGHT_GROUP_COUNT) {
 		slotStates[NAV_SLOT_FIRST_ASSIGNMENT] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 		slotStates[NAV_SLOT_SECOND_ASSIGNMENT] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 	}
@@ -8904,10 +8913,10 @@ int MissionSetup_DrawAssignmentControls(void) {
 	if (!g_missionSetupUseExpandedAssignmentLayout && FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
 		(FrontendMouse_GetLeftDown() != 0 || FrontendMouse_GetRightDown() != 0 ||
 		 FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0))
-		slotStates[NAV_SLOT_MAP_HOVER] = FRONTEND_NAVIGATION_SLOT_SELECTED;
+		slotStates[NAV_SLOT_REWIND] = FRONTEND_NAVIGATION_SLOT_SELECTED;
 
 	if (g_teamPlayerFlightGroupCount[g_pilotData.team] > COMPACT_FLIGHT_GROUP_LIMIT) {
-		if (g_missionSetupUseExpandedAssignmentLayout == 1 && hostControls != 0) {
+		if (g_missionSetupUseExpandedAssignmentLayout == 1 && captainControls != 0) {
 			FrontendDraw_RectAssign(&rect, BUTTON_LEFT, EXPANDED_TOP_BUTTON_TOP, BUTTON_RIGHT,
 									EXPANDED_TOP_BUTTON_BOTTOM);
 			for (slotIndex = 0; slotIndex < 2; ++slotIndex) {
@@ -8922,12 +8931,11 @@ int MissionSetup_DrawAssignmentControls(void) {
 				FrontendDraw_RectOffsetXY(&rect, 0, BUTTON_ROW_OFFSET);
 			}
 		}
-	} else if (hostControls != 0 &&
+	} else if (captainControls != 0 &&
 			   slotStates[NAV_SLOT_FIRST_ASSIGNMENT] != FRONTEND_NAVIGATION_SLOT_INACTIVE) {
 		FrontendDraw_RectAssign(&rect, BUTTON_LEFT, COMPACT_ASSIGN_BUTTON_TOP, BUTTON_RIGHT,
 								COMPACT_ASSIGN_BUTTON_BOTTOM);
-		for (slotIndex = NAV_SLOT_FIRST_ASSIGNMENT; slotIndex < NAV_SLOT_EXPANDED_HOST_SECONDARY;
-			 ++slotIndex) {
+		for (slotIndex = NAV_SLOT_FIRST_ASSIGNMENT; slotIndex < NAV_SLOT_EXPANDED_CLEAR_LIST; ++slotIndex) {
 			if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
 				(FrontendMouse_GetLeftDown() != 0 || FrontendMouse_GetRightDown() != 0 ||
 				 FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0))
@@ -8942,7 +8950,7 @@ int MissionSetup_DrawAssignmentControls(void) {
 		if (g_missionSetupUseExpandedAssignmentLayout == 1) {
 			FrontendButton_DrawSpriteAndTooltip(
 				&rect, "play2d", FrontendString_Get(FRONTSTR_799_ASSIGN_PLAYERS), BUTTON_FONT_SIZE, 0);
-		} else if (FrontendButton_DrawSpriteHitTest(
+		} else if (FrontendButton_HandleSpriteButton(
 					   &rect, "play2u", "play2u", FrontendString_Get(FRONTSTR_799_ASSIGN_PLAYERS),
 					   BUTTON_FONT_SIZE, 0, HOVER_SLOT_ASSIGN_PLAYERS, "jewelsound") != 0) {
 			g_missionSetupUseExpandedAssignmentLayout = 1;
@@ -8977,7 +8985,7 @@ int MissionSetup_DrawAssignmentControls(void) {
 			FrontendButton_DrawSpriteAndTooltip(
 				&rect, "play1d", FrontendString_Get(FRONTSTR_800_VIEW_BRIEFING_MAP), BUTTON_FONT_SIZE, 0);
 		} else {
-			if (FrontendButton_DrawSpriteHitTest(
+			if (FrontendButton_HandleSpriteButton(
 					&rect, "play1u", "play1u", FrontendString_Get(FRONTSTR_800_VIEW_BRIEFING_MAP),
 					BUTTON_FONT_SIZE, 0, HOVER_SLOT_AUTO_ASSIGN, "jewelsound") != 0) {
 				g_missionSetupUseExpandedAssignmentLayout = 0;
@@ -8999,24 +9007,25 @@ int MissionSetup_DrawAssignmentControls(void) {
 				FrontendCursor_SetPos(BRIEFING_CURSOR_X, BRIEFING_CURSOR_Y);
 			}
 		}
-	} else if (hostControls != 0 &&
+	} else if (captainControls != 0 &&
 			   slotStates[NAV_SLOT_FIRST_ASSIGNMENT] != FRONTEND_NAVIGATION_SLOT_INACTIVE) {
 		FrontendDraw_RectAssign(&rect, BUTTON_LEFT, BOTTOM_BUTTON_TOP, BUTTON_RIGHT, BOTTOM_BUTTON_BOTTOM);
-		if (FrontendButton_DrawSpriteHitTest(&rect, "clearu", "cleard",
-											 FrontendString_Get(FRONTSTR_215_CLEAR_LIST), BUTTON_FONT_SIZE, 0,
-											 HOVER_SLOT_ASSIGN_PLAYERS, "jewelsound") != 0)
+		if (FrontendButton_HandleSpriteButton(&rect, "clearu", "cleard",
+											  FrontendString_Get(FRONTSTR_215_CLEAR_LIST), BUTTON_FONT_SIZE,
+											  0, HOVER_SLOT_ASSIGN_PLAYERS, "jewelsound") != 0)
 			MissionSetup_ClearFlightAssignments();
 		FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_ROW_OFFSET);
-		if (FrontendButton_DrawSpriteHitTest(&rect, "assignu", "assignd",
-											 FrontendString_Get(FRONTSTR_214_AUTO_ASSIGN), BUTTON_FONT_SIZE,
-											 0, HOVER_SLOT_AUTO_ASSIGN, "jewelsound") != 0)
+		if (FrontendButton_HandleSpriteButton(&rect, "assignu", "assignd",
+											  FrontendString_Get(FRONTSTR_214_AUTO_ASSIGN), BUTTON_FONT_SIZE,
+											  0, HOVER_SLOT_AUTO_ASSIGN, "jewelsound") != 0)
 			MissionSetup_RandomizeFlightAssignments();
 	}
 
 	if (g_missionSetupUseExpandedAssignmentLayout == 0) {
 		FrontendDraw_RectAssign(&rect, BUTTON_LEFT, MAP_BUTTON_TOP, BUTTON_RIGHT, MAP_BUTTON_BOTTOM);
-		if (FrontendButton_DrawSpriteHitTest(&rect, "map4u", "map4d", FrontendString_Get(FRONTSTR_210_REWIND),
-											 BUTTON_FONT_SIZE, 0, HOVER_SLOT_REWIND, "jewelsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "map4u", "map4d",
+											  FrontendString_Get(FRONTSTR_210_REWIND), BUTTON_FONT_SIZE, 0,
+											  HOVER_SLOT_REWIND, "jewelsound") != 0) {
 			g_briefingLastNarratedTextBlockIdx = 0;
 			g_briefingTextPageNumber = 0;
 			BriefingScript_ResetState();
@@ -9026,9 +9035,9 @@ int MissionSetup_DrawAssignmentControls(void) {
 			FrontendButton_DrawSpriteAndTooltip(&rect, "map2d", FrontendString_Get(FRONTSTR_208_STOP),
 												BUTTON_FONT_SIZE, 0);
 		} else {
-			if (FrontendButton_DrawSpriteHitTest(&rect, "map2u", "map2u",
-												 FrontendString_Get(FRONTSTR_208_STOP), BUTTON_FONT_SIZE, 0,
-												 HOVER_SLOT_STOP, "jewelsound") != 0)
+			if (FrontendButton_HandleSpriteButton(&rect, "map2u", "map2u",
+												  FrontendString_Get(FRONTSTR_208_STOP), BUTTON_FONT_SIZE, 0,
+												  HOVER_SLOT_STOP, "jewelsound") != 0)
 				g_briefingPlaybackActive = 0;
 		}
 		FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_ROW_OFFSET);
@@ -9048,22 +9057,23 @@ int MissionSetup_DrawAssignmentControls(void) {
 			}
 			FrontendButton_DrawSpriteAndTooltip(&rect, "map1d", FrontendString_Get(FRONTSTR_209_FORWARD),
 												BUTTON_FONT_SIZE, 0);
-		} else if (FrontendButton_DrawSpriteHitTest(&rect, "map1u", "map1u",
-													FrontendString_Get(FRONTSTR_561_PLAY), BUTTON_FONT_SIZE,
-													0, HOVER_SLOT_PLAY, "jewelsound") != 0) {
+		} else if (FrontendButton_HandleSpriteButton(&rect, "map1u", "map1u",
+													 FrontendString_Get(FRONTSTR_561_PLAY), BUTTON_FONT_SIZE,
+													 0, HOVER_SLOT_PLAY, "jewelsound") != 0) {
 			g_briefingPlaybackActive = 1;
 		}
-	} else if (hostControls != 0 && slotStates[NAV_SLOT_EXPANDED_HOST] != FRONTEND_NAVIGATION_SLOT_INACTIVE) {
+	} else if (captainControls != 0 &&
+			   slotStates[NAV_SLOT_EXPANDED_AUTO_ASSIGN] != FRONTEND_NAVIGATION_SLOT_INACTIVE) {
 		FrontendDraw_RectAssign(&rect, BUTTON_LEFT, EXPANDED_SECOND_BUTTON_TOP, BUTTON_RIGHT,
 								EXPANDED_SECOND_BUTTON_BOTTOM);
-		if (FrontendButton_DrawSpriteHitTest(&rect, "clear2u", "clear2d",
-											 FrontendString_Get(FRONTSTR_215_CLEAR_LIST), BUTTON_FONT_SIZE, 0,
-											 HOVER_SLOT_STOP, "jewelsound") != 0)
+		if (FrontendButton_HandleSpriteButton(&rect, "clear2u", "clear2d",
+											  FrontendString_Get(FRONTSTR_215_CLEAR_LIST), BUTTON_FONT_SIZE,
+											  0, HOVER_SLOT_STOP, "jewelsound") != 0)
 			MissionSetup_ClearFlightAssignments();
 		FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_ROW_OFFSET);
-		if (FrontendButton_DrawSpriteHitTest(&rect, "assign2u", "assign2d",
-											 FrontendString_Get(FRONTSTR_214_AUTO_ASSIGN), BUTTON_FONT_SIZE,
-											 0, HOVER_SLOT_PLAY, "jewelsound") != 0)
+		if (FrontendButton_HandleSpriteButton(&rect, "assign2u", "assign2d",
+											  FrontendString_Get(FRONTSTR_214_AUTO_ASSIGN), BUTTON_FONT_SIZE,
+											  0, HOVER_SLOT_PLAY, "jewelsound") != 0)
 			MissionSetup_RandomizeFlightAssignments();
 	}
 	return 0;
@@ -9497,7 +9507,7 @@ void MissionSetup_PruneFlightAssignments(void) {
 
 	activePlayerIndex = 0;
 	do {
-		activePlayerId = &g_missionSetupPlayerAssignments.activePlayerIds[activePlayerIndex];
+		activePlayerId = &g_missionSetupPlayerAssignments.assignedPlayerIds[activePlayerIndex];
 		rosterIndex = 0;
 		rosterPlayerId = &g_mpRoster[0].playerId;
 		removedPlayerId = *activePlayerId;
@@ -9716,7 +9726,7 @@ int MissionSetup_DrawAssignedPlayers(int frameCounter) {
 	RECT previousClipRect;
 	int isTeamCaptain;
 	int flightGroupIndex;
-	int displayedPlayerCount;
+	int displayedFlightGroupCount;
 	int assignmentSlot;
 	int rosterIndex;
 
@@ -9730,7 +9740,7 @@ int MissionSetup_DrawAssignedPlayers(int frameCounter) {
 								  g_colorGreen);
 	}
 
-	displayedPlayerCount = 0;
+	displayedFlightGroupCount = 0;
 	FrontendDraw_RectAssign(&rect, 88, 352, 264, 368);
 	for (flightGroupIndex = 0; *(int16_t*)&g_frontendMission.flightGroupCount > flightGroupIndex;
 		 ++flightGroupIndex) {
@@ -9743,7 +9753,7 @@ int MissionSetup_DrawAssignedPlayers(int frameCounter) {
 					for (rosterIndex = 0; rosterIndex < 8; ++rosterIndex) {
 						if (g_mpRoster[rosterIndex].playerId ==
 							g_missionSetupPlayerAssignments.teamPlayerIds[g_pilotData.team][assignmentSlot]) {
-							sprintf(g_frontendScratchBuffer, "%u.", displayedPlayerCount + 1);
+							sprintf(g_frontendScratchBuffer, "%u.", displayedFlightGroupCount + 1);
 							FrontendDraw_RectCopy(&playerTextRect, &rect);
 							playerTextRect.right = playerTextRect.left + 15;
 							FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer, &playerTextRect, 0, 1,
@@ -9774,18 +9784,18 @@ int MissionSetup_DrawAssignedPlayers(int frameCounter) {
 			}
 
 			if (g_teamPlayerFlightGroupCount[g_pilotData.team] == assignmentSlot) {
-				sprintf(g_frontendScratchBuffer, "%u. %s", displayedPlayerCount + 1,
+				sprintf(g_frontendScratchBuffer, "%u. %s", displayedFlightGroupCount + 1,
 						FrontendString_Get(FRONTSTR_801_UNASSIGNED));
 				FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer, &rect, 0, 1, 0xFFFF);
 			}
-			++displayedPlayerCount;
-			if (displayedPlayerCount == 4) {
+			++displayedFlightGroupCount;
+			if (displayedFlightGroupCount == 4) {
 				FrontendDraw_RectAssign(&rect, 267, 352, 443, 368);
 			} else {
 				FrontendDraw_RectOffsetXY(&rect, 0, 17);
 			}
 		}
-		if (g_teamPlayerFlightGroupCount[g_pilotData.team] <= displayedPlayerCount) {
+		if (g_teamPlayerFlightGroupCount[g_pilotData.team] <= displayedFlightGroupCount) {
 			break;
 		}
 	}
@@ -9793,7 +9803,7 @@ int MissionSetup_DrawAssignedPlayers(int frameCounter) {
 }
 
 // FUNCTION: XVT 0x4FAB50
-int MissionSetup_DrawAssignmentBriefing(void) {
+int MissionSetup_DrawAssignmentMissionDescription(void) {
 	RECT rect;
 	int lineCount;
 
@@ -9966,7 +9976,7 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 	FrontendDraw_RectAssign(&rect, 158, 52, 491, 68);
 	FrontendDisplay_GetScreenClipRect(&savedClipRect);
 	FrontendDisplay_SetScreenClipRect640x480(&rect);
-	FrontendText_DrawCentered(12, g_nextMissionDescription, &rect, 0xFFFF);
+	FrontendText_DrawCentered(12, g_missionSequenceDescription, &rect, 0xFFFF);
 	FrontendDisplay_SetScreenClipRect640x480(&savedClipRect);
 	FrontendDraw_RectAssign(&rect, 84, 90, 434, 108);
 	FrontendText_DrawCentered(15, FrontendString_Get(FRONTSTR_812_SELECT_NEXT_BATTLE_MISSION), &rect, 0xFFFF);
@@ -10094,9 +10104,9 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
 
 #ifdef XVT_MODERN
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12, 0,
-											 8, "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12,
+											  0, 8, "buttonsound") != 0) {
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
 				FrontendString_Get(FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
@@ -10105,9 +10115,9 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 			return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_SOLO_BACK_TO_SETUP);
 		}
 #else
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12, 0,
-											 8, "buttonsound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12,
+											  0, 8, "buttonsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
 				FrontendString_Get(FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
@@ -10122,9 +10132,9 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_668_RESTART));
 
 #ifdef XVT_MODERN
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12, 0,
-											 8, "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12,
+											  0, 8, "buttonsound") != 0) {
 			FrontendDialog_ShowConfirmDialog(FrontendString_Get(FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
 											 FrontendString_Get(FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
 											 FrontendString_Get(FRONTSTR_754_TO_SELECT_MISSION),
@@ -10133,9 +10143,9 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 			return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_HOST_RESTART);
 		}
 #else
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12, 0,
-											 8, "buttonsound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_260_RETURN_TO_SELECT_MISSION), 12,
+											  0, 8, "buttonsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(FrontendString_Get(FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
 											 FrontendString_Get(FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
 											 FrontendString_Get(FRONTSTR_754_TO_SELECT_MISSION),
@@ -10150,9 +10160,9 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_204_LEAVE));
 
 #ifdef XVT_MODERN
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
-											 "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
+											  "buttonsound") != 0) {
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
@@ -10161,9 +10171,9 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 			return XvtDialog_ContinueWith(XvtMissionDialogs_Resume, XVT_MISSION_CLIENT_LEAVE);
 		}
 #else
-		if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-											 FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
-											 "buttonsound") != 0 &&
+		if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+											  FrontendString_Get(FRONTSTR_204_LEAVE), 12, 0, 8,
+											  "buttonsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
 				FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
@@ -10182,9 +10192,9 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 	FrontendDraw_RectAssign(&rect, 8, 405, 71, 470);
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_212_NEXT));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "nextup", "nextdown",
-											 FrontendString_Get(FRONTSTR_475_GO_TO_BRIEFING), 12, 0, 7,
-											 "flysound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "nextup", "nextdown",
+											  FrontendString_Get(FRONTSTR_475_GO_TO_BRIEFING), 12, 0, 7,
+											  "flysound") != 0) {
 			FrontendScreen_SetCallbacks(MissionSetup_FlightAssignmentUpdate,
 										MissionSetup_FreeScreenResources);
 			FrontendButton_DisableOverlayText();
@@ -10195,9 +10205,9 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 				   (BattleMissionResult)g_pilotData.team &&
 			   Net_GetLocalPlayerId() == g_missionSetupPlayerAssignments.teamPlayerIds[g_pilotData.team][0]) {
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_212_NEXT));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "nextup", "nextdown",
-											 FrontendString_Get(FRONTSTR_475_GO_TO_BRIEFING), 12, 0, 7,
-											 "flysound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "nextup", "nextdown",
+											  FrontendString_Get(FRONTSTR_475_GO_TO_BRIEFING), 12, 0, 7,
+											  "flysound") != 0) {
 			*(int*)g_frontendNetPacketScratch.payload =
 				g_pilotData.missionDescriptionIds[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS];
 			g_frontendNetPacketScratch.packetType = NET_PACKET_SUBMIT_MISSION_CHOICE;
@@ -10215,9 +10225,9 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 	}
 	if (canChooseMission == 1) {
 		FrontendDraw_RectAssign(&rect, 417, 112, 434, 130);
-		if (FrontendButton_DrawSpriteHitTest(&rect, "dropbtnup", "dropbtndown",
-											 FrontendString_Get(FRONTSTR_684_MISSION_LIST), 15, 0xFFFF, 9,
-											 "buttonsound") != 0) {
+		if (FrontendButton_HandleSpriteButton(&rect, "dropbtnup", "dropbtndown",
+											  FrontendString_Get(FRONTSTR_684_MISSION_LIST), 15, 0xFFFF, 9,
+											  "buttonsound") != 0) {
 			FrontendDraw_RectAssign(&rect, 0, 0, 639, 479);
 			FrontendScreen_QueuePush(MissionSetup_BattleChoice_DrawList, &rect);
 		}
@@ -10332,9 +10342,9 @@ int MissionSetup_BattleChoice_BuildList(void) {
 			   g_pilotData.missionDescriptionIds[MISSION_DIRECTORY_BATTLES]) {
 		++selectedMissionIndex;
 	}
-	sprintf(battleDescriptorPath, "%s\\%s", g_campaignDirNames[MISSION_DIRECTORY_BATTLES],
+	sprintf(battleDescriptorPath, "%s\\%s", g_missionDirectoryNames[MISSION_DIRECTORY_BATTLES],
 			g_missionList[selectedMissionIndex].fileName);
-	strcpy(g_nextMissionDescription, g_missionList[selectedMissionIndex].description);
+	strcpy(g_missionSequenceDescription, g_missionList[selectedMissionIndex].description);
 	free(g_missionList);
 	g_missionList = savedMissionList;
 	g_missionCount = savedMissionCount;
@@ -10405,11 +10415,11 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 		MISSION_TEXT_INDENT = 37,
 		TEXT_FONT_SIZE = 12,
 		SCROLLBAR_CONTROL_ID = 8,
-		LOCKED_MULTIPLAYER_FILE_PREFIX = '1',
+		SINGLE_PLAYER_FILE_PREFIX = '1',
 		SOUND_VOLUME_SCALE = 12,
 		SOUND_CENTER_PAN = 63,
 		AWARD_TOOLTIP_MEDAL_BASE = FRONTSTR_381_BATTLE_MEDALLION,
-		AWARD_TOOLTIP_RATING_BASE = FRONTSTR_659_QUICK_START,
+		AWARD_TOOLTIP_CITATION_BASE = FRONTSTR_659_QUICK_START,
 	};
 
 	RECT rect;
@@ -10422,7 +10432,7 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 	unsigned int imperialAwardId;
 	int displayRow;
 	int visibleRowCount;
-	int currentFactionId;
+	int awardFactionId;
 	unsigned short textColor;
 	char lastSectionName[sizeof(g_battleMissionList[0].sectionName)];
 
@@ -10540,7 +10550,7 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 					}
 					if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 						if (g_battleMissionList[battleMissionIndex].fileName[0] !=
-							LOCKED_MULTIPLAYER_FILE_PREFIX) {
+							SINGLE_PLAYER_FILE_PREFIX) {
 							g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] =
 								g_battleMissionList[battleMissionIndex].missionIdx;
 							for (g_selectedMissionListIndex = 0;
@@ -10595,7 +10605,7 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 				g_missionList[battleMissionIndex].missionIdx) {
 				textColor = g_colorYellow;
 			}
-			if (g_missionList[battleMissionIndex].fileName[0] == LOCKED_MULTIPLAYER_FILE_PREFIX &&
+			if (g_missionList[battleMissionIndex].fileName[0] == SINGLE_PLAYER_FILE_PREFIX &&
 				g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 				textColor = g_colorGray;
 			}
@@ -10634,34 +10644,34 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 		if (displayRow >= g_battleChoiceScrollOffset &&
 			displayRow - g_battleChoiceScrollOffset < VISIBLE_ROW_COUNT) {
 			awardId = 0;
-			currentFactionId = 0;
+			awardFactionId = 0;
 			if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-				currentFactionId = g_pilotData.currentFactionId;
+				awardFactionId = g_pilotData.currentFactionId;
 				switch (g_pilotData.missionDirectoryId) {
 					case MISSION_DIRECTORY_TRAINING_EXERCISES:
-						awardId = g_pilotData.factionStatistics[currentFactionId]
+						awardId = g_pilotData.factionStatistics[awardFactionId]
 									  .spTrainingMissions[g_battleMissionList[battleMissionIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						break;
 					case MISSION_DIRECTORY_MELEES:
-						awardId = g_pilotData.factionStatistics[currentFactionId]
+						awardId = g_pilotData.factionStatistics[awardFactionId]
 									  .spMeleeMissions[g_battleMissionList[battleMissionIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						break;
 					case MISSION_DIRECTORY_TOURNAMENTS:
-						awardId = g_pilotData.factionStatistics[currentFactionId]
+						awardId = g_pilotData.factionStatistics[awardFactionId]
 									  .spTournaments[g_battleMissionList[battleMissionIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						break;
 					case MISSION_DIRECTORY_COMBAT_ENGAGEMENTS:
-						awardId = g_pilotData.factionStatistics[currentFactionId]
+						awardId = g_pilotData.factionStatistics[awardFactionId]
 									  .spCombatMissions[g_battleMissionList[battleMissionIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						break;
 					case MISSION_DIRECTORY_BATTLES:
-						awardId = g_pilotData.factionStatistics[currentFactionId]
+						awardId = g_pilotData.factionStatistics[awardFactionId]
 									  .spBattles[g_battleMissionList[battleMissionIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						break;
 					default:
 						break;
@@ -10671,70 +10681,70 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 					case MISSION_DIRECTORY_TRAINING_EXERCISES:
 						awardId = g_pilotData.factionStatistics[0]
 									  .mpTrainingMissions[g_battleMissionList[battleMissionIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						imperialAwardId =
 							g_pilotData.factionStatistics[1]
 								.mpTrainingMissions[g_battleMissionList[battleMissionIndex].missionIdx]
-								.awardId;
+								.awardLevel;
 						rebelAwardId = awardId;
 						if (imperialAwardId != 0 && (imperialAwardId < awardId || awardId == 0)) {
 							awardId = imperialAwardId;
-							currentFactionId = 1;
+							awardFactionId = 1;
 						}
 						break;
 					case MISSION_DIRECTORY_MELEES:
 						awardId = g_pilotData.factionStatistics[0]
 									  .mpMeleeMissions[g_battleMissionList[battleMissionIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						imperialAwardId =
 							g_pilotData.factionStatistics[1]
 								.mpMeleeMissions[g_battleMissionList[battleMissionIndex].missionIdx]
-								.awardId;
+								.awardLevel;
 						rebelAwardId = awardId;
 						if (imperialAwardId != 0 && (imperialAwardId < awardId || awardId == 0)) {
 							awardId = imperialAwardId;
-							currentFactionId = 1;
+							awardFactionId = 1;
 						}
 						break;
 					case MISSION_DIRECTORY_TOURNAMENTS:
 						awardId = g_pilotData.factionStatistics[0]
 									  .mpTournaments[g_battleMissionList[battleMissionIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						imperialAwardId =
 							g_pilotData.factionStatistics[1]
 								.mpTournaments[g_battleMissionList[battleMissionIndex].missionIdx]
-								.awardId;
+								.awardLevel;
 						rebelAwardId = awardId;
 						if (imperialAwardId != 0 && (imperialAwardId < awardId || awardId == 0)) {
 							awardId = imperialAwardId;
-							currentFactionId = 1;
+							awardFactionId = 1;
 						}
 						break;
 					case MISSION_DIRECTORY_COMBAT_ENGAGEMENTS:
 						awardId = g_pilotData.factionStatistics[0]
 									  .mpCombatMissions[g_battleMissionList[battleMissionIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						imperialAwardId =
 							g_pilotData.factionStatistics[1]
 								.mpCombatMissions[g_battleMissionList[battleMissionIndex].missionIdx]
-								.awardId;
+								.awardLevel;
 						rebelAwardId = awardId;
 						if (imperialAwardId != 0 && (imperialAwardId < awardId || awardId == 0)) {
 							awardId = imperialAwardId;
-							currentFactionId = 1;
+							awardFactionId = 1;
 						}
 						break;
 					case MISSION_DIRECTORY_BATTLES:
 						awardId = g_pilotData.factionStatistics[0]
 									  .mpBattles[g_battleMissionList[battleMissionIndex].missionIdx]
-									  .awardId;
+									  .awardLevel;
 						imperialAwardId = g_pilotData.factionStatistics[1]
 											  .mpBattles[g_battleMissionList[battleMissionIndex].missionIdx]
-											  .awardId;
+											  .awardLevel;
 						rebelAwardId = awardId;
 						if (imperialAwardId != 0 && (imperialAwardId < awardId || awardId == 0)) {
 							awardId = imperialAwardId;
-							currentFactionId = 1;
+							awardFactionId = 1;
 						}
 						break;
 					default:
@@ -10772,7 +10782,7 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 							   FrontendString_Get((FrontendStringId)(AWARD_TOOLTIP_MEDAL_BASE + awardId)));
 					}
 				} else {
-					if (currentFactionId == 0)
+					if (awardFactionId == 0)
 						sprintf(g_frontendScratchBuffer, "rcitlvl%d", awardId);
 					else
 						sprintf(g_frontendScratchBuffer, "citlvl%d", awardId);
@@ -10809,25 +10819,26 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter) {
 							if (rebelAwardId == 0 && imperialAwardId != 0) {
 								sprintf(g_frontendScratchBuffer, "%s: %s",
 										FrontendString_Get(FRONTSTR_759_IMPERIAL),
-										FrontendString_Get(
-											(FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + imperialAwardId)));
+										FrontendString_Get((FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE +
+																			  imperialAwardId)));
 							} else if (rebelAwardId != 0 && imperialAwardId == 0) {
-								sprintf(g_frontendScratchBuffer, "%s: %s", FrontendString_Get(FRONTSTR_760_REBEL),
+								sprintf(g_frontendScratchBuffer, "%s: %s",
+										FrontendString_Get(FRONTSTR_760_REBEL),
 										FrontendString_Get(
-											(FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + rebelAwardId)));
+											(FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE + rebelAwardId)));
 							} else {
 								sprintf(g_frontendScratchBuffer, "%s: %s, %s: %s",
 										FrontendString_Get(FRONTSTR_760_REBEL),
 										FrontendString_Get(
-											(FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + rebelAwardId)),
+											(FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE + rebelAwardId)),
 										FrontendString_Get(FRONTSTR_759_IMPERIAL),
-										FrontendString_Get(
-											(FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + imperialAwardId)));
+										FrontendString_Get((FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE +
+																			  imperialAwardId)));
 							}
 						} else {
-							strcpy(
-								g_frontendScratchBuffer,
-								FrontendString_Get((FrontendStringId)(AWARD_TOOLTIP_RATING_BASE + awardId)));
+							strcpy(g_frontendScratchBuffer,
+								   FrontendString_Get(
+									   (FrontendStringId)(AWARD_TOOLTIP_CITATION_BASE + awardId)));
 						}
 					}
 				}

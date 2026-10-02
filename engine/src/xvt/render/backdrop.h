@@ -27,8 +27,8 @@ extern uint16_t g_backdropPositiveXCount;
 extern uint16_t g_backdropNegativeXCount;
 
 void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY, int angle);
-void Backdrop_RenderCurrentRegion(void);
-void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angle, int backdropIndex);
+void Backdrop_BuildStarOffsetsAndRender(void);
+void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angle, int backdropNumber);
 void Backdrop_GenerateDefaultRecords(void);
 
 #ifdef __cplusplus

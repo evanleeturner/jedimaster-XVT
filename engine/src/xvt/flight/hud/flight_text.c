@@ -126,15 +126,15 @@ void FlightText_DrawNarrowGlyph8bpp(uint8_t ch) {
 		line = g_flightClipTop;
 #ifdef XVT_MODERN
 	/* Fully clipped glyphs still advance the cursor, without looking up a row. */
-	lineOffset = line < g_flightClipBottom ? FlightSw_GetLineBufferAddr(line) : 0;
+	lineOffset = line < g_flightClipBottom ? FlightSw_GetLineOffset(line) : 0;
 #else
-	lineOffset = FlightSw_GetLineBufferAddr(line);
+	lineOffset = FlightSw_GetLineOffset(line);
 #endif
 #ifndef XVT_MODERN
 	if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 		g_flightSwFramebufferBase == g_swFramebufferBase) {
-		page = lineOffset / g_swFramebufferClearChunkSize;
-		lineOffset %= g_swFramebufferClearChunkSize;
+		page = lineOffset / g_vesaPageSizeBytes;
+		lineOffset %= g_vesaPageSizeBytes;
 		RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		clippedBottom = g_flightCursorY + glyphHeight + 1;
 		if (clippedBottom > g_flightClipBottom)
@@ -221,13 +221,13 @@ void FlightText_DrawNarrowGlyph8bpp(uint8_t ch) {
 							break;
 					}
 #ifdef XVT_MODERN
-					rowStart = &g_flightSwFramebufferBase[FlightSw_GetLineBufferAddr(line) + drawX];
+					rowStart = &g_flightSwFramebufferBase[FlightSw_GetLineOffset(line) + drawX];
 #else
-					pixelOffset = drawX + FlightSw_GetLineBufferAddr(line);
+					pixelOffset = drawX + FlightSw_GetLineOffset(line);
 					if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 						g_flightSwFramebufferBase == g_swFramebufferBase) {
-						page = pixelOffset / g_swFramebufferClearChunkSize;
-						pixelOffset %= g_swFramebufferClearChunkSize;
+						page = pixelOffset / g_vesaPageSizeBytes;
+						pixelOffset %= g_vesaPageSizeBytes;
 						RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 					}
 					rowStart = &g_flightSwFramebufferBase[pixelOffset];
@@ -322,15 +322,15 @@ void FlightText_DrawWideGlyph8bpp(uint8_t ch) {
 		line = g_flightClipTop;
 #ifdef XVT_MODERN
 	/* Fully clipped glyphs still advance the cursor, without looking up a row. */
-	lineOffset = line < g_flightClipBottom ? FlightSw_GetLineBufferAddr(line) : 0;
+	lineOffset = line < g_flightClipBottom ? FlightSw_GetLineOffset(line) : 0;
 #else
-	lineOffset = FlightSw_GetLineBufferAddr(line);
+	lineOffset = FlightSw_GetLineOffset(line);
 #endif
 #ifndef XVT_MODERN
 	if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 		g_flightSwFramebufferBase == g_swFramebufferBase) {
-		page = lineOffset / g_swFramebufferClearChunkSize;
-		lineOffset %= g_swFramebufferClearChunkSize;
+		page = lineOffset / g_vesaPageSizeBytes;
+		lineOffset %= g_vesaPageSizeBytes;
 		RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		clippedBottom = g_flightCursorY + glyphHeight + 1;
 		if (clippedBottom > g_flightClipBottom)
@@ -429,13 +429,13 @@ void FlightText_DrawWideGlyph8bpp(uint8_t ch) {
 							break;
 					}
 #ifdef XVT_MODERN
-					rowStart = &g_flightSwFramebufferBase[FlightSw_GetLineBufferAddr(line) + drawX];
+					rowStart = &g_flightSwFramebufferBase[FlightSw_GetLineOffset(line) + drawX];
 #else
-					pixelOffset = drawX + FlightSw_GetLineBufferAddr(line);
+					pixelOffset = drawX + FlightSw_GetLineOffset(line);
 					if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 						g_flightSwFramebufferBase == g_swFramebufferBase) {
-						page = pixelOffset / g_swFramebufferClearChunkSize;
-						pixelOffset %= g_swFramebufferClearChunkSize;
+						page = pixelOffset / g_vesaPageSizeBytes;
+						pixelOffset %= g_vesaPageSizeBytes;
 						RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 					}
 					rowStart = &g_flightSwFramebufferBase[pixelOffset];
@@ -665,11 +665,11 @@ void FlightText_DrawNarrowGlyph(uint8_t ch) {
 			}
 
 #ifndef XVT_MODERN
-			pixelOffset = FlightSw_GetLineBufferAddr(line) + 2 * drawX;
+			pixelOffset = FlightSw_GetLineOffset(line) + 2 * drawX;
 			if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 				g_flightSwFramebufferBase == g_swFramebufferBase) {
-				page = pixelOffset / g_swFramebufferClearChunkSize;
-				pixelOffset %= g_swFramebufferClearChunkSize;
+				page = pixelOffset / g_vesaPageSizeBytes;
+				pixelOffset %= g_vesaPageSizeBytes;
 				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			}
 			destination = &((uint16_t*)g_flightSwFramebufferBase)[pixelOffset / 2];
@@ -679,7 +679,7 @@ void FlightText_DrawNarrowGlyph(uint8_t ch) {
 #ifdef XVT_MODERN
 				/* The original looks up negative rows even when top clipping leaves
 				 * no pixels. Keep row/shadow progression outside this drawing block. */
-				pixelOffset = FlightSw_GetLineBufferAddr(line) + 2 * drawX;
+				pixelOffset = FlightSw_GetLineOffset(line) + 2 * drawX;
 				destination = &((uint16_t*)g_flightSwFramebufferBase)[pixelOffset / 2];
 #endif
 				--pixelsRemaining;
@@ -691,7 +691,7 @@ void FlightText_DrawNarrowGlyph(uint8_t ch) {
 					} else {
 						paletteIndex = g_flightTextBgColor;
 					}
-					*destination++ = g_flightTextPalette[paletteIndex];
+					*destination++ = g_flightPalette16Bpp[paletteIndex];
 					shadowBits <<= 1;
 					glyphBits <<= 1;
 				} while (pixelsRemaining-- != 0);
@@ -806,11 +806,11 @@ void FlightText_DrawWideGlyph(uint8_t ch) {
 			}
 
 #ifndef XVT_MODERN
-			pixelOffset = FlightSw_GetLineBufferAddr(line) + 2 * drawX;
+			pixelOffset = FlightSw_GetLineOffset(line) + 2 * drawX;
 			if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 				g_flightSwFramebufferBase == g_swFramebufferBase) {
-				page = pixelOffset / g_swFramebufferClearChunkSize;
-				pixelOffset %= g_swFramebufferClearChunkSize;
+				page = pixelOffset / g_vesaPageSizeBytes;
+				pixelOffset %= g_vesaPageSizeBytes;
 				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			}
 			destination = &((uint16_t*)g_flightSwFramebufferBase)[pixelOffset / 2];
@@ -820,7 +820,7 @@ void FlightText_DrawWideGlyph(uint8_t ch) {
 #ifdef XVT_MODERN
 				/* The original looks up negative rows even when top clipping leaves
 				 * no pixels. Keep row/shadow progression outside this drawing block. */
-				pixelOffset = FlightSw_GetLineBufferAddr(line) + 2 * drawX;
+				pixelOffset = FlightSw_GetLineOffset(line) + 2 * drawX;
 				destination = &((uint16_t*)g_flightSwFramebufferBase)[pixelOffset / 2];
 #endif
 				--pixelsRemaining;
@@ -832,7 +832,7 @@ void FlightText_DrawWideGlyph(uint8_t ch) {
 					} else {
 						paletteIndex = g_flightTextBgColor;
 					}
-					*destination++ = g_flightTextPalette[paletteIndex];
+					*destination++ = g_flightPalette16Bpp[paletteIndex];
 					glyphBits <<= 1;
 					shadowBits <<= 1;
 				} while (pixelsRemaining-- != 0);
@@ -888,7 +888,7 @@ void FlightText_ClearRemainingLineBackground(void) {
 	g_flightFillRectBottom = clippedBottom;
 	g_flightFillRectTop = clippedTop;
 	if (clippedBottom > clippedTop)
-		FlightSw_FillRectOrBorder(0);
+		FlightSw_FillRectOrBorder16bpp(0);
 }
 
 // FUNCTION: XVT 0x4A9500

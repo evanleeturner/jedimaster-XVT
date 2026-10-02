@@ -269,15 +269,15 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 				return 1;
 			}
 			FrontendDraw_RectAssign(&rect, 461, 321, 595, 340);
-			selectedIndex = FrontendText_DrawEditableField(&rect, g_pilotRecordNameInput,
-														   PILOT_NAME_MAX_CHARS, 0, 12, "\\*$~|:<>?/\t\"");
+			selectedIndex = FrontendText_HandleEditableField(&rect, g_pilotRecordNameInput,
+															 PILOT_NAME_MAX_CHARS, 0, 12, "\\*$~|:<>?/\t\"");
 #else
 		selectedIndex = FrontendDialog_PromptForPilotName(g_pilotRecordNameInput);
 #endif
 		} else {
 			FrontendDraw_RectAssign(&rect, 461, 321, 595, 340);
-			selectedIndex = FrontendText_DrawEditableField(&rect, g_pilotRecordNameInput,
-														   PILOT_NAME_MAX_CHARS, 0, 12, "\\*$~|:<>?/\t\"");
+			selectedIndex = FrontendText_HandleEditableField(&rect, g_pilotRecordNameInput,
+															 PILOT_NAME_MAX_CHARS, 0, 12, "\\*$~|:<>?/\t\"");
 		}
 
 #ifdef XVT_MODERN
@@ -2924,7 +2924,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 					awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .spTrainingMissions[g_pilotRecordSingleplayerTrainingMissionList[listIndex]
 														  .missionIdx]
-								  .awardId;
+								  .awardLevel;
 					if (awardId != 0) {
 						FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 												MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -2975,7 +2975,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 					row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 					awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .spMeleeMissions[g_pilotRecordMeleeMissionList[listIndex].missionIdx]
-								  .awardId;
+								  .awardLevel;
 					if (awardId != 0) {
 						FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 												MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3021,7 +3021,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 					row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 					awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .spTournaments[g_pilotRecordTournamentMissionList[listIndex].missionIdx]
-								  .awardId;
+								  .awardLevel;
 					if (awardId != 0) {
 						FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 												MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3068,7 +3068,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 					awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .spCombatMissions[g_pilotRecordSingleplayerCombatMissionList[listIndex]
 														.missionIdx]
-								  .awardId;
+								  .awardLevel;
 					if (awardId != 0) {
 						FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 												MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3119,7 +3119,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 					row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 					awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .spBattles[g_battleMissionList[listIndex].missionIdx]
-								  .awardId;
+								  .awardLevel;
 					if (awardId != 0) {
 						FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 												MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3180,7 +3180,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 							row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 							awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 										  .spCampaignMissions[awardId - 1]
-										  .awardId;
+										  .awardLevel;
 							if (awardId != 0) {
 								FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 														MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3233,7 +3233,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 					awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .mpTrainingMissions[g_pilotRecordMultiplayerTrainingMissionList[listIndex]
 														  .missionIdx]
-								  .awardId;
+								  .awardLevel;
 					if (awardId != 0) {
 						FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 												MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3284,7 +3284,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 					row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 					awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .mpMeleeMissions[g_pilotRecordMeleeMissionList[listIndex].missionIdx]
-								  .awardId;
+								  .awardLevel;
 					if (awardId != 0) {
 						FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 												MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3330,7 +3330,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 					row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 					awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .mpTournaments[g_pilotRecordTournamentMissionList[listIndex].missionIdx]
-								  .awardId;
+								  .awardLevel;
 					if (awardId != 0) {
 						FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 												MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3377,7 +3377,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 					awardId =
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.mpCombatMissions[g_pilotRecordMultiplayerCombatMissionList[listIndex].missionIdx]
-							.awardId;
+							.awardLevel;
 					if (awardId != 0) {
 						FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 												MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3428,7 +3428,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 					row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 					awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .mpBattles[g_battleMissionList[listIndex].missionIdx]
-								  .awardId;
+								  .awardLevel;
 					if (awardId != 0) {
 						FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 												MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3489,7 +3489,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 							row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 							awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 										  .mpCampaignMissions[awardId - 1]
-										  .awardId;
+										  .awardLevel;
 							if (awardId != 0) {
 								FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_HEADER_X, y,
 														MISSION_ACHIEVEMENT_AWARD_RIGHT,
@@ -3590,24 +3590,22 @@ int PilotRecord_DrawCutsceneViewerPage(void) {
 			hasCampaignCutscene = 0;
 			for (cutsceneIndex = 0; cutsceneIndex < (unsigned int)g_cutsceneCount; ++cutsceneIndex) {
 				if (g_pilotRecordSingleplayerCampaignMissionList[campaignIndex].missionIdx !=
-					g_cutsceneTable[cutsceneIndex].missionIdx)
+					g_cutsceneTable[cutsceneIndex].campaignId)
 					continue;
 				if (g_cutsceneTable[cutsceneIndex].playAfterDebriefing == 0) {
 					if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-								.spCampaignMissions[g_cutsceneTable[cutsceneIndex].missionDescriptionId - 1]
+								.spCampaignMissions[g_cutsceneTable[cutsceneIndex].campaignMissionId - 1]
 								.numberTimesFlown == 0 &&
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-								.mpCampaignMissions[g_cutsceneTable[cutsceneIndex].missionDescriptionId - 1]
+								.mpCampaignMissions[g_cutsceneTable[cutsceneIndex].campaignMissionId - 1]
 								.numberTimesFlown == 0) {
 						continue;
 					}
 				} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-								   .spCampaignMissions[g_cutsceneTable[cutsceneIndex].missionDescriptionId -
-													   1]
+								   .spCampaignMissions[g_cutsceneTable[cutsceneIndex].campaignMissionId - 1]
 								   .isCompleted == 0 &&
 						   g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-								   .mpCampaignMissions[g_cutsceneTable[cutsceneIndex].missionDescriptionId -
-													   1]
+								   .mpCampaignMissions[g_cutsceneTable[cutsceneIndex].campaignMissionId - 1]
 								   .isCompleted == 0) {
 					continue;
 				}
@@ -3649,22 +3647,22 @@ int PilotRecord_DrawCutsceneViewerPage(void) {
 		hasCampaignCutscene = 0;
 		for (cutsceneIndex = 0; cutsceneIndex < (unsigned int)g_cutsceneCount; ++cutsceneIndex) {
 			if (g_pilotRecordSingleplayerCampaignMissionList[campaignIndex].missionIdx !=
-				g_cutsceneTable[cutsceneIndex].missionIdx)
+				g_cutsceneTable[cutsceneIndex].campaignId)
 				continue;
 			if (g_cutsceneTable[cutsceneIndex].playAfterDebriefing == 0) {
 				if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-							.spCampaignMissions[g_cutsceneTable[cutsceneIndex].missionDescriptionId - 1]
+							.spCampaignMissions[g_cutsceneTable[cutsceneIndex].campaignMissionId - 1]
 							.numberTimesFlown == 0 &&
 					g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-							.mpCampaignMissions[g_cutsceneTable[cutsceneIndex].missionDescriptionId - 1]
+							.mpCampaignMissions[g_cutsceneTable[cutsceneIndex].campaignMissionId - 1]
 							.numberTimesFlown == 0) {
 					continue;
 				}
 			} else if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-							   .spCampaignMissions[g_cutsceneTable[cutsceneIndex].missionDescriptionId - 1]
+							   .spCampaignMissions[g_cutsceneTable[cutsceneIndex].campaignMissionId - 1]
 							   .isCompleted == 0 &&
 					   g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-							   .mpCampaignMissions[g_cutsceneTable[cutsceneIndex].missionDescriptionId - 1]
+							   .mpCampaignMissions[g_cutsceneTable[cutsceneIndex].campaignMissionId - 1]
 							   .isCompleted == 0) {
 				continue;
 			}
@@ -3688,7 +3686,7 @@ int PilotRecord_DrawCutsceneViewerPage(void) {
 			FrontendDraw_RectOffsetXY(&rect, thumbnailX, y + 3);
 			if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
 				FrontendDraw_RectOutline(&rect, 0, 0, g_colorGreen);
-				if (FrontendButton_DrawSpriteHitTest(&rect, "", "", NULL, 15, 0xFFFF, 36, "jewelsound") !=
+				if (FrontendButton_HandleSpriteButton(&rect, "", "", NULL, 15, 0xFFFF, 36, "jewelsound") !=
 					0) {
 					selectedCutscene = (int)cutsceneIndex + 1;
 				}
@@ -3731,7 +3729,7 @@ int PilotRecord_DrawCampaignMedalsPage(void) {
 	RECT awardRect;
 	MissionListEntry* campaignEntry;
 	int* campaignId;
-	unsigned int missionIndex;
+	unsigned int campaignIndex;
 	unsigned int trainingMissionIndex;
 	unsigned int searchIndex;
 	unsigned int awardSpriteIndex;
@@ -3786,15 +3784,15 @@ int PilotRecord_DrawCampaignMedalsPage(void) {
 
 		memset(g_campaignSingleplayerAwardFlags, 0, sizeof(g_campaignSingleplayerAwardFlags));
 		memset(g_campaignMultiplayerAwardFlags, 0, sizeof(g_campaignMultiplayerAwardFlags));
-		missionIndex = 0;
-		if (missionIndex < g_pilotRecordSingleplayerCampaignMissionCount) {
+		campaignIndex = 0;
+		if (campaignIndex < g_pilotRecordSingleplayerCampaignMissionCount) {
 			do {
 				searchIndex = (unsigned int)strlen(
-								  g_pilotRecordSingleplayerCampaignMissionList[missionIndex].description) +
+								  g_pilotRecordSingleplayerCampaignMissionList[campaignIndex].description) +
 							  1;
 				searchIndex -= 2;
 				if (searchIndex != 0) {
-					campaignEntry = &g_pilotRecordSingleplayerCampaignMissionList[missionIndex];
+					campaignEntry = &g_pilotRecordSingleplayerCampaignMissionList[campaignIndex];
 					do {
 						if (campaignEntry->description[searchIndex] == '(') {
 							campaignEntry->description[searchIndex] = '\0';
@@ -3803,17 +3801,17 @@ int PilotRecord_DrawCampaignMedalsPage(void) {
 						--searchIndex;
 					} while (searchIndex != 0);
 				}
-				++missionIndex;
-			} while (missionIndex < g_pilotRecordSingleplayerCampaignMissionCount);
+				++campaignIndex;
+			} while (campaignIndex < g_pilotRecordSingleplayerCampaignMissionCount);
 		}
 
 		g_campaignMedalScrollOffset = 0;
 		g_campaignMedalEntryCount = 0;
 		remainingCampaignCount = g_pilotRecordSingleplayerCampaignMissionCount;
-		missionIndex = 0;
+		campaignIndex = 0;
 		if (remainingCampaignCount) {
 			do {
-				campaignId = &g_pilotRecordSingleplayerCampaignMissionList[missionIndex].missionIdx;
+				campaignId = &g_pilotRecordSingleplayerCampaignMissionList[campaignIndex].missionIdx;
 				if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.spCampaigns[*campaignId]
 							.attemptCount != 0 ||
@@ -3880,7 +3878,7 @@ int PilotRecord_DrawCampaignMedalsPage(void) {
 						++g_campaignMedalEntryCount;
 					}
 				}
-				++missionIndex;
+				++campaignIndex;
 			} while (--remainingCampaignCount != 0);
 		}
 		g_pilotRecordPagesNeedRebuild = 0;
@@ -3894,10 +3892,10 @@ int PilotRecord_DrawCampaignMedalsPage(void) {
 	}
 
 	eligibleCampaignIndex = 0;
-	missionIndex = 0;
+	campaignIndex = 0;
 	if (g_pilotRecordSingleplayerCampaignMissionCount != 0) {
 		do {
-			campaignId = &g_pilotRecordSingleplayerCampaignMissionList[missionIndex].missionIdx;
+			campaignId = &g_pilotRecordSingleplayerCampaignMissionList[campaignIndex].missionIdx;
 			if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 						.spCampaigns[*campaignId]
 						.attemptCount != 0 ||
@@ -3913,8 +3911,8 @@ int PilotRecord_DrawCampaignMedalsPage(void) {
 					if (eligibleCampaignIndex == g_campaignMedalScrollOffset) {
 						FrontendDraw_RectAssign(&rect, 88, 111, 424, 125);
 						FrontendText_DrawCentered(
-							12, g_pilotRecordSingleplayerCampaignMissionList[missionIndex].description, &rect,
-							g_colorYellow);
+							12, g_pilotRecordSingleplayerCampaignMissionList[campaignIndex].description,
+							&rect, g_colorYellow);
 						FrontImage_GetResourceRect(
 							g_campaignAwardSprites[awardSpriteIndex].mainAwardSpriteName, &awardRect);
 						awardX = 256 - ((awardRect.right - awardRect.left + 1) >> 1);
@@ -3947,8 +3945,8 @@ int PilotRecord_DrawCampaignMedalsPage(void) {
 					++eligibleCampaignIndex;
 				}
 			}
-			++missionIndex;
-		} while (missionIndex < g_pilotRecordSingleplayerCampaignMissionCount);
+			++campaignIndex;
+		} while (campaignIndex < g_pilotRecordSingleplayerCampaignMissionCount);
 	}
 	return 1;
 }
@@ -4136,25 +4134,25 @@ int PilotRecord_DrawPilotRatingPage(void) {
 		FrontendDraw_RectAssign(&rect, 187, 107, 323, 121);
 		FrontendText_DrawCentered(12, FrontendString_Get(FRONTSTR_399_JEDI_MASTER), &rect, 0xFFFF);
 	}
-	if (g_pilotData.totalMissionsPlayedCountPerRating[0] != 0) {
+	if (g_pilotData.ratingAchievedOnMission[0] != 0) {
 		FrontImage_DrawSprite("rank0", g_pilotRatingIconPos[0].x, g_pilotRatingIconPos[0].y);
 		FrontendDraw_RectAssign(&rect, g_pilotRatingIconPos[0].x, g_pilotRatingIconPos[0].y,
 								g_pilotRatingIconPos[0].x + 51, g_pilotRatingIconPos[0].y + 11);
 		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
 			sprintf(g_frontendScratchBuffer, "%s %s %d", FrontendString_Get(FRONTSTR_122_TARGET_DRONE),
 					FrontendString_Get(FRONTSTR_644_ACHIEVED_ON_MISSION),
-					g_pilotData.totalMissionsPlayedCountPerRating[0]);
+					g_pilotData.ratingAchievedOnMission[0]);
 			FrontendButton_DrawSpriteAndTooltip(&rect, NULL, g_frontendScratchBuffer, 12, 0xFFFF);
 		}
 	}
-	if (g_pilotData.totalMissionsPlayedCountPerRating[1] != 0) {
+	if (g_pilotData.ratingAchievedOnMission[1] != 0) {
 		FrontImage_DrawSprite("rank1", g_pilotRatingIconPos[1].x, g_pilotRatingIconPos[1].y);
 		FrontendDraw_RectAssign(&rect, g_pilotRatingIconPos[1].x, g_pilotRatingIconPos[1].y,
 								g_pilotRatingIconPos[1].x + 51, g_pilotRatingIconPos[1].y + 11);
 		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
 			sprintf(g_frontendScratchBuffer, "%s %s %d", FrontendString_Get(FRONTSTR_122_TARGET_DRONE + 1),
 					FrontendString_Get(FRONTSTR_644_ACHIEVED_ON_MISSION),
-					g_pilotData.totalMissionsPlayedCountPerRating[1]);
+					g_pilotData.ratingAchievedOnMission[1]);
 			FrontendButton_DrawSpriteAndTooltip(&rect, NULL, g_frontendScratchBuffer, 12, 0xFFFF);
 		}
 	}
@@ -4171,7 +4169,7 @@ int PilotRecord_DrawPilotRatingPage(void) {
 			sprintf(g_frontendScratchBuffer, "%s %s %d",
 					FrontendString_Get(FRONTSTR_122_TARGET_DRONE + ratingIndex),
 					FrontendString_Get(FRONTSTR_644_ACHIEVED_ON_MISSION),
-					g_pilotData.totalMissionsPlayedCountPerRating[ratingIndex]);
+					g_pilotData.ratingAchievedOnMission[ratingIndex]);
 			FrontendButton_DrawSpriteAndTooltip(&rect, NULL, g_frontendScratchBuffer, 12, 0xFFFF);
 		}
 	}
@@ -4198,9 +4196,9 @@ int PilotRecord_UpdateNavigationControls(void) {
 	if (g_pilotData.currentFactionId == 1) {
 		FrontendButton_DrawSpriteAndTooltip(&rect, "reg7d", FrontendString_Get(FRONTSTR_643_IMPERIAL_PILOT),
 											12, 0);
-	} else if (FrontendButton_DrawSpriteHitTest(&rect, "reg7u", "reg7u",
-												FrontendString_Get(FRONTSTR_643_IMPERIAL_PILOT), 12, 0, 17,
-												"jewelsound")) {
+	} else if (FrontendButton_HandleSpriteButton(&rect, "reg7u", "reg7u",
+												 FrontendString_Get(FRONTSTR_643_IMPERIAL_PILOT), 12, 0, 17,
+												 "jewelsound")) {
 		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotData.currentFactionId = 1;
 		g_pilotData.team = g_pilotData.factionStatistics[1].team;
@@ -4215,9 +4213,9 @@ int PilotRecord_UpdateNavigationControls(void) {
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -28);
 	if (g_pilotData.currentFactionId != 0) {
-		if (FrontendButton_DrawSpriteHitTest(&rect, "reg6u", "reg6u",
-											 FrontendString_Get(FRONTSTR_642_REBEL_PILOT), 12, 0, 16,
-											 "jewelsound")) {
+		if (FrontendButton_HandleSpriteButton(&rect, "reg6u", "reg6u",
+											  FrontendString_Get(FRONTSTR_642_REBEL_PILOT), 12, 0, 16,
+											  "jewelsound")) {
 			g_pilotRecordPagesNeedRebuild = 1;
 			g_pilotData.currentFactionId = 0;
 			g_pilotData.team = g_pilotData.factionStatistics[0].team;
@@ -4238,9 +4236,9 @@ int PilotRecord_UpdateNavigationControls(void) {
 	if (g_pilotRecordPage == 5)
 		FrontendButton_DrawSpriteAndTooltip(&rect, "reg8d", FrontendString_Get(FRONTSTR_796_VIEW_CUTSCENES),
 											12, 0);
-	else if (FrontendButton_DrawSpriteHitTest(&rect, "reg8u", "reg8u",
-											  FrontendString_Get(FRONTSTR_796_VIEW_CUTSCENES), 12, 0, 18,
-											  "jewelsound")) {
+	else if (FrontendButton_HandleSpriteButton(&rect, "reg8u", "reg8u",
+											   FrontendString_Get(FRONTSTR_796_VIEW_CUTSCENES), 12, 0, 18,
+											   "jewelsound")) {
 		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotRecordPage = 5;
 		PilotRecord_RedrawBackground();
@@ -4250,9 +4248,9 @@ int PilotRecord_UpdateNavigationControls(void) {
 	if (g_pilotRecordPage == 4)
 		FrontendButton_DrawSpriteAndTooltip(&rect, "reg5d", FrontendString_Get(FRONTSTR_826_CAMPAIGN_MEDALS),
 											12, 0);
-	else if (FrontendButton_DrawSpriteHitTest(&rect, "reg5u", "reg5u",
-											  FrontendString_Get(FRONTSTR_826_CAMPAIGN_MEDALS), 12, 0, 15,
-											  "jewelsound")) {
+	else if (FrontendButton_HandleSpriteButton(&rect, "reg5u", "reg5u",
+											   FrontendString_Get(FRONTSTR_826_CAMPAIGN_MEDALS), 12, 0, 15,
+											   "jewelsound")) {
 		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotRecordPage = 4;
 		PilotRecord_RedrawBackground();
@@ -4262,9 +4260,9 @@ int PilotRecord_UpdateNavigationControls(void) {
 	if (g_pilotRecordPage == 3)
 		FrontendButton_DrawSpriteAndTooltip(&rect, "reg4d",
 											FrontendString_Get(FRONTSTR_010_MISSION_ACHIEVEMENTS), 12, 0);
-	else if (FrontendButton_DrawSpriteHitTest(&rect, "reg4u", "reg4u",
-											  FrontendString_Get(FRONTSTR_010_MISSION_ACHIEVEMENTS), 12, 0,
-											  14, "jewelsound")) {
+	else if (FrontendButton_HandleSpriteButton(&rect, "reg4u", "reg4u",
+											   FrontendString_Get(FRONTSTR_010_MISSION_ACHIEVEMENTS), 12, 0,
+											   14, "jewelsound")) {
 		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotRecordPage = 3;
 		PilotRecord_RedrawBackground();
@@ -4274,9 +4272,9 @@ int PilotRecord_UpdateNavigationControls(void) {
 	if (g_pilotRecordPage == 2)
 		FrontendButton_DrawSpriteAndTooltip(&rect, "reg3d", FrontendString_Get(FRONTSTR_008_PILOT_RATING), 12,
 											0);
-	else if (FrontendButton_DrawSpriteHitTest(&rect, "reg3u", "reg3u",
-											  FrontendString_Get(FRONTSTR_008_PILOT_RATING), 12, 0, 13,
-											  "jewelsound")) {
+	else if (FrontendButton_HandleSpriteButton(&rect, "reg3u", "reg3u",
+											   FrontendString_Get(FRONTSTR_008_PILOT_RATING), 12, 0, 13,
+											   "jewelsound")) {
 		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotRecordPage = 2;
 		PilotRecord_RedrawBackground();
@@ -4286,9 +4284,9 @@ int PilotRecord_UpdateNavigationControls(void) {
 	if (g_pilotRecordPage == 1)
 		FrontendButton_DrawSpriteAndTooltip(&rect, "reg2d", FrontendString_Get(FRONTSTR_009_PILOT_AWARDS), 12,
 											0);
-	else if (FrontendButton_DrawSpriteHitTest(&rect, "reg2u", "reg2u",
-											  FrontendString_Get(FRONTSTR_009_PILOT_AWARDS), 12, 0, 12,
-											  "jewelsound")) {
+	else if (FrontendButton_HandleSpriteButton(&rect, "reg2u", "reg2u",
+											   FrontendString_Get(FRONTSTR_009_PILOT_AWARDS), 12, 0, 12,
+											   "jewelsound")) {
 		g_pilotRecordPagesNeedRebuild = 1;
 		g_pilotRecordPage = 1;
 		PilotRecord_RedrawBackground();
@@ -4296,9 +4294,9 @@ int PilotRecord_UpdateNavigationControls(void) {
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -28);
 	if (g_pilotRecordPage != 0) {
-		if (FrontendButton_DrawSpriteHitTest(&rect, "reg1u", "reg1u",
-											 FrontendString_Get(FRONTSTR_007_PILOT_STATISTICS), 12, 0, 11,
-											 "jewelsound")) {
+		if (FrontendButton_HandleSpriteButton(&rect, "reg1u", "reg1u",
+											  FrontendString_Get(FRONTSTR_007_PILOT_STATISTICS), 12, 0, 11,
+											  "jewelsound")) {
 			g_pilotRecordPagesNeedRebuild = 1;
 			g_pilotRecordPage = 0;
 			PilotRecord_RedrawBackground();
@@ -4361,7 +4359,7 @@ int PilotRecord_LoadCampaignAwardSpriteTable(const char* fileName) {
 	XvtFile* stream;
 	char* line;
 	unsigned int recordCountOrIndex;
-	unsigned int multiplayerSpriteBytes;
+	unsigned int spriteNameByteOffset;
 #ifdef XVT_MODERN
 	unsigned int recordCapacity;
 #endif
@@ -4431,8 +4429,8 @@ int PilotRecord_LoadCampaignAwardSpriteTable(const char* fileName) {
 			   sizeof(g_campaignAwardSprites[g_campaignAwardSpriteCount].mainAwardSpriteName));
 		g_campaignAwardSprites[g_campaignAwardSpriteCount].mainAwardSpriteName[31] = '\0';
 
-		multiplayerSpriteBytes = 0;
-		while (multiplayerSpriteBytes < 15 * 32) {
+		spriteNameByteOffset = 0;
+		while (spriteNameByteOffset < 15 * 32) {
 			do {
 				line = File_Gets(g_frontendScratchBuffer, 255, stream);
 				if (line == NULL) {
@@ -4447,18 +4445,18 @@ int PilotRecord_LoadCampaignAwardSpriteTable(const char* fileName) {
 			}
 			memcpy(
 				(char*)g_campaignAwardSprites[g_campaignAwardSpriteCount].multiplayerMissionAwardSpriteNames +
-					multiplayerSpriteBytes,
+					spriteNameByteOffset,
 				g_frontendScratchBuffer,
 				sizeof(g_campaignAwardSprites[g_campaignAwardSpriteCount]
 						   .multiplayerMissionAwardSpriteNames[0]));
 			*((char*)g_campaignAwardSprites[g_campaignAwardSpriteCount].multiplayerMissionAwardSpriteNames +
-			  multiplayerSpriteBytes + 31) = '\0';
-			multiplayerSpriteBytes += 32;
+			  spriteNameByteOffset + 31) = '\0';
+			spriteNameByteOffset += 32;
 		}
 
 		recordCountOrIndex = 0;
-		multiplayerSpriteBytes = 0;
-		while (multiplayerSpriteBytes < 15 * 32) {
+		spriteNameByteOffset = 0;
+		while (spriteNameByteOffset < 15 * 32) {
 			do {
 				line = File_Gets(g_frontendScratchBuffer, 255, stream);
 				if (line == NULL) {
@@ -4473,13 +4471,13 @@ int PilotRecord_LoadCampaignAwardSpriteTable(const char* fileName) {
 			}
 			memcpy((char*)g_campaignAwardSprites[g_campaignAwardSpriteCount]
 						   .singleplayerMissionAwardSpriteNames +
-					   multiplayerSpriteBytes,
+					   spriteNameByteOffset,
 				   g_frontendScratchBuffer,
 				   sizeof(g_campaignAwardSprites[g_campaignAwardSpriteCount]
 							  .singleplayerMissionAwardSpriteNames[0]));
 			*((char*)g_campaignAwardSprites[g_campaignAwardSpriteCount].singleplayerMissionAwardSpriteNames +
-			  multiplayerSpriteBytes + 31) = '\0';
-			multiplayerSpriteBytes += 32;
+			  spriteNameByteOffset + 31) = '\0';
+			spriteNameByteOffset += 32;
 			++recordCountOrIndex;
 		}
 		++g_campaignAwardSpriteCount;

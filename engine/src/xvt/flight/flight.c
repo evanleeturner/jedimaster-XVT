@@ -2157,7 +2157,7 @@ void Flight_MainLoop(int unused) {
 	FlightSurface_Unlock();
 	FlightRender_TransitionHookStub();
 	FlightSurface_Lock();
-	FlightSw_InitLineBuffer();
+	FlightSw_InitFramebuffer();
 	FlightSurface_Unlock();
 	nullsub_11();
 	FlightDisplay_Flip();
@@ -2181,7 +2181,7 @@ void Flight_MainLoop(int unused) {
 		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + MISSION_EXTENSION_THIRD] = channel;
 	}
 	g_flightSetPaletteRangeFn((RgbTriplet*)resourceScratch, 0, PALETTE_COLOR_COUNT);
-	FlightPalette_Reset();
+	FlightPalette_ApplyToDisplay();
 	FlightSurface_Lock();
 	FeDiskIo_InitGlobalBuffers();
 	FlightSurface_Unlock();
@@ -5885,7 +5885,7 @@ int Flight_Main(char* missionCmdLine) {
 	{
 		int bppConfigValue;
 
-		bppConfigValue = g_gameConfig.bpp[NetSession_GetPlayerCount() > 1];
+		bppConfigValue = g_gameConfig.colorDepthChoice[NetSession_GetPlayerCount() > 1];
 		switch (bppConfigValue) {
 			case DISPLAY_CONFIG_LOW:
 				g_flightBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
@@ -5937,22 +5937,22 @@ int Flight_Main(char* missionCmdLine) {
 	}
 	switch (g_gameConfig.textureRes[NetSession_GetPlayerCount() > 1]) {
 		case 0:
-			g_keepFullResTextures = 0;
+			g_textureResolutionLevel = 0;
 			break;
 		case 1:
-			g_keepFullResTextures = 1;
+			g_textureResolutionLevel = 1;
 			break;
 		default:
-			g_keepFullResTextures = 2;
+			g_textureResolutionLevel = 2;
 			break;
 	}
 	{
 		int localLightsEnabled;
 
 		localLightsEnabled = g_gameConfig.localLights[NetSession_GetPlayerCount() > 1];
-		g_localLightsLevel = 1;
+		g_localLightsEnabled = 1;
 		if (localLightsEnabled == 0) {
-			g_localLightsLevel = 0;
+			g_localLightsEnabled = 0;
 		}
 	}
 	{
@@ -6032,10 +6032,10 @@ int Flight_Main(char* missionCmdLine) {
 	}
 	switch (g_flightBytesPerPixel) {
 		case PALETTED_BYTES_PER_PIXEL:
-			g_gameConfig.bpp[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_LOW;
+			g_gameConfig.colorDepthChoice[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_LOW;
 			break;
 		case HIGH_COLOR_BYTES_PER_PIXEL:
-			g_gameConfig.bpp[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_MEDIUM;
+			g_gameConfig.colorDepthChoice[NetSession_GetPlayerCount() > 1] = DISPLAY_CONFIG_MEDIUM;
 			break;
 		default:
 			break;

@@ -178,7 +178,7 @@ void fsfx_LoadMissionVoiceSfx(void) {
 
 	if (g_flightConfVoiceEnabled == 0 || g_gameConfig.voiceVolume == 0)
 		return;
-	if (g_gameConfig.voiceTacticalOfficerEnabled != 0) {
+	if (g_gameConfig.voiceTacticalOfficerLevel != 0) {
 		strcpy(path, "wave\\");
 		if (g_players[g_localPlayer].iff == 0) {
 			if ((GameRand2() & 1) != 0)
@@ -203,7 +203,7 @@ void fsfx_LoadMissionVoiceSfx(void) {
 			strcat(path, "PCMD.LST");
 		fsfx_LoadSfxList(path, 0x324u);
 	}
-	if (g_gameConfig.voicePilotEnabled != 0) {
+	if (g_gameConfig.voicePilotLevel != 0) {
 		activeGroupCount = 0;
 		for (playerGroup = 0; (int)playerGroup < g_missionHeader.numFlightGroups; ++playerGroup) {
 			if (g_missionFlightGroups[playerGroup].fg.playerNumber != 0)
@@ -1071,7 +1071,7 @@ int fsfx_speakorderack(int playerIdx, int speakerObjIdx, int voiceCategory, int 
 	int targetWaveNumber;
 	uint16_t objectSignature;
 
-	if (g_gameConfig.voicePilotEnabled == 0) {
+	if (g_gameConfig.voicePilotLevel == 0) {
 		return 0;
 	}
 	if (playerIdx == -1) {
@@ -1085,7 +1085,7 @@ int fsfx_speakorderack(int playerIdx, int speakerObjIdx, int voiceCategory, int 
 		return 0;
 	}
 	if (probability != UINT16_MAX) {
-		if (g_gameConfig.voicePilotEnabled == 1) {
+		if (g_gameConfig.voicePilotLevel == 1) {
 			probability >>= 1;
 		}
 		if (GameRand2() >= probability) {
@@ -1264,7 +1264,7 @@ int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx,
 	int lastSpeakSeconds;
 	int16_t objectSignature;
 
-	if (g_gameConfig.voiceTacticalOfficerEnabled == 0) {
+	if (g_gameConfig.voiceTacticalOfficerLevel == 0) {
 		return 0;
 	}
 	if (g_players[g_localPlayer].objectIndex == -1) {

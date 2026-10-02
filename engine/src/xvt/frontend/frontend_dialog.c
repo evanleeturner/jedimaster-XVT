@@ -18,7 +18,7 @@
 // GLOBAL: XVT 0x665688
 char g_frontDialogOkayLabel[128] = { 0 };
 // GLOBAL: XVT 0x665708
-char g_frontDialogText2OrEdit[256] = { 0 };
+char g_frontDialogLine3[256] = { 0 };
 // GLOBAL: XVT 0x665808
 int g_frontDialogSavedMouseX = 0;
 // GLOBAL: XVT 0x66580C
@@ -26,7 +26,7 @@ int g_frontDialogSavedMouseY = 0;
 // GLOBAL: XVT 0x665810
 char g_frontDialogCancelLabel[128] = { 0 };
 // GLOBAL: XVT 0x665890
-char g_frontDialogText0[256] = { 0 };
+char g_frontDialogLine1OrEdit[256] = { 0 };
 // GLOBAL: XVT 0x665990
 char g_frontDialogText1[256] = { 0 };
 // GLOBAL: XVT 0xAA62A0
@@ -62,17 +62,17 @@ int FrontendDialog_ShowConfirmDialog(const char* line1, const char* line2, const
 	FrontendDraw_RectAssign(&rect, SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM);
 	FrontendCursor_GetPos(&g_frontDialogSavedMouseX, &g_frontDialogSavedMouseY);
 	if (line1 != NULL)
-		strcpy(g_frontDialogText0, line1);
+		strcpy(g_frontDialogLine1OrEdit, line1);
 	else
-		g_frontDialogText0[0] = '\0';
+		g_frontDialogLine1OrEdit[0] = '\0';
 	if (line2 != NULL)
 		strcpy(g_frontDialogText1, line2);
 	else
 		g_frontDialogText1[0] = '\0';
 	if (line3 != NULL)
-		strcpy(g_frontDialogText2OrEdit, line3);
+		strcpy(g_frontDialogLine3, line3);
 	else
-		g_frontDialogText2OrEdit[0] = '\0';
+		g_frontDialogLine3[0] = '\0';
 	if (okayLabel != NULL)
 		strcpy(g_frontDialogOkayLabel, okayLabel);
 	else
@@ -144,17 +144,17 @@ int FrontendDialog_ConfirmUpdateCallback(int frameCounter) {
 	}
 	FrontendDraw_RectAssign(&rect, DIALOG_LEFT, DIALOG_TOP, DIALOG_RIGHT, DIALOG_BOTTOM);
 	rect.bottom = rect.top + DIALOG_LINE_HEIGHT;
-	FrontendText_DrawCentered(DIALOG_FONT_SIZE, g_frontDialogText0, &rect, TEXT_COLOR);
+	FrontendText_DrawCentered(DIALOG_FONT_SIZE, g_frontDialogLine1OrEdit, &rect, TEXT_COLOR);
 	FrontendDraw_RectOffsetXY(&rect, 0, DIALOG_LINE_HEIGHT);
 	FrontendText_DrawCentered(DIALOG_FONT_SIZE, g_frontDialogText1, &rect, TEXT_COLOR);
 	FrontendDraw_RectOffsetXY(&rect, 0, DIALOG_LINE_HEIGHT);
-	FrontendText_DrawCentered(DIALOG_FONT_SIZE, g_frontDialogText2OrEdit, &rect, TEXT_COLOR);
+	FrontendText_DrawCentered(DIALOG_FONT_SIZE, g_frontDialogLine3, &rect, TEXT_COLOR);
 
 	if (!g_frontDialogOkayLabel[0] && !g_frontDialogCancelLabel[0]) {
 		FrontendDraw_RectAssign(&rect, OK_BUTTON_LEFT, OK_BUTTON_TOP, OK_BUTTON_RIGHT, BUTTON_BOTTOM);
-		pressed = FrontendButton_DrawSpriteHitTest(&rect, "dialogok", "dialogokd",
-												   FrontendString_Get(FRONTSTR_523_OKAY), BUTTON_FONT_SIZE,
-												   TEXT_COLOR, OK_HOVER_SLOT, "buttonsound");
+		pressed = FrontendButton_HandleSpriteButton(&rect, "dialogok", "dialogokd",
+													FrontendString_Get(FRONTSTR_523_OKAY), BUTTON_FONT_SIZE,
+													TEXT_COLOR, OK_HOVER_SLOT, "buttonsound");
 		if (Keyboard_DequeueChar() == KEY_ENTER)
 			pressed = 1;
 		if (pressed != 0) {
@@ -166,9 +166,9 @@ int FrontendDialog_ConfirmUpdateCallback(int frameCounter) {
 		}
 	} else if (!g_frontDialogOkayLabel[0]) {
 		FrontendDraw_RectAssign(&rect, CANCEL_BUTTON_LEFT, OK_BUTTON_TOP, CANCEL_BUTTON_RIGHT, BUTTON_BOTTOM);
-		pressed =
-			FrontendButton_DrawSpriteHitTest(&rect, "dialogcancel", "dialogcanceld", g_frontDialogCancelLabel,
-											 BUTTON_FONT_SIZE, TEXT_COLOR, CANCEL_HOVER_SLOT, "buttonsound");
+		pressed = FrontendButton_HandleSpriteButton(&rect, "dialogcancel", "dialogcanceld",
+													g_frontDialogCancelLabel, BUTTON_FONT_SIZE, TEXT_COLOR,
+													CANCEL_HOVER_SLOT, "buttonsound");
 		if (Keyboard_DequeueChar() == KEY_ESCAPE)
 			pressed = 1;
 		if (pressed != 0) {
@@ -178,8 +178,8 @@ int FrontendDialog_ConfirmUpdateCallback(int frameCounter) {
 	} else if (!g_frontDialogCancelLabel[0]) {
 		FrontendDraw_RectAssign(&rect, OK_BUTTON_LEFT, OK_BUTTON_TOP, OK_BUTTON_RIGHT, BUTTON_BOTTOM);
 		pressed =
-			FrontendButton_DrawSpriteHitTest(&rect, "dialogok", "dialogokd", g_frontDialogOkayLabel,
-											 BUTTON_FONT_SIZE, TEXT_COLOR, OK_HOVER_SLOT, "buttonsound");
+			FrontendButton_HandleSpriteButton(&rect, "dialogok", "dialogokd", g_frontDialogOkayLabel,
+											  BUTTON_FONT_SIZE, TEXT_COLOR, OK_HOVER_SLOT, "buttonsound");
 		if (Keyboard_DequeueChar() == KEY_ENTER)
 			pressed = 1;
 		if (pressed != 0) {
@@ -189,8 +189,8 @@ int FrontendDialog_ConfirmUpdateCallback(int frameCounter) {
 	} else {
 		FrontendDraw_RectAssign(&rect, OK_BUTTON_LEFT, OK_BUTTON_TOP, OK_BUTTON_RIGHT, BUTTON_BOTTOM);
 		pressed =
-			FrontendButton_DrawSpriteHitTest(&rect, "dialogok", "dialogokd", g_frontDialogOkayLabel,
-											 BUTTON_FONT_SIZE, TEXT_COLOR, OK_HOVER_SLOT, "buttonsound");
+			FrontendButton_HandleSpriteButton(&rect, "dialogok", "dialogokd", g_frontDialogOkayLabel,
+											  BUTTON_FONT_SIZE, TEXT_COLOR, OK_HOVER_SLOT, "buttonsound");
 		if (Keyboard_PeekChar() == KEY_ENTER) {
 			pressed = 1;
 			Keyboard_DequeueChar();
@@ -200,9 +200,9 @@ int FrontendDialog_ConfirmUpdateCallback(int frameCounter) {
 			g_dialogResult = 1;
 		}
 		FrontendDraw_RectAssign(&rect, CANCEL_BUTTON_LEFT, OK_BUTTON_TOP, CANCEL_BUTTON_RIGHT, BUTTON_BOTTOM);
-		pressed =
-			FrontendButton_DrawSpriteHitTest(&rect, "dialogcancel", "dialogcanceld", g_frontDialogCancelLabel,
-											 BUTTON_FONT_SIZE, TEXT_COLOR, CANCEL_HOVER_SLOT, "buttonsound");
+		pressed = FrontendButton_HandleSpriteButton(&rect, "dialogcancel", "dialogcanceld",
+													g_frontDialogCancelLabel, BUTTON_FONT_SIZE, TEXT_COLOR,
+													CANCEL_HOVER_SLOT, "buttonsound");
 		if (Keyboard_DequeueChar() == KEY_ESCAPE) {
 			pressed = 1;
 			Keyboard_DiscardChar();
@@ -269,12 +269,12 @@ int FrontendDialog_PromptForPilotName(char* outName) {
 	FrontendButton_DisableOverlayText();
 	FrontendDraw_RectAssign(&rect, SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM);
 	FrontendCursor_GetPos(&g_frontDialogSavedMouseX, &g_frontDialogSavedMouseY);
-	memset(g_frontDialogText0, 0, sizeof(g_frontDialogText0));
+	memset(g_frontDialogLine1OrEdit, 0, sizeof(g_frontDialogLine1OrEdit));
 	FrontendScreen_RunModal(FrontendDialog_CreatePilotNameCallback, &rect);
 	FrontendText_StopTextFade();
 	if (overlayTextEnabled != 0)
 		FrontendButton_EnableOverlayText();
-	memcpy(outName, g_frontDialogText0, PILOT_NAME_LENGTH);
+	memcpy(outName, g_frontDialogLine1OrEdit, PILOT_NAME_LENGTH);
 	outName[PILOT_NAME_LENGTH] = '\0';
 	return 1;
 #endif
@@ -304,7 +304,7 @@ int FrontendDialog_CreatePilotNameCallback(int frameCounter) {
 	FrontendDraw_RectAssign(&rect, 245, 225, 445, 245);
 	FrontendText_DrawCentered(15, FrontendString_Get(FRONTSTR_716_CREATE_A_NEW_PILOT), &rect, 0xFFFF);
 	FrontendDraw_RectAssign(&rect, 250, 245, 440, 265);
-	accepted = FrontendText_DrawEditableField(&rect, g_frontDialogText0, 13, 0, 12, "\\*$");
+	accepted = FrontendText_HandleEditableField(&rect, g_frontDialogLine1OrEdit, 13, 0, 12, "\\*$");
 	FrontendDraw_RectAssign(&rect, 250, 275, 440, 295);
 	accepted |= FrontendButton_HandleTextButton(&rect, FrontendString_Get(FRONTSTR_717_CREATE_PILOT), 15,
 												0xFFFF, 20, "buttonsound");
@@ -315,13 +315,13 @@ int FrontendDialog_CreatePilotNameCallback(int frameCounter) {
 	} else if (Keyboard_PeekChar() == 27) {
 		Keyboard_DiscardChar();
 #ifdef XVT_MODERN
-		g_frontDialogText0[0] = 0;
+		g_frontDialogLine1OrEdit[0] = 0;
 		FrontImage_FreeResourceByName("backname");
 		return 1;
 #endif
 	}
 
-	if (!accepted || g_frontDialogText0[0] == '\0') {
+	if (!accepted || g_frontDialogLine1OrEdit[0] == '\0') {
 		return 0;
 	}
 	FrontImage_FreeResourceByName("backname");
@@ -358,17 +358,17 @@ int FrontendDialog_ShowNetworkAbortError(const char* line1, const char* line2, c
 	FrontendDraw_RectAssign(&rect, SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM);
 	FrontendCursor_GetPos(&g_frontDialogSavedMouseX, &g_frontDialogSavedMouseY);
 	if (line1 != NULL)
-		strcpy(g_frontDialogText0, line1);
+		strcpy(g_frontDialogLine1OrEdit, line1);
 	else
-		g_frontDialogText0[0] = '\0';
+		g_frontDialogLine1OrEdit[0] = '\0';
 	if (line2 != NULL)
 		strcpy(g_frontDialogText1, line2);
 	else
 		g_frontDialogText1[0] = '\0';
 	if (line3 != NULL)
-		strcpy(g_frontDialogText2OrEdit, line3);
+		strcpy(g_frontDialogLine3, line3);
 	else
-		g_frontDialogText2OrEdit[0] = '\0';
+		g_frontDialogLine3[0] = '\0';
 	if (okayLabel != NULL)
 		strcpy(g_frontDialogOkayLabel, okayLabel);
 	else
@@ -410,18 +410,18 @@ int FrontendDialog_NetworkAbortErrorCallback(int frameCounter) {
 
 	FrontendDraw_RectAssign(&rect, 166, 225, 518, 245);
 	rect.bottom = rect.top + 20;
-	FrontendText_DrawCentered(15, g_frontDialogText0, &rect, 0xFFFF);
+	FrontendText_DrawCentered(15, g_frontDialogLine1OrEdit, &rect, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 20);
 	FrontendText_DrawCentered(15, g_frontDialogText1, &rect, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 20);
-	FrontendText_DrawCentered(15, g_frontDialogText2OrEdit, &rect, 0xFFFF);
+	FrontendText_DrawCentered(15, g_frontDialogLine3, &rect, 0xFFFF);
 
 	if (g_frontDialogOkayLabel[0] == '\0') {
 		if (g_frontDialogCancelLabel[0] == '\0') {
 			FrontendDraw_RectAssign(&rect, 171, 240, 202, 275);
-			pressed = FrontendButton_DrawSpriteHitTest(&rect, "dialogok", "dialogokd",
-													   FrontendString_Get(FRONTSTR_523_OKAY), 12, 0xFFFF, 20,
-													   "buttonsound");
+			pressed = FrontendButton_HandleSpriteButton(&rect, "dialogok", "dialogokd",
+														FrontendString_Get(FRONTSTR_523_OKAY), 12, 0xFFFF, 20,
+														"buttonsound");
 			if (Keyboard_DequeueChar() == 13) {
 				pressed = 1;
 			}
@@ -435,8 +435,8 @@ int FrontendDialog_NetworkAbortErrorCallback(int frameCounter) {
 		} else {
 			FrontendDraw_RectAssign(&rect, 481, 240, 513, 275);
 			pressed =
-				FrontendButton_DrawSpriteHitTest(&rect, "dialogcancel", "dialogcanceld",
-												 g_frontDialogCancelLabel, 12, 0xFFFF, 21, "buttonsound");
+				FrontendButton_HandleSpriteButton(&rect, "dialogcancel", "dialogcanceld",
+												  g_frontDialogCancelLabel, 12, 0xFFFF, 21, "buttonsound");
 			if (Keyboard_DequeueChar() == 27) {
 				pressed = 1;
 			}
@@ -448,8 +448,8 @@ int FrontendDialog_NetworkAbortErrorCallback(int frameCounter) {
 	} else {
 		FrontendDraw_RectAssign(&rect, 171, 240, 202, 275);
 		if (g_frontDialogCancelLabel[0] == '\0') {
-			pressed = FrontendButton_DrawSpriteHitTest(&rect, "dialogok", "dialogokd", g_frontDialogOkayLabel,
-													   12, 0xFFFF, 20, "buttonsound");
+			pressed = FrontendButton_HandleSpriteButton(
+				&rect, "dialogok", "dialogokd", g_frontDialogOkayLabel, 12, 0xFFFF, 20, "buttonsound");
 			if (Keyboard_DequeueChar() == 13) {
 				pressed = 1;
 			}
@@ -458,8 +458,8 @@ int FrontendDialog_NetworkAbortErrorCallback(int frameCounter) {
 				g_dialogResult = 1;
 			}
 		} else {
-			pressed = FrontendButton_DrawSpriteHitTest(&rect, "dialogok", "dialogokd", g_frontDialogOkayLabel,
-													   12, 0xFFFF, 20, "buttonsound");
+			pressed = FrontendButton_HandleSpriteButton(
+				&rect, "dialogok", "dialogokd", g_frontDialogOkayLabel, 12, 0xFFFF, 20, "buttonsound");
 			if (Keyboard_PeekChar() == 13) {
 				pressed = 1;
 				Keyboard_DequeueChar();
@@ -470,8 +470,8 @@ int FrontendDialog_NetworkAbortErrorCallback(int frameCounter) {
 			}
 			FrontendDraw_RectAssign(&rect, 481, 240, 513, 275);
 			pressed =
-				FrontendButton_DrawSpriteHitTest(&rect, "dialogcancel", "dialogcanceld",
-												 g_frontDialogCancelLabel, 12, 0xFFFF, 21, "buttonsound");
+				FrontendButton_HandleSpriteButton(&rect, "dialogcancel", "dialogcanceld",
+												  g_frontDialogCancelLabel, 12, 0xFFFF, 21, "buttonsound");
 			if (Keyboard_DequeueChar() == 27) {
 				pressed = 1;
 				Keyboard_DiscardChar();

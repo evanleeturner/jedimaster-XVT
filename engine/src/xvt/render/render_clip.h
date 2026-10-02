@@ -11,8 +11,8 @@ extern "C" {
 struct RenderClipVertex {
 	float x;
 	float y;
-	float z;
-	float rhw;
+	float scaledInverseDepth;
+	float lightIntensity;
 	float u;
 	float v;
 };

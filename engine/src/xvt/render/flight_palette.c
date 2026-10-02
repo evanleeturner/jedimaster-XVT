@@ -11,7 +11,7 @@ int g_flightBrightnessScaleQ8 = 0x100;
 // GLOBAL: XVT 0x9A7BC0
 RgbTriplet g_swPalette[256] = { { 0 } };
 // GLOBAL: XVT 0xA00530
-uint16_t g_flightTextPalette[256] = { 0 };
+uint16_t g_flightPalette16Bpp[256] = { 0 };
 // GLOBAL: XVT 0xA081F4
 uint8_t g_paletteDirtyFlags = 0;
 
@@ -169,7 +169,7 @@ void FlightPalette_BuildRgbRange(const RgbTriplet* srcRgb, RgbTriplet* dstRgb, i
 }
 
 // FUNCTION: XVT 0x40E590
-void FlightPalette_Reset(void) {
+void FlightPalette_ApplyToDisplay(void) {
 	RgbTriplet adjustedPalette[256];
 
 	FlightPalette_BuildRgbRange(g_swPalette, adjustedPalette, 0, 256);
@@ -193,8 +193,8 @@ void FlightPalette_SetRange(RgbTriplet* rgbTriples, int16_t startIdx, uint16_t c
 		++rgbTriples;
 	}
 
-	if (g_palettePackedMode == 2)
-		FlightPalette_Build16BppRange(g_swPalette, g_flightTextPalette, (uint16_t)startIdx, count);
+	if (g_flightPixelMode == 2)
+		FlightPalette_Build16BppRange(g_swPalette, g_flightPalette16Bpp, (uint16_t)startIdx, count);
 }
 
 // FUNCTION: XVT 0x40E660
@@ -217,7 +217,7 @@ void FlightPalette_SetFull(RgbTriplet* rgbTriples) { FlightPalette_SetRange(rgbT
 // FUNCTION: XVT 0x449100
 void FlightPalette_ResetIf8Bit(void) {
 	if (g_flightBytesPerPixel == 1)
-		FlightPalette_Reset();
+		FlightPalette_ApplyToDisplay();
 }
 
 // FUNCTION: XVT 0x449410

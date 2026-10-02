@@ -57,7 +57,7 @@ int g_configDrawStaticControlBackground = 0;
 // GLOBAL: XVT 0xB69CE0
 int g_configConnectionTypeEditable = 0;
 // GLOBAL: XVT 0x664E9C
-int g_pendingMenuScreen = 0;
+int g_configCurrentPage = 0;
 
 // GLOBAL: XVT 0x52A4C8
 char* g_configKeywords[] = { "lastpilot",
@@ -180,7 +180,7 @@ int Config_OptionsDatapadUpdate(int frameCounter) {
 		CONFIG_SCREEN_TAUNTS = 5,
 		CONFIG_SCREEN_CONTEXT = 2,
 		CONFIG_PACKET_SIZE = 19 * sizeof(int),
-		PILOT_BANNER_ANIMATION_FRAMES = 32,
+		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 	};
 
 	int joystickEntryIndex;
@@ -194,7 +194,7 @@ int Config_OptionsDatapadUpdate(int frameCounter) {
 		Frontend_ResetScrollableControls();
 		g_configJoystickActionScrollOffset = 0;
 		g_configJoystickButtonScrollOffset = 0;
-		g_pendingMenuScreen = CONFIG_SCREEN_NETWORK;
+		g_configCurrentPage = CONFIG_SCREEN_NETWORK;
 		g_configSelectedJoystickButtonIndex = 0;
 		g_configDrawStaticControlBackground = 1;
 		Keyboard_FlushCharBuffer();
@@ -216,7 +216,7 @@ int Config_OptionsDatapadUpdate(int frameCounter) {
 		FrontendText_StartTextFadeIn(20);
 	}
 
-	switch (g_pendingMenuScreen) {
+	switch (g_configCurrentPage) {
 		case CONFIG_SCREEN_NETWORK:
 			Config_NetworkOptionsScreen();
 			if (g_configDrawStaticControlBackground != 0) {
@@ -261,7 +261,7 @@ int Config_OptionsDatapadUpdate(int frameCounter) {
 	if (g_pilotData.name[0] != '\0') {
 		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
 		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
-		animationFrame = frameCounter % PILOT_BANNER_ANIMATION_FRAMES;
+		animationFrame = frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES;
 		animationFrame >>= 1;
 		sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
@@ -288,7 +288,7 @@ int Config_OptionsDatapadUpdate(int frameCounter) {
 		FrontendButton_EnableOverlayText();
 	}
 	FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_206_DONE));
-	dismissRequested = FrontendButton_DrawSpriteHitTest(
+	dismissRequested = FrontendButton_HandleSpriteButton(
 		&rect, "leaveup", "leavedown", FrontendString_Get(FRONTSTR_206_DONE), 12, 0, 8, "buttonsound");
 	FrontendButton_DisableOverlayText();
 	dismissRequested |= FrontendDialog_HasNetworkDismissPacket();
@@ -336,31 +336,31 @@ void Config_DrawVideoOptionRows(void) {
 
 	FrontendDraw_RectAssign(&rect, 84, 90, 604, 106);
 	FrontendText_DrawCentered(15,
-							  g_pendingMenuScreen == 1
+							  g_configCurrentPage == 1
 								  ? FrontendString_Get(FRONTSTR_219_SINGLE_PLAYER_FLIGHT_ENGINE_OPTIONS)
 								  : FrontendString_Get(FRONTSTR_641_MULTIPLAYER_FLIGHT_ENGINE_OPTIONS),
 							  &rect, 0xFFFF);
 
-	Config_DrawScreenResolutionOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawWindowSizeOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawBitsPerPixelOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawBrightnessOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawDebrisOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawBackdropOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawStarDensityOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawLevelOfDetailOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawTextureResolutionOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawDitherOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawMipmapOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawLocalLightsOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawSpecularOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawDiffuseLightingOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawUse3dHardwareOptionRow(g_pendingMenuScreen - 1);
-	Config_DrawBilinearOptionRow(g_pendingMenuScreen - 1);
+	Config_DrawScreenResolutionOptionRow(g_configCurrentPage - 1);
+	Config_DrawWindowSizeOptionRow(g_configCurrentPage - 1);
+	Config_DrawBitsPerPixelOptionRow(g_configCurrentPage - 1);
+	Config_DrawBrightnessOptionRow(g_configCurrentPage - 1);
+	Config_DrawDebrisOptionRow(g_configCurrentPage - 1);
+	Config_DrawBackdropOptionRow(g_configCurrentPage - 1);
+	Config_DrawStarDensityOptionRow(g_configCurrentPage - 1);
+	Config_DrawLevelOfDetailOptionRow(g_configCurrentPage - 1);
+	Config_DrawTextureResolutionOptionRow(g_configCurrentPage - 1);
+	Config_DrawDitherOptionRow(g_configCurrentPage - 1);
+	Config_DrawMipmapOptionRow(g_configCurrentPage - 1);
+	Config_DrawLocalLightsOptionRow(g_configCurrentPage - 1);
+	Config_DrawSpecularOptionRow(g_configCurrentPage - 1);
+	Config_DrawDiffuseLightingOptionRow(g_configCurrentPage - 1);
+	Config_DrawUse3dHardwareOptionRow(g_configCurrentPage - 1);
+	Config_DrawBilinearOptionRow(g_configCurrentPage - 1);
 }
 
 // FUNCTION: XVT 0x4B84E0
-void Config_DrawScreenResolutionOptionRow(int configIndex) {
+void Config_DrawScreenResolutionOptionRow(int isMultiplayer) {
 	RECT rect;
 	int previousScreenResolution;
 
@@ -368,10 +368,10 @@ void Config_DrawScreenResolutionOptionRow(int configIndex) {
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_220_SCREEN_RESOLUTION), &rect, 0, 1,
 								   0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	previousScreenResolution = g_gameConfig.screenRes[configIndex];
-	Config_DrawThreeChoiceOption(&g_gameConfig.screenRes[configIndex], &rect, FRONTSTR_221_320_X_240);
-	if (g_gameConfig.screenRes[configIndex] != previousScreenResolution) {
-		g_gameConfig.windowSize[configIndex] = g_gameConfig.screenRes[configIndex];
+	previousScreenResolution = g_gameConfig.screenRes[isMultiplayer];
+	Config_DrawThreeChoiceOption(&g_gameConfig.screenRes[isMultiplayer], &rect, FRONTSTR_221_320_X_240);
+	if (g_gameConfig.screenRes[isMultiplayer] != previousScreenResolution) {
+		g_gameConfig.windowSize[isMultiplayer] = g_gameConfig.screenRes[isMultiplayer];
 	}
 }
 
@@ -397,12 +397,13 @@ void Config_DrawBitsPerPixelOptionRow(int configIndex) {
 		FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_232_NUMBER_OF_COLORS), &rect, 0, 1,
 									   g_colorGray);
 		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawOptionCycleReadOnly(&g_gameConfig.bpp[configIndex], &rect, FRONTSTR_233_256);
+		Config_DrawTwoChoiceOptionReadOnly(&g_gameConfig.colorDepthChoice[configIndex], &rect,
+										   FRONTSTR_233_256);
 	} else {
 		FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_232_NUMBER_OF_COLORS), &rect, 0, 1,
 									   0xFFFF);
 		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawOptionCycle(&g_gameConfig.bpp[configIndex], &rect, FRONTSTR_233_256);
+		Config_DrawTwoChoiceOption(&g_gameConfig.colorDepthChoice[configIndex], &rect, FRONTSTR_233_256);
 	}
 }
 
@@ -413,7 +414,7 @@ void Config_DrawBrightnessOptionRow(int configIndex) {
 	FrontendDraw_RectAssign(&rect, 88, 243, 332, 257);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_255_BRIGHTNESS), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionSliderImpl(&g_gameConfig.brightness[configIndex], &rect, 8, FRONTSTR_256_DIM, 1);
+	Config_DrawOptionSlider(&g_gameConfig.brightness[configIndex], &rect, 8, FRONTSTR_256_DIM, 1);
 }
 
 // FUNCTION: XVT 0x4B8760
@@ -423,7 +424,7 @@ void Config_DrawDebrisOptionRow(int configIndex) {
 	FrontendDraw_RectAssign(&rect, 88, 292, 332, 306);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_238_SPACE_DEBRIS), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.debris[configIndex], &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.debris[configIndex], &rect, FRONTSTR_236_OFF);
 }
 
 // FUNCTION: XVT 0x4B87E0
@@ -433,7 +434,7 @@ void Config_DrawBackdropOptionRow(int configIndex) {
 	FrontendDraw_RectAssign(&rect, 88, 326, 332, 340);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_235_BACKDROP), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.backdrop[configIndex], &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.backdrop[configIndex], &rect, FRONTSTR_236_OFF);
 }
 
 // FUNCTION: XVT 0x4B8860
@@ -455,7 +456,7 @@ void Config_DrawLevelOfDetailOptionRow(int configIndex) {
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_251_USE_LOW_DETAIL_MODELS), &rect, 0, 1,
 								   0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionSliderImpl(&g_gameConfig.lod[configIndex], &rect, 20, FRONTSTR_252_NEAR, 1);
+	Config_DrawOptionSlider(&g_gameConfig.lod[configIndex], &rect, 20, FRONTSTR_252_NEAR, 1);
 }
 
 // FUNCTION: XVT 0x4B8960
@@ -476,7 +477,7 @@ void Config_DrawDitherOptionRow(int configIndex) {
 	FrontendDraw_RectAssign(&rect, 356, 199, 600, 213);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_242_DITHERING), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.dither[configIndex], &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.dither[configIndex], &rect, FRONTSTR_236_OFF);
 }
 
 // FUNCTION: XVT 0x4B8A60
@@ -486,7 +487,7 @@ void Config_DrawMipmapOptionRow(int configIndex) {
 	FrontendDraw_RectAssign(&rect, 356, 228, 600, 242);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_247_MIP_MAPPING), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionSliderImpl(&g_gameConfig.mipmap[configIndex], &rect, 20, FRONTSTR_248_BLURRY, 1);
+	Config_DrawOptionSlider(&g_gameConfig.mipmap[configIndex], &rect, 20, FRONTSTR_248_BLURRY, 1);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
 	FrontendText_DrawCentered(12, FrontendString_Get(FRONTSTR_250_OPTIMAL), &rect, g_colorYellow);
 }
@@ -499,7 +500,7 @@ void Config_DrawLocalLightsOptionRow(int configIndex) {
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_239_LOCAL_LIGHT_SOURCE), &rect, 0, 1,
 								   0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.localLights[configIndex], &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.localLights[configIndex], &rect, FRONTSTR_236_OFF);
 }
 
 // FUNCTION: XVT 0x4B8BA0
@@ -511,12 +512,12 @@ void Config_DrawSpecularOptionRow(int configIndex) {
 		FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_240_SPECULAR_HIGHLIGHTS), &rect, 0, 1,
 									   g_colorGray);
 		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawOptionCycleDisabled(&g_gameConfig.specular[configIndex], &rect, FRONTSTR_236_OFF);
+		Config_DrawOptionCycleDimmed(&g_gameConfig.specular[configIndex], &rect, FRONTSTR_236_OFF);
 	} else {
 		FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_240_SPECULAR_HIGHLIGHTS), &rect, 0, 1,
 									   0xFFFF);
 		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawOptionCycle(&g_gameConfig.specular[configIndex], &rect, FRONTSTR_236_OFF);
+		Config_DrawTwoChoiceOption(&g_gameConfig.specular[configIndex], &rect, FRONTSTR_236_OFF);
 	}
 }
 
@@ -528,7 +529,7 @@ void Config_DrawDiffuseLightingOptionRow(int configIndex) {
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_241_DIFFUSE_LIGHTING), &rect, 0, 1,
 								   0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.diffuse[configIndex], &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.diffuse[configIndex], &rect, FRONTSTR_236_OFF);
 }
 
 // FUNCTION: XVT 0x4B8D00
@@ -540,10 +541,10 @@ void Config_DrawUse3dHardwareOptionRow(int configIndex) {
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_802_3D_HARDWARE), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
 	previousUse3dHardware = g_gameConfig.use3dHardware[configIndex];
-	Config_DrawOptionCycle(&g_gameConfig.use3dHardware[configIndex], &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.use3dHardware[configIndex], &rect, FRONTSTR_236_OFF);
 	if (g_gameConfig.use3dHardware[configIndex] != previousUse3dHardware &&
 		g_gameConfig.use3dHardware[configIndex] != 0) {
-		g_gameConfig.bpp[configIndex] = 1;
+		g_gameConfig.colorDepthChoice[configIndex] = 1;
 	}
 }
 
@@ -556,33 +557,33 @@ void Config_DrawBilinearOptionRow(int configIndex) {
 		FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_803_BILINEAR_FILTERING), &rect, 0, 1,
 									   0xFFFF);
 		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawOptionCycle(&g_gameConfig.bilinear[configIndex], &rect, FRONTSTR_236_OFF);
+		Config_DrawTwoChoiceOption(&g_gameConfig.bilinear[configIndex], &rect, FRONTSTR_236_OFF);
 	} else {
 		FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_803_BILINEAR_FILTERING), &rect, 0, 1,
 									   g_colorGray);
 		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawOptionCycleDisabled(&g_gameConfig.bilinear[configIndex], &rect, FRONTSTR_236_OFF);
+		Config_DrawOptionCycleDimmed(&g_gameConfig.bilinear[configIndex], &rect, FRONTSTR_236_OFF);
 	}
 }
 
 // FUNCTION: XVT 0x4B8E80
-void Config_DrawOptionCycleDisabled(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId) {
-	Config_DrawOptionCycleImpl(value, rect, valueBaseStrId, 1, 0);
+void Config_DrawOptionCycleDimmed(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId) {
+	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 1, 0);
 }
 
 // FUNCTION: XVT 0x4B8EA0
-void Config_DrawOptionCycle(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId) {
-	Config_DrawOptionCycleImpl(value, rect, valueBaseStrId, 0, 0);
+void Config_DrawTwoChoiceOption(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId) {
+	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 0, 0);
 }
 
 // FUNCTION: XVT 0x4B8EC0
-void Config_DrawOptionCycleReadOnly(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId) {
-	Config_DrawOptionCycleImpl(value, rect, valueBaseStrId, 1, 1);
+void Config_DrawTwoChoiceOptionReadOnly(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId) {
+	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 1, 1);
 }
 
 // FUNCTION: XVT 0x4B8EE0
-void Config_DrawOptionCycleImpl(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId,
-								int translucentSelection, int disableInput) {
+void Config_DrawTwoChoiceOptionImpl(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId,
+									int translucentSelection, int disableInput) {
 	RECT optionRect;
 	RECT spriteRect;
 	int cursorX;
@@ -706,8 +707,8 @@ void Config_DrawThreeChoiceOption(uint8_t* value, const RECT* rect, FrontendStri
 }
 
 // FUNCTION: XVT 0x4B93F0
-void Config_DrawOptionSliderImpl(uint8_t* value, RECT* rect, int valueCount, FrontendStringId rangeLabelId,
-								 int playSoundOnChange) {
+void Config_DrawOptionSlider(uint8_t* value, RECT* rect, int valueCount, FrontendStringId rangeLabelId,
+							 int playSoundOnChange) {
 	RECT optionRect;
 	int cursorY;
 	int cursorX;
@@ -800,7 +801,7 @@ void Config_DrawOptionSliderImpl(uint8_t* value, RECT* rect, int valueCount, Fro
 
 // FUNCTION: XVT 0x4B97E0
 void Config_Load(void) {
-	int convertedJoyButtons[20];
+	int legacyJoyButtonLoaded[20];
 	int buttonCount;
 	int configIndex;
 #ifndef XVT_MODERN
@@ -812,7 +813,7 @@ void Config_Load(void) {
 	int matchedKeywordIndex;
 #endif
 
-	memset(convertedJoyButtons, 0, sizeof(convertedJoyButtons));
+	memset(legacyJoyButtonLoaded, 0, sizeof(legacyJoyButtonLoaded));
 	memset(&g_gameConfig, 0, sizeof(g_gameConfig));
 	for (configIndex = 0; configIndex < 2; ++configIndex) {
 		g_gameConfig.backdrop[configIndex] = 1;
@@ -827,7 +828,7 @@ void Config_Load(void) {
 		g_gameConfig.lod[configIndex] = 10;
 		g_gameConfig.screenRes[configIndex] = 2;
 		g_gameConfig.windowSize[configIndex] = 2;
-		g_gameConfig.bpp[configIndex] = 0;
+		g_gameConfig.colorDepthChoice[configIndex] = 0;
 		g_gameConfig.brightness[configIndex] = 2;
 		g_gameConfig.use3dHardware[configIndex] = FrontendDisplay_IsSecondaryDirectDrawActive();
 		g_gameConfig.bilinear[configIndex] = 1;
@@ -837,8 +838,8 @@ void Config_Load(void) {
 	g_gameConfig.sfxInteriorEnabled = 1;
 	g_gameConfig.sfxEngineEnabled = 1;
 	g_gameConfig.sfxDatapadEnabled = 1;
-	g_gameConfig.voicePilotEnabled = 2;
-	g_gameConfig.voiceTacticalOfficerEnabled = 2;
+	g_gameConfig.voicePilotLevel = 2;
+	g_gameConfig.voiceTacticalOfficerLevel = 2;
 	g_gameConfig.voiceCommanderEnabled = 1;
 	g_gameConfig.voiceSpecialEnabled = 1;
 	g_gameConfig.musicEnabled = 1;
@@ -1008,7 +1009,7 @@ void Config_Load(void) {
 				g_gameConfig.windowSize[0] = (uint8_t)atoi(value);
 				break;
 			case 13:
-				g_gameConfig.bpp[0] = (uint8_t)atoi(value);
+				g_gameConfig.colorDepthChoice[0] = (uint8_t)atoi(value);
 				break;
 			case 14:
 				g_gameConfig.brightness[0] = (uint8_t)atoi(value);
@@ -1050,7 +1051,7 @@ void Config_Load(void) {
 				g_gameConfig.windowSize[1] = (uint8_t)atoi(value);
 				break;
 			case 27:
-				g_gameConfig.bpp[1] = (uint8_t)atoi(value);
+				g_gameConfig.colorDepthChoice[1] = (uint8_t)atoi(value);
 				break;
 			case 28:
 				g_gameConfig.brightness[1] = (uint8_t)atoi(value);
@@ -1077,10 +1078,10 @@ void Config_Load(void) {
 				g_gameConfig.sfxDatapadEnabled = (uint8_t)atoi(value);
 				break;
 			case 36:
-				g_gameConfig.voicePilotEnabled = (uint8_t)atoi(value);
+				g_gameConfig.voicePilotLevel = (uint8_t)atoi(value);
 				break;
 			case 37:
-				g_gameConfig.voiceTacticalOfficerEnabled = (uint8_t)atoi(value);
+				g_gameConfig.voiceTacticalOfficerLevel = (uint8_t)atoi(value);
 				break;
 			case 38:
 				g_gameConfig.voiceCommanderEnabled = (uint8_t)atoi(value);
@@ -1131,7 +1132,7 @@ void Config_Load(void) {
 			case 66:
 				g_gameConfig.joyButtons[matchedKeywordIndex - 47] = (uint8_t)atoi(value);
 				if (loadedLegacyConfig != 0) {
-					convertedJoyButtons[matchedKeywordIndex - 47] = 1;
+					legacyJoyButtonLoaded[matchedKeywordIndex - 47] = 1;
 				}
 				break;
 			case 79:
@@ -1218,7 +1219,7 @@ void Config_Load(void) {
 	File_Close(stream);
 	if (loadedLegacyConfig != 0) {
 		for (configIndex = 0; configIndex < 20; ++configIndex) {
-			if (convertedJoyButtons[configIndex] != 0 && g_gameConfig.joyButtons[configIndex] >= 124 &&
+			if (legacyJoyButtonLoaded[configIndex] != 0 && g_gameConfig.joyButtons[configIndex] >= 124 &&
 				g_gameConfig.joyButtons[configIndex] <= 229) {
 				g_gameConfig.joyButtons[configIndex] += 4;
 			}
@@ -1264,7 +1265,7 @@ void Config_Write(void) {
 		File_Printf(stream, "lod%d %d\n", optionNumber, g_gameConfig.lod[configIndex]);
 		File_Printf(stream, "screenres%d %d\n", optionNumber, g_gameConfig.screenRes[configIndex]);
 		File_Printf(stream, "windowsize%d %d\n", optionNumber, g_gameConfig.windowSize[configIndex]);
-		File_Printf(stream, "bpp%d %d\n", optionNumber, g_gameConfig.bpp[configIndex]);
+		File_Printf(stream, "bpp%d %d\n", optionNumber, g_gameConfig.colorDepthChoice[configIndex]);
 		File_Printf(stream, "brightness%d %d\n", optionNumber, g_gameConfig.brightness[configIndex]);
 		File_Printf(stream, "use_3d_hardware%d %d\n", optionNumber, g_gameConfig.use3dHardware[configIndex]);
 		File_Printf(stream, "bilinear%d %d\n", optionNumber, g_gameConfig.bilinear[configIndex]);
@@ -1278,8 +1279,8 @@ void Config_Write(void) {
 	File_Printf(stream, "sfx_interior %d\n", g_gameConfig.sfxInteriorEnabled);
 	File_Printf(stream, "sfx_engine %d\n", g_gameConfig.sfxEngineEnabled);
 	File_Printf(stream, "sfx_datapad %d\n", g_gameConfig.sfxDatapadEnabled);
-	File_Printf(stream, "voice_pilot %d\n", g_gameConfig.voicePilotEnabled);
-	File_Printf(stream, "voice_tactical_officer %d\n", g_gameConfig.voiceTacticalOfficerEnabled);
+	File_Printf(stream, "voice_pilot %d\n", g_gameConfig.voicePilotLevel);
+	File_Printf(stream, "voice_tactical_officer %d\n", g_gameConfig.voiceTacticalOfficerLevel);
 	File_Printf(stream, "voice_commander %d\n", g_gameConfig.voiceCommanderEnabled);
 	File_Printf(stream, "voice_special %d\n", g_gameConfig.voiceSpecialEnabled);
 	File_Printf(stream, "music %d\n", g_gameConfig.musicEnabled);
@@ -1402,7 +1403,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 	int joystickButtonCount;
 	int joystickButtonIndex;
 	int joystickActionIndex;
-	int pendingMenuScreen;
+	int currentPage;
 	int previousDatapadMusicEnabled;
 	uint8_t selectedJoystickActionCode;
 
@@ -1411,8 +1412,8 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 	ui.navigationSlotStates[2] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 	ui.navigationSlotStates[3] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
 	ui.navigationSlotStates[4] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-	pendingMenuScreen = g_pendingMenuScreen;
-	if (pendingMenuScreen != CONFIG_PAGE_NETWORK ||
+	currentPage = g_configCurrentPage;
+	if (currentPage != CONFIG_PAGE_NETWORK ||
 		(g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_NET_HOST &&
 		 g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_NET_CLIENT)) {
 		ui.navigationSlotStates[CONFIG_NAVIGATION_RESTORE_SLOT] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
@@ -1421,10 +1422,10 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 	}
 	ui.navigationSlotStates[CONFIG_NAVIGATION_UNUSED_SLOT] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
 	ui.navigationSlotStates[CONFIG_NAVIGATION_TAUNTS_SLOT] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-	if (pendingMenuScreen == CONFIG_PAGE_TAUNTS) {
+	if (currentPage == CONFIG_PAGE_TAUNTS) {
 		ui.navigationSlotStates[CONFIG_NAVIGATION_TAUNTS_SLOT] = FRONTEND_NAVIGATION_SLOT_SELECTED;
 	} else {
-		ui.navigationSlotStates[pendingMenuScreen] = FRONTEND_NAVIGATION_SLOT_SELECTED;
+		ui.navigationSlotStates[currentPage] = FRONTEND_NAVIGATION_SLOT_SELECTED;
 	}
 
 	FrontendDraw_RectAssign(&ui.rect, CONFIG_BUTTON_LEFT, CONFIG_RESTORE_BUTTON_TOP, CONFIG_BUTTON_RIGHT,
@@ -1444,7 +1445,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 #ifdef XVT_MODERN
 		if (XvtFrontendAction_Trigger(
 				XVT_ACTION_CONFIG, 1,
-				FrontendButton_DrawSpriteHitTest(
+				FrontendButton_HandleSpriteButton(
 					&ui.rect, "config6u", "config6d", FrontendString_Get(FRONTSTR_420_RESTORE_DEFAULTS),
 					CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_RESTORE_HOVER_SLOT, "jewelsound"))) {
 			int result = FrontendDialog_ShowConfirmDialog(
@@ -1457,7 +1458,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 			XvtFrontendAction_Finish(XVT_ACTION_CONFIG);
 			if (result) {
 #else
-		if (FrontendButton_DrawSpriteHitTest(
+		if (FrontendButton_HandleSpriteButton(
 				&ui.rect, "config6u", "config6d", FrontendString_Get(FRONTSTR_420_RESTORE_DEFAULTS),
 				CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_RESTORE_HOVER_SLOT, "jewelsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(
@@ -1466,7 +1467,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 				FrontendString_Get(FRONTSTR_674_ARE_YOU_SURE_YOU_WANT_TO_DO_THIS),
 				FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL)) != 0) {
 #endif
-				switch (g_pendingMenuScreen) {
+				switch (g_configCurrentPage) {
 					case CONFIG_PAGE_NETWORK:
 						g_gameConfig.serverUpdateRate = CONFIG_DEFAULT_SERVER_UPDATE_RATE;
 #ifdef XVT_MODERN
@@ -1491,7 +1492,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 						g_gameConfig.screenRes[0] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
 						g_gameConfig.windowSize[0] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
 						g_gameConfig.brightness[0] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-						g_gameConfig.bpp[0] = CONFIG_DEFAULT_DISABLED;
+						g_gameConfig.colorDepthChoice[0] = CONFIG_DEFAULT_DISABLED;
 						g_gameConfig.use3dHardware[0] = FrontendDisplay_IsSecondaryDirectDrawActive();
 						g_gameConfig.bilinear[0] = CONFIG_DEFAULT_ENABLED;
 						break;
@@ -1508,7 +1509,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 						g_gameConfig.lod[1] = CONFIG_DEFAULT_VIDEO_QUALITY;
 						g_gameConfig.screenRes[1] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
 						g_gameConfig.windowSize[1] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-						g_gameConfig.bpp[1] = CONFIG_DEFAULT_DISABLED;
+						g_gameConfig.colorDepthChoice[1] = CONFIG_DEFAULT_DISABLED;
 						g_gameConfig.brightness[1] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
 						g_gameConfig.use3dHardware[1] = CONFIG_DEFAULT_DISABLED;
 						g_gameConfig.bilinear[1] = CONFIG_DEFAULT_ENABLED;
@@ -1519,8 +1520,8 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 						g_gameConfig.sfxInteriorEnabled = CONFIG_DEFAULT_ENABLED;
 						g_gameConfig.sfxEngineEnabled = CONFIG_DEFAULT_ENABLED;
 						g_gameConfig.sfxDatapadEnabled = CONFIG_DEFAULT_ENABLED;
-						g_gameConfig.voicePilotEnabled = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-						g_gameConfig.voiceTacticalOfficerEnabled = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
+						g_gameConfig.voicePilotLevel = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
+						g_gameConfig.voiceTacticalOfficerLevel = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
 						g_gameConfig.voiceCommanderEnabled = CONFIG_DEFAULT_ENABLED;
 						g_gameConfig.voiceSpecialEnabled = CONFIG_DEFAULT_ENABLED;
 						g_gameConfig.musicEnabled = CONFIG_DEFAULT_ENABLED;
@@ -1604,14 +1605,14 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 
 	FrontendDraw_RectAssign(&ui.rect, CONFIG_BUTTON_LEFT, CONFIG_TAUNTS_BUTTON_TOP, CONFIG_BUTTON_RIGHT,
 							CONFIG_TAUNTS_BUTTON_BOTTOM);
-	if (g_pendingMenuScreen == CONFIG_PAGE_TAUNTS) {
+	if (g_configCurrentPage == CONFIG_PAGE_TAUNTS) {
 		FrontendButton_DrawSpriteAndTooltip(
 			&ui.rect, "config8d", FrontendString_Get(FRONTSTR_794_CUSTOM_TAUNTS), CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (FrontendButton_DrawSpriteHitTest(
+	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config8u", "config8u", FrontendString_Get(FRONTSTR_794_CUSTOM_TAUNTS),
 				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_TAUNTS_HOVER_SLOT, "jewelsound") != 0) {
 		g_configDrawStaticControlBackground = 1;
-		g_pendingMenuScreen = CONFIG_PAGE_TAUNTS;
+		g_configCurrentPage = CONFIG_PAGE_TAUNTS;
 		g_activeTextFieldId = 0;
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
@@ -1626,20 +1627,20 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 	FrontendDraw_RectAssign(&ui.rect, CONFIG_BUTTON_LEFT, CONFIG_JOYSTICK_BUTTON_TOP, CONFIG_BUTTON_RIGHT,
 							CONFIG_JOYSTICK_BUTTON_BOTTOM);
 #ifdef XVT_MODERN
-	if (FrontendButton_DrawSpriteHitTest(&ui.rect, "config5u", "config5u", "OpenXvT Settings",
-										 CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_JOYSTICK_HOVER_SLOT,
-										 "jewelsound"))
+	if (FrontendButton_HandleSpriteButton(&ui.rect, "config5u", "config5u", "OpenXvT Settings",
+										  CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_JOYSTICK_HOVER_SLOT,
+										  "jewelsound"))
 		XvtPort_RequestSettings();
 #else
-	if (g_pendingMenuScreen == CONFIG_PAGE_JOYSTICK) {
+	if (g_configCurrentPage == CONFIG_PAGE_JOYSTICK) {
 		FrontendButton_DrawSpriteAndTooltip(&ui.rect, "config5d",
 											FrontendString_Get(FRONTSTR_415_JOYSTICK_OPTIONS),
 											CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (FrontendButton_DrawSpriteHitTest(
+	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config5u", "config5u", FrontendString_Get(FRONTSTR_415_JOYSTICK_OPTIONS),
 				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_JOYSTICK_HOVER_SLOT, "jewelsound") != 0) {
 		g_configDrawStaticControlBackground = 1;
-		g_pendingMenuScreen = CONFIG_PAGE_JOYSTICK;
+		g_configCurrentPage = CONFIG_PAGE_JOYSTICK;
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
 		FrontImage_DrawSprite("frame", 0, 0);
@@ -1656,14 +1657,14 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 #endif
 
 	FrontendDraw_RectOffsetXY(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
-	if (g_pendingMenuScreen == CONFIG_PAGE_SOUND) {
+	if (g_configCurrentPage == CONFIG_PAGE_SOUND) {
 		FrontendButton_DrawSpriteAndTooltip(
 			&ui.rect, "config4d", FrontendString_Get(FRONTSTR_310_SOUND_OPTIONS), CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (FrontendButton_DrawSpriteHitTest(
+	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config4u", "config4u", FrontendString_Get(FRONTSTR_310_SOUND_OPTIONS),
 				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_SOUND_HOVER_SLOT, "jewelsound") != 0) {
 		g_configDrawStaticControlBackground = 1;
-		g_pendingMenuScreen = CONFIG_PAGE_SOUND;
+		g_configCurrentPage = CONFIG_PAGE_SOUND;
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
 		FrontImage_DrawSprite("frame", 0, 0);
@@ -1675,16 +1676,16 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 	}
 
 	FrontendDraw_RectOffsetXY(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
-	if (g_pendingMenuScreen == CONFIG_PAGE_MULTIPLAYER_VIDEO) {
+	if (g_configCurrentPage == CONFIG_PAGE_MULTIPLAYER_VIDEO) {
 		FrontendButton_DrawSpriteAndTooltip(
 			&ui.rect, "config3d", FrontendString_Get(FRONTSTR_641_MULTIPLAYER_FLIGHT_ENGINE_OPTIONS),
 			CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (FrontendButton_DrawSpriteHitTest(
+	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config3u", "config3u",
 				   FrontendString_Get(FRONTSTR_641_MULTIPLAYER_FLIGHT_ENGINE_OPTIONS),
 				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_MULTIPLAYER_VIDEO_HOVER_SLOT, "jewelsound") != 0) {
 		g_configDrawStaticControlBackground = 1;
-		g_pendingMenuScreen = CONFIG_PAGE_MULTIPLAYER_VIDEO;
+		g_configCurrentPage = CONFIG_PAGE_MULTIPLAYER_VIDEO;
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
 		FrontImage_DrawSprite("frame", 0, 0);
@@ -1696,16 +1697,16 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 	}
 
 	FrontendDraw_RectOffsetXY(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
-	if (g_pendingMenuScreen == CONFIG_PAGE_SINGLEPLAYER_VIDEO) {
+	if (g_configCurrentPage == CONFIG_PAGE_SINGLEPLAYER_VIDEO) {
 		FrontendButton_DrawSpriteAndTooltip(
 			&ui.rect, "config2d", FrontendString_Get(FRONTSTR_219_SINGLE_PLAYER_FLIGHT_ENGINE_OPTIONS),
 			CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (FrontendButton_DrawSpriteHitTest(
+	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config2u", "config2u",
 				   FrontendString_Get(FRONTSTR_219_SINGLE_PLAYER_FLIGHT_ENGINE_OPTIONS),
 				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_SINGLEPLAYER_VIDEO_HOVER_SLOT, "jewelsound") != 0) {
 		g_configDrawStaticControlBackground = 1;
-		g_pendingMenuScreen = CONFIG_PAGE_SINGLEPLAYER_VIDEO;
+		g_configCurrentPage = CONFIG_PAGE_SINGLEPLAYER_VIDEO;
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
 		FrontImage_DrawSprite("frame", 0, 0);
@@ -1717,16 +1718,16 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 	}
 
 	FrontendDraw_RectOffsetXY(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
-	if (g_pendingMenuScreen == CONFIG_PAGE_NETWORK) {
+	if (g_configCurrentPage == CONFIG_PAGE_NETWORK) {
 		FrontendButton_DrawSpriteAndTooltip(&ui.rect, "config1d",
 											FrontendString_Get(FRONTSTR_304_MULTIPLAYER_CONNECTION_OPTIONS),
 											CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (FrontendButton_DrawSpriteHitTest(
+	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config1u", "config1u",
 				   FrontendString_Get(FRONTSTR_304_MULTIPLAYER_CONNECTION_OPTIONS), CONFIG_BUTTON_FONT_SIZE,
 				   0, CONFIG_NETWORK_HOVER_SLOT, "jewelsound") != 0) {
 		Keyboard_FlushCharBuffer();
-		g_pendingMenuScreen = CONFIG_PAGE_NETWORK;
+		g_configCurrentPage = CONFIG_PAGE_NETWORK;
 		g_activeTextFieldId = 0;
 		g_configDrawStaticControlBackground = 1;
 		FrontendDisplay_LockOffscreenSurface();
@@ -1764,7 +1765,7 @@ void Config_NetworkOptionsScreen(void) {
 #ifndef XVT_MODERN
 	int cursorX;
 	int cursorY;
-	int optionWidth;
+	int fieldLabelWidth;
 	int buttonWidth;
 #endif
 	uint8_t selectedOption;
@@ -1776,9 +1777,9 @@ void Config_NetworkOptionsScreen(void) {
 	FrontendDraw_RectAssign(&sourceRect, LABEL_LEFT, LABEL_TOP, LABEL_RIGHT, LABEL_BOTTOM);
 #else
 	labelWidth = FrontendText_MeasureWidth(FrontendString_Get(FRONTSTR_308_IP_ADDRESS_NAME), FONT_LABEL);
-	optionWidth = FrontendText_MeasureWidth(FrontendString_Get(FRONTSTR_309_PHONE_NUMBER), FONT_LABEL);
-	if (optionWidth < labelWidth)
-		optionWidth = labelWidth;
+	fieldLabelWidth = FrontendText_MeasureWidth(FrontendString_Get(FRONTSTR_309_PHONE_NUMBER), FONT_LABEL);
+	if (fieldLabelWidth < labelWidth)
+		fieldLabelWidth = labelWidth;
 	FrontImage_GetResourceRect("offslot", &rect);
 	buttonWidth = rect.right - rect.left + 1;
 	FrontendCursor_GetPos(&cursorX, &cursorY);
@@ -1857,11 +1858,11 @@ void Config_NetworkOptionsScreen(void) {
 	FrontendDraw_RectOffsetXY(&rect, 100, 0);
 	FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_308_IP_ADDRESS_NAME), &rect, 0, 1,
 								   g_colorYellow);
-	rect.left += optionWidth + 15;
+	rect.left += fieldLabelWidth + 15;
 	rect.right = rect.left + FIELD_WIDTH;
 	FrontendDraw_RectInsetXY(&rect, 0, -2);
 	FrontendDraw_FillRectTranslucent(&rect, 0, 0, g_editableFieldBackgroundColor);
-	if (FrontendText_DrawEditableField(&rect, g_gameConfig.ipAddress, 64, 0, FONT_LABEL, NULL) != 0)
+	if (FrontendText_HandleEditableField(&rect, g_gameConfig.ipAddress, 64, 0, FONT_LABEL, NULL) != 0)
 		g_activeTextFieldId = 1;
 
 	FrontendDraw_RectOffsetXY(&sourceRect, 0, 25);
@@ -1897,11 +1898,11 @@ void Config_NetworkOptionsScreen(void) {
 	FrontendDraw_RectOffsetXY(&rect, 100, 0);
 	FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_309_PHONE_NUMBER), &rect, 0, 1,
 								   g_colorYellow);
-	rect.left += optionWidth + 15;
+	rect.left += fieldLabelWidth + 15;
 	rect.right = rect.left + FIELD_WIDTH;
 	FrontendDraw_RectInsetXY(&rect, 0, -2);
 	FrontendDraw_FillRectTranslucent(&rect, 0, 0, g_editableFieldBackgroundColor);
-	if (FrontendText_DrawEditableField(&rect, g_gameConfig.phoneNumber, 64, 1, FONT_LABEL, NULL) != 0)
+	if (FrontendText_HandleEditableField(&rect, g_gameConfig.phoneNumber, 64, 1, FONT_LABEL, NULL) != 0)
 		g_activeTextFieldId = 2;
 
 	FrontendDraw_RectOffsetXY(&sourceRect, 0, 25);
@@ -1950,7 +1951,7 @@ void Config_NetworkOptionsScreen(void) {
 	rect.right = rect.left + FIELD_WIDTH;
 	FrontendDraw_RectInsetXY(&rect, 0, -2);
 	FrontendDraw_FillRectTranslucent(&rect, 0, 0, g_editableFieldBackgroundColor);
-	if (FrontendText_DrawEditableField(&rect, g_gameConfig.password, 16, 2, FONT_LABEL, NULL) != 0)
+	if (FrontendText_HandleEditableField(&rect, g_gameConfig.password, 16, 2, FONT_LABEL, NULL) != 0)
 		g_activeTextFieldId = 0;
 
 	FrontendDraw_RectOffsetXY(&sourceRect, 0, 35);
@@ -1969,7 +1970,7 @@ void Config_NetworkOptionsScreen(void) {
 									   &sourceRect, 0, 1, g_colorYellow);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
 		selectedOption = (uint8_t)((g_gameConfig.serverUpdateRate >> 1) - 2);
-		Config_DrawThreeOptionBar(&selectedOption, &sourceRect, FRONTSTR_744_LOW);
+		Config_DrawThreeChoiceOptionReadOnly(&selectedOption, &sourceRect, FRONTSTR_744_LOW);
 	} else {
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_742_HOST_SERVER_OPTIONS),
 									   &sourceRect, 0, 1, 0xFFFF);
@@ -1977,7 +1978,7 @@ void Config_NetworkOptionsScreen(void) {
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_479_PLAYING_OVER_THE_INTERNET),
 									   &sourceRect, 0, 1, g_colorYellow);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
-		Config_DrawOptionCycle(&g_gameConfig.internetPlay, &sourceRect, FRONTSTR_480_NO);
+		Config_DrawTwoChoiceOption(&g_gameConfig.internetPlay, &sourceRect, FRONTSTR_480_NO);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_743_HOST_SERVER_UPDATE_RATE),
 									   &sourceRect, 0, 1, g_colorYellow);
@@ -2026,8 +2027,8 @@ void Config_DrawNetworkOptionCycleDisabled(const uint8_t* value, const RECT* rec
 }
 
 // FUNCTION: XVT 0x4BC2F0
-void Config_DrawThreeOptionBar(const uint8_t* selectedOption, const RECT* barRect,
-							   FrontendStringId firstOptionStringId) {
+void Config_DrawThreeChoiceOptionReadOnly(const uint8_t* selectedOption, const RECT* barRect,
+										  FrontendStringId firstOptionStringId) {
 	RECT optionRect;
 	RECT spriteRect;
 	int cursorX;
@@ -2088,10 +2089,10 @@ void Config_SoundOptionsScreen(void) {
 	FrontendDraw_RectAssign(&rect, 88, 111, 332, 125);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_408_DATAPAD_SFX), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.sfxDatapadEnabled, &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.sfxDatapadEnabled, &rect, FRONTSTR_236_OFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
 	previousVolume = g_gameConfig.sfxDatapadVolume;
-	Config_DrawOptionSliderImpl(&g_gameConfig.sfxDatapadVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 0);
+	Config_DrawOptionSlider(&g_gameConfig.sfxDatapadVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 0);
 	if (g_gameConfig.sfxDatapadVolume != previousVolume && g_gameConfig.sfxDatapadEnabled != 0) {
 		FrontendSound_PlayUISound("configsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 	}
@@ -2100,10 +2101,10 @@ void Config_SoundOptionsScreen(void) {
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_405_FLIGHT_ENGINE_EXTERIOR_SFX), &rect, 0,
 								   1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.sfxExteriorEnabled, &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.sfxExteriorEnabled, &rect, FRONTSTR_236_OFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
 	previousVolume = g_gameConfig.sfxExteriorVolume;
-	Config_DrawOptionSliderImpl(&g_gameConfig.sfxExteriorVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 0);
+	Config_DrawOptionSlider(&g_gameConfig.sfxExteriorVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 0);
 	if (g_gameConfig.sfxExteriorVolume != previousVolume && g_gameConfig.sfxDatapadEnabled != 0) {
 		FrontendSound_PlayUISound("configsound", 1, 0, 255, 12 * g_gameConfig.sfxExteriorVolume, 63);
 	}
@@ -2112,10 +2113,10 @@ void Config_SoundOptionsScreen(void) {
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_406_COCKPIT_INTERIOR_SFX), &rect, 0, 1,
 								   0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.sfxInteriorEnabled, &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.sfxInteriorEnabled, &rect, FRONTSTR_236_OFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
 	previousVolume = g_gameConfig.sfxInteriorVolume;
-	Config_DrawOptionSliderImpl(&g_gameConfig.sfxInteriorVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 0);
+	Config_DrawOptionSlider(&g_gameConfig.sfxInteriorVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 0);
 	if (g_gameConfig.sfxInteriorVolume != previousVolume && g_gameConfig.sfxDatapadEnabled != 0) {
 		FrontendSound_PlayUISound("configsound", 1, 0, 255, 12 * g_gameConfig.sfxInteriorVolume, 63);
 	}
@@ -2123,10 +2124,10 @@ void Config_SoundOptionsScreen(void) {
 
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_407_ENGINE_SOUND), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.sfxEngineEnabled, &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.sfxEngineEnabled, &rect, FRONTSTR_236_OFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
 	previousVolume = g_gameConfig.sfxEngineVolume;
-	Config_DrawOptionSliderImpl(&g_gameConfig.sfxEngineVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 0);
+	Config_DrawOptionSlider(&g_gameConfig.sfxEngineVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 0);
 	if (g_gameConfig.sfxEngineVolume != previousVolume && g_gameConfig.sfxDatapadEnabled != 0) {
 		FrontendSound_PlayUISound("configsound", 1, 0, 255, 12 * g_gameConfig.sfxEngineVolume, 63);
 	}
@@ -2134,27 +2135,27 @@ void Config_SoundOptionsScreen(void) {
 	FrontendDraw_RectAssign(&rect, 356, 111, 600, 125);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_409_PILOT_MESSAGES), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawThreeChoiceOption(&g_gameConfig.voicePilotEnabled, &rect, FRONTSTR_400_OFF);
+	Config_DrawThreeChoiceOption(&g_gameConfig.voicePilotLevel, &rect, FRONTSTR_400_OFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 35);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_410_TACTICAL_OFFICER_MESSAGES), &rect, 0,
 								   1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawThreeChoiceOption(&g_gameConfig.voiceTacticalOfficerEnabled, &rect, FRONTSTR_400_OFF);
+	Config_DrawThreeChoiceOption(&g_gameConfig.voiceTacticalOfficerLevel, &rect, FRONTSTR_400_OFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 35);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_411_COMMANDER_MESSAGES), &rect, 0, 1,
 								   0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.voiceCommanderEnabled, &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.voiceCommanderEnabled, &rect, FRONTSTR_236_OFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 20);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_412_SPECIAL_MISSION_MESSAGES), &rect, 0, 1,
 								   0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.voiceSpecialEnabled, &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.voiceSpecialEnabled, &rect, FRONTSTR_236_OFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 25);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_414_VOICE_VOLUME), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
 	previousVolume = g_gameConfig.voiceVolume;
-	Config_DrawOptionSliderImpl(&g_gameConfig.voiceVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 0);
+	Config_DrawOptionSlider(&g_gameConfig.voiceVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 0);
 	if (g_gameConfig.voiceVolume != previousVolume && g_gameConfig.sfxDatapadEnabled != 0) {
 		FrontendSound_PlayUISound("configsound", 1, 0, 255, 12 * g_gameConfig.voiceVolume, 63);
 	}
@@ -2163,7 +2164,7 @@ void Config_SoundOptionsScreen(void) {
 	previousDatapadMusic = g_gameConfig.datapadMusicEnabled;
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_735_DATAPAD_MUSIC), &rect, 0, 1, 0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.datapadMusicEnabled, &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.datapadMusicEnabled, &rect, FRONTSTR_236_OFF);
 	if (g_gameConfig.datapadMusicEnabled != previousDatapadMusic) {
 		if (g_gameConfig.datapadMusicEnabled != 0) {
 			CDAudio_SetAuxVolume(0xFFFF * g_gameConfig.musicVolume / 9);
@@ -2176,10 +2177,10 @@ void Config_SoundOptionsScreen(void) {
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_413_FLIGHT_ENGINE_MUSIC), &rect, 0, 1,
 								   0xFFFF);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionCycle(&g_gameConfig.musicEnabled, &rect, FRONTSTR_236_OFF);
+	Config_DrawTwoChoiceOption(&g_gameConfig.musicEnabled, &rect, FRONTSTR_236_OFF);
 	previousVolume = g_gameConfig.musicVolume;
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionSliderImpl(&g_gameConfig.musicVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 1);
+	Config_DrawOptionSlider(&g_gameConfig.musicVolume, &rect, 10, FRONTSTR_403_VOLUME_LOW, 1);
 	if (g_gameConfig.musicVolume != previousVolume && g_gameConfig.datapadMusicEnabled != 0) {
 		CDAudio_SetAuxVolume(0xFFFF * g_gameConfig.musicVolume / 9);
 	}
@@ -2193,7 +2194,7 @@ void Config_JoystickRemapScreen(void) {
 	int cursorX;
 	int cursorY;
 	int buttonCount;
-	int maximumExclusive;
+	int remappableRowCount;
 
 	FrontendCursor_GetPos(&cursorX, &cursorY);
 	FrontendDraw_RectAssign(&rect, 84, 90, 604, 106);
@@ -2284,16 +2285,17 @@ void Config_JoystickRemapScreen(void) {
 	}
 
 	buttonCount = Joystick_GetButtonCount(0);
-	maximumExclusive = buttonCount;
+	remappableRowCount = buttonCount;
 	if (Joystick_HasPov(0) != 0)
-		maximumExclusive += 4;
+		remappableRowCount += 4;
 
 	FrontendDraw_RectAssign(&rect, 88, 246, 322, 260);
 	FrontendText_DrawCentered(12, FrontendString_Get(FRONTSTR_652_REMAPPABLE_BUTTONS), &rect, g_colorYellow);
-	if (maximumExclusive > 10) {
+	if (remappableRowCount > 10) {
 		FrontendDraw_RectAssign(&rect, 313, 261, 322, 415);
-		g_configJoystickButtonScrollOffset = FrontendScrollbar_Draw(
-			&rect, g_configJoystickButtonScrollOffset, maximumExclusive, 0, 5, (unsigned int)g_colorNavy, 1);
+		g_configJoystickButtonScrollOffset =
+			FrontendScrollbar_Draw(&rect, g_configJoystickButtonScrollOffset, remappableRowCount, 0, 5,
+								   (unsigned int)g_colorNavy, 1);
 		FrontendDraw_RectAssign(&rect, 88, 261, 312, 415);
 	} else {
 		FrontendDraw_RectAssign(&rect, 88, 261, 322, 415);
@@ -2305,23 +2307,23 @@ void Config_JoystickRemapScreen(void) {
 	FrontendDraw_RectInsetXY(&rect, 2, 0);
 
 	{
-		int visibleButtonIndex;
+		int listRowIndex;
 		int entryCount;
-		for (visibleButtonIndex = g_configJoystickButtonScrollOffset;
-			 visibleButtonIndex < g_configJoystickButtonScrollOffset + 10; ++visibleButtonIndex) {
+		for (listRowIndex = g_configJoystickButtonScrollOffset;
+			 listRowIndex < g_configJoystickButtonScrollOffset + 10; ++listRowIndex) {
 			int actionIndex;
 			uint16_t color;
 			entryCount = g_joystickEntryCount;
-			if (visibleButtonIndex >= maximumExclusive)
+			if (listRowIndex >= remappableRowCount)
 				break;
 			actionIndex = 0;
 			if (entryCount > 0) {
 				JoystickEntry* entries = g_joystickEntries;
 				for (; actionIndex < entryCount; ++actionIndex) {
-					if (visibleButtonIndex < buttonCount) {
-						if (g_gameConfig.joyButtons[visibleButtonIndex] == entries[actionIndex].actionCode)
+					if (listRowIndex < buttonCount) {
+						if (g_gameConfig.joyButtons[listRowIndex] == entries[actionIndex].actionCode)
 							break;
-					} else if (g_gameConfig.joyButtons[visibleButtonIndex - buttonCount + 16] ==
+					} else if (g_gameConfig.joyButtons[listRowIndex - buttonCount + 16] ==
 							   entries[actionIndex].actionCode) {
 						break;
 					}
@@ -2331,38 +2333,37 @@ void Config_JoystickRemapScreen(void) {
 				if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) != 0) {
 					FrontendDraw_RectOutline(&rect, 0, 0, g_colorGreen);
 					if (FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0) {
-						if (visibleButtonIndex < buttonCount) {
-							if (g_configSelectedJoystickButtonIndex != visibleButtonIndex &&
+						if (listRowIndex < buttonCount) {
+							if (g_configSelectedJoystickButtonIndex != listRowIndex &&
 								g_gameConfig.sfxDatapadEnabled != 0)
 								FrontendSound_PlayUISound("configsound", 1, 0, 255,
 														  12 * g_gameConfig.sfxDatapadVolume, 63);
-							g_configSelectedJoystickButtonIndex = visibleButtonIndex;
+							g_configSelectedJoystickButtonIndex = listRowIndex;
 						} else {
-							if (visibleButtonIndex + buttonCount - g_configSelectedJoystickButtonIndex !=
-									16 &&
+							if (listRowIndex + buttonCount - g_configSelectedJoystickButtonIndex != 16 &&
 								g_gameConfig.sfxDatapadEnabled != 0)
 								FrontendSound_PlayUISound("configsound", 1, 0, 255,
 														  12 * g_gameConfig.sfxDatapadVolume, 63);
-							g_configSelectedJoystickButtonIndex = visibleButtonIndex - buttonCount + 16;
+							g_configSelectedJoystickButtonIndex = listRowIndex - buttonCount + 16;
 						}
 						g_configSelectedJoystickActionIndex = actionIndex;
 					}
 				}
-				if (visibleButtonIndex < buttonCount) {
+				if (listRowIndex < buttonCount) {
 					color = 0xFFFF;
-					if (g_configSelectedJoystickButtonIndex == visibleButtonIndex)
+					if (g_configSelectedJoystickButtonIndex == listRowIndex)
 						color = (uint16_t)g_colorYellow;
 					sprintf(g_frontendScratchBuffer, "%s %d: %c%s",
-							FrontendString_Get(FRONTSTR_416_JOYSTICK_BUTTON), visibleButtonIndex + 1, 2,
+							FrontendString_Get(FRONTSTR_416_JOYSTICK_BUTTON), listRowIndex + 1, 2,
 							g_joystickEntries[actionIndex].name);
 					FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer, &rect, 0, 1, color);
 				} else {
 					color = 0xFFFF;
-					if (visibleButtonIndex - buttonCount - g_configSelectedJoystickButtonIndex == -16)
+					if (listRowIndex - buttonCount - g_configSelectedJoystickButtonIndex == -16)
 						color = (uint16_t)g_colorYellow;
 					sprintf(g_frontendScratchBuffer, "%s %s: %c%s",
 							FrontendString_Get(FRONTSTR_646_JOYSTICK_POV),
-							FrontendString_Get(FRONTSTR_647_UP + visibleButtonIndex - buttonCount), 2,
+							FrontendString_Get(FRONTSTR_647_UP + listRowIndex - buttonCount), 2,
 							g_joystickEntries[actionIndex].name);
 					FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer, &rect, 0, 1, color);
 				}
@@ -2630,7 +2631,7 @@ void Config_DrawCustomTauntsPage(void) {
 		sprintf(g_frontendScratchBuffer, "%s%d", FrontendString_Get(FRONTSTR_795_TAUNT), labelIndex);
 		FrontendText_Draw(12, g_frontendScratchBuffer, 88, textY, 0xFFFF);
 		FrontendDraw_FillRectTranslucent(&rect, 0, 0, g_editableFieldBackgroundColor);
-		if (FrontendText_DrawEditableField(&rect, *taunt, 46, fieldIndex, 12, NULL)) {
+		if (FrontendText_HandleEditableField(&rect, *taunt, 46, fieldIndex, 12, NULL)) {
 			g_activeTextFieldId = labelIndex;
 			if (labelIndex >= 4)
 				g_activeTextFieldId = 0;
@@ -2643,7 +2644,7 @@ void Config_DrawCustomTauntsPage(void) {
 }
 
 // FUNCTION: XVT 0x4FB670
-int Config_CreditsScreen(int frameCounter) {
+int Credits_UpdateScreen(int frameCounter) {
 	int outPageDurationFrames;
 	int lineIndex;
 	int key;
@@ -2745,22 +2746,22 @@ int Config_CreditsScreen(int frameCounter) {
 	}
 
 	if ((g_creditsBufferIdx & 1) != 0) {
-		FrontendText_PushGlyphScratchTtl();
+		FrontendText_SuspendTextFade();
 	}
 	for (lineIndex = 0; lineIndex < 32; ++lineIndex) {
 		FrontendText_Draw(15, g_creditsTextLines[0][lineIndex], g_creditsTextX[0],
 						  g_creditsTextY[0] + 19 * lineIndex, g_creditsTextColors[0][lineIndex]);
 	}
 	if ((g_creditsBufferIdx & 1) != 0) {
-		FrontendText_PopGlyphScratchTtl();
+		FrontendText_ResumeTextFade();
 	} else {
-		FrontendText_PushGlyphScratchTtl();
+		FrontendText_SuspendTextFade();
 	}
 	for (lineIndex = 0; lineIndex < 32; ++lineIndex) {
 		FrontendText_Draw(15, g_creditsTextLines[1][lineIndex], g_creditsTextX[1],
 						  g_creditsTextY[1] + 19 * lineIndex, g_creditsTextColors[1][lineIndex]);
 	}
-	FrontendText_PopGlyphScratchTtl();
+	FrontendText_ResumeTextFade();
 
 	if (g_creditsHasMorePages != 0) {
 		if (g_creditsPageEndFrame <= frameCounter) {

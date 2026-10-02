@@ -34,7 +34,7 @@ void ModelTexture_FilterHardwarePalette(uint16_t* palette) {
 	uint16_t color;
 	uint16_t comparisonColor;
 
-	if (g_keepFullResTextures != 2) {
+	if (g_textureResolutionLevel != 2) {
 		palette[2304] = 0;
 		return;
 	}

@@ -83,7 +83,7 @@ int TechLibrary_Update(int frameCounter) {
 		SPECIAL_CRAFT_WORLD_Y = 100,
 		BUTTON_FONT_SIZE = 12,
 		TITLE_FONT_SIZE = 15,
-		DONE_BUTTON_HOVER_SLOT = 8,
+		DONE_BUTTON_HELD_SLOT = 8,
 	};
 
 	RECT rect;
@@ -107,11 +107,11 @@ int TechLibrary_Update(int frameCounter) {
 			ModelPreview_SaveState();
 		}
 		memset(&g_techLibraryCraftStats, 0, sizeof(g_techLibraryCraftStats));
-		g_techLibraryCraftStats.craftType = g_shipList[g_techLibrarySelectedShipListIdx].typeId;
+		g_techLibraryCraftStats.craftType = g_shipList[g_techLibrarySelectedShipListIdx].craftType;
 		BuildCraftTechStats(&g_techLibraryCraftStats);
 		ModelPreview_LoadModel(g_shipList[g_techLibrarySelectedShipListIdx].modelFileName);
 		ModelPreview_SetWhiteDirectionalLight(g_techLibraryLightX, g_techLibraryLightY, g_techLibraryLightZ);
-		selectedCraftType = g_shipList[g_techLibrarySelectedShipListIdx].typeId;
+		selectedCraftType = g_shipList[g_techLibrarySelectedShipListIdx].craftType;
 		if (selectedCraftType == CRAFT_SPECIES_TIE_INTERCEPTOR ||
 			selectedCraftType == CRAFT_SPECIES_TIE_BOMBER) {
 			ModelPreview_SetObjectWorldPosition(0, SPECIAL_CRAFT_WORLD_Y, 0);
@@ -169,9 +169,9 @@ int TechLibrary_Update(int frameCounter) {
 		FrontendButton_EnableOverlayText();
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_206_DONE));
 	}
-	buttonPressed =
-		FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown", FrontendString_Get(FRONTSTR_206_DONE),
-										 BUTTON_FONT_SIZE, 0, DONE_BUTTON_HOVER_SLOT, "buttonsound");
+	buttonPressed = FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+													  FrontendString_Get(FRONTSTR_206_DONE), BUTTON_FONT_SIZE,
+													  0, DONE_BUTTON_HELD_SLOT, "buttonsound");
 	FrontendButton_DisableOverlayText();
 	buttonPressed |= FrontendDialog_HasNetworkDismissPacket();
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_HOST) {
@@ -207,11 +207,11 @@ int TechLibrary_UpdateModelControls(void) {
 		BOTTOM_BUTTON_END = 7,
 		BUTTON_SPACING = 28,
 		BUTTON_FONT_SIZE = 12,
-		LIGHTING_HOVER_SLOT = 13,
-		ROTATE_X_HOVER_SLOT = 12,
-		ROTATE_Y_HOVER_SLOT = 11,
-		PREVIOUS_CRAFT_HOVER_SLOT = 17,
-		NEXT_CRAFT_HOVER_SLOT = 16,
+		LIGHTING_HELD_SLOT = 13,
+		ROTATE_X_HELD_SLOT = 12,
+		ROTATE_Y_HELD_SLOT = 11,
+		PREVIOUS_CRAFT_HELD_SLOT = 17,
+		NEXT_CRAFT_HELD_SLOT = 16,
 		SPECIAL_CRAFT_WORLD_Y = 100,
 	};
 
@@ -252,9 +252,9 @@ int TechLibrary_UpdateModelControls(void) {
 	FrontendButton_DrawEightSlotNavigationState(slotStates);
 
 	FrontendDraw_RectAssign(&rect, 22, 170, 42, 194);
-	if (FrontendButton_DrawSpriteHitTest(&rect, "review3u", "review3d",
-										 FrontendString_Get(FRONTSTR_294_CHANGE_LIGHTING), BUTTON_FONT_SIZE,
-										 0, LIGHTING_HOVER_SLOT, "jewelsound") != 0) {
+	if (FrontendButton_HandleSpriteButton(&rect, "review3u", "review3d",
+										  FrontendString_Get(FRONTSTR_294_CHANGE_LIGHTING), BUTTON_FONT_SIZE,
+										  0, LIGHTING_HELD_SLOT, "jewelsound") != 0) {
 		--g_techLibraryLightX;
 		if (g_techLibraryLightX == -2) {
 			--g_techLibraryLightY;
@@ -271,8 +271,9 @@ int TechLibrary_UpdateModelControls(void) {
 	}
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
-	FrontendButton_DrawSpriteHitTest(&rect, "review2u", "review2d", FrontendString_Get(FRONTSTR_292_ROTATE_X),
-									 BUTTON_FONT_SIZE, 0, ROTATE_X_HOVER_SLOT, "jewelsound");
+	FrontendButton_HandleSpriteButton(&rect, "review2u", "review2d",
+									  FrontendString_Get(FRONTSTR_292_ROTATE_X), BUTTON_FONT_SIZE, 0,
+									  ROTATE_X_HELD_SLOT, "jewelsound");
 	if (FrontendDraw_PointInRect(&rect, mouseX, mouseY) != 0) {
 		if (FrontendMouse_GetLeftDown() != 0) {
 			g_techLibraryPreviewYawDeg -= g_techLibraryRotationStepDegrees;
@@ -288,8 +289,9 @@ int TechLibrary_UpdateModelControls(void) {
 	}
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
-	FrontendButton_DrawSpriteHitTest(&rect, "review1u", "review1d", FrontendString_Get(FRONTSTR_293_ROTATE_Y),
-									 BUTTON_FONT_SIZE, 0, ROTATE_Y_HOVER_SLOT, "jewelsound");
+	FrontendButton_HandleSpriteButton(&rect, "review1u", "review1d",
+									  FrontendString_Get(FRONTSTR_293_ROTATE_Y), BUTTON_FONT_SIZE, 0,
+									  ROTATE_Y_HELD_SLOT, "jewelsound");
 	if (FrontendDraw_PointInRect(&rect, mouseX, mouseY) != 0) {
 		if (FrontendMouse_GetLeftDown() != 0) {
 			g_techLibraryPreviewPitchDeg -= g_techLibraryRotationStepDegrees;
@@ -305,18 +307,18 @@ int TechLibrary_UpdateModelControls(void) {
 	}
 
 	FrontendDraw_RectAssign(&rect, 22, 334, 42, 358);
-	if (FrontendButton_DrawSpriteHitTest(&rect, "review7u", "review7d",
-										 FrontendString_Get(FRONTSTR_296_PREVIOUS_CRAFT), BUTTON_FONT_SIZE, 0,
-										 PREVIOUS_CRAFT_HOVER_SLOT, "jewelsound") != 0) {
+	if (FrontendButton_HandleSpriteButton(&rect, "review7u", "review7d",
+										  FrontendString_Get(FRONTSTR_296_PREVIOUS_CRAFT), BUTTON_FONT_SIZE,
+										  0, PREVIOUS_CRAFT_HELD_SLOT, "jewelsound") != 0) {
 		--g_techLibrarySelectedShipListIdx;
 		if (g_techLibrarySelectedShipListIdx < 0) {
 			g_techLibrarySelectedShipListIdx = g_shipCount - 1;
 		}
 		memset(&g_techLibraryCraftStats, 0, sizeof(g_techLibraryCraftStats));
-		g_techLibraryCraftStats.craftType = g_shipList[g_techLibrarySelectedShipListIdx].typeId;
+		g_techLibraryCraftStats.craftType = g_shipList[g_techLibrarySelectedShipListIdx].craftType;
 		BuildCraftTechStats(&g_techLibraryCraftStats);
 		ModelPreview_LoadModel(g_shipList[g_techLibrarySelectedShipListIdx].modelFileName);
-		selectedCraftType = g_shipList[g_techLibrarySelectedShipListIdx].typeId;
+		selectedCraftType = g_shipList[g_techLibrarySelectedShipListIdx].craftType;
 		if (selectedCraftType == CRAFT_SPECIES_TIE_INTERCEPTOR ||
 			selectedCraftType == CRAFT_SPECIES_TIE_BOMBER) {
 			ModelPreview_SetObjectWorldPosition(0, SPECIAL_CRAFT_WORLD_Y, 0);
@@ -326,18 +328,18 @@ int TechLibrary_UpdateModelControls(void) {
 	}
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
-	if (FrontendButton_DrawSpriteHitTest(&rect, "review6u", "review6d",
-										 FrontendString_Get(FRONTSTR_295_NEXT_CRAFT), BUTTON_FONT_SIZE, 0,
-										 NEXT_CRAFT_HOVER_SLOT, "jewelsound") != 0) {
+	if (FrontendButton_HandleSpriteButton(&rect, "review6u", "review6d",
+										  FrontendString_Get(FRONTSTR_295_NEXT_CRAFT), BUTTON_FONT_SIZE, 0,
+										  NEXT_CRAFT_HELD_SLOT, "jewelsound") != 0) {
 		++g_techLibrarySelectedShipListIdx;
 		if (g_shipCount <= g_techLibrarySelectedShipListIdx) {
 			g_techLibrarySelectedShipListIdx = 0;
 		}
 		memset(&g_techLibraryCraftStats, 0, sizeof(g_techLibraryCraftStats));
-		g_techLibraryCraftStats.craftType = g_shipList[g_techLibrarySelectedShipListIdx].typeId;
+		g_techLibraryCraftStats.craftType = g_shipList[g_techLibrarySelectedShipListIdx].craftType;
 		BuildCraftTechStats(&g_techLibraryCraftStats);
 		ModelPreview_LoadModel(g_shipList[g_techLibrarySelectedShipListIdx].modelFileName);
-		selectedCraftType = g_shipList[g_techLibrarySelectedShipListIdx].typeId;
+		selectedCraftType = g_shipList[g_techLibrarySelectedShipListIdx].craftType;
 		if (selectedCraftType != CRAFT_SPECIES_TIE_INTERCEPTOR &&
 			selectedCraftType != CRAFT_SPECIES_TIE_BOMBER) {
 			ModelPreview_SetObjectWorldPosition(0, 0, 0);
@@ -361,7 +363,7 @@ int TechLibrary_DrawCraftSpecPanel(void) {
 	if (craftSpecIndex < 0) {
 		craftSpecIndex = 0;
 	}
-	sprintf(g_frontendScratchBuffer, "%s", g_techLibrarySpecTextTable[craftSpecIndex].designation);
+	sprintf(g_frontendScratchBuffer, "%s", g_techLibrarySpecTextTable[craftSpecIndex].craftName);
 	FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer, &rect, 0, 1, 0xFFFF);
 
 	FrontendDraw_RectOffsetXY(&rect, 0, 30);
@@ -506,7 +508,7 @@ int TechLibrary_LoadSpecTextTable(void) {
 
 			switch (fieldIndex) {
 				case 0:
-					strncpy(g_techLibrarySpecTextTable[entryIndex].designation, g_frontendScratchBuffer, 64u);
+					strncpy(g_techLibrarySpecTextTable[entryIndex].craftName, g_frontendScratchBuffer, 64u);
 					break;
 				case 1:
 					strncpy(g_techLibrarySpecTextTable[entryIndex].manufacturer, g_frontendScratchBuffer,

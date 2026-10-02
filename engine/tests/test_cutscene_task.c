@@ -32,9 +32,9 @@ static CutsceneEntry g_table[5];
 static void Entry(int index, const char* movie, int mission, int phase, int description) {
 	memset(&g_table[index], 0, sizeof g_table[index]);
 	strcpy(g_table[index].movieName, movie);
-	g_table[index].missionIdx = mission;
+	g_table[index].campaignId = mission;
 	g_table[index].playAfterDebriefing = phase;
-	g_table[index].missionDescriptionId = description;
+	g_table[index].campaignMissionId = description;
 }
 
 /* The table: "first" and "fourth" match phase 0, "second" matches phase 1, the others never match the

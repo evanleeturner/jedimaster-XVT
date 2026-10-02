@@ -31,7 +31,8 @@ struct FrontImageRleRowBuffer {
 };
 
 int FrontImage_RegisterResourceDefault(const char* fileName, const char* name);
-int FrontImage_RegisterResource(const char* fileName, const char* name, int makePalette, int compressRLE);
+int FrontImage_RegisterResource(const char* fileName, const char* name, int remapToDisplayPalette,
+								int compressRLE);
 void FrontImage_FreeResourceByName(const char* name);
 void FrontImage_FreeAllResources(void);
 int FrontImage_ResourceExists(const char* name);
@@ -45,7 +46,7 @@ int FrontImage_DrawSpriteRectTinted(const char* name, RECT* srcRect, int dstX, i
 int FrontImage_BlitRectTinted(ImageResource* image, const RECT* srcRect, int dstX, int dstY,
 							  unsigned int tintColor);
 int FrontImage_DrawSprite(const char* name, int x, int y);
-int FrontImage_BlitClipped(ImageResource* image, int x, int y);
+int FrontImage_BlitTransparent(ImageResource* image, int x, int y);
 void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft, int srcTop,
 						 int visibleWidth, int visibleHeight);
 void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLeft, int srcTop,
@@ -56,12 +57,13 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 							   int visibleWidth, int visibleHeight);
 void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int srcLeft, int srcTop,
 								int visibleWidth, int visibleHeight);
-int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color, int allowColorRemap);
+int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color, int applyTextFade);
 void FrontImage_BlitGlyphRLE_8bpp(ImageResource* glyph, int destX, int destY, int clipLeftSkip,
 								  int clipTopSkip, int visibleWidth, int visibleRows, uint8_t color);
 void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, int clipLeftSkip,
 								   int clipTopSkip, int visibleWidth, int visibleRows, unsigned int color);
-int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int makePalette, int compressRLE);
+int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int remapToDisplayPalette,
+						   int compressRLE);
 int FrontImage_DecodeBmp4bpp(XvtFile* stream, void* dstPixels, const BITMAPFILEHEADER* fileHeader,
 							 const BITMAPINFOHEADER* infoHeader);
 int FrontImage_DecodeBmp8bpp(XvtFile* stream, void* dstPixels, const BITMAPFILEHEADER* fileHeader,

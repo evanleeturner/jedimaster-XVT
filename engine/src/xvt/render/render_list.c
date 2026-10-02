@@ -33,18 +33,18 @@ void RenderList_Reset(void) {
 // FUNCTION: XVT 0x436470
 int RenderList_ProjectObjectBoundsForCulling(int objectIdx, unsigned int boundsRadius, int playerIdx) {
 	ObjectRecord* object;
-	int savedTargetY;
-	int savedTargetZ;
+	int cameraWorldY;
+	int cameraWorldZ;
 	int absViewCoord;
 	int farZ;
 	int cullRadius;
 
 	object = &g_objectTable[objectIdx];
-	savedTargetY = g_players[playerIdx].viewState.cameraWorldY;
+	cameraWorldY = g_players[playerIdx].viewState.cameraWorldY;
 	g_camRelWorldX = object->world_x - g_players[playerIdx].viewState.cameraWorldX;
-	savedTargetZ = g_players[playerIdx].viewState.cameraWorldZ;
-	g_camRelWorldY = object->world_y - savedTargetY;
-	g_camRelWorldZ = object->world_z - savedTargetZ;
+	cameraWorldZ = g_players[playerIdx].viewState.cameraWorldZ;
+	g_camRelWorldY = object->world_y - cameraWorldY;
+	g_camRelWorldZ = object->world_z - cameraWorldZ;
 	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 	cullRadius = (int)boundsRadius;
 	farZ = (int)((unsigned int)g_viewSpaceDepth + (unsigned int)cullRadius);

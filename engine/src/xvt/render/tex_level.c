@@ -11,7 +11,7 @@ unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int* texLevel) {
 	TexLevelHeader* header;
 	uint16_t* outputPalette16;
 	uint8_t* sourcePaletteRgba;
-	unsigned int paletteCount;
+	unsigned int paletteColorCount;
 	RgbTriplet* rgbCursor;
 	unsigned int entriesRemaining;
 	unsigned int paletteIndex;
@@ -24,12 +24,12 @@ unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int* texLevel) {
 	outputPalette16 = (uint16_t*)((uint8_t*)header + header->dataSize);
 	if (header->bitsPerPixel == 24) {
 		sourcePaletteRgba = (uint8_t*)header + header->paletteOffset;
-		header->palette8Offset = (uint32_t)((uint8_t*)outputPalette16 - (uint8_t*)header);
-		paletteCount = header->paletteColorCount;
-		if (paletteCount < 1024) {
-			if (paletteCount != 0) {
+		header->convertedPaletteOffset = (uint32_t)((uint8_t*)outputPalette16 - (uint8_t*)header);
+		paletteColorCount = header->paletteColorCount;
+		if (paletteColorCount < 1024) {
+			if (paletteColorCount != 0) {
 				rgbCursor = srcRgb;
-				entriesRemaining = paletteCount;
+				entriesRemaining = paletteColorCount;
 				do {
 					rgbCursor->r = *sourcePaletteRgba++ >> 2;
 					rgbCursor->g = *sourcePaletteRgba++ >> 2;
@@ -38,7 +38,7 @@ unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int* texLevel) {
 					++rgbCursor;
 				} while (--entriesRemaining != 0);
 			}
-			FlightPalette_Build16BppRange(srcRgb, outputPalette16, 0, paletteCount);
+			FlightPalette_Build16BppRange(srcRgb, outputPalette16, 0, paletteColorCount);
 			outputPalette16 += header->paletteColorCount;
 		}
 	}
@@ -50,13 +50,13 @@ unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int* texLevel) {
 			image = (TexLevelImageHeader*)((uint8_t*)header +
 										   *(uint32_t*)((uint8_t*)header + header->imageOffsetTableOffset +
 														imageIndex * sizeof(uint32_t)));
-			image->palette8Offset = (uint32_t)((uint8_t*)outputPalette16 - (uint8_t*)image);
+			image->convertedPaletteOffset = (uint32_t)((uint8_t*)outputPalette16 - (uint8_t*)image);
 			if (image->bitsPerPixel == 24) {
-				paletteCount = image->paletteColorCount;
+				paletteColorCount = image->paletteColorCount;
 				sourcePaletteRgba = (uint8_t*)image + image->paletteOffset;
-				if (paletteCount < 1024) {
+				if (paletteColorCount < 1024) {
 					paletteIndex = 0;
-					if (paletteCount != 0) {
+					if (paletteColorCount != 0) {
 						rgbCursor = srcRgb;
 						do {
 							rgbCursor->r = *sourcePaletteRgba++ >> 2;
@@ -92,7 +92,7 @@ unsigned int TexLevel_Convert24BppPalettesTo8Bpp(unsigned int* texLevel) {
 	outputPalette8 = (uint8_t*)header + header->dataSize;
 	if (header->bitsPerPixel == 24) {
 		sourcePaletteRgba = (const uint8_t*)header + header->paletteOffset;
-		header->palette8Offset = (uint32_t)(outputPalette8 - (uint8_t*)header);
+		header->convertedPaletteOffset = (uint32_t)(outputPalette8 - (uint8_t*)header);
 		paletteIndex = 0;
 		while (paletteIndex < header->paletteColorCount) {
 			targetRgb.r = sourcePaletteRgba[0] >> 2;
@@ -110,7 +110,7 @@ unsigned int TexLevel_Convert24BppPalettesTo8Bpp(unsigned int* texLevel) {
 	while (imageIndex < header->imageCount) {
 		image = (TexLevelImageHeader*)((uint8_t*)header + *(uint32_t*)((uint8_t*)&texLevel[imageIndex] +
 																	   header->imageOffsetTableOffset));
-		image->palette8Offset = (uint32_t)(outputPalette8 - (uint8_t*)image);
+		image->convertedPaletteOffset = (uint32_t)(outputPalette8 - (uint8_t*)image);
 		if (image->bitsPerPixel == 24) {
 			sourcePaletteRgba = (const uint8_t*)image + image->paletteOffset;
 			if (g_generateMissionPalette != 0) {

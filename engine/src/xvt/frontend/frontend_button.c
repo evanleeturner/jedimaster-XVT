@@ -35,22 +35,22 @@ static int g_frontButtonLightColor = 0;
 static uint8_t g_buttonHeldState[256] = { 0 };
 
 // FUNCTION: XVT 0x4DA650
-int FrontendButton_HandleTextButton(RECT* rect, const char* text, int fontSize, int normalColor,
-									int hoverSlot, const char* clickSoundName) {
+int FrontendButton_HandleTextButton(RECT* rect, const char* text, int fontSize, int unusedColor,
+									int heldStateSlot, const char* clickSoundName) {
 	int cursorX;
 	int cursorY;
 
 	FrontendCursor_GetPos(&cursorX, &cursorY);
 	if (FrontendDraw_PointInRect(rect, cursorX, cursorY)) {
 		if (FrontendMouse_GetLeftDown() != 0 || FrontendMouse_GetRightDown() != 0) {
-			FrontendButton_DrawTextButtonState(rect, text, fontSize, normalColor, 1);
-			if (g_buttonHeldState[hoverSlot] == 0 && g_gameConfig.sfxDatapadEnabled != 0) {
+			FrontendButton_DrawTextButtonState(rect, text, fontSize, unusedColor, 1);
+			if (g_buttonHeldState[heldStateSlot] == 0 && g_gameConfig.sfxDatapadEnabled != 0) {
 				FrontendSound_PlayUISound(clickSoundName, 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 			}
-			g_buttonHeldState[hoverSlot] = 1;
+			g_buttonHeldState[heldStateSlot] = 1;
 		} else {
-			FrontendButton_DrawTextButtonState(rect, text, fontSize, normalColor, 0);
-			g_buttonHeldState[hoverSlot] = 0;
+			FrontendButton_DrawTextButtonState(rect, text, fontSize, unusedColor, 0);
+			g_buttonHeldState[heldStateSlot] = 0;
 		}
 		if (FrontendMouse_GetLeftClick() != 0) {
 			return 1;
@@ -59,16 +59,16 @@ int FrontendButton_HandleTextButton(RECT* rect, const char* text, int fontSize, 
 			return 2;
 		}
 	} else {
-		g_buttonHeldState[hoverSlot] = 0;
-		FrontendButton_DrawTextButtonState(rect, text, fontSize, normalColor, 0);
+		g_buttonHeldState[heldStateSlot] = 0;
+		FrontendButton_DrawTextButtonState(rect, text, fontSize, unusedColor, 0);
 	}
 	return 0;
 }
 
 // FUNCTION: XVT 0x4DA780
-int FrontendButton_DrawSpriteHitTest(RECT* rect, const char* normalSprite, const char* pressedSprite,
-									 const char* tooltipText, int fontSize, int textColor, int hoverSlot,
-									 const char* hoverSound) {
+int FrontendButton_HandleSpriteButton(RECT* rect, const char* normalSprite, const char* pressedSprite,
+									  const char* tooltipText, int fontSize, int unusedColor,
+									  int heldStateSlot, const char* pressSoundName) {
 	int cursorX;
 	int cursorY;
 
@@ -76,35 +76,35 @@ int FrontendButton_DrawSpriteHitTest(RECT* rect, const char* normalSprite, const
 	if (FrontendDraw_PointInRect(rect, cursorX, cursorY)) {
 		if (FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0) {
 			FrontendButton_UsePressedOverlayStyle();
-			FrontendButton_DrawSpriteAndTooltip(rect, pressedSprite, tooltipText, fontSize, textColor);
+			FrontendButton_DrawSpriteAndTooltip(rect, pressedSprite, tooltipText, fontSize, unusedColor);
 			return 1;
 		}
 		if (FrontendMouse_GetLeftDown() != 0 || FrontendMouse_GetRightDown() != 0) {
 			FrontendButton_UsePressedOverlayStyle();
-			FrontendButton_DrawSpriteAndTooltip(rect, pressedSprite, tooltipText, fontSize, textColor);
-			if (g_buttonHeldState[hoverSlot] == 0 && g_gameConfig.sfxDatapadEnabled != 0) {
-				FrontendSound_PlayUISound(hoverSound, 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
+			FrontendButton_DrawSpriteAndTooltip(rect, pressedSprite, tooltipText, fontSize, unusedColor);
+			if (g_buttonHeldState[heldStateSlot] == 0 && g_gameConfig.sfxDatapadEnabled != 0) {
+				FrontendSound_PlayUISound(pressSoundName, 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 			}
-			g_buttonHeldState[hoverSlot] = 1;
+			g_buttonHeldState[heldStateSlot] = 1;
 			return 0;
 		}
-		FrontendButton_DrawSpriteAndTooltip(rect, normalSprite, tooltipText, fontSize, textColor);
-		g_buttonHeldState[hoverSlot] = 0;
+		FrontendButton_DrawSpriteAndTooltip(rect, normalSprite, tooltipText, fontSize, unusedColor);
+		g_buttonHeldState[heldStateSlot] = 0;
 		return 0;
 	}
 
-	g_buttonHeldState[hoverSlot] = 0;
-	FrontendButton_DrawSpriteAndTooltip(rect, normalSprite, tooltipText, fontSize, textColor);
+	g_buttonHeldState[heldStateSlot] = 0;
+	FrontendButton_DrawSpriteAndTooltip(rect, normalSprite, tooltipText, fontSize, unusedColor);
 	return 0;
 }
 
 // FUNCTION: XVT 0x4DA8E0
-int FrontendButton_DrawTextButtonState(RECT* rect, const char* text, int fontSize, int normalColor,
-									   char state) {
+int FrontendButton_DrawTextButtonState(RECT* rect, const char* text, int fontSize, int unusedColor,
+									   char isPressed) {
 	RECT innerRect;
 	int textColor;
 
-	(void)normalColor;
+	(void)unusedColor;
 
 	if (!g_frontButtonColorsInitialized) {
 		g_frontButtonColorsInitialized = 1;
@@ -112,7 +112,7 @@ int FrontendButton_DrawTextButtonState(RECT* rect, const char* text, int fontSiz
 		g_frontButtonLightColor = FrontendDisplay_PackRGB(0x63, 0xE7, 0xF7);
 	}
 
-	if (state) {
+	if (isPressed) {
 		FrontendDraw_Rect(rect, 0, 0, g_frontButtonLightColor, 1);
 		FrontendDraw_RectCopy(&innerRect, rect);
 		if (rect->bottom - rect->top > 14) {
@@ -139,15 +139,15 @@ int FrontendButton_DrawTextButtonState(RECT* rect, const char* text, int fontSiz
 
 // FUNCTION: XVT 0x4DAA20
 void FrontendButton_DrawSpriteAndTooltip(RECT* rect, const char* spriteName, const char* tooltipText,
-										 int fontSize, int textColor) {
-	int cursorX;
-	int cursorY;
+										 int fontSize, int unusedColor) {
+	int tooltipLeft;
+	int tooltipTop;
 	int cursorWidth;
 	int cursorHeight;
 	int textWidth;
 	RECT tooltipRect;
 
-	(void)textColor;
+	(void)unusedColor;
 
 	FrontImage_DrawSprite(spriteName, 0, 0);
 	if (g_frontButtonRectGrayColorInitialized == 0) {
@@ -155,22 +155,23 @@ void FrontendButton_DrawSpriteAndTooltip(RECT* rect, const char* spriteName, con
 		g_frontButtonRectGrayColor = FrontendDisplay_PackRGB(0x60, 0x60, 0x60);
 	}
 
-	FrontendCursor_GetPos(&cursorX, &cursorY);
+	FrontendCursor_GetPos(&tooltipLeft, &tooltipTop);
 	if (g_buttonOverlayTextEnabled != 0)
 		FrontendButton_DrawOverlayText(rect, g_buttonOverlayText);
-	if (tooltipText == NULL || !FrontendDraw_PointInRect(rect, cursorX, cursorY))
+	if (tooltipText == NULL || !FrontendDraw_PointInRect(rect, tooltipLeft, tooltipTop))
 		return;
 
 	textWidth = FrontendText_MeasureWidth(tooltipText, fontSize);
 	FrontendCursor_GetDimensions(&cursorWidth, &cursorHeight);
-	cursorX += cursorWidth;
-	cursorY += cursorHeight;
-	if (textWidth + cursorX + 5 >= 640)
-		cursorX = 634 - textWidth;
-	if ((uint32_t)(fontSize + cursorY + 5) >= 480)
-		cursorY = 474 - fontSize;
+	tooltipLeft += cursorWidth;
+	tooltipTop += cursorHeight;
+	if (textWidth + tooltipLeft + 5 >= 640)
+		tooltipLeft = 634 - textWidth;
+	if ((uint32_t)(fontSize + tooltipTop + 5) >= 480)
+		tooltipTop = 474 - fontSize;
 
-	FrontendDraw_RectAssign(&tooltipRect, cursorX, cursorY, textWidth + cursorX + 5, fontSize + cursorY + 3);
+	FrontendDraw_RectAssign(&tooltipRect, tooltipLeft, tooltipTop, textWidth + tooltipLeft + 5,
+							fontSize + tooltipTop + 3);
 	FrontendDraw_Rect(&tooltipRect, 0, 0, 0xFFFF, 1);
 	FrontendDraw_RectOutline(&tooltipRect, 0, 0, g_frontButtonRectGrayColor);
 	FrontendText_DrawCentered(fontSize, tooltipText, &tooltipRect, 0);

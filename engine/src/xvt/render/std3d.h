@@ -41,8 +41,8 @@ struct Std3DTexCacheNode {
 	int usesAlphaFormat;
 	unsigned int width;
 	unsigned int height;
-	unsigned int byteSize;
-	unsigned int cacheFrameTag;
+	unsigned int texelCount;
+	unsigned int cacheBatchTag;
 	struct Std3DTexCacheNode* pPrev;
 	struct Std3DTexCacheNode* pNext;
 };
@@ -184,7 +184,7 @@ extern unsigned int g_std3DNumDevices;
 extern unsigned int g_std3DCurDeviceIdx;
 extern Std3DDevice g_std3DDevices[4];
 extern Std3DDevice* g_pStd3DCurDevice;
-extern unsigned int g_std3DTextureFrameTag;
+extern unsigned int g_std3DTextureBatchTag;
 extern int g_texCacheCount;
 extern Std3DTexCacheNode* g_pTexCacheHead;
 extern Std3DTexCacheNode* g_pTexCacheTail;
@@ -197,20 +197,20 @@ struct Std3DZBufferSurfaceBlock {
 	DDSURFACEDESC desc;
 };
 
-extern unsigned int g_std3DCapFlags;
+extern unsigned int g_std3DRenderOptionFlags;
 extern Std3DTexFmt* g_pFmtOpaqueTexture;
 extern float g_std3DColorOverlayRed;
 extern float g_std3DColorOverlayGreen;
 extern float g_std3DColorOverlayBlue;
 extern int g_std3DColorOverlayEnabled;
 extern int g_std3DMinTextureWidth;
-extern int g_std3DZBufferBitDepth;
+extern int g_std3DZCompareCap;
 extern int g_std3DMinTextureHeight;
 extern int g_std3DMaxTextureWidth;
 extern int g_std3DMaxTextureHeight;
 
 void std3D_CopyPaletteToScratch16(const uint16_t* palette, int colorCount);
-void std3D_ConvertTexTo1555(const uint16_t* srcPixels, int pixelCount);
+void std3D_ConvertPaletteTo1555(const uint16_t* palette, int colorCount);
 int std3D_Startup(void);
 Std3DRenderTargetDesc* std3D_InitRenderTargetDesc(unsigned int width, unsigned int height, int pitchBytes);
 void std3D_Shutdown(void);
@@ -247,8 +247,7 @@ int std3D_ExecuteBuffer(void);
 void std3D_SetRenderState(Std3DRenderStateFlags flags);
 int std3D_SetPaletteConversionSource(const void* paletteRgb888, uint8_t alpha);
 void std3D_ClampTextureDimensions(int srcWidth, int srcHeight, int* outWidth, int* outHeight);
-int std3D_CreateMipSurface(Std3DVBuffer* source, Std3DTexCacheNode* node, int textureFormatMode,
-						   int alphaMask);
+int std3D_AddToTextureCache(Std3DVBuffer* source, Std3DTexCacheNode* node, int colorKeyed, int translucent);
 void std3D_FlushTextureCache(void);
 void std3D_CacheListAppend(Std3DTexCacheNode* node);
 void std3D_CacheListRemove(Std3DTexCacheNode* node);

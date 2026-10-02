@@ -62,7 +62,7 @@ IDirectDrawSurface* g_flightRenderSurface;
 // GLOBAL: XVT 0x66E200
 static char g_flightDisplayDebugMessage[1280] = { 0 };
 // GLOBAL: XVT 0x5233CC
-unsigned int g_swFramebufferClearChunkSize = 0xF000;
+unsigned int g_vesaPageSizeBytes = 0xF000;
 // GLOBAL: XVT 0x5233D0
 unsigned int g_vesaGrainsPerPage = 15;
 // GLOBAL: XVT 0x52155C
@@ -78,11 +78,11 @@ void FlightDisplay_ConfigureResolutionState(void) {
 
 	primarySurfacePitch = FlightDisplay_GetPrimarySurfacePitch();
 	resolutionMode = g_flightResolutionMode;
-	g_swFramebufferClearChunkSize = 480 * primarySurfacePitch;
+	g_vesaPageSizeBytes = 480 * primarySurfacePitch;
 	g_vesaGrainsPerPage = 1;
 	switch (resolutionMode) {
 		case FLIGHT_RESOLUTION_320X240:
-			g_swFramebufferClearChunkSize = 0x10000;
+			g_vesaPageSizeBytes = 0x10000;
 			g_vesaGrainsPerPage = 1;
 			g_screenWidth = 320;
 			g_screenHeight = 240;
@@ -123,7 +123,7 @@ void FlightDisplay_ConfigureResolutionState(void) {
 			break;
 
 		default:
-			g_swFramebufferClearChunkSize = 0x10000;
+			g_vesaPageSizeBytes = 0x10000;
 			g_screenWidth = 320;
 			g_screenHeight = 240;
 			g_flightResolutionLegacyExtent = 240;

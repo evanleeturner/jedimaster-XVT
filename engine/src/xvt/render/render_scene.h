@@ -52,7 +52,7 @@ extern int g_d3dTriangleCount;
 extern float g_flightVpOriginX;
 extern uint16_t g_sceneSpanDataHandle;
 extern uint16_t g_sceneSpanPtrListHandle;
-extern uint16_t g_scenePhongDataHandle;
+extern uint16_t g_sceneLightSampleDataHandle;
 extern uint16_t g_visFaceListHandle;
 extern uint16_t g_projVertListHandle;
 extern ProjVertex* g_projVertList;
@@ -88,7 +88,7 @@ static inline unsigned int RenderScene_GetMemoryHandle(const uint16_t* handle) {
 struct ProjVertex {
 	float sx;
 	float sy;
-	float w;
+	float scaledInverseDepth;
 	float lightIntensity;
 	float tu;
 	float tv;
@@ -101,10 +101,10 @@ struct SceneMesh {
 	float viewPosY;
 	float viewPosZ;
 	float viewOrient[9];
-	float posX;
-	float posY;
-	float posZ;
-	float orient[9];
+	float eyeModelSpaceX;
+	float eyeModelSpaceY;
+	float eyeModelSpaceZ;
+	float viewToModelOrient[9];
 	int nodeFlags[4]; ///< Elements 0-2 come from the OPT_TYPE_19 payload; element 3 receives g_curMeshFlags
 					  ///< from OPT_TYPE_10 for selectors outside 5-8.
 	int vertexCount;
@@ -130,7 +130,7 @@ struct SceneMesh {
 	int edgeBaseIndex;
 	int visFaceCount;
 	int projVertCursor;
-	int clippedEdgeCount;
+	int emittedEdgeCount;
 };
 
 struct SceneFace {
@@ -141,15 +141,15 @@ struct SceneFace {
 	float gradients[9];
 	float spanLightIntensityDx;
 	SceneEdge* pScanEdge;
-	void* pPhongData;
+	void* pLightSamples;
 	int yTop;
 	int yBot;
-	float maxVertW;
-	float minVertW;
+	float maxScaledInverseDepth;
+	float minScaledInverseDepth;
 	SceneEdge* edges[5];
 	int edgeCount;
 	SceneSpan** pSpans;
-	int mipLevel;
+	int texelsPerPixelQ8;
 };
 
 struct SceneSpan {
@@ -168,7 +168,7 @@ static __inline float RenderScene_AddTranslation(float position, float translati
 void RenderScene_ProjectMeshVertices(SceneMesh* mesh);
 void RenderScene_ProjectDistantMeshVertices(SceneMesh* mesh);
 void RenderScene_DrawMeshFaces(const SceneMesh* mesh);
-void RenderScene_DrawMesh(const SceneMesh* mesh);
+void RenderScene_DrawMeshHardware(const SceneMesh* mesh);
 void RenderScene_InitHardwareFrame(void);
 extern int g_sceneFlushDrawTargetMarkers;
 void RenderScene_FlushGeometry(void);
@@ -190,8 +190,8 @@ void RenderScene_DrawSceneMesh(SceneMesh* mesh);
 void RenderScene_ApplyBwingBridgeRotation(OptimizedPolyObject* unusedModel, ObjectRecord* obj,
 										  SceneMesh* mesh, int bridgeMeshIndex);
 void RenderScene_DrawObjectModel(ObjectRecord* obj);
-void RenderScene_DrawNoAssetSourceModel(ObjectRecord* obj, int nodeSwitchIndex);
-void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, SceneMesh* mesh);
+void RenderScene_DrawSelectedRootNode(ObjectRecord* obj, int rootNodeIndex);
+void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneMesh* mesh);
 void RenderScene_ToggleVertexLightOcclusion(void);
 int RenderScene_GetVertexLightOcclusionEnabled(void);
 int RenderScene_IsSegmentOccludedByObjectModel(ObjectRecord* object, const OptVector* segmentStart,

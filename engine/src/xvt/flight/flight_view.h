@@ -48,7 +48,7 @@ static __inline int FlightView_ScaleQ15(struct FlightViewScale operation) {
 
 HRESULT FlightView_CompositeMaskedSoftwareSurface(void);
 extern int g_currentObjectBoundsExtent;
-int16_t FlightView_RotateViewByInput(int angleQ16, int rollAngleQ16, int playerIdx);
+int16_t FlightView_RotateViewByInput(int pitchStep, int yawOrRollStep, int playerIdx);
 void FlightView_UpdatePlayerCamera(int playerIdx);
 void FlightView_Render(void);
 int FlightView_ComputeObjectViewPosition(uint16_t objectIdx);

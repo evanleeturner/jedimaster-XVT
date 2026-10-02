@@ -237,7 +237,7 @@ void XvtInput_Update(int suppress) {
 	if (suppress) {
 		Keyboard_FlushCharBuffer();
 		g_frontState.mouseLeftDown = g_frontState.mouseRightDown = 0;
-		g_frontState.mouseClickLatch = g_frontState.mouseRightClickLatch = 0;
+		g_frontState.mouseLeftClickLatch = g_frontState.mouseRightClickLatch = 0;
 		return;
 	}
 	for (key = 0; key < AERON_KEY_COUNT; ++key) {
@@ -261,7 +261,7 @@ void XvtInput_Update(int suppress) {
 	if (inside) {
 		g_frontState.mouseX = x;
 		g_frontState.mouseY = y;
-		g_frontState.mouseClickLatch |=
+		g_frontState.mouseLeftClickLatch |=
 			!!(XvtInput_FilterMouseButtons(input->mouse.released_buttons) & AERON_MOUSE_BUTTON_LEFT);
 		g_frontState.mouseRightClickLatch |=
 			!!(XvtInput_FilterMouseButtons(input->mouse.released_buttons) & AERON_MOUSE_BUTTON_RIGHT);

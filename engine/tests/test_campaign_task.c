@@ -53,7 +53,7 @@ static void Fresh(int session_mode) {
 	g_cutsceneCount = 0;
 	free(g_briefingText);
 	g_briefingText = NULL;
-	g_remoteBattleSequenceActive = 0;
+	g_remoteBattleContinuationActive = 0;
 	g_remoteBattleSequenceContinuationChoice = 0;
 	g_remoteBattleLastCompletedMissionIndex = 0;
 	g_remoteBattleRebelVictoryCount = 0;
@@ -66,7 +66,7 @@ static void Fresh(int session_mode) {
 
 /* A remote battle in progress, which a failed continuation clears. */
 static void RemoteBattle(void) {
-	g_remoteBattleSequenceActive = 1;
+	g_remoteBattleContinuationActive = 1;
 	g_remoteBattleSequenceContinuationChoice = 2;
 	g_remoteBattleLastCompletedMissionIndex = 3;
 	g_remoteBattleRebelVictoryCount = 4;
@@ -74,7 +74,7 @@ static void RemoteBattle(void) {
 }
 
 static void CheckRemoteBattleCleared(void) {
-	XVT_ASSERT_INT_EQ(g_remoteBattleSequenceActive, 0);
+	XVT_ASSERT_INT_EQ(g_remoteBattleContinuationActive, 0);
 	XVT_ASSERT_INT_EQ(g_remoteBattleSequenceContinuationChoice, 0);
 	XVT_ASSERT_INT_EQ(g_remoteBattleLastCompletedMissionIndex, 0);
 	XVT_ASSERT_INT_EQ(g_remoteBattleRebelVictoryCount, 0);

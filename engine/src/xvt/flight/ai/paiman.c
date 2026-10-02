@@ -2367,7 +2367,7 @@ int16_t paiman_dodgemaneuver(void) {
 }
 
 // FUNCTION: XVT 0x4A44D0
-void paiman_setflighttotarget(uint16_t yawOffset, int driveHeading) {
+void paiman_setflighttotarget(uint16_t yawOffset, int steerPitch) {
 	uint16_t effectiveSkill;
 	int aimX;
 	int aimY;
@@ -2395,7 +2395,7 @@ void paiman_setflighttotarget(uint16_t yawOffset, int driveHeading) {
 	turnStep = effectiveSkill;
 	turnStep += 0x4000;
 	paiman_setturn(turnStep);
-	updateHeading = driveHeading;
+	updateHeading = steerPitch;
 	if (updateHeading != 0) {
 		g_paiContext.controller->targetZAngle = (uint16_t)trig2_pitch;
 		g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;

@@ -8,9 +8,9 @@
 extern "C" {
 #endif
 
-extern char g_frontDialogText0[256];
+extern char g_frontDialogLine1OrEdit[256];
 extern char g_frontDialogText1[256];
-extern char g_frontDialogText2OrEdit[256];
+extern char g_frontDialogLine3[256];
 extern char g_frontDialogOkayLabel[128];
 extern char g_frontDialogCancelLabel[128];
 extern int g_frontDialogSavedMouseX;

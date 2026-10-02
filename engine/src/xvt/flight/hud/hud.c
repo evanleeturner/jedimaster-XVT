@@ -384,7 +384,7 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx, int
 		adjustedDepth = 1;
 	}
 	depthValue = g_renderUnitFloat / ((float)adjustedDepth * g_invDepthProjScale + g_renderUnitFloat);
-	if (g_std3DZBufferBitDepth == 2) {
+	if (g_std3DZCompareCap == 2) {
 		depthValue = g_renderUnitFloat - depthValue;
 	}
 
@@ -1472,7 +1472,7 @@ void Hud_DrawRadarBlips(void) {
 	}
 
 	if (g_radarTargetMarkerBackgroundSaved != 0)
-		g_flightRestoreCursorFn();
+		g_flightRestoreRadarTargetMarkerFn();
 	if (g_radarForePrevBlipCount != 0)
 		g_flightDrawPointArrayMaskedFn((uint16_t*)&g_radarForeEraseBlips->x, g_radarForePrevBlipCount);
 	if (g_radarForeBlipCount != 0)
@@ -1488,7 +1488,7 @@ void Hud_DrawRadarBlips(void) {
 	if (g_players[g_localPlayer].currentTargetObjectIdx == -1) {
 		g_radarTargetMarkerBackgroundSaved = 0;
 	} else {
-		g_flightSaveDrawCursorFn();
+		g_flightDrawRadarTargetMarkerFn();
 		g_radarTargetMarkerBackgroundSaved = 1;
 	}
 	g_radarBlipBufferParity ^= 1;
@@ -5977,7 +5977,7 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 						FVIEW_SetObjectTransform(
 							g_objectTable[objectTableIndex].roll, g_objectTable[objectTableIndex].pitch,
 							g_objectTable[objectTableIndex].yaw, 0, &g_objectTable[objectTableIndex]);
-						SceneBillboard_QueueObjectTextured(objectIndex);
+						SceneBillboard_DrawOrQueueObject(objectIndex);
 					}
 				}
 			}
@@ -6925,7 +6925,7 @@ void Hud_DrawDepthTestedBoxCorners(int x, int y, int width, int height, int colo
 			span = &g_panelBoxSpanScratch[2 * left];
 		}
 		span16 = (uint16_t*)span;
-		color = g_flightTextPalette[colorIdx];
+		color = g_flightPalette16Bpp[colorIdx];
 		for (i = 0; i < cornerWidth; ++i) {
 			span16[i] = color;
 		}

@@ -81,9 +81,8 @@ int FrontendDisplay_GetWndProcMode(void);
 int Win32_CheckSingleInstance(void);
 void FrontendDisplay_FlipDirectDrawToGDISurface(void);
 const DxGuid* FrontendDisplay_LoadDriverGuid(void);
-int FrontendDisplay_DrawGdiTextOnSecondaryDisplay(const RECT* unused, const char* text,
-												  const char* overlayText);
-int FrontendDisplay_ClearSecondaryDisplayGdi(const RECT* unused);
+int FrontendDisplay_DrawGdiTextOnDesktop(const RECT* unused, const char* text, const char* overlayText);
+int FrontendDisplay_ClearDesktopGdi(const RECT* unused);
 int FrontendDisplay_IsSecondaryDirectDrawActive(void);
 void FrontendDisplay_SetPalette(void);
 int FrontendDisplay_PackRGB(uint8_t r, uint8_t g, uint8_t b);

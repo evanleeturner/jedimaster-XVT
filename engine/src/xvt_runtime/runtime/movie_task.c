@@ -69,7 +69,7 @@ void XvtMovieTask_ReapFinished(void) {
 	if (g_movie.saved_lock)
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
 	Keyboard_FlushCharBuffer();
-	g_frontState.mouseClickLatch = 0;
+	g_frontState.mouseLeftClickLatch = 0;
 	g_frontState.mouseRightClickLatch = 0;
 }
 
@@ -237,15 +237,15 @@ void XvtMovieTask_Update(void) {
 		uint32_t playing = 1;
 		if (key)
 			Movie_MultiplayerInputCallback(0, 0x102, key, 0, 0, &playing);
-		if (g_frontState.mouseClickLatch || g_frontState.mouseRightClickLatch)
+		if (g_frontState.mouseLeftClickLatch || g_frontState.mouseRightClickLatch)
 			Movie_MultiplayerInputCallback(0, 0x202, 0, 0, 0, &playing);
 		if (!playing)
 			XvtMovieTask_Stop();
 		synchronized = XvtMovieSync_Update();
-	} else if (key || g_frontState.mouseClickLatch || g_frontState.mouseRightClickLatch) {
+	} else if (key || g_frontState.mouseLeftClickLatch || g_frontState.mouseRightClickLatch) {
 		XvtMovieTask_Stop();
 	}
-	g_frontState.mouseClickLatch = g_frontState.mouseRightClickLatch = 0;
+	g_frontState.mouseLeftClickLatch = g_frontState.mouseRightClickLatch = 0;
 	state = Aeron_VideoGetState(g_movie.player);
 	if (state == AERON_VIDEO_ERROR) {
 		if (g_movie.result != 2)

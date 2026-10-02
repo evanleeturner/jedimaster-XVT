@@ -22,7 +22,7 @@ typedef struct ImageQuantizerPixelRun {
 	uint8_t red;
 	uint8_t green;
 	uint8_t blue;
-	uint8_t length;
+	uint8_t lengthMinusOne;
 	uint16_t paletteIndex;
 } ImageQuantizerPixelRun;
 
@@ -47,10 +47,10 @@ typedef struct ImageQuantizerOwnedBuffers {
 	uint8_t reserved101C[0x28];
 	void* buffer1044;
 	void* buffer1048;
-	void* buffer104C;
+	void* palette;
 	uint8_t reserved1050[0x32];
 	void* buffer1082;
-	void* buffer1086;
+	void* pixels;
 	uint8_t reserved108A[0x10];
 	void* buffer109A;
 	uint8_t reserved109E[0x810];
@@ -81,9 +81,9 @@ typedef struct ImageQuantizerLegacyImageRecord {
 	uint32_t field1040;
 	uint32_t field1044;
 	uint32_t field1048;
-	uint32_t field104C;
+	uint32_t palette;
 	uint32_t field1050;
-	uint32_t field1054;
+	uint32_t paletteColorCount;
 	uint32_t field1058;
 	uint32_t field105C;
 	uint16_t field1060;
@@ -113,7 +113,7 @@ typedef struct ImageQuantizerLegacyImageRecord {
 	uint32_t field18B6;
 	uint32_t field18BA;
 	uint32_t field18BE;
-	uint32_t field18C2;
+	uint32_t nextImage;
 } ImageQuantizerLegacyImageRecord;
 
 #pragma pack(pop)
@@ -221,9 +221,9 @@ void* ImageQuantizer_AllocateImage(void) {
 	image->field1066 = 72.0f;
 	image->field1044 = 0;
 	image->field1048 = 0;
-	image->field104C = 0;
+	image->palette = 0;
 	image->field1050 = 0;
-	image->field1054 = 0;
+	image->paletteColorCount = 0;
 	image->field1058 = 0;
 	image->field105C = 0;
 	image->field1076 = 0;
@@ -248,7 +248,7 @@ void* ImageQuantizer_AllocateImage(void) {
 	image->field18B6 = 0;
 	image->field18BA = 0;
 	image->field18BE = 0;
-	image->field18C2 = 0;
+	image->nextImage = 0;
 	return image;
 }
 
@@ -269,11 +269,11 @@ void ImageQuantizer_CompressPixelRuns(unsigned int* image) {
 
 	imageLayout = (ImageQuantizerImageLayout*)image;
 	sourceRun = imageLayout->pixels;
-	remaining = sourceRun->length + 1;
+	remaining = sourceRun->lengthMinusOne + 1;
 	imageLayout->runCount = 0;
 	imageLayout->sourceRunPixelsRemaining = remaining;
 	destinationRun = sourceRun;
-	destinationRun->length = 0xFF;
+	destinationRun->lengthMinusOne = 0xFF;
 	if (imageLayout->comparePaletteIndex != 0) {
 		if (imageLayout->width * imageLayout->height != 0) {
 			do {
@@ -282,20 +282,20 @@ void ImageQuantizer_CompressPixelRuns(unsigned int* image) {
 					--remaining;
 				} else {
 					++sourceRun;
-					remaining = sourceRun->length;
+					remaining = sourceRun->lengthMinusOne;
 				}
 				imageLayout->sourceRunPixelsRemaining = remaining;
 				if (destinationRun->red == sourceRun->red && destinationRun->green == sourceRun->green &&
 					sourceRun->blue == destinationRun->blue &&
 					sourceRun->paletteIndex == destinationRun->paletteIndex &&
-					destinationRun->length < 0xFF) {
-					++destinationRun->length;
+					destinationRun->lengthMinusOne < 0xFF) {
+					++destinationRun->lengthMinusOne;
 				} else {
 					if (imageLayout->runCount != 0)
 						++destinationRun;
 					++imageLayout->runCount;
 					*destinationRun = *sourceRun;
-					destinationRun->length = 0;
+					destinationRun->lengthMinusOne = 0;
 				}
 				++pixelIndex;
 			} while (imageLayout->width * imageLayout->height > pixelIndex);
@@ -307,18 +307,18 @@ void ImageQuantizer_CompressPixelRuns(unsigned int* image) {
 				--remaining;
 			} else {
 				++sourceRun;
-				remaining = sourceRun->length;
+				remaining = sourceRun->lengthMinusOne;
 			}
 			imageLayout->sourceRunPixelsRemaining = remaining;
 			if (destinationRun->red == sourceRun->red && destinationRun->green == sourceRun->green &&
-				sourceRun->blue == destinationRun->blue && destinationRun->length < 0xFF) {
-				++destinationRun->length;
+				sourceRun->blue == destinationRun->blue && destinationRun->lengthMinusOne < 0xFF) {
+				++destinationRun->lengthMinusOne;
 			} else {
 				if (imageLayout->runCount != 0)
 					++destinationRun;
 				++imageLayout->runCount;
 				*destinationRun = *sourceRun;
-				destinationRun->length = 0;
+				destinationRun->lengthMinusOne = 0;
 			}
 		}
 	}
@@ -351,12 +351,12 @@ void ImageQuantizer_DestroyImage(void* image) {
 		free(ownedBuffers->buffer1044);
 	if (ownedBuffers->buffer1048 != NULL)
 		free(ownedBuffers->buffer1048);
-	if (ownedBuffers->buffer104C != NULL)
-		free(ownedBuffers->buffer104C);
+	if (ownedBuffers->palette != NULL)
+		free(ownedBuffers->palette);
 	if (ownedBuffers->buffer1082 != NULL)
 		free(ownedBuffers->buffer1082);
-	if (ownedBuffers->buffer1086 != NULL)
-		free(ownedBuffers->buffer1086);
+	if (ownedBuffers->pixels != NULL)
+		free(ownedBuffers->pixels);
 	if (ownedBuffers->buffer109A != NULL)
 		free(ownedBuffers->buffer109A);
 	if (ownedBuffers->buffer18AE != NULL)
@@ -394,12 +394,12 @@ int ImageQuantizer_ExpandPixelRuns(uint32_t* image) {
 	sourceIndex = 0;
 	if (runCount != 0) {
 		do {
-			copies = source->length;
+			copies = source->lengthMinusOne;
 			if (copies >= 0) {
 				++copies;
 				do {
 					*destination = *source;
-					destination->length = 0;
+					destination->lengthMinusOne = 0;
 					--destination;
 					--copies;
 				} while (copies != 0);
@@ -414,7 +414,7 @@ int ImageQuantizer_ExpandPixelRuns(uint32_t* image) {
 
 // FUNCTION: XVT 0x443DE0
 void ImageQuantizer_QuantizeImage(unsigned int* image, unsigned int paletteSize, int treeDepth, int dither,
-								  int outputMode) {
+								  int colorspace) {
 	unsigned int targetColorCount = paletteSize;
 	int effectiveDepth = treeDepth;
 	int effectiveDither = dither;
@@ -423,7 +423,7 @@ void ImageQuantizer_QuantizeImage(unsigned int* image, unsigned int paletteSize,
 	unsigned int storedRunCount;
 	ImageQuantizerNodePoolBlock* previousBlock;
 
-	if (paletteSize == 2 && outputMode == 2 && dither != 0) {
+	if (paletteSize == 2 && colorspace == 2 && dither != 0) {
 		return;
 	}
 	if (targetColorCount == 0) {
@@ -458,7 +458,7 @@ void ImageQuantizer_QuantizeImage(unsigned int* image, unsigned int paletteSize,
 	if (targetColorCount < g_imageQuantizerColorCount) {
 		ImageQuantizer_ReduceColorTree(targetColorCount);
 	}
-	ImageQuantizer_AssignPaletteColors(image, targetColorCount, effectiveDither, outputMode);
+	ImageQuantizer_AssignPaletteColors(image, targetColorCount, effectiveDither, colorspace);
 	while (g_imageQuantizerNodePoolHead != NULL) {
 		previousBlock = g_imageQuantizerNodePoolHead->previous;
 		free(g_imageQuantizerNodePoolHead);
@@ -470,7 +470,7 @@ void ImageQuantizer_QuantizeImage(unsigned int* image, unsigned int paletteSize,
 
 // FUNCTION: XVT 0x443EF0
 unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int paletteSize, int dither,
-												int outputMode) {
+												int colorspace) {
 	ImageQuantizerImageLayout* layout;
 	ImageQuantizerPixelRun* pixel;
 	ImageQuantizerPaletteEntry* palette;
@@ -485,7 +485,7 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int pa
 	int secondLuma;
 	unsigned int offset;
 	int bitPosition;
-	int result;
+	int imageDithered;
 	ImageQuantizerNode* node;
 	uint8_t* imageBytes;
 
@@ -505,7 +505,7 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int pa
 	g_imageQuantizerPaletteEntries = palette;
 	g_imageQuantizerColorCount = 0;
 	ImageQuantizer_BuildPaletteEntriesRecursive(g_imageQuantizerRoot);
-	if (paletteSize == 2 && outputMode == 2 && colorCount >= 2) {
+	if (paletteSize == 2 && colorspace == 2 && colorCount >= 2) {
 		firstLuma = 77 * palette[0].red + 150 * palette[0].green + 29 * palette[0].blue;
 		secondLuma = 77 * palette[1].red + 150 * palette[1].green + 29 * palette[1].blue;
 		if (firstLuma < secondLuma) {
@@ -524,14 +524,14 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int pa
 			palette[0].blue = 255;
 		}
 	}
-	if (outputMode != 3) {
+	if (colorspace != 3) {
 		layout->comparePaletteIndex = 0;
 		layout->colorClass = 2;
 	}
 	memcpy(imageBytes + 0x1054, &g_imageQuantizerColorCount, sizeof(g_imageQuantizerColorCount));
-	result = dither ? ImageQuantizer_DitherImageToPalette(image) == 0 : 0;
-	if (result != 0) {
-		return (unsigned int)result;
+	imageDithered = dither ? ImageQuantizer_DitherImageToPalette(image) == 0 : 0;
+	if (imageDithered != 0) {
+		return (unsigned int)imageDithered;
 	}
 	pixel = layout->pixels;
 	runCount = layout->runCount;
@@ -599,7 +599,7 @@ void ImageQuantizer_ClassifyImageColors(unsigned int* image) {
 		node = g_imageQuantizerRoot;
 		bitPosition = 7;
 		level = 1;
-		runLength = (unsigned int)pixel->length + 1;
+		runLength = (unsigned int)pixel->lengthMinusOne + 1;
 		if ((unsigned int)g_imageQuantizerMaxTreeDepth >= 1) {
 			pixelWeight = (double)runLength;
 			do {
@@ -957,7 +957,7 @@ void ImageQuantizer_ReduceColorTreePassRecursive(ImageQuantizerNode* node) {
 
 // FUNCTION: XVT 0x445020
 void ImageQuantizer_QuantizeImageLists(unsigned int** imageListHeads, unsigned int listCount,
-									   unsigned int paletteSize, int treeDepth, int dither, int outputMode) {
+									   unsigned int paletteSize, int treeDepth, int dither, int colorspace) {
 	unsigned int targetColorCount = paletteSize == 0 ? 1 : paletteSize;
 	int effectiveDepth = treeDepth;
 	unsigned int value;
@@ -1019,7 +1019,7 @@ void ImageQuantizer_QuantizeImageLists(unsigned int** imageListHeads, unsigned i
 	for (listIndex = 0; listIndex < listCount; ++listIndex) {
 		image = (ImageQuantizerImageLayout*)imageListHeads[listIndex];
 		while (image != NULL) {
-			ImageQuantizer_AssignPaletteColors((unsigned int*)image, targetColorCount, dither, outputMode);
+			ImageQuantizer_AssignPaletteColors((unsigned int*)image, targetColorCount, dither, colorspace);
 			memcpy(&nextImage, (uint8_t*)image + 6338, sizeof(nextImage));
 			image = nextImage;
 		}
@@ -1086,8 +1086,8 @@ void ImageQuantizer_ExportPalette6BitAndDestroy(int colorCount, int treeDepth, u
 }
 
 // FUNCTION: XVT 0x4452D0
-void ImageQuantizer_ClassifyIndexed16BppImage(const uint8_t* indexedPixels, const uint16_t* palette16,
-											  unsigned int width, unsigned int height) {
+void ImageQuantizer_ClassifyIndexedRgb565Image(const uint8_t* indexedPixels, const uint16_t* palette16,
+											   unsigned int width, unsigned int height) {
 	ImageQuantizerImageLayout* image;
 	ImageQuantizerPixelRun* sample;
 	unsigned int row;
@@ -1125,7 +1125,7 @@ void ImageQuantizer_ClassifyIndexed16BppImage(const uint8_t* indexedPixels, cons
 			sample->blue = (uint8_t)channel;
 			++indexedPixels;
 			sample->paletteIndex = 0;
-			sample->length = 0;
+			sample->lengthMinusOne = 0;
 			++sample;
 			++column;
 		}
@@ -1141,7 +1141,7 @@ void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t* encodedImage, co
 												 unsigned int width, unsigned int height, int packingMode) {
 	uint8_t command;
 	ImageQuantizerImageLayout* image;
-	uint8_t runLength;
+	uint8_t runLengthMinusOne;
 	const uint8_t* commandPtr;
 	ImageQuantizerPixelRun* sample;
 	int paletteBase;
@@ -1166,29 +1166,29 @@ void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t* encodedImage, co
 				paletteBase = commandPtr[1] + (commandPtr[2] << 8);
 				commandPtr += 3;
 			} else if (command == 0xfc) {
-				runLength = commandPtr[1];
+				runLengthMinusOne = commandPtr[1];
 				commandPtr += 2;
 				do {
 					sample->red = 0x80;
 					sample->green = 0x80;
 					sample->blue = 0x80;
 					sample->paletteIndex = 0;
-					sample->length = 0;
+					sample->lengthMinusOne = 0;
 					++sample;
-				} while (runLength-- != 0);
+				} while (runLengthMinusOne-- != 0);
 			} else {
 				if (command == 0xfd) {
-					runLength = commandPtr[1];
+					runLengthMinusOne = commandPtr[1];
 					paletteIndex = commandPtr[2];
 					commandPtr += 3;
 				} else {
-					runLength = command;
+					runLengthMinusOne = command;
 					paletteIndex =
-						(uint8_t)(runLength >> g_flightSwRlePaletteShiftByPackingMode[packingMode]) +
+						(uint8_t)(runLengthMinusOne >> g_flightSwRlePaletteShiftByPackingMode[packingMode]) +
 						paletteBase;
 					++commandPtr;
-					runLength = g_flightSwRleRunLengthMaskByPackingMode[packingMode];
-					runLength &= command;
+					runLengthMinusOne = g_flightSwRleRunLengthMaskByPackingMode[packingMode];
+					runLengthMinusOne &= command;
 				}
 				paletteIndex *= 4;
 				do {
@@ -1196,9 +1196,9 @@ void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t* encodedImage, co
 					sample->green = paletteRgba[paletteIndex + 1];
 					sample->blue = paletteRgba[paletteIndex + 2];
 					sample->paletteIndex = 0;
-					sample->length = 0;
+					sample->lengthMinusOne = 0;
 					++sample;
-				} while (runLength-- != 0);
+				} while (runLengthMinusOne-- != 0);
 			}
 		}
 		++commandPtr;

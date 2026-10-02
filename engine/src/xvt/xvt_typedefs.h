@@ -45,7 +45,7 @@ typedef struct EMissionGoal EMissionGoal;
 typedef struct EMissionStruct EMissionStruct;
 typedef struct FaceRecord FaceRecord;
 typedef struct FaceTextureGradients FaceTextureGradients;
-typedef struct FlightCursorShapeOffset FlightCursorShapeOffset;
+typedef struct FlightRadarMarkerOffset FlightCursorShapeOffset;
 typedef struct FlightGlobalCountdownTimers FlightGlobalCountdownTimers;
 typedef struct FlightGroupGoal FlightGroupGoal;
 typedef struct FlightInputFrameRecord FlightInputFrameRecord;

@@ -508,7 +508,7 @@ void FlightView_Render(void) {
 	g_sceneBillboardQueueCount = 0;
 	if (g_useHardware3D != 0) {
 		g_billboardObjectOrTypeIndex = BACKDROP_BILLBOARD_TYPE_INDEX;
-		Backdrop_RenderCurrentRegion();
+		Backdrop_BuildStarOffsetsAndRender();
 		FlightSurface_Lock();
 		FlightStarfield_Render();
 		FlightSurface_Unlock();
@@ -662,14 +662,14 @@ void FlightView_Render(void) {
 						FVIEW_SetObjectTransform(
 							g_objectTable[objectTableIndex].roll, g_objectTable[objectTableIndex].pitch,
 							g_objectTable[objectTableIndex].yaw, 0, &g_objectTable[objectTableIndex]);
-						SceneBillboard_QueueObjectTextured(renderObjectIndex);
+						SceneBillboard_DrawOrQueueObject(renderObjectIndex);
 						break;
 					case CRAFT_GENUS_EXPLOSION:
 						FlightView_ComputeObjectViewPosition(renderObjectIndex);
 						FVIEW_SetObjectTransform(
 							g_objectTable[objectTableIndex].roll, g_objectTable[objectTableIndex].pitch,
 							g_objectTable[objectTableIndex].yaw, 0, &g_objectTable[objectTableIndex]);
-						SceneBillboard_QueueObjectTextured(renderObjectIndex);
+						SceneBillboard_DrawOrQueueObject(renderObjectIndex);
 						break;
 					default:
 						break;
@@ -691,7 +691,7 @@ void FlightView_Render(void) {
 
 	if (g_useHardware3D == 0) {
 		g_billboardObjectOrTypeIndex = BACKDROP_BILLBOARD_TYPE_INDEX;
-		Backdrop_RenderCurrentRegion();
+		Backdrop_BuildStarOffsetsAndRender();
 		FlightSurface_Lock();
 		FlightStarfield_Render();
 		FlightSurface_Unlock();

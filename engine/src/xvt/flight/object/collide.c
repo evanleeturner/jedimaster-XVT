@@ -2039,7 +2039,7 @@ void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx, int1
 			g_missionFgStats[g_objectTable[craftObjIdx].flightGroupIdx]
 				.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_ATTACKED] = 1;
 
-		if (g_gameConfig.voiceTacticalOfficerEnabled == 2 &&
+		if (g_gameConfig.voiceTacticalOfficerLevel == 2 &&
 			g_missionFlightGroups[g_objectTable[craftObjIdx].flightGroupIdx].fg.team ==
 				(uint16_t)g_players[g_localPlayer].team &&
 			g_objectTable[craftObjIdx].genusId != CRAFT_GENUS_STARFIGHTER) {
@@ -2460,7 +2460,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 			fsfx_speakorderack(g_localPlayer, victimObjIdx, 3, -1, victimObjIdx,
 							   GENERIC_IMPACT_ORDER_PROBABILITY);
 	} else {
-		if (g_gameConfig.voiceTacticalOfficerEnabled == 2 &&
+		if (g_gameConfig.voiceTacticalOfficerLevel == 2 &&
 			g_objectTable[victimObjIdx].genusId != CRAFT_GENUS_STARFIGHTER && *shieldEnergy != 0 &&
 			craft->hullDamage == 0)
 			fsfx_SpeakTacticalOfficerEvent(TACTICAL_VOICE_STATUS, TACTICAL_MSG_SHIELDS_OUT, victimObjIdx,
@@ -2604,7 +2604,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 												   attackerSourceObjIdx);
 				hullDamageBefore = craft->hullDamage;
 				craft->hullDamage = hullDamageBefore + (unsigned int)damage;
-				if (g_gameConfig.voiceTacticalOfficerEnabled == 2 &&
+				if (g_gameConfig.voiceTacticalOfficerLevel == 2 &&
 					g_objectTable[victimObjIdx].genusId != CRAFT_GENUS_STARFIGHTER) {
 					unsigned int threshold = MATH2_longfraction(craft->hullMax, 0xF333);
 

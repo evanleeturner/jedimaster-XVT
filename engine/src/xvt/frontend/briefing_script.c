@@ -46,7 +46,7 @@ int16_t BriefingScript_InitDefaultScript(void) {
 	g_briefingScript.headerWord06 = 2;
 	g_briefingScript.words[0] = 9999;
 	g_briefingScript.words[1] = 34;
-	g_briefingScript.currentTime = 0;
+	g_briefingScript.currentFrame = 0;
 	g_briefingScript.cursorWordIndex = 0;
 	g_briefingScript.headerWord08 = 0;
 	return BriefingScript_ResetState();
@@ -73,18 +73,18 @@ int16_t BriefingScript_ResetState(void) {
 	for (index = 0; index < 8; ++index) {
 		g_briefingMapLabelActive[index] = 0;
 	}
-	g_briefingScript.currentTime = 0;
+	g_briefingScript.currentFrame = 0;
 	g_briefingScript.cursorWordIndex = 0;
 	return BriefingScript_AdvanceFrame(1);
 }
 
 // FUNCTION: XVT 0x4F7420
 int16_t BriefingScript_AdvanceUntilTime(int16_t targetTime, int16_t initializeState) {
-	if (g_briefingScript.currentTime - targetTime != 1) {
-		if (targetTime < g_briefingScript.currentTime) {
+	if (g_briefingScript.currentFrame - targetTime != 1) {
+		if (targetTime < g_briefingScript.currentFrame) {
 			BriefingScript_ResetState();
 		}
-		while (targetTime >= g_briefingScript.currentTime) {
+		while (targetTime >= g_briefingScript.currentFrame) {
 			BriefingScript_AdvanceFrame(initializeState);
 		}
 		return 1;
@@ -98,12 +98,12 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 	int16_t visibleTextFrames;
 	int16_t opcode;
 	int16_t slotIndex;
-	int16_t currentTime;
+	int16_t startTime;
 	int16_t done;
 	int16_t targetTime;
 	int16_t targetOpcode;
 
-	currentTime = g_briefingScript.currentTime;
+	startTime = g_briefingScript.currentFrame;
 	textSlotActive = 0;
 	visibleTextFrames = 0;
 	opcode = 0;
@@ -127,7 +127,7 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 			++visibleTextFrames;
 		}
 		if ((g_briefingScriptPauseMarkerReached != 0 || visibleTextFrames == 1) &&
-			currentTime <= g_briefingScript.currentTime) {
+			startTime <= g_briefingScript.currentFrame) {
 			done = 1;
 		} else {
 			BriefingScript_AdvanceFrame(1);
@@ -135,7 +135,7 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 	} while (done == 0);
 
 	if (g_briefingScriptPauseMarkerReached != 0 || visibleTextFrames == 1) {
-		targetTime = g_briefingScript.currentTime;
+		targetTime = g_briefingScript.currentFrame;
 		targetOpcode = 0;
 	} else {
 		targetTime = g_briefingScript.words[g_briefingScript.cursorWordIndex];
@@ -150,7 +150,7 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 }
 
 // FUNCTION: XVT 0x4F7590
-int16_t BriefingScript_AdvanceFrame(int16_t initializeState) {
+int16_t BriefingScript_AdvanceFrame(int16_t applyInstantly) {
 	int16_t cursorWordIndex;
 	int16_t savedCursorWordIndex;
 	int16_t eventTime;
@@ -172,7 +172,7 @@ int16_t BriefingScript_AdvanceFrame(int16_t initializeState) {
 	g_briefingMapScaleDirty = 0;
 	g_briefingScriptPauseMarkerReached = 0;
 
-	if (eventTime <= g_briefingScript.currentTime) {
+	if (eventTime <= g_briefingScript.currentFrame) {
 		do {
 			savedCursorWordIndex = cursorWordIndex;
 			eventTime = g_briefingScript.words[cursorWordIndex++];
@@ -182,7 +182,7 @@ int16_t BriefingScript_AdvanceFrame(int16_t initializeState) {
 				args[argumentIndex] = g_briefingScript.words[cursorWordIndex++];
 			}
 
-			if (eventTime == g_briefingScript.currentTime) {
+			if (eventTime == g_briefingScript.currentFrame) {
 				switch (opcode) {
 					case 1:
 						g_briefingScriptPauseMarkerReached = 1;
@@ -200,7 +200,7 @@ int16_t BriefingScript_AdvanceFrame(int16_t initializeState) {
 						g_briefingTextSlotBlockIdx[slotIndex] = args[0];
 						break;
 					case 6:
-						if (eventTime == 0 || initializeState != 0) {
+						if (eventTime == 0 || applyInstantly != 0) {
 							g_briefingMapTargetCenter.x = args[0];
 							g_briefingMapCenter.x = args[0];
 							g_briefingMapTargetCenter.y = args[1];
@@ -212,7 +212,7 @@ int16_t BriefingScript_AdvanceFrame(int16_t initializeState) {
 						g_briefingMapCenterDirty = 1;
 						break;
 					case 7:
-						if (eventTime == 0 || initializeState != 0) {
+						if (eventTime == 0 || applyInstantly != 0) {
 							g_briefingMapTargetScale.x = args[0];
 							g_briefingMapScale.x = args[0];
 							g_briefingMapTargetScale.y = args[1];
@@ -237,7 +237,7 @@ int16_t BriefingScript_AdvanceFrame(int16_t initializeState) {
 					case 14:
 					case 15:
 					case 16:
-						if (initializeState == 0) {
+						if (applyInstantly == 0) {
 							iff = g_frontendMission.flightGroups[args[0]].iff;
 							if (iff > 2) {
 								iff = 2;
@@ -254,8 +254,8 @@ int16_t BriefingScript_AdvanceFrame(int16_t initializeState) {
 						}
 						slotIndex = opcode - 9;
 						g_briefingMapFgMarkerActive[slotIndex] = 1;
-						g_briefingMapFgMarkerAge[slotIndex] = initializeState == 0 ? 0 : 80;
-						g_briefingMapFgMarkerIconIdx[slotIndex] = args[0];
+						g_briefingMapFgMarkerAge[slotIndex] = applyInstantly == 0 ? 0 : 80;
+						g_briefingMapFgMarkerFlightGroupIdx[slotIndex] = args[0];
 						break;
 					case 17:
 						for (slotIndex = 0; slotIndex < 8; ++slotIndex) {
@@ -271,7 +271,7 @@ int16_t BriefingScript_AdvanceFrame(int16_t initializeState) {
 					case 23:
 					case 24:
 					case 25:
-						if (initializeState == 0) {
+						if (applyInstantly == 0) {
 							strcpy(labelText, g_briefingMapLabelTexts[args[0]]);
 							if ((uint16_t)strlen(labelText) != 0 && g_gameConfig.sfxDatapadEnabled != 0) {
 								FrontendSound_PlayUISound("sfxText", 1, 0, 127,
@@ -280,7 +280,7 @@ int16_t BriefingScript_AdvanceFrame(int16_t initializeState) {
 						}
 						slotIndex = opcode - 18;
 						g_briefingMapLabelActive[slotIndex] = 1;
-						g_briefingMapLabelAge[slotIndex] = initializeState == 0 ? 0 : 80;
+						g_briefingMapLabelAge[slotIndex] = applyInstantly == 0 ? 0 : 80;
 						g_briefingMapLabelTextIdx[slotIndex] = args[0];
 						g_briefingMapLabelX[slotIndex] = args[1];
 						g_briefingMapLabelY[slotIndex] = args[2];
@@ -290,10 +290,10 @@ int16_t BriefingScript_AdvanceFrame(int16_t initializeState) {
 						break;
 				}
 			}
-		} while (eventTime <= g_briefingScript.currentTime);
+		} while (eventTime <= g_briefingScript.currentFrame);
 	}
 
-	++g_briefingScript.currentTime;
+	++g_briefingScript.currentFrame;
 	g_briefingScript.cursorWordIndex = savedCursorWordIndex;
 	return savedCursorWordIndex;
 }

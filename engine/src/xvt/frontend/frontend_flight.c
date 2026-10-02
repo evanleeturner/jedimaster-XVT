@@ -181,15 +181,17 @@ int FrontendFlight_LaunchSession(int frameCounter) {
 			if (g_optNoFullscreen != 0) {
 				sprintf(
 					g_frontendFlightCommandLine, "~%s\\%s~ ~%s~ ~%s~ %u ~%s~ 0 %u nopageflip nofullscreen",
-					g_campaignDirNames[g_pilotData.missionDirectoryId], g_missionList[missionIndex].fileName,
+					g_missionDirectoryNames[g_pilotData.missionDirectoryId],
+					g_missionList[missionIndex].fileName,
 					g_pilotData.networkPlayers[g_localPilotNetworkPlayerIndex].formalName, g_pilotData.name,
 					g_missionSetupIsHost, g_pilotData.multiplayerGameName, g_frontendLaunchHumanPlayerCount);
 			} else {
-				sprintf(
-					g_frontendFlightCommandLine, "~%s\\%s~ ~%s~ ~%s~ %u ~%s~ 0 %u pageflip fullscreen",
-					g_campaignDirNames[g_pilotData.missionDirectoryId], g_missionList[missionIndex].fileName,
-					g_pilotData.networkPlayers[g_localPilotNetworkPlayerIndex].formalName, g_pilotData.name,
-					g_missionSetupIsHost, g_pilotData.multiplayerGameName, g_frontendLaunchHumanPlayerCount);
+				sprintf(g_frontendFlightCommandLine, "~%s\\%s~ ~%s~ ~%s~ %u ~%s~ 0 %u pageflip fullscreen",
+						g_missionDirectoryNames[g_pilotData.missionDirectoryId],
+						g_missionList[missionIndex].fileName,
+						g_pilotData.networkPlayers[g_localPilotNetworkPlayerIndex].formalName,
+						g_pilotData.name, g_missionSetupIsHost, g_pilotData.multiplayerGameName,
+						g_frontendLaunchHumanPlayerCount);
 			}
 			free(g_missionList);
 			g_missionList = NULL;

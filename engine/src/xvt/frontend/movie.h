@@ -71,13 +71,13 @@ extern int g_movieSkipRequested;
 extern int g_moviePlaybackCompletionState;
 extern unsigned int g_movieMultiplayerSyncDeadlineMs;
 extern int g_moviePreviousWndProcMode;
-int Movie_SingleplayerInputCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
-									int eventArg4, uint32_t* playbackFlag);
-int Movie_MultiplayerInputCallback(int context, unsigned int eventCode, int keyCode, int eventArg3,
-								   int eventArg4, uint32_t* playbackFlag);
+int Movie_SingleplayerInputCallback(int window, unsigned int eventCode, int keyCode, int lParam,
+									int callbackContext, uint32_t* playbackFlag);
+int Movie_MultiplayerInputCallback(int window, unsigned int eventCode, int keyCode, int lParam,
+								   int callbackContext, uint32_t* playbackFlag);
 void Movie_DrawMultiplayerSyncStatus(void);
 void Movie_UpdateMultiplayerSyncTimeout(void);
-int Movie_MultiplayerSyncCallback(int initialize);
+int Movie_MultiplayerSyncCallback(int currentFrame);
 unsigned int Movie_ReadSubtitleCue(char* line1, char* line2, char* line3);
 void Movie_DrawSubtitles(unsigned int frameNumber);
 

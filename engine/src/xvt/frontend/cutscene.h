@@ -12,9 +12,9 @@ struct CutsceneEntry {
 	char movieName[128];
 	char thumbnailSprite[32];
 	char description[128];
-	int missionIdx;
+	int campaignId;
 	int playAfterDebriefing;
-	int missionDescriptionId;
+	int campaignMissionId;
 };
 
 extern int g_cutsceneCount;

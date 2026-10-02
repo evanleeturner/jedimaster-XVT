@@ -18,7 +18,7 @@ struct Std3DUnknown {
 };
 
 // GLOBAL: XVT 0x528C50
-unsigned int g_std3DCapFlags;
+unsigned int g_std3DRenderOptionFlags;
 // GLOBAL: XVT 0x528C54
 Std3DRenderStateFlags g_d3dStateFlags = 0;
 // GLOBAL: XVT 0x528C58
@@ -222,7 +222,7 @@ float g_std3DColorOverlayBlue;
 // GLOBAL: XVT 0xA90B1C
 int g_std3DColorOverlayEnabled;
 // GLOBAL: XVT 0xA90B20
-int g_std3DZBufferBitDepth = 0;
+int g_std3DZCompareCap = 0;
 // GLOBAL: XVT 0xA90B30
 Std3DRenderTri g_std3DViewportQuadTriangles[2] = { { 0 } };
 // GLOBAL: XVT 0xA90B60
@@ -246,7 +246,7 @@ int g_std3DMaxTextureHeight;
 // GLOBAL: XVT 0x528C80
 unsigned int g_std3DExecBufMaxVerts = 0;
 // GLOBAL: XVT 0x528C84
-unsigned int g_std3DTextureFrameTag = 1;
+unsigned int g_std3DTextureBatchTag = 1;
 // GLOBAL: XVT 0x528C88
 int g_texCacheCount = 0;
 // GLOBAL: XVT 0x528C8C
@@ -288,34 +288,34 @@ void std3D_CopyPaletteToScratch16(const uint16_t* palette, int colorCount) {
 }
 
 // FUNCTION: XVT 0x4B0B90
-void std3D_ConvertTexTo1555(const uint16_t* srcPixels, int pixelCount) {
-	int pixelIndex;
+void std3D_ConvertPaletteTo1555(const uint16_t* palette, int colorCount) {
+	int colorIndex;
 	ColorInfo* sourceFormat;
 	ColorInfo* targetFormat;
 
 	if (g_pFmtOpaqueTexture == g_pFmtRGBA1555) {
-		memcpy(g_texConvBuf1555, srcPixels, (size_t)pixelCount * sizeof(*srcPixels));
+		memcpy(g_texConvBuf1555, palette, (size_t)colorCount * sizeof(*palette));
 	} else {
 		sourceFormat = &g_pFmtOpaqueTexture->colorInfo;
 		targetFormat = &g_pFmtRGBA1555->colorInfo;
-		for (pixelIndex = 0; pixelIndex < pixelCount; ++pixelIndex) {
+		for (colorIndex = 0; colorIndex < colorCount; ++colorIndex) {
 			uint8_t channel;
 
-			channel = (uint8_t)((srcPixels[pixelIndex] >> sourceFormat->redPosShift)
+			channel = (uint8_t)((palette[colorIndex] >> sourceFormat->redPosShift)
 								<< sourceFormat->redPosShiftRight);
-			g_texConvBuf1555[pixelIndex] =
+			g_texConvBuf1555[colorIndex] =
 				(uint16_t)((channel >> targetFormat->redPosShiftRight) << targetFormat->redPosShift);
-			channel = (uint8_t)((srcPixels[pixelIndex] >> sourceFormat->greenPosShift)
+			channel = (uint8_t)((palette[colorIndex] >> sourceFormat->greenPosShift)
 								<< sourceFormat->greenPosShiftRight);
-			g_texConvBuf1555[pixelIndex] |=
+			g_texConvBuf1555[colorIndex] |=
 				(uint16_t)((channel >> targetFormat->greenPosShiftRight) << targetFormat->greenPosShift);
-			channel = (uint8_t)((srcPixels[pixelIndex] >> sourceFormat->bluePosShift)
+			channel = (uint8_t)((palette[colorIndex] >> sourceFormat->bluePosShift)
 								<< sourceFormat->bluePosShiftRight);
-			g_texConvBuf1555[pixelIndex] |=
+			g_texConvBuf1555[colorIndex] |=
 				(uint16_t)((channel >> targetFormat->bluePosShiftRight) << targetFormat->bluePosShift);
-			if (pixelIndex != 0) {
+			if (colorIndex != 0) {
 				channel = 0xff;
-				g_texConvBuf1555[pixelIndex] |=
+				g_texConvBuf1555[colorIndex] |=
 					(uint16_t)((channel >> targetFormat->alphaPosShiftRight) << targetFormat->alphaPosShift);
 			}
 		}
@@ -332,7 +332,7 @@ int std3D_Startup(void) {
 		return 0;
 	}
 
-	g_std3DCapFlags = 0x19b3;
+	g_std3DRenderOptionFlags = 0x19b3;
 	g_std3DZBufferEnabled = 1;
 	DebugPrintf("Creating D3D interface object.\n", 0, 0, 0, 0);
 	result = g_std3DDirectDraw->lpVtbl->QueryInterface(g_std3DDirectDraw, &CLSID_IDirect3D, (void**)&g_lpD3D);
@@ -422,17 +422,17 @@ int std3D_CreateDevice(unsigned int deviceIdx, int bUseZBuffer) {
 
 	g_std3DCurDeviceIdx = deviceIdx;
 	g_pStd3DCurDevice = &g_std3DDevices[deviceIdx];
-	g_std3DZBufferEnabled =
-		bUseZBuffer != 0 && g_pStd3DCurDevice->caps.bHasZBuffer != 0 && (g_std3DCapFlags & 0x1800) != 0;
+	g_std3DZBufferEnabled = bUseZBuffer != 0 && g_pStd3DCurDevice->caps.bHasZBuffer != 0 &&
+							(g_std3DRenderOptionFlags & 0x1800) != 0;
 	if (g_std3DZBufferEnabled != 0) {
 		if (std3D_CreateZBuffer(g_pStd3DRenderTarget->width, g_pStd3DRenderTarget->height) == 0) {
 			DebugPrintf("Error creating Z buffer.\n", 0, 0, 0, 0);
 			return 0;
 		}
-		g_std3DZBufferBitDepth = 16;
+		g_std3DZCompareCap = 16;
 		if ((g_pStd3DCurDevice->caps.zCmpCapsMask & 0x10) == 0)
-			g_std3DZBufferBitDepth = 2;
-		DebugPrintf("Z compare: %s\n", g_std3DZBufferBitDepth == 16 ? "Greater" : "Less", 0, 0, 0);
+			g_std3DZCompareCap = 2;
+		DebugPrintf("Z compare: %s\n", g_std3DZCompareCap == 16 ? "Greater" : "Less", 0, 0, 0);
 	}
 
 	DebugPrintf("Creating D3D device #%d.\n", g_std3DCurDeviceIdx, 0, 0, 0);
@@ -493,7 +493,7 @@ int std3D_CreateDevice(unsigned int deviceIdx, int bUseZBuffer) {
 	g_texCacheCount = 0;
 	g_pTexCacheHead = NULL;
 	g_pTexCacheTail = NULL;
-	g_std3DTextureFrameTag = 1;
+	g_std3DTextureBatchTag = 1;
 	g_fmtIdxOpaqueTexture = std3D_FindClosestFormat(&g_pStd3DRenderTarget->colorInfo, g_std3DTextureFormats,
 													g_std3DNumTextureFormats);
 	g_pFmtOpaqueTexture = &g_std3DTextureFormats[g_fmtIdxOpaqueTexture];
@@ -754,7 +754,7 @@ void std3D_BlitVBuffer(Std3DVBuffer* destination, Std3DVBuffer* source, int dest
 }
 
 // FUNCTION: XVT 0x4B1A80
-unsigned int std3D_GetCapFlags(void) { return g_std3DCapFlags; }
+unsigned int std3D_GetCapFlags(void) { return g_std3DRenderOptionFlags; }
 
 // FUNCTION: XVT 0x4B1A90
 void std3D_FillVBuffer(Std3DVBuffer* vbuffer, unsigned int packedColor, int fillMode) {
@@ -829,7 +829,7 @@ void std3D_FillVBuffer(Std3DVBuffer* vbuffer, unsigned int packedColor, int fill
 void std3D_SetCapFlags(unsigned int capFlags) {
 	int result;
 
-	g_std3DCapFlags = capFlags;
+	g_std3DRenderOptionFlags = capFlags;
 	result = std3D_SetInitialRenderState();
 	if (result == 0)
 		DebugPrintf("Error initializing render state.\n", 0, 0, 0, 0);
@@ -886,7 +886,7 @@ int std3D_LockExecuteBuffer(void) {
 
 	g_d3dBufVertCount = 0;
 	g_std3DExecBufTriCount = 0;
-	++g_std3DTextureFrameTag;
+	++g_std3DTextureBatchTag;
 	g_d3dCurTexture = (Std3DTexCacheNode*)1;
 	result = g_d3dExecuteBuffer->lpVtbl->Lock(g_d3dExecuteBuffer, &g_d3dExecBufDesc);
 	if (result != 0) {
@@ -1119,7 +1119,7 @@ void std3D_SetRenderState(Std3DRenderStateFlags flags) {
 		g_d3dWritePtr += sizeof(D3DINSTRUCTION);
 		((D3DSTATE*)g_d3dWritePtr)->dwState = D3DRENDERSTATE_ZFUNC;
 		if ((flags & STD3D_RS_Z_COMPARE_ENABLE) != 0)
-			((D3DSTATE*)g_d3dWritePtr)->dwArg = std3D_MapZCmpFunc(g_std3DZBufferBitDepth);
+			((D3DSTATE*)g_d3dWritePtr)->dwArg = std3D_MapZCmpFunc(g_std3DZCompareCap);
 		else
 			((D3DSTATE*)g_d3dWritePtr)->dwArg = 8;
 		g_d3dWritePtr += sizeof(D3DSTATE);
@@ -1254,12 +1254,11 @@ void std3D_ClampTextureDimensions(int srcWidth, int srcHeight, int* outWidth, in
 }
 
 // FUNCTION: XVT 0x4B2680
-int std3D_CreateMipSurface(Std3DVBuffer* source, Std3DTexCacheNode* node, int textureFormatMode,
-						   int alphaMask) {
+int std3D_AddToTextureCache(Std3DVBuffer* source, Std3DTexCacheNode* node, int colorKeyed, int translucent) {
 	IDirectDrawSurface* sourceSurface;
 	unsigned int width;
 	unsigned int height;
-	unsigned int textureSize;
+	unsigned int texelCount;
 	IDirect3DTexture* sourceTexture;
 	IDirect3DTexture* destinationTexture;
 	IDirectDrawSurface* destinationSurface;
@@ -1336,17 +1335,17 @@ int std3D_CreateMipSurface(Std3DVBuffer* source, Std3DTexCacheNode* node, int te
 		height = resizedRaster.height;
 	}
 
-	textureSize = width * height;
-	if (textureFormatMode && g_pStd3DCurDevice->caps.bAlphaTexture) {
+	texelCount = width * height;
+	if (colorKeyed && g_pStd3DCurDevice->caps.bAlphaTexture) {
 		node->usesAlphaFormat = 1;
-		if (alphaMask) {
+		if (translucent) {
 			surfaceDesc = g_pFmtRGBA4444->ddsd;
 			DebugPrintf("Using D3D texture format #%d.\n", g_fmtIdxRGBA4444, 0, 0, 0);
 		} else {
 			surfaceDesc = g_pFmtRGBA1555->ddsd;
 			DebugPrintf("Using D3D texture format #%d.\n", g_fmtIdxRGBA1555, 0, 0, 0);
 		}
-	} else if (alphaMask) {
+	} else if (translucent) {
 		node->usesAlphaFormat = 1;
 		surfaceDesc = g_pFmtRGBA4444->ddsd;
 		DebugPrintf("Using D3D texture format #%d.\n", g_fmtIdxRGBA4444, 0, 0, 0);
@@ -1384,8 +1383,8 @@ int std3D_CreateMipSurface(Std3DVBuffer* source, Std3DTexCacheNode* node, int te
 				unsigned int row;
 
 				std3D_LockVBuffer(uploadBuffer);
-				if (textureFormatMode && g_pStd3DCurDevice->caps.bAlphaTexture) {
-					if (alphaMask) {
+				if (colorKeyed && g_pStd3DCurDevice->caps.bAlphaTexture) {
+					if (translucent) {
 						for (row = 0; row < height; ++row) {
 							uint16_t* destinationPixels;
 							uint8_t* sourcePixels;
@@ -1422,7 +1421,7 @@ int std3D_CreateMipSurface(Std3DVBuffer* source, Std3DTexCacheNode* node, int te
 							}
 						}
 					}
-				} else if (alphaMask) {
+				} else if (translucent) {
 					for (row = 0; row < height; ++row) {
 						unsigned int remaining;
 						uint8_t* sourcePixels =
@@ -1481,7 +1480,7 @@ int std3D_CreateMipSurface(Std3DVBuffer* source, Std3DTexCacheNode* node, int te
 			break;
 		}
 
-		if (textureFormatMode && !g_pStd3DCurDevice->caps.bAlphaTexture) {
+		if (colorKeyed && !g_pStd3DCurDevice->caps.bAlphaTexture) {
 			switch (uploadBuffer->raster.colorMode) {
 				case STDCOLOR_PAL:
 					colorKey.dwColorSpaceLowValue = g_std3DPaletteScratch16[0];
@@ -1540,16 +1539,16 @@ int std3D_CreateMipSurface(Std3DVBuffer* source, Std3DTexCacheNode* node, int te
 				while (!created) {
 					unsigned int freed = 0;
 
-					while (freed < textureSize && candidate != NULL &&
-						   candidate->cacheFrameTag != g_std3DTextureFrameTag) {
+					while (freed < texelCount && candidate != NULL &&
+						   candidate->cacheBatchTag != g_std3DTextureBatchTag) {
 						candidate->pCachedSurface->lpVtbl->Release(candidate->pCachedSurface);
 						candidate->pCachedTexture->lpVtbl->Release(candidate->pCachedTexture);
 						candidate->bCached = 0;
-						freed += candidate->byteSize;
+						freed += candidate->texelCount;
 						std3D_CacheListRemove(candidate);
 						candidate = candidate->pNext;
 					}
-					if (freed < textureSize) {
+					if (freed < texelCount) {
 						DebugPrintf("WARNING: Scene texture overflow occurred!!!.\n", 0, 0, 0, 0);
 						destinationSurface = NULL;
 						break;
@@ -1604,8 +1603,8 @@ int std3D_CreateMipSurface(Std3DVBuffer* source, Std3DTexCacheNode* node, int te
 		node->width = width;
 		node->height = height;
 		node->bCached = 1;
-		node->byteSize = textureSize;
-		node->cacheFrameTag = g_std3DTextureFrameTag;
+		node->texelCount = texelCount;
+		node->cacheBatchTag = g_std3DTextureBatchTag;
 		std3D_CacheListAppend(node);
 		return 1;
 	} while (0);
@@ -1624,7 +1623,7 @@ int std3D_CreateMipSurface(Std3DVBuffer* source, Std3DTexCacheNode* node, int te
 	node->pCachedSurface = NULL;
 	node->texHandle = 0;
 	node->bCached = 0;
-	node->cacheFrameTag = 0;
+	node->cacheBatchTag = 0;
 	DebugPrintf("Done error exit from std3D_AddToTextureCache.\n", 0, 0, 0, 0);
 	return 0;
 }
@@ -1649,7 +1648,7 @@ void std3D_FlushTextureCache(void) {
 		current = node;
 		nextLink = &node->pNext;
 		node->bCached = 0;
-		node->cacheFrameTag = 0;
+		node->cacheBatchTag = 0;
 		node = *nextLink;
 		*nextLink = NULL;
 		current->pPrev = NULL;
@@ -1659,7 +1658,7 @@ void std3D_FlushTextureCache(void) {
 	g_pTexCacheTail = NULL;
 	g_texCacheCount = 0;
 	g_pStd3DCurDevice->availableMemory = g_pStd3DCurDevice->totalMemory;
-	g_std3DTextureFrameTag = 1;
+	g_std3DTextureBatchTag = 1;
 }
 
 // FUNCTION: XVT 0x4B30F0
@@ -1680,7 +1679,7 @@ void std3D_CacheListAppend(Std3DTexCacheNode* node) {
 	}
 
 	++g_texCacheCount;
-	g_pStd3DCurDevice->availableMemory -= node->byteSize;
+	g_pStd3DCurDevice->availableMemory -= node->texelCount;
 }
 
 // FUNCTION: XVT 0x4B3160
@@ -1703,7 +1702,7 @@ void std3D_CacheListRemove(Std3DTexCacheNode* node) {
 	}
 
 	--g_texCacheCount;
-	g_pStd3DCurDevice->availableMemory += node->byteSize;
+	g_pStd3DCurDevice->availableMemory += node->texelCount;
 }
 
 // FUNCTION: XVT 0x4B3210
@@ -1727,7 +1726,7 @@ int std3D_QueryTextureVidMem(unsigned int* totalBytes, unsigned int* freeBytes) 
 
 // FUNCTION: XVT 0x4B3280
 void std3D_CacheTextureSurface(Std3DTexCacheNode* node) {
-	node->cacheFrameTag = g_std3DTextureFrameTag;
+	node->cacheBatchTag = g_std3DTextureBatchTag;
 	std3D_CacheListRemove(node);
 	std3D_CacheListAppend(node);
 }
@@ -1741,7 +1740,7 @@ int std3D_ClearZBuffer(void) {
 	memset(&effects, 0, sizeof(effects));
 	effects.dwSize = sizeof(effects);
 	effects.dwFillDepth = 0;
-	if (g_std3DZBufferBitDepth != 16)
+	if (g_std3DZCompareCap != 16)
 		effects.dwFillDepth = 0xFFFF;
 	rect[0] = g_std3DQuadRect.x;
 	rect[1] = g_std3DQuadRect.y;
@@ -1812,19 +1811,19 @@ int std3D_SelectBestDevice(Std3DDeviceCaps* requiredCaps) {
 
 // FUNCTION: XVT 0x4B3450
 int std3D_FindClosestFormat(const ColorInfo* match, Std3DTexFmt* formats, unsigned int count) {
-	int bestScore;
+	int bestFormatIndex;
 	Std3DTexFmt* format;
-	int bestIndex;
+	int formatIndex;
 	unsigned int matchScore;
-	int score;
+	int bestMatchScore;
 
 	if (count == 0) {
 		return 0;
 	}
-	score = 0;
-	bestScore = 0;
+	bestMatchScore = 0;
+	bestFormatIndex = 0;
 	format = formats;
-	for (bestIndex = 0; (unsigned int)bestIndex < count; ++bestIndex) {
+	for (formatIndex = 0; (unsigned int)formatIndex < count; ++formatIndex) {
 		matchScore = 0;
 		if (format->colorInfo.colorMode == match->colorMode) {
 			++matchScore;
@@ -1835,8 +1834,8 @@ int std3D_FindClosestFormat(const ColorInfo* match, Std3DTexFmt* formats, unsign
 						if (format->colorInfo.redBPP == match->redBPP &&
 							format->colorInfo.greenBPP == match->greenBPP &&
 							format->colorInfo.blueBPP == match->blueBPP) {
-							DebugPrintf("Found a perfect mode match #%d!\n", bestIndex, 0, 0, 0);
-							return bestIndex;
+							DebugPrintf("Found a perfect mode match #%d!\n", formatIndex, 0, 0, 0);
+							return formatIndex;
 						}
 						break;
 					case STDCOLOR_RGBA:
@@ -1847,24 +1846,24 @@ int std3D_FindClosestFormat(const ColorInfo* match, Std3DTexFmt* formats, unsign
 							format->colorInfo.greenBPP == match->greenBPP &&
 							format->colorInfo.blueBPP == match->blueBPP &&
 							format->colorInfo.alphaBPP == match->alphaBPP) {
-							DebugPrintf("Found a perfect mode match #%d!\n", bestIndex, 0, 0, 0);
-							return bestIndex;
+							DebugPrintf("Found a perfect mode match #%d!\n", formatIndex, 0, 0, 0);
+							return formatIndex;
 						}
 						break;
 					default:
-						DebugPrintf("Found a perfect mode match #%d!\n", bestIndex, 0, 0, 0);
-						return bestIndex;
+						DebugPrintf("Found a perfect mode match #%d!\n", formatIndex, 0, 0, 0);
+						return formatIndex;
 				}
 			}
 		}
-		if ((int)matchScore > score) {
-			bestScore = bestIndex;
-			score = matchScore;
+		if ((int)matchScore > bestMatchScore) {
+			bestFormatIndex = formatIndex;
+			bestMatchScore = matchScore;
 		}
 		++format;
 	}
-	DebugPrintf("Settling for a closest match #%d..\n", bestScore, 0, 0, 0);
-	return bestScore;
+	DebugPrintf("Settling for a closest match #%d..\n", bestFormatIndex, 0, 0, 0);
+	return bestFormatIndex;
 }
 
 // FUNCTION: XVT 0x4B3590
@@ -1948,7 +1947,7 @@ void std3D_DrawColorOverlay(void) {
 		std3D_FillVBuffer(g_pStd3DVBuffer, (uint16_t)(color | blueColor), 0);
 		std3D_StartScene();
 		std3D_LockExecuteBuffer();
-		std3D_CreateMipSurface(g_pStd3DVBuffer, &g_std3DColorOverlayTexNode, 0, 1);
+		std3D_AddToTextureCache(g_pStd3DVBuffer, &g_std3DColorOverlayTexNode, 0, 1);
 		g_std3DQuadVerts[0].color = UINT32_MAX;
 		g_std3DQuadVerts[1].color = UINT32_MAX;
 		g_std3DQuadVerts[2].color = UINT32_MAX;
@@ -2032,19 +2031,19 @@ int std3D_SetInitialRenderState(void) {
 	state = (D3DSTATE*)(instruction + 1);
 
 	state->dwState = D3DRENDERSTATE_TEXTUREPERSPECTIVE;
-	state->dwArg = g_std3DCapFlags & 1;
+	state->dwArg = g_std3DRenderOptionFlags & 1;
 	++state;
 	state->dwState = D3DRENDERSTATE_TEXTUREMAG;
-	state->dwArg = (g_std3DCapFlags & 0x80) != 0 ? 2 : 1;
+	state->dwArg = (g_std3DRenderOptionFlags & 0x80) != 0 ? 2 : 1;
 	++state;
 	state->dwState = D3DRENDERSTATE_TEXTUREMIN;
-	state->dwArg = (g_std3DCapFlags & 0x100) != 0 ? 2 : 1;
+	state->dwArg = (g_std3DRenderOptionFlags & 0x100) != 0 ? 2 : 1;
 	++state;
 	state->dwState = D3DRENDERSTATE_SUBPIXEL;
-	state->dwArg = (g_std3DCapFlags & 0x10) != 0;
+	state->dwArg = (g_std3DRenderOptionFlags & 0x10) != 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_SUBPIXELX;
-	state->dwArg = (g_std3DCapFlags & 0x20) != 0;
+	state->dwArg = (g_std3DRenderOptionFlags & 0x20) != 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_WRAPU;
 	state->dwArg = 0;
@@ -2053,10 +2052,10 @@ int std3D_SetInitialRenderState(void) {
 	state->dwArg = 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_BLENDENABLE;
-	state->dwArg = (g_std3DCapFlags & 0x600) != 0;
+	state->dwArg = (g_std3DRenderOptionFlags & 0x600) != 0;
 	++state;
-	if ((g_std3DCapFlags & 0x600) != 0) {
-		if ((g_std3DCapFlags & 0x400) != 0) {
+	if ((g_std3DRenderOptionFlags & 0x600) != 0) {
+		if ((g_std3DRenderOptionFlags & 0x400) != 0) {
 			state->dwState = D3DRENDERSTATE_TEXTUREMAPBLEND;
 			state->dwArg = 4;
 		} else {
@@ -2100,22 +2099,22 @@ int std3D_SetInitialRenderState(void) {
 	++state;
 	zEnabled = 1;
 	state->dwState = D3DRENDERSTATE_MONOENABLE;
-	state->dwArg = (g_std3DCapFlags & 0x8000) == 0;
+	state->dwArg = (g_std3DRenderOptionFlags & 0x8000) == 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_SPECULARENABLE;
-	state->dwArg = (g_std3DCapFlags & 4) != 0;
+	state->dwArg = (g_std3DRenderOptionFlags & 4) != 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_FOGENABLE;
-	state->dwArg = (g_std3DCapFlags & 0x40) != 0;
+	state->dwArg = (g_std3DRenderOptionFlags & 0x40) != 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_FILLMODE;
 	state->dwArg = 3;
 	++state;
 	state->dwState = D3DRENDERSTATE_DITHERENABLE;
-	state->dwArg = (g_std3DCapFlags & 2) != 0;
+	state->dwArg = (g_std3DRenderOptionFlags & 2) != 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_ANTIALIAS;
-	state->dwArg = (g_std3DCapFlags & 8) != 0;
+	state->dwArg = (g_std3DRenderOptionFlags & 8) != 0;
 	++state;
 
 	if (g_std3DZBufferEnabled != 0) {
@@ -2131,7 +2130,7 @@ int std3D_SetInitialRenderState(void) {
 	state->dwArg = zEnabled;
 	++state;
 	state->dwState = D3DRENDERSTATE_ZFUNC;
-	state->dwArg = std3D_MapZCmpFunc(g_std3DZBufferBitDepth);
+	state->dwArg = std3D_MapZCmpFunc(g_std3DZCompareCap);
 	++state;
 	state->dwState = D3DRENDERSTATE_CULLMODE;
 	state->dwArg = 1;
@@ -2169,7 +2168,7 @@ int std3D_SetInitialRenderState(void) {
 					0, 0, 0);
 	}
 	executeBuffer->lpVtbl->Release(executeBuffer);
-	g_d3dStateFlags = (Std3DRenderStateFlags)g_std3DCapFlags;
+	g_d3dStateFlags = (Std3DRenderStateFlags)g_std3DRenderOptionFlags;
 	DebugPrintf("Initial render state set.\n", 0, 0, 0, 0);
 	return 1;
 }

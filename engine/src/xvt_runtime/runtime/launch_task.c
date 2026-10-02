@@ -63,7 +63,7 @@ int XvtLaunchTask_Queue(void) {
 		return 1;
 	}
 	length = snprintf(g_command, sizeof(g_command), "~%s\\%s~ ~%s~ ~%s~ %u ~%s~ 0 %u %s",
-					  g_campaignDirNames[g_pilotData.missionDirectoryId], g_missionList[index].fileName,
+					  g_missionDirectoryNames[g_pilotData.missionDirectoryId], g_missionList[index].fileName,
 					  g_pilotData.networkPlayers[g_localPilotNetworkPlayerIndex].formalName, g_pilotData.name,
 					  g_missionSetupIsHost, g_pilotData.multiplayerGameName, g_frontendLaunchHumanPlayerCount,
 					  g_optNoFullscreen ? "nopageflip nofullscreen" : "pageflip fullscreen");

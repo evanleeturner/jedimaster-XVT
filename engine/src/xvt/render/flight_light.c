@@ -42,11 +42,11 @@ void FlightLight_ResetSoftwareFaceSampleCache(void) {
 
 // FUNCTION: XVT 0x4206B0
 float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screenX, int screenY,
-													 float projectedDepth) {
+													 float reciprocalDepth) {
 	SceneMesh* mesh;
 	OptVector normal;
 	OptVector vector;
-	float inverseDepth;
+	float screenToViewScale;
 	float sampleX;
 	float sampleY;
 	float sampleZ;
@@ -90,10 +90,10 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 		Math3D_RotateVec3(&g_swFaceLightDir.x, mesh->viewOrient);
 	}
 
-	sampleZ = 1.0f / projectedDepth;
-	inverseDepth = sampleZ * g_invProjScale;
-	sampleX = (float)(screenX - (g_flightVpWidth >> 1)) * inverseDepth;
-	sampleY = (float)(screenY - (g_flightVpHeight >> 1) - g_projOffsetY) * inverseDepth;
+	sampleZ = 1.0f / reciprocalDepth;
+	screenToViewScale = sampleZ * g_invProjScale;
+	sampleX = (float)(screenX - (g_flightVpWidth >> 1)) * screenToViewScale;
+	sampleY = (float)(screenY - (g_flightVpHeight >> 1) - g_projOffsetY) * screenToViewScale;
 	if (face != g_swFaceLightCachedFace) {
 		g_swFaceLightCachedFace = face;
 		vector = mesh->pFaceNormals[face->faceIndex];
@@ -250,7 +250,7 @@ void FlightLight_SetupObjectLighting(ObjectRecord* object) {
 	ObjectRecord* lightObject;
 
 	g_objectPointLightCount = 0;
-	if (g_localLightsLevel == 0)
+	if (g_localLightsEnabled == 0)
 		return;
 	maxDistance = g_modelTypeTable[object->objectType].maxBoundsExtent + 0x4000;
 	worldX = object->world_x;
@@ -368,7 +368,7 @@ void FlightLight_SetupObjectLighting(ObjectRecord* object) {
 // FUNCTION: XVT 0x44FDF0
 void FlightLight_SetupObjectLightingByIndex(unsigned int objectIndex) {
 	g_objectPointLightCount = 0;
-	if (g_localLightsLevel != 0 &&
+	if (g_localLightsEnabled != 0 &&
 		(unsigned int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount) > objectIndex)
 		FlightLight_SetupObjectLighting(&g_objectTable[objectIndex]);
 }

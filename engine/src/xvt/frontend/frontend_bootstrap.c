@@ -35,7 +35,8 @@ int FrontendBootstrap_PlayOpeningAndEnterCredits(int frameCounter) {
 	Movie_Play("Opening", 0);
 #endif
 	FrontendDisplay_ClearBackBuffer();
-	FrontendScreen_SetCallbacks(Config_CreditsScreen, (FrontendScreenExitFn)FrontendBootstrap_LoadResources);
+	FrontendScreen_SetCallbacks(Credits_UpdateScreen,
+								(FrontendScreenExitFn)FrontendBootstrap_ExitCreditsAndLoadFrontend);
 	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
 	return 0;
 }
@@ -56,7 +57,7 @@ int FrontendBootstrap_InitMode(void) {
 }
 
 // FUNCTION: XVT 0x4FB5E0
-int FrontendBootstrap_LoadResources(int frameCounter) {
+int FrontendBootstrap_ExitCreditsAndLoadFrontend(int frameCounter) {
 	(void)frameCounter;
 
 	if (g_frontendCreditsFile != NULL) {

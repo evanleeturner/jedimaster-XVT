@@ -160,7 +160,7 @@ static void CaptureCamera(XvtSnapCamera* out, XvtSnapLighting* lighting, unsigne
 	out->valid = g_flightVpWidth && g_flightVpHeight && g_screenWidth && g_screenHeight;
 	*lighting = (XvtSnapLighting) { { g_modelPreviewLightDirectionX, g_modelPreviewLightDirectionY,
 									  g_modelPreviewLightDirectionZ },
-									g_localLightsLevel,
+									g_localLightsEnabled,
 									g_dirLightingEnabled };
 }
 

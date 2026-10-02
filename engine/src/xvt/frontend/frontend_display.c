@@ -463,7 +463,7 @@ int32_t AERON_DXAPI FrontendDisplay_MainWndProc(void* hWnd, unsigned int Msg, ui
 
 		case 0x202:
 			g_frontState.mouseLeftDown = 0;
-			g_frontState.mouseClickLatch = 1;
+			g_frontState.mouseLeftClickLatch = 1;
 			if ((wParam & 2) != 0) {
 				g_frontState.mouseRightDown = 0;
 				g_frontState.mouseRightClickLatch = 1;
@@ -482,7 +482,7 @@ int32_t AERON_DXAPI FrontendDisplay_MainWndProc(void* hWnd, unsigned int Msg, ui
 			g_frontState.mouseRightClickLatch = 1;
 			if ((wParam & 1) != 0) {
 				g_frontState.mouseLeftDown = 0;
-				g_frontState.mouseClickLatch = 1;
+				g_frontState.mouseLeftClickLatch = 1;
 			}
 			break;
 	}
@@ -649,7 +649,7 @@ uint32_t FrontendDisplay_RunMainLoop(void* hInstance, void* hPrevInstance, char*
 					}
 					if (g_frontState.textFadeFramesLeft != 0)
 						--g_frontState.textFadeFramesLeft;
-					g_frontState.mouseClickLatch = 0;
+					g_frontState.mouseLeftClickLatch = 0;
 					g_frontState.mouseRightClickLatch = 0;
 					if (g_frontState.cdAudioSuspendState == CDAudio_ResumePending &&
 						GetTickCount() > g_frontState.cdAudioResumeDueMs) {
@@ -1523,7 +1523,7 @@ int FrontendDisplay_RunFrame(void) {
 			return FRAME_FINISHED;
 		if (g_frontState.textFadeFramesLeft != 0)
 			--g_frontState.textFadeFramesLeft;
-		g_frontState.mouseClickLatch = 0;
+		g_frontState.mouseLeftClickLatch = 0;
 		g_frontState.mouseRightClickLatch = 0;
 		if (g_frontState.cdAudioCurrentTrack != 0 && GetTickCount() > g_frontState.cdAudioTrackEndMs) {
 			if (g_frontState.cdAudioLoopCurrentTrack != 0) {
@@ -1728,8 +1728,7 @@ const DxGuid* FrontendDisplay_LoadDriverGuid(void) {
 }
 
 // FUNCTION: XVT 0x4D5C70
-int FrontendDisplay_DrawGdiTextOnSecondaryDisplay(const RECT* unused, const char* text,
-												  const char* overlayText) {
+int FrontendDisplay_DrawGdiTextOnDesktop(const RECT* unused, const char* text, const char* overlayText) {
 #ifdef XVT_MODERN
 	(void)unused;
 	(void)text;
@@ -1775,7 +1774,7 @@ int FrontendDisplay_DrawGdiTextOnSecondaryDisplay(const RECT* unused, const char
 }
 
 // FUNCTION: XVT 0x4D5DC0
-int FrontendDisplay_ClearSecondaryDisplayGdi(const RECT* unused) {
+int FrontendDisplay_ClearDesktopGdi(const RECT* unused) {
 #ifdef XVT_MODERN
 	(void)unused;
 	return 0;

@@ -38,7 +38,7 @@ struct FrontendGlobalState {
 	char cursorSpriteName[64];
 	uint8_t mouseLeftDown;
 	uint8_t mouseRightDown;
-	uint8_t mouseClickLatch;
+	uint8_t mouseLeftClickLatch;
 	uint8_t mouseRightClickLatch;
 	int mouseInputGate;
 	unsigned int joyDeviceIds[2];

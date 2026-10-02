@@ -76,7 +76,8 @@ int FrontImage_RegisterResourceDefault(const char* fileName, const char* name) {
 }
 
 // FUNCTION: XVT 0x4B4B20
-int FrontImage_RegisterResource(const char* fileName, const char* name, int makePalette, int compressRLE) {
+int FrontImage_RegisterResource(const char* fileName, const char* name, int remapToDisplayPalette,
+								int compressRLE) {
 	ImageResource* image;
 	FrontImageResourceRecord entry;
 
@@ -91,7 +92,7 @@ int FrontImage_RegisterResource(const char* fileName, const char* name, int make
 	if (image == NULL)
 		return 0;
 	memset(image, 0, sizeof(*image));
-	if (FrontImage_LoadBmpFile(fileName, image, makePalette, compressRLE) == 0) {
+	if (FrontImage_LoadBmpFile(fileName, image, remapToDisplayPalette, compressRLE) == 0) {
 		free(image);
 		return 0;
 	}
@@ -582,11 +583,11 @@ int FrontImage_DrawSprite(const char* name, int x, int y) {
 	if (resourceIndex == -1)
 		return 0;
 
-	return FrontImage_BlitClipped(g_frontState.resourceTable[resourceIndex].image, x, y);
+	return FrontImage_BlitTransparent(g_frontState.resourceTable[resourceIndex].image, x, y);
 }
 
 // FUNCTION: XVT 0x4B55B0
-int FrontImage_BlitClipped(ImageResource* image, int x, int y) {
+int FrontImage_BlitTransparent(ImageResource* image, int x, int y) {
 	RECT clippedRect;
 	RECT originalRect;
 	int clipResult;
@@ -1606,27 +1607,27 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 #endif
 
 // FUNCTION: XVT 0x4B6780
-int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color, int allowColorRemap) {
+int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color, int applyTextFade) {
 	int clipResult;
-	RECT sourceRect;
+	RECT clippedRect;
 	RECT originalRect;
 
 	if (glyph == NULL)
 		return 0;
 
-	sourceRect.left = x;
-	sourceRect.top = y;
-	sourceRect.right = x + glyph->width - 1;
-	sourceRect.bottom = y + glyph->height - 1;
-	FrontendDraw_RectCopy(&originalRect, &sourceRect);
-	clipResult = FrontendDraw_RectClipToBounds(&sourceRect);
-	if (sourceRect.right < sourceRect.left)
+	clippedRect.left = x;
+	clippedRect.top = y;
+	clippedRect.right = x + glyph->width - 1;
+	clippedRect.bottom = y + glyph->height - 1;
+	FrontendDraw_RectCopy(&originalRect, &clippedRect);
+	clipResult = FrontendDraw_RectClipToBounds(&clippedRect);
+	if (clippedRect.right < clippedRect.left)
 		return clipResult;
-	if (sourceRect.bottom < sourceRect.top)
+	if (clippedRect.bottom < clippedRect.top)
 		return clipResult;
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Glyph(glyph, x, y, color, allowColorRemap);
+	XvtRenderFrontend_Glyph(glyph, x, y, color, applyTextFade);
 #endif
 	{
 		int clipLeftSkip;
@@ -1635,10 +1636,10 @@ int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color,
 		int visibleRows;
 		int displayBpp;
 
-		clipLeftSkip = sourceRect.left - originalRect.left;
-		clipTopSkip = sourceRect.top - originalRect.top;
-		visibleWidth = sourceRect.right - clipLeftSkip - originalRect.right + glyph->width;
-		visibleRows = sourceRect.bottom + glyph->height - originalRect.bottom - clipTopSkip;
+		clipLeftSkip = clippedRect.left - originalRect.left;
+		clipTopSkip = clippedRect.top - originalRect.top;
+		visibleWidth = clippedRect.right - clipLeftSkip - originalRect.right + glyph->width;
+		visibleRows = clippedRect.bottom + glyph->height - originalRect.bottom - clipTopSkip;
 		displayBpp = g_frontState.displayBpp;
 		if (glyph->isCompressed == 0) {
 			switch (displayBpp) {
@@ -1670,7 +1671,7 @@ int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color,
 					uint16_t drawColor;
 
 					drawColor = (uint16_t)color;
-					if (allowColorRemap != 0 && g_frontState.textFadeFramesLeft != 0)
+					if (applyTextFade != 0 && g_frontState.textFadeFramesLeft != 0)
 						drawColor = (uint16_t)FrontImage_GetFadedGlyphColor16(color);
 					source = &glyph->pixels[glyph->width * clipTopSkip + clipLeftSkip];
 					destination = &g_drawSurfacePtr[2 * (x + clipLeftSkip) +
@@ -1701,7 +1702,7 @@ int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color,
 					unsigned int drawColor;
 
 					drawColor = color;
-					if (allowColorRemap != 0 && g_frontState.textFadeFramesLeft != 0)
+					if (applyTextFade != 0 && g_frontState.textFadeFramesLeft != 0)
 						drawColor = FrontImage_GetFadedGlyphColor16(color);
 					FrontImage_BlitGlyphRLE_16bpp(glyph, x + clipLeftSkip, y + clipTopSkip, clipLeftSkip,
 												  clipTopSkip, visibleWidth, visibleRows, drawColor);
@@ -2126,7 +2127,8 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, i
 }
 
 // FUNCTION: XVT 0x4B6FB0
-int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int makePalette, int compressRLE) {
+int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int remapToDisplayPalette,
+						   int compressRLE) {
 	uint8_t* pixels;
 	XvtFile* stream;
 	int result;
@@ -2169,7 +2171,7 @@ int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int makeP
 					displayBpp = g_frontState.displayBpp;
 					switch (displayBpp) {
 						case 8:
-							if (result == 1 && makePalette == 1)
+							if (result == 1 && remapToDisplayPalette == 1)
 								FrontImage_RemapPalette(pixels, palette, &infoHeader);
 							break;
 
@@ -2239,7 +2241,8 @@ int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int makeP
 			FrontImage_CompressRLE(image);
 	}
 #ifdef XVT_MODERN
-	XvtRenderAssets_RegisterFrontendImage(image, fileName, makePalette, g_frontState.pixelFormat555);
+	XvtRenderAssets_RegisterFrontendImage(image, fileName, remapToDisplayPalette,
+										  g_frontState.pixelFormat555);
 #endif
 	return 1;
 }
@@ -2681,7 +2684,7 @@ int FrontImage_EncodeGlyphRow(FrontImageRleRowBuffer* rowBuffer, const uint8_t* 
 // FUNCTION: XVT 0x4B7970
 void FrontImage_InsertResourceSorted(const FrontImageResourceRecord* entry) {
 	int insertIndex;
-	int resourceIndex;
+	int entriesToShift;
 	int destinationIndex;
 
 	insertIndex = 0;
@@ -2693,13 +2696,13 @@ void FrontImage_InsertResourceSorted(const FrontImageResourceRecord* entry) {
 	}
 
 	if (g_frontState.resourceCount > insertIndex) {
-		resourceIndex = g_frontState.resourceCount - insertIndex;
+		entriesToShift = g_frontState.resourceCount - insertIndex;
 		destinationIndex = g_frontState.resourceCount;
 		do {
 			g_frontState.resourceTable[destinationIndex] = g_frontState.resourceTable[destinationIndex - 1];
 			--destinationIndex;
-			--resourceIndex;
-		} while (resourceIndex != 0);
+			--entriesToShift;
+		} while (entriesToShift != 0);
 	}
 	g_frontState.resourceTable[insertIndex] = *entry;
 	++g_frontState.resourceCount;
@@ -2707,7 +2710,7 @@ void FrontImage_InsertResourceSorted(const FrontImageResourceRecord* entry) {
 
 // FUNCTION: XVT 0x4B7A10
 void FrontImage_RemoveResourceAt(int index) {
-	int sourceIndex;
+	int destinationIndex;
 	int currentIndex;
 	FrontImageResourceRecord* resource;
 
@@ -2719,12 +2722,12 @@ void FrontImage_RemoveResourceAt(int index) {
 		return;
 	}
 	if (g_frontState.resourceCount - 1 > index) {
-		sourceIndex = index;
+		destinationIndex = index;
 		do {
-			resource = &g_frontState.resourceTable[sourceIndex];
+			resource = &g_frontState.resourceTable[destinationIndex];
 			*resource = resource[1];
 			++currentIndex;
-			++sourceIndex;
+			++destinationIndex;
 		} while (g_frontState.resourceCount - 1 > currentIndex);
 	}
 	--g_frontState.resourceCount;

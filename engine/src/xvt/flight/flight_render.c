@@ -39,10 +39,10 @@ void FlightRender_ConfigureCallbacksForResolution(uint8_t initialGraphicsDetailP
 			pixelMode = 0;
 			break;
 	}
-	g_palettePackedMode = pixelMode;
+	g_flightPixelMode = pixelMode;
 	if (g_flightBytesPerPixel == 2)
 		pixelMode = 2;
-	g_palettePackedMode = pixelMode;
+	g_flightPixelMode = pixelMode;
 	g_flightViewportMode = 1;
 	FlightRender_InstallCallbacks(pixelMode);
 	g_flightGraphicsDetailPreset = initialGraphicsDetailPreset;
@@ -52,9 +52,9 @@ void FlightRender_ConfigureCallbacksForResolution(uint8_t initialGraphicsDetailP
 void FlightRender_InstallCallbacks(int pixelMode) {
 	switch (pixelMode) {
 		case 1: {
-			g_flightInitLineBufferFn = FlightSw_InitLineBuffer;
+			g_flightInitLineBufferFn = FlightSw_InitFramebuffer;
 			g_flightRenderTransitionHook = FlightRender_TransitionHookStub;
-			g_flightResetPaletteFn = FlightPalette_Reset;
+			g_flightResetPaletteFn = FlightPalette_ApplyToDisplay;
 			g_flightSetPaletteRangeFn = FlightPalette_SetRange;
 			g_flightGetPaletteFn = FlightPalette_GetFull;
 			g_flightSetPaletteFn = FlightPalette_SetFull;
@@ -67,35 +67,35 @@ void FlightRender_InstallCallbacks(int pixelMode) {
 			g_flightSaveScreenRectFn = (FlightScreenRectFn)FlightSw_SaveScreenRect8bpp;
 			g_flightRestoreScreenRectFn = (FlightScreenRectFn)FlightSw_RestoreScreenRect8bpp;
 			g_flightDrawPointArrayFn = FlightSw_DrawPointArray8bpp;
-			g_flightDrawPointArrayMaskedFn = FlightSw_DrawPointArrayMasked8bpp;
+			g_flightDrawPointArrayMaskedFn = FlightSw_ErasePointArray8bpp;
 			g_flightDrawPixelFn = FlightSw_DrawPixel8bpp;
-			g_flightSaveDrawCursorFn = FlightSw_DrawRadarTargetMarker8bpp;
-			g_flightRestoreCursorFn = FlightSw_RestoreRadarTargetMarker8bpp;
+			g_flightDrawRadarTargetMarkerFn = FlightSw_DrawRadarTargetMarker8bpp;
+			g_flightRestoreRadarTargetMarkerFn = FlightSw_RestoreRadarTargetMarker8bpp;
 			g_flightDrawLineFn = FlightSw_DrawLine8bpp;
 			FlightRender_SetPixelModeStub(pixelMode);
 			break;
 		}
 		case 2: {
-			g_flightInitLineBufferFn = FlightSw_InitLineBuffer;
+			g_flightInitLineBufferFn = FlightSw_InitFramebuffer;
 			g_flightRenderTransitionHook = FlightRender_TransitionHookStub;
-			g_flightResetPaletteFn = FlightPalette_Reset;
+			g_flightResetPaletteFn = FlightPalette_ApplyToDisplay;
 			g_flightSetPaletteRangeFn = FlightPalette_SetRange;
 			g_flightGetPaletteFn = FlightPalette_GetFull;
 			g_flightSetPaletteFn = FlightPalette_SetFull;
 			g_flightComputePixelOffsetFn = FlightSw_ComputePixelOffset;
-			g_flightBlitSpriteFn = FlightSw_BlitSpriteRle;
-			g_flightBlitSpriteFadedFn = FlightSw_BlitSpriteRleFaded;
+			g_flightBlitSpriteFn = FlightSw_BlitSpriteRle16bpp;
+			g_flightBlitSpriteFadedFn = FlightSw_BlitSpriteRleFaded16bpp;
 			g_flightDrawCharFn = FlightText_DrawWideGlyph;
-			g_flightFillClipRectFn = FlightSw_FillClipRect;
-			g_flightFillRectClippedFn = FlightSw_FillRectClipped;
-			g_flightSaveScreenRectFn = (FlightScreenRectFn)FlightSw_SaveScreenRect;
-			g_flightRestoreScreenRectFn = (FlightScreenRectFn)FlightSw_RestoreScreenRect;
-			g_flightDrawPointArrayFn = FlightSw_DrawPointArray;
-			g_flightDrawPointArrayMaskedFn = FlightSw_DrawPointArrayMasked;
-			g_flightDrawPixelFn = FlightSw_DrawPixel;
-			g_flightSaveDrawCursorFn = FlightSw_DrawRadarTargetMarker;
-			g_flightRestoreCursorFn = FlightSw_RestoreRadarTargetMarker;
-			g_flightDrawLineFn = FlightSw_DrawLine;
+			g_flightFillClipRectFn = FlightSw_FillClipRect16bpp;
+			g_flightFillRectClippedFn = FlightSw_FillRectClipped16bpp;
+			g_flightSaveScreenRectFn = (FlightScreenRectFn)FlightSw_SaveScreenRect16bpp;
+			g_flightRestoreScreenRectFn = (FlightScreenRectFn)FlightSw_RestoreScreenRect16bpp;
+			g_flightDrawPointArrayFn = FlightSw_DrawPointArray16bpp;
+			g_flightDrawPointArrayMaskedFn = FlightSw_ErasePointArray16bpp;
+			g_flightDrawPixelFn = FlightSw_DrawPixel16bpp;
+			g_flightDrawRadarTargetMarkerFn = FlightSw_DrawRadarTargetMarker16bpp;
+			g_flightRestoreRadarTargetMarkerFn = FlightSw_RestoreRadarTargetMarker16bpp;
+			g_flightDrawLineFn = FlightSw_DrawLine16bpp;
 			FlightRender_SetPixelModeStub(pixelMode);
 			break;
 		}
@@ -103,9 +103,9 @@ void FlightRender_InstallCallbacks(int pixelMode) {
 			FlightRender_SetPixelModeStub(pixelMode);
 			break;
 		case 0: {
-			g_flightInitLineBufferFn = FlightSw_InitLineBuffer;
+			g_flightInitLineBufferFn = FlightSw_InitFramebuffer;
 			g_flightRenderTransitionHook = FlightRender_TransitionHookStub;
-			g_flightResetPaletteFn = FlightPalette_Reset;
+			g_flightResetPaletteFn = FlightPalette_ApplyToDisplay;
 			g_flightSetPaletteRangeFn = FlightPalette_SetRange;
 			g_flightGetPaletteFn = FlightPalette_GetFull;
 			g_flightSetPaletteFn = FlightPalette_SetFull;
@@ -118,10 +118,10 @@ void FlightRender_InstallCallbacks(int pixelMode) {
 			g_flightSaveScreenRectFn = (FlightScreenRectFn)FlightSw_SaveScreenRect8bpp;
 			g_flightRestoreScreenRectFn = (FlightScreenRectFn)FlightSw_RestoreScreenRect8bpp;
 			g_flightDrawPointArrayFn = FlightSw_DrawPointArray8bpp;
-			g_flightDrawPointArrayMaskedFn = FlightSw_DrawPointArrayMasked8bpp;
+			g_flightDrawPointArrayMaskedFn = FlightSw_ErasePointArray8bpp;
 			g_flightDrawPixelFn = FlightSw_DrawPixel8bpp;
-			g_flightSaveDrawCursorFn = FlightSw_DrawRadarTargetMarker8bpp;
-			g_flightRestoreCursorFn = FlightSw_RestoreRadarTargetMarker8bpp;
+			g_flightDrawRadarTargetMarkerFn = FlightSw_DrawRadarTargetMarker8bpp;
+			g_flightRestoreRadarTargetMarkerFn = FlightSw_RestoreRadarTargetMarker8bpp;
 			g_flightDrawLineFn = FlightSw_DrawLine8bpp;
 			FlightRender_SetPixelModeStub(pixelMode);
 			break;

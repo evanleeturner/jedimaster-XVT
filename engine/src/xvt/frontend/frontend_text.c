@@ -58,8 +58,8 @@ static int g_textFieldCursorCharIndex = 0;
 static int g_textFieldLength = 0;
 
 // FUNCTION: XVT 0x4DA380
-int FrontendText_DrawEditableField(RECT* rect, char* text, int maxChars, int fieldId, unsigned int fontSize,
-								   const char* ignoredChars) {
+int FrontendText_HandleEditableField(RECT* rect, char* text, int maxChars, int fieldId, unsigned int fontSize,
+									 const char* ignoredChars) {
 	int mouseX;
 	int completed;
 	int mouseY;
@@ -136,16 +136,16 @@ int FrontendText_DrawEditableField(RECT* rect, char* text, int maxChars, int fie
 	FrontendText_Draw(fontSize, text, mouseX + rect->left + 2, rect->top + 2, g_textFieldColor);
 	FrontendDisplay_SetScreenClipRect640x480(&previousClipRect);
 	if (g_activeTextFieldId == fieldId) {
-		int caretWidth;
+		int caretOffsetX;
 		char savedChar;
 
 		savedChar = text[g_textFieldCursorCharIndex];
 		text[g_textFieldCursorCharIndex] = '\0';
-		caretWidth = FrontendText_MeasureWidth(text, fontSize);
+		caretOffsetX = FrontendText_MeasureWidth(text, fontSize);
 		text[g_textFieldCursorCharIndex] = savedChar;
 		if (FrontendDisplay_GetFrameCounter() % 10 < 5) {
 			FrontendDraw_RectCopy(&previousClipRect, rect);
-			previousClipRect.left += mouseX + caretWidth + 1;
+			previousClipRect.left += mouseX + caretOffsetX + 1;
 			previousClipRect.right = previousClipRect.left + 1;
 			previousClipRect.top++;
 			previousClipRect.bottom = previousClipRect.top + fontSize;
@@ -921,14 +921,14 @@ int FrontendText_StopTextFade(void) {
 }
 
 // FUNCTION: XVT 0x4DC190
-int FrontendText_PushGlyphScratchTtl(void) {
+int FrontendText_SuspendTextFade(void) {
 	g_savedTextFadeFramesLeft = g_frontState.textFadeFramesLeft;
 	g_frontState.textFadeFramesLeft = 0;
 	return 1;
 }
 
 // FUNCTION: XVT 0x4DC1B0
-int FrontendText_PopGlyphScratchTtl(void) {
+int FrontendText_ResumeTextFade(void) {
 	g_frontState.textFadeFramesLeft = g_savedTextFadeFramesLeft;
 	return 1;
 }

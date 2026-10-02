@@ -50,9 +50,9 @@ int XvtCutsceneTask_Play(int phase) {
 	}
 	for (; g_cutscene.entry_index < (unsigned int)g_cutsceneCount; ++g_cutscene.entry_index) {
 		const CutsceneEntry* entry = &g_cutsceneTable[g_cutscene.entry_index];
-		if (entry->missionIdx != g_pilotData.missionDescriptionIds[5] ||
+		if (entry->campaignId != g_pilotData.missionDescriptionIds[5] ||
 			entry->playAfterDebriefing != g_cutscene.phase ||
-			entry->missionDescriptionId != g_pilotData.missionDescriptionIds[0])
+			entry->campaignMissionId != g_pilotData.missionDescriptionIds[0])
 			continue;
 		CDAudio_SuspendPlayback();
 		FrontendDisplay_DisableOffscreenRestore();

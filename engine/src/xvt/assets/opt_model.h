@@ -102,8 +102,8 @@ struct OptVector {
 	float z;
 };
 
-extern void* g_modelNodeWalkUnusedScratch0;
-extern void* g_modelNodeWalkUnusedScratch1;
+extern void* g_curMeshVertices;
+extern void* g_curMeshTexCoords;
 extern void* g_modelNodeWalkUnusedScratch2;
 extern void* g_curMeshFlags;
 extern int g_curVertexCount;

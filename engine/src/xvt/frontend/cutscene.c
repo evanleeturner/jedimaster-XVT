@@ -74,9 +74,9 @@ int Cutscene_LoadTable(char* fileName) {
 			}
 		} while (line[0] == '/' && line[1] == '/');
 
-		if (sscanf(g_frontendScratchBuffer, "%d %d %d", &g_cutsceneTable[g_cutsceneCount].missionIdx,
+		if (sscanf(g_frontendScratchBuffer, "%d %d %d", &g_cutsceneTable[g_cutsceneCount].campaignId,
 				   &g_cutsceneTable[g_cutsceneCount].playAfterDebriefing,
-				   &g_cutsceneTable[g_cutsceneCount].missionDescriptionId) != 3) {
+				   &g_cutsceneTable[g_cutsceneCount].campaignMissionId) != 3) {
 			memset(&g_cutsceneTable[g_cutsceneCount], 0, sizeof(CutsceneEntry));
 			File_Close(stream);
 			return 1;
@@ -139,9 +139,9 @@ int Cutscene_PlayForCurrentMissionPhase(int phase) {
 		return 0;
 
 	for (entryIndex = 0; entryIndex < (unsigned int)g_cutsceneCount; ++entryIndex) {
-		if (g_cutsceneTable[entryIndex].missionIdx == g_pilotData.missionDescriptionIds[MISSION_INDEX_SLOT] &&
+		if (g_cutsceneTable[entryIndex].campaignId == g_pilotData.missionDescriptionIds[MISSION_INDEX_SLOT] &&
 			g_cutsceneTable[entryIndex].playAfterDebriefing == phase &&
-			g_cutsceneTable[entryIndex].missionDescriptionId ==
+			g_cutsceneTable[entryIndex].campaignMissionId ==
 				g_pilotData.missionDescriptionIds[MISSION_DESCRIPTION_SLOT]) {
 			CDAudio_SuspendPlayback();
 			FrontendDisplay_DisableOffscreenRestore();

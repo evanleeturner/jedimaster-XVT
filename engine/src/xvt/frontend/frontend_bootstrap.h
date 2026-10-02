@@ -11,7 +11,7 @@ extern "C" {
 int FrontendBootstrap_ExitIntroAndLoadCredits(int frameCounter);
 int FrontendBootstrap_PlayOpeningAndEnterCredits(int frameCounter);
 int FrontendBootstrap_InitMode(void);
-int FrontendBootstrap_LoadResources(int frameCounter);
+int FrontendBootstrap_ExitCreditsAndLoadFrontend(int frameCounter);
 
 #ifdef __cplusplus
 }

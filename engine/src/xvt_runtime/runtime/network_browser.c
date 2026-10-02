@@ -206,16 +206,16 @@ int XvtNetworkBrowser_Screen(int frame_counter) {
 		FrontendButton_EnableOverlayText();
 	FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_569_PREVIOUS));
 	FrontendDraw_RectAssign(&rect, 85, 447, 176, 471);
-	if (FrontendButton_DrawSpriteHitTest(&rect, "leaveup", "leavedown",
-										 FrontendString_Get(FRONTSTR_258_RETURN_TO_PILOT_RECORDS), 12, 0, 8,
-										 "buttonsound")) {
+	if (FrontendButton_HandleSpriteButton(&rect, "leaveup", "leavedown",
+										  FrontendString_Get(FRONTSTR_258_RETURN_TO_PILOT_RECORDS), 12, 0, 8,
+										  "buttonsound")) {
 		g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
 		FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
 	} else if (XvtNetworkTask_CanJoin()) {
 		FrontendDraw_RectAssign(&rect, 8, 405, 71, 470);
 		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_018_JOIN));
-		if (FrontendButton_DrawSpriteHitTest(&rect, "nextup", "nextdown",
-											 FrontendString_Get(FRONTSTR_018_JOIN), 12, 0, 7, "flysound"))
+		if (FrontendButton_HandleSpriteButton(&rect, "nextup", "nextdown",
+											  FrontendString_Get(FRONTSTR_018_JOIN), 12, 0, 7, "flysound"))
 			XvtNetworkTask_Begin(XVT_NETWORK_CONNECT);
 	}
 	FrontendButton_DisableOverlayText();

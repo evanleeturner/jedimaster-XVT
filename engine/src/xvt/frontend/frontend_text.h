@@ -26,8 +26,8 @@ typedef uint16_t TextFadeColorCache[65536];
 
 extern int g_activeTextFieldId;
 
-int FrontendText_DrawEditableField(RECT* rect, char* text, int maxChars, int fieldId, unsigned int fontSize,
-								   const char* ignoredChars);
+int FrontendText_HandleEditableField(RECT* rect, char* text, int maxChars, int fieldId, unsigned int fontSize,
+									 const char* ignoredChars);
 int FrontendText_LoadFont(int pointSize);
 void FrontendText_FreeAllFonts(void);
 void FrontendText_FreeFont(unsigned int pointSize);
@@ -46,8 +46,8 @@ void FrontendText_SaveFontAtlasFile(char* fileName, void** font, unsigned int gl
 int FrontendText_LoadFontAtlasFile(const char* fileName, int slotIndex);
 int FrontendText_StartTextFadeIn(int frames);
 int FrontendText_StopTextFade(void);
-int FrontendText_PushGlyphScratchTtl(void);
-int FrontendText_PopGlyphScratchTtl(void);
+int FrontendText_SuspendTextFade(void);
+int FrontendText_ResumeTextFade(void);
 void FrontendText_DrawFormattedWrappedText(RECT* rect, const uint8_t* text, int suppressCenteredHeadings);
 
 #ifdef __cplusplus

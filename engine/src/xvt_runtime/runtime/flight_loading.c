@@ -182,7 +182,7 @@ void XvtFlightLoading_Palette(void) {
 	FlightSurface_Unlock();
 	FlightRender_TransitionHookStub();
 	FlightSurface_Lock();
-	FlightSw_InitLineBuffer();
+	FlightSw_InitFramebuffer();
 	FlightSurface_Unlock();
 	nullsub_11();
 	FlightDisplay_Flip();
@@ -206,7 +206,7 @@ void XvtFlightLoading_Palette(void) {
 		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + MISSION_EXTENSION_THIRD] = channel;
 	}
 	g_flightSetPaletteRangeFn((RgbTriplet*)resourceScratch, 0, PALETTE_COLOR_COUNT);
-	FlightPalette_Reset();
+	FlightPalette_ApplyToDisplay();
 	FlightSurface_Lock();
 	FeDiskIo_InitGlobalBuffers();
 	FlightSurface_Unlock();

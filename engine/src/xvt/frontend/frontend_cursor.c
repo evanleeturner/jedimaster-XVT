@@ -71,7 +71,7 @@ void FrontendCursor_Draw(void) {
 	uint8_t* backBuffer;
 	uint8_t* cursorPixels;
 	uint8_t* saveBuffer;
-	uint8_t* destination;
+	uint8_t* backBufferRow;
 	int rowsRemaining;
 	int column;
 	int maskValue;
@@ -103,22 +103,22 @@ void FrontendCursor_Draw(void) {
 	if (g_frontState.cursorSpriteName[0] != '\0') {
 		switch (displayBpp) {
 			case 8: {
-				destination =
+				backBufferRow =
 					&backBuffer[g_frontState.mouseX + g_frontState.mouseY * g_frontState.drawSurfacePitch];
 				if (visibleHeight > 0) {
 					rowsRemaining = visibleHeight;
 					do {
-						memcpy(saveBuffer, destination, visibleWidth);
+						memcpy(saveBuffer, backBufferRow, visibleWidth);
 						saveBuffer += cursorWidth;
-						destination += g_frontState.drawSurfacePitch;
+						backBufferRow += g_frontState.drawSurfacePitch;
 						--rowsRemaining;
 					} while (rowsRemaining != 0);
 				}
 				break;
 			}
 			case 16: {
-				destination = &backBuffer[2 * g_frontState.mouseX +
-										  g_frontState.mouseY * g_frontState.drawSurfacePitch];
+				backBufferRow = &backBuffer[2 * g_frontState.mouseX +
+											g_frontState.mouseY * g_frontState.drawSurfacePitch];
 				if (visibleHeight > 0) {
 					rowsRemaining = visibleHeight;
 					do {
@@ -127,7 +127,7 @@ void FrontendCursor_Draw(void) {
 							uint16_t* savedPixel;
 							int pixelsRemaining;
 
-							sourcePixel = (uint16_t*)destination;
+							sourcePixel = (uint16_t*)backBufferRow;
 							savedPixel = (uint16_t*)saveBuffer;
 							pixelsRemaining = visibleWidth;
 							do {
@@ -136,7 +136,7 @@ void FrontendCursor_Draw(void) {
 							} while (pixelsRemaining != 0);
 						}
 						saveBuffer += 2 * cursorWidth;
-						destination += g_frontState.drawSurfacePitch & ~1;
+						backBufferRow += g_frontState.drawSurfacePitch & ~1;
 						--rowsRemaining;
 					} while (rowsRemaining != 0);
 				}
@@ -149,27 +149,27 @@ void FrontendCursor_Draw(void) {
 	} else {
 		switch (displayBpp) {
 			case 8: {
-				destination =
+				backBufferRow =
 					&backBuffer[g_frontState.mouseX + g_frontState.mouseY * g_frontState.drawSurfacePitch];
 				if (visibleHeight > 0) {
 					rowsRemaining = visibleHeight;
 					do {
-						memcpy(saveBuffer, destination, visibleWidth);
+						memcpy(saveBuffer, backBufferRow, visibleWidth);
 						for (column = 0; column < visibleWidth; ++column) {
 							if (cursorPixels[column] != 0)
-								destination[column] = cursorPixels[column];
+								backBufferRow[column] = cursorPixels[column];
 						}
 						saveBuffer += cursorWidth;
 						cursorPixels += cursorWidth;
-						destination += g_frontState.drawSurfacePitch;
+						backBufferRow += g_frontState.drawSurfacePitch;
 						--rowsRemaining;
 					} while (rowsRemaining != 0);
 				}
 				break;
 			}
 			case 16: {
-				destination = &backBuffer[2 * g_frontState.mouseX +
-										  g_frontState.mouseY * g_frontState.drawSurfacePitch];
+				backBufferRow = &backBuffer[2 * g_frontState.mouseX +
+											g_frontState.mouseY * g_frontState.drawSurfacePitch];
 				if (visibleHeight > 0) {
 					rowsRemaining = visibleHeight;
 					do {
@@ -178,7 +178,7 @@ void FrontendCursor_Draw(void) {
 							uint16_t* destinationPixel;
 							uint16_t* savedPixel;
 
-							destinationPixel = (uint16_t*)destination;
+							destinationPixel = (uint16_t*)backBufferRow;
 							savedPixel = (uint16_t*)saveBuffer;
 							do {
 								*savedPixel = *destinationPixel;
@@ -200,7 +200,7 @@ void FrontendCursor_Draw(void) {
 						}
 						cursorPixels += cursorWidth;
 						saveBuffer += 2 * cursorWidth;
-						destination += g_frontState.drawSurfacePitch & ~1;
+						backBufferRow += g_frontState.drawSurfacePitch & ~1;
 						--rowsRemaining;
 					} while (rowsRemaining != 0);
 				}

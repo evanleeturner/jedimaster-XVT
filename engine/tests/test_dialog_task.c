@@ -132,7 +132,7 @@ static void CheckBeginSavesAndEndRestores(void) {
 	g_updateEnds = 1;
 	g_updateResult = 7;
 	QueueKeys("xy");
-	g_frontState.mouseClickLatch = 1;
+	g_frontState.mouseLeftClickLatch = 1;
 	g_frontState.mouseRightClickLatch = 1;
 	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
@@ -150,7 +150,7 @@ static void CheckBeginSavesAndEndRestores(void) {
 	XVT_ASSERT_INT_EQ(FrontendButton_IsOverlayTextEnabled(), 1);
 	/* The keyboard is flushed and the click latches cleared. */
 	XVT_ASSERT_INT_EQ(g_frontState.charReadIdx, g_frontState.charWriteIdx);
-	XVT_ASSERT_INT_EQ(g_frontState.mouseClickLatch, 0);
+	XVT_ASSERT_INT_EQ(g_frontState.mouseLeftClickLatch, 0);
 	XVT_ASSERT_INT_EQ(g_frontState.mouseRightClickLatch, 0);
 
 	/* The result is held until taken, once. */
@@ -210,9 +210,9 @@ static void CheckBeginRefusals(void) {
 static void CheckConfirm(void) {
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("one", NULL, "three", "Okay", NULL, 0), XVT_DIALOG_PENDING);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogText0, "one"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine1OrEdit, "one"), 0);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogText1, ""), 0);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogText2OrEdit, "three"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine3, "three"), 0);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogOkayLabel, "Okay"), 0);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogCancelLabel, ""), 0);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
@@ -220,7 +220,7 @@ static void CheckConfirm(void) {
 
 	/* While it is open, Confirm returns -1 and copies nothing. */
 	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("other", "b", "c", "d", "e", 0), XVT_DIALOG_PENDING);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogText0, "one"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine1OrEdit, "one"), 0);
 
 	XvtDialog_Update();
 	XVT_ASSERT_TRUE(TopScreen() == FrontendDialog_ConfirmUpdateCallback);

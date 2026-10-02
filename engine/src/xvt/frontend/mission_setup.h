@@ -77,12 +77,12 @@ typedef char xvt_size_MpRosterEntry[(sizeof(MpRosterEntry) == 42) ? 1 : -1];
 
 struct MissionSetupPlayerAssignments {
 	int teamPlayerIds[10][8];
-	int activePlayerIds[8];
+	int assignedPlayerIds[8];
 };
 
 struct ShipListEntry {
 	char modelFileName[64];
-	int typeId; ///< CraftSpecies value read from FRONTRES/frntspec.lst; stored as int by fscanf.
+	int craftType; ///< CraftSpecies value read from FRONTRES/frntspec.lst; stored as int by fscanf.
 };
 
 typedef enum MissionSetupActivePanel {
@@ -146,7 +146,7 @@ struct BattleContinuation {
 	int32_t isActive;          ///< Continuation slot contains an unfinished battle.
 	int32_t battleLengthIndex; ///< Configured battle-length selector.
 	int32_t randomSetup;       ///< Configured sequential, random, or player-choice selection mode.
-	BattleSequenceState state; ///< Saved battle sequence state.
+	BattleSequenceState sequenceState; ///< Saved battle sequence state.
 };
 
 struct CampaignContinuation {
@@ -154,7 +154,7 @@ struct CampaignContinuation {
 	uint32_t randomSeed;         ///< Random seed used to reproduce mission selection.
 	int32_t isActive;            ///< Continuation slot contains an unfinished campaign.
 	int32_t randomSetup;         ///< Configured sequential, random, or player-choice selection mode.
-	CampaignSequenceState state; ///< Saved campaign sequence state.
+	CampaignSequenceState sequenceState; ///< Saved campaign sequence state.
 };
 
 extern int g_teamPlayerFlightGroupCount[10];
@@ -198,7 +198,7 @@ extern int g_missionSetupIsHost;
 extern int g_missionSetupRosterAuthoritative;
 extern int g_missionSetupBeginButtonLockoutFrames;
 extern int g_frontendSkipScreenEntrySetup;
-extern const char* g_campaignDirNames[6];
+extern const char* g_missionDirectoryNames[6];
 extern MpRosterEntry g_mpRoster[8];
 extern int g_mpRosterReadyFlags[8];
 extern int g_battleMissionListCount;
@@ -213,7 +213,7 @@ extern int g_battleChoiceTimeoutHandled;
 extern int g_missionSetupUseCombatSimPilotState;
 extern int g_missionSetupMissionListRowCount;
 extern int g_missionSetupMissionListScrollOffset;
-extern int g_remoteBattleSequenceActive;
+extern int g_remoteBattleContinuationActive;
 extern int g_remoteBattleSequenceContinuationChoice;
 extern int g_remoteBattleLastCompletedMissionIndex;
 extern int g_remoteBattleRebelVictoryCount;
@@ -239,7 +239,7 @@ int MissionSetup_DrawMissionList(int frameCounter);
 int MissionSetup_SelectFirstSequenceMission(void);
 int MissionSetup_DrawGameSettings(void);
 int MissionSetup_CountMissionListEntries(XvtFile* stream);
-int MissionSetup_DrawBackgroundAndPreview(void);
+int MissionSetup_DrawBackground(void);
 int MissionSetup_UseRebelBackground(void);
 void MissionSetup_DrawCraftLoadout(void);
 void MissionSetup_DrawPlayerLoadouts(int frameCounter);
@@ -280,7 +280,7 @@ int MissionSetup_RandomizeFlightAssignments(void);
 int MissionSetup_ClearFlightAssignments(void);
 int MissionSetup_FillFlightAssignments(void);
 int MissionSetup_DrawAssignedPlayers(int frameCounter);
-int MissionSetup_DrawAssignmentBriefing(void);
+int MissionSetup_DrawAssignmentMissionDescription(void);
 int MissionSetup_BattleChoice_Exit(void);
 int MissionSetup_BattleChoice_Update(int frameCounter);
 int MissionSetup_BattleChoice_DrawDescription(void);

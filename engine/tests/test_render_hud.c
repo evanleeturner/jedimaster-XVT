@@ -171,7 +171,7 @@ static void CheckColor(void) {
 	int bytes_per_pixel = g_flightBytesPerPixel;
 	g_flightBrightnessScaleQ8 = 17;
 	g_flightBytesPerPixel = 4;
-	memset(g_flightTextPalette, 0x5A, sizeof g_flightTextPalette);
+	memset(g_flightPalette16Bpp, 0x5A, sizeof g_flightPalette16Bpp);
 	XVT_ASSERT_INT_EQ(XvtRenderDraw_Color(5), color);
 	g_flightBrightnessScaleQ8 = brightness;
 	g_flightBytesPerPixel = bytes_per_pixel;

@@ -187,7 +187,7 @@ int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx, int expandR
 int16_t pai_IsObjectWithinSkillRangeOfCraft(uint16_t objIdx);
 int16_t pai_OrderSlotCanBoardTarget(uint16_t orderSlot);
 int16_t pai_FindBoardingTargetFromOrder(uint16_t orderSlot);
-int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx, unsigned int maxRangeScore);
+int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx, unsigned int maxRoughDistance);
 void pai_UpdateAimPointFromOrderTarget(void);
 void pai_SetFlightGroupFormation(unsigned int flightGroupIdx, unsigned int formationType,
 								 unsigned int formationSpacing);
@@ -202,7 +202,7 @@ int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot);
 int16_t pai_IsBoardingPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot);
 int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx);
 uint16_t pai_GetEffectiveSkillValue(CraftData* craft);
-int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx, int orderClass, int targetObjIdx);
+int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx, int leaderPlanNameIndex, int targetObjIdx);
 int pai_FindPlanTableIndexByName(const char* planName);
 int pai_FindFreePlanTableIndex(void);
 int pai_FindTargetTokenIndex(const char* token);

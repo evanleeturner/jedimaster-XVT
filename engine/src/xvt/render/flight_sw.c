@@ -122,23 +122,23 @@ static uint16_t g_flightSwTangent110Pct[124] = {
 };
 
 // GLOBAL: XVT 0x523910
-int8_t g_cursorShapeOffsets[20] = {
+int8_t g_radarTargetMarkerShape16bpp[20] = {
 	-1, 1, -2, 1, -2, 0, -2, -1, -1, -1, 1, -1, 2, -1, 2, 0, 2, 1, 1, 1,
 };
 // GLOBAL: XVT 0x51A7E8
-static FlightCursorShapeOffset g_flightSwClearRunOffsets10[12] = {
+static FlightCursorShapeOffset g_radarTargetMarkerShape10[12] = {
 	{ -1, 1 }, { -2, 1 }, { -2, 0 }, { -2, -1 }, { -1, -1 }, { 1, -1 },
 	{ 2, -1 }, { 2, 0 },  { 2, 1 },  { 1, 1 },   { 0, 0 },   { 0, 0 },
 };
 // GLOBAL: XVT 0x51A800
-static FlightCursorShapeOffset g_flightSwClearRunOffsets12[12] = {
+static FlightCursorShapeOffset g_radarTargetMarkerShape12[12] = {
 	{ -1, 2 }, { -2, 2 }, { -2, 1 }, { -2, 0 }, { -2, -1 }, { -1, -1 },
 	{ 1, -1 }, { 2, -1 }, { 2, 0 },  { 2, 1 },  { 2, 2 },   { 1, 2 },
 };
 // GLOBAL: XVT 0x51A818
-int8_t* g_flightSwFramebufferClearRunPtr = (int8_t*)g_flightSwClearRunOffsets10;
+int8_t* g_radarTargetMarkerShape = (int8_t*)g_radarTargetMarkerShape10;
 // GLOBAL: XVT 0x51A81C
-int g_flightSwFramebufferClearRunCount = 10;
+int g_radarTargetMarkerPointCount = 10;
 // GLOBAL: XVT 0x51A820
 FlightSwMarkerOffset g_flightSwCrossMarkerOffsets[7] = {
 	{ -2, 0 }, { -1, 0 }, { 0, 0 }, { 1, 0 }, { 2, 0 }, { 0, 1 }, { 0, -1 },
@@ -164,7 +164,7 @@ int g_flightAltLineOffsetTable[768] = { 0 };
 // GLOBAL: XVT 0x5569C0
 static uint16_t g_flightSwCrossMarkerSavedPixels16bpp[7] = { 0 };
 // GLOBAL: XVT 0x556998
-uint16_t g_cursorSavedPixels[10];
+uint16_t g_radarTargetMarkerSavedPixels16bpp[10];
 // GLOBAL: XVT 0x556988
 uint16_t g_flightFillRectBottom = 0;
 // GLOBAL: XVT 0x55698C
@@ -216,7 +216,7 @@ int16_t g_flightSwRleSpriteY = 0;
 // GLOBAL: XVT 0x9ED21D
 int8_t g_flightSwRlePaletteShift = 0;
 // GLOBAL: XVT 0x9ED23A
-uint8_t g_flightSwRleSpriteEndMarker = 0;
+uint8_t g_flightSwRleTransparentColor = 0;
 
 #ifndef XVT_MODERN
 // GLOBAL: XVT 0x5233D4
@@ -235,7 +235,7 @@ uint8_t* g_flightSwFramebufferBase = (uint8_t*)(uintptr_t)0xA0000;
 // GLOBAL: XVT 0x52747C
 uint16_t g_viewportSpanMaskOffset = 0xC000;
 // GLOBAL: XVT 0x5505E0
-int* g_flightLineBufferTable;
+int* g_flightActiveLineOffsetTable;
 // GLOBAL: XVT 0x5505E4
 int* g_flightLinePitchPtr;
 // GLOBAL: XVT 0x9A8074
@@ -243,7 +243,7 @@ uint8_t* g_flightAuxBuffer = 0;
 // GLOBAL: XVT 0x9A8C18
 uint8_t* g_flightSwRotSpriteDestLinePtr = 0;
 // GLOBAL: XVT 0x9A8C40
-uint8_t g_flightSwRotSpriteTintTable[256] = { 0 };
+uint8_t g_flightSwRotSpritePalette8[256] = { 0 };
 // GLOBAL: XVT 0x9A57E0
 FlightSwRotSpriteSpanRun g_flightSwRotSpriteSpanRuns[512] = { { 0 } };
 // GLOBAL: XVT 0x9A73F6
@@ -257,7 +257,7 @@ int16_t g_flightSwRotSpriteSkipSecondaryScaleStep = 0;
 // GLOBAL: XVT 0x9CC460
 int g_flightLineOffsetTable[768] = { 0 };
 // GLOBAL: XVT 0x9D1160
-uint8_t g_flightSwRotSpriteTintHiTable[256] = { 0 };
+uint8_t g_flightSwRotSpritePalette16High[256] = { 0 };
 // GLOBAL: XVT 0x9D12E0
 uint16_t g_flightSwRotSpriteSecondaryScaleAccum = 0;
 // GLOBAL: XVT 0x9D1314
@@ -269,7 +269,7 @@ static int16_t g_flightSwRotSpriteClipMinRunIdx47 = 0;
 // GLOBAL: XVT 0x9D8C2C
 int16_t g_flightSwRotSpriteViewportWidth = 0;
 // GLOBAL: XVT 0x9D6830
-uint8_t g_flightSwRotSpriteTintLoTable[256] = { 0 };
+uint8_t g_flightSwRotSpritePalette16Low[256] = { 0 };
 // GLOBAL: XVT 0x9CD280
 FlightSwRotSpriteCoeffState g_flightSwRotSpriteCoeffCache = { 0 };
 // GLOBAL: XVT 0x9D77C4
@@ -315,7 +315,7 @@ uint16_t g_flightSwRotSpriteAxisSwapThresholdAngle = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40DF00
-void FlightSw_InitLineBuffer(void) {
+void FlightSw_InitFramebuffer(void) {
 	unsigned int line;
 #ifndef XVT_MODERN
 	unsigned int page;
@@ -328,51 +328,50 @@ void FlightSw_InitLineBuffer(void) {
 	switch (g_flightResolutionMode) {
 		case FLIGHT_RESOLUTION_320X240:
 			memset(g_flightSwFramebufferBase, 0, g_surfacePitch * g_screenHeight);
-			g_flightSwFramebufferClearRunPtr = (int8_t*)g_flightSwClearRunOffsets10;
-			g_flightSwFramebufferClearRunCount = 10;
+			g_radarTargetMarkerShape = (int8_t*)g_radarTargetMarkerShape10;
+			g_radarTargetMarkerPointCount = 10;
 			break;
 
 #ifndef XVT_MODERN
 		case FLIGHT_RESOLUTION_640X480:
-			for (page = 0;
-				 page < (unsigned int)(g_surfacePitch * g_screenHeight) / g_swFramebufferClearChunkSize;
+			for (page = 0; page < (unsigned int)(g_surfacePitch * g_screenHeight) / g_vesaPageSizeBytes;
 				 ++page) {
 				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
-				memset(g_flightSwFramebufferBase, 0, g_swFramebufferClearChunkSize);
+				memset(g_flightSwFramebufferBase, 0, g_vesaPageSizeBytes);
 			}
-			if ((unsigned int)(g_surfacePitch * g_screenHeight) % g_swFramebufferClearChunkSize != 0) {
-				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow,
-									   (uint16_t)((unsigned int)(g_surfacePitch * g_screenHeight) /
-												  g_swFramebufferClearChunkSize));
+			if ((unsigned int)(g_surfacePitch * g_screenHeight) % g_vesaPageSizeBytes != 0) {
+				RtsVga2_SetCurrentPage(
+					(uint8_t)g_vesaWindow,
+					(uint16_t)((unsigned int)(g_surfacePitch * g_screenHeight) / g_vesaPageSizeBytes));
 				memset(g_flightSwFramebufferBase, 0,
-					   (unsigned int)(g_surfacePitch * g_screenHeight) % g_swFramebufferClearChunkSize);
+					   (unsigned int)(g_surfacePitch * g_screenHeight) % g_vesaPageSizeBytes);
 			}
-			g_flightSwFramebufferClearRunPtr = (int8_t*)g_flightSwClearRunOffsets12;
-			g_flightSwFramebufferClearRunCount = 12;
+			g_radarTargetMarkerShape = (int8_t*)g_radarTargetMarkerShape12;
+			g_radarTargetMarkerPointCount = 12;
 			break;
 #else
 		case FLIGHT_RESOLUTION_640X480:
 			memset(g_flightSwFramebufferBase, 0, g_surfacePitch * g_screenHeight);
-			g_flightSwFramebufferClearRunPtr = (int8_t*)g_flightSwClearRunOffsets12;
-			g_flightSwFramebufferClearRunCount = 12;
+			g_radarTargetMarkerShape = (int8_t*)g_radarTargetMarkerShape12;
+			g_radarTargetMarkerPointCount = 12;
 			break;
 #endif
 
 		case FLIGHT_RESOLUTION_480X360:
 			memset(g_flightSwFramebufferBase, 0, g_surfacePitch * g_screenHeight);
-			g_flightSwFramebufferClearRunPtr = (int8_t*)g_flightSwClearRunOffsets12;
-			g_flightSwFramebufferClearRunCount = 12;
+			g_radarTargetMarkerShape = (int8_t*)g_radarTargetMarkerShape12;
+			g_radarTargetMarkerPointCount = 12;
 			break;
 
 		default:
 			memset(g_flightSwFramebufferBase, 0, g_surfacePitch * g_screenHeight);
-			g_flightSwFramebufferClearRunPtr = (int8_t*)g_flightSwClearRunOffsets10;
-			g_flightSwFramebufferClearRunCount = 10;
+			g_radarTargetMarkerShape = (int8_t*)g_radarTargetMarkerShape10;
+			g_radarTargetMarkerPointCount = 10;
 			break;
 	}
 
 	g_flightLinePitchPtr = &g_surfacePitch;
-	g_flightLineBufferTable = g_flightLineOffsetTable;
+	g_flightActiveLineOffsetTable = g_flightLineOffsetTable;
 }
 
 // FUNCTION: XVT 0x40E0C0
@@ -385,7 +384,7 @@ void FlightSw_SetRenderTarget(void* surface, int width, unsigned int height, int
 	if (surface == NULL) {
 		g_flightSwFramebufferBase = FlightSurface_GetSoftwareFramebufferBase();
 		g_flightLinePitchPtr = &g_surfacePitch;
-		g_flightLineBufferTable = g_flightLineOffsetTable;
+		g_flightActiveLineOffsetTable = g_flightLineOffsetTable;
 		return;
 	}
 
@@ -399,7 +398,7 @@ void FlightSw_SetRenderTarget(void* surface, int width, unsigned int height, int
 			} while ((unsigned int)(int)line < height);
 		}
 		g_flightLinePitchPtr = &g_surfacePitch;
-		g_flightLineBufferTable = g_flightLineOffsetTable;
+		g_flightActiveLineOffsetTable = g_flightLineOffsetTable;
 		return;
 	}
 
@@ -416,11 +415,11 @@ void FlightSw_SetRenderTarget(void* surface, int width, unsigned int height, int
 	}
 	g_flightAltLinePitch = pitchBytes;
 	g_flightLinePitchPtr = &g_flightAltLinePitch;
-	g_flightLineBufferTable = g_flightAltLineOffsetTable;
+	g_flightActiveLineOffsetTable = g_flightAltLineOffsetTable;
 }
 
 // FUNCTION: XVT 0x40E190
-int FlightSw_GetLineBufferAddr(int line) { return g_flightLineBufferTable[line]; }
+int FlightSw_GetLineOffset(int line) { return g_flightActiveLineOffsetTable[line]; }
 
 // FUNCTION: XVT 0x40E1A0
 int FlightSw_GetLinePitch(void) { return *g_flightLinePitchPtr; }
@@ -429,21 +428,21 @@ int FlightSw_GetLinePitch(void) { return *g_flightLinePitchPtr; }
 int FlightSw_ComputePixelOffset8bpp(int x, int y) { return x + y * FlightSw_GetLinePitch(); }
 
 // FUNCTION: XVT 0x40EA60
-void FlightSw_BlitSpriteRle8bpp(uint8_t* rleData, int x, int y, int endMarker, int mirror) {
+void FlightSw_BlitSpriteRle8bpp(uint8_t* rleData, int x, int y, int transparentColorIndex, int mirror) {
 	g_flightSwRlePaletteShift = 0;
-	FlightSw_BlitSpriteRleImpl8bpp(rleData, x, y, endMarker, mirror, 0, 0);
+	FlightSw_BlitSpriteRleImpl8bpp(rleData, x, y, transparentColorIndex, mirror, 0, 0);
 }
 
 // FUNCTION: XVT 0x40EA90
-void FlightSw_BlitSpriteRleFaded8bpp(uint8_t* rleData, int x, int y, int endMarker, int8_t paletteShift,
-									 int16_t fadeAmount) {
+void FlightSw_BlitSpriteRleFaded8bpp(uint8_t* rleData, int x, int y, int transparentColorIndex,
+									 int8_t paletteShift, int16_t fadeAmount) {
 	g_flightSwRlePaletteShift = paletteShift;
-	FlightSw_BlitSpriteRleImpl8bpp(rleData, x, y, endMarker, 0, 1, fadeAmount);
+	FlightSw_BlitSpriteRleImpl8bpp(rleData, x, y, transparentColorIndex, 0, 1, fadeAmount);
 }
 
 // FUNCTION: XVT 0x40EAC0
-void FlightSw_BlitSpriteRleImpl8bpp(uint8_t* rleData, int x, int y, int endMarker, int mirror, char mode,
-									int16_t fadeAmount) {
+void FlightSw_BlitSpriteRleImpl8bpp(uint8_t* rleData, int x, int y, int transparentColorIndex, int mirror,
+									char isFaded, int16_t fadeAmount) {
 	unsigned int pixelOffset;
 	uint8_t* destination;
 	uint8_t token;
@@ -457,18 +456,17 @@ void FlightSw_BlitSpriteRleImpl8bpp(uint8_t* rleData, int x, int y, int endMarke
 	mirrorFlag = mirror;
 	g_flightSwRleSpriteX = x;
 	g_flightSwRleSpriteY = y;
-	g_flightSwRleSpriteEndMarker = (uint8_t)endMarker;
+	g_flightSwRleTransparentColor = (uint8_t)transparentColorIndex;
 
 	for (;;) {
-		pixelOffset =
-			(uint16_t)g_flightSwRleSpriteX + FlightSw_GetLineBufferAddr((uint16_t)g_flightSwRleSpriteY);
+		pixelOffset = (uint16_t)g_flightSwRleSpriteX + FlightSw_GetLineOffset((uint16_t)g_flightSwRleSpriteY);
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
 			unsigned int page;
 
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -479,14 +477,14 @@ void FlightSw_BlitSpriteRleImpl8bpp(uint8_t* rleData, int x, int y, int endMarke
 			if (token < 0xFB) {
 				runLength = token & 3;
 				color = token >> 2;
-				if (mode == 0) {
+				if (isFaded == 0) {
 					color += g_flightSwRlePaletteShift;
 				}
 			} else {
 				if (token > 0xFB) {
 					if (token == 0xFC) {
 						color = source[0];
-						if (mode != 0) {
+						if (isFaded != 0) {
 							if (fadeAmount > 0) {
 								color -= (uint8_t)fadeAmount;
 								color += (uint8_t)g_flightSwRlePaletteShift;
@@ -530,7 +528,7 @@ void FlightSw_BlitSpriteRleImpl8bpp(uint8_t* rleData, int x, int y, int endMarke
 						break;
 					}
 				} else {
-					if (mode == 0) {
+					if (isFaded == 0) {
 						g_flightSwRlePaletteShift = (int8_t)*source;
 					}
 					++source;
@@ -539,7 +537,7 @@ void FlightSw_BlitSpriteRleImpl8bpp(uint8_t* rleData, int x, int y, int endMarke
 			}
 
 			++runLength;
-			if (color == endMarker) {
+			if (color == transparentColorIndex) {
 				if (mirrorFlag == 0) {
 					destination += runLength;
 				} else {
@@ -547,7 +545,7 @@ void FlightSw_BlitSpriteRleImpl8bpp(uint8_t* rleData, int x, int y, int endMarke
 				}
 				continue;
 			}
-			if (mode != 0) {
+			if (isFaded != 0) {
 				if (fadeAmount > 0) {
 					color -= (uint8_t)fadeAmount;
 					color += (uint8_t)g_flightSwRlePaletteShift;
@@ -609,18 +607,17 @@ void FlightSw_BlitMapIconRle(uint8_t* rleData, int x, int y, int transparentInde
 
 	g_flightSwRleSpriteX = (int16_t)x;
 	g_flightSwRleSpriteY = (int16_t)y;
-	g_flightSwRleSpriteEndMarker = (uint8_t)transparentIndex;
+	g_flightSwRleTransparentColor = (uint8_t)transparentIndex;
 
 	for (;;) {
-		pixelOffset =
-			(uint16_t)g_flightSwRleSpriteX + FlightSw_GetLineBufferAddr((uint16_t)g_flightSwRleSpriteY);
+		pixelOffset = (uint16_t)g_flightSwRleSpriteX + FlightSw_GetLineOffset((uint16_t)g_flightSwRleSpriteY);
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			XvtFramebufferAddress_IsLegacyBase(g_flightSwFramebufferBase)) {
 			unsigned int page;
 
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -722,12 +719,12 @@ void FlightSw_DrawPixel8bpp(uint16_t x, uint16_t y, int8_t colorIndex) {
 	unsigned int page;
 #endif
 
-	pixelOffset = x + FlightSw_GetLineBufferAddr(y);
+	pixelOffset = x + FlightSw_GetLineOffset(y);
 #ifndef XVT_MODERN
 	if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 		g_flightSwFramebufferBase == g_swFramebufferBase) {
-		page = pixelOffset / g_swFramebufferClearChunkSize;
-		pixelOffset %= g_swFramebufferClearChunkSize;
+		page = pixelOffset / g_vesaPageSizeBytes;
+		pixelOffset %= g_vesaPageSizeBytes;
 		RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 	}
 #endif
@@ -756,13 +753,13 @@ void FlightSw_FillRectOrBorder8bpp(uint16_t borderThickness) {
 	if ((int16_t)(g_flightFillRectRight8bpp - g_flightFillRectLeft8bpp) <= 0)
 		return;
 
-	pixelOffset = FlightSw_GetLineBufferAddr(g_flightFillRectCurrentY8bpp);
+	pixelOffset = FlightSw_GetLineOffset(g_flightFillRectCurrentY8bpp);
 	if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 		XvtFramebufferAddress_IsLegacyBase(g_flightSwFramebufferBase)) {
 		unsigned int page;
 
-		page = pixelOffset / g_swFramebufferClearChunkSize;
-		pixelOffset %= g_swFramebufferClearChunkSize;
+		page = pixelOffset / g_vesaPageSizeBytes;
+		pixelOffset %= g_vesaPageSizeBytes;
 #ifdef XVT_MODERN
 		RtsVga2_SetCurrentPage((uint8_t)g_flightResolutionMode, page);
 #else
@@ -853,14 +850,13 @@ void FlightSw_FillRectOrBorder8bpp(uint16_t borderThickness) {
 				uint8_t* destination;
 				int16_t width;
 
-				pixelOffset =
-					g_flightFillRectLeft8bpp + FlightSw_GetLineBufferAddr(g_flightFillRectCurrentY8bpp);
+				pixelOffset = g_flightFillRectLeft8bpp + FlightSw_GetLineOffset(g_flightFillRectCurrentY8bpp);
 				if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 					XvtFramebufferAddress_IsLegacyBase(g_flightSwFramebufferBase)) {
 					unsigned int page;
 
-					page = pixelOffset / g_swFramebufferClearChunkSize;
-					pixelOffset %= g_swFramebufferClearChunkSize;
+					page = pixelOffset / g_vesaPageSizeBytes;
+					pixelOffset %= g_vesaPageSizeBytes;
 #ifdef XVT_MODERN
 					RtsVga2_SetCurrentPage((uint8_t)g_flightResolutionMode, page);
 #else
@@ -882,14 +878,13 @@ void FlightSw_FillRectOrBorder8bpp(uint16_t borderThickness) {
 				unsigned int count;
 				int16_t width;
 
-				pixelOffset =
-					g_flightFillRectLeft8bpp + FlightSw_GetLineBufferAddr(g_flightFillRectCurrentY8bpp);
+				pixelOffset = g_flightFillRectLeft8bpp + FlightSw_GetLineOffset(g_flightFillRectCurrentY8bpp);
 				if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 					XvtFramebufferAddress_IsLegacyBase(g_flightSwFramebufferBase)) {
 					unsigned int page;
 
-					page = pixelOffset / g_swFramebufferClearChunkSize;
-					pixelOffset %= g_swFramebufferClearChunkSize;
+					page = pixelOffset / g_vesaPageSizeBytes;
+					pixelOffset %= g_vesaPageSizeBytes;
 #ifdef XVT_MODERN
 					RtsVga2_SetCurrentPage((uint8_t)g_flightResolutionMode, page);
 #else
@@ -913,14 +908,13 @@ void FlightSw_FillRectOrBorder8bpp(uint16_t borderThickness) {
 				uint8_t* destination;
 				int16_t width;
 
-				pixelOffset =
-					g_flightFillRectLeft8bpp + FlightSw_GetLineBufferAddr(g_flightFillRectCurrentY8bpp);
+				pixelOffset = g_flightFillRectLeft8bpp + FlightSw_GetLineOffset(g_flightFillRectCurrentY8bpp);
 				if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 					XvtFramebufferAddress_IsLegacyBase(g_flightSwFramebufferBase)) {
 					unsigned int page;
 
-					page = pixelOffset / g_swFramebufferClearChunkSize;
-					pixelOffset %= g_swFramebufferClearChunkSize;
+					page = pixelOffset / g_vesaPageSizeBytes;
+					pixelOffset %= g_vesaPageSizeBytes;
 #ifdef XVT_MODERN
 					RtsVga2_SetCurrentPage((uint8_t)g_flightResolutionMode, page);
 #else
@@ -942,14 +936,13 @@ void FlightSw_FillRectOrBorder8bpp(uint16_t borderThickness) {
 				uint8_t* destination;
 				int16_t width;
 
-				pixelOffset =
-					g_flightFillRectLeft8bpp + FlightSw_GetLineBufferAddr(g_flightFillRectCurrentY8bpp);
+				pixelOffset = g_flightFillRectLeft8bpp + FlightSw_GetLineOffset(g_flightFillRectCurrentY8bpp);
 				if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 					XvtFramebufferAddress_IsLegacyBase(g_flightSwFramebufferBase)) {
 					unsigned int page;
 
-					page = pixelOffset / g_swFramebufferClearChunkSize;
-					pixelOffset %= g_swFramebufferClearChunkSize;
+					page = pixelOffset / g_vesaPageSizeBytes;
+					pixelOffset %= g_vesaPageSizeBytes;
 #ifdef XVT_MODERN
 					RtsVga2_SetCurrentPage((uint8_t)g_flightResolutionMode, page);
 #else
@@ -1008,12 +1001,12 @@ void FlightSw_SaveScreenRect8bpp(uint8_t* buffer, int x, int y, int16_t width, i
 	if (rowsRemaining == 0)
 		return;
 	do {
-		pixelOffset = FlightSw_GetLineBufferAddr(y) + x;
+		pixelOffset = FlightSw_GetLineOffset(y) + x;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_swFramebufferBase == g_flightSwFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			RtsVga2_SetCurrentPage(1, (uint16_t)page);
 		}
@@ -1041,12 +1034,12 @@ void FlightSw_RestoreScreenRect8bpp(uint8_t* buffer, int x, int y, int16_t width
 
 	rowsRemaining = height;
 	for (; rowsRemaining != 0; ++y) {
-		pixelOffset = FlightSw_GetLineBufferAddr(y) + x;
+		pixelOffset = FlightSw_GetLineOffset(y) + x;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_swFramebufferBase == g_flightSwFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -1083,12 +1076,12 @@ void FlightSw_DrawPointArray8bpp(uint16_t* points, int16_t count) {
 	do {
 		pixelOffset = points[0];
 		color = (uint8_t)points[2];
-		pixelOffset += FlightSw_GetLineBufferAddr(points[1]);
+		pixelOffset += FlightSw_GetLineOffset(points[1]);
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			RtsVga2_SetCurrentPage(1, (uint16_t)page);
 		}
@@ -1103,12 +1096,12 @@ void FlightSw_DrawPointArray8bpp(uint16_t* points, int16_t count) {
 
 		if (g_flightResolutionMode == FLIGHT_RESOLUTION_640X480) {
 			pixelOffset = points[0];
-			pixelOffset += FlightSw_GetLineBufferAddr((uint16_t)(points[1] + 1));
+			pixelOffset += FlightSw_GetLineOffset((uint16_t)(points[1] + 1));
 #ifndef XVT_MODERN
 			if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 				g_flightSwFramebufferBase == g_swFramebufferBase) {
-				page = pixelOffset / g_swFramebufferClearChunkSize;
-				pixelOffset %= g_swFramebufferClearChunkSize;
+				page = pixelOffset / g_vesaPageSizeBytes;
+				pixelOffset %= g_vesaPageSizeBytes;
 				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 				RtsVga2_SetCurrentPage(1, (uint16_t)page);
 			}
@@ -1128,7 +1121,7 @@ void FlightSw_DrawPointArray8bpp(uint16_t* points, int16_t count) {
 }
 
 // FUNCTION: XVT 0x4104D0
-void FlightSw_DrawPointArrayMasked8bpp(uint16_t* points, int16_t count) {
+void FlightSw_ErasePointArray8bpp(uint16_t* points, int16_t count) {
 	uint16_t* current;
 	int16_t remaining;
 	unsigned int pixelOffset;
@@ -1148,12 +1141,12 @@ void FlightSw_DrawPointArrayMasked8bpp(uint16_t* points, int16_t count) {
 	do {
 		x = current[0];
 		y = current[1];
-		pixelOffset = FlightSw_GetLineBufferAddr(y) + x;
+		pixelOffset = FlightSw_GetLineOffset(y) + x;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -1165,12 +1158,12 @@ void FlightSw_DrawPointArrayMasked8bpp(uint16_t* points, int16_t count) {
 		if (g_flightResolutionMode == FLIGHT_RESOLUTION_640X480) {
 			x = current[0];
 			y = (uint16_t)(current[1] + 1);
-			pixelOffset = FlightSw_GetLineBufferAddr(y) + x;
+			pixelOffset = FlightSw_GetLineOffset(y) + x;
 #ifndef XVT_MODERN
 			if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 				g_flightSwFramebufferBase == g_swFramebufferBase) {
-				page = pixelOffset / g_swFramebufferClearChunkSize;
-				pixelOffset %= g_swFramebufferClearChunkSize;
+				page = pixelOffset / g_vesaPageSizeBytes;
+				pixelOffset %= g_vesaPageSizeBytes;
 				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			}
 #endif
@@ -1199,19 +1192,19 @@ void FlightSw_DrawRadarTargetMarker8bpp(void) {
 
 	savedPixelIndex = 0;
 	offsetIndex = 0;
-	remaining = (int16_t)g_flightSwFramebufferClearRunCount;
+	remaining = (int16_t)g_radarTargetMarkerPointCount;
 	if (remaining == (int16_t)savedPixelIndex) {
 		return;
 	}
 	do {
-		offset = &g_flightSwFramebufferClearRunPtr[offsetIndex];
-		pixelOffset = FlightSw_GetLineBufferAddr(g_radarTargetMarkerDrawY + offset[1]) + offset[0] +
+		offset = &g_radarTargetMarkerShape[offsetIndex];
+		pixelOffset = FlightSw_GetLineOffset(g_radarTargetMarkerDrawY + offset[1]) + offset[0] +
 					  g_radarTargetMarkerDrawX;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			RtsVga2_SetCurrentPage(1, (uint16_t)page);
 		}
@@ -1239,18 +1232,18 @@ void FlightSw_RestoreRadarTargetMarker8bpp(void) {
 
 	offsetIndex = 0;
 	savedPixelIndex = 0;
-	remaining = (int16_t)g_flightSwFramebufferClearRunCount;
+	remaining = (int16_t)g_radarTargetMarkerPointCount;
 	if (remaining == (int16_t)savedPixelIndex)
 		return;
 	do {
-		offset = g_flightSwFramebufferClearRunPtr + offsetIndex;
-		pixelOffset = offset[0] + FlightSw_GetLineBufferAddr(g_radarTargetMarkerRestoreY + offset[1]) +
+		offset = g_radarTargetMarkerShape + offsetIndex;
+		pixelOffset = offset[0] + FlightSw_GetLineOffset(g_radarTargetMarkerRestoreY + offset[1]) +
 					  g_radarTargetMarkerRestoreX;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_swFramebufferBase == g_flightSwFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -1280,14 +1273,14 @@ uint8_t FlightSw_DrawCrossMarker8bpp(uint16_t x, uint16_t y, uint8_t color) {
 	coordinates[1] = x;
 	savedPixelIndex = 0;
 	do {
-		pixelOffset = FlightSw_GetLineBufferAddr(coordinates[0] +
-												 ((int8_t*)g_flightSwCrossMarkerOffsets)[offsetIndex + 1]) +
+		pixelOffset = FlightSw_GetLineOffset(coordinates[0] +
+											 ((int8_t*)g_flightSwCrossMarkerOffsets)[offsetIndex + 1]) +
 					  ((int8_t*)g_flightSwCrossMarkerOffsets)[offsetIndex] + coordinates[1];
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			RtsVga2_SetCurrentPage(1, (uint16_t)page);
 		}
@@ -1315,14 +1308,14 @@ uint8_t FlightSw_RestoreCrossMarker8bpp(uint16_t x, uint16_t y) {
 #endif
 
 	do {
-		pixelOffset =
-			((int8_t*)g_flightSwCrossMarkerOffsets)[offsetIndex] +
-			FlightSw_GetLineBufferAddr(y + ((int8_t*)g_flightSwCrossMarkerOffsets)[offsetIndex + 1]) + x;
+		pixelOffset = ((int8_t*)g_flightSwCrossMarkerOffsets)[offsetIndex] +
+					  FlightSw_GetLineOffset(y + ((int8_t*)g_flightSwCrossMarkerOffsets)[offsetIndex + 1]) +
+					  x;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -1365,7 +1358,7 @@ void FlightStarfield_Render(void) {
 
 	g_starfieldGridDimension = STAR_GRID_SPAN / g_starDensity;
 	if (g_flightBytesPerPixel == 2) {
-		backgroundColor16 = g_flightTextPalette[g_flightBackgroundColorIndex];
+		backgroundColor16 = g_flightPalette16Bpp[g_flightBackgroundColorIndex];
 		if (!g_starfieldColors16Initialized) {
 			int colorIndex;
 			g_starfieldColors16Handle = Memory_AllocHandle(STAR_COUNT * sizeof(uint16_t), 0);
@@ -2139,21 +2132,21 @@ void FlightSw_PrepareSpriteRotationTables(int16_t rotationAngle, int bytesPerPix
 }
 
 // FUNCTION: XVT 0x421930
-int FlightSw_BuildSpriteTintRemapTables(SpritePayload* sprite) {
+int FlightSw_LoadSpritePaletteTables(SpritePayload* sprite) {
 	uint8_t* palette;
 	int colorCount;
 	int colorIndex;
 
 	colorCount = sprite->colorCount;
-	palette = (uint8_t*)sprite + sprite->palette16Offset;
+	palette = (uint8_t*)sprite + sprite->displayPaletteOffset;
 	if (g_flightBytesPerPixel == 2) {
 		for (colorIndex = 0; colorIndex < colorCount; colorIndex++) {
-			g_flightSwRotSpriteTintLoTable[colorIndex] = *palette++;
-			g_flightSwRotSpriteTintHiTable[colorIndex] = *palette++;
+			g_flightSwRotSpritePalette16Low[colorIndex] = *palette++;
+			g_flightSwRotSpritePalette16High[colorIndex] = *palette++;
 		}
 	} else {
 		for (colorIndex = 0; colorIndex < colorCount; colorIndex++) {
-			g_flightSwRotSpriteTintTable[colorIndex] = *palette++;
+			g_flightSwRotSpritePalette8[colorIndex] = *palette++;
 		}
 	}
 
@@ -2175,8 +2168,8 @@ uint16_t FlightSw_LookupScaledTangent(uint16_t angle, int16_t scalePercent) {
 // FUNCTION: XVT 0x4219D0
 void FlightSw_PrepareRotatedSpriteScaleState(uint16_t screenSize, FlightSwRotSpriteCoeffState* rotationCoeffs,
 											 FlightSwRotSpriteScaleState* scaleState) {
-	uint16_t* textureScaleX;
-	uint16_t* textureScaleY;
+	uint16_t* aspectScaleY;
+	uint16_t* inverseAspectScaleY;
 	unsigned int baseHorizontalStep;
 	unsigned int verticalStep;
 	int squarePixelMode;
@@ -2184,17 +2177,17 @@ void FlightSw_PrepareRotatedSpriteScaleState(uint16_t screenSize, FlightSwRotSpr
 	uint8_t cachedStepLow;
 
 	scaleState->screenScale = screenSize;
-	textureScaleX = &scaleState->textureScaleX;
+	aspectScaleY = &scaleState->aspectScaleY;
 	squarePixelMode = g_flightSwRotSpriteSquarePixelMode;
 	if (squarePixelMode == 1) {
-		*textureScaleX = 256;
-		textureScaleY = &scaleState->textureScaleY;
-		*textureScaleY = 256;
+		*aspectScaleY = 256;
+		inverseAspectScaleY = &scaleState->inverseAspectScaleY;
+		*inverseAspectScaleY = 256;
 		g_flightSwRotSpriteAxisSwapThresholdAngle = 0x2000;
 	} else {
-		*textureScaleX = 233;
-		textureScaleY = &scaleState->textureScaleY;
-		*textureScaleY = 282;
+		*aspectScaleY = 233;
+		inverseAspectScaleY = &scaleState->inverseAspectScaleY;
+		*inverseAspectScaleY = 282;
 		g_flightSwRotSpriteAxisSwapThresholdAngle = 0x2200;
 	}
 
@@ -2204,13 +2197,13 @@ void FlightSw_PrepareRotatedSpriteScaleState(uint16_t screenSize, FlightSwRotSpr
 	if (rotationCoeffs->primaryAxisSwap != 0) {
 		unsigned int scaledHorizontalStep;
 
-		scaledHorizontalStep = (baseHorizontalStep * *textureScaleX) >> 8;
+		scaledHorizontalStep = (baseHorizontalStep * *aspectScaleY) >> 8;
 		scaleState->horizontalStepLowByte = (uint8_t)scaledHorizontalStep;
 		scaleState->horizontalStepHighByte = (uint8_t)(scaledHorizontalStep >> 8);
 	}
 	verticalStep = ((baseHorizontalStep * rotationCoeffs->secondaryStepByte) >> 8) + baseHorizontalStep;
 	if (rotationCoeffs->secondaryAxisSwap == 0) {
-		verticalStep = (verticalStep * *textureScaleY) >> 8;
+		verticalStep = (verticalStep * *inverseAspectScaleY) >> 8;
 	}
 	horizontalStepLow = scaleState->horizontalStepLowByte;
 	cachedStepLow = scaleState->cachedStepLowByte;
@@ -2260,7 +2253,7 @@ void FlightSw_RotateSpritePoint(uint16_t* rotationCoeffs, FlightSwRotSpriteScale
 	if (g_flightSwRotSpriteInputCornerY < 0) {
 		g_flightSwRotSpriteInputCornerY = -g_flightSwRotSpriteInputCornerY;
 	}
-	scaledY = (g_flightSwRotSpriteInputCornerY * scaleState->textureScaleY + 128) >> 8;
+	scaledY = (g_flightSwRotSpriteInputCornerY * scaleState->inverseAspectScaleY + 128) >> 8;
 	scaledY = (scaledY * scaleState->screenScale + 128) >> 8;
 
 	rotatedXFromX = (uint16_t)scaledX * rotationCoeffs[3];
@@ -2288,7 +2281,7 @@ void FlightSw_RotateSpritePoint(uint16_t* rotationCoeffs, FlightSwRotSpriteScale
 	if ((int16_t)rotatedY < 0) {
 		g_flightSwRotSpriteOutputOffsetY = -(int16_t)rotatedY;
 	}
-	finalY = (g_flightSwRotSpriteOutputOffsetY * scaleState->textureScaleX + 128) >> 8;
+	finalY = (g_flightSwRotSpriteOutputOffsetY * scaleState->aspectScaleY + 128) >> 8;
 	if ((int16_t)rotatedY < 0) {
 		finalY = -finalY;
 	}
@@ -2362,7 +2355,7 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle, uint16_t* outCoe
 	coeffs->edgePointsWithPredecessor[1].y = 0;
 	if (coeffs->primaryAxisSwap == 0) {
 		uint16_t accumulator;
-		uint16_t remainingRows;
+		uint16_t remainingColumns;
 		int16_t edgeX;
 		int16_t edgeY;
 
@@ -2371,8 +2364,8 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle, uint16_t* outCoe
 		accumulator = 0x8000;
 		pointIndex = 2;
 		coeffs->scanCount = g_flightSwRotSpriteViewportWidth;
-		remainingRows = g_flightSwRotSpriteViewportWidth - 1;
-		while (remainingRows-- != 0) {
+		remainingColumns = g_flightSwRotSpriteViewportWidth - 1;
+		while (remainingColumns-- != 0) {
 			uint16_t previousAccumulator;
 
 			++edgeX;
@@ -2530,7 +2523,7 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle, uint16_t* outCoe
 }
 
 // FUNCTION: XVT 0x422170
-void FlightSw_RasterizePreparedRotatedSprite(uint8_t* spriteData, int formatIndex) {
+void FlightSw_RasterizePreparedRotatedSprite(uint8_t* spriteData, int packingMode) {
 	uint8_t colorIndex;
 	uint8_t scaleOverflow;
 	uint8_t scaleLow;
@@ -2626,8 +2619,8 @@ void FlightSw_RasterizePreparedRotatedSprite(uint8_t* spriteData, int formatInde
 						++cursor;
 						colorIndex =
 							(uint8_t)(paletteBase +
-									  (token >> g_flightSwRlePaletteShiftByPackingMode[formatIndex]));
-						runLength = token & g_flightSwRleRunLengthMaskByPackingMode[formatIndex];
+									  (token >> g_flightSwRlePaletteShiftByPackingMode[packingMode]));
+						runLength = token & g_flightSwRleRunLengthMaskByPackingMode[packingMode];
 					}
 					previousFraction = scaledFraction;
 					previousScaledX = scaledX;
@@ -4010,7 +4003,7 @@ void FlightSw_BlitRectToFlightSurface(uint8_t* sourceBase, uint16_t transparentC
 		transparentColor = (transparentColorIndex << 24) | (transparentColorIndex << 16) |
 						   (transparentColorIndex << 8) | transparentColorIndex;
 	} else {
-		transparentColor = g_flightTextPalette[transparentColorIndex];
+		transparentColor = g_flightPalette16Bpp[transparentColorIndex];
 	}
 	destination = g_flightSwFramebufferBase + destinationOffset;
 	source = sourceBase + sourcePitch * sourceY + g_flightBytesPerPixel * sourceX;
@@ -4089,7 +4082,7 @@ void FlightSw_DrawHorizontalColorSpan(int xStart, int xEnd, int y, uint8_t color
 
 		framebufferBase = g_flightSwFramebufferBase;
 		rowBase = framebufferBase + g_surfacePitch * framebufferY;
-		color = g_flightTextPalette[colorIndex];
+		color = g_flightPalette16Bpp[colorIndex];
 		if (framebufferXEnd <= framebufferXStart)
 			return;
 		destination = (uint16_t*)rowBase + framebufferXStart;
@@ -4285,24 +4278,25 @@ int32_t FlightSw_ComputePixelOffset(int x, int y) {
 }
 
 // FUNCTION: XVT 0x449900
-void FlightSw_BlitSpriteRle(uint8_t* rleData, int x, int y, int endMarker, int mirror) {
+void FlightSw_BlitSpriteRle16bpp(uint8_t* rleData, int x, int y, int transparentColorIndex, int mirror) {
 	g_flightSwRlePaletteShift = 0;
-	FlightSw_BlitSpriteRleImpl(rleData, x, y, endMarker, mirror, 0, 0);
+	FlightSw_BlitSpriteRleImpl16bpp(rleData, x, y, transparentColorIndex, mirror, 0, 0);
 }
 
 // FUNCTION: XVT 0x449930
-void FlightSw_BlitSpriteRleFaded(uint8_t* rleData, int x, int y, int endMarker, int8_t paletteShift,
-								 int16_t fadeAmount) {
+void FlightSw_BlitSpriteRleFaded16bpp(uint8_t* rleData, int x, int y, int transparentColorIndex,
+									  int8_t paletteShift, int16_t fadeAmount) {
 	unsigned int normalizedFadeAmount;
 
 	g_flightSwRlePaletteShift = paletteShift;
 	normalizedFadeAmount = (uint16_t)fadeAmount;
-	FlightSw_BlitSpriteRleImpl(rleData, x, y, endMarker, 0, 1, (int16_t)normalizedFadeAmount);
+	FlightSw_BlitSpriteRleImpl16bpp(rleData, x, y, transparentColorIndex, 0, 1,
+									(int16_t)normalizedFadeAmount);
 }
 
 // FUNCTION: XVT 0x449970
-void FlightSw_BlitSpriteRleImpl(uint8_t* rleData, int16_t x, int16_t y, int endMarker, int mirror, char mode,
-								int16_t fadeAmount) {
+void FlightSw_BlitSpriteRleImpl16bpp(uint8_t* rleData, int16_t x, int16_t y, int transparentColorIndex,
+									 int mirror, char isFaded, int16_t fadeAmount) {
 	unsigned int pixelOffset;
 	uint8_t* source;
 	uint8_t token;
@@ -4312,7 +4306,7 @@ void FlightSw_BlitSpriteRleImpl(uint8_t* rleData, int16_t x, int16_t y, int endM
 	int mirrorFlag;
 	uint16_t* destination;
 
-	g_flightSwRleSpriteEndMarker = (uint8_t)endMarker;
+	g_flightSwRleTransparentColor = (uint8_t)transparentColorIndex;
 	g_flightSwRleSpriteX = x;
 	g_flightSwRleSpriteY = y;
 	mirrorFlag = mirror;
@@ -4320,14 +4314,14 @@ void FlightSw_BlitSpriteRleImpl(uint8_t* rleData, int16_t x, int16_t y, int endM
 
 	for (;;) {
 		pixelOffset =
-			FlightSw_GetLineBufferAddr((uint16_t)g_flightSwRleSpriteY) + 2 * (uint16_t)g_flightSwRleSpriteX;
+			FlightSw_GetLineOffset((uint16_t)g_flightSwRleSpriteY) + 2 * (uint16_t)g_flightSwRleSpriteX;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
 			unsigned int page;
 
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -4338,14 +4332,14 @@ void FlightSw_BlitSpriteRleImpl(uint8_t* rleData, int16_t x, int16_t y, int endM
 			if (token < 0xFB) {
 				runLength = token & 3;
 				color = token >> 2;
-				if (mode == 0) {
+				if (isFaded == 0) {
 					color += g_flightSwRlePaletteShift;
 				}
 			} else {
 				if (token > 0xFB) {
 					if (token == 0xFC) {
 						color = source[0];
-						if (mode != 0) {
+						if (isFaded != 0) {
 							if (fadeAmount > 0) {
 								color -= (uint8_t)fadeAmount;
 								color += (uint8_t)g_flightSwRlePaletteShift;
@@ -4362,7 +4356,7 @@ void FlightSw_BlitSpriteRleImpl(uint8_t* rleData, int16_t x, int16_t y, int endM
 						alternatingPixelsRemaining = (int16_t)source[1] + 1;
 						source += 2;
 						while (alternatingPixelsRemaining > 0) {
-							*destination = g_flightTextPalette[color];
+							*destination = g_flightPalette16Bpp[color];
 							if (mirrorFlag == 0) {
 								++destination;
 							} else {
@@ -4370,7 +4364,7 @@ void FlightSw_BlitSpriteRleImpl(uint8_t* rleData, int16_t x, int16_t y, int endM
 							}
 							--alternatingPixelsRemaining;
 							if (alternatingPixelsRemaining > 0) {
-								*destination = g_flightTextPalette[(uint8_t)runLength];
+								*destination = g_flightPalette16Bpp[(uint8_t)runLength];
 								if (mirrorFlag == 0) {
 									++destination;
 								} else {
@@ -4389,7 +4383,7 @@ void FlightSw_BlitSpriteRleImpl(uint8_t* rleData, int16_t x, int16_t y, int endM
 						break;
 					}
 				} else {
-					if (mode == 0) {
+					if (isFaded == 0) {
 						g_flightSwRlePaletteShift = (int8_t)*source;
 					}
 					++source;
@@ -4398,7 +4392,7 @@ void FlightSw_BlitSpriteRleImpl(uint8_t* rleData, int16_t x, int16_t y, int endM
 			}
 
 			++runLength;
-			if (color == endMarker) {
+			if (color == transparentColorIndex) {
 				if (mirrorFlag == 0) {
 					destination += runLength;
 				} else {
@@ -4406,7 +4400,7 @@ void FlightSw_BlitSpriteRleImpl(uint8_t* rleData, int16_t x, int16_t y, int endM
 				}
 				continue;
 			}
-			if (mode != 0) {
+			if (isFaded != 0) {
 				if (fadeAmount > 0) {
 					color -= (uint8_t)fadeAmount;
 					color += (uint8_t)g_flightSwRlePaletteShift;
@@ -4416,12 +4410,12 @@ void FlightSw_BlitSpriteRleImpl(uint8_t* rleData, int16_t x, int16_t y, int endM
 			}
 			if (mirrorFlag == 0) {
 				while (runLength > 0) {
-					*destination++ = g_flightTextPalette[color];
+					*destination++ = g_flightPalette16Bpp[color];
 					--runLength;
 				}
 			} else {
 				while (runLength > 0) {
-					*destination-- = g_flightTextPalette[color];
+					*destination-- = g_flightPalette16Bpp[color];
 					--runLength;
 				}
 			}
@@ -4443,7 +4437,7 @@ void FlightSw_BlitMapIconRle16bpp(uint8_t* rleData, int x, int y, int transparen
 	uint16_t* paletteColor;
 	uint16_t** palette;
 
-	g_flightSwRleSpriteEndMarker = (uint8_t)transparentIndex;
+	g_flightSwRleTransparentColor = (uint8_t)transparentIndex;
 	g_flightSwRleSpriteX = (int16_t)x;
 	g_flightSwRleSpriteY = (int16_t)y;
 	source = &rleData;
@@ -4451,14 +4445,14 @@ void FlightSw_BlitMapIconRle16bpp(uint8_t* rleData, int x, int y, int transparen
 
 	for (;;) {
 		pixelOffset =
-			FlightSw_GetLineBufferAddr((uint16_t)g_flightSwRleSpriteY) + 2 * (uint16_t)g_flightSwRleSpriteX;
+			FlightSw_GetLineOffset((uint16_t)g_flightSwRleSpriteY) + 2 * (uint16_t)g_flightSwRleSpriteX;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			XvtFramebufferAddress_IsLegacyBase(g_flightSwFramebufferBase)) {
 			unsigned int page;
 
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -4489,7 +4483,7 @@ void FlightSw_BlitMapIconRle16bpp(uint8_t* rleData, int x, int y, int transparen
 						memcpy(&runLength, (*source)++, sizeof(**source));
 						++runLength;
 						if ((int16_t)runLength > 0) {
-							*palette = &g_flightTextPalette[paletteIndex + 4];
+							*palette = &g_flightPalette16Bpp[paletteIndex + 4];
 							do {
 								XvtFramebufferAddress_Store16(&destination, **palette);
 								if (mirror == 0) {
@@ -4500,7 +4494,7 @@ void FlightSw_BlitMapIconRle16bpp(uint8_t* rleData, int x, int y, int transparen
 								--runLength;
 								if ((int16_t)runLength > 0) {
 									XvtFramebufferAddress_Store16(
-										&destination, g_flightTextPalette[(uint8_t)nextPaletteIndex + 4]);
+										&destination, g_flightPalette16Bpp[(uint8_t)nextPaletteIndex + 4]);
 									if (mirror == 0) {
 										destination += 2;
 									} else {
@@ -4535,7 +4529,7 @@ void FlightSw_BlitMapIconRle16bpp(uint8_t* rleData, int x, int y, int transparen
 			} else if (mirror == 0) {
 				if (runLength > 0) {
 					memcpy(&pixelsRemaining, &runLength, sizeof(pixelsRemaining));
-					*palette = &g_flightTextPalette[token + 4];
+					*palette = &g_flightPalette16Bpp[token + 4];
 					do {
 						XvtFramebufferAddress_Store16(&destination, **palette);
 						destination += 2;
@@ -4545,7 +4539,7 @@ void FlightSw_BlitMapIconRle16bpp(uint8_t* rleData, int x, int y, int transparen
 			} else {
 				if (runLength > 0) {
 					memcpy(&pixelsRemaining, &runLength, sizeof(pixelsRemaining));
-					*palette = &g_flightTextPalette[token + 4];
+					*palette = &g_flightPalette16Bpp[token + 4];
 					do {
 						XvtFramebufferAddress_Store16(&destination, **palette);
 						destination -= 2;
@@ -4563,7 +4557,7 @@ void FlightSw_BlitMapIconRle16bpp(uint8_t* rleData, int x, int y, int transparen
 }
 
 // FUNCTION: XVT 0x449EF0
-void FlightSw_DrawPixel(uint16_t x, uint16_t y, int8_t colorIndex) {
+void FlightSw_DrawPixel16bpp(uint16_t x, uint16_t y, int8_t colorIndex) {
 	unsigned int pixelOffset;
 	uint16_t color;
 	uint8_t* framebufferBase;
@@ -4571,31 +4565,31 @@ void FlightSw_DrawPixel(uint16_t x, uint16_t y, int8_t colorIndex) {
 	unsigned int page;
 #endif
 
-	pixelOffset = FlightSw_GetLineBufferAddr(y) + 2 * x;
+	pixelOffset = FlightSw_GetLineOffset(y) + 2 * x;
 #ifndef XVT_MODERN
 	if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 		g_flightSwFramebufferBase == g_swFramebufferBase) {
-		page = pixelOffset / g_swFramebufferClearChunkSize;
-		pixelOffset %= g_swFramebufferClearChunkSize;
+		page = pixelOffset / g_vesaPageSizeBytes;
+		pixelOffset %= g_vesaPageSizeBytes;
 		RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 	}
 #endif
-	color = g_flightTextPalette[(int)colorIndex];
+	color = g_flightPalette16Bpp[(int)colorIndex];
 	framebufferBase = g_flightSwFramebufferBase;
 	*(uint16_t*)(framebufferBase + pixelOffset) = color;
 }
 
 // FUNCTION: XVT 0x44A570
-void FlightSw_FillClipRect(void) {
+void FlightSw_FillClipRect16bpp(void) {
 	g_flightFillRectBottom = g_flightClipBottom;
 	g_flightFillRectTop = g_flightClipTop;
 	g_flightFillRectLeft = g_flightClipLeft;
 	g_flightFillRectRight = g_flightClipRight;
-	FlightSw_FillRectOrBorder(0);
+	FlightSw_FillRectOrBorder16bpp(0);
 }
 
 // FUNCTION: XVT 0x44A5B0
-void FlightSw_FillRectOrBorder(uint16_t borderThickness) {
+void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness) {
 	int16_t row;
 	unsigned int pixelOffset;
 	uint16_t* destination;
@@ -4611,12 +4605,12 @@ void FlightSw_FillRectOrBorder(uint16_t borderThickness) {
 
 	if (borderThickness != 0) {
 		for (row = 0; row < borderThickness; ++row) {
-			pixelOffset = FlightSw_GetLineBufferAddr(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
+			pixelOffset = FlightSw_GetLineOffset(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
 #ifndef XVT_MODERN
 			if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 				g_flightSwFramebufferBase == g_swFramebufferBase) {
-				page = pixelOffset / g_swFramebufferClearChunkSize;
-				pixelOffset %= g_swFramebufferClearChunkSize;
+				page = pixelOffset / g_vesaPageSizeBytes;
+				pixelOffset %= g_vesaPageSizeBytes;
 				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			}
 #endif
@@ -4624,7 +4618,7 @@ void FlightSw_FillRectOrBorder(uint16_t borderThickness) {
 			pixelsRemaining = g_flightFillRectRight - g_flightFillRectLeft;
 			if (pixelsRemaining-- != 0) {
 				do {
-					*destination++ = g_flightTextPalette[g_flightTextBgColor];
+					*destination++ = g_flightPalette16Bpp[g_flightTextBgColor];
 				} while (pixelsRemaining-- != 0);
 			}
 			--g_flightFillRectRemainingRows;
@@ -4636,12 +4630,12 @@ void FlightSw_FillRectOrBorder(uint16_t borderThickness) {
 			int16_t leftPixelsRemaining;
 			int16_t rightPixelsRemaining;
 
-			pixelOffset = FlightSw_GetLineBufferAddr(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
+			pixelOffset = FlightSw_GetLineOffset(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
 #ifndef XVT_MODERN
 			if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 				g_flightSwFramebufferBase == g_swFramebufferBase) {
-				page = pixelOffset / g_swFramebufferClearChunkSize;
-				pixelOffset %= g_swFramebufferClearChunkSize;
+				page = pixelOffset / g_vesaPageSizeBytes;
+				pixelOffset %= g_vesaPageSizeBytes;
 				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			}
 #endif
@@ -4650,23 +4644,23 @@ void FlightSw_FillRectOrBorder(uint16_t borderThickness) {
 			rightPixelsRemaining = borderThickness;
 			centerWidth = g_flightFillRectRight - 2 * borderThickness - g_flightFillRectLeft;
 			while (leftPixelsRemaining-- != 0) {
-				*destination++ = g_flightTextPalette[g_flightTextBgColor];
+				*destination++ = g_flightPalette16Bpp[g_flightTextBgColor];
 			}
 			destination += centerWidth;
 			while (rightPixelsRemaining-- != 0) {
-				*destination++ = g_flightTextPalette[g_flightTextBgColor];
+				*destination++ = g_flightPalette16Bpp[g_flightTextBgColor];
 			}
 			--g_flightFillRectRemainingRows;
 			++g_flightFillRectCurrentY;
 		}
 
 		for (row = 0; row < borderThickness; ++row) {
-			pixelOffset = FlightSw_GetLineBufferAddr(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
+			pixelOffset = FlightSw_GetLineOffset(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
 #ifndef XVT_MODERN
 			if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 				g_flightSwFramebufferBase == g_swFramebufferBase) {
-				page = pixelOffset / g_swFramebufferClearChunkSize;
-				pixelOffset %= g_swFramebufferClearChunkSize;
+				page = pixelOffset / g_vesaPageSizeBytes;
+				pixelOffset %= g_vesaPageSizeBytes;
 				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			}
 #endif
@@ -4674,7 +4668,7 @@ void FlightSw_FillRectOrBorder(uint16_t borderThickness) {
 			pixelsRemaining = g_flightFillRectRight - g_flightFillRectLeft;
 			if (pixelsRemaining-- != 0) {
 				do {
-					*destination++ = g_flightTextPalette[g_flightTextBgColor];
+					*destination++ = g_flightPalette16Bpp[g_flightTextBgColor];
 				} while (pixelsRemaining-- != 0);
 			}
 			--g_flightFillRectRemainingRows;
@@ -4684,12 +4678,12 @@ void FlightSw_FillRectOrBorder(uint16_t borderThickness) {
 	}
 
 	while (g_flightFillRectRemainingRows != 0) {
-		pixelOffset = FlightSw_GetLineBufferAddr(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
+		pixelOffset = FlightSw_GetLineOffset(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -4699,7 +4693,7 @@ void FlightSw_FillRectOrBorder(uint16_t borderThickness) {
 			return;
 		if (pixelsRemaining-- != 0) {
 			do {
-				*destination++ = g_flightTextPalette[g_flightTextBgColor];
+				*destination++ = g_flightPalette16Bpp[g_flightTextBgColor];
 			} while (pixelsRemaining-- != 0);
 		}
 		--g_flightFillRectRemainingRows;
@@ -4708,7 +4702,8 @@ void FlightSw_FillRectOrBorder(uint16_t borderThickness) {
 }
 
 // FUNCTION: XVT 0x44A980
-void FlightSw_FillRectClipped(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t borderThickness) {
+void FlightSw_FillRectClipped16bpp(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2,
+								   uint16_t borderThickness) {
 	uint16_t clippedTop;
 	uint16_t clippedBottom;
 
@@ -4730,11 +4725,11 @@ void FlightSw_FillRectClipped(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2
 	g_flightFillRectBottom = clippedBottom;
 	g_flightFillRectTop = clippedTop;
 	if (clippedBottom > clippedTop && g_flightFillRectLeft < g_flightFillRectRight)
-		FlightSw_FillRectOrBorder(borderThickness);
+		FlightSw_FillRectOrBorder16bpp(borderThickness);
 }
 
 // FUNCTION: XVT 0x44AB10
-void FlightSw_SaveScreenRect(uint16_t* buffer, int x, int y, int16_t width, int height) {
+void FlightSw_SaveScreenRect16bpp(uint16_t* buffer, int x, int y, int16_t width, int height) {
 	uint16_t* output;
 	uint16_t* source;
 	uint16_t pixel;
@@ -4747,12 +4742,12 @@ void FlightSw_SaveScreenRect(uint16_t* buffer, int x, int y, int16_t width, int 
 	if (height == 0)
 		return;
 	do {
-		pixelOffset = FlightSw_GetLineBufferAddr(y) + 2 * x;
+		pixelOffset = FlightSw_GetLineOffset(y) + 2 * x;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -4769,7 +4764,7 @@ void FlightSw_SaveScreenRect(uint16_t* buffer, int x, int y, int16_t width, int 
 }
 
 // FUNCTION: XVT 0x44ABC0
-void FlightSw_RestoreScreenRect(uint16_t* buffer, int x, int y, int16_t width, int height) {
+void FlightSw_RestoreScreenRect16bpp(uint16_t* buffer, int x, int y, int16_t width, int height) {
 	uint16_t* input;
 	uint16_t* destination;
 	uint16_t pixel;
@@ -4782,12 +4777,12 @@ void FlightSw_RestoreScreenRect(uint16_t* buffer, int x, int y, int16_t width, i
 	if (height == 0)
 		return;
 	do {
-		pixelOffset = FlightSw_GetLineBufferAddr(y) + 2 * x;
+		pixelOffset = FlightSw_GetLineOffset(y) + 2 * x;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -4806,7 +4801,7 @@ void FlightSw_RestoreScreenRect(uint16_t* buffer, int x, int y, int16_t width, i
 }
 
 // FUNCTION: XVT 0x44AC70
-void FlightSw_DrawPointArray(uint16_t* points, int16_t count) {
+void FlightSw_DrawPointArray16bpp(uint16_t* points, int16_t count) {
 	uint16_t x;
 	uint16_t y;
 	uint16_t* current;
@@ -4824,28 +4819,28 @@ void FlightSw_DrawPointArray(uint16_t* points, int16_t count) {
 	do {
 		x = current[0];
 		y = current[1];
-		pixelOffset = FlightSw_GetLineBufferAddr(y) + 2 * x;
+		pixelOffset = FlightSw_GetLineOffset(y) + 2 * x;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_swFramebufferBase == g_flightSwFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			RtsVga2_SetCurrentPage(1, (uint16_t)page);
 		}
 #endif
 		destination = (int16_t*)(g_flightSwFramebufferBase + pixelOffset);
-		if (*destination != g_flightTextPalette[44])
+		if (*destination != g_flightPalette16Bpp[44])
 			current[2] = 0;
 		else
-			*destination = (int16_t)g_flightTextPalette[(uint8_t)current[2]];
+			*destination = (int16_t)g_flightPalette16Bpp[(uint8_t)current[2]];
 		--remaining;
 		current += 3;
 	} while (remaining != 0);
 }
 
 // FUNCTION: XVT 0x44AD30
-void FlightSw_DrawPointArrayMasked(uint16_t* points, int16_t count) {
+void FlightSw_ErasePointArray16bpp(uint16_t* points, int16_t count) {
 	unsigned int pixelOffset;
 #ifndef XVT_MODERN
 	unsigned int legacyResolutionMode;
@@ -4871,18 +4866,18 @@ void FlightSw_DrawPointArrayMasked(uint16_t* points, int16_t count) {
 
 		x = current[0];
 		y = current[1];
-		pixelOffset = FlightSw_GetLineBufferAddr(y) + 2 * x;
+		pixelOffset = FlightSw_GetLineOffset(y) + 2 * x;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != legacyResolutionMode &&
 			g_swFramebufferBase == g_flightSwFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
 		destination = (uint16_t*)(g_flightSwFramebufferBase + pixelOffset);
 		if ((uint8_t)current[2] != 0) {
-			*destination = g_flightTextPalette[44];
+			*destination = g_flightPalette16Bpp[44];
 		}
 
 		--remaining;
@@ -4891,7 +4886,7 @@ void FlightSw_DrawPointArrayMasked(uint16_t* points, int16_t count) {
 }
 
 // FUNCTION: XVT 0x44ADD0
-void FlightSw_DrawRadarTargetMarker(void) {
+void FlightSw_DrawRadarTargetMarker16bpp(void) {
 	unsigned int pixelOffset;
 	int16_t remaining;
 	uint16_t offsetIndex;
@@ -4905,28 +4900,28 @@ void FlightSw_DrawRadarTargetMarker(void) {
 	offsetIndex = 0;
 	savedPixelIndex = 0;
 	do {
-		pixelOffset =
-			FlightSw_GetLineBufferAddr(g_radarTargetMarkerDrawY + g_cursorShapeOffsets[offsetIndex + 1]) +
-			2 * (g_radarTargetMarkerDrawX + g_cursorShapeOffsets[offsetIndex]);
+		pixelOffset = FlightSw_GetLineOffset(g_radarTargetMarkerDrawY +
+											 g_radarTargetMarkerShape16bpp[offsetIndex + 1]) +
+					  2 * (g_radarTargetMarkerDrawX + g_radarTargetMarkerShape16bpp[offsetIndex]);
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			RtsVga2_SetCurrentPage(1, (uint16_t)page);
 		}
 #endif
 		offsetIndex += 2;
 		pixel = (uint16_t*)(g_flightSwFramebufferBase + pixelOffset);
-		g_cursorSavedPixels[savedPixelIndex++] = *pixel;
-		*pixel = g_flightTextPalette[206];
+		g_radarTargetMarkerSavedPixels16bpp[savedPixelIndex++] = *pixel;
+		*pixel = g_flightPalette16Bpp[206];
 		--remaining;
 	} while (remaining != 0);
 }
 
 // FUNCTION: XVT 0x44AEB0
-void FlightSw_RestoreRadarTargetMarker(void) {
+void FlightSw_RestoreRadarTargetMarker16bpp(void) {
 	unsigned int pixelOffset;
 	int16_t remaining;
 	uint16_t offsetIndex;
@@ -4941,27 +4936,27 @@ void FlightSw_RestoreRadarTargetMarker(void) {
 	remaining = 10;
 	savedPixelIndex = 0;
 	do {
-		pixelOffset =
-			FlightSw_GetLineBufferAddr(g_radarTargetMarkerRestoreY + g_cursorShapeOffsets[offsetIndex + 1]) +
-			2 * (g_radarTargetMarkerRestoreX + g_cursorShapeOffsets[offsetIndex]);
+		pixelOffset = FlightSw_GetLineOffset(g_radarTargetMarkerRestoreY +
+											 g_radarTargetMarkerShape16bpp[offsetIndex + 1]) +
+					  2 * (g_radarTargetMarkerRestoreX + g_radarTargetMarkerShape16bpp[offsetIndex]);
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_swFramebufferBase == g_flightSwFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
 		framebufferBase = g_flightSwFramebufferBase + pixelOffset;
 		offsetIndex += 2;
-		pixel = g_cursorSavedPixels[savedPixelIndex++];
+		pixel = g_radarTargetMarkerSavedPixels16bpp[savedPixelIndex++];
 		*(uint16_t*)framebufferBase = pixel;
 		--remaining;
 	} while (remaining != 0);
 }
 
 // FUNCTION: XVT 0x44AF70
-uint16_t FlightSw_DrawCrossMarker(uint16_t x, uint16_t y, uint8_t colorIndex) {
+uint16_t FlightSw_DrawCrossMarker16bpp(uint16_t x, uint16_t y, uint8_t colorIndex) {
 	int16_t remaining;
 	unsigned int coordinates[2];
 	uint16_t offsetIndex;
@@ -4974,21 +4969,21 @@ uint16_t FlightSw_DrawCrossMarker(uint16_t x, uint16_t y, uint8_t colorIndex) {
 	offsetIndex = 0;
 	savedPixelIndex = 0;
 	coordinates[1] = x;
-	color = &g_flightTextPalette[colorIndex];
+	color = &g_flightPalette16Bpp[colorIndex];
 	do {
 		unsigned int pixelOffset;
 		uint16_t* pixel;
 
-		pixelOffset = FlightSw_GetLineBufferAddr(
-						  coordinates[0] + ((int8_t*)g_flightSwCrossMarkerOffsets16bpp)[offsetIndex + 1]) +
+		pixelOffset = FlightSw_GetLineOffset(coordinates[0] +
+											 ((int8_t*)g_flightSwCrossMarkerOffsets16bpp)[offsetIndex + 1]) +
 					  2 * (coordinates[1] + ((int8_t*)g_flightSwCrossMarkerOffsets16bpp)[offsetIndex]);
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
 			unsigned int page;
 
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 			RtsVga2_SetCurrentPage(1, (uint16_t)page);
 		}
@@ -5004,7 +4999,7 @@ uint16_t FlightSw_DrawCrossMarker(uint16_t x, uint16_t y, uint8_t colorIndex) {
 }
 
 // FUNCTION: XVT 0x44B070
-uint16_t FlightSw_RestoreCrossMarker(uint16_t x, uint16_t y) {
+uint16_t FlightSw_RestoreCrossMarker16bpp(uint16_t x, uint16_t y) {
 	int16_t remaining;
 	uint16_t offsetIndex;
 	uint16_t savedPixelIndex;
@@ -5020,13 +5015,13 @@ uint16_t FlightSw_RestoreCrossMarker(uint16_t x, uint16_t y) {
 	savedPixelIndex = 0;
 	do {
 		pixelOffset =
-			FlightSw_GetLineBufferAddr(y + ((int8_t*)g_flightSwCrossMarkerOffsets16bpp)[offsetIndex + 1]) +
+			FlightSw_GetLineOffset(y + ((int8_t*)g_flightSwCrossMarkerOffsets16bpp)[offsetIndex + 1]) +
 			2 * (x + ((int8_t*)g_flightSwCrossMarkerOffsets16bpp)[offsetIndex]);
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
-			page = pixelOffset / g_swFramebufferClearChunkSize;
-			pixelOffset %= g_swFramebufferClearChunkSize;
+			page = pixelOffset / g_vesaPageSizeBytes;
+			pixelOffset %= g_vesaPageSizeBytes;
 			RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
 		}
 #endif
@@ -5040,7 +5035,7 @@ uint16_t FlightSw_RestoreCrossMarker(uint16_t x, uint16_t y) {
 }
 
 // FUNCTION: XVT 0x44B140
-void FlightSw_DrawLine(int x1, int y1, int x2, int y2, uint8_t colorIdx) {
+void FlightSw_DrawLine16bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx) {
 	uint16_t color;
 	int deltaX;
 	int deltaY;
@@ -5048,7 +5043,7 @@ void FlightSw_DrawLine(int x1, int y1, int x2, int y2, uint8_t colorIdx) {
 	int endX;
 	uint8_t* pixel;
 
-	color = g_flightTextPalette[colorIdx];
+	color = g_flightPalette16Bpp[colorIdx];
 	endX = x2;
 	deltaX = endX - x1;
 	if (deltaX < 0) {
@@ -5274,13 +5269,13 @@ void FlightSw_BlitPreparedRotatedSpriteSpans(uint8_t* pDst, int rowSkipBytes, in
 	int scanY;
 	uint8_t* pixel;
 	int scanX;
-	float depth;
+	float spriteW;
 
 	if (g_flightSurfaceAlreadyLocked == 0) {
 		FlightSurface_Lock();
 	}
 	scanY = startY;
-	depth = (float)(unsigned int)g_projScaleInt / (float)g_viewSpaceDepth;
+	spriteW = (float)(unsigned int)g_projScaleInt / (float)g_viewSpaceDepth;
 	if (g_flightBytesPerPixel == 2) {
 		if (endY > scanY) {
 			pixel = pDst;
@@ -5301,12 +5296,12 @@ void FlightSw_BlitPreparedRotatedSpriteSpans(uint8_t* pDst, int rowSkipBytes, in
 					runStartX = scanX;
 					runStart = pixel;
 					while (scanX < endX && pixel[1] == 0x80) {
-						pixel[1] = g_flightSwRotSpriteTintHiTable[pixel[0]];
-						pixel[0] = g_flightSwRotSpriteTintLoTable[pixel[0]];
+						pixel[1] = g_flightSwRotSpritePalette16High[pixel[0]];
+						pixel[0] = g_flightSwRotSpritePalette16Low[pixel[0]];
 						pixel += 2;
 						++scanX;
 					}
-					sw3d_BlitOccludedSpan(runStart, runStartX, scanX, scanY, depth);
+					sw3d_BlitOccludedSpan(runStart, runStartX, scanX, scanY, spriteW);
 				}
 				++scanY;
 				pixel += rowSkipBytes;
@@ -5334,11 +5329,11 @@ void FlightSw_BlitPreparedRotatedSpriteSpans(uint8_t* pDst, int rowSkipBytes, in
 					uint8_t color;
 
 					color = *pixel;
-					*pixel = g_flightSwRotSpriteTintTable[color];
+					*pixel = g_flightSwRotSpritePalette8[color];
 					++pixel;
 					++scanX;
 				}
-				sw3d_BlitOccludedSpan(runStart, runStartX, scanX, scanY, depth);
+				sw3d_BlitOccludedSpan(runStart, runStartX, scanX, scanY, spriteW);
 			}
 			++scanY;
 			pixel += rowSkipBytes;

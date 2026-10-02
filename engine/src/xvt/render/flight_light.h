@@ -20,7 +20,7 @@ extern ObjectPointLight g_objectPointLights[10];
 
 void FlightLight_ResetSoftwareFaceSampleCache(void);
 float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screenX, int screenY,
-													 float projectedDepth);
+													 float reciprocalDepth);
 void FlightLight_SetupObjectLighting(ObjectRecord* object);
 void FlightLight_SetupObjectLightingByIndex(unsigned int objectIndex);
 

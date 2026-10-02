@@ -6,7 +6,7 @@ char* g_briefingMapLabelTexts[32] = { 0 };
 // GLOBAL: XVT 0x669602
 char* g_briefingTextBlocks[32] = { 0 };
 // GLOBAL: XVT 0x669682
-char* g_briefingTextBlockPaddingBuffers[20] = { 0 };
+char* g_briefingUnusedBuffers[20] = { 0 };
 // GLOBAL: XVT 0xAA6118
 char* g_briefingText = NULL;
 
@@ -33,8 +33,8 @@ void BriefingText_FreeAllocatedBuffers(void) {
 	}
 
 	for (index = 0; index < 20; ++index) {
-		if (g_briefingTextBlockPaddingBuffers[index] != NULL) {
-			free(g_briefingTextBlockPaddingBuffers[index]);
+		if (g_briefingUnusedBuffers[index] != NULL) {
+			free(g_briefingUnusedBuffers[index]);
 		}
 	}
 }
