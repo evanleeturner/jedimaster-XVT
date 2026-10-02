@@ -13,6 +13,30 @@
 
 #include <string.h>
 
+/* Sends a packet holding only its type to every player and flushes it at
+ * once. */
+static void XvtMissionDialogs_SendToEveryPlayer(int packet_type)
+{
+	g_frontendNetPacketScratch.packetType = packet_type;
+	Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, sizeof(int));
+}
+
+/* Sends a packet holding only its type to the host and flushes it at once. */
+static void XvtMissionDialogs_SendToHost(int packet_type)
+{
+	g_frontendNetPacketScratch.packetType = packet_type;
+	Net_SendPacketAndFlush(Net_GetHostPlayerId(),
+			       &g_frontendNetPacketScratch, sizeof(int));
+}
+
+/* Returns to the join-game screen; leaving it frees the mission list's
+ * resources. */
+static void XvtMissionDialogs_ReturnToJoinScreen(void)
+{
+	FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen,
+				    FrontendMissionList_FreeScreenResources);
+}
+
 /* These tails execute in the suspended screen's callback slot, before its exit callback. */
 int XvtMissionDialogs_Resume(int result, int action)
 {
@@ -22,31 +46,23 @@ int XvtMissionDialogs_Resume(int result, int action)
 	case XVT_MISSION_SETUP_CANCELLED:
 		g_frontendMissionSessionMode =
 			FRONTEND_MISSION_SESSION_NET_CLIENT;
-		FrontendScreen_SetCallbacks(
-			FrontendNet_JoinGameScreen,
-			FrontendMissionList_FreeScreenResources);
+		XvtMissionDialogs_ReturnToJoinScreen();
 		break;
 	case XVT_MISSION_SETUP_BOOTED:
-		FrontendScreen_SetCallbacks(
-			FrontendNet_JoinGameScreen,
-			FrontendMissionList_FreeScreenResources);
+		XvtMissionDialogs_ReturnToJoinScreen();
 		break;
 	case XVT_MISSION_TEAM_CANCELLED:
 		g_frontendMissionSessionMode =
 			FRONTEND_MISSION_SESSION_NET_CLIENT;
 		g_frontendSkipScreenEntrySetup = 1;
-		FrontendScreen_SetCallbacks(
-			FrontendNet_JoinGameScreen,
-			FrontendMissionList_FreeScreenResources);
+		XvtMissionDialogs_ReturnToJoinScreen();
 		Net_ShutdownDirectPlaySession();
 		break;
 	case XVT_MISSION_ASSIGNMENT_CANCELLED:
 		g_frontendSkipScreenEntrySetup = 1;
 		g_frontendMissionSessionMode =
 			FRONTEND_MISSION_SESSION_NET_CLIENT;
-		FrontendScreen_SetCallbacks(
-			FrontendNet_JoinGameScreen,
-			FrontendMissionList_FreeScreenResources);
+		XvtMissionDialogs_ReturnToJoinScreen();
 		break;
 	case XVT_MISSION_BRIEFING_CANCELLED:
 		if (Net_IsHost()) {
@@ -58,18 +74,14 @@ int XvtMissionDialogs_Resume(int result, int action)
 			g_frontendSkipScreenEntrySetup = 1;
 			g_frontendMissionSessionMode =
 				FRONTEND_MISSION_SESSION_NET_CLIENT;
-			FrontendScreen_SetCallbacks(
-				FrontendNet_JoinGameScreen,
-				FrontendMissionList_FreeScreenResources);
+			XvtMissionDialogs_ReturnToJoinScreen();
 		}
 		break;
 	case XVT_MISSION_SETUP_HOST_LEAVE:
 		if (result) {
 			g_frontendSkipScreenEntrySetup = 1;
-			g_frontendNetPacketScratch.packetType =
-				NET_PACKET_HOST_CANCELLED;
-			Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
-					       sizeof(int));
+			XvtMissionDialogs_SendToEveryPlayer(
+				NET_PACKET_HOST_CANCELLED);
 			Net_ShutdownDirectPlaySession();
 			g_frontendMissionSessionMode =
 				FRONTEND_MISSION_SESSION_NONE;
@@ -83,28 +95,20 @@ int XvtMissionDialogs_Resume(int result, int action)
 			if (action == XVT_MISSION_CLIENT_LEAVE) {
 				g_frontendSkipScreenEntrySetup = 1;
 			}
-			g_frontendNetPacketScratch.packetType =
-				NET_PACKET_PLAYER_LEFT;
-			Net_SendPacketAndFlush(Net_GetHostPlayerId(),
-					       &g_frontendNetPacketScratch,
-					       sizeof(int));
+			XvtMissionDialogs_SendToHost(NET_PACKET_PLAYER_LEFT);
 			Net_ShutdownDirectPlaySession();
 			if (action == XVT_MISSION_TEAM_CLIENT_LEAVE) {
 				g_frontendSkipScreenEntrySetup = 1;
 			}
-			FrontendScreen_SetCallbacks(
-				FrontendNet_JoinGameScreen,
-				FrontendMissionList_FreeScreenResources);
+			XvtMissionDialogs_ReturnToJoinScreen();
 		}
 		break;
 	case XVT_MISSION_TEAM_PREVIOUS:
 		/* The recovered team-screen caller does not inspect the answer. */
 		if (g_frontendMissionSessionMode !=
 		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-			g_frontendNetPacketScratch.packetType =
-				NET_PACKET_RETURN_TO_SETUP;
-			Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
-					       sizeof(int));
+			XvtMissionDialogs_SendToEveryPlayer(
+				NET_PACKET_RETURN_TO_SETUP);
 		} else {
 			FrontendScreen_SetCallbacks(MissionSetup_Update,
 						    MissionSetup_Exit);
@@ -112,10 +116,8 @@ int XvtMissionDialogs_Resume(int result, int action)
 		break;
 	case XVT_MISSION_HOST_RESTART:
 		if (result) {
-			g_frontendNetPacketScratch.packetType =
-				NET_PACKET_RETURN_TO_SETUP;
-			Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
-					       sizeof(int));
+			XvtMissionDialogs_SendToEveryPlayer(
+				NET_PACKET_RETURN_TO_SETUP);
 		}
 		break;
 	case XVT_MISSION_SOLO_BACK_TO_SETUP:
@@ -135,11 +137,7 @@ int XvtMissionDialogs_Resume(int result, int action)
 		break;
 	case XVT_MISSION_DEBRIEF_CLIENT_LEAVE:
 		if (result) {
-			g_frontendNetPacketScratch.packetType =
-				NET_PACKET_PLAYER_LEFT;
-			Net_SendPacketAndFlush(Net_GetHostPlayerId(),
-					       &g_frontendNetPacketScratch,
-					       sizeof(int));
+			XvtMissionDialogs_SendToHost(NET_PACKET_PLAYER_LEFT);
 			Net_ShutdownDirectPlaySession();
 			FrontendButton_DisableOverlayText();
 			FrontendScreen_SetCallbacks(Concourse_Update,
@@ -148,10 +146,8 @@ int XvtMissionDialogs_Resume(int result, int action)
 		break;
 	case XVT_MISSION_DEBRIEF_HOST_ABORT:
 		if (result) {
-			g_frontendNetPacketScratch.packetType =
-				NET_PACKET_RETURN_TO_MISSION_SELECTION;
-			Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
-					       sizeof(int));
+			XvtMissionDialogs_SendToEveryPlayer(
+				NET_PACKET_RETURN_TO_MISSION_SELECTION);
 		}
 		break;
 	case XVT_MISSION_DEBRIEF_SOLO_ABORT:
