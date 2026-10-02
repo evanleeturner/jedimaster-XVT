@@ -297,12 +297,12 @@ int Net_StartNetworkSession(int appGuidData1, int appGuidData2, int appGuidData3
 			return 0;
 		}
 
-		strncpy(g_frontState.netPlayers[0].playerName, localPlayerInfo,
+		strncpy(g_frontState.netPlayers[0].playerInfo, localPlayerInfo,
+				sizeof(g_frontState.netPlayers[0].playerInfo));
+		g_frontState.netPlayers[0].playerInfo[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
+		strncpy(g_frontState.netPlayers[0].playerName, localPlayerName,
 				sizeof(g_frontState.netPlayers[0].playerName));
 		g_frontState.netPlayers[0].playerName[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
-		strncpy(g_frontState.netPlayers[0].sessionName, localPlayerName,
-				sizeof(g_frontState.netPlayers[0].sessionName));
-		g_frontState.netPlayers[0].sessionName[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
 		if (selectedNetworkType == NET_TRANSPORT_MODEM) {
 			strcpy(gameSessionName, dialNumber);
 		} else if (selectedNetworkType == NET_TRANSPORT_SERIAL) {
@@ -361,12 +361,12 @@ int Net_StartNetworkSession(int appGuidData1, int appGuidData2, int appGuidData3
 		g_frontState.netTempDirectPlay->lpVtbl->Release(g_frontState.netTempDirectPlay);
 		g_frontState.netTempDirectPlay = NULL;
 		g_frontState.netIsHost = isHost;
-		strncpy(g_frontState.netPlayers[0].playerName, localPlayerInfo,
+		strncpy(g_frontState.netPlayers[0].playerInfo, localPlayerInfo,
+				sizeof(g_frontState.netPlayers[0].playerInfo));
+		g_frontState.netPlayers[0].playerInfo[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
+		strncpy(g_frontState.netPlayers[0].playerName, localPlayerName,
 				sizeof(g_frontState.netPlayers[0].playerName));
 		g_frontState.netPlayers[0].playerName[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
-		strncpy(g_frontState.netPlayers[0].sessionName, localPlayerName,
-				sizeof(g_frontState.netPlayers[0].sessionName));
-		g_frontState.netPlayers[0].sessionName[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
 		if (Net_OpenDirectPlaySession(*(const GUID*)&appGuidData1, localPlayerInfo, localPlayerName, isHost,
 									  dialNumber, selectedNetworkType, connectionAddress) == 0) {
 			if (backBufferLocked != 0) {
@@ -2115,11 +2115,11 @@ void Net_HandleFrontendRosterPacket(int packetType, const void* packetData) {
 								sizeof(g_frontState.netPlayers[playerIndex].playerInfo)))
 							continue;
 #else
-						strcpy(g_frontState.netPlayers[playerIndex].sessionName,
-							   ((const NetPlayerNameMessage*)packetData)->names);
 						strcpy(g_frontState.netPlayers[playerIndex].playerName,
+							   ((const NetPlayerNameMessage*)packetData)->names);
+						strcpy(g_frontState.netPlayers[playerIndex].playerInfo,
 							   &((const NetPlayerNameMessage*)packetData)
-									->names[strlen(g_frontState.netPlayers[playerIndex].sessionName) + 1]);
+									->names[strlen(g_frontState.netPlayers[playerIndex].playerName) + 1]);
 #endif
 						g_frontState.netPlayers[playerIndex].playerName[PLAYER_NAME_TRUNCATION_INDEX] = '\0';
 						g_frontState.netPlayers[playerIndex].playerInfo[PLAYER_NAME_TRUNCATION_INDEX] = '\0';

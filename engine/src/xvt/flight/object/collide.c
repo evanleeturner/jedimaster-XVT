@@ -3505,9 +3505,9 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject* object, OptNode* node) 
 				node = XvtOpt_ResolveCached(object, node);
 #else
 
-				if (*(char*)node->param2 != '\0') {
-					node->pName = (char*)OptModel_ResolveNodeRef(object, (const char*)node->param2);
-					*(char*)node->param2 = '\0';
+				if (*(char*)node->payload != '\0') {
+					node->pName = (char*)OptModel_ResolveNodeRef(object, (const char*)node->payload);
+					*(char*)node->payload = '\0';
 				}
 				node = (OptNode*)node->pName;
 #endif

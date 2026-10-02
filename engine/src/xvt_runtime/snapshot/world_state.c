@@ -611,7 +611,7 @@ void XvtSnapshot_ApplyPresenceMap(const uint8_t* presenceMap) {
 	int objectIndex;
 
 	cursor = g_worldStateDupBuffer;
-	end = &g_worldStateDupBuffer[worldStateSize];
+	end = &g_worldStateDupBuffer[g_worldStateDupSize];
 	memcpy(&mapSlotLimit, presenceMap, sizeof(mapSlotLimit));
 	presenceMap += sizeof(mapSlotLimit);
 	emptyRunRemaining = 0;
@@ -673,7 +673,7 @@ void XvtSnapshot_ApplyPresenceMap(const uint8_t* presenceMap) {
 		++objectIndex;
 	}
 
-	worldStateSize = (int)(end - g_worldStateDupBuffer);
+	g_worldStateDupSize = (int)(end - g_worldStateDupBuffer);
 }
 
 static unsigned int XvtSnapshot_ChecksumMobileObjectCharData(const MobileObjectCharData* live) {

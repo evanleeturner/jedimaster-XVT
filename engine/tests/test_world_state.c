@@ -517,14 +517,14 @@ static size_t Apply(const uint8_t* map, size_t written) {
 	XVT_ASSERT_TRUE(g_dup != NULL);
 	memcpy(g_dup, g_image, written);
 	g_worldStateDupBuffer = g_dup;
-	worldStateSize = (int)written;
+	g_worldStateDupSize = (int)written;
 	XvtSnapshot_ApplyPresenceMap(map);
-	return (size_t)worldStateSize;
+	return (size_t)g_worldStateDupSize;
 }
 
 /* True when the duplicate buffer is g_image with `length` bytes at `at` removed. */
 static int Removed(size_t written, size_t at, size_t length) {
-	return (size_t)worldStateSize == written - length && memcmp(g_dup, g_image, at) == 0 &&
+	return (size_t)g_worldStateDupSize == written - length && memcmp(g_dup, g_image, at) == 0 &&
 		   memcmp(g_dup + at, g_image + at + length, written - at - length) == 0;
 }
 
@@ -533,7 +533,7 @@ static int Inserted(size_t written, size_t at, size_t length) {
 	for (size_t i = 0; i < length; ++i)
 		if (g_dup[at + i] != 0)
 			return 0;
-	return (size_t)worldStateSize == written + length && memcmp(g_dup, g_image, at) == 0 &&
+	return (size_t)g_worldStateDupSize == written + length && memcmp(g_dup, g_image, at) == 0 &&
 		   memcmp(g_dup + at + length, g_image + at, written - at) == 0;
 }
 

@@ -1609,7 +1609,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 
 			char** referenceName;
 
-			referenceName = (char**)&currentNode->param2;
+			referenceName = (char**)&currentNode->payload;
 			if (**referenceName == '\0') {
 				currentNode = (OptNode*)currentNode->pName;
 			} else {

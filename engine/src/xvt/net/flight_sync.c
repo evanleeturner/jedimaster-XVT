@@ -679,12 +679,12 @@ void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int* packet) {
 
 		if (checksumMismatch != 0) {
 #ifdef XVT_MODERN
-			XvtResync_BeginSend(senderDpid, g_worldStateDupBuffer, worldStateSize);
+			XvtResync_BeginSend(senderDpid, g_worldStateDupBuffer, g_worldStateDupSize);
 			return;
 #else
-			if (FlightNet_SendWorldStateResyncToPlayer(senderDpid, g_worldStateDupBuffer, worldStateSize) !=
-				0) {
-				FlightNet_SendWorldStateResyncApplyRequest(senderDpid, worldStateSize);
+			if (FlightNet_SendWorldStateResyncToPlayer(senderDpid, g_worldStateDupBuffer,
+													   g_worldStateDupSize) != 0) {
+				FlightNet_SendWorldStateResyncApplyRequest(senderDpid, g_worldStateDupSize);
 			}
 			checksumMismatch = 1;
 #endif
@@ -752,10 +752,10 @@ void FlightSync_CopyWorldStateResyncChunk(const void* src, int offset, unsigned 
 void FlightSync_ReplayResyncMessages(unsigned int worldStateBytes, int serverTickTime) {
 	int checksumDwordCount;
 
-	worldStateSize = (int)worldStateBytes;
+	g_worldStateDupSize = (int)worldStateBytes;
 	g_flightNetDirtyAllObjectTransformsAfterRestore = 1;
 	memcpy(g_worldStateBuffer, g_worldStateDupBuffer, worldStateBytes);
-	g_worldStateSize = (unsigned int)worldStateSize;
+	g_worldStateSize = (unsigned int)g_worldStateDupSize;
 	g_serverTickTime = serverTickTime;
 	Flight_ChecksumWorldState(0, 0);
 	checksumDwordCount = (int)(sizeof(g_worldChecksum) / sizeof(g_worldChecksum[0]));
@@ -773,7 +773,7 @@ void FlightSync_SnapshotWorldStateForReplay(void) {
 
 	snapshotBytes = g_worldStateSize;
 	memcpy(g_worldStateDupBuffer, g_worldStateBuffer, snapshotBytes);
-	worldStateSize = (int)snapshotBytes;
+	g_worldStateDupSize = (int)snapshotBytes;
 }
 
 #ifndef XVT_MODERN

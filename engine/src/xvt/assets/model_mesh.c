@@ -971,7 +971,7 @@ OptNode* ModelMesh_FindNthHardpointNodeRecursive(OptNode* node, OptimizedPolyObj
 			resolvedNode = XvtOpt_ResolveCached(model, resolvedNode);
 #else
 
-			referenceName = (char**)&resolvedNode->param2;
+			referenceName = (char**)&resolvedNode->payload;
 			if (**referenceName == '\0') {
 				resolvedNode = (OptNode*)resolvedNode->pName;
 			} else {
@@ -1030,7 +1030,7 @@ int ModelMesh_CountHardpointNodesRecursive(OptNode* node, OptimizedPolyObject* o
 			resolvedNode = XvtOpt_ResolveCached(object, resolvedNode);
 #else
 
-			referenceName = (char**)&resolvedNode->param2;
+			referenceName = (char**)&resolvedNode->payload;
 			if (**referenceName == '\0') {
 				resolvedNode = (OptNode*)resolvedNode->pName;
 			} else {

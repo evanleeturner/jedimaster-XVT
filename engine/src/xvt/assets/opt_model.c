@@ -855,7 +855,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 		totalSize += sizeof(OptNode);
 		if (cursor != NULL) {
 			fieldRecords = (OptLegacyParamRecord*)cursor;
-			node->param2 = fieldRecords;
+			node->payload = fieldRecords;
 			cursor += (*nodeDefSlot)->fieldCount * sizeof(*fieldRecords);
 		}
 		totalSize += (*nodeDefSlot)->fieldCount * sizeof(OptLegacyParamRecord);
@@ -1738,11 +1738,11 @@ void OptModel_RelocateNodePointersRecursive(OptNode* node, XvtOptValue relocatio
 
 	if (node->pName != NULL)
 		node->pName += relocationDelta;
-	if (node->param2 != NULL) {
+	if (node->payload != NULL) {
 		OptLegacyParamRecord* records;
 
-		node->param2 = (uint8_t*)node->param2 + relocationDelta;
-		records = (OptLegacyParamRecord*)node->param2;
+		node->payload = (uint8_t*)node->payload + relocationDelta;
+		records = (OptLegacyParamRecord*)node->payload;
 		for (paramIndex = 0; paramIndex < node->payloadCount; ++paramIndex) {
 			if (records->data != NULL)
 				records->data = (uint8_t*)records->data + relocationDelta;
@@ -1801,12 +1801,12 @@ void OptModel_AdjustOptimizedNodePointers(OptNode* node, XvtOptValue base) {
 
 	if (node->pName != NULL)
 		node->pName += base;
-	if (node->param2 != NULL)
-		node->param2 = (uint8_t*)node->param2 + base;
+	if (node->payload != NULL)
+		node->payload = (uint8_t*)node->payload + base;
 	if (node->nodeType == OPT_TEXTURE) {
 		OptTextureData* textureData;
 
-		textureData = (OptTextureData*)node->param2;
+		textureData = (OptTextureData*)node->payload;
 		if (textureData->paletteType == 0)
 			textureData->palette = (uint16_t*)((uint8_t*)textureData->palette + base);
 	}
@@ -4361,11 +4361,11 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 		packedNode->pName = NULL;
 	}
 	packedNode->payloadCount = 1;
-	packedNode->param2 = dest;
+	packedNode->payload = dest;
 	packedNode->childCount = 0;
 	packedNode->pChildren = NULL;
 
-	params = sourceNode->param2;
+	params = sourceNode->payload;
 	if (params != NULL && sourceNode->payloadCount != 0 && params->data != NULL) {
 		switch (nodeType) {
 			case OPT_FACEDATA: {
@@ -4553,7 +4553,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 			case OPT_NODEREF: {
 				const char* nodeName = params[0].data;
 				packedNode->payloadCount = 1;
-				packedNode->param2 = dest;
+				packedNode->payload = dest;
 				strcpy((char*)dest, nodeName);
 				dest += strlen(nodeName) + 1;
 				break;
@@ -4855,7 +4855,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 			}
 
 			case OPT_TEXTURE:
-				packedNode->param2 = dest;
+				packedNode->payload = dest;
 				dest += ModelTexture_LoadRgbOrTexFile(dest, params[0].data);
 				break;
 
@@ -4965,7 +4965,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 
 		packedSize = strlen(sourceNode->pName) + 25;
 	}
-	params = sourceNode->param2;
+	params = sourceNode->payload;
 	if (params != NULL && sourceNode->payloadCount != 0 && params->data != NULL) {
 		data = params->data;
 		switch (nodeType) {
@@ -5051,7 +5051,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 
 			case OPT_VERTNORMALS:
 				recordCount = 3 * params->value1;
-				g_curVertNormals = (OptVector*)sourceNode->param2;
+				g_curVertNormals = (OptVector*)sourceNode->payload;
 				packedSize += 4 * recordCount;
 				((SceneMesh*)conversionState)->pVertNormals = (OptVector*)params;
 				break;

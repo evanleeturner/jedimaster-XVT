@@ -180,7 +180,7 @@ unsigned int g_peerChecksumRegionLengths[16] = { 0 };
 // GLOBAL: XVT 0x550B88
 uint8_t* g_worldStateBuffer;
 // GLOBAL: XVT 0x550B8C
-int worldStateSize;
+int g_worldStateDupSize;
 // GLOBAL: XVT 0x550B94
 uint16_t g_worldStateDupHandle = 0;
 // GLOBAL: XVT 0x550B98
@@ -716,7 +716,7 @@ void Flight_UpdateDynamicMusicState(void) {
 uint8_t* Flight_GetDuplicateWorldStateBuffer(void) { return g_worldStateDupBuffer; }
 
 // FUNCTION: XVT 0x416710
-int Flight_GetSerializedWorldStateSize(void) { return worldStateSize; }
+int Flight_GetSerializedWorldStateSize(void) { return g_worldStateDupSize; }
 
 // FUNCTION: XVT 0x416720
 void Flight_AllocWorldStateBuffers(void) {
@@ -1483,7 +1483,7 @@ void Flight_ChecksumWorldState(int unusedArg0, int unusedArg1) {
 }
 
 // FUNCTION: XVT 0x4178F0
-int Flight_ComputeWorldStateResyncSegmentSize(int g_worldStateDupSize) { return g_worldStateDupSize / 124; }
+int Flight_ComputeWorldStateResyncSegmentSize(int worldStateSize) { return worldStateSize / 124; }
 
 // FUNCTION: XVT 0x417900
 int Flight_BuildWorldStateResyncSegmentChecksums(int* outChecksums, uint8_t* worldState, int worldStateSize) {
@@ -1617,7 +1617,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t* presenceMap) {
 	int objectIndex;
 
 	cursor = g_worldStateDupBuffer;
-	end = &g_worldStateDupBuffer[worldStateSize];
+	end = &g_worldStateDupBuffer[g_worldStateDupSize];
 	mapSlotLimit = *(const int*)presenceMap;
 	presenceMap += sizeof(mapSlotLimit);
 	emptyRunRemaining = 0;
@@ -1763,7 +1763,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t* presenceMap) {
 		++objectIndex;
 	}
 
-	worldStateSize = (int)(end - g_worldStateDupBuffer);
+	g_worldStateDupSize = (int)(end - g_worldStateDupBuffer);
 #endif
 }
 #ifndef XVT_MODERN
@@ -1887,7 +1887,7 @@ void Flight_AdvanceOneStep(int targetGameTime) {
 				mobileObject = object->mobj;
 				if (mobileObject == NULL || mobileObject->pCraft == NULL)
 					continue;
-				if (g_players[playerIdx].savedFieldId == object->objectSignature &&
+				if (g_players[playerIdx].savedObjectSignature == object->objectSignature &&
 					g_players[playerIdx].savedRegion == g_players[playerIdx].regionSessionId) {
 					if (mobileObject->simStateTimestamp > g_players[playerIdx].lockstepTimestamp) {
 						mobileObject->simStateTimestamp = g_players[playerIdx].lockstepTimestamp;
@@ -1949,7 +1949,7 @@ void Flight_AdvanceOneStep(int targetGameTime) {
 					g_players[playerIdx].savedRollImpulseRate = object->mobj->rollImpulseRate;
 					g_players[playerIdx].savedSpeed = object->mobj->speed;
 					g_players[playerIdx].savedSpeedRemainder = object->mobj->speedRemainder;
-					g_players[playerIdx].savedFieldId = object->objectSignature;
+					g_players[playerIdx].savedObjectSignature = object->objectSignature;
 					g_players[playerIdx].savedRegion = g_players[playerIdx].regionSessionId;
 				}
 				g_singleObjectUpdateOverrideIdx = -1;

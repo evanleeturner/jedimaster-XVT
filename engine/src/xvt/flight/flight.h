@@ -119,7 +119,7 @@ struct FlightMissionState {
 extern uint8_t* g_worldStateDupBuffer;
 extern unsigned int g_peerChecksumRegionLengths[16];
 extern uint8_t* g_worldStateBuffer;
-extern int worldStateSize;
+extern int g_worldStateDupSize;
 extern uint16_t g_worldStateDupHandle;
 extern unsigned int g_worldChecksum[16];
 extern unsigned int g_worldStateSize;

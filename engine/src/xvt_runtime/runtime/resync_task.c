@@ -704,7 +704,7 @@ static int XvtResync_FullApply(const uint8_t* bytes, unsigned size) {
 	}
 	XvtFlightHistory_Recover();
 	memcpy(g_worldStateBuffer, g_worldStateDupBuffer, g_receive.size);
-	g_worldStateSize = worldStateSize = g_receive.size;
+	g_worldStateSize = g_worldStateDupSize = g_receive.size;
 	g_serverTickTime = g_receive.tick;
 	g_flightNetWorldChecksumEpoch = g_receive.epoch;
 	memcpy(g_worldChecksum, checksums, sizeof checksums);
