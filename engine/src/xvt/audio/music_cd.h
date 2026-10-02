@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 struct MusicCdTrackCache {
-	unsigned int unusedTrackZeroEndMsf;
+	unsigned int unused00;
 	unsigned int trackLengthMsfByTrack[30];
 };
 

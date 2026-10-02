@@ -205,7 +205,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 		SCREEN_CONTEXT_CONFIG = 2,
 		SCREEN_CONTEXT_TECH_LIBRARY = 3,
 		SCREEN_CONTEXT_DEBRIEF = 4,
-		CONFIGURATION_SESSION_MODE = 5,
+		NEVER_STORED_SESSION_MODE = 5,
 		BUTTON_FONT_SIZE = 12,
 		UI_SOUND_PRIORITY = 255,
 		UI_SOUND_PAN_CENTER = 63,
@@ -400,8 +400,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 
 	FrontendDraw_RectAssign(&rect, 503, 4, 581, 56);
 	FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_567_CONFIG));
-	if (g_frontendMissionSessionMode == CONFIGURATION_SESSION_MODE ||
-		screenContext == SCREEN_CONTEXT_CONFIG) {
+	if (g_frontendMissionSessionMode == NEVER_STORED_SESSION_MODE || screenContext == SCREEN_CONTEXT_CONFIG) {
 		FrontendButton_UsePressedOverlayStyle();
 		FrontendButton_DrawSpriteAndTooltip(
 			&rect, "configdown", FrontendString_Get(FRONTSTR_570_EXIT_CONFIGURATION), BUTTON_FONT_SIZE, 0);

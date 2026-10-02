@@ -745,6 +745,8 @@ int Craft_SpawnExplosionObjectAtMesh(ObjectRecord* objRecord, uint16_t meshIndex
 		localY = ModelMesh_GetCenterY(objectType, meshIndex);
 		localZ = ModelMesh_GetCenterZ(objectType, meshIndex);
 	} else {
+		/* From here useRandomVertex holds the chosen vertex index, not the flag. The explosion type below
+		 * tests that index, so choosing vertex 0 gives the mesh-center type. */
 		useRandomVertex = (uint16_t)GameRand() % ModelMesh_GetVertexCount(objectType, meshIndex);
 		localX = ModelMesh_GetVertexX(objectType, meshIndex, useRandomVertex);
 		localY = ModelMesh_GetVertexY(objectType, meshIndex, useRandomVertex);

@@ -58,6 +58,9 @@ struct AiController {
 	uint8_t skippedToOrder4;
 	uint8_t pendingPlanId;
 	uint8_t currentPlanId;
+	/* The mission point the craft is flying to; waypoints are points 4 to 11. The drop-off order reuses
+	 * it: it starts at 0 when the craft reaches the destination group, names the formation slot of the
+	 * next craft to deliver, and counts the deliveries made. */
 	uint8_t waypointIndex;
 	uint8_t savedPlanId;
 	int thinkInterval;

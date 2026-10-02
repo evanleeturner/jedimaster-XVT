@@ -1758,7 +1758,8 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 				else if (currentNode->payloadCount == 6 || currentNode->payloadCount == 5)
 					memcpy(&mesh->perFaceMaterials, &g_curMeshMaterials, sizeof(mesh->perFaceMaterials));
 				else
-					memcpy(&mesh->nodeFlags[3], &g_curMeshMaterials, sizeof(mesh->nodeFlags[3]));
+					memcpy(&mesh->baseColorAndMaterials[3], &g_curMeshMaterials,
+						   sizeof(mesh->baseColorAndMaterials[3]));
 				break;
 			case OPT_VERTNORMALS:
 				g_curVertNormals = parameters;
@@ -1768,9 +1769,9 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 				mesh->pUVs = (OptTexCoord*)nodeData;
 				break;
 			case OPT_BASE_COLOR:
-				mesh->nodeFlags[0] = ((int*)nodeData)[0];
-				mesh->nodeFlags[1] = ((int*)nodeData)[1];
-				mesh->nodeFlags[2] = ((int*)nodeData)[2];
+				mesh->baseColorAndMaterials[0] = ((int*)nodeData)[0];
+				mesh->baseColorAndMaterials[1] = ((int*)nodeData)[1];
+				mesh->baseColorAndMaterials[2] = ((int*)nodeData)[2];
 				break;
 			case OPT_TEXTURE: {
 				int paletteOffset;
@@ -1865,7 +1866,8 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 				else if (currentNode->payloadCount == 6 || currentNode->payloadCount == 5)
 					memcpy(&mesh->perFaceMaterials, &g_curMeshMaterials, sizeof(mesh->perFaceMaterials));
 				else
-					memcpy(&mesh->nodeFlags[3], &g_curMeshMaterials, sizeof(mesh->nodeFlags[3]));
+					memcpy(&mesh->baseColorAndMaterials[3], &g_curMeshMaterials,
+						   sizeof(mesh->baseColorAndMaterials[3]));
 				break;
 			case OPT_TEXTURE: {
 				int paletteOffset;

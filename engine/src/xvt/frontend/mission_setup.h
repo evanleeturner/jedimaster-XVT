@@ -125,6 +125,9 @@ struct BattleSequenceState {
 	int currentMissionId;
 	int victoriesNeeded;
 	BattleMissionResult missionResults[10];
+	/* The mission flown at each step of the sequence: its position in the sequence descriptor's mission
+	 * list, which the repeat checks compare against. The multiplayer battle choice stores the mission id
+	 * instead, and starting a combat engagement sequence stores a mission list index in the first slot. */
 	int missionOrdinals[10];
 	int missionListIndices[10];
 	unsigned int humanPlayerCount;

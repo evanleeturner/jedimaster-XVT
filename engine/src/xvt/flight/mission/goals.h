@@ -74,7 +74,7 @@ typedef enum MissionConditionType {
 	MISSION_COND_PLAYER_DISCONNECTED = 42,
 	MISSION_COND_DESTROYED_OR_DEPARTED = 43,
 	MISSION_COND_CAPTURED_AND_DEPARTED = 44,
-	MISSION_COND_DESTROYED_OR_CAPTURED = 45,
+	MISSION_COND_NOT_DEPARTED = 45,
 	MISSION_COND_CAPTURED_BY_DESTINATION = 46,
 } MissionConditionType;
 
@@ -258,7 +258,7 @@ extern const char* g_strGoalConjunctions[8];
 extern const char* g_strGoalEscape[3];
 extern const char* g_strGoalSides[3];
 extern const char* g_strUnknown;
-extern const char* g_strBuoyNames[16];
+extern const char* g_strSatMineProbeBuoyPilotNames[16];
 extern const char* g_strStatusStrings[9];
 extern const char* g_strWarheadNames[13];
 extern const char* g_strSpeciesNamesPlural[73];

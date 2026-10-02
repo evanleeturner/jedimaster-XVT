@@ -16,7 +16,7 @@ int16_t g_flightWordWrapEnabled;
 // GLOBAL: XVT 0x9FE7E4
 int16_t g_flightClearLineBgEnabled;
 // GLOBAL: XVT 0xA07C64
-int16_t g_flightTextReservedState91079E = 0;
+int16_t g_flightTextReservedState = 0;
 // GLOBAL: XVT 0xA08102
 int16_t g_flightCursorY = 0;
 // GLOBAL: XVT 0xA08108

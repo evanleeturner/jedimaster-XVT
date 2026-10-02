@@ -1191,6 +1191,8 @@ void Object_RelinkMobileObjectPointers(void) {
 					&g_projectileGuidanceStates[linkIndices->warheadGuidanceIdx];
 			} else if (linkIndices->craftDataIdx != -1) {
 				g_mobileObjectPoolBase[objectIndex].pCraft = &g_craftDataPoolBase[linkIndices->craftDataIdx];
+				/* Nothing in this build sets craftDataIdx, so this branch never runs. The table it reads
+				 * holds the object type each slot was spawned with, not an object index. */
 				linkedObjectIndex = g_spawnObjectTypeByObjectSlot[linkIndices->craftDataIdx];
 				if (linkedObjectIndex != -1) {
 					g_mobileObjectPoolBase[objectIndex].pCraft->effectiveAiObjectLink =

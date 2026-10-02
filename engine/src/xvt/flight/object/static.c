@@ -157,6 +157,8 @@ void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx) {
 		}
 	}
 
+	/* From here sourceObjIdx is the impact effect: a craft source gets a newly allocated explosion slot in
+	 * its place, while a projectile source is turned into the effect itself. */
 	if (sourceObjIdx < g_activeRegionCraftObjectSlotEnd) {
 		sourceObjIdx = Object_AllocSlotForGenus(CRAFT_GENUS_EXPLOSION);
 		if (sourceObjIdx == UINT16_MAX) {

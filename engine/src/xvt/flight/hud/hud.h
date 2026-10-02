@@ -55,6 +55,9 @@ struct HudCockpitResourceDescriptor {
 struct HudElementLayout {
 	uint16_t x;
 	uint16_t y;
+	/* Widget-specific .INT payload: the first panel sprite of a sprite widget, the digit count of a number
+	 * widget, the target inset's width, or the warning line's background color. Label widgets skip a 0
+	 * and use their short text at 4 or less. */
 	uint16_t selector;
 	uint16_t colorIndexOrWidgetParam;
 	uint16_t clipWidth;
@@ -269,7 +272,7 @@ void Hud_InitHUD(int playerIdx);
 void Hud_RenderHud(int playerIdx);
 void Hud_DrawHudTargetInsetIfEnabled(int playerIndex);
 void Hud_DrawStaticCockpitText(uint16_t playerIdx);
-void nullsub_6(int playerIdx);
+void Hud_InitHUDEndStub(int playerIdx);
 void Hud_UpdateHUD(void);
 void Hud_UpdateHudOnlyView(void);
 void Hud_DrawMapViewOverlay(void);

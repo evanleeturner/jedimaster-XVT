@@ -3292,7 +3292,7 @@ char FeDiskIo_ShowRetryFailPrompt(void) {
 	savedClipRight = g_flightClipRight;
 	savedClipBottom = g_flightClipBottom;
 	savedWordWrap = g_flightWordWrapEnabled;
-	savedReservedState = g_flightTextReservedState91079E;
+	savedReservedState = g_flightTextReservedState;
 	savedTextColor = g_flightTextColorIndex;
 	savedClearLineBg = g_flightClearLineBgEnabled;
 	savedBgColor = g_flightTextBgColor;
@@ -3355,7 +3355,7 @@ char FeDiskIo_ShowRetryFailPrompt(void) {
 	g_flightClipRight = savedClipRight;
 	g_flightClipBottom = savedClipBottom;
 	g_flightWordWrapEnabled = savedWordWrap;
-	g_flightTextReservedState91079E = savedReservedState;
+	g_flightTextReservedState = savedReservedState;
 	g_flightTextColorIndex = savedTextColor;
 	g_flightClearLineBgEnabled = savedClearLineBg;
 	g_flightTextBgColor = savedBgColor;
@@ -3409,7 +3409,7 @@ int FeDiskIo_ShowFatalErrorMessageAndWaitKey(const char* message) {
 	savedClipRight = g_flightClipRight;
 	savedClipBottom = g_flightClipBottom;
 	savedWordWrap = g_flightWordWrapEnabled;
-	savedReservedState = g_flightTextReservedState91079E;
+	savedReservedState = g_flightTextReservedState;
 	savedTextColor = g_flightTextColorIndex;
 	savedClearLineBg = g_flightClearLineBgEnabled;
 	savedBgColor = g_flightTextBgColor;
@@ -3470,7 +3470,7 @@ int FeDiskIo_ShowFatalErrorMessageAndWaitKey(const char* message) {
 	g_flightClipRight = savedClipRight;
 	g_flightClipBottom = savedClipBottom;
 	g_flightWordWrapEnabled = savedWordWrap;
-	g_flightTextReservedState91079E = savedReservedState;
+	g_flightTextReservedState = savedReservedState;
 	g_flightTextColorIndex = savedTextColor;
 	g_flightClearLineBgEnabled = savedClearLineBg;
 	g_flightTextBgColor = savedBgColor;

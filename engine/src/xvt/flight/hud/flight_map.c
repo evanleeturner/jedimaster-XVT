@@ -125,7 +125,7 @@ void FlightMap_RenderView(void) {
 		FlightMap_DrawGrid();
 		FlightMap_DrawObjectPass(1);
 	}
-	nullsub_14();
+	FlightMap_RenderViewEndStub();
 }
 
 // FUNCTION: XVT 0x435C60
@@ -1012,7 +1012,7 @@ void FlightMap_DrawGrid(void) {
 }
 
 // FUNCTION: XVT 0x437ED0
-void nullsub_14(void) {}
+void FlightMap_RenderViewEndStub(void) {}
 
 // FUNCTION: XVT 0x438010
 int FlightMap_PickObjectNearestScreenCenter(int playerIdx) {

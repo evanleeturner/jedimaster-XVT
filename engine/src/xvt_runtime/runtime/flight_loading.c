@@ -12,6 +12,9 @@ enum {
 	MISSION_EXTENSION_FIRST = 0,
 	MISSION_EXTENSION_SECOND = 1,
 	MISSION_EXTENSION_THIRD = 2,
+	PALETTE_CHANNEL_RED = 0,
+	PALETTE_CHANNEL_GREEN = 1,
+	PALETTE_CHANNEL_BLUE = 2,
 	NOISE_TABLE_VALUE_LIMIT = 124,
 	NO_VIEWPORT_INSET = 0,
 	MUSIC_TRACK_FLIGHT = 2,
@@ -192,18 +195,18 @@ void XvtFlightLoading_Palette(void) {
 		 paletteByteOffset += sizeof(RgbTriplet)) {
 		uint8_t channel;
 
-		channel = resourceScratch[paletteByteOffset + MISSION_EXTENSION_FIRST] >> 2;
-		resourceScratch[paletteByteOffset + MISSION_EXTENSION_FIRST] =
-			resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + MISSION_EXTENSION_FIRST] >> 2;
-		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + MISSION_EXTENSION_FIRST] = channel;
-		channel = resourceScratch[paletteByteOffset + MISSION_EXTENSION_SECOND] >> 2;
-		resourceScratch[paletteByteOffset + MISSION_EXTENSION_SECOND] =
-			resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + MISSION_EXTENSION_SECOND] >> 2;
-		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + MISSION_EXTENSION_SECOND] = channel;
-		channel = resourceScratch[paletteByteOffset + MISSION_EXTENSION_THIRD] >> 2;
-		resourceScratch[paletteByteOffset + MISSION_EXTENSION_THIRD] =
-			resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + MISSION_EXTENSION_THIRD] >> 2;
-		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + MISSION_EXTENSION_THIRD] = channel;
+		channel = resourceScratch[paletteByteOffset + PALETTE_CHANNEL_RED] >> 2;
+		resourceScratch[paletteByteOffset + PALETTE_CHANNEL_RED] =
+			resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + PALETTE_CHANNEL_RED] >> 2;
+		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + PALETTE_CHANNEL_RED] = channel;
+		channel = resourceScratch[paletteByteOffset + PALETTE_CHANNEL_GREEN] >> 2;
+		resourceScratch[paletteByteOffset + PALETTE_CHANNEL_GREEN] =
+			resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + PALETTE_CHANNEL_GREEN] >> 2;
+		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + PALETTE_CHANNEL_GREEN] = channel;
+		channel = resourceScratch[paletteByteOffset + PALETTE_CHANNEL_BLUE] >> 2;
+		resourceScratch[paletteByteOffset + PALETTE_CHANNEL_BLUE] =
+			resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + PALETTE_CHANNEL_BLUE] >> 2;
+		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset + PALETTE_CHANNEL_BLUE] = channel;
 	}
 	g_flightSetPaletteRangeFn((RgbTriplet*)resourceScratch, 0, PALETTE_COLOR_COUNT);
 	FlightPalette_ApplyToDisplay();

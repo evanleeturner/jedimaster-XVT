@@ -185,6 +185,9 @@ int16_t Damage_DisplayMfdPage(void) {
 	uint16_t systemIds[CRAFT_SUBSYSTEM_COUNT];
 	CraftData* craft;
 	int objectIndex;
+	/* displaySlot has two jobs. In the loops that read systemDisplaySlotBySystem it counts systems, which
+	 * fills systemIds with the system shown in each display slot; in the loops that read systemIds it counts
+	 * display slots. */
 	int16_t displaySlot;
 	int16_t damagedSystemCount;
 	int16_t allSystemsOk;

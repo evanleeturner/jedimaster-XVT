@@ -78,7 +78,7 @@ void FlightMap_DrawObjectOverlay(int objectIdx);
 void FlightMap_DrawObjectIconAtViewPos(int objectIdx, int viewX, int viewY, int viewZ);
 void FlightMap_DrawObjectBoxCorners(int x, int y, int width, int height, unsigned int colorIndex);
 void FlightMap_DrawGrid(void);
-void nullsub_14(void);
+void FlightMap_RenderViewEndStub(void);
 int FlightMap_PickObjectNearestScreenCenter(int playerIdx);
 
 #ifdef __cplusplus

@@ -561,7 +561,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strBuoyNames) / sizeof(g_strBuoyNames[0]))) {
+				while (entryIndex < (int)(sizeof(g_strSatMineProbeBuoyPilotNames) /
+										  sizeof(g_strSatMineProbeBuoyPilotNames[0]))) {
 					if (File_Gets(line, sizeof(line), stream) == NULL) {
 						writePtr = NULL;
 						break;
@@ -575,7 +576,7 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strBuoyNames[entryIndex] = writePtr;
+					g_strSatMineProbeBuoyPilotNames[entryIndex] = writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}

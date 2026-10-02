@@ -105,8 +105,8 @@ struct SceneMesh {
 	float eyeModelSpaceY;
 	float eyeModelSpaceZ;
 	float viewToModelOrient[9];
-	int nodeFlags[4]; ///< Elements 0-2 come from the OPT_BASE_COLOR payload; element 3 receives
-					  ///< g_curMeshMaterials from OPT_MATERIAL_BINDING for selectors outside 5-8.
+	int baseColorAndMaterials[4]; ///< Elements 0-2 come from the OPT_BASE_COLOR payload; element 3 receives
+								  ///< g_curMeshMaterials from OPT_MATERIAL_BINDING for selectors outside 5-8.
 	int vertexCount;
 	OptVector* pModelVerts;
 	OptTexCoord* pUVs;

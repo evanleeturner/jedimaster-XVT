@@ -694,7 +694,7 @@ void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char* outName) {
 		if (objectType >= 0x8f && objectType <= 0x9b) {
 			msg_AppendString(g_strWarheadNames[objectType - 0x8f], outName);
 		} else if (objectType >= CRAFT_SPECIES_COMM_SAT_1 && objectType <= CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
-			msg_AppendString(g_strBuoyNames[objectType - CRAFT_SPECIES_COMM_SAT_1], outName);
+			msg_AppendString(g_strSatMineProbeBuoyPilotNames[objectType - CRAFT_SPECIES_COMM_SAT_1], outName);
 		}
 		return;
 	}
@@ -704,7 +704,7 @@ void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char* outName) {
 		return;
 	}
 
-	msg_AppendString(g_strBuoyNames[object->objectType - CRAFT_SPECIES_COMM_SAT_1], outName);
+	msg_AppendString(g_strSatMineProbeBuoyPilotNames[object->objectType - CRAFT_SPECIES_COMM_SAT_1], outName);
 	flightGroup = &g_missionFlightGroups[g_objectTable[objectIndex].flightGroupIdx];
 	if (flightGroup->fg.name[0] != '\0') {
 		msg_AppendChar(' ', outName);

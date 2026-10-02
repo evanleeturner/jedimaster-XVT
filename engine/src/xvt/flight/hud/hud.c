@@ -741,7 +741,7 @@ int Hud_SetHudViewState(int hudViewState, int playerIdx) {
 void Hud_InitHUD(int playerIdx) {
 	enum {
 		CRITICAL_WARNING_LAYOUT_INDEX = 127,
-		HUD_ELEMENT_STATE_DIRTY = -2,
+		HUD_ELEMENT_STATE_INVALID = -2,
 		HUD_ELEMENT_STATE_INACTIVE = -3,
 	};
 
@@ -837,7 +837,7 @@ void Hud_InitHUD(int playerIdx) {
 						HUD_ELEMENT_STATE_INACTIVE;
 				} else {
 					g_hudElementStateCache[HUD_INSTRUMENTS_PER_SET * instrumentSet + instrumentIndex] =
-						HUD_ELEMENT_STATE_DIRTY;
+						HUD_ELEMENT_STATE_INVALID;
 				}
 				if (instrumentIndex == HUD_MFD_MESSAGE_LOG_ELEMENT) {
 					g_hudElementStateCache[HUD_INSTRUMENTS_PER_SET * instrumentSet + instrumentIndex] =
@@ -858,19 +858,13 @@ void Hud_InitHUD(int playerIdx) {
 		}
 		Hud_RenderHud(g_localPlayer);
 		Hud_DrawStaticCockpitText(g_localPlayer);
-		nullsub_6(g_localPlayer);
+		Hud_InitHUDEndStub(g_localPlayer);
 	}
 	g_hudFullRedrawInProgress = 0;
 }
 
 // FUNCTION: XVT 0x438DF0
 void Hud_RenderHud(int playerIdx) {
-	enum {
-		HUD_STATE_MAIN = 0,
-		HUD_STATE_FORWARD_PANEL = 19,
-		HUD_STATE_COMMAND_DISPLAY = 20,
-	};
-
 	uint8_t hudState;
 
 #ifdef XVT_MODERN
@@ -890,13 +884,13 @@ void Hud_RenderHud(int playerIdx) {
 			Hud_UpdateCriticalHullShieldWarning();
 		} else {
 			hudState = g_players[g_localPlayer].viewState.hudStateLive;
-			if (hudState == HUD_STATE_MAIN) {
+			if (hudState == HUD_VIEW_FORWARD) {
 				Hud_UpdateHUD();
 				Hud_UpdateCriticalHullShieldWarning();
-			} else if (hudState == HUD_STATE_FORWARD_PANEL) {
+			} else if (hudState == HUD_VIEW_HUD_ONLY) {
 				Hud_UpdateHudOnlyView();
 				Hud_UpdateCriticalHullShieldWarning();
-			} else if (hudState == HUD_STATE_COMMAND_DISPLAY) {
+			} else if (hudState == HUD_VIEW_TARGET_CAMERA) {
 				Hud_UpdateCMDText();
 				FlightSurface_Unlock();
 				fsfx_UpdateTargetingTone(0);
@@ -920,8 +914,6 @@ void Hud_RenderHud(int playerIdx) {
 void Hud_DrawHudTargetInsetIfEnabled(int playerIndex) {
 	enum {
 		TARGET_INSET_LAYOUT_INDEX = 2,
-		HUD_STATE_LIVE = 0,
-		HUD_STATE_COCKPIT = 19,
 		INVALID_TARGET_OBJECT_INDEX = -1,
 		TARGET_INSET_FEATURE_MASK = 1,
 	};
@@ -948,7 +940,7 @@ void Hud_DrawHudTargetInsetIfEnabled(int playerIndex) {
 			return;
 		} else {
 			hudState = g_players[playerIndex].viewState.hudStateLive;
-			if (hudState != HUD_STATE_LIVE && hudState != HUD_STATE_COCKPIT) {
+			if (hudState != HUD_VIEW_FORWARD && hudState != HUD_VIEW_HUD_ONLY) {
 				return;
 			}
 			if (g_players[playerIndex].currentTargetObjectIdx == INVALID_TARGET_OBJECT_INDEX) {
@@ -1187,7 +1179,7 @@ void Hud_DrawStaticCockpitText(uint16_t playerIdx) {
 }
 
 // FUNCTION: XVT 0x439700
-void nullsub_6(int playerIdx) { (void)playerIdx; }
+void Hud_InitHUDEndStub(int playerIdx) { (void)playerIdx; }
 
 // FUNCTION: XVT 0x439710
 void Hud_UpdateHUD(void) {
@@ -1375,12 +1367,12 @@ void Hud_UpdateCMDText(void) {
 		CMD_TEXT_CACHE_INDEX = 143,
 		MESH_COMPONENT_NAME = 17,
 		COLOR_MFD_BACKGROUND = 0x2C,
-		HUD_ELEMENT_STATE_DIRTY = UINT16_MAX - 1,
+		HUD_ELEMENT_STATE_INVALID = UINT16_MAX - 1,
 	};
 
 	uint16_t layoutIndex;
 
-	if (((const uint16_t*)g_hudElementStateCache)[CMD_TEXT_CACHE_INDEX] == HUD_ELEMENT_STATE_DIRTY) {
+	if (((const uint16_t*)g_hudElementStateCache)[CMD_TEXT_CACHE_INDEX] == HUD_ELEMENT_STATE_INVALID) {
 		Hud_UpdateMfdPages();
 		FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
 		FlightText_SetFontTier(2);
@@ -2732,7 +2724,7 @@ void Hud_AppendObjectDisplayName(uint16_t objectRef, int16_t displayFlags) {
 				if (objectType >= 0x8f && objectType <= 0x9b)
 					FlightText_AppendScratchString(g_strWarheadNames[objectType - 0x8f]);
 				else if (objectType >= 0x46 && objectType <= 0x54)
-					FlightText_AppendScratchString(g_strBuoyNames[objectType - 0x46]);
+					FlightText_AppendScratchString(g_strSatMineProbeBuoyPilotNames[objectType - 0x46]);
 			}
 			return;
 		}
@@ -2753,7 +2745,7 @@ void Hud_AppendObjectDisplayName(uint16_t objectRef, int16_t displayFlags) {
 				FlightText_AppendScratchChar(77);
 			}
 			if ((displayFlags & 1) != 0 && objectType >= 0x46 && objectType <= 0x55)
-				FlightText_AppendScratchString(g_strBuoyNames[objectType - 0x46]);
+				FlightText_AppendScratchString(g_strSatMineProbeBuoyPilotNames[objectType - 0x46]);
 			if ((displayFlags & 4) != 0) {
 				FlightText_AppendScratchChar(58);
 			} else if ((displayFlags & 3) == 3) {

@@ -1938,6 +1938,7 @@ int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16, uint16_t
 #endif
 }
 
+/* Besides answering, this leaves g_curCraft pointing at the targeted craft when no player flies it. */
 // FUNCTION: XVT 0x4841B0
 int16_t Player_CanRadioCommandCraft(int playerIdx) {
 	int currentTargetObjectIdx;

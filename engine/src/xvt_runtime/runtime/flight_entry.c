@@ -9,9 +9,9 @@ enum {
 	BRIGHTNESS_CONFIG_SHIFT = 6,
 	BRIGHTNESS_SCALE_MIN = 256,
 	BRIGHTNESS_SCALE_MAX = 704,
-	STAR_DENSITY_HIGH = 4,
-	STAR_DENSITY_MEDIUM = 2,
-	STAR_DENSITY_LOW = 1,
+	STAR_GRID_DIVISOR_LOW_DENSITY = 4,
+	STAR_GRID_DIVISOR_MEDIUM_DENSITY = 2,
+	STAR_GRID_DIVISOR_HIGH_DENSITY = 1,
 	LOD_CONFIG_OFFSET = 5,
 	LOD_CONFIG_MAX_VALUE = 20,
 	LOD_SCALE_INVERSION_NUMERATOR = 1,
@@ -325,13 +325,13 @@ static void XvtFlightEntry_Configure(void) {
 	g_debrisEnabled = g_gameConfig.debris[NetSession_GetPlayerCount() > 1];
 	switch (g_gameConfig.starDensity[NetSession_GetPlayerCount() > 1]) {
 		case 0:
-			g_starGridDivisor = STAR_DENSITY_HIGH;
+			g_starGridDivisor = STAR_GRID_DIVISOR_LOW_DENSITY;
 			break;
 		case 1:
-			g_starGridDivisor = STAR_DENSITY_MEDIUM;
+			g_starGridDivisor = STAR_GRID_DIVISOR_MEDIUM_DENSITY;
 			break;
 		case 2:
-			g_starGridDivisor = STAR_DENSITY_LOW;
+			g_starGridDivisor = STAR_GRID_DIVISOR_HIGH_DENSITY;
 			break;
 		default:
 			break;

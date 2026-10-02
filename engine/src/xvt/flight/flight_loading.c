@@ -74,7 +74,7 @@ void FlightLoading_PulseAndDrawProgressScreen(void) {
 	savedClipRight = g_flightClipRight;
 	savedClipBottom = g_flightClipBottom;
 	savedWordWrap = g_flightWordWrapEnabled;
-	savedReservedState = g_flightTextReservedState91079E;
+	savedReservedState = g_flightTextReservedState;
 	savedTextColor = g_flightTextColorIndex;
 	savedClearLineBackground = g_flightClearLineBgEnabled;
 	savedBackgroundColor = g_flightTextBgColor;
@@ -128,7 +128,7 @@ void FlightLoading_PulseAndDrawProgressScreen(void) {
 	g_flightClipRight = savedClipRight;
 	g_flightClipBottom = savedClipBottom;
 	g_flightWordWrapEnabled = savedWordWrap;
-	g_flightTextReservedState91079E = savedReservedState;
+	g_flightTextReservedState = savedReservedState;
 	g_flightTextColorIndex = savedTextColor;
 	g_flightClearLineBgEnabled = savedClearLineBackground;
 	g_flightTextBgColor = savedBackgroundColor;

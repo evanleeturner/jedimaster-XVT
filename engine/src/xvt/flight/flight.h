@@ -63,7 +63,7 @@ struct FlightLaunchArgs {
 };
 
 extern const uint16_t g_graphicsDetailDistanceThresholdByPreset[4];
-extern const uint16_t g_starDensityByGraphicsDetailPreset[4];
+extern const uint16_t g_starGridDivisorByGraphicsDetailPreset[4];
 extern const uint16_t g_backdropsEnabledByGraphicsDetailPreset[4];
 extern const uint16_t g_debrisEnabledByGraphicsDetailPreset[4];
 extern uint16_t g_graphicsDetailDistanceThreshold;

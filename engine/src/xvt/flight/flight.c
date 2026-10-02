@@ -98,7 +98,7 @@ __declspec(dllimport) int32_t __stdcall DispatchMessageA(const struct FlightWin3
 // GLOBAL: XVT 0x527348
 const uint16_t g_graphicsDetailDistanceThresholdByPreset[4] = { 0x1000, 0x2000, 0x4000, 0x7FFF };
 // GLOBAL: XVT 0x527358
-const uint16_t g_starDensityByGraphicsDetailPreset[4] = { 2, 1, 1, 1 };
+const uint16_t g_starGridDivisorByGraphicsDetailPreset[4] = { 2, 1, 1, 1 };
 // GLOBAL: XVT 0x527360
 const uint16_t g_backdropsEnabledByGraphicsDetailPreset[4] = { 0, 0, 0, 1 };
 // GLOBAL: XVT 0x527368
@@ -5616,7 +5616,7 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 // FUNCTION: XVT 0x484160
 char Flight_ApplyGraphicsDetailPreset(uint16_t preset) {
 	g_graphicsDetailDistanceThreshold = g_graphicsDetailDistanceThresholdByPreset[preset];
-	g_starGridDivisor = g_starDensityByGraphicsDetailPreset[preset];
+	g_starGridDivisor = g_starGridDivisorByGraphicsDetailPreset[preset];
 	g_backdropsEnabled = (uint8_t)g_backdropsEnabledByGraphicsDetailPreset[preset];
 	g_debrisEnabled = (uint8_t)g_debrisEnabledByGraphicsDetailPreset[preset];
 	g_transformLightDirectionToObjectSpace = 1;
@@ -5648,9 +5648,9 @@ int Flight_Main(char* missionCmdLine) {
 		BRIGHTNESS_CONFIG_SHIFT = 6,
 		BRIGHTNESS_SCALE_MIN = 256,
 		BRIGHTNESS_SCALE_MAX = 704,
-		STAR_DENSITY_HIGH = 4,
-		STAR_DENSITY_MEDIUM = 2,
-		STAR_DENSITY_LOW = 1,
+		STAR_GRID_DIVISOR_LOW_DENSITY = 4,
+		STAR_GRID_DIVISOR_MEDIUM_DENSITY = 2,
+		STAR_GRID_DIVISOR_HIGH_DENSITY = 1,
 		LOD_CONFIG_OFFSET = 5,
 		LOD_CONFIG_MAX_VALUE = 20,
 		LOD_SCALE_INVERSION_NUMERATOR = 1,
@@ -5872,13 +5872,13 @@ int Flight_Main(char* missionCmdLine) {
 	g_debrisEnabled = g_gameConfig.debris[NetSession_GetPlayerCount() > 1];
 	switch (g_gameConfig.starDensity[NetSession_GetPlayerCount() > 1]) {
 		case 0:
-			g_starGridDivisor = STAR_DENSITY_HIGH;
+			g_starGridDivisor = STAR_GRID_DIVISOR_LOW_DENSITY;
 			break;
 		case 1:
-			g_starGridDivisor = STAR_DENSITY_MEDIUM;
+			g_starGridDivisor = STAR_GRID_DIVISOR_MEDIUM_DENSITY;
 			break;
 		case 2:
-			g_starGridDivisor = STAR_DENSITY_LOW;
+			g_starGridDivisor = STAR_GRID_DIVISOR_HIGH_DENSITY;
 			break;
 		default:
 			break;

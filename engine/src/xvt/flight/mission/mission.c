@@ -168,6 +168,8 @@ const uint8_t g_fgArrivalDifficultyMasks[8] = { 7, 1, 2, 4, 6, 3, 0, 0 };
 const uint8_t g_missionDifficultyArrivalMasks[8] = { 1, 2, 4, 0, 0, 0, 0, 0 };
 // GLOBAL: XVT 0x9D77BC
 uint16_t g_targetProximityBlinkBit = 0;
+/* Only Mission_InitFlightRuntimeState writes this, always 1, and its readers act only on a value above 1
+ * (with g_dormantFlightRegionSessionEarlyReturnFlag set), so in this build their early return never runs. */
 // GLOBAL: XVT 0x523440
 uint8_t g_flightRuntimeStateInitialized = 1;
 // GLOBAL: XVT 0x9A8C04
@@ -1347,7 +1349,7 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, 
 					}
 					break;
 
-				case MISSION_COND_DESTROYED_OR_CAPTURED:
+				case MISSION_COND_NOT_DEPARTED:
 					met += g_missionFgStats[flightGroupIdx]
 							   .outcomeCount[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP] +
 						   g_missionFgStats[flightGroupIdx].outcomeCount[FLIGHT_GROUP_OUTCOME_DESTROYED] +
@@ -2620,12 +2622,12 @@ void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx, int specialCarg
 										  int playerIdx, int victimOwnerIdx, int victimRating) {
 	uint16_t flightGroupIdx;
 	uint16_t tacticalVoiceProbability;
-	int scoreDivisor;
+	int goalScoreReductionLevel;
 	int goalIndex;
 
 	flightGroupIdx = g_objectTable[victimObjIdx].flightGroupIdx;
 	tacticalVoiceProbability = 0;
-	scoreDivisor = 1;
+	goalScoreReductionLevel = 1;
 	for (goalIndex = 0; goalIndex < 8; goalIndex++) {
 		if (g_missionFlightGroups[flightGroupIdx].fg.goals[goalIndex].goalKind == 0 &&
 			g_missionFlightGroups[flightGroupIdx]
@@ -2654,7 +2656,7 @@ void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx, int specialCarg
 				} else {
 					g_players[playerIdx].perMissionKills.killsAssistOnAiRating[victimRating]++;
 				}
-				scoreDivisor = 10;
+				goalScoreReductionLevel = 10;
 				score /= 10;
 				break;
 			case 2:
@@ -2666,7 +2668,7 @@ void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx, int specialCarg
 				} else {
 					g_players[playerIdx].perMissionKills.killsSharedOnAiRating[victimRating]++;
 				}
-				scoreDivisor = 6;
+				goalScoreReductionLevel = 6;
 				score /= 2;
 				break;
 			case 3:
@@ -2678,7 +2680,7 @@ void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx, int specialCarg
 				} else {
 					g_players[playerIdx].perMissionKills.killsFullOnAiRating[victimRating]++;
 				}
-				scoreDivisor = 1;
+				goalScoreReductionLevel = 1;
 				break;
 			default:
 				break;
@@ -2688,7 +2690,7 @@ void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx, int specialCarg
 		} else if (g_flightMissionState.difficulty == 0) {
 			score /= 2;
 		}
-		if (Mission_ApplyFlightGroupGoalScore(2, flightGroupIdx, playerIdx, (uint16_t)scoreDivisor,
+		if (Mission_ApplyFlightGroupGoalScore(2, flightGroupIdx, playerIdx, (uint16_t)goalScoreReductionLevel,
 											  specialCargoFlag, (uint16_t)g_players[playerIdx].team) >= 0) {
 			g_players[playerIdx].missionStats.missionScore += score;
 		}
@@ -2716,28 +2718,28 @@ void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx, int specialCarg
 // FUNCTION: XVT 0x434F20
 void Mission_CreditTeamKillContribution(uint16_t victimObjIdx, int specialCargoFlag, int contributionTier,
 										int teamIdx) {
-	int scoreDivisor;
+	int goalScoreReductionLevel;
 	uint16_t flightGroupIdx;
 	int score;
 
-	scoreDivisor = 1;
+	goalScoreReductionLevel = 1;
 	flightGroupIdx = g_objectTable[victimObjIdx].flightGroupIdx;
 	if (g_missionTeams[teamIdx].allies[g_missionFlightGroups[flightGroupIdx].fg.team] == 0) {
 		score = Mission_ComputeKillScoreForObject(victimObjIdx);
 		switch (contributionTier) {
 			case 1:
 				++g_flightMissionState.runtime.teamKillStats[2][teamIdx];
-				scoreDivisor = 10;
+				goalScoreReductionLevel = 10;
 				score /= 10;
 				break;
 			case 2:
 				++g_flightMissionState.runtime.teamKillStats[1][teamIdx];
-				scoreDivisor = 6;
+				goalScoreReductionLevel = 6;
 				score /= 2;
 				break;
 			case 3:
 				++g_flightMissionState.runtime.teamKillStats[0][teamIdx];
-				scoreDivisor = 1;
+				goalScoreReductionLevel = 1;
 				break;
 		}
 		if (g_flightMissionState.difficulty == 2) {
@@ -2745,8 +2747,8 @@ void Mission_CreditTeamKillContribution(uint16_t victimObjIdx, int specialCargoF
 		} else if (g_flightMissionState.difficulty == 0) {
 			score /= 2;
 		}
-		if (Mission_ApplyFlightGroupGoalScore(2, flightGroupIdx, -1, scoreDivisor, specialCargoFlag,
-											  teamIdx) >= 0) {
+		if (Mission_ApplyFlightGroupGoalScore(2, flightGroupIdx, -1, goalScoreReductionLevel,
+											  specialCargoFlag, teamIdx) >= 0) {
 			g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][teamIdx] += score;
 		}
 	} else if (contributionTier == 2 || contributionTier == 3) {
@@ -2984,7 +2986,7 @@ void Mission_RecordPlayerCraftLossAttribution(int attackerFlightGroupIdx, int vi
 
 // FUNCTION: XVT 0x435640
 int Mission_ApplyFlightGroupGoalScore(int16_t eventCondition, uint16_t flightGroupIdx, int playerIdx,
-									  uint16_t scoreDivisor, int specialCargoFlag, int teamIdx) {
+									  uint16_t goalScoreReductionLevel, int specialCargoFlag, int teamIdx) {
 	unsigned int missionTimeSeconds;
 	int goalIndex;
 	int scoreTotal;
@@ -3011,17 +3013,17 @@ int Mission_ApplyFlightGroupGoalScore(int16_t eventCondition, uint16_t flightGro
 			if (timeLimitSeconds == 0 || missionTimeSeconds <= timeLimitSeconds) {
 				score = 250 * goal->points;
 				scoreTenth = score / 10;
-				if (scoreDivisor > 10) {
-					scoreDivisor = 9;
+				if (goalScoreReductionLevel > 10) {
+					goalScoreReductionLevel = 9;
 				}
-				if (scoreDivisor > 1) {
+				if (goalScoreReductionLevel > 1) {
 					if (score > 0) {
 						scoreAdjustment = 1;
-						scoreAdjustment -= scoreDivisor;
+						scoreAdjustment -= goalScoreReductionLevel;
 						scoreAdjustment *= scoreTenth;
 						score += scoreAdjustment;
 					} else {
-						score += scoreTenth * (scoreDivisor - 1);
+						score += scoreTenth * (goalScoreReductionLevel - 1);
 					}
 				}
 				if (playerIdx != -1) {

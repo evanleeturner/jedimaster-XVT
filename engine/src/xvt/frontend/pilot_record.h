@@ -263,6 +263,11 @@ struct PilotFaction {
 	uint8_t fieldBC[16];
 	int totalScore;   ///< Overall score for this faction.
 	PilotStats stats; ///< Accumulated combat statistics for this faction.
+	/* Pilot_LoadXvtRecord and Pilot_WriteXvtRecord copy the base-game record's history blocks from and to
+	 * 4 bytes before each array below: the first block from here, each later one from the last field of the
+	 * array before it. So in that record each history entry starts with the 4 bytes this layout gives to
+	 * the end of the entry before it, and mpBattles[24].field24 is not copied. No code reads these words
+	 * by name. */
 	uint8_t field1558[4];
 	PilotMission spTrainingMissions[100];            ///< Single-player training history (100 records).
 	PilotMission spMeleeMissions[250];               ///< Single-player melee history (250 records).

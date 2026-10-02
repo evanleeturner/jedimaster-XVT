@@ -42,8 +42,10 @@ static const double g_modelPreviewQ16Scale = 0.0000152587890625;
 int16_t g_modelPreviewUpAxisAngle;
 // GLOBAL: XVT 0x520EC4
 OptimizedPolyObject* g_modelPreviewModelData = NULL;
+/* Nothing sets this flag, and ModelPreview_LoadModel clears it through ModelPreview_FreeResources before
+ * testing it, so every load resets the preview object, view and light. */
 // GLOBAL: XVT 0x520EC8
-int g_modelPreviewStateGuard = 0;
+int g_modelPreviewSkipSceneReset = 0;
 // GLOBAL: XVT 0x520ECC
 int g_modelPreviewRenderResourcesInitialized = 0;
 // GLOBAL: XVT 0x520ED0
@@ -260,7 +262,7 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 	ModelPreview_ScaleOptRootNodes(g_modelPreviewModelData, g_modelPreviewScale);
 	g_transformLightDirectionToObjectSpace = 1;
 
-	if (g_modelPreviewStateGuard == 0) {
+	if (g_modelPreviewSkipSceneReset == 0) {
 		memset(&g_modelPreviewMobileObject, 0, sizeof(g_modelPreviewMobileObject));
 		memset(&g_modelPreviewCraftScratch, 0, sizeof(g_modelPreviewCraftScratch));
 		g_modelPreviewObject.objectType = 0;
@@ -285,7 +287,7 @@ void ModelPreview_FreeResources(void) {
 		RenderScene_FreeBuffers();
 		g_modelPreviewRenderResourcesInitialized = 0;
 	}
-	g_modelPreviewStateGuard = 0;
+	g_modelPreviewSkipSceneReset = 0;
 }
 
 // FUNCTION: XVT 0x42A380

@@ -33,6 +33,8 @@ int __cdecl outp(unsigned short port, int value);
 IDirectDrawSurface* g_flightPrimarySurface;
 // GLOBAL: XVT 0x66E710
 uint8_t g_flightHudStagingBuffer[640 * 480 * 2];
+/* Element 0 is the primary surface pitch in bytes. Element 1, which nothing reads, is 2 when the driver
+ * can color key with a destination key but not a source key, else 1. */
 // GLOBAL: XVT 0x803B70
 int g_flightPrimaryPitch[2];
 // GLOBAL: XVT 0x803F80
@@ -592,6 +594,8 @@ HRESULT FlightDisplay_Flip(void) {
 #endif
 			}
 
+			/* From here flipResult holds the result of returning to the normal cooperative level, not of a
+			 * flip; on this path the function returns it and drops the retried flip's result. */
 			flipResult = g_flightDirectDraw->lpVtbl->SetCooperativeLevel(
 				g_flightDirectDraw, g_flightMainWindowHandle, DDSCL_NORMAL);
 			if (flipResult != DX_DD_OK) {

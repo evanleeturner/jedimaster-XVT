@@ -948,6 +948,8 @@ void Net_PumpIncomingPackets(void) {
 				peerIndex = Net_FindOrCreatePeerSlot((int)fromId);
 				g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastHeardMs = GetTickCount();
 				echoedSendMs = (uint32_t)payload[0];
+				/* Until the average is computed below, averageLatencyMs holds the current time less
+				 * LATENCY_SEND_BIAS_MS, the clock the echoed send time is measured against. */
 				averageLatencyMs = GetTickCount() - LATENCY_SEND_BIAS_MS;
 				if (echoedSendMs >= averageLatencyMs)
 					latencyMs = 1;

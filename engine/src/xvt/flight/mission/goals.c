@@ -47,7 +47,7 @@ const char* g_strGoalSides[3] = { 0 };
 // GLOBAL: XVT 0xA607AC
 const char* g_strUnknown = 0;
 // GLOBAL: XVT 0xA607B0
-const char* g_strBuoyNames[16] = { 0 };
+const char* g_strSatMineProbeBuoyPilotNames[16] = { 0 };
 // GLOBAL: XVT 0xA607F0
 const char* g_strStatusStrings[9] = { 0 };
 // GLOBAL: XVT 0xA60820
@@ -376,7 +376,7 @@ int16_t goals_DrawObjectTypeName(uint16_t craftSpecies, int16_t usePluralName, i
 			displayName = g_modelDefs[modelIndex].nameLong;
 		}
 	} else if (craftSpecies >= CRAFT_SPECIES_COMM_SAT_1 && craftSpecies <= CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
-		displayName = g_strBuoyNames[craftSpecies - CRAFT_SPECIES_COMM_SAT_1];
+		displayName = g_strSatMineProbeBuoyPilotNames[craftSpecies - CRAFT_SPECIES_COMM_SAT_1];
 	}
 
 	wrapHeight = FlightText_GetWrapHeightForString(displayName);

@@ -12,7 +12,7 @@ extern int g_nodeSwitchIndex;
 extern int g_worldLightDirectionX;
 extern int g_worldLightDirectionY;
 extern int g_worldLightDirectionZ;
-extern int g_modelPreviewStateGuard;
+extern int g_modelPreviewSkipSceneReset;
 extern int g_modelPreviewRenderResourcesInitialized;
 extern OptimizedPolyObject* g_modelPreviewModelData;
 extern uint16_t g_modelPreviewAuxBufferHandle;

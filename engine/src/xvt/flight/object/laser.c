@@ -623,6 +623,8 @@ void laser_weaponsfire(void) {
 
 	for (objectIdx = g_activeRegionObjectSlotStart; objectIdx < g_activeRegionCraftObjectSlotEnd;
 		 ++objectIdx) {
+		/* slotIndex counts cannon groups in the first loop below (the laserState arrays, passed to
+		 * laser_firelasersystem as its group), weapon slots in the turret loop, then warhead launchers. */
 		uint16_t slotIndex;
 
 		if (g_objectTable[objectIdx].objectType == CRAFT_SPECIES_UNKNOWN ||
@@ -901,6 +903,9 @@ void laser_firelasersystem(int objectIndex, int laserSystemIndex) {
 		do {
 			if (g_curCraft->weaponSlots[currentSlot].projectileTypeId != 0 &&
 				g_curCraft->weaponSlots[currentSlot].laserCharge > 0) {
+				/* From here firstSlot holds the projectile type to fire: the group's weapon type, one higher
+				 * when the slot's charge is 64 or more. The ion check after the loop reads it; if no slot
+				 * fired it still holds the first slot. */
 				firstSlot = g_modelDefs[modelIndex].laserGroupWeaponType[laserSystemIndex];
 				if (g_curCraft->weaponSlots[currentSlot].laserCharge >= 64)
 					++firstSlot;
@@ -930,6 +935,7 @@ void laser_firelasersystem(int objectIndex, int laserSystemIndex) {
 						if (g_curCraft->weaponSlots[currentSlot].laserCharge < 0)
 							g_curCraft->weaponSlots[currentSlot].laserCharge = 0;
 						{
+							/* From here projectileIndex indexes g_projectileGuidanceStates. */
 							projectileIndex -= g_projectileObjectSlotStart;
 							if (ownerPlayerIdx != -1) {
 								g_projectileGuidanceStates[projectileIndex].targetObjIdx =
@@ -1073,6 +1079,8 @@ int laser_firemissile(int objectIndex, int weaponSlotIndex, int projectileTypeId
 				g_missionFlightGroups[g_objectTable[objectIndex].flightGroupIdx].fg.status2 != 21)
 				--g_curCraft->weaponSlots[weaponSlotIndex].ammoCount;
 
+			/* From here projectileIndex indexes g_projectileGuidanceStates, and that index is what this
+			 * function returns. */
 			projectileIndex -= g_projectileObjectSlotStart;
 			if (launcherIndex < 2) {
 				g_projectileGuidanceStates[projectileIndex].homingTier =

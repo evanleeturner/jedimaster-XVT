@@ -470,7 +470,7 @@ static XvtFlightStepResult XvtFlightSim_FinishedAdvance(void) {
 }
 
 XvtFlightStepResult XvtFlightSim_StepToTime(int targetGameTime) {
-	enum { MINIMUM_SIM_STEP_TICKS = 1 };
+	enum { MINIMUM_SIM_STEP_TICKS = 1, MINIMUM_SIM_STEPS_PER_SECOND = 1 };
 
 	int gameTime;
 
@@ -496,7 +496,7 @@ XvtFlightStepResult XvtFlightSim_StepToTime(int targetGameTime) {
 				g_elapsedTicks = (uint16_t)XvtFlightTiming_MaximumStepTicks();
 			g_simStepsPerSecond = (uint16_t)(SIMULATION_TICKS_PER_SECOND / (int)(uint16_t)g_elapsedTicks);
 			if (g_simStepsPerSecond == 0)
-				g_simStepsPerSecond = MINIMUM_SIM_STEP_TICKS;
+				g_simStepsPerSecond = MINIMUM_SIM_STEPS_PER_SECOND;
 			g_gameTime = gameTime;
 			g_sim.stepGameTime = gameTime;
 			XvtFlightTiming_BeginAdvance(g_elapsedTicks);

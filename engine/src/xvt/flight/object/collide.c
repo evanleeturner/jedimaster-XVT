@@ -728,6 +728,9 @@ void collide_collisions(void) {
 									impulseX = 0;
 									impulseY = BOUNCE_DIRECTION_SCALE;
 								} else {
+									/* From here deltaX and deltaY hold the offsets times BOUNCE_IMPULSE_SCALE
+									 * times relativeSpeed; the candidate's bounce below multiplies them by
+									 * both again. */
 									deltaX = (int32_t)((uint32_t)deltaX * BOUNCE_IMPULSE_SCALE *
 													   (uint32_t)relativeSpeed);
 									impulseX = deltaX / distanceSquared;
@@ -1344,6 +1347,8 @@ void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx) 
 		(int32_t)((uint32_t)deltaZ * (uint32_t)deltaZ + (uint32_t)impulseY * (uint32_t)impulseY +
 				  (uint32_t)deltaX * (uint32_t)deltaX);
 	if (distanceSquared > 50) {
+		/* From here impulseX and impulseY hold the offsets times 1000 times speed, before the division by
+		 * distanceSquared; the other craft's bounce below multiplies them by 1000 and speed again. */
 		impulseX = (int32_t)(1000u * (uint32_t)speed * (uint32_t)impulseX);
 		forceX = (int16_t)(impulseX / distanceSquared);
 		impulseY = (int32_t)(1000u * (uint32_t)speed * (uint32_t)impulseY);
@@ -1418,6 +1423,8 @@ void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx) 
 		craft->pitch = g_objectTable[craftObjIdx].pitch;
 	}
 
+	/* From here speed holds this craft's roll impulse: the closing speed times 100, capped at 0x7FFF and
+	 * negated when the new yaw is above the saved one, as rollImpulse is for the other craft above. */
 	speed = (int16_t)(speed * 100);
 	if ((uint16_t)speed >= 0x8000)
 		speed = 0x7FFF;
@@ -1675,6 +1682,8 @@ int16_t collide_checkboxcollision(int radius) {
 	zFarNumerator = (int32_t)((uint32_t)zFarNumerator << 8);
 	zNearNumerator = (int32_t)((uint32_t)zNearNumerator << 8);
 
+	/* Until here tExit held the X near-face numerator, the twin of yNearNumerator and zNearNumerator; from
+	 * here it holds the exit time along the sweep, in 256ths of the segment like tEnter. */
 	if (deltaX == 0) {
 		slope = sweepDeltaX - probeDeltaX;
 		endRel = g_collisionSweepEndX - g_collisionProbeWorldX;
@@ -2006,7 +2015,7 @@ void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx, int1
 		ATTACKED_GOAL_SCORED_MASK = 0x80,
 		ATTACKED_PRESERVE_MASK = 0x8F,
 		GOAL_EVENT_ATTACKED = 3,
-		GOAL_SCORE_DIVISOR = 1,
+		GOAL_SCORE_NO_REDUCTION = 1,
 		MAGNETIC_PULSE_SHORT_INHIBIT_TICKS = 3540,
 		MAGNETIC_PULSE_LONG_INHIBIT_TICKS = 7080,
 		LASER_SYSTEM_MESSAGE_ARG = 92,
@@ -2095,10 +2104,11 @@ void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx, int1
 
 				Mission_ApplyFlightGroupGoalScore(GOAL_EVENT_ATTACKED,
 												  g_objectTable[craftObjIdx].flightGroupIdx, sourcePlayerIdx,
-												  GOAL_SCORE_DIVISOR, specialCargoFlag, sourceTeam);
+												  GOAL_SCORE_NO_REDUCTION, specialCargoFlag, sourceTeam);
 				Mission_ApplyFlightGroupGoalScore(
-					GOAL_EVENT_ATTACKED, g_objectTable[craftObjIdx].flightGroupIdx, -1, GOAL_SCORE_DIVISOR,
-					specialCargoFlag, (uint16_t)g_players[g_objectTable[sourceObjIdx].playerOwnerIdx].team);
+					GOAL_EVENT_ATTACKED, g_objectTable[craftObjIdx].flightGroupIdx, -1,
+					GOAL_SCORE_NO_REDUCTION, specialCargoFlag,
+					(uint16_t)g_players[g_objectTable[sourceObjIdx].playerOwnerIdx].team);
 			}
 			*attackedByTeam |= ATTACKED_GOAL_SCORED_MASK;
 		}
@@ -2541,6 +2551,9 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 					{
 						int enemyCraft = 0;
 
+						/* enemyCraft is still 0 here: the test checks for no working subsystems and the two
+						 * stores clear the shields. Only after the team check below does it say whether the
+						 * victim is hostile to the local player's team. */
 						if (craft->workingSubsystems == enemyCraft) {
 							craft->subsystemDamage = g_modelDefs[craft->modelIndex].systemStrength;
 							craft->shieldEnergy[0] = enemyCraft;
@@ -3303,6 +3316,8 @@ int collide_IsLegacyProjectedEdgeCrossNonpositive(int pointDeltaU, int edgeDelta
 	return pointDeltaV * edgeDeltaU - edgeDeltaV * pointDeltaU >= 0;
 }
 
+/* Besides the test, this sets g_curCraft to the target's craft when the target has one and does not restore
+ * it; nothing in this function or the functions it calls reads g_curCraft. */
 // FUNCTION: XVT 0x4A5490
 int collide_CheckSweptModelCollision(uint16_t sourceObjIdx, uint16_t targetObjIdx) {
 	enum { OBJECT_TYPE_MESH_CACHE_COUNT = 73, SUPER_STAR_DESTROYER_OBJECT_TYPE = 54 };

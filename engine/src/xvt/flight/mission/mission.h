@@ -186,6 +186,8 @@ enum {
 struct MissionHeader {
 	int16_t numFlightGroups;
 	uint16_t numMessages;
+	/* Nothing in this build reads timeLimitMin or timeLimitSec; the mission countdown comes from
+	 * timeLimitMinutes. A TIE-format mission stores its header's backdrop byte in timeLimitMin. */
 	uint8_t timeLimitMin;
 	uint8_t timeLimitSec;
 	uint8_t winType;
@@ -311,6 +313,7 @@ struct MissionFgRuntimeStats {
 	uint8_t teamSpecialCargoCapturedDeparted[10];
 	uint8_t teamUncapturedLost[10];
 	uint8_t teamSpecialCargoUncapturedLost[10];
+	/* Mission_InitFlightRuntimeState zeroes this with the counts above; nothing in this build reads it. */
 	uint8_t teamEventExtra[4][10];
 	uint8_t goalState[80];
 };
@@ -377,8 +380,8 @@ struct EAIStruct {
 	uint8_t pri_id;
 	uint8_t secondary_type;
 	uint8_t secondary_id;
-	uint8_t pri_sec_op;
-	uint8_t pri_sec_unused;
+	uint8_t pri_secondary_op;
+	uint8_t pri_secondary_unused;
 };
 
 #pragma pack(pop)
@@ -539,7 +542,7 @@ int Mission_RecordPlayerCraftLoss(unsigned int objIdx, int allowPendingDamageCre
 void Mission_RecordPlayerCraftLossAttribution(int attackerFlightGroupIdx, int victimObjIdx,
 											  int contributionTier);
 int Mission_ApplyFlightGroupGoalScore(int16_t eventCondition, uint16_t flightGroupIdx, int playerIdx,
-									  uint16_t scoreDivisor, int specialCargoFlag, int teamIdx);
+									  uint16_t goalScoreReductionLevel, int specialCargoFlag, int teamIdx);
 void Mission_ApplyTeamGoalScoreAllEnabledTeams(int16_t eventCondition, uint16_t flightGroupIdx,
 											   int specialCargoFlag);
 void Mission_ApplyTeamGoalScoreForTeam(int16_t eventCondition, uint16_t flightGroupIdx, int specialCargoFlag,

@@ -2564,6 +2564,7 @@ int MissionSetup_BroadcastLobbySelection(void) {
 		packetWords[12] = rosterCapacity;
 		packetWords[13] = rosterCapacity;
 		playerRoster = Net_GetPlayerRoster(&rosterCount);
+		/* Before sending, clear each roster entry with no ready player in the network roster. */
 		for (rosterIndex = 0; rosterIndex < rosterCapacity; ++rosterIndex) {
 			MpRosterEntry* rosterEntry = &g_mpRoster[rosterIndex];
 
@@ -4288,7 +4289,7 @@ int MissionSetup_CountMissionListEntries(XvtFile* stream) {
 // FUNCTION: XVT 0x4E9330
 int MissionSetup_DrawBackground(void) {
 	int flightGroupIndex;
-	uint8_t* playerNumber;
+	uint8_t* playerNumberPtr;
 
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES) {
@@ -4324,12 +4325,12 @@ int MissionSetup_DrawBackground(void) {
 		if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES) {
 			flightGroupIndex = 0;
 			if (*(int16_t*)&g_frontendMission.flightGroupCount > flightGroupIndex) {
-				playerNumber = &g_frontendMission.flightGroups[0].playerNumber;
+				playerNumberPtr = &g_frontendMission.flightGroups[0].playerNumber;
 				do {
-					if (*playerNumber != 0) {
+					if (*playerNumberPtr != 0) {
 						break;
 					}
-					playerNumber += sizeof(XvtFlightGroup);
+					playerNumberPtr += sizeof(XvtFlightGroup);
 					++flightGroupIndex;
 				} while (*(int16_t*)&g_frontendMission.flightGroupCount > flightGroupIndex);
 			}
@@ -4394,16 +4395,16 @@ int MissionSetup_UseRebelBackground(void) {
 			FrontendMission_LoadFile(filePath, &mission);
 			{
 				int flightGroupIndex;
-				uint8_t* playerNumber;
+				uint8_t* playerNumberPtr;
 
 				flightGroupIndex = 0;
 				if ((int16_t)mission.flightGroupCount > 0) {
-					playerNumber = &mission.flightGroups[0].playerNumber;
+					playerNumberPtr = &mission.flightGroups[0].playerNumber;
 					do {
-						if (*playerNumber != 0) {
+						if (*playerNumberPtr != 0) {
 							break;
 						}
-						playerNumber += sizeof(XvtFlightGroup);
+						playerNumberPtr += sizeof(XvtFlightGroup);
 						++flightGroupIndex;
 					} while ((int16_t)mission.flightGroupCount > flightGroupIndex);
 				}
@@ -5893,6 +5894,8 @@ void ShipList_Load(void) {
 	if (g_shipList == NULL)
 		return;
 
+	/* shipListIndex and shipCount always hold the same value: both start at 0 here and step together for
+	 * each .opt entry kept from the list. */
 	shipListIndex = 0;
 	shipCount = 0;
 	stream = File_Open("frontres\\frntspec.lst", "r");
@@ -5947,7 +5950,7 @@ int MissionSetup_EnterNextMission(int frameCounter) {
 	enum { NETWORK_PLAYER_COUNT = 8 };
 
 	int playerIndex;
-	int* craftId;
+	int* craftIdPtr;
 
 	(void)frameCounter;
 	g_frontendSkipScreenEntrySetup = 0;
@@ -5969,8 +5972,8 @@ int MissionSetup_EnterNextMission(int frameCounter) {
 	}
 
 	for (playerIndex = 0; playerIndex < NETWORK_PLAYER_COUNT; ++playerIndex) {
-		craftId = &g_pilotData.networkPlayers[playerIndex].craftId;
-		*craftId = 0;
+		craftIdPtr = &g_pilotData.networkPlayers[playerIndex].craftId;
+		*craftIdPtr = 0;
 		g_pilotData.networkPlayers[playerIndex].craftOption = -1;
 		g_pilotData.networkPlayers[playerIndex].warheadOption = -1;
 		g_pilotData.networkPlayers[playerIndex].beamOption = -1;
@@ -6358,15 +6361,15 @@ int MissionSetup_ExitCurrentMission(void) {
 // FUNCTION: XVT 0x4F1B00
 int MissionSetup_EnterCurrentMission(int frameCounter) {
 	PilotNetworkPlayer* player;
-	int* craftId;
+	int* craftIdPtr;
 
 	(void)frameCounter;
 	player = &g_pilotData.networkPlayers[0];
-	craftId = &player->craftId;
+	craftIdPtr = &player->craftId;
 	g_frontendSkipScreenEntrySetup = 0;
 	do {
-		*craftId = 0;
-		craftId = (int*)((char*)craftId + sizeof(PilotNetworkPlayer));
+		*craftIdPtr = 0;
+		craftIdPtr = (int*)((char*)craftIdPtr + sizeof(PilotNetworkPlayer));
 		player->craftOption = -1;
 		player->warheadOption = -1;
 		player->beamOption = -1;
@@ -6379,7 +6382,7 @@ int MissionSetup_EnterCurrentMission(int frameCounter) {
 		player->totalLosses = 0;
 		player->hasLeft = 0;
 		++player;
-	} while (craftId < &g_pilotData.teams[2].unknown08);
+	} while (craftIdPtr < &g_pilotData.teams[2].unknown08);
 
 	*(int*)g_frontendNetPacketScratch.payload = g_pilotData.rating;
 	g_frontendNetPacketScratch.packetType = NET_PACKET_PILOT_RATING;
@@ -7524,15 +7527,15 @@ void MissionSetup_DrawTeamAssignments(int frameCounter) {
 void MissionSetup_PruneTeamAssignments(void) {
 	int rosterPlayerValue;
 	unsigned int rosterIndex;
-	int* rosterPlayerId;
+	int* rosterPlayerIdPtr;
 	unsigned int teamOffset;
-	int* teamLastPlayerId;
+	int* teamLastPlayerIdPtr;
 	int removedPlayerId;
 	int teamPlayerIndex;
 	int* shiftDestination;
 	int shiftCount;
 	int shiftedPlayerId;
-	int* activePlayerId;
+	int* activePlayerIdPtr;
 	int activePlayerIndex;
 	int teamsRemaining;
 
@@ -7542,21 +7545,21 @@ void MissionSetup_PruneTeamAssignments(void) {
 
 	activePlayerIndex = 0;
 	do {
-		activePlayerId = &g_missionSetupPlayerAssignments.assignedPlayerIds[activePlayerIndex];
+		activePlayerIdPtr = &g_missionSetupPlayerAssignments.assignedPlayerIds[activePlayerIndex];
 		rosterIndex = 0;
-		rosterPlayerId = &g_mpRoster[0].playerId;
+		rosterPlayerIdPtr = &g_mpRoster[0].playerId;
 		do {
-			rosterPlayerValue = *rosterPlayerId;
-			if (rosterPlayerValue != 0 && *activePlayerId == rosterPlayerValue) {
+			rosterPlayerValue = *rosterPlayerIdPtr;
+			if (rosterPlayerValue != 0 && *activePlayerIdPtr == rosterPlayerValue) {
 				break;
 			}
-			rosterPlayerId = (int*)((char*)rosterPlayerId + sizeof(MpRosterEntry));
+			rosterPlayerIdPtr = (int*)((char*)rosterPlayerIdPtr + sizeof(MpRosterEntry));
 		} while (++rosterIndex < 8);
 
 		if (rosterIndex == 8) {
 			if (g_teamCount > 0) {
-				removedPlayerId = *activePlayerId;
-				teamLastPlayerId = &g_missionSetupPlayerAssignments.teamPlayerIds[0][7];
+				removedPlayerId = *activePlayerIdPtr;
+				teamLastPlayerIdPtr = &g_missionSetupPlayerAssignments.teamPlayerIds[0][7];
 				teamOffset = 0;
 				teamsRemaining = g_teamCount;
 				do {
@@ -7574,15 +7577,15 @@ void MissionSetup_PruneTeamAssignments(void) {
 									--shiftCount;
 								} while (shiftCount != 0);
 							}
-							*teamLastPlayerId = 0;
+							*teamLastPlayerIdPtr = 0;
 						}
 					}
-					teamLastPlayerId += 8;
+					teamLastPlayerIdPtr += 8;
 					teamOffset += 8;
 					--teamsRemaining;
 				} while (teamsRemaining != 0);
 			}
-			*activePlayerId = 0;
+			*activePlayerIdPtr = 0;
 		}
 		++activePlayerIndex;
 	} while (activePlayerIndex < 8);
@@ -8872,11 +8875,11 @@ int MissionSetup_DrawAssignmentControls(void) {
 		BUTTON_ROW_OFFSET = 28,
 		REWIND_TO_STOP_OFFSET = -56,
 		BUTTON_FONT_SIZE = 12,
-		HOVER_SLOT_PLAY = 11,
-		HOVER_SLOT_STOP = 12,
-		HOVER_SLOT_REWIND = 14,
-		HOVER_SLOT_AUTO_ASSIGN = 16,
-		HOVER_SLOT_ASSIGN_PLAYERS = 17,
+		PLAY_OR_AUTO_ASSIGN_HELD_SLOT = 11,
+		STOP_OR_CLEAR_LIST_HELD_SLOT = 12,
+		REWIND_HELD_SLOT = 14,
+		BRIEFING_MAP_OR_AUTO_ASSIGN_HELD_SLOT = 16,
+		ASSIGN_PLAYERS_OR_CLEAR_LIST_HELD_SLOT = 17,
 		ASSIGNMENT_OVERLAY_X = 230,
 		ASSIGNMENT_OVERLAY_Y = 284,
 		ASSIGNMENT_OVERLAY_ROW_HEIGHT = 17,
@@ -8985,7 +8988,7 @@ int MissionSetup_DrawAssignmentControls(void) {
 				&rect, "play2d", FrontendString_Get(FRONTSTR_799_ASSIGN_PLAYERS), BUTTON_FONT_SIZE, 0);
 		} else if (FrontendButton_HandleSpriteButton(
 					   &rect, "play2u", "play2u", FrontendString_Get(FRONTSTR_799_ASSIGN_PLAYERS),
-					   BUTTON_FONT_SIZE, 0, HOVER_SLOT_ASSIGN_PLAYERS, "jewelsound") != 0) {
+					   BUTTON_FONT_SIZE, 0, ASSIGN_PLAYERS_OR_CLEAR_LIST_HELD_SLOT, "jewelsound") != 0) {
 			g_missionSetupUseExpandedAssignmentLayout = 1;
 			g_frontendFirstVisibleLine = 0;
 			FrontendDisplay_LockOffscreenSurface();
@@ -9020,7 +9023,7 @@ int MissionSetup_DrawAssignmentControls(void) {
 		} else {
 			if (FrontendButton_HandleSpriteButton(
 					&rect, "play1u", "play1u", FrontendString_Get(FRONTSTR_800_VIEW_BRIEFING_MAP),
-					BUTTON_FONT_SIZE, 0, HOVER_SLOT_AUTO_ASSIGN, "jewelsound") != 0) {
+					BUTTON_FONT_SIZE, 0, BRIEFING_MAP_OR_AUTO_ASSIGN_HELD_SLOT, "jewelsound") != 0) {
 				g_missionSetupUseExpandedAssignmentLayout = 0;
 				FrontendDisplay_LockOffscreenSurface();
 				FrontImage_DrawSpriteOpaque("background", 0, 0);
@@ -9045,12 +9048,12 @@ int MissionSetup_DrawAssignmentControls(void) {
 		FrontendDraw_RectAssign(&rect, BUTTON_LEFT, BOTTOM_BUTTON_TOP, BUTTON_RIGHT, BOTTOM_BUTTON_BOTTOM);
 		if (FrontendButton_HandleSpriteButton(&rect, "clearu", "cleard",
 											  FrontendString_Get(FRONTSTR_215_CLEAR_LIST), BUTTON_FONT_SIZE,
-											  0, HOVER_SLOT_ASSIGN_PLAYERS, "jewelsound") != 0)
+											  0, ASSIGN_PLAYERS_OR_CLEAR_LIST_HELD_SLOT, "jewelsound") != 0)
 			MissionSetup_ClearFlightAssignments();
 		FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_ROW_OFFSET);
 		if (FrontendButton_HandleSpriteButton(&rect, "assignu", "assignd",
 											  FrontendString_Get(FRONTSTR_214_AUTO_ASSIGN), BUTTON_FONT_SIZE,
-											  0, HOVER_SLOT_AUTO_ASSIGN, "jewelsound") != 0)
+											  0, BRIEFING_MAP_OR_AUTO_ASSIGN_HELD_SLOT, "jewelsound") != 0)
 			MissionSetup_RandomizeFlightAssignments();
 	}
 
@@ -9058,7 +9061,7 @@ int MissionSetup_DrawAssignmentControls(void) {
 		FrontendDraw_RectAssign(&rect, BUTTON_LEFT, MAP_BUTTON_TOP, BUTTON_RIGHT, MAP_BUTTON_BOTTOM);
 		if (FrontendButton_HandleSpriteButton(&rect, "map4u", "map4d",
 											  FrontendString_Get(FRONTSTR_210_REWIND), BUTTON_FONT_SIZE, 0,
-											  HOVER_SLOT_REWIND, "jewelsound") != 0) {
+											  REWIND_HELD_SLOT, "jewelsound") != 0) {
 			g_briefingLastNarratedTextBlockIdx = 0;
 			g_briefingTextPageNumber = 0;
 			BriefingScript_ResetState();
@@ -9070,7 +9073,7 @@ int MissionSetup_DrawAssignmentControls(void) {
 		} else {
 			if (FrontendButton_HandleSpriteButton(&rect, "map2u", "map2u",
 												  FrontendString_Get(FRONTSTR_208_STOP), BUTTON_FONT_SIZE, 0,
-												  HOVER_SLOT_STOP, "jewelsound") != 0)
+												  STOP_OR_CLEAR_LIST_HELD_SLOT, "jewelsound") != 0)
 				g_briefingPlaybackActive = 0;
 		}
 		FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_ROW_OFFSET);
@@ -9092,7 +9095,7 @@ int MissionSetup_DrawAssignmentControls(void) {
 												BUTTON_FONT_SIZE, 0);
 		} else if (FrontendButton_HandleSpriteButton(&rect, "map1u", "map1u",
 													 FrontendString_Get(FRONTSTR_561_PLAY), BUTTON_FONT_SIZE,
-													 0, HOVER_SLOT_PLAY, "jewelsound") != 0) {
+													 0, PLAY_OR_AUTO_ASSIGN_HELD_SLOT, "jewelsound") != 0) {
 			g_briefingPlaybackActive = 1;
 		}
 	} else if (captainControls != 0 &&
@@ -9101,12 +9104,12 @@ int MissionSetup_DrawAssignmentControls(void) {
 								EXPANDED_SECOND_BUTTON_BOTTOM);
 		if (FrontendButton_HandleSpriteButton(&rect, "clear2u", "clear2d",
 											  FrontendString_Get(FRONTSTR_215_CLEAR_LIST), BUTTON_FONT_SIZE,
-											  0, HOVER_SLOT_STOP, "jewelsound") != 0)
+											  0, STOP_OR_CLEAR_LIST_HELD_SLOT, "jewelsound") != 0)
 			MissionSetup_ClearFlightAssignments();
 		FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_ROW_OFFSET);
 		if (FrontendButton_HandleSpriteButton(&rect, "assign2u", "assign2d",
 											  FrontendString_Get(FRONTSTR_214_AUTO_ASSIGN), BUTTON_FONT_SIZE,
-											  0, HOVER_SLOT_PLAY, "jewelsound") != 0)
+											  0, PLAY_OR_AUTO_ASSIGN_HELD_SLOT, "jewelsound") != 0)
 			MissionSetup_RandomizeFlightAssignments();
 	}
 	return 0;
@@ -9530,8 +9533,8 @@ int MissionSetup_DrawFlightAssignments(int frameCounter) {
 
 // FUNCTION: XVT 0x4FA420
 void MissionSetup_PruneFlightAssignments(void) {
-	int* rosterPlayerId;
-	int* activePlayerId;
+	int* rosterPlayerIdPtr;
+	int* activePlayerIdPtr;
 	unsigned int rosterIndex;
 	int removedPlayerId;
 	unsigned int teamByteOffset;
@@ -9547,14 +9550,14 @@ void MissionSetup_PruneFlightAssignments(void) {
 
 	activePlayerIndex = 0;
 	do {
-		activePlayerId = &g_missionSetupPlayerAssignments.assignedPlayerIds[activePlayerIndex];
+		activePlayerIdPtr = &g_missionSetupPlayerAssignments.assignedPlayerIds[activePlayerIndex];
 		rosterIndex = 0;
-		rosterPlayerId = &g_mpRoster[0].playerId;
-		removedPlayerId = *activePlayerId;
+		rosterPlayerIdPtr = &g_mpRoster[0].playerId;
+		removedPlayerId = *activePlayerIdPtr;
 		do {
-			if (*rosterPlayerId == removedPlayerId)
+			if (*rosterPlayerIdPtr == removedPlayerId)
 				break;
-			rosterPlayerId = (int*)((char*)rosterPlayerId + sizeof(MpRosterEntry));
+			rosterPlayerIdPtr = (int*)((char*)rosterPlayerIdPtr + sizeof(MpRosterEntry));
 			++rosterIndex;
 		} while (rosterIndex < 8);
 
@@ -9599,7 +9602,7 @@ void MissionSetup_PruneFlightAssignments(void) {
 					--teamsRemaining;
 				} while (teamsRemaining != 0);
 			}
-			*activePlayerId = 0;
+			*activePlayerIdPtr = 0;
 		}
 		++activePlayerIndex;
 	} while (activePlayerIndex < 8);
