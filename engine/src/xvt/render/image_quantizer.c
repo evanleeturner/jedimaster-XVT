@@ -1,3 +1,11 @@
+/* The color quantizer: it sorts an image's colors into a color tree, reduces the tree to a target
+ * count, and maps each pixel to its nearest palette entry. Its data follows early ImageMagick's
+ * image (magick/image.h): ImageQuantizerPixelRun is ImageMagick's RunlengthPacket (red, green,
+ * blue, length, index); ImageQuantizerLegacyImageRecord follows its Image struct (two 2,048-byte
+ * name buffers, then class, matte, compression, columns, rows); and colorClass holds its ClassType,
+ * 1 for direct color and 2 for a palette image. Names in this file say what the game does with a
+ * value, so some differ from ImageMagick's. */
+
 #include "xvt/render/image_quantizer.h"
 
 #include "xvt/flight/fediskio.h"
@@ -63,7 +71,7 @@ typedef struct ImageQuantizerLegacyImageRecord {
 	uint32_t field1018;
 	uint32_t field101C;
 	uint32_t field1020;
-	uint32_t compressionMode;
+	uint32_t colorClass;
 	uint32_t comparePaletteIndex;
 	uint32_t compressionType;
 	uint32_t width;
@@ -200,7 +208,7 @@ void* ImageQuantizer_AllocateImage(void) {
 	image->field1018 = 0;
 	image->field101C = 0;
 	image->field1020 = 0;
-	image->compressionMode = 1;
+	image->colorClass = 1;
 	image->comparePaletteIndex = 0;
 	image->compressionType = 2;
 	image->width = 0;
@@ -252,7 +260,7 @@ void ImageQuantizer_CompressPixelRuns(unsigned int* image) {
 	ImageQuantizerPixelRun* resizedRuns;
 	unsigned int pixelIndex;
 	unsigned int remaining;
-	unsigned int compressionMode;
+	unsigned int colorClass;
 	unsigned int height;
 
 	pixelIndex = 0;
@@ -316,10 +324,10 @@ void ImageQuantizer_CompressPixelRuns(unsigned int* image) {
 	}
 
 	resizedRuns = realloc(imageLayout->pixels, imageLayout->runCount * sizeof(ImageQuantizerPixelRun));
-	compressionMode = imageLayout->colorClass;
+	colorClass = imageLayout->colorClass;
 	imageLayout->pixels = resizedRuns;
 	height = imageLayout->height;
-	if (compressionMode == 1) {
+	if (colorClass == 1) {
 		if ((height * imageLayout->width * 3) / 4 <= imageLayout->runCount)
 			imageLayout->compressionType = 1;
 	} else if ((height * imageLayout->width) / 2 <= imageLayout->runCount) {
