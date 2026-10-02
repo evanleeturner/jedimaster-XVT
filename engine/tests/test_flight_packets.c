@@ -33,7 +33,7 @@ static void World(int host, int cookie) {
 		g_playerAbortFlags[i] = 0;
 		g_flightNetPeerSilenceTicks[i] = 0;
 	}
-	g_players[0].connectedFlag = 1;
+	g_players[0].participationState = 1;
 	g_localPlayer = 0;
 	memset(&g_netSession, 0, sizeof g_netSession);
 	for (int i = 0; i < 8; ++i)
@@ -44,10 +44,10 @@ static void World(int host, int cookie) {
 	memset(&g_flightMissionState, 0, sizeof g_flightMissionState);
 	g_flightNetPendingAckCount = 0;
 	g_flightNetClockAdjustAccumTicks = 0;
-	g_flightNetNextWorldMessageTimestamp = 0;
+	g_flightNetWorldMessageTurnTimestamp = 0;
 	g_flightNetClockLeadTicks = 0;
 	g_flightNetLastSentWorldMessageTimestamp = 0;
-	g_flightNetWorldChecksumResetAccumTicks = 0;
+	g_flightNetChecksumRequestAccumTicks = 0;
 	XvtResync_Reset();
 	XvtFlightNetwork_Reset();
 	XvtFlightNetwork_ClearCookies();
@@ -86,7 +86,7 @@ static void CheckNothingWithoutCookie(void) {
 
 static void CheckNothingWithoutLocalPlayer(void) {
 	World(0, 1);
-	g_players[0].connectedFlag = 0;
+	g_players[0].participationState = 0;
 	XvtFlightNetwork_ProcessPackets();
 	XVT_ASSERT_INT_EQ(g_inputTimestamp, INPUT);
 	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), WAITING_TICKS);

@@ -229,13 +229,13 @@ size_t ModelTexture_LoadRgbOrTexFile(uint8_t* dst, const char* fileName) {
 		extension[0] = 't';
 		extension[1] = 'e';
 		extension[2] = 'x';
-		File_OpenGlobalStream(path, g_fileModeReadBinary, 0, 0);
+		FeDiskIo_OpenGlobalStream(path, g_fileModeReadBinary, 0, 0);
 		stream = (XvtFile*)g_stream;
 		extension[0] = 'r';
 		extension[1] = 'g';
 		extension[2] = 'b';
 		if (stream == NULL) {
-			File_OpenGlobalStream(path, g_fileModeReadBinary, 0, 0);
+			FeDiskIo_OpenGlobalStream(path, g_fileModeReadBinary, 0, 0);
 			stream = (XvtFile*)g_stream;
 			if (stream == NULL) {
 				uint8_t* whiteTexels = dst + 24;
@@ -377,7 +377,7 @@ size_t ModelTexture_LoadRgbOrTexFile(uint8_t* dst, const char* fileName) {
 			ModelTexture_BuildPalettedShadeTable(whiteTexels, g_defaultWhiteTextureRgb24, 8, 8);
 			return 12376;
 		}
-		File_OpenGlobalStream(path, g_fileModeReadBinary, 0, 0);
+		FeDiskIo_OpenGlobalStream(path, g_fileModeReadBinary, 0, 0);
 		stream = (XvtFile*)g_stream;
 		if (stream == NULL) {
 			uint8_t* whiteTexels = dst + 24;

@@ -35,7 +35,7 @@ struct FrontendNetSessionEntry {
 	unsigned int lastQueryMs;
 	unsigned int version;
 	uint8_t passwordRequired;
-	uint8_t queryState;
+	uint8_t gameInFlight;
 };
 
 extern int g_frontendNetSessionCount;
@@ -54,7 +54,7 @@ extern int g_frontendQuickStartLaunchFlag;
 extern int g_frontendNetProbeVersion;
 extern int g_frontendNetProbePlayersNeeded;
 extern int g_frontendNetProbePasswordRequired;
-extern int g_frontendNetProbeResponseType;
+extern int g_frontendNetProbeMissionElapsedSeconds;
 extern int g_frontendBriefingEnteredCount;
 extern char g_frontendChatInputBuffer[100];
 extern char* g_frontendChatLogBuffer;
@@ -63,12 +63,12 @@ extern int g_frontendChatTeamOnly;
 extern int g_frontendChatScrollOffset;
 extern char g_frontendNetSelectedGameName[32];
 
-int FrontendNet_DrawJoinGameList(int resetScroll);
+int FrontendNet_DrawJoinGameList(int frameCounter);
 int FrontendNet_JoinGameScreen(int frameCounter);
-int FrontendNet_AccessAllianceNetworkScreen(int frameCounter);
+int FrontendNet_AwaitJoinAdmissionScreen(int frameCounter);
 int FrontendNet_DrawJoinGameMissionBriefing(void);
 int FrontendNet_DrawJoinGamePlayerRoster(void);
-int FrontendNet_UpdateAndDrawPanel(int frameCounter);
+int FrontendNet_UpdateAndDrawChatPanel(int frameCounter);
 int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void);
 int FrontendNet_HostGameExit(int frameCounter);
 int FrontendNet_HostGameScreen(int frameCounter);

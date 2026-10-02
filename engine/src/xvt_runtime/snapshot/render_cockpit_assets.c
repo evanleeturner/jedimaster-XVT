@@ -99,7 +99,7 @@ void XvtRenderCockpit_CaptureDefinition(XvtCockpitDefinition* definition) {
 		definition->fonts[tier].line_height = (uint16_t)height;
 		definition->fonts[tier].half_height = (uint16_t)half_height;
 	}
-	memcpy(definition->beam_fades, g_hudBeamSegmentFadeByChargeStep, sizeof definition->beam_fades);
+	memcpy(definition->beam_fades, g_hudBeamSegmentColorByChargeStep, sizeof definition->beam_fades);
 	memcpy(definition->shield_colors, g_hudShieldColors, sizeof definition->shield_colors);
 	for (unsigned index = 0; index < 9; ++index) {
 		if (g_flightResolutionMode == FLIGHT_RESOLUTION_640X480) {
@@ -130,7 +130,7 @@ void XvtRenderAssets_CaptureCockpit(int auxiliary) {
 		for (unsigned i = 0; i < 28; ++i) {
 			const HudCockpitResourceDescriptor* d = &g_hudCockpitResourceDescriptors[i];
 			XvtSnapCockpitDescriptor* out = &g_layout.descriptors[i];
-			out->enabled = d->enabled;
+			out->enabled = d->resourceRef;
 			memcpy(out->lfd_name, d->lfdName, sizeof d->lfdName);
 			out->lfd_name[9] = 0;
 			memcpy(out->display_name, d->displayName, sizeof d->displayName);
@@ -144,11 +144,11 @@ void XvtRenderAssets_CaptureCockpit(int auxiliary) {
 		g_layout.sprite_count = g_hudPanelSpriteFileInfo.spriteCount;
 		g_layout.sprite_count_addend = g_hudPanelSpriteFileInfo.spriteCountAddend;
 		g_layout.mask_bytes[0] = g_layout.mask_bytes[1] = mask_size;
-		memcpy(g_layout.masks[0], g_hudViewportSpanMask0, mask_size);
-		memcpy(g_layout.masks[1], g_hudViewportSpanMask1, mask_size);
+		memcpy(g_layout.masks[0], g_hudCockpitInsetSpanMask, mask_size);
+		memcpy(g_layout.masks[1], g_hudOnlyViewInsetSpanMask, mask_size);
 	} else {
 		g_layout.mask_bytes[2] = mask_size;
-		memcpy(g_layout.masks[2], g_hudViewportSpanMask2, mask_size);
+		memcpy(g_layout.masks[2], g_hudCraftListInsetSpanMask, mask_size);
 	}
 	g_layout.valid = 1;
 	g_layout.generation = ++g_layoutGeneration;
@@ -160,7 +160,7 @@ void XvtRenderAssets_RegisterLfd(const char* path, uint8_t** entries) {
 			continue;
 		uint16_t handle = (uint16_t)g_hudCockpitResources[i].memoryHandle;
 		if (!handle)
-			handle = g_flightLog1BufferHandle;
+			handle = g_flightScratchScreenBufferHandle;
 		const HudCockpitResourceDescriptor* d = &g_hudCockpitResourceDescriptors[i];
 		XvtSnapRect viewport = { d->viewportOriginX, d->viewportOriginY, d->viewportWidth,
 								 d->viewportHeight };
@@ -209,7 +209,7 @@ void XvtRenderAssets_RegisterFlightFonts(void) {
 	XvtRenderAssets_RegisterImage(g_flightFontSmallSw, g_flightTinyFontHandle, "MICRO48.FNT",
 								  XVT_IMAGE_MICRO_FNT, 0, 224, 0, 4, 0);
 	if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240)
-		XvtRenderAssets_RegisterImage(g_flightFontMediumSw, g_flightSmallFontHandle, "MICRO64.FNT",
+		XvtRenderAssets_RegisterImage(g_flightFontMediumSw, g_flightMediumFontHandle, "MICRO64.FNT",
 									  XVT_IMAGE_MICRO_FNT, 0, 224, 0, 4, 0);
 }
 

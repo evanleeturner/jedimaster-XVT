@@ -49,7 +49,7 @@ static int OtherPlayerBox(const PlayerData* p, const ObjectRecord* o, unsigned s
 	}
 	return !(slot < (unsigned)g_activeRegionCraftObjectSlotEnd &&
 			 (c->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) && c->beamActive &&
-			 c->beamTypeId == BEAM_TYPE_DECOY && c->beamTimer);
+			 c->beamTypeId == BEAM_TYPE_DECOY && c->beamOutput);
 }
 
 static int Extent(const ObjectRecord* o) {

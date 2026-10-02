@@ -40,7 +40,7 @@ static __inline int pai_IsObjectTargetable(unsigned int objIdx) {
 			if (craft->beamTypeId == BEAM_TYPE_DECOY && craft->beamActive != 0) {
 				uint8_t sourceGenus;
 
-				pai_ObjectRefUpdateApproxRangeScore(objIdx, g_paiContext.objectIndex);
+				pai_ObjectRefUpdateRoughDistance(objIdx, g_paiContext.objectIndex);
 				sourceGenus = g_objectTable[g_paiContext.objectIndex].genusId;
 				if (sourceGenus == CRAFT_GENUS_STARFIGHTER || sourceGenus == CRAFT_GENUS_TRANSPORT ||
 					sourceGenus == CRAFT_GENUS_UTILITY_VEHICLE) {

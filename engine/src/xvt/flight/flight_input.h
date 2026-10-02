@@ -96,7 +96,7 @@ typedef enum FlightActionKey {
 	FLIGHT_KEY_ALT_M = 0x08C,
 	FLIGHT_KEY_ALT_N = 0x08D,
 	FLIGHT_KEY_ALT_P = 0x08F,
-	FLIGHT_KEY_ABORT_MISSION = 0x090,
+	FLIGHT_KEY_ALT_Q = 0x090,
 	FLIGHT_KEY_ALT_S = 0x092,
 	FLIGHT_KEY_ALT_U = 0x094,
 	FLIGHT_KEY_ALT_V = 0x095,
@@ -129,7 +129,7 @@ typedef enum FlightActionKey {
 	FLIGHT_KEY_PAD_STAR = 0x0BE,
 	FLIGHT_KEY_PAD_MINUS = 0x0BF,
 	FLIGHT_KEY_PAD_PLUS = 0x0C0,
-	FLIGHT_KEY_MATCH_SPEED = 0x0C1,
+	FLIGHT_KEY_PAD_ENTER = 0x0C1,
 	FLIGHT_KEY_PAD_DOT = 0x0C2,
 	FLIGHT_KEY_F1 = 0x0C3,
 	FLIGHT_KEY_F2 = 0x0C4,
@@ -190,7 +190,7 @@ struct FlightInputFrameRecord {
 
 struct InputFrame {
 	int applied;
-	int valid;
+	int unconfirmed;
 	int timestamp;
 	FlightInputFrameRecord input;
 };
@@ -206,7 +206,7 @@ extern int16_t g_ctrlAxisY;
 extern uint16_t g_actionKey;
 extern uint16_t g_currentActionKey;
 extern uint16_t g_flightKeyMods;
-extern uint16_t g_joystickEnabled;
+extern uint16_t g_flightMouseEnabled;
 extern uint16_t g_joystickAvailable;
 extern int16_t g_flightMouseDeltaX;
 extern int16_t g_flightMouseDeltaY;

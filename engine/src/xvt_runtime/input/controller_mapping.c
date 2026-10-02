@@ -60,7 +60,7 @@ static void XvtControllerMapping_DispatchAction(XvtInputAction action, bool pres
 	}
 	if ((unsigned)g_localPlayer >= 8)
 		return;
-	bool chat = g_players[g_localPlayer].msgTypeId != FLIGHT_CHAT_RECIPIENT_INACTIVE;
+	bool chat = g_players[g_localPlayer].chatRecipientMode != FLIGHT_CHAT_RECIPIENT_INACTIVE;
 	if ((action == XVT_INPUT_ACTION_CHAT_SEND || action == XVT_INPUT_ACTION_CHAT_CANCEL) && !chat)
 		return;
 	if (action == XVT_INPUT_ACTION_ESCAPE && !chat && !XvtDialog_IsActive()) {

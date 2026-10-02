@@ -379,9 +379,9 @@ int XvtFlightNetwork_WaitForMissionStart(void) {
 	int sender, size;
 	int* packet;
 	if (!g_sync.phase) {
-		FlightNet_InitMissionStartAckState();
+		FlightNet_ResetWorldMessageSchedule();
 		g_netUpdateIntervalTicks = XVT_WORLD_MESSAGE_TICKS;
-		g_flightNetWorldChecksumResetAccumTicks = 0;
+		g_flightNetChecksumRequestAccumTicks = 0;
 		memset(g_flightNetPeerSilenceTicks, 0, sizeof(g_flightNetPeerSilenceTicks));
 		g_flightNetResyncPlayerDplayId = 0;
 		g_flightNetPendingAckCount = g_flightNetClockAdjustAccumTicks = 0;
@@ -439,11 +439,11 @@ int XvtFlightNetwork_WaitForMissionStart(void) {
 			XvtFlightNetwork_SendPacket(NetSession_GetHostDplayId(), (unsigned*)&g_flightNetScratchPacket, 4);
 			Time_ConsumeElapsedTicks();
 			g_serverTickTime = g_gameTime = g_inputTimestamp = 0;
-			g_flightNetClockLeadTicks = g_asyncFlag ? 130 : 30;
+			g_flightNetClockLeadTicks = g_internetPlayEnabled ? 130 : 30;
 			if (!NetSession_IsLocalHost())
 				return XvtFlightNetwork_Finish(1);
 			g_flightNetPendingAckCount = g_sync.expected == 1 ? 1 : 2;
-			FlightNet_InitMissionStartAckState();
+			FlightNet_ResetWorldMessageSchedule();
 			g_sync.phase = SYNC_START_ACKS;
 		}
 	}
@@ -640,11 +640,11 @@ void XvtFlightNetwork_FlushInput(int now) {
 			XvtFlightMessages_EncodeBatch((uint8_t*)packet, XvtFlightNetwork_Cookie(), g_io.batch, count);
 		int host = NetSession_GetHostDplayId();
 		for (unsigned i = 0; i < XVT_FLIGHT_PLAYERS; ++i) {
-			if (i == (unsigned)g_localPlayer || !g_players[i].connectedFlag)
+			if (i == (unsigned)g_localPlayer || !g_players[i].participationState)
 				continue;
 			int dpid = g_players[i].network.directPlayId;
 			int send =
-				!g_asyncFlag
+				!g_internetPlayEnabled
 					? g_playerConnected[i]
 					: dpid == host || (g_flightNetSmallSessionPlayerThreshold > g_activeFlightPlayerCount &&
 									   g_playerConnected[i]);
@@ -721,7 +721,7 @@ void XvtFlightNetwork_SendWorld(void) {
 	}
 	message->target_flags = (unsigned)tick;
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
-		if (!g_players[player].connectedFlag || g_playerAbortFlags[player] ||
+		if (!g_players[player].participationState || g_playerAbortFlags[player] ||
 			(g_io.departures & (1u << player)))
 			continue;
 		message->mask |= 1u << player;
@@ -736,9 +736,9 @@ void XvtFlightNetwork_SendWorld(void) {
 	}
 	if (!message->mask)
 		return;
-	g_flightNetWorldChecksumResetAccumTicks += XVT_WORLD_MESSAGE_TICKS;
-	if (g_flightNetWorldChecksumResetAccumTicks > XVT_WORLD_CHECKSUM_TICKS) {
-		g_flightNetWorldChecksumResetAccumTicks = 0;
+	g_flightNetChecksumRequestAccumTicks += XVT_WORLD_MESSAGE_TICKS;
+	if (g_flightNetChecksumRequestAccumTicks > XVT_WORLD_CHECKSUM_TICKS) {
+		g_flightNetChecksumRequestAccumTicks = 0;
 		message->target_flags |= XVT_WORLD_CHECKSUM_FLAG;
 		memset(g_flightNetWorldChecksumPeerStatus, 0, sizeof g_flightNetWorldChecksumPeerStatus);
 	}
@@ -791,7 +791,7 @@ int XvtFlightNetwork_Receive(int sender, const uint8_t* bytes, size_t size) {
 	if (opcode == NET_PACKET_INPUT_BATCH) {
 		int player = NetSession_FindPlayerSlotByDpid(sender);
 		if ((unsigned)player >= XVT_FLIGHT_PLAYERS || player == g_localPlayer ||
-			!g_players[player].connectedFlag ||
+			!g_players[player].participationState ||
 			!XvtFlightMessages_ValidateBatch(bytes, size, XvtFlightNetwork_Cookie())) {
 			XVT_LOG_DEBUG("network.batch_dropped slot=%d reason=\"invalid\"", player);
 			return 1;
@@ -878,19 +878,19 @@ int XvtFlightNetwork_TakeWorldSendTurn(int inputTimestamp) {
 	if (g_flightNetPendingAckCount)
 		return 0;
 	int adjusted = inputTimestamp + g_flightNetClockAdjustAccumTicks;
-	if (!g_flightNetNextWorldMessageTimestamp)
-		g_flightNetNextWorldMessageTimestamp =
+	if (!g_flightNetWorldMessageTurnTimestamp)
+		g_flightNetWorldMessageTurnTimestamp =
 			adjusted + (g_flightNetClockLeadTicks >> XVT_WORLD_START_LEAD_SHIFT);
-	int elapsed = adjusted - g_flightNetNextWorldMessageTimestamp;
+	int elapsed = adjusted - g_flightNetWorldMessageTurnTimestamp;
 	if (elapsed < interval)
 		return 0;
 	if (elapsed > XVT_WORLD_LATE_INTERVALS * interval) {
-		g_flightNetNextWorldMessageTimestamp += interval;
+		g_flightNetWorldMessageTurnTimestamp += interval;
 		return 1;
 	}
 	int oldest = INT32_MAX;
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
-		if (!g_players[player].connectedFlag)
+		if (!g_players[player].participationState)
 			continue;
 		const InputFrame* input = FlightSync_FindLastAppliedInputFrame(player);
 		if (!input) {
@@ -902,7 +902,7 @@ int XvtFlightNetwork_TakeWorldSendTurn(int inputTimestamp) {
 	}
 	if (g_flightNetLastSentWorldMessageTimestamp + interval >= oldest)
 		return 0;
-	g_flightNetNextWorldMessageTimestamp += interval;
+	g_flightNetWorldMessageTurnTimestamp += interval;
 	return 1;
 }
 

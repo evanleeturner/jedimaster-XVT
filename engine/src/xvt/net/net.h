@@ -185,16 +185,16 @@ void Net_PumpIncomingPackets(void);
 int Net_SendPacketAndFlush(int toPlayerId, const void* packet, unsigned int packetSize);
 int Net_SendPacketInternal(int toPlayerId, const void* packet, unsigned int packetSize);
 int Net_SendDirectPlayPacket(int destPlayerId, const void* packet, int packetSize, int unusedSendMode);
-int Net_SendSequencedDirectPlayPacket(int destPlayerId, int sequenceMode, int sequenceId, const void* packet,
+int Net_SendSequencedDirectPlayPacket(int destPlayerId, int packetClass, int sequenceId, const void* packet,
 									  unsigned int packetSize);
 NetPlayerInfo* Net_GetPlayerRoster(int* outCount);
 int Net_GetPlayerCount(void);
 int Net_DidReadyPlayerLeaveThisFrame(void);
 int Net_IsHost(void);
 int Net_PollForPacketTypeOrBacklog(int packetType);
-int Net_PollForJoinRequestOrBacklog(void);
+int Net_PollForPlayerCreatedOrBacklog(void);
 int* Net_GetNextAppPacket(DPID* outSenderId, uint32_t* outPacketSize);
-void Net_HandleFrontendRosterPacket(int packetType, const void* packetData);
+void Net_HandleDirectPlaySystemMessage(int packetType, const void* packetData);
 void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize);
 int* Net_WaitForAppPacket(DPID* outSenderId, uint32_t* outPacketSize, int timeoutSeconds);
 int Net_CountPlayersWithLowerId(DPID playerId);
@@ -209,28 +209,29 @@ void Net_ClearPlayerReadyFlagWithLockGuard(int playerId);
 int Net_CountReadyPlayers(void);
 void Net_ClearPlayerReadyFlags(void);
 int NetSession_ImportRuntimeState(void** dplayInterfaceOut, GUID* appGuidOut, GUID* sessionGuidOut,
-								  int32_t* groupIdOut, int* hostPlayerIdOut, NetPlayerInfo* sessionNameOut,
-								  NetQueuedPacket* directPlaySlotsOut, int32_t* recvQueueReadOut,
-								  int* recvQueueCountOut, int* recvQueueWriteOut,
-								  NetReliablePeerSlot* reliablePeerSlotsOut, uint32_t* netSlotCountOut,
-								  uint32_t* smallStateOut, char* broadcastPayloadOut, int* stateDwordAOut,
-								  int* stateDwordBOut, uint32_t* stateDwordCOut, char* groupPayloadOut,
-								  int* stateDwordDOut, int* stateDwordEOut, NetQueuedPacket* recvHistoryOut,
-								  int* recvHistoryCountOut);
-int NetSession_ExportRuntimeState(void** dplayInterface, const void* appGuid, const void* sessionGuid,
-								  int* groupId, int* hostPlayerId, const void* localPlayerInfo,
-								  const NetQueuedPacket* directPlaySlots, int* recvQueueRead,
-								  int* recvQueueCount, int* recvQueueWrite,
-								  const NetReliablePeerSlot* reliablePeerSlots, int* netSlotCount,
-								  int* smallState, const void* broadcastPayload, int* stateDwordA,
-								  int* stateDwordB, int* stateDwordC, const void* groupPayload,
-								  int* stateDwordD, int* stateDwordE, const NetQueuedPacket* recvHistory,
-								  int* recvHistoryCount, NetQueuedPacket* recvQueue, int* recvQueueHighWater);
+								  int32_t* groupIdOut, int* hostPlayerIdOut,
+								  NetPlayerInfo* localPlayerInfoOut, NetQueuedPacket* recvQueueOut,
+								  int32_t* recvQueueReadOut, int* recvQueueCountOut, int* recvQueueWriteOut,
+								  NetReliablePeerSlot* reliablePeerSlotsOut,
+								  uint32_t* reliablePeerSlotCountOut, uint32_t* broadcastSeqCounterOut,
+								  char* broadcastPayloadOut, int* broadcastPayloadLengthOut,
+								  int* broadcastPendingFlushOut, uint32_t* groupSeqCounterOut,
+								  char* groupPayloadOut, int* groupPayloadLengthOut,
+								  int* groupPendingFlushOut, NetQueuedPacket* sentHistoryOut,
+								  int* sentHistoryWriteIndexOut);
+int NetSession_ExportRuntimeState(
+	void** dplayInterface, const void* appGuid, const void* sessionGuid, int* groupId, int* hostPlayerId,
+	const void* localPlayerInfo, const NetQueuedPacket* recvQueueEntries, int* recvQueueRead,
+	int* recvQueueCount, int* recvQueueWrite, const NetReliablePeerSlot* reliablePeerSlots,
+	int* reliablePeerSlotCount, int* broadcastSeqCounter, const void* broadcastPayload,
+	int* broadcastPayloadLength, int* broadcastPendingFlush, int* groupSeqCounter, const void* groupPayload,
+	int* groupPayloadLength, int* groupPendingFlush, const NetQueuedPacket* sentHistory,
+	int* sentHistoryWriteIndex, NetQueuedPacket* sentWorldMessageHistory, int* sentWorldMessageWriteIndex);
 int Net_CompactReliablePeerSlotsForRoster(void);
 int Net_SendSequenceKeepalives(void);
 int Net_CheckAndRecordIncomingSequence(int playerId, int sequenceId, int useChannel0, int useChannel2);
 int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId, int useChannel0, int useChannel2,
-								  int sequenceEntryIndex);
+								  int peerSlotIndex);
 int Net_RemoveIncomingPacketAtIndex(unsigned int queueIndex);
 unsigned int Net_GetAverageLatencyMs(int playerId);
 int Net_SetPlayerLatencyMs(int playerId, int latencyMs);
@@ -238,7 +239,7 @@ int Net_SetPlayerNameWithLockGuard(unsigned int playerId, const char* longName, 
 int Net_RefreshPlayerRosterWithLockGuard(void);
 unsigned int Net_FindOrCreatePeerSlot(int directPlayId);
 int Net_GetPacketDropRateBasisPoints(int playerId);
-int Net_UpdateKeepaliveSequences(void);
+int Net_DropSilentPeers(void);
 int Net_GetPlayerPacketCount(int playerId);
 int Net_GetPlayerPacketDropCount(int playerId);
 int Net_GetPlayerPacketRetryCount(int playerId);

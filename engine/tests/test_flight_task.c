@@ -94,7 +94,7 @@ static void CheckBegin(void) {
 static void CheckBeginResetsSimulation(void) {
 	/* Begin resets the flight simulation, which forgets the prediction fallback (flight_sim.h). */
 	World();
-	g_players[1].connectedFlag = 1;
+	g_players[1].participationState = 1;
 	FlightInputFrameRecord input;
 	memset(&input, 0, sizeof input);
 	input.axisX = 20;

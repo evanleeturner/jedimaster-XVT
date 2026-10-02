@@ -68,7 +68,7 @@ int g_frontendNetProbePlayersNeeded = 0;
 // GLOBAL: XVT 0xAA6A74
 int g_frontendNetProbePasswordRequired = 0;
 // GLOBAL: XVT 0xAA6CF0
-int g_frontendNetProbeResponseType = 0;
+int g_frontendNetProbeMissionElapsedSeconds = 0;
 // GLOBAL: XVT 0xA91C90
 int g_frontendBriefingEnteredCount = 0;
 // GLOBAL: XVT 0xAA6A80
@@ -88,9 +88,9 @@ char g_frontendNetSelectedGameName[32] = {
 };
 
 // FUNCTION: XVT 0x4D7020
-int FrontendNet_DrawJoinGameList(int resetScroll) {
+int FrontendNet_DrawJoinGameList(int frameCounter) {
 #ifdef XVT_MODERN
-	(void)resetScroll;
+	(void)frameCounter;
 	return XvtNetworkBrowser_DrawList();
 #else
 	RECT rect;
@@ -101,7 +101,7 @@ int FrontendNet_DrawJoinGameList(int resetScroll) {
 	int clickedIndex;
 	int rowIndex;
 
-	if (resetScroll == 0)
+	if (frameCounter == 0)
 		g_frontendNetSessionListScrollOffset = 0;
 	nowMs = GetTickCount();
 	FrontendDraw_RectAssign(&rect, 88, 94, 416, 109);
@@ -125,7 +125,7 @@ int FrontendNet_DrawJoinGameList(int resetScroll) {
 		if (g_frontendNetSessionList[rowIndex].version != 101u) {
 			textColor = g_colorGray;
 		} else if (g_frontendNetSessionList[rowIndex].playersNeeded == 0) {
-			textColor = g_frontendNetSessionList[rowIndex].queryState != 0 ? g_colorRed : g_colorYellow;
+			textColor = g_frontendNetSessionList[rowIndex].gameInFlight != 0 ? g_colorRed : g_colorYellow;
 		} else {
 			textColor = 0xFFFF;
 			if (g_frontendNetSessionList[rowIndex].playersNeeded <= 8)
@@ -320,14 +320,14 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 					   packetType == NET_PACKET_REPLAY_CURRENT_MISSION) {
 				Net_ShutdownDirectPlaySession();
 				FrontendNet_RefreshSessionList();
-				g_frontendNetProbeResponseType = 0;
+				g_frontendNetProbeMissionElapsedSeconds = 0;
 				g_frontendNetSelectedSessionIdx = -1;
 				g_frontendNetReceivedMissionDescriptionId = -1;
 				memset(g_frontendNetSelectedGameName, 0, sizeof(g_frontendNetSelectedGameName));
 				memset(g_briefingText, 0, BRIEFING_TEXT_CAPACITY);
 			} else if (packetType == NET_PACKET_PLAYER_UNAVAILABLE) {
 				Net_ShutdownDirectPlaySession();
-				g_frontendNetProbeResponseType = 0;
+				g_frontendNetProbeMissionElapsedSeconds = 0;
 				g_frontendNetSelectedSessionIdx = -1;
 				g_frontendNetReceivedMissionDescriptionId = -1;
 				FrontendNet_RefreshSessionList();
@@ -364,7 +364,7 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 							FrontendString_Get(FRONTSTR_554_SPACE_TRANSLATION_PLACEHOLDER), NULL, NULL);
 						break;
 				}
-				g_frontendNetProbeResponseType = 0;
+				g_frontendNetProbeMissionElapsedSeconds = 0;
 				g_frontendNetSelectedSessionIdx = -1;
 				g_frontendNetReceivedMissionDescriptionId = -1;
 				FrontendNet_RefreshSessionList();
@@ -378,7 +378,7 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 			if (g_frontendNetSelectedSessionIdx == clickedSessionIndex) {
 				g_frontendNetSelectedSessionIdx = -1;
 				g_frontendNetReceivedMissionDescriptionId = -1;
-				g_frontendNetProbeResponseType = 0;
+				g_frontendNetProbeMissionElapsedSeconds = 0;
 				memset(g_frontendNetSelectedGameName, 0, sizeof(g_frontendNetSelectedGameName));
 				memset(g_briefingText, 0, BRIEFING_TEXT_CAPACITY);
 				Net_ShutdownDirectPlaySession();
@@ -386,7 +386,7 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 				g_frontendNetSelectedSessionIdx = clickedSessionIndex;
 				if (FrontendNet_ProbeSessionByIndex(clickedSessionIndex) == 0) {
 					Net_ShutdownDirectPlaySession();
-					g_frontendNetProbeResponseType = 0;
+					g_frontendNetProbeMissionElapsedSeconds = 0;
 					g_frontendNetSelectedSessionIdx = -1;
 					g_frontendNetReceivedMissionDescriptionId = -1;
 					FrontendNet_RefreshSessionList();
@@ -404,7 +404,7 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 		FrontendNet_DrawJoinGamePlayerRoster();
 		FrontendNet_DrawJoinGameMissionBriefing();
 		if (g_frontendNetSelectedSessionIdx != -1) {
-			FrontendNet_UpdateAndDrawPanel(frameCounter);
+			FrontendNet_UpdateAndDrawChatPanel(frameCounter);
 		}
 		FrontendDraw_RectAssign(&rect, 507, 452, 562, 464);
 		sprintf(g_frontendScratchBuffer, "v. %d.%d", 2, 0);
@@ -453,7 +453,7 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 				memcpy(&g_frontendNetPacketScratch.payload[4], g_gameConfig.password,
 					   sizeof(g_gameConfig.password));
 				Net_SendPacketAndFlush(hostPlayerId, &g_frontendNetPacketScratch, JOIN_REQUEST_PACKET_SIZE);
-				FrontendScreen_SetCallbacks(FrontendNet_AccessAllianceNetworkScreen, NULL);
+				FrontendScreen_SetCallbacks(FrontendNet_AwaitJoinAdmissionScreen, NULL);
 			}
 		}
 		FrontendButton_DisableOverlayText();
@@ -465,7 +465,7 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 }
 
 // FUNCTION: XVT 0x4D7E70
-int FrontendNet_AccessAllianceNetworkScreen(int frameCounter) {
+int FrontendNet_AwaitJoinAdmissionScreen(int frameCounter) {
 	enum {
 		ACCESS_TIMEOUT_FRAME = 480,
 		PILOT_BANNER_ANIMATION_FRAMES = 32,
@@ -692,7 +692,7 @@ int FrontendNet_DrawJoinGamePlayerRoster(void) {
 }
 
 // FUNCTION: XVT 0x4D8690
-int FrontendNet_UpdateAndDrawPanel(int frameCounter) {
+int FrontendNet_UpdateAndDrawChatPanel(int frameCounter) {
 	RECT rect;
 	int cursorX;
 	int cursorY;
@@ -984,7 +984,7 @@ int FrontendNet_ConnectToSelectedGameScreen(int frameCounter) {
 			memcpy(g_frontendNetPacketScratch.payload + sizeof(int), g_gameConfig.password,
 				   sizeof(g_gameConfig.password));
 			Net_SendPacketAndFlush(hostPlayerId, &g_frontendNetPacketScratch, JOIN_REQUEST_PACKET_SIZE);
-			FrontendScreen_SetCallbacks(FrontendNet_AccessAllianceNetworkScreen, NULL);
+			FrontendScreen_SetCallbacks(FrontendNet_AwaitJoinAdmissionScreen, NULL);
 		} else {
 			g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
 			FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
@@ -1103,9 +1103,9 @@ int FrontendNet_RefreshSessionList(void) {
 				FrontendNet_MakeSessionGuidKey(g_frontendNetSessionList[existingIndex].sessionGuid);
 			if (existingGuidKey != 0) {
 				for (enumeratedIndex = 0; enumeratedIndex < enumeratedSessionCount; ++enumeratedIndex) {
-					int enumeratedGuidKey =
+					int replacementGuidKey =
 						FrontendNet_MakeSessionGuidKey(enumeratedSessions[enumeratedIndex].sessionGuid);
-					if (enumeratedGuidKey != 0 && enumeratedGuidKey == existingGuidKey) {
+					if (replacementGuidKey != 0 && replacementGuidKey == existingGuidKey) {
 						memset(&enumeratedSessions[enumeratedIndex].sessionGuid, 0,
 							   sizeof(enumeratedSessions[enumeratedIndex].sessionGuid));
 						break;
@@ -1120,9 +1120,9 @@ int FrontendNet_RefreshSessionList(void) {
 	}
 
 	for (enumeratedIndex = 0; enumeratedIndex < enumeratedSessionCount; ++enumeratedIndex) {
-		int enumeratedGuidKey =
+		int replacementGuidKey =
 			FrontendNet_MakeSessionGuidKey(enumeratedSessions[enumeratedIndex].sessionGuid);
-		if (enumeratedGuidKey != 0) {
+		if (replacementGuidKey != 0) {
 			existingIndex = (unsigned int)g_frontendNetSessionCount;
 			strcpy(g_frontendNetSessionList[existingIndex].gameName,
 				   enumeratedSessions[enumeratedIndex].sessionName);
@@ -1154,8 +1154,9 @@ int FrontendNet_RefreshSessionList(void) {
 
 				for (replacementIndex = existingIndex + 1;
 					 (unsigned int)replacementIndex < (unsigned int)g_frontendNetSessionCount; ++replacementIndex) {
-					int enumeratedGuidKey = FrontendNet_MakeSessionGuidKey(g_frontendNetSessionList[replacementIndex].sessionGuid);
-					if (enumeratedGuidKey != 0) {
+					int replacementGuidKey = FrontendNet_MakeSessionGuidKey(
+						g_frontendNetSessionList[replacementIndex].sessionGuid);
+					if (replacementGuidKey != 0) {
 						memcpy(&g_frontendNetSessionList[existingIndex],
 							   &g_frontendNetSessionList[replacementIndex],
 							   sizeof(g_frontendNetSessionList[existingIndex]));
@@ -1191,7 +1192,7 @@ int FrontendNet_CompareSessionListEntries(const FrontendNetSessionEntry* lhs,
 
 	result = (rhs->version == 101u) - (lhs->version == 101u);
 	if (result == 0) {
-		result = (rhs->queryState == 0) - (lhs->queryState == 0);
+		result = (rhs->gameInFlight == 0) - (lhs->gameInFlight == 0);
 		if (result == 0) {
 			rhsPlayersNeeded = (unsigned int)rhs->playersNeeded;
 			lhsPlayersNeeded = (unsigned int)lhs->playersNeeded;
@@ -1254,7 +1255,7 @@ int FrontendNet_ProbeAllSessions(void) {
 	int sessionIndex;
 
 	g_frontendNetSelectedSessionIdx = -1;
-	g_frontendNetProbeResponseType = 0;
+	g_frontendNetProbeMissionElapsedSeconds = 0;
 	g_frontendNetReceivedMissionDescriptionId = -1;
 	memset(g_frontendNetSelectedGameName, 0, sizeof(g_frontendNetSelectedGameName));
 	memset(g_briefingText, 0, BRIEFING_TEXT_CAPACITY);
@@ -1313,7 +1314,7 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 		if (g_frontendNetSelectedSessionIdx != -1) {
 			g_frontendNetSelectedSessionIdx = -1;
 			g_frontendNetReceivedMissionDescriptionId = -1;
-			g_frontendNetProbeResponseType = 0;
+			g_frontendNetProbeMissionElapsedSeconds = 0;
 			memset(g_frontendNetSelectedGameName, 0, sizeof(g_frontendNetSelectedGameName));
 			memset(g_briefingText, 0, BRIEFING_TEXT_CAPACITY);
 			FrontendNet_RefreshSessionList();
@@ -1322,7 +1323,7 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 		g_frontendNetSessionList[sessionIdx].lastQueryMs = GetTickCount();
 		g_frontendNetSessionList[sessionIdx].version = 0;
 		g_frontendNetSessionList[sessionIdx].passwordRequired = 0;
-		g_frontendNetSessionList[sessionIdx].queryState = 0;
+		g_frontendNetSessionList[sessionIdx].gameInFlight = 0;
 		return 0;
 	}
 
@@ -1339,7 +1340,7 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 	}
 
 	g_frontendNetProbePlayersNeeded = 0;
-	g_frontendNetProbeResponseType = 0;
+	g_frontendNetProbeMissionElapsedSeconds = 0;
 	probeStartMs = GetTickCount();
 	do {
 		packetType = FrontendNet_ProcessNetworkPackets();
@@ -1372,19 +1373,19 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx) {
 		g_frontendNetSessionList[sessionIdx].playersNeeded = g_frontendNetProbePlayersNeeded;
 		g_frontendNetSessionList[sessionIdx].version = g_frontendNetProbeVersion;
 		g_frontendNetSessionList[sessionIdx].passwordRequired = (uint8_t)g_frontendNetProbePasswordRequired;
-		g_frontendNetSessionList[sessionIdx].queryState = 1;
+		g_frontendNetSessionList[sessionIdx].gameInFlight = 1;
 	} else if (packetType == NET_PACKET_PROBE_RESPONSE) {
 		g_frontendNetSessionList[sessionIdx].lastQueryMs = GetTickCount();
 		g_frontendNetSessionList[sessionIdx].playersNeeded = g_frontendNetProbePlayersNeeded;
 		g_frontendNetSessionList[sessionIdx].version = g_frontendNetProbeVersion;
 		g_frontendNetSessionList[sessionIdx].passwordRequired = (uint8_t)g_frontendNetProbePasswordRequired;
-		g_frontendNetSessionList[sessionIdx].queryState = 0;
+		g_frontendNetSessionList[sessionIdx].gameInFlight = 0;
 	} else {
 		g_frontendNetSessionList[sessionIdx].lastQueryMs = GetTickCount();
 		g_frontendNetSessionList[sessionIdx].playersNeeded = 0;
 		g_frontendNetSessionList[sessionIdx].version = 0;
 		g_frontendNetSessionList[sessionIdx].passwordRequired = 0;
-		g_frontendNetSessionList[sessionIdx].queryState = 0;
+		g_frontendNetSessionList[sessionIdx].gameInFlight = 0;
 	}
 	return 1;
 }
@@ -1660,7 +1661,7 @@ int FrontendNet_ProcessNetworkPackets(void) {
 	switch (packetType) {
 		case NET_PACKET_FRONTEND_GAME_STARTED:
 		case NET_PACKET_PROBE_RESPONSE:
-			g_frontendNetProbeResponseType = payload[0];
+			g_frontendNetProbeMissionElapsedSeconds = payload[0];
 			g_frontendNetProbeVersion = payload[1];
 			g_frontendNetProbePasswordRequired = payload[2];
 			break;

@@ -11,7 +11,7 @@ extern "C" {
 
 extern void* g_swFramebufferBase;
 extern int g_flightPageFlip;
-extern int g_flightLockBackBufferForHudDraw;
+extern int g_flightDrawToHudLayer;
 extern IDirectDrawSurface* g_flightOffscreenSurface;
 extern uint8_t g_flightDisplaySurfacesActive;
 extern int32_t g_flightNetClockLeadTicks;

@@ -13,9 +13,9 @@
 
 typedef struct XvtSnapshotMobileObjectProximityList {
 	uint8_t count;
-	int32_t score[16];
+	int32_t contactTicks[16];
 	uint16_t objIdx[16];
-	int32_t overflowScore;
+	int32_t rebuildTicks;
 } XvtSnapshotMobileObjectProximityList;
 
 typedef struct XvtSnapshotAiController {
@@ -56,11 +56,11 @@ typedef struct XvtSnapshotAiFlightState {
 	uint8_t departClockHours;
 	uint8_t departClockMinutes;
 	uint8_t departClockSeconds;
-	uint8_t maneuverCounter;
-	uint8_t reactionTimer;
+	uint8_t warheadsFiredThisManeuver;
+	uint8_t hitsThisManeuver;
 	uint8_t boardedAccountingDone;
-	uint8_t orderActionCounter;
-	uint8_t orderActionFlag;
+	uint8_t timesBoarded;
+	uint8_t dockingAccountingDone;
 	uint8_t objSignatureCount;
 	uint16_t objSignatures[10];
 	int16_t maxSpeedCache;
@@ -99,9 +99,9 @@ typedef struct XvtSnapshotCraftDamageStats {
 } XvtSnapshotCraftDamageStats;
 
 typedef struct XvtSnapshotPlayerViewState {
-	int32_t savedTargetX;
-	int32_t savedTargetY;
-	int32_t savedTargetZ;
+	int32_t cameraWorldX;
+	int32_t cameraWorldY;
+	int32_t cameraWorldZ;
 	uint16_t cameraFocusObjIdx;
 	uint16_t aimTargetIdx;
 	int16_t viewPitch;
@@ -152,7 +152,7 @@ typedef struct XvtSnapshotObjectRecord {
 
 typedef struct XvtSnapshotMobileObject {
 	uint8_t family;
-	uint8_t lightIntensityScale;
+	uint8_t effectSize;
 	int32_t simStateTimestamp;
 	int32_t prevWorldX;
 	int32_t prevWorldY;
@@ -214,7 +214,7 @@ typedef struct XvtSnapshotCraftData {
 	int32_t pushAccumY;
 	int32_t pushAccumZ;
 	uint16_t throttleSpeed;
-	uint16_t engineOutputScale;
+	uint16_t engineOverdriveOff;
 	int16_t commandedSpeed;
 	uint32_t hullDamage;
 	uint32_t systemDamageHullThreshold;
@@ -234,7 +234,7 @@ typedef struct XvtSnapshotCraftData {
 	int32_t shieldEnergy[2];
 	PowerRechargeLevel shieldRechargeLevel;
 	ShieldDistributionMode shieldDistribMode;
-	uint8_t cannonClassCount;
+	uint8_t cannonGroupCount;
 	PowerRechargeLevel laserRechargeLevel;
 	uint8_t laserSlotCount;
 	CraftLaserState laserState;
@@ -244,21 +244,21 @@ typedef struct XvtSnapshotCraftData {
 	int16_t warheadLauncherCooldownTicks[2];
 	int16_t warheadLockTicks;
 	BeamType beamTypeId;
-	PowerRechargeLevel beamLevel;
-	uint16_t beamPresent;
+	PowerRechargeLevel beamRechargeLevel;
+	uint16_t beamCharge;
 	uint8_t beamActive;
-	int16_t beamTimer;
+	int16_t beamOutput;
 	int16_t beamTargetObjIdx;
 	CountermeasureType cmTypeId;
 	uint8_t cmAmmoCount;
-	uint16_t chaffActiveTimer;
+	uint16_t chaffActiveSeconds;
 	uint16_t cmFireCooldownTimer;
 	CraftWeaponStats weaponStats;
 	uint8_t field_256[73];
 	uint16_t field_29F;
 	uint8_t systemDisplaySlotBySystem[DAMAGE_SYSTEM_ID_COUNT];
 	uint16_t systemHealth[DAMAGE_SYSTEM_ID_COUNT];
-	uint16_t systemTimer[DAMAGE_SYSTEM_ID_COUNT];
+	uint16_t systemRepairSeconds[DAMAGE_SYSTEM_ID_COUNT];
 	uint8_t componentState[50];
 	uint8_t meshRotation[50];
 	uint8_t componentHp[50];
@@ -285,7 +285,7 @@ typedef struct XvtSnapshotPlayerData {
 	int16_t iff;
 	int16_t team;
 	uint16_t boundFlightGroupIdx;
-	uint8_t connectedFlag;
+	uint8_t participationState;
 	uint8_t awaitingNewCraft;
 	uint8_t boundCraftEngineGlowCount;
 	uint8_t mapCameraState;
@@ -296,7 +296,7 @@ typedef struct XvtSnapshotPlayerData {
 	int16_t targetCycleStart;
 	int16_t targetPresetSlot[4];
 	uint8_t missileLockState;
-	uint8_t selectedWarhead;
+	uint8_t selectedWeaponBank;
 	uint8_t selectedWeaponMode;
 	int16_t selectedTargetComponent;
 	int16_t targetingState;
@@ -319,15 +319,15 @@ typedef struct XvtSnapshotPlayerData {
 	int32_t hardpointWorldX;
 	int32_t hardpointWorldY;
 	int32_t hardpointWorldZ;
-	int32_t hardpointLocalX;
-	int32_t hardpointLocalY;
-	int32_t hardpointLocalZ;
+	int32_t prevHardpointWorldX;
+	int32_t prevHardpointWorldY;
+	int32_t prevHardpointWorldZ;
 	PlayerMissionRuntimeStats missionStats;
 	uint16_t warheadsFired;
 	PerMissionKills perMissionKills;
 	char msgText[50];
 	uint8_t msgLength;
-	FlightChatRecipientMode msgTypeId;
+	FlightChatRecipientMode chatRecipientMode;
 	XvtSnapshotPlayerViewState viewState;
 	XvtSnapshotPlayerNetworkRuntimeTail network;
 	int32_t lockstepTimestamp;
@@ -342,11 +342,11 @@ typedef struct XvtSnapshotPlayerData {
 	int16_t savedSpeedRemainder;
 	int16_t savedRollImpulseRate;
 	uint16_t savedObjectSignature;
-	uint8_t savedRegion;
+	uint8_t savedAwaitingNewCraft;
 	int32_t pendingActionTimer;
 	int32_t beamFireCooldownTimer;
 	int32_t field_5B5;
-	int32_t impactDamageCooldownTime;
+	int32_t nextEngineWashCheckTime;
 } XvtSnapshotPlayerData;
 
 typedef struct XvtSnapshotMissionFlightRuntimeState {
@@ -362,7 +362,7 @@ typedef struct XvtSnapshotMissionFlightRuntimeState {
 	uint16_t globalGoalTriggerCounts[2][10][3][4];
 	int32_t teamMissionCompletionTimeSeconds[10];
 	uint8_t teamHasCountableCraft[10];
-	uint8_t teamActiveGoalSequence[10];
+	uint8_t teamReinforcementsCalled[10];
 } XvtSnapshotMissionFlightRuntimeState;
 
 typedef struct XvtSnapshotFlightMissionState {
@@ -381,7 +381,7 @@ typedef struct XvtSnapshotFlightMissionState {
 	uint8_t collisionsEnabled;
 	uint8_t craftJumpingEnabled;
 	uint8_t randomVariationEnabled;
-	uint8_t reserved18;
+	uint8_t battleLengthIndex;
 	uint8_t locatePlayersEnabled;
 	uint8_t aiOpponentsEnabled;
 	uint8_t playerFlightGroupWaveMode;

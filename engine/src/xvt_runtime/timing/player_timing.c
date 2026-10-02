@@ -74,7 +74,7 @@ void XvtPlayerTiming_BeginControls(unsigned player) {
 	const MobileObject* mobile = p->objectIndex >= 0 ? g_objectTable[p->objectIndex].mobj : NULL;
 	const CraftData* craft = mobile ? mobile->pCraft : NULL;
 	unsigned disabled = craft && (!(craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS) ||
-								  (craft->beamEffectAccum[1] && !craft->chaffActiveTimer));
+								  (craft->beamEffectAccum[1] && !craft->chaffActiveSeconds));
 	unsigned mode =
 		((g_flightKeyMods & XVT_ROLL_MODIFIER_MASK) == XVT_ROLL_MODIFIER ? XVT_CONTROL_ROLL : 0) |
 		(disabled ? XVT_CONTROL_DISABLED : 0) | (p->viewState.playerInputBlocked ? XVT_CONTROL_BLOCKED : 0) |
@@ -153,7 +153,8 @@ unsigned XvtPlayerTiming_LockHalf(unsigned player, unsigned mode) {
 	uint16_t signature = slot >= 0 ? g_objectTable[slot].objectSignature : 0;
 	if (s->lock_serial + 1 != XvtFlightTiming_AdvanceSerial() || s->lock_mode != mode ||
 		s->lock_signature != signature || s->lock_target != target ||
-		s->lock_target_signature != target_signature || s->lock_weapon != g_players[player].selectedWarhead) {
+		s->lock_target_signature != target_signature ||
+		s->lock_weapon != g_players[player].selectedWeaponBank) {
 		s->lock_half = 0;
 	}
 	s->lock_serial = XvtFlightTiming_AdvanceSerial();
@@ -161,7 +162,7 @@ unsigned XvtPlayerTiming_LockHalf(unsigned player, unsigned mode) {
 	s->lock_signature = signature;
 	s->lock_target = target;
 	s->lock_target_signature = target_signature;
-	s->lock_weapon = g_players[player].selectedWarhead;
+	s->lock_weapon = g_players[player].selectedWeaponBank;
 	if (!mode) {
 		s->lock_half = 0;
 		return 0;

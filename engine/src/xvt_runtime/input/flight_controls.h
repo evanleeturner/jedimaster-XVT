@@ -15,7 +15,7 @@ extern int16_t g_xvtControlRoll;
 /* Fills g_ctrlAxisX, g_ctrlAxisY, g_xvtControlRoll, g_keyMods, g_actionKey and the mouse globals, and
  * returns the action key. A blocked keyboard route resets and returns 0. Axes and held buttons come from
  * the controllers, plus the keyboard's held buttons on the gameplay route; mouse flight, when enabled,
- * replaces each nonzero axis and adds its buttons; otherwise, with g_joystickEnabled, the classic mouse
+ * replaces each nonzero axis and adds its buttons; otherwise, with g_flightMouseEnabled, the classic mouse
  * is read with its delta clamped to +-191 and +-127. The key is the first nonzero of the keyboard
  * (gameplay mapping or DirectInput), the controllers, then mouse flight. Needs loaded settings. */
 uint16_t XvtFlightControls_ReadLocal(void);
@@ -38,7 +38,7 @@ void XvtFlightControls_ApplyThrottle(unsigned player, const FlightInputFrameReco
 void XvtFlightControls_Recover(void);
 /* Reads local input through FlightInput_Read, which runs ReadLocal in the modern build, and records it:
  * the key's low byte, each axis made even, fire and target/roll as bits 1 and 2 of keyMods, and the
- * throttle. With g_joystickEnabled, a nonzero classic mouse delta replaces yaw (times 128/120) and pitch
+ * throttle. With g_flightMouseEnabled, a nonzero classic mouse delta replaces yaw (times 128/120) and pitch
  * (times 64/50), clamped to -128..126. */
 void XvtFlightControls_SampleRecorded(FlightInputFrameRecord* input);
 /* Packs three axes into XVT_FLIGHT_AXIS_BYTES bytes: the low bit of the yaw byte carries fire and of

@@ -121,7 +121,7 @@ typedef struct MovieMultiplayerSyncPlayer MovieMultiplayerSyncPlayer;
 typedef struct MoviePlaybackParams MoviePlaybackParams;
 typedef struct MpRosterEntry MpRosterEntry;
 typedef struct MusicCdTrackCache MusicCdTrackCache;
-typedef struct NetPendingPayload NetPendingPayload;
+typedef struct NetPiggybackPayload NetPendingPayload;
 typedef struct NetPlayerConnectionStats NetPlayerConnectionStats;
 typedef struct NetPlayerInfo NetPlayerInfo;
 typedef struct NetQueuedPacket NetQueuedPacket;

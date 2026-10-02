@@ -149,8 +149,8 @@ extern char g_missionDebugBuffer[256];
 extern uint16_t g_missionFgOverrideStringHandles[48][8][3];
 extern uint16_t g_globalGoalOverrideStringHandles[10][7][4][3];
 extern int g_worldLocX;
-extern int worldlocy;
-extern int worldlocz;
+extern int g_worldLocY;
+extern int g_worldLocZ;
 #pragma pack(push, 1)
 
 struct Team {
@@ -241,7 +241,7 @@ enum { MISSION_MESSAGE_COUNT = 64 };
 extern MissionMessage g_missionMessages[MISSION_MESSAGE_COUNT];
 
 enum {
-	TEAM_SCORE_BONUS_TENTHS = 0,
+	TEAM_SCORE_BONUS = 0,
 	TEAM_SCORE_MISSION = 1,
 };
 
@@ -290,7 +290,7 @@ struct MissionFlightRuntimeState {
 	uint16_t globalGoalTriggerCounts[2][10][3][4];
 	unsigned int teamMissionCompletionTimeSeconds[10];
 	uint8_t teamHasCountableCraft[10];
-	uint8_t teamActiveGoalSequence[10];
+	uint8_t teamReinforcementsCalled[10];
 };
 
 struct MissionFgRuntimeStats {
@@ -308,15 +308,15 @@ struct MissionFgRuntimeStats {
 	uint8_t teamUninspectedLost[10];
 	uint8_t teamSpecialCargoUninspectedLost[10];
 	uint8_t teamCapturedDepartedCount[10];
-	uint8_t teamCondition44SpecialCargo[10];
-	uint8_t teamCondition44OtherTeamCount[10];
-	uint8_t teamCondition44OtherTeamSpecialCargo[10];
+	uint8_t teamSpecialCargoCapturedDeparted[10];
+	uint8_t teamUncapturedLost[10];
+	uint8_t teamSpecialCargoUncapturedLost[10];
 	uint8_t teamEventExtra[4][10];
 	uint8_t goalState[80];
 };
 
 extern MissionFgRuntimeStats g_missionFgStats[48];
-extern const uint8_t g_missionConditionUsesCountByTriggerType[48];
+extern const uint8_t g_missionConditionUsesCountByCondition[48];
 extern uint16_t g_missionConditionTotalCount;
 extern uint16_t g_missionConditionCurrentCount;
 extern int g_preparedSpawnMissionX;

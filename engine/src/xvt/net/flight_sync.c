@@ -59,7 +59,7 @@ void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta) {
 	int playerIdx;
 	FlightInputFrameRecord input;
 
-	if (g_asyncFlag != 0) {
+	if (g_internetPlayEnabled != 0) {
 		return;
 	}
 	memset(&input, 0, sizeof(input));
@@ -68,7 +68,7 @@ void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta) {
 		InputFrame* lastFrame;
 		InputFrame* predictedFrame;
 
-		if (g_players[playerIdx].connectedFlag == 0 || playerIdx == g_localPlayer) {
+		if (g_players[playerIdx].participationState == 0 || playerIdx == g_localPlayer) {
 			continue;
 		}
 		count = g_inputFrameCount[playerIdx];
@@ -82,7 +82,7 @@ void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta) {
 			FlightSync_InsertInputFrame(playerIdx, lastFrame->timestamp + predictedFrameDelta, &input);
 		if (predictedFrame != NULL) {
 			predictedFrame->applied = 0;
-			predictedFrame->valid = INPUT_FRAME_PREDICTED;
+			predictedFrame->unconfirmed = INPUT_FRAME_PREDICTED;
 		}
 	}
 }
@@ -93,19 +93,19 @@ void FlightSync_DiscardAllPredictedInputFrames(void) {
 	int playerIndex;
 
 #ifndef XVT_MODERN
-	if (g_asyncFlag != 0)
+	if (g_internetPlayEnabled != 0)
 		return;
 #endif
 
 	for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
-		if (g_players[playerIndex].connectedFlag != 0 && playerIndex != g_localPlayer) {
+		if (g_players[playerIndex].participationState != 0 && playerIndex != g_localPlayer) {
 			int frameIndex;
 			InputFrame* frame;
 
 			frame = g_inputHistory[playerIndex];
 			frameIndex = 0;
 			while (g_inputFrameCount[playerIndex] > frameIndex) {
-				if (frame->applied == 0 && frame->valid == INPUT_FRAME_PREDICTED) {
+				if (frame->applied == 0 && frame->unconfirmed == INPUT_FRAME_PREDICTED) {
 					FlightSync_RemoveInputHistoryFrame(playerIndex, frame);
 				} else {
 					++frame;
@@ -123,15 +123,15 @@ void FlightSync_DiscardPredictedInputFrames(int playerIdx) {
 
 	if (
 #ifndef XVT_MODERN
-		g_asyncFlag != 0 ||
+		g_internetPlayEnabled != 0 ||
 #endif
-		g_players[playerIdx].connectedFlag == 0 || playerIdx == g_localPlayer)
+		g_players[playerIdx].participationState == 0 || playerIdx == g_localPlayer)
 		return;
 
 	frameIndex = 0;
 	frame = g_inputHistory[playerIdx];
 	while (frameIndex < g_inputFrameCount[playerIdx]) {
-		if (frame->applied == 0 && frame->valid == INPUT_FRAME_PREDICTED) {
+		if (frame->applied == 0 && frame->unconfirmed == INPUT_FRAME_PREDICTED) {
 			FlightSync_RemoveInputHistoryFrame(playerIdx, frame);
 		} else {
 			++frame;
@@ -203,7 +203,7 @@ InputFrame* FlightSync_InsertInputFrame(int playerIdx, int timestamp, const Flig
 			} while (frameIndex != 0);
 		}
 	} else if (existingTimestamp == timestamp) {
-		if (frame->valid == 0) {
+		if (frame->unconfirmed == 0) {
 			return NULL;
 		}
 		if (frame->applied == 1) {
@@ -211,7 +211,7 @@ InputFrame* FlightSync_InsertInputFrame(int playerIdx, int timestamp, const Flig
 		}
 	}
 	frame->timestamp = timestamp;
-	frame->valid = 1;
+	frame->unconfirmed = 1;
 	frame->applied = 0;
 	frame->input = *input;
 	return frame;
@@ -259,7 +259,7 @@ void FlightSync_CaptureSamplesAndRestorePoses(void) {
 		PlayerData* player = &g_players[playerIndex];
 		int sampleWasValid = g_remotePlayerRenderSamples[playerIndex].valid;
 		g_remotePlayerRenderSamples[playerIndex].valid = 0;
-		if (g_players[playerIndex].connectedFlag != 0 && g_localPlayer != playerIndex &&
+		if (g_players[playerIndex].participationState != 0 && g_localPlayer != playerIndex &&
 			player->objectIndex != -1) {
 			ObjectRecord* object = &g_objectTable[player->objectIndex];
 			if (object->objectType != 0 && object->mobj != NULL) {
@@ -334,7 +334,7 @@ void FlightSync_ApplyRemotePlayerRenderSmoothing(void) {
 
 	for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
 		g_remotePlayerSavedSimPoses[playerIndex].valid = 0;
-		if (g_players[playerIndex].connectedFlag == 0 || g_players[playerIndex].objectIndex == -1)
+		if (g_players[playerIndex].participationState == 0 || g_players[playerIndex].objectIndex == -1)
 			continue;
 
 		object = &g_objectTable[g_players[playerIndex].objectIndex];
@@ -534,7 +534,7 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t* packet) {
 		for (playerIndex = 0; playerIndex < PLAYER_SLOT_COUNT; ++playerIndex) {
 			int frameCount;
 
-			if (g_players[playerIndex].connectedFlag == 0) {
+			if (g_players[playerIndex].participationState == 0) {
 				continue;
 			}
 			if (remainingPlayerBlocks == 0) {
@@ -579,7 +579,7 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t* packet) {
 
 				inserted = FlightSync_InsertInputFrame(playerIndex, timestamp, &input);
 				if (inserted != NULL) {
-					inserted->valid = 0;
+					inserted->unconfirmed = 0;
 					inserted->applied = 0;
 				}
 				--frameCount;
@@ -590,7 +590,7 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t* packet) {
 	g_flightSimSideEffectsSuppressed = 0;
 	Flight_StepSimToTime(packetTick);
 	for (playerIndex = 0; playerIndex < PLAYER_SLOT_COUNT; ++playerIndex) {
-		if (g_players[playerIndex].connectedFlag != 0 && playerIndex != g_localPlayer) {
+		if (g_players[playerIndex].participationState != 0 && playerIndex != g_localPlayer) {
 			FlightView_UpdatePlayerCamera(playerIndex);
 		}
 	}
@@ -607,10 +607,10 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t* packet) {
 		g_flightNetWorldChecksumEpoch = (unsigned int)g_serverTickTime;
 		if (NetSession_IsLocalHost() != 0) {
 			FlightNet_BroadcastWorldChecksum((const int*)g_worldChecksum,
-											 (const int*)g_peerChecksumRegionLengths, checksumDwordCount);
+											 (const int*)g_worldChecksumRegionLengths, checksumDwordCount);
 		}
 		FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum,
-										  (const int*)g_peerChecksumRegionLengths, checksumDwordCount);
+										  (const int*)g_worldChecksumRegionLengths, checksumDwordCount);
 		g_flightNetBufferWorldMessagesUntilChecksum = 1;
 		FlightSync_SnapshotWorldStateForReplay();
 		FlightSync_ResetWorldMessageBufferCursor();
@@ -625,7 +625,7 @@ void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int* packet) {
 		PACKET_CHECKSUM_INDEX = 2,
 		CHECKSUM_REGION_COUNT = 16,
 		PACKET_REGION_LENGTH_INDEX = PACKET_CHECKSUM_INDEX + CHECKSUM_REGION_COUNT,
-		PEER_STATUS_PENDING = 2,
+		PEER_STATUS_MISMATCHED = 2,
 		PEER_STATUS_MATCHED = 1,
 		ALL_PEER_STATUS_BITS = 3
 	};
@@ -657,7 +657,7 @@ void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int* packet) {
 		return;
 	}
 #endif
-	if (g_playerAbortFlags[senderPlayerIndex] != 0 || g_players[senderPlayerIndex].connectedFlag == 0) {
+	if (g_playerAbortFlags[senderPlayerIndex] != 0 || g_players[senderPlayerIndex].participationState == 0) {
 		return;
 	}
 
@@ -669,7 +669,7 @@ void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int* packet) {
 		remoteWorldStateSize = 0;
 		for (playerIndex = 0; playerIndex < CHECKSUM_REGION_COUNT; ++playerIndex) {
 			remoteWorldStateSize += remoteRegionLengths[playerIndex];
-			localWorldStateSize += (int)g_peerChecksumRegionLengths[playerIndex];
+			localWorldStateSize += (int)g_worldChecksumRegionLengths[playerIndex];
 			if (g_worldChecksum[playerIndex] != (unsigned int)remoteChecksums[playerIndex]) {
 				checksumMismatch = 1;
 			}
@@ -695,14 +695,14 @@ void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int* packet) {
 		return;
 	}
 
-	g_flightNetWorldChecksumPeerStatus[senderPlayerIndex] = PEER_STATUS_PENDING;
+	g_flightNetWorldChecksumPeerStatus[senderPlayerIndex] = PEER_STATUS_MISMATCHED;
 	if (checksumMismatch != 1) {
 		g_flightNetWorldChecksumPeerStatus[senderPlayerIndex] = PEER_STATUS_MATCHED;
 	}
 
 	allPeerStatus = ALL_PEER_STATUS_BITS;
 	for (playerIndex = 0; playerIndex < (int)(sizeof(g_players) / sizeof(g_players[0])); ++playerIndex) {
-		if (g_players[playerIndex].connectedFlag != 0) {
+		if (g_players[playerIndex].participationState != 0) {
 			allPeerStatus &= g_flightNetWorldChecksumPeerStatus[playerIndex];
 		}
 	}
@@ -759,7 +759,7 @@ void FlightSync_ReplayResyncMessages(unsigned int worldStateBytes, int serverTic
 	g_serverTickTime = serverTickTime;
 	Flight_ChecksumWorldState(0, 0);
 	checksumDwordCount = (int)(sizeof(g_worldChecksum) / sizeof(g_worldChecksum[0]));
-	FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum, (const int*)g_peerChecksumRegionLengths,
+	FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum, (const int*)g_worldChecksumRegionLengths,
 									  checksumDwordCount);
 	FlightSync_SnapshotWorldStateForReplay();
 	g_flightNetBufferWorldMessagesUntilChecksum = 0;
@@ -797,15 +797,15 @@ void FlightSync_BufferWorldMessagePacket(uint8_t* packet) {
 			++packetSize;
 			if (entryCount > 0) {
 				do {
-					int flags;
+					int timestampCode;
 
-					flags = *packet++;
+					timestampCode = *packet++;
 					++packetSize;
-					if ((flags & 0x7F) == 0x7F) {
+					if ((timestampCode & 0x7F) == 0x7F) {
 						packet += 4;
 						packetSize += 4;
 					}
-					if ((flags & 0x80) != 0) {
+					if ((timestampCode & 0x80) != 0) {
 						++packet;
 						++packetSize;
 					}

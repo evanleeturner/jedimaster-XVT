@@ -37,7 +37,7 @@ XvtKeyboardRoute XvtInput_ReconcileKeyboard(void) {
 		route = XVT_KEYBOARD_BLOCKED;
 	else if (XvtFlightTask_IsActive() && !XvtFlightTask_IsLoading() && !XvtDialog_IsActive() &&
 			 !XvtMovieTask_IsActive() && !XvtResync_IsActive() && (unsigned)g_localPlayer < 8 &&
-			 g_players[g_localPlayer].msgTypeId == FLIGHT_CHAT_RECIPIENT_INACTIVE)
+			 g_players[g_localPlayer].chatRecipientMode == FLIGHT_CHAT_RECIPIENT_INACTIVE)
 		route = XVT_KEYBOARD_GAMEPLAY;
 	if (route != g_keyboardRoute) {
 		/* Commands and text never cross a routing transition. Held keys must be released. */
@@ -279,7 +279,7 @@ int XvtInput_RendererShortcutAllowed(void) {
 	if (!s || s->text_entry_active || XvtDialog_IsTextPrompt())
 		return 0;
 	return !XvtFlightTask_IsActive() || (unsigned)g_localPlayer >= 8 ||
-		   g_players[g_localPlayer].msgTypeId == FLIGHT_CHAT_RECIPIENT_INACTIVE;
+		   g_players[g_localPlayer].chatRecipientMode == FLIGHT_CHAT_RECIPIENT_INACTIVE;
 }
 
 void XvtInput_UpdateFlight(int suppress) {

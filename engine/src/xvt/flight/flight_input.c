@@ -42,7 +42,7 @@ uint8_t g_lastKeyCode = 0;
 int g_keyReady = 0;
 
 // GLOBAL: XVT 0x5505EC
-int g_controlMask;
+int g_heldJoystickButtons;
 // GLOBAL: XVT 0x5505F0
 int g_throttleSmoothed;
 // GLOBAL: XVT 0x51A878
@@ -65,7 +65,7 @@ uint16_t g_currentActionKey;
 // GLOBAL: XVT 0x9EC474
 uint16_t g_flightKeyMods;
 // GLOBAL: XVT 0x9E95F0
-uint16_t g_joystickEnabled;
+uint16_t g_flightMouseEnabled;
 // GLOBAL: XVT 0xA08242
 uint16_t g_joystickAvailable;
 // GLOBAL: XVT 0x9A73E8
@@ -99,7 +99,7 @@ void FlightInput_ScaleAxesForFlight(void) {
 	g_flightKeyMods = mouseButtons;
 	g_scaledInputPitch = pitch;
 	g_scaledInputYaw = yaw;
-	if (g_joystickEnabled != 0) {
+	if (g_flightMouseEnabled != 0) {
 		yaw = (int16_t)((uint16_t)g_flightMouseDeltaX << 7);
 		pitch = (int16_t)((uint16_t)g_flightMouseDeltaY << 6);
 		mouseButtons = g_mouseButtons;
@@ -215,7 +215,7 @@ void FlightInput_ClearButtonsAndDebounce(void) {
 // FUNCTION: XVT 0x411780
 void FlightInput_ResetRuntimeState(void) {
 	g_joystickAvailable = 0;
-	g_joystickEnabled = 0;
+	g_flightMouseEnabled = 0;
 	g_mouseButtons = 0;
 	g_keyMods = 0;
 	g_joystickDetectResultWord = (uint16_t)Input_DetectActiveJoystick();
@@ -225,7 +225,7 @@ void FlightInput_ResetRuntimeState(void) {
 		g_joystickAvailable = 1;
 	}
 	FlightInput_ResetControlState();
-	g_joystickEnabled = 0;
+	g_flightMouseEnabled = 0;
 }
 
 // FUNCTION: XVT 0x4117D0
@@ -241,7 +241,7 @@ void FlightInput_ResetControlState(void) {
 	XvtFlightControls_Reset();
 #endif
 	g_throttleSmoothed = -1;
-	g_controlMask = 0;
+	g_heldJoystickButtons = 0;
 }
 
 // FUNCTION: XVT 0x411810
@@ -250,7 +250,7 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 	uint16_t key;
 	uint16_t mappedKey;
 	unsigned int mappedKeyValue;
-	int keyModAlt3;
+	int targetButtonHeld;
 	int buttonIndex;
 	int buttonBit;
 	uint8_t buttonKey;
@@ -258,7 +258,7 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 	int previousThrottle;
 	int throttleBucket;
 	int throttleRaw;
-	int keyModAlt2;
+	int fireButtonHeld;
 	int combinedKeyMods;
 	int axisX;
 	int axisY;
@@ -286,7 +286,7 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 		if (g_joystickAvailable != 0) {
 			joystickButtons = Joystick_PollRawAxesIfEnabled(&axisX, &axisY, &throttleRaw, NULL);
 		}
-		if (g_joystickEnabled != 0) {
+		if (g_flightMouseEnabled != 0) {
 			mouseButtons = (uint16_t)Mouse_ReadPositionAndButtons(&mouseX, &mouseY);
 			Mouse_ReadDelta(&mouseDeltaX, &mouseDeltaY);
 			if (mouseDeltaX <= -192) {
@@ -305,10 +305,10 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 		if (FlightInput_HasKeyReady() != 0) {
 			key = FlightInput_GetNextKey();
 		}
-		keyModAlt3 = 0;
+		targetButtonHeld = 0;
 		buttonBit = 1;
 		buttonIndex = 0;
-		keyModAlt2 = 0;
+		fireButtonHeld = 0;
 		do {
 			buttonKey = g_gameConfig.joyButtons[buttonIndex];
 			if (buttonKey != 0) {
@@ -317,20 +317,20 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 					mappedKeyValue = mappedKey;
 					switch (mappedKeyValue) {
 						case 156:
-							keyModAlt2 = 1;
+							fireButtonHeld = 1;
 							break;
 						case 157:
-							keyModAlt3 = 1;
+							targetButtonHeld = 1;
 							break;
 					}
-					if ((g_controlMask & buttonBit) == 0) {
+					if ((g_heldJoystickButtons & buttonBit) == 0) {
 						if (key == 0) {
 							key = mappedKey;
 						} else {
 							joystickButtons &= ~buttonBit;
 						}
 					}
-				} else if ((g_controlMask & buttonBit) != 0) {
+				} else if ((g_heldJoystickButtons & buttonBit) != 0) {
 					releasedKey = buttonKey;
 					if (releasedKey == 178) {
 						releasedKey = 178;
@@ -351,8 +351,8 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 			buttonBit *= 2;
 			++buttonIndex;
 		} while (buttonIndex < 20);
-		combinedKeyMods = keyModAlt2 + 2 * keyModAlt3;
-		g_controlMask = joystickButtons;
+		combinedKeyMods = fireButtonHeld + 2 * targetButtonHeld;
+		g_heldJoystickButtons = joystickButtons;
 
 		if (key == 0) {
 			throttleRaw = (int)(int8_t)throttleRaw;

@@ -40,11 +40,11 @@ void XvtFlightControls_Reset(void) {
 }
 
 bool XvtFlightControls_ThrottleEligible(unsigned player) {
-	if (player >= 8 || !g_players[player].connectedFlag || g_flightMissionState.missionEndPending ||
+	if (player >= 8 || !g_players[player].participationState || g_flightMissionState.missionEndPending ||
 		(g_flightRuntimeStateInitialized > 1 && g_dormantFlightRegionSessionEarlyReturnFlag) ||
 		g_players[player].awaitingNewCraft || g_players[player].hyperspacePhase ||
 		g_players[player].mapCameraState || g_players[player].viewState.playerInputBlocked ||
-		g_players[player].msgTypeId != FLIGHT_CHAT_RECIPIENT_INACTIVE)
+		g_players[player].chatRecipientMode != FLIGHT_CHAT_RECIPIENT_INACTIVE)
 		return false;
 	int index = g_players[player].objectIndex;
 	if (!g_objectTable || index < 0 || index >= g_regionMainObjectSlotEnd)
@@ -134,7 +134,7 @@ uint16_t XvtFlightControls_ReadLocal(void) {
 				g_xvtControlRoll = (int16_t)roll;
 			g_keyMods |= XvtMouseFlight_ButtonsMask();
 		}
-	} else if (g_joystickEnabled) {
+	} else if (g_flightMouseEnabled) {
 		g_mouseButtons = (uint16_t)Mouse_ReadPositionAndButtons(&g_flightMouseX, &g_flightMouseY);
 		Mouse_ReadDelta(&g_flightMouseDeltaX, &g_flightMouseDeltaY);
 		if (g_flightMouseDeltaX < -191)
@@ -213,7 +213,7 @@ void XvtFlightControls_SampleRecorded(FlightInputFrameRecord* input) {
 	input->axisR = (int8_t)(g_xvtControlRoll & AXIS_QUANTIZATION_MASK);
 	input->keyMods = (g_keyMods | g_mouseButtons) & RECORDED_MODIFIERS;
 	XvtFlightControls_SampleThrottle(input);
-	if (g_joystickEnabled) {
+	if (g_flightMouseEnabled) {
 		int yaw = g_flightMouseDeltaX * MOUSE_YAW_SCALE / YAW_AXIS_SCALE,
 			pitch = g_flightMouseDeltaY * MOUSE_PITCH_SCALE / PITCH_AXIS_SCALE;
 		if (yaw)

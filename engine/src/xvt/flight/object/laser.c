@@ -32,7 +32,7 @@
 #include <limits.h>
 
 // GLOBAL: XVT 0x51A3B8
-const struct ProjectileTypeDataTables g_projectileDamageByObjectType = {
+const struct ProjectileTypeDataTables g_projectileTypeData = {
 	{
 		250,  500,   200,   400,  200,  400,  10000, 3000, 1000, 800, 800, 15000,
 		6000, 65000, 35000, 3000, 6000, 9000, 500,   2000, 0,    0,   0,   0,
@@ -53,7 +53,7 @@ const struct ProjectileTypeDataTables g_projectileDamageByObjectType = {
 // GLOBAL: XVT 0x5241F8
 const uint8_t g_warheadTypeIds[11] = { 0x00, 0x96, 0x97, 0x90, 0x8F, 0x95, 0x94, 0x98, 0x99, 0x9A, 0x90 };
 // GLOBAL: XVT 0x524208
-const uint16_t g_warheadAmmoCounts[12] = {
+const uint16_t g_warheadAmmoFractionQ16[12] = {
 	0x0000, 0x4000, 0x8000, 0xFFFF, 0xC000, 0xFFFF, 0xC000, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000,
 };
 // GLOBAL: XVT 0x524220
@@ -153,7 +153,7 @@ void laser_weaponsfire(void) {
 				int16_t warheadCount;
 
 				firstWarheadSlot = g_modelDefs[GetModelIndexFromType(g_objectTable[objectIdx].objectType)]
-									   .warheadLauncherFirstSlot[g_players[playerIdx].selectedWarhead];
+									   .warheadLauncherFirstSlot[g_players[playerIdx].selectedWeaponBank];
 				targetObjIdx = (uint16_t)g_players[playerIdx].currentTargetObjectIdx;
 				warheadCount = g_curCraft->weaponSlots[firstWarheadSlot].ammoCount +
 							   g_curCraft->weaponSlots[firstWarheadSlot + 1].ammoCount;
@@ -191,7 +191,7 @@ void laser_weaponsfire(void) {
 
 							targetCraft = g_objectTable[targetObjIdx].mobj->pCraft;
 							if (targetCraft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF &&
-								targetCraft->chaffActiveTimer != 0) {
+								targetCraft->chaffActiveSeconds != 0) {
 
 #ifdef XVT_MODERN
 								g_curCraft->warheadLockTicks -= XvtPlayerTiming_LockHalf(playerIdx, 1);
@@ -241,17 +241,17 @@ void laser_weaponsfire(void) {
 					g_curCraft->beamActive != 0 && g_curCraft->beamTypeId != BEAM_TYPE_NONE &&
 					g_players[playerIdx].awaitingNewCraft == 0) {
 					if (g_players[playerIdx].beamFireCooldownTimer == 0) {
-						int16_t beamPresent;
+						int16_t beamCharge;
 
 						g_players[playerIdx].beamFireCooldownTimer = BEAM_FIRE_COOLDOWN_TICKS;
-						beamPresent = (int16_t)(g_curCraft->beamPresent - BEAM_DRAIN_AMOUNT);
-						if (beamPresent < 0) {
-							beamPresent = 0;
+						beamCharge = (int16_t)(g_curCraft->beamCharge - BEAM_DRAIN_AMOUNT);
+						if (beamCharge < 0) {
+							beamCharge = 0;
 						}
-						g_curCraft->beamPresent = (uint16_t)beamPresent;
-						if (beamPresent == 0 && g_curCraft->beamActive != 0) {
+						g_curCraft->beamCharge = (uint16_t)beamCharge;
+						if (beamCharge == 0 && g_curCraft->beamActive != 0) {
 							g_curCraft->beamActive = 0;
-							g_curCraft->beamTimer = 0;
+							g_curCraft->beamOutput = 0;
 							if (playerIdx == g_localPlayer) {
 								msg_emitInFlightMessage((InFlightMessageId)((uint8_t)g_curCraft->beamTypeId +
 																			BEAM_END_MESSAGE_BASE),
@@ -281,7 +281,7 @@ void laser_weaponsfire(void) {
 						beamType = g_curCraft->beamTypeId;
 						if (beamType == BEAM_TYPE_TRACTOR || beamType == BEAM_TYPE_JAMMING) {
 							if (targetCraft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF &&
-								targetCraft->chaffActiveTimer != 0) {
+								targetCraft->chaffActiveSeconds != 0) {
 								if (playerIdx == g_localPlayer &&
 									Hud_GetSystemMessagePaneState() != SYSTEM_MESSAGE_PANE_STATE) {
 									msg_emitInFlightMessage(
@@ -290,7 +290,7 @@ void laser_weaponsfire(void) {
 								beamTargetObjIdx = UINT16_MAX;
 							} else {
 								targetCraft->beamEffectAccum[(uint8_t)beamType] +=
-									(uint16_t)g_curCraft->beamTimer;
+									(uint16_t)g_curCraft->beamOutput;
 							}
 						}
 					}
@@ -551,7 +551,7 @@ void laser_weaponsfire(void) {
 					}
 					chargeBasis =
 						(int16_t)((uint8_t)g_curCraft->laserRechargeLevel - POWER_RECHARGE_MAINTENANCE);
-					if (g_curCraft->engineOutputScale == ENGINE_OVERDRIVE_ACTIVE) {
+					if (g_curCraft->engineOverdriveOff == ENGINE_OVERDRIVE_ACTIVE) {
 						chargeBasis = (int16_t)((uint8_t)g_curCraft->laserRechargeLevel - 6);
 					}
 					if (g_objectTable[objectIdx].objectType == CRAFT_SPECIES_TIE_FIGHTER ||
@@ -570,7 +570,7 @@ void laser_weaponsfire(void) {
 				}
 			}
 
-			if (g_curCraft->engineOutputScale == ENGINE_OVERDRIVE_ACTIVE) {
+			if (g_curCraft->engineOverdriveOff == ENGINE_OVERDRIVE_ACTIVE) {
 				int anyLaserCharge;
 
 				anyLaserCharge = 0;
@@ -580,7 +580,7 @@ void laser_weaponsfire(void) {
 					}
 				}
 				if (anyLaserCharge == 0) {
-					g_curCraft->engineOutputScale = ENGINE_OVERDRIVE_DISENGAGED;
+					g_curCraft->engineOverdriveOff = ENGINE_OVERDRIVE_DISENGAGED;
 					msg_emitInFlightMessage(IFMSG_285_ENGINE_OVERDRIVE_BOOSTERS_DISENGAGED, g_localPlayer);
 					fsfx_PlaySound(FLIGHT_SOUND_POWER_DOWN, -1, g_localPlayer);
 				}
@@ -589,19 +589,19 @@ void laser_weaponsfire(void) {
 			if ((g_curCraft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) != 0) {
 				int16_t beamPresent;
 
-				beamPresent =
-					(int16_t)(g_curCraft->beamPresent + BEAM_RECHARGE_STEP * ((uint8_t)g_curCraft->beamLevel -
-																			  POWER_RECHARGE_MAINTENANCE));
+				beamPresent = (int16_t)(g_curCraft->beamCharge +
+										BEAM_RECHARGE_STEP * ((uint8_t)g_curCraft->beamRechargeLevel -
+															  POWER_RECHARGE_MAINTENANCE));
 				if (beamPresent < 0) {
 					beamPresent = 0;
 				}
 				if (beamPresent > MAXIMUM_BEAM_CHARGE) {
 					beamPresent = MAXIMUM_BEAM_CHARGE;
 				}
-				g_curCraft->beamPresent = (uint16_t)beamPresent;
+				g_curCraft->beamCharge = (uint16_t)beamPresent;
 				if (beamPresent == 0 && g_curCraft->beamActive != 0) {
 					g_curCraft->beamActive = 0;
-					g_curCraft->beamTimer = 0;
+					g_curCraft->beamOutput = 0;
 					if (g_objectTable[objectIdx].playerOwnerIdx == g_localPlayer) {
 						msg_emitInFlightMessage(
 							(InFlightMessageId)((uint8_t)g_curCraft->beamTypeId + BEAM_END_MESSAGE_BASE),
@@ -610,10 +610,10 @@ void laser_weaponsfire(void) {
 				}
 			}
 
-			if (g_curCraft->chaffActiveTimer != 0) {
-				--g_curCraft->chaffActiveTimer;
-				if (g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF && g_curCraft->chaffActiveTimer == 0 &&
-					g_objectTable[objectIdx].playerOwnerIdx != -1) {
+			if (g_curCraft->chaffActiveSeconds != 0) {
+				--g_curCraft->chaffActiveSeconds;
+				if (g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF &&
+					g_curCraft->chaffActiveSeconds == 0 && g_objectTable[objectIdx].playerOwnerIdx != -1) {
 					msg_emitInFlightMessage(IFMSG_368_CHAFF_BURST_EXPENDED,
 											g_objectTable[objectIdx].playerOwnerIdx);
 				}
@@ -646,7 +646,7 @@ void laser_weaponsfire(void) {
 				cannonClock = XvtFlightTiming_EnterReference();
 #endif
 
-			for (slotIndex = 0; slotIndex < g_curCraft->cannonClassCount; ++slotIndex) {
+			for (slotIndex = 0; slotIndex < g_curCraft->cannonGroupCount; ++slotIndex) {
 				int16_t cooldown;
 
 				cooldown = g_curCraft->laserState.fireCooldownTicks[slotIndex];
@@ -665,7 +665,7 @@ void laser_weaponsfire(void) {
 					}
 					--g_curCraft->laserState.burstRemaining[slotIndex];
 					g_curCraft->laserState.fireCooldownTicks[slotIndex] += 2 * g_elapsedTicks;
-					g_curCraft->laserState.lastFireTimestamp[slotIndex] += 2 * g_elapsedTicks;
+					g_curCraft->laserState.nextFireTimestamp[slotIndex] += 2 * g_elapsedTicks;
 					if (g_curCraft->laserState.burstRemaining[slotIndex] == 0) {
 						g_curCraft->laserState.linkMode[slotIndex] = 0;
 					}
@@ -687,11 +687,11 @@ void laser_weaponsfire(void) {
 #ifdef XVT_MODERN
 					if (XvtFlightTiming_ReferenceDue()) {
 						XvtFlightClock weaponClock = XvtFlightTiming_EnterReference();
-						laser_firewarheadlauncher(objectIdx, slotIndex, targetObjIdx);
+						laser_fireturretslot(objectIdx, slotIndex, targetObjIdx);
 						XvtFlightTiming_RestoreClock(weaponClock);
 					}
 #else
-					laser_firewarheadlauncher(objectIdx, slotIndex, targetObjIdx);
+					laser_fireturretslot(objectIdx, slotIndex, targetObjIdx);
 #endif
 				}
 			}
@@ -734,11 +734,11 @@ uint16_t laser_GetProjectileLifetimeTicks(int projectileObjectType) {
 	uint16_t wholeSecondsTicks;
 
 	wholeSecondsTicks =
-		(uint16_t)(236u * g_projectileDamageByObjectType
-							  .lifetimeSeconds[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST]);
+		(uint16_t)(236u *
+				   g_projectileTypeData.lifetimeSeconds[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST]);
 	wholeSecondsTicks =
 		(uint16_t)(wholeSecondsTicks +
-				   MATH2_fraction(g_projectileDamageByObjectType
+				   MATH2_fraction(g_projectileTypeData
 									  .lifetimeFracQ16[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST],
 								  236u));
 	return wholeSecondsTicks;
@@ -760,7 +760,7 @@ void laser_fireplayerweapon(int playerIdx) {
 		return;
 	craft = g_objectTable[objectIndex].mobj->pCraft;
 	if (craft->beamEffectAccum[2] != 0 &&
-		(craft->cmTypeId != COUNTERMEASURE_TYPE_CHAFF || craft->chaffActiveTimer == 0)) {
+		(craft->cmTypeId != COUNTERMEASURE_TYPE_CHAFF || craft->chaffActiveSeconds == 0)) {
 		msg_emitInFlightMessage(IFMSG_361_WEAPON_FIRING_JAMMED_BY_BEAM_SYSTEM, playerIdx);
 		return;
 	}
@@ -768,7 +768,7 @@ void laser_fireplayerweapon(int playerIdx) {
 		int selectedWeapon;
 		int16_t cooldown;
 
-		selectedWeapon = g_players[playerIdx].selectedWarhead;
+		selectedWeapon = g_players[playerIdx].selectedWeaponBank;
 		cooldown = craft->laserState.fireCooldownTicks[selectedWeapon];
 		if (g_laserFireTimestampTrackingEnabled != 0) {
 			int lockstepTimestamp;
@@ -777,24 +777,25 @@ void laser_fireplayerweapon(int playerIdx) {
 			if (cooldown != 0) {
 				int lastFireTimestamp;
 
-				lastFireTimestamp = craft->laserState.lastFireTimestamp[selectedWeapon];
+				lastFireTimestamp = craft->laserState.nextFireTimestamp[selectedWeapon];
 				if (lastFireTimestamp < lockstepTimestamp) {
 					cooldown = 0;
-					craft->laserState.lastFireTimestamp[selectedWeapon] = lockstepTimestamp;
+					craft->laserState.nextFireTimestamp[selectedWeapon] = lockstepTimestamp;
 				} else {
 					cooldown = (int16_t)(2 * g_elapsedTicks);
 				}
 			} else {
-				craft->laserState.lastFireTimestamp[selectedWeapon] = lockstepTimestamp;
+				craft->laserState.nextFireTimestamp[selectedWeapon] = lockstepTimestamp;
 			}
 		}
 		if ((int16_t)(g_elapsedTicks + (g_elapsedTicks >> 1)) > cooldown) {
 			if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0) {
-				laser_firelasersystem(g_players[playerIdx].objectIndex, g_players[playerIdx].selectedWarhead);
+				laser_firelasersystem(g_players[playerIdx].objectIndex,
+									  g_players[playerIdx].selectedWeaponBank);
 			} else if (playerIdx == g_localPlayer) {
 				int16_t selectedWarhead;
 
-				selectedWarhead = g_players[playerIdx].selectedWarhead;
+				selectedWarhead = g_players[playerIdx].selectedWeaponBank;
 				g_msgArgTable[1] = SYSTEM_NAME_MESSAGE_ARG;
 				g_msgArgTable[0] = (uint16_t)(selectedWarhead + LASER_SYSTEM_NAME_BASE);
 				msg_emitInFlightMessage(IFMSG_086_ARG_SYSTEM_IS_ARG, playerIdx);
@@ -802,20 +803,20 @@ void laser_fireplayerweapon(int playerIdx) {
 		}
 		return;
 	}
-	if (craft->warheadLauncherCooldownTicks[g_players[playerIdx].selectedWarhead] <
+	if (craft->warheadLauncherCooldownTicks[g_players[playerIdx].selectedWeaponBank] <
 		(int16_t)(g_elapsedTicks + (g_elapsedTicks >> 1))) {
 		if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_WARHEAD_LAUNCHER) != 0) {
-			laser_firerocketsystem(objectIndex, g_players[playerIdx].selectedWarhead);
+			laser_firerocketsystem(objectIndex, g_players[playerIdx].selectedWeaponBank);
 			craft = g_objectTable[objectIndex].mobj->pCraft;
 			{
 				int firstSlot = g_modelDefs[craft->modelIndex]
-									.warheadLauncherFirstSlot[g_players[playerIdx].selectedWarhead];
+									.warheadLauncherFirstSlot[g_players[playerIdx].selectedWeaponBank];
 				if (craft->weaponSlots[firstSlot + 1].ammoCount + craft->weaponSlots[firstSlot].ammoCount ==
 					0) {
 					g_players[playerIdx].selectedWeaponMode = 0;
-					g_players[playerIdx].selectedWarhead = 0;
+					g_players[playerIdx].selectedWeaponBank = 0;
 					craft->laserState.fireCooldownTicks[0] = WEAPON_COOLDOWN_TICKS;
-					craft->laserState.lastFireTimestamp[0] =
+					craft->laserState.nextFireTimestamp[0] =
 						g_players[playerIdx].lockstepTimestamp + WEAPON_COOLDOWN_TICKS;
 				}
 			}
@@ -977,7 +978,7 @@ void laser_firelasersystem(int objectIndex, int laserSystemIndex) {
 			g_players[ownerPlayerIdx].missionStats.laserShotsFired += (uint16_t)shotsFired;
 	}
 	g_curCraft->laserState.fireCooldownTicks[laserSystemIndex] += (int16_t)(47 * shotsFired + 2);
-	g_curCraft->laserState.lastFireTimestamp[laserSystemIndex] += 47 * shotsFired + 2;
+	g_curCraft->laserState.nextFireTimestamp[laserSystemIndex] += 47 * shotsFired + 2;
 }
 
 // FUNCTION: XVT 0x406030
@@ -1035,7 +1036,8 @@ void laser_firerocketsystem(int objectIndex, unsigned int launcherIndex) {
 		PlayerData* player;
 
 		player = &g_players[g_localPlayer];
-		warheadKind = ObjectType_GetWarheadKindIndex(g_curCraft->warheadSlotTypeIds[player->selectedWarhead]);
+		warheadKind =
+			ObjectType_GetWarheadKindIndex(g_curCraft->warheadSlotTypeIds[player->selectedWeaponBank]);
 		if (shotsFired == 0)
 			msg_emitInFlightMessage((InFlightMessageId)((uint16_t)warheadKind + 38), g_localPlayer);
 		else if (shotsFired == 1)
@@ -1060,14 +1062,12 @@ int laser_firemissile(int objectIndex, int weaponSlotIndex, int projectileTypeId
 			if (ownerPlayerIdx != -1) {
 				++g_players[ownerPlayerIdx].warheadsFired;
 				g_players[ownerPlayerIdx].missionStats.missionScore -=
-					g_projectileDamageByObjectType
-						.warheadPointValue[projectileTypeId - PROJECTILE_OBJECT_TYPE_FIRST];
+					g_projectileTypeData.warheadPointValue[projectileTypeId - PROJECTILE_OBJECT_TYPE_FIRST];
 			}
 			g_flightMissionState.runtime
 				.teamScores[TEAM_SCORE_MISSION]
 						   [g_missionFlightGroups[g_objectTable[objectIndex].flightGroupIdx].fg.team] -=
-				g_projectileDamageByObjectType
-					.warheadPointValue[projectileTypeId - PROJECTILE_OBJECT_TYPE_FIRST];
+				g_projectileTypeData.warheadPointValue[projectileTypeId - PROJECTILE_OBJECT_TYPE_FIRST];
 			fsfx_triggerweaponsfx((unsigned int)projectileIndex, ownerPlayerIdx);
 			if (g_missionFlightGroups[g_objectTable[objectIndex].flightGroupIdx].fg.status1 != 21 &&
 				g_missionFlightGroups[g_objectTable[objectIndex].flightGroupIdx].fg.status2 != 21)
@@ -1141,13 +1141,12 @@ int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex, int proje
 		projectileIndex = (uint16_t)(12 * g_objectTable[sourceObjectIndex].playerOwnerIdx +
 									 g_objectSlotRangeByGenus[CRAFT_GENUS_PLAYER_PROJECTILE].start);
 		rangeEnd = (uint16_t)(projectileIndex + 12);
-		if (g_projectileDamageByObjectType
-				.warheadClass[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0)
+		if (g_projectileTypeData.warheadClass[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0)
 			projectileIndex = (uint16_t)(projectileIndex + 8);
 		for (; projectileIndex < rangeEnd; ++projectileIndex) {
 			if (g_objectTable[projectileIndex].objectType == 0) {
 				g_objectTable[projectileIndex].mobj->sourceObjIdx = 0;
-				g_objectTable[projectileIndex].mobj->lightIntensityScale = 0;
+				g_objectTable[projectileIndex].mobj->effectSize = 0;
 				break;
 			}
 		}
@@ -1159,7 +1158,7 @@ int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex, int proje
 			for (; projectileIndex < rangeEnd; ++projectileIndex) {
 				if (g_objectTable[projectileIndex].objectType == 0) {
 					g_objectTable[projectileIndex].mobj->sourceObjIdx = 0;
-					g_objectTable[projectileIndex].mobj->lightIntensityScale = 0;
+					g_objectTable[projectileIndex].mobj->effectSize = 0;
 					break;
 				}
 			}
@@ -1187,17 +1186,17 @@ int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex, int proje
 		g_objectTable[projectileIndex].roll = source->roll;
 		g_objectTable[projectileIndex].yaw = source->yaw;
 		g_objectTable[projectileIndex].mobj->speed =
-			(uint16_t)(source->mobj->speed + g_projectileDamageByObjectType
-												 .speed[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST]);
-		g_projectileGuidanceStates[projectileIndex - g_projectileObjectSlotStart].minSpeed =
+			(uint16_t)(source->mobj->speed +
+					   g_projectileTypeData.speed[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST]);
+		g_projectileGuidanceStates[projectileIndex - g_projectileObjectSlotStart].cruiseSpeed =
 			g_objectTable[projectileIndex].mobj->speed;
 		g_objectTable[projectileIndex].mobj->damageAmount =
 			source->mobj->speed +
-			g_projectileDamageByObjectType.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
+			g_projectileTypeData.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
 		if (g_objectTable[projectileIndex].mobj->damageAmount <
-			g_projectileDamageByObjectType.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST])
+			g_projectileTypeData.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST])
 			g_objectTable[projectileIndex].mobj->damageAmount =
-				g_projectileDamageByObjectType.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
+				g_projectileTypeData.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
 		g_objectTable[projectileIndex].mobj->lifetimeTimer =
 			laser_GetProjectileLifetimeTicks(projectileObjectType);
 		worldX = source->world_x;
@@ -1220,17 +1219,16 @@ int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex, int proje
 		if (source->playerOwnerIdx != -1)
 			g_objectTable[projectileIndex].mobj->simStateTimestamp =
 				g_players[source->playerOwnerIdx].lockstepTimestamp;
-		if (g_projectileDamageByObjectType
-					.warheadClass[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0 &&
+		if (g_projectileTypeData.warheadClass[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0 &&
 			(source->genusId == CRAFT_GENUS_STARSHIP || source->genusId == CRAFT_GENUS_FREIGHTER ||
 			 source->genusId == CRAFT_GENUS_PLATFORM)) {
 			if (hardpointZ >= 0) {
-				worldZ += g_projectileDamageByObjectType
-							  .launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
+				worldZ +=
+					g_projectileTypeData.launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
 				g_objectTable[projectileIndex].pitch = 0;
 			} else {
-				worldZ -= g_projectileDamageByObjectType
-							  .launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
+				worldZ -=
+					g_projectileTypeData.launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
 				g_objectTable[projectileIndex].pitch = INT16_MIN;
 			}
 			g_objectTable[projectileIndex].mobj->orientMatrixDirty = 1;
@@ -1240,15 +1238,15 @@ int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex, int proje
 			g_objectTable[projectileIndex].world_y = worldY;
 			g_objectTable[projectileIndex].world_z = worldZ;
 		} else {
-			worldX += Math_MulQ15(g_projectileDamageByObjectType
-									  .launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST],
-								  source->mobj->cachedFwdX);
-			worldY += Math_MulQ15(g_projectileDamageByObjectType
-									  .launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST],
-								  source->mobj->cachedFwdY);
-			worldZ += Math_MulQ15(g_projectileDamageByObjectType
-									  .launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST],
-								  source->mobj->cachedFwdZ);
+			worldX += Math_MulQ15(
+				g_projectileTypeData.launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST],
+				source->mobj->cachedFwdX);
+			worldY += Math_MulQ15(
+				g_projectileTypeData.launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST],
+				source->mobj->cachedFwdY);
+			worldZ += Math_MulQ15(
+				g_projectileTypeData.launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST],
+				source->mobj->cachedFwdZ);
 			g_objectTable[projectileIndex].world_x = worldX;
 			g_objectTable[projectileIndex].world_y = worldY;
 			g_objectTable[projectileIndex].world_z = worldZ;
@@ -1296,8 +1294,8 @@ uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx, uint16_t target
 	if (objectIndex == UINT16_MAX) {
 		for (objectIndex = (uint16_t)(g_projectileObjectSlotStart + 128);
 			 objectIndex < g_projectileObjectSlotEnd; objectIndex++) {
-			if (g_projectileDamageByObjectType.warheadClass[g_objectTable[objectIndex].objectType -
-															PROJECTILE_OBJECT_TYPE_FIRST] == 0 &&
+			if (g_projectileTypeData.warheadClass[g_objectTable[objectIndex].objectType -
+												  PROJECTILE_OBJECT_TYPE_FIRST] == 0 &&
 				g_objectTable[objectIndex].mobj->team == g_missionFlightGroups[flightGroupIdx].fg.team) {
 				break;
 			}
@@ -1318,18 +1316,18 @@ uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx, uint16_t target
 	g_objectTable[objectIndex].roll = 0;
 	g_objectTable[objectIndex].yaw = 0;
 	g_objectTable[objectIndex].mobj->speed =
-		g_projectileDamageByObjectType.speed[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
-	g_projectileGuidanceStates[objectIndex - g_projectileObjectSlotStart].minSpeed =
+		g_projectileTypeData.speed[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
+	g_projectileGuidanceStates[objectIndex - g_projectileObjectSlotStart].cruiseSpeed =
 		g_objectTable[objectIndex].mobj->speed;
 	g_objectTable[objectIndex].mobj->damageAmount =
-		g_projectileDamageByObjectType.damage[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
+		g_projectileTypeData.damage[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
 	g_objectTable[objectIndex].mobj->lifetimeTimer = laser_GetProjectileLifetimeTicks(projectileType);
 	Mission_ResolveObjectOrMissionPointWorldLoc(sourceObjIdx, 0);
 	g_objectTable[objectIndex].mobj->prevWorldX = g_worldLocX;
 	g_objectTable[objectIndex].world_x = g_objectTable[objectIndex].mobj->prevWorldX;
-	g_objectTable[objectIndex].mobj->prevWorldY = worldlocy;
+	g_objectTable[objectIndex].mobj->prevWorldY = g_worldLocY;
 	g_objectTable[objectIndex].world_y = g_objectTable[objectIndex].mobj->prevWorldY;
-	g_objectTable[objectIndex].mobj->prevWorldZ = worldlocz + 384;
+	g_objectTable[objectIndex].mobj->prevWorldZ = g_worldLocZ + 384;
 	g_objectTable[objectIndex].world_z = g_objectTable[objectIndex].mobj->prevWorldZ;
 	guidanceIndex = (uint16_t)(objectIndex - g_projectileObjectSlotStart);
 	g_projectileGuidanceStates[guidanceIndex].homingTier = (uint8_t)((GameRand() & 3) + 3);
@@ -1366,13 +1364,12 @@ int laser_createcountermeasureprojectile(unsigned int ownerObjIdx, int projectil
 		rangeStart = g_objectSlotRangeByGenus[6].start + 12 * g_objectTable[ownerObjIdx].playerOwnerIdx;
 		projectileIndex = (uint16_t)rangeStart;
 		rangeEnd = rangeStart + 12;
-		if (g_projectileDamageByObjectType
-				.warheadClass[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0)
+		if (g_projectileTypeData.warheadClass[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0)
 			projectileIndex += 8;
 		for (; projectileIndex < rangeEnd; ++projectileIndex) {
 			if (g_objectTable[projectileIndex].objectType == 0) {
 				g_objectTable[projectileIndex].mobj->sourceObjIdx = 0;
-				g_objectTable[projectileIndex].mobj->lightIntensityScale = 0;
+				g_objectTable[projectileIndex].mobj->effectSize = 0;
 				break;
 			}
 		}
@@ -1384,7 +1381,7 @@ int laser_createcountermeasureprojectile(unsigned int ownerObjIdx, int projectil
 			for (; projectileIndex < rangeEnd; ++projectileIndex) {
 				if (g_objectTable[projectileIndex].objectType == 0) {
 					g_objectTable[projectileIndex].mobj->sourceObjIdx = 0;
-					g_objectTable[projectileIndex].mobj->lightIntensityScale = 0;
+					g_objectTable[projectileIndex].mobj->effectSize = 0;
 					break;
 				}
 			}
@@ -1412,17 +1409,17 @@ int laser_createcountermeasureprojectile(unsigned int ownerObjIdx, int projectil
 		g_objectTable[projectileIndex].roll = owner->roll;
 		g_objectTable[projectileIndex].yaw = (int16_t)(owner->yaw + 0x8000);
 		g_objectTable[projectileIndex].mobj->speed =
-			g_projectileDamageByObjectType.speed[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] >> 1;
-		g_projectileGuidanceStates[projectileIndex - g_projectileObjectSlotStart].minSpeed =
-			g_projectileDamageByObjectType.speed[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] +
+			g_projectileTypeData.speed[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] >> 1;
+		g_projectileGuidanceStates[projectileIndex - g_projectileObjectSlotStart].cruiseSpeed =
+			g_projectileTypeData.speed[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] +
 			owner->mobj->speed;
 		g_objectTable[projectileIndex].mobj->damageAmount =
-			g_projectileDamageByObjectType.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] +
+			g_projectileTypeData.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] +
 			owner->mobj->speed;
 		if (g_objectTable[projectileIndex].mobj->damageAmount <
-			g_projectileDamageByObjectType.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST])
+			g_projectileTypeData.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST])
 			g_objectTable[projectileIndex].mobj->damageAmount =
-				g_projectileDamageByObjectType.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
+				g_projectileTypeData.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
 		g_objectTable[projectileIndex].mobj->lifetimeTimer =
 			laser_GetProjectileLifetimeTicks(projectileObjectType);
 		g_objectTable[projectileIndex].mobj->orientMatrixDirty = 1;
@@ -1478,8 +1475,8 @@ int laser_createcountermeasureprojectile(unsigned int ownerObjIdx, int projectil
 					uint8_t candidateType = g_objectTable[candidateIndex].objectType;
 
 					if (candidateType != 0 && g_objectTable[candidateIndex].mobj->family == 1 &&
-						g_projectileDamageByObjectType
-								.warheadClass[candidateType - PROJECTILE_OBJECT_TYPE_FIRST] != 0 &&
+						g_projectileTypeData.warheadClass[candidateType - PROJECTILE_OBJECT_TYPE_FIRST] !=
+							0 &&
 						g_projectileGuidanceStates[candidateIndex - g_projectileObjectSlotStart]
 								.targetObjIdx == ownerObjIdx) {
 						int interceptorCount = 0;
@@ -1526,10 +1523,10 @@ int laser_createcountermeasureprojectile(unsigned int ownerObjIdx, int projectil
 								int ownerTeam =
 									g_missionFlightGroups[g_objectTable[(uint16_t)ownerObjIdx].flightGroupIdx]
 										.fg.team;
-								uint16_t candidateIff = (uint16_t)g_players[candidate->playerOwnerIdx].team;
+								uint16_t candidateTeam = (uint16_t)g_players[candidate->playerOwnerIdx].team;
 
-								if (ownerTeam != candidateIff)
-									hostilePlayer = g_missionTeams[candidateIff].allies[ownerTeam] < 1;
+								if (ownerTeam != candidateTeam)
+									hostilePlayer = g_missionTeams[candidateTeam].allies[ownerTeam] < 1;
 								if (hostilePlayer != 0)
 									isEnemy = 1;
 							}
@@ -1606,7 +1603,7 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 		AIM_ERROR_BASE = 256,
 		AIM_ERROR_MASK = 0x3FF,
 		ANGLE_WRAPPED = 0x8000,
-		ANGLE_QUARTER_EIGHTH = 0x2000,
+		ANGLE_ONE_EIGHTH = 0x2000,
 		ANGLE_THREE_EIGHTHS = 0x6000,
 		ANGLE_FIVE_EIGHTHS = 0xA000,
 		ANGLE_SEVEN_EIGHTHS = 0xE000,
@@ -1648,9 +1645,9 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 	g_paifightSearchOriginY = mineY;
 	g_paifightSearchOriginZ = mineZ;
 	flightGroupIdx = g_objectTable[mineObjIdx].flightGroupIdx;
-	g_paiContext.requireLiveOrderTarget = 1;
+	g_paiContext.requireUndisabledTarget = 1;
 	if (g_objectTable[mineObjIdx].objectType != MINE_TYPE_B_LIVE_TARGET)
-		g_paiContext.requireLiveOrderTarget = 0;
+		g_paiContext.requireUndisabledTarget = 0;
 	targetRef = paifight_FindNearestMatchingTargetFromOrigin(
 		g_missionFlightGroups[flightGroupIdx].fg.orders[0].target1Type,
 		g_missionFlightGroups[flightGroupIdx].fg.orders[0].target1,
@@ -1670,8 +1667,8 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(targetRef, 0);
 	targetX = g_worldLocX;
-	targetY = worldlocy;
-	targetZ = worldlocz;
+	targetY = g_worldLocY;
+	targetZ = g_worldLocZ;
 	if ((unsigned int)collide_roughdistance3d(targetX - mineX, targetY - mineY, targetZ - mineZ) >=
 		MINE_FIRE_RANGE)
 		return;
@@ -1736,13 +1733,13 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 									? LARGE_MINE_LAUNCH_OFFSET
 									: SMALL_MINE_LAUNCH_OFFSET;
 
-		if (trig2_pitch < ANGLE_QUARTER_EIGHTH) {
+		if (trig2_pitch < ANGLE_ONE_EIGHTH) {
 			mineZ += launchOffset;
 		} else if (trig2_pitch > ANGLE_THREE_EIGHTHS) {
 			if (g_objectTable[mineObjIdx].objectType >= MINE_TYPE_C_FIRST_SIDE_ONLY)
 				return;
 			mineZ -= launchOffset;
-		} else if (trig2_xyangle < ANGLE_QUARTER_EIGHTH || trig2_xyangle > ANGLE_SEVEN_EIGHTHS) {
+		} else if (trig2_xyangle < ANGLE_ONE_EIGHTH || trig2_xyangle > ANGLE_SEVEN_EIGHTHS) {
 			mineY += launchOffset;
 		} else if (trig2_xyangle < ANGLE_THREE_EIGHTHS) {
 			mineX += launchOffset;
@@ -1821,19 +1818,18 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 		g_objectTable[projectileObjIdx].mobj->moveVectorDirty =
 			g_objectTable[projectileObjIdx].mobj->orientMatrixDirty;
 		g_objectTable[projectileObjIdx].mobj->speed =
-			g_projectileDamageByObjectType.speed[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] >>
+			g_projectileTypeData.speed[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] >>
 			MINE_PROJECTILE_SPEED_SHIFT;
 		g_objectTable[projectileObjIdx].mobj->lifetimeTimer =
 			(uint16_t)(MINE_PROJECTILE_LIFETIME_SCALE *
 					   laser_GetProjectileLifetimeTicks(projectileObjectType));
 		g_objectTable[projectileObjIdx].mobj->damageAmount =
-			g_projectileDamageByObjectType.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
+			g_projectileTypeData.damage[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
 		FVIEW_calcrotatemove(projectilePitch, projectileYaw, &g_objectTable[projectileObjIdx]);
 		g_objectTable[projectileObjIdx].mobj->prevWorldX = mineX;
 		g_objectTable[projectileObjIdx].mobj->prevWorldY = mineY;
 		g_objectTable[projectileObjIdx].mobj->prevWorldZ = mineZ;
-		launchOffset =
-			g_projectileDamageByObjectType.launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
+		launchOffset = g_projectileTypeData.launchOffset[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST];
 		mineX += Math_MulQ15(g_fviewMoveX_Q15, launchOffset);
 		mineY += Math_MulQ15(g_fviewMoveY_Q15, launchOffset);
 		mineZ += Math_MulQ15(g_fviewMoveZ_Q15, launchOffset);
@@ -1855,11 +1851,11 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx) {
 }
 
 // FUNCTION: XVT 0x4A7900
-void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, uint16_t targetRef) {
+void laser_fireturretslot(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, uint16_t targetRef) {
 	enum {
 		LASER_CHARGE_VALUE_MASK = 0x7F,
 		LASER_CHARGE_FLAG_MASK = 0x80,
-		LASER_CHARGE_RESET_VALUE = 59,
+		TURRET_REFIRE_TICKS = 59,
 		BEAM_FIRE_BLOCK_THRESHOLD = 0x28000,
 		BEAM_SINGLE_DRAIN_THRESHOLD = 0x18000,
 		BEAM_DOUBLE_DRAIN_THRESHOLD = 0x8000,
@@ -1868,10 +1864,10 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 		SKILL_MEDIUM_DRAIN_THRESHOLD = 0x5555,
 		SKILL_SLOW_DRAIN_THRESHOLD = 0x4000,
 		SKILL_SLOW_DRAIN_DIVISOR = 6,
-		LARGE_LAUNCHER_OBJECT_TYPE = 54,
-		HALF_SCALE_LAUNCHER_OBJECT_TYPE = 53,
+		SUPER_STAR_DESTROYER_OBJECT_TYPE = 54,
+		IMPERIAL_STAR_DESTROYER_OBJECT_TYPE = 53,
 		MODEL_TYPE_CACHE_CAPACITY = 73,
-		WARHEAD_LAUNCH_RANGE = 0x14000,
+		TURRET_FIRE_RANGE = 0x14000,
 		ANIMATED_MESH_ANGLE_SHIFT = 8,
 		WEAPON_GROUP_COUNT = 2,
 		PROJECTILE_LIFETIME_SCALE = 3,
@@ -1891,11 +1887,11 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 	int16_t projectilePitch;
 	uint8_t alternateHardpointIdx;
 	uint8_t charge;
-	uint8_t chargeValue;
-	uint8_t drainAmount;
-	uint8_t remainingCharge;
+	uint8_t refireCountdown;
+	uint8_t countdownStep;
+	uint8_t previousCountdown;
 	uint8_t nearestRank;
-	int16_t weaponCount;
+	int16_t firesIon;
 	int16_t hardpointX;
 	int16_t hardpointY;
 	int16_t hardpointZ;
@@ -1917,7 +1913,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 	uint16_t weaponGroupIndex;
 	int previousSlotIdx;
 	int targetObjIdx;
-	uint16_t ionWeapon;
+	uint16_t heavyTurboLaser;
 	int launchOffset;
 
 	if (g_curCraft->workingSubsystems == 0)
@@ -1933,52 +1929,52 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 	sourceObject = &g_objectTable[sourceObjIdx];
 	effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
 	charge = (uint8_t)g_curCraft->weaponSlots[weaponSlotIdx].laserCharge;
-	chargeValue = charge & LASER_CHARGE_VALUE_MASK;
-	if (chargeValue != 0) {
+	refireCountdown = charge & LASER_CHARGE_VALUE_MASK;
+	if (refireCountdown != 0) {
 		if (g_curCraft->beamEffectAccum[2] != 0) {
 			if ((unsigned int)g_curCraft->beamEffectAccum[2] >= BEAM_FIRE_BLOCK_THRESHOLD)
 				return;
 			if ((unsigned int)g_curCraft->beamEffectAccum[2] >= BEAM_SINGLE_DRAIN_THRESHOLD) {
 				if (g_missionElapsedClock.subsecondTicks < BEAM_DRAIN_TICK_THRESHOLD)
 					return;
-				drainAmount = 1;
+				countdownStep = 1;
 			} else if ((unsigned int)g_curCraft->beamEffectAccum[2] >= BEAM_DOUBLE_DRAIN_THRESHOLD) {
 				if (g_missionElapsedClock.subsecondTicks < BEAM_DRAIN_TICK_THRESHOLD)
 					return;
-				drainAmount = 2;
+				countdownStep = 2;
 			} else {
-				drainAmount = 1;
+				countdownStep = 1;
 			}
 		} else if (effectiveSkill >= SKILL_FAST_DRAIN_THRESHOLD) {
-			drainAmount = (uint8_t)(g_elapsedTicks >> 1);
+			countdownStep = (uint8_t)(g_elapsedTicks >> 1);
 		} else if (effectiveSkill >= SKILL_MEDIUM_DRAIN_THRESHOLD) {
-			drainAmount = (uint8_t)(g_elapsedTicks >> 2);
+			countdownStep = (uint8_t)(g_elapsedTicks >> 2);
 		} else if (effectiveSkill >= SKILL_SLOW_DRAIN_THRESHOLD) {
-			drainAmount = (uint8_t)(g_elapsedTicks / SKILL_SLOW_DRAIN_DIVISOR);
+			countdownStep = (uint8_t)(g_elapsedTicks / SKILL_SLOW_DRAIN_DIVISOR);
 		} else {
-			drainAmount = (uint8_t)(g_elapsedTicks >> 3);
+			countdownStep = (uint8_t)(g_elapsedTicks >> 3);
 		}
-		if (drainAmount == 0)
-			drainAmount = 1;
-		remainingCharge = chargeValue;
-		chargeValue = (uint8_t)(chargeValue - drainAmount);
-		if (chargeValue > remainingCharge)
-			chargeValue = 0;
+		if (countdownStep == 0)
+			countdownStep = 1;
+		previousCountdown = refireCountdown;
+		refireCountdown = (uint8_t)(refireCountdown - countdownStep);
+		if (refireCountdown > previousCountdown)
+			refireCountdown = 0;
 		g_curCraft->weaponSlots[weaponSlotIdx].laserCharge = charge & LASER_CHARGE_FLAG_MASK;
-		g_curCraft->weaponSlots[weaponSlotIdx].laserCharge |= (int8_t)chargeValue;
+		g_curCraft->weaponSlots[weaponSlotIdx].laserCharge |= (int8_t)refireCountdown;
 		return;
 	}
 
 	g_curCraft->weaponSlots[weaponSlotIdx].laserCharge = charge & LASER_CHARGE_FLAG_MASK;
-	g_curCraft->weaponSlots[weaponSlotIdx].laserCharge |= LASER_CHARGE_RESET_VALUE;
+	g_curCraft->weaponSlots[weaponSlotIdx].laserCharge |= TURRET_REFIRE_TICKS;
 	launchX = sourceObject->world_x;
 	launchY = sourceObject->world_y;
 	launchZ = sourceObject->world_z;
-	if (sourceObject->objectType == LARGE_LAUNCHER_OBJECT_TYPE) {
+	if (sourceObject->objectType == SUPER_STAR_DESTROYER_OBJECT_TYPE) {
 		Mission_ResolveObjectOrMissionPointWorldLoc(targetRef, 0);
 		localX = g_worldLocX - launchX;
-		localY = worldlocy - launchY;
-		localZ = worldlocz - launchZ;
+		localY = g_worldLocY - launchY;
+		localZ = g_worldLocZ - launchZ;
 		if (sourceObject->mobj == NULL)
 			return;
 		if (sourceObject->mobj->orientMatrixDirty != 0) {
@@ -2014,7 +2010,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 			hardpointX = g_modelDefs[modelIndex].weaponHardpoints[weaponSlotIdx].x;
 			hardpointY = g_modelDefs[modelIndex].weaponHardpoints[weaponSlotIdx].y;
 			hardpointZ = g_modelDefs[modelIndex].weaponHardpoints[weaponSlotIdx].z;
-		} else if (sourceObject->objectType == HALF_SCALE_LAUNCHER_OBJECT_TYPE) {
+		} else if (sourceObject->objectType == IMPERIAL_STAR_DESTROYER_OBJECT_TYPE) {
 			hardpointX =
 				(int16_t)(ModelMesh_GetHardpointX(sourceObject->objectType, meshIdx, alternateHardpointIdx) >>
 						  1);
@@ -2044,7 +2040,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 			g_rotatedX = hardpointX;
 			g_rotatedY = hardpointY;
 			g_rotatedZ = hardpointZ;
-			if (sourceObject->objectType == HALF_SCALE_LAUNCHER_OBJECT_TYPE) {
+			if (sourceObject->objectType == IMPERIAL_STAR_DESTROYER_OBJECT_TYPE) {
 				g_rotatedX *= 2;
 				g_rotatedY *= 2;
 				g_rotatedZ *= 2;
@@ -2052,7 +2048,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 			ModelMesh_ApplyAnimatedMeshRotationToPoint(
 				(int16_t)(g_curCraft->meshRotation[meshIdx] << ANIMATED_MESH_ANGLE_SHIFT),
 				sourceObject->objectType, meshIdx, g_rotatedX, g_rotatedY, g_rotatedZ);
-			if (sourceObject->objectType == HALF_SCALE_LAUNCHER_OBJECT_TYPE) {
+			if (sourceObject->objectType == IMPERIAL_STAR_DESTROYER_OBJECT_TYPE) {
 				g_rotatedX >>= 1;
 				g_rotatedY >>= 1;
 				g_rotatedZ >>= 1;
@@ -2063,7 +2059,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 		}
 		pai_calcrotatedpoint(sourceObject, hardpointX, hardpointZ, hardpointY);
 	}
-	if (sourceObject->objectType == HALF_SCALE_LAUNCHER_OBJECT_TYPE) {
+	if (sourceObject->objectType == IMPERIAL_STAR_DESTROYER_OBJECT_TYPE) {
 		g_rotatedX *= 2;
 		g_rotatedY *= 2;
 		g_rotatedZ *= 2;
@@ -2075,8 +2071,8 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 	targetObjIdx = targetRef;
 	Mission_ResolveObjectOrMissionPointWorldLoc((uint16_t)targetObjIdx, 0);
 	targetX = g_worldLocX;
-	targetY = worldlocy;
-	targetZ = worldlocz;
+	targetY = g_worldLocY;
+	targetZ = g_worldLocZ;
 	{
 		int targetDelta[3];
 
@@ -2084,7 +2080,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 		targetDelta[1] = targetY - launchY;
 		targetDelta[2] = targetZ - launchZ;
 		if ((unsigned int)collide_roughdistance3d(targetDelta[0], targetDelta[1], targetDelta[2]) >
-			WARHEAD_LAUNCH_RANGE)
+			TURRET_FIRE_RANGE)
 			return;
 		g_collisionProbeWorldX = targetX;
 		g_collisionSegmentStartWorldX = launchX;
@@ -2092,8 +2088,8 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 		g_collisionSegmentStartWorldY = launchY;
 		g_collisionProbeWorldZ = targetZ;
 		g_collisionSegmentStartWorldZ = launchZ;
-		if (sourceObject->objectType == LARGE_LAUNCHER_OBJECT_TYPE) {
-			g_warheadLaunchHullMeshOrdinal = mainHullMeshIdx;
+		if (sourceObject->objectType == SUPER_STAR_DESTROYER_OBJECT_TYPE) {
+			g_turretFireHullMeshOrdinal = mainHullMeshIdx;
 			g_collideSweepRejectNearStartHits = 1;
 			collisionBlocked = collide_CheckSweptModelCollision(sourceObjIdx, sourceObjIdx);
 			g_collideSweepRejectNearStartHits = 0;
@@ -2103,11 +2099,11 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 		if (collisionBlocked != 0)
 			return;
 
-		weaponCount = g_curCraft->weaponSlots[weaponSlotIdx].ammoCount;
+		firesIon = g_curCraft->weaponSlots[weaponSlotIdx].ammoCount;
 		if (g_objectTable[targetObjIdx].mobj != NULL) {
 			trig2_ctop(targetDelta[0], targetDelta[1], targetDelta[2]);
 			trig2_polardistance *= g_simStepsPerSecond;
-			if (weaponCount != 0)
+			if (firesIon != 0)
 				trig2_polardistance >>= 15;
 			else
 				trig2_polardistance >>= 14;
@@ -2180,7 +2176,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 	g_objectTable[projectileObjIdx].mobj->family = 1;
 	g_objectTable[projectileObjIdx].genusId = CRAFT_GENUS_OTHER_PROJECTILE;
 	g_objectTable[projectileObjIdx].mobj->iff = sourceObject->mobj->iff;
-	ionWeapon = 0;
+	heavyTurboLaser = 0;
 	for (weaponGroupIndex = 0; weaponGroupIndex < WEAPON_GROUP_COUNT; ++weaponGroupIndex) {
 		if (g_modelDefs[modelIndex].laserGroupFirstSlot[weaponGroupIndex] <= weaponSlotIdx &&
 			g_modelDefs[modelIndex].laserGroupLastSlot[weaponGroupIndex] >= weaponSlotIdx &&
@@ -2188,18 +2184,18 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 				 PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER_2 ||
 			 g_modelDefs[modelIndex].laserGroupWeaponType[weaponGroupIndex] ==
 				 PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER_2)) {
-			ionWeapon = 1;
+			heavyTurboLaser = 1;
 		}
 	}
-	if (weaponCount != 0) {
+	if (firesIon != 0) {
 		projectileType =
-			ionWeapon != 0 ? PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER : PROJECTILE_OBJECT_TYPE_ION_LASER;
+			heavyTurboLaser != 0 ? PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER : PROJECTILE_OBJECT_TYPE_ION_LASER;
 	} else if (sourceObject->mobj->iff == 0 || sourceObject->mobj->iff == 2) {
-		projectileType = ionWeapon != 0 ? PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER_2
-										: PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER;
+		projectileType = heavyTurboLaser != 0 ? PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER_2
+											  : PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER;
 	} else {
-		projectileType = ionWeapon != 0 ? PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER_2
-										: PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER;
+		projectileType = heavyTurboLaser != 0 ? PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER_2
+											  : PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER;
 	}
 	g_objectTable[projectileObjIdx].objectType = (uint8_t)projectileType;
 	g_objectTable[projectileObjIdx].mobj->secondsAlive = 1;
@@ -2212,17 +2208,16 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 	g_objectTable[projectileObjIdx].mobj->moveVectorDirty =
 		g_objectTable[projectileObjIdx].mobj->orientMatrixDirty;
 	g_objectTable[projectileObjIdx].mobj->speed =
-		g_projectileDamageByObjectType.speed[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
+		g_projectileTypeData.speed[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
 	g_objectTable[projectileObjIdx].mobj->damageAmount =
-		g_projectileDamageByObjectType.damage[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
+		g_projectileTypeData.damage[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
 	g_objectTable[projectileObjIdx].mobj->lifetimeTimer =
 		(uint16_t)(PROJECTILE_LIFETIME_SCALE * laser_GetProjectileLifetimeTicks(projectileType));
 	FVIEW_calcrotatemove(projectilePitch, (int16_t)projectileYaw, &g_objectTable[projectileObjIdx]);
 	g_objectTable[projectileObjIdx].mobj->prevWorldX = launchX;
 	g_objectTable[projectileObjIdx].mobj->prevWorldY = launchY;
 	g_objectTable[projectileObjIdx].mobj->prevWorldZ = launchZ;
-	launchOffset =
-		(int16_t)g_projectileDamageByObjectType.launchOffset[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
+	launchOffset = (int16_t)g_projectileTypeData.launchOffset[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
 	launchX += Math_MulQ15(g_fviewMoveX_Q15, launchOffset);
 	launchY += Math_MulQ15(g_fviewMoveY_Q15, launchOffset);
 	launchZ += Math_MulQ15(g_fviewMoveZ_Q15, launchOffset);
@@ -2237,7 +2232,7 @@ void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, ui
 		g_projectileGuidanceStates[guidanceIndex].targetSignature = 0;
 	else
 		g_projectileGuidanceStates[guidanceIndex].targetSignature = g_objectTable[targetRef].objectSignature;
-	g_projectileGuidanceStates[guidanceIndex].minSpeed = g_objectTable[projectileObjIdx].mobj->speed;
+	g_projectileGuidanceStates[guidanceIndex].cruiseSpeed = g_objectTable[projectileObjIdx].mobj->speed;
 	g_projectileGuidanceStates[guidanceIndex].sourcePlayerIdx = -1;
 	g_objectTable[projectileObjIdx].mobj->pWarheadGuidance = &g_projectileGuidanceStates[guidanceIndex];
 	fsfx_triggerweaponsfx(projectileObjIdx, g_localPlayer);

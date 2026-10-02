@@ -116,7 +116,7 @@ void FlightMap_RenderView(void) {
 	FlightMap_BuildRenderList();
 	RenderList_SortDepthDescending();
 	g_renderSceneResetPending = 1;
-	if (g_players[g_localPlayer].viewState.savedTargetZ < MAP_GRID_PLANE_Z) {
+	if (g_players[g_localPlayer].viewState.cameraWorldZ < MAP_GRID_PLANE_Z) {
 		FlightMap_DrawObjectPass(1);
 		FlightMap_DrawGrid();
 		FlightMap_DrawObjectPass(0);
@@ -139,9 +139,9 @@ void FlightMap_UpdateCamera(int playerIdx) {
 			g_players[playerIdx].viewState.viewYaw =
 				g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].yaw;
 			Mission_ResolveObjectOrMissionPointWorldLoc(g_players[playerIdx].viewState.cameraFocusObjIdx, 0);
-			g_players[playerIdx].viewState.savedTargetX = g_worldLocX;
-			g_players[playerIdx].viewState.savedTargetY = worldlocy;
-			g_players[playerIdx].viewState.savedTargetZ = worldlocz;
+			g_players[playerIdx].viewState.cameraWorldX = g_worldLocX;
+			g_players[playerIdx].viewState.cameraWorldY = g_worldLocY;
+			g_players[playerIdx].viewState.cameraWorldZ = g_worldLocZ;
 			if (g_flightSimSideEffectsSuppressed == 0) {
 				g_players[playerIdx].viewState.hudAimY +=
 					FlightMap_ComputeAimStep(-g_players[playerIdx].viewState.hudAimY);
@@ -169,11 +169,11 @@ void FlightMap_UpdateCamera(int playerIdx) {
 			g_players[playerIdx].viewState.viewYaw, 0, g_players[playerIdx].viewState.hudAimX,
 			g_players[playerIdx].viewState.hudAimY, NULL);
 		if (g_players[playerIdx].viewState.cameraFocusObjIdx != UINT16_MAX) {
-			g_players[playerIdx].viewState.savedTargetX -=
+			g_players[playerIdx].viewState.cameraWorldX -=
 				Math_MulQ15(g_players[playerIdx].viewState.cameraDistance, g_camMatR2_X);
-			g_players[playerIdx].viewState.savedTargetY -=
+			g_players[playerIdx].viewState.cameraWorldY -=
 				Math_MulQ15(g_players[playerIdx].viewState.cameraDistance, g_camMatR2_Y);
-			g_players[playerIdx].viewState.savedTargetZ -=
+			g_players[playerIdx].viewState.cameraWorldZ -=
 				Math_MulQ15(g_players[playerIdx].viewState.cameraDistance, g_camMatR2_Z);
 		}
 		return;
@@ -187,9 +187,9 @@ void FlightMap_UpdateCamera(int playerIdx) {
 		g_players[playerIdx].viewState.viewYaw =
 			g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].yaw;
 		Mission_ResolveObjectOrMissionPointWorldLoc(g_players[playerIdx].viewState.cameraFocusObjIdx, 0);
-		g_players[playerIdx].viewState.savedTargetX = g_worldLocX;
-		g_players[playerIdx].viewState.savedTargetY = worldlocy;
-		g_players[playerIdx].viewState.savedTargetZ = worldlocz;
+		g_players[playerIdx].viewState.cameraWorldX = g_worldLocX;
+		g_players[playerIdx].viewState.cameraWorldY = g_worldLocY;
+		g_players[playerIdx].viewState.cameraWorldZ = g_worldLocZ;
 		FVIEW_BuildCameraOrient(
 			g_players[playerIdx].viewState.viewRoll, g_players[playerIdx].viewState.viewPitch,
 			g_players[playerIdx].viewState.viewYaw, 0, g_players[playerIdx].viewState.hudAimX,
@@ -212,20 +212,20 @@ void FlightMap_UpdateCamera(int playerIdx) {
 			g_players[playerIdx].viewState.hudAimY, NULL);
 	}
 	if (g_players[playerIdx].viewState.cameraFocusObjIdx != UINT16_MAX) {
-		g_players[playerIdx].viewState.savedTargetX -=
+		g_players[playerIdx].viewState.cameraWorldX -=
 			Math_MulQ15(g_players[playerIdx].viewState.cameraDistance, g_camMatR2_X);
-		g_players[playerIdx].viewState.savedTargetY -=
+		g_players[playerIdx].viewState.cameraWorldY -=
 			Math_MulQ15(g_players[playerIdx].viewState.cameraDistance, g_camMatR2_Y);
-		g_players[playerIdx].viewState.savedTargetZ -=
+		g_players[playerIdx].viewState.cameraWorldZ -=
 			Math_MulQ15(g_players[playerIdx].viewState.cameraDistance, g_camMatR2_Z);
 	}
 	if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX) {
 		trig2_ctop(g_objectTable[g_players[playerIdx].viewState.aimTargetIdx].world_x -
-					   g_players[playerIdx].viewState.savedTargetX,
+					   g_players[playerIdx].viewState.cameraWorldX,
 				   g_objectTable[g_players[playerIdx].viewState.aimTargetIdx].world_y -
-					   g_players[playerIdx].viewState.savedTargetY,
+					   g_players[playerIdx].viewState.cameraWorldY,
 				   g_objectTable[g_players[playerIdx].viewState.aimTargetIdx].world_z -
-					   g_players[playerIdx].viewState.savedTargetZ);
+					   g_players[playerIdx].viewState.cameraWorldZ);
 		g_players[playerIdx].viewState.viewRoll = 0;
 		g_players[playerIdx].viewState.viewPitch = trig2_pitch;
 		g_players[playerIdx].viewState.viewYaw = trig2_xyangle;
@@ -263,8 +263,8 @@ void FlightMap_BuildRenderList(void) {
 					case CRAFT_GENUS_OTHER_PROJECTILE:
 					case CRAFT_GENUS_SMALL_DEBRIS:
 					case CRAFT_GENUS_EXPLOSION:
-						if (FlightView_IsObjectSphereVisible(objectIdx,
-															 g_modelTypeTable[objectType].maxBoundsExtent)) {
+						if (FlightView_ProjectAndTestSphereVisible(
+								objectIdx, g_modelTypeTable[objectType].maxBoundsExtent)) {
 							RenderList_QueueObject(objectIdx, g_viewSpaceDepth);
 						}
 						break;
@@ -292,7 +292,7 @@ void FlightMap_BuildRenderList(void) {
 }
 
 // FUNCTION: XVT 0x436780
-void FlightMap_DrawObjectPass(int pass) {
+void FlightMap_DrawObjectPass(int drawAboveGridPlane) {
 	enum {
 		MAP_GRID_PLANE_Z = -65536,
 		MAP_MODEL_ICON_DISTANCE_SHIFT = 4,
@@ -310,7 +310,7 @@ void FlightMap_DrawObjectPass(int pass) {
 
 		objectIdx = g_renderListHead->objectIdx;
 		drawObject = 0;
-		if (pass != 0) {
+		if (drawAboveGridPlane != 0) {
 			if (g_objectTable[objectIdx].world_z >= MAP_GRID_PLANE_Z) {
 				drawObject = 1;
 			}
@@ -322,17 +322,17 @@ void FlightMap_DrawObjectPass(int pass) {
 
 		if (drawObject != 0) {
 			int genusId;
-			int savedTargetX;
-			int savedTargetY;
+			int cameraWorldX;
+			int cameraWorldY;
 
 			RenderScene_Initialize(g_renderSceneResetPending);
 			g_renderSceneResetPending = 0;
-			savedTargetX = g_players[g_localPlayer].viewState.savedTargetX;
-			savedTargetY = g_players[g_localPlayer].viewState.savedTargetY;
-			g_camRelWorldX = g_objectTable[objectIdx].world_x - savedTargetX;
-			g_camRelWorldY = g_objectTable[objectIdx].world_y - savedTargetY;
+			cameraWorldX = g_players[g_localPlayer].viewState.cameraWorldX;
+			cameraWorldY = g_players[g_localPlayer].viewState.cameraWorldY;
+			g_camRelWorldX = g_objectTable[objectIdx].world_x - cameraWorldX;
+			g_camRelWorldY = g_objectTable[objectIdx].world_y - cameraWorldY;
 			g_camRelWorldZ =
-				g_objectTable[objectIdx].world_z - g_players[g_localPlayer].viewState.savedTargetZ;
+				g_objectTable[objectIdx].world_z - g_players[g_localPlayer].viewState.cameraWorldZ;
 			g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 			g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 			g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
@@ -520,7 +520,7 @@ void FlightMap_DrawObjectOverlay(int objectIdx) {
 	int displayExtent;
 	int textX;
 	int textY;
-	int velocityViewPosition[3];
+	int gridFootViewPosition[3];
 	int lineScreenX;
 	int lineScreenY;
 	int distance;
@@ -559,12 +559,12 @@ void FlightMap_DrawObjectOverlay(int objectIdx) {
 		}
 		if (targetRef != UINT16_MAX) {
 			Mission_ResolveObjectOrMissionPointWorldLoc(targetRef, g_objectTable[objectIdx].flightGroupIdx);
-			g_worldLocX -= g_players[g_localPlayer].viewState.savedTargetX;
-			worldlocy -= g_players[g_localPlayer].viewState.savedTargetY;
-			worldlocz -= g_players[g_localPlayer].viewState.savedTargetZ;
-			g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_worldLocX, worldlocy, worldlocz);
-			g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_worldLocX, worldlocy, worldlocz);
-			g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_worldLocX, worldlocy, worldlocz);
+			g_worldLocX -= g_players[g_localPlayer].viewState.cameraWorldX;
+			g_worldLocY -= g_players[g_localPlayer].viewState.cameraWorldY;
+			g_worldLocZ -= g_players[g_localPlayer].viewState.cameraWorldZ;
+			g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_worldLocX, g_worldLocY, g_worldLocZ);
+			g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_worldLocX, g_worldLocY, g_worldLocZ);
+			g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_worldLocX, g_worldLocY, g_worldLocZ);
 			if (g_viewSpaceDepth <= 0) {
 				TRANSFM2_clipobjecteyez(savedViewPosition[0], savedViewPosition[1], savedViewPosition[2]);
 			}
@@ -613,11 +613,11 @@ void FlightMap_DrawObjectOverlay(int objectIdx) {
 	}
 
 	g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY,
-										  -65536 - g_players[g_localPlayer].viewState.savedTargetZ);
+										  -65536 - g_players[g_localPlayer].viewState.cameraWorldZ);
 	g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY,
-										  -65536 - g_players[g_localPlayer].viewState.savedTargetZ);
+										  -65536 - g_players[g_localPlayer].viewState.cameraWorldZ);
 	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY,
-											  -65536 - g_players[g_localPlayer].viewState.savedTargetZ);
+											  -65536 - g_players[g_localPlayer].viewState.cameraWorldZ);
 	if (g_viewSpaceDepth <= 0) {
 		TRANSFM2_clipobjecteyez(savedViewPosition[0], savedViewPosition[1], savedViewPosition[2]);
 	}
@@ -646,19 +646,19 @@ void FlightMap_DrawObjectOverlay(int objectIdx) {
 			g_camRelWorldX += g_objectTable[objectIdx].mobj->moveX;
 			moveY = g_objectTable[objectIdx].mobj->moveY;
 		}
-		velocityViewPosition[2] = g_viewSpaceDepth;
+		gridFootViewPosition[2] = g_viewSpaceDepth;
 		g_camRelWorldY += moveY;
-		velocityViewPosition[0] = g_viewSpaceX;
-		velocityViewPosition[1] = g_viewSpaceY;
+		gridFootViewPosition[0] = g_viewSpaceX;
+		gridFootViewPosition[1] = g_viewSpaceY;
 		g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY,
-											  -65536 - g_players[g_localPlayer].viewState.savedTargetZ);
+											  -65536 - g_players[g_localPlayer].viewState.cameraWorldZ);
 		g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY,
-											  -65536 - g_players[g_localPlayer].viewState.savedTargetZ);
+											  -65536 - g_players[g_localPlayer].viewState.cameraWorldZ);
 		g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY,
-												  -65536 - g_players[g_localPlayer].viewState.savedTargetZ);
+												  -65536 - g_players[g_localPlayer].viewState.cameraWorldZ);
 		if (g_viewSpaceDepth <= 0) {
-			TRANSFM2_clipobjecteyez(velocityViewPosition[0], velocityViewPosition[1],
-									velocityViewPosition[2]);
+			TRANSFM2_clipobjecteyez(gridFootViewPosition[0], gridFootViewPosition[1],
+									gridFootViewPosition[2]);
 		}
 		g_flightDrawLineFn(g_flightClipLeft + TRANSFM2_ProjectScreenX(g_viewSpaceX, g_viewSpaceDepth),
 						   g_flightClipTop + TRANSFM2_ProjectScreenY(g_viewSpaceY, g_viewSpaceDepth),
@@ -918,22 +918,22 @@ void FlightMap_DrawGrid(void) {
 	int otherViewY;
 	int otherDepthZ;
 	int swapValue;
-	int savedTargetX;
-	int savedTargetY;
-	int savedTargetZ;
+	int cameraWorldX;
+	int cameraWorldY;
+	int cameraWorldZ;
 
-	worldlocz = 0;
-	worldlocy = 0;
+	g_worldLocZ = 0;
+	g_worldLocY = 0;
 	g_worldLocX = 0;
 	gridY = -0x100000;
 	lineCount = 33;
 	do {
-		savedTargetX = g_players[g_localPlayer].viewState.savedTargetX;
-		savedTargetY = g_players[g_localPlayer].viewState.savedTargetY;
-		savedTargetZ = g_players[g_localPlayer].viewState.savedTargetZ;
-		g_camRelWorldX = -0x100000 - savedTargetX;
-		g_camRelWorldY = gridY - savedTargetY;
-		g_camRelWorldZ = -0x10000 - savedTargetZ;
+		cameraWorldX = g_players[g_localPlayer].viewState.cameraWorldX;
+		cameraWorldY = g_players[g_localPlayer].viewState.cameraWorldY;
+		cameraWorldZ = g_players[g_localPlayer].viewState.cameraWorldZ;
+		g_camRelWorldX = -0x100000 - cameraWorldX;
+		g_camRelWorldY = gridY - cameraWorldY;
+		g_camRelWorldZ = -0x10000 - cameraWorldZ;
 		gridY += 0x10000;
 		g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 		otherDepthZ = (int)((uint32_t)g_viewSpaceDepth + ((uint32_t)g_camMatR2_X << 6));
@@ -968,14 +968,14 @@ void FlightMap_DrawGrid(void) {
 
 	lineCount = 33;
 	gridX = g_worldLocX - 0x100000;
-	gridY = worldlocy - 0x100000;
+	gridY = g_worldLocY - 0x100000;
 	do {
-		savedTargetX = g_players[g_localPlayer].viewState.savedTargetX;
-		savedTargetY = g_players[g_localPlayer].viewState.savedTargetY;
-		savedTargetZ = g_players[g_localPlayer].viewState.savedTargetZ;
-		g_camRelWorldX = gridX - savedTargetX;
-		g_camRelWorldY = gridY - savedTargetY;
-		g_camRelWorldZ = -0x10000 - savedTargetZ;
+		cameraWorldX = g_players[g_localPlayer].viewState.cameraWorldX;
+		cameraWorldY = g_players[g_localPlayer].viewState.cameraWorldY;
+		cameraWorldZ = g_players[g_localPlayer].viewState.cameraWorldZ;
+		g_camRelWorldX = gridX - cameraWorldX;
+		g_camRelWorldY = gridY - cameraWorldY;
+		g_camRelWorldZ = -0x10000 - cameraWorldZ;
 		gridX += 0x10000;
 		g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 		otherDepthZ = (int)((uint32_t)g_viewSpaceDepth + ((uint32_t)g_camMatR2_Y << 6));
@@ -1029,11 +1029,11 @@ int FlightMap_PickObjectNearestScreenCenter(int playerIdx) {
 			g_players[playerIdx].viewState.hudAimY, NULL);
 		if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX) {
 			trig2_ctop(g_objectTable[g_players[playerIdx].viewState.aimTargetIdx].world_x -
-						   g_players[playerIdx].viewState.savedTargetX,
+						   g_players[playerIdx].viewState.cameraWorldX,
 					   g_objectTable[g_players[playerIdx].viewState.aimTargetIdx].world_y -
-						   g_players[playerIdx].viewState.savedTargetY,
+						   g_players[playerIdx].viewState.cameraWorldY,
 					   g_objectTable[g_players[playerIdx].viewState.aimTargetIdx].world_z -
-						   g_players[playerIdx].viewState.savedTargetZ);
+						   g_players[playerIdx].viewState.cameraWorldZ);
 			FVIEW_BuildCameraOrient(0, trig2_pitch, trig2_xyangle, 0, 0, 0, NULL);
 		}
 	}

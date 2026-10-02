@@ -63,7 +63,7 @@ static void XvtResync_CompleteChecksum(void) {
 		if ((unsigned)index < 8)
 			g_flightNetWorldChecksumPeerStatus[index] = 2;
 		for (int i = 0; i < 8; ++i)
-			if (g_players[i].connectedFlag)
+			if (g_players[i].participationState)
 				status &= g_flightNetWorldChecksumPeerStatus[i];
 		if (status & 1)
 			g_flightNetBufferWorldMessagesUntilChecksum = 0;
@@ -171,7 +171,7 @@ int XvtResync_BeginSend(int player, uint8_t* world, int size) {
 static void XvtResync_NewChunk(void) {
 	FlightNetWorldStateChunkPacket* packet = &g_flightNetWorldStateChunkPackets[g_resync.slot];
 	packet->packetType = NET_PACKET_RESYNC_CHUNK;
-	packet->baseChecksum = (int)g_resync.epoch;
+	packet->checksumEpoch = (int)g_resync.epoch;
 	packet->chunkIndex = g_resync.slot;
 	g_resync.free_bytes = XVT_FLIGHT_PACKET_BYTES - sizeof(XvtFlightChunkHeader) - 2 * sizeof(XvtWireU32);
 	g_resync.payload_offset = 0;
@@ -582,7 +582,7 @@ void XvtResync_ServiceRecovery(void) {
 	XvtWire_Set32(packet.checksum.epoch, g_flightNetWorldChecksumEpoch);
 	for (unsigned region = 0; region < XVT_WORLD_CHECKSUM_REGIONS; ++region) {
 		XvtWire_Set32(packet.checksum.checksums[region], g_worldChecksum[region]);
-		XvtWire_Set32(packet.checksum.lengths[region], g_peerChecksumRegionLengths[region]);
+		XvtWire_Set32(packet.checksum.lengths[region], g_worldChecksumRegionLengths[region]);
 	}
 	XvtWire_Set32(packet.request_state, XVT_CHECKSUM_REQUEST_STATE);
 	XvtFlightNetwork_SendWire(NetSession_GetHostDplayId(), &packet, sizeof packet);
@@ -708,8 +708,8 @@ static int XvtResync_FullApply(const uint8_t* bytes, unsigned size) {
 	g_serverTickTime = g_receive.tick;
 	g_flightNetWorldChecksumEpoch = g_receive.epoch;
 	memcpy(g_worldChecksum, checksums, sizeof checksums);
-	memcpy(g_peerChecksumRegionLengths, lengths, sizeof lengths);
-	FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum, (const int*)g_peerChecksumRegionLengths,
+	memcpy(g_worldChecksumRegionLengths, lengths, sizeof lengths);
+	FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum, (const int*)g_worldChecksumRegionLengths,
 									  XVT_WORLD_CHECKSUM_REGIONS);
 	XvtFlightFrame_ResetReplay();
 	XvtFlightNetwork_Recovered();

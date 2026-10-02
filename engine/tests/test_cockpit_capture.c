@@ -58,7 +58,7 @@ static void World(void) {
 	memset(g_hudCockpitResourceDescriptors, 0, sizeof g_hudCockpitResourceDescriptors);
 	g_hudCockpitResourcesLoaded = 0;
 	g_flightPlayerCount = 0;
-	g_flightFontHalfHeight = 4;
+	g_flightFontDigitWidth = 4;
 
 	memset(g_hudElementLayouts, 0, sizeof g_hudElementLayouts);
 	g_hudInstrumentSetBaseIndex = HUD_COCKPIT_INSTRUMENT_BASE_INDEX;
@@ -354,7 +354,7 @@ static void CheckLatchPages(void) {
 	g_mfdPageStates[MFD_PAGE_SCOREBOARD] = MFD_PAGE_STATE_CLOSED;
 	g_mfdPageStates[MFD_PAGE_GOALS] = MFD_PAGE_STATE_OPEN;
 	g_mfdPageStates[MFD_PAGE_DAMAGE] = MFD_PAGE_STATE_OPEN;
-	g_mfdPageStates[MFD_PAGE_COMMAND] = MFD_PAGE_STATE_OPEN;
+	g_mfdPageStates[MFD_PAGE_MAP_HELP] = MFD_PAGE_STATE_OPEN;
 	g_mfdPageStates[MFD_PAGE_MESSAGE_LOG] = MFD_PAGE_STATE_OPEN;
 
 	/* Off the map: open pages are placed except the command page; closed ones and the log are not. */
@@ -363,7 +363,7 @@ static void CheckLatchPages(void) {
 	const XvtCockpitPage* pages = Presented()->pages;
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_GOALS].visible, 1);
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_DAMAGE].visible, 1);
-	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_COMMAND].visible, 0);
+	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_MAP_HELP].visible, 0);
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_SCOREBOARD].visible, 0);
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_MESSAGE_LOG].visible, 0);
 
@@ -374,7 +374,7 @@ static void CheckLatchPages(void) {
 	pages = Presented()->pages;
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_GOALS].visible, 1);
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_DAMAGE].visible, 0);
-	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_COMMAND].visible, 1);
+	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_MAP_HELP].visible, 1);
 }
 
 static void CheckSealExportsLatchedPages(void) {

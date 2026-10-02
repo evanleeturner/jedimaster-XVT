@@ -33,7 +33,7 @@ int g_fviewUpZ_Q15 = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x427940
-void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch, int16_t viewYaw, int16_t viewAngleD,
+void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch, int16_t viewYaw, int16_t viewUpAxisAngle,
 							 int16_t hudAimX, int16_t hudAimY, ObjectRecord* objRecord) {
 	/* Build the camera basis from the current orientation and HUD aim offsets. */
 	int axisX;
@@ -41,7 +41,7 @@ void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch, int16_t viewYa
 	int axisZ;
 
 	FVIEW_calcrotatemove(viewPitch, viewYaw, objRecord);
-	FVIEW_calcrotateorient(viewRoll, viewAngleD, objRecord);
+	FVIEW_calcrotateorient(viewRoll, viewUpAxisAngle, objRecord);
 
 	g_curMatR2_X = -g_curMatR2_X;
 	g_curMatR2_Y = -g_curMatR2_Y;
@@ -66,22 +66,22 @@ void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch, int16_t viewYa
 	g_camMatR2_Y = g_curMatR2_Y;
 	g_camMatR2_Z = g_curMatR2_Z;
 #ifdef XVT_MODERN
-	XvtRenderCamera_Build(viewRoll, viewPitch, viewYaw, viewAngleD, hudAimX, hudAimY);
+	XvtRenderCamera_Build(viewRoll, viewPitch, viewYaw, viewUpAxisAngle, hudAimX, hudAimY);
 #endif
 }
 
 // FUNCTION: XVT 0x427A60
-int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw, int16_t rollOffset,
+int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw, int16_t upAxisAngle,
 							 ObjectRecord* objRecord) {
 	if (objRecord == NULL) {
 		FVIEW_calcrotatemove(pitch, yaw, objRecord);
-		FVIEW_calcrotateorient(roll, rollOffset, objRecord);
+		FVIEW_calcrotateorient(roll, upAxisAngle, objRecord);
 		return FVIEW_ComputeObjectViewMatrix();
 	}
 
 	if (objRecord->mobj->orientMatrixDirty != 0) {
 		FVIEW_calcrotatemove(pitch, yaw, objRecord);
-		FVIEW_calcrotateorient(roll, rollOffset, objRecord);
+		FVIEW_calcrotateorient(roll, upAxisAngle, objRecord);
 		return FVIEW_ComputeObjectViewMatrix();
 	}
 
@@ -109,16 +109,16 @@ int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw, int16_t r
 }
 
 // FUNCTION: XVT 0x427BD0
-void FVIEW_calcrotatemove(int16_t angleA, int16_t angleB, ObjectRecord* objRecord) {
+void FVIEW_calcrotatemove(int16_t pitch, int16_t yaw, ObjectRecord* objRecord) {
 	int16_t cosNegB;
 	int16_t cosC000MinusA;
 	int16_t sinNegB;
 	int16_t sinC000MinusA;
 
-	cosNegB = trig2_getsignedcos(-angleB);
-	cosC000MinusA = trig2_getsignedcos((int16_t)(0xc000 - angleA));
-	sinNegB = trig2_getsignedsin(-angleB);
-	sinC000MinusA = trig2_getsignedsin((int16_t)(0xc000 - angleA));
+	cosNegB = trig2_getsignedcos(-yaw);
+	cosC000MinusA = trig2_getsignedcos((int16_t)(0xc000 - pitch));
+	sinNegB = trig2_getsignedsin(-yaw);
+	sinC000MinusA = trig2_getsignedsin((int16_t)(0xc000 - pitch));
 
 	g_curMatR0_X = cosNegB;
 	g_curMatR0_Y = sinNegB;
@@ -142,9 +142,9 @@ void FVIEW_calcrotatemove(int16_t angleA, int16_t angleB, ObjectRecord* objRecor
 }
 
 // FUNCTION: XVT 0x427D30
-void FVIEW_calcrotateorient(int16_t angleA, int16_t angleQ16, ObjectRecord* objRecord) {
-	FVIEW_transformaxes(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, angleQ16);
-	FVIEW_transformaxes(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z, angleA);
+void FVIEW_calcrotateorient(int16_t roll, int16_t upAxisAngle, ObjectRecord* objRecord) {
+	FVIEW_transformaxes(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, upAxisAngle);
+	FVIEW_transformaxes(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z, roll);
 
 	g_fviewForwardX_Q15 = -g_curMatR2_X;
 	g_fviewForwardY_Q15 = -g_curMatR2_Y;

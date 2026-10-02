@@ -138,10 +138,10 @@ int XvtFlightSim_UpdateEntity(int playerIdx) {
 						g_sw3dSkipOddScanlines = g_sw3dSkipOddScanlines == 0;
 						break;
 					case FLIGHT_KEY_ALT_M:
-						if (g_flightAltLToggle != 0)
-							g_flightAltLToggle = 0;
+						if (g_flightAltMToggle != 0)
+							g_flightAltMToggle = 0;
 						else
-							g_flightAltLToggle = 1;
+							g_flightAltMToggle = 1;
 						break;
 					case FLIGHT_KEY_ALT_P:
 						if (g_flightPlayerCount == 1 && !XvtPort_NetworkRequiresProgress()) {
@@ -152,13 +152,13 @@ int XvtFlightSim_UpdateEntity(int playerIdx) {
 							XvtRenderCapture_BeginOverlay();
 							msg_emitInFlightMessage(IFMSG_001_MISSION_PAUSED_PRESS_ANY_KEY_TO_CONTINUE,
 													playerIdx);
-							g_flightLockBackBufferForHudDraw = 0;
+							g_flightDrawToHudLayer = 0;
 							FlightSurface_Lock();
 							Hud_BlitSoftwareHudTextPanes();
 							FlightSurface_Unlock();
 							FlightDisplay_Flip();
 							XvtRenderCapture_EndOverlay();
-							g_flightLockBackBufferForHudDraw = 1;
+							g_flightDrawToHudLayer = 1;
 							Sound_StopAllInstances();
 							g_replayInputs[playerIdx].flags = 0;
 							g_replayInputs[playerIdx].throttle = 0;
@@ -251,11 +251,11 @@ int XvtFlightSim_UpdateEntity(int playerIdx) {
 	bool throttle_eligible = XvtFlightControls_ThrottleEligible((unsigned)playerIdx);
 	int throttle_object = g_players[playerIdx].objectIndex;
 	unsigned throttle_signature = g_players[playerIdx].boundObjectSignature;
-	if (g_players[playerIdx].msgTypeId == FLIGHT_CHAT_RECIPIENT_INACTIVE)
+	if (g_players[playerIdx].chatRecipientMode == FLIGHT_CHAT_RECIPIENT_INACTIVE)
 		Flight_ProcessPlayerActions(playerIdx);
 	else
 		FlightChat_HandleInput(playerIdx);
-	if (g_players[playerIdx].connectedFlag != 0)
+	if (g_players[playerIdx].participationState != 0)
 		Player_UpdateFlightControlsAndCamera(playerIdx);
 	/* Recorded throttle wins over same-tick key/modifier adjustments, never across a craft transition. */
 	if (throttle_eligible && throttle_object == g_players[playerIdx].objectIndex &&
@@ -283,7 +283,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 	int suppressSideEffects;
 	int playerIdx;
 	int savedElapsedTicks;
-	int savedSimStepScale;
+	int savedSimStepsPerSecond;
 
 	if (g_sim.replayPending)
 		targetGameTime = g_sim.advanceTarget;
@@ -295,7 +295,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 		int frameIteration;
 		int frameCount;
 
-		if (g_players[playerIdx].connectedFlag == 0)
+		if (g_players[playerIdx].participationState == 0)
 			continue;
 
 		frameCount = g_sim.replayPending ? g_sim.frameCount : g_inputFrameCount[playerIdx];
@@ -312,7 +312,8 @@ int XvtFlightSim_Advance(int targetGameTime) {
 					--frame;
 					continue;
 				}
-				if (frame->timestamp > targetGameTime || (suppressSideEffects == 0 && frame->valid != 0))
+				if (frame->timestamp > targetGameTime ||
+					(suppressSideEffects == 0 && frame->unconfirmed != 0))
 					continue;
 				if (g_players[playerIdx].lockstepTimestamp >= frame->timestamp)
 					continue;
@@ -327,7 +328,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 					if (mobileObject == NULL || mobileObject->pCraft == NULL)
 						continue;
 					if (g_players[playerIdx].savedObjectSignature == object->objectSignature &&
-						g_players[playerIdx].savedRegion == g_players[playerIdx].awaitingNewCraft) {
+						g_players[playerIdx].savedAwaitingNewCraft == g_players[playerIdx].awaitingNewCraft) {
 						if (mobileObject->simStateTimestamp > g_players[playerIdx].lockstepTimestamp) {
 							XvtFlightCheckpoint_RestorePlayer(playerIdx);
 							mobileObject->simStateTimestamp = g_players[playerIdx].lockstepTimestamp;
@@ -371,7 +372,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 				}
 
 				savedElapsedTicks = g_elapsedTicks;
-				savedSimStepScale = g_simStepsPerSecond;
+				savedSimStepsPerSecond = g_simStepsPerSecond;
 				if (g_players[playerIdx].objectIndex != -1) {
 					g_singleObjectUpdateOverrideIdx = g_players[playerIdx].objectIndex;
 					if (g_objectTable[g_singleObjectUpdateOverrideIdx].mobj != NULL) {
@@ -400,7 +401,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 						g_players[playerIdx].savedSpeed = object->mobj->speed;
 						g_players[playerIdx].savedSpeedRemainder = object->mobj->speedRemainder;
 						g_players[playerIdx].savedObjectSignature = object->objectSignature;
-						g_players[playerIdx].savedRegion = g_players[playerIdx].awaitingNewCraft;
+						g_players[playerIdx].savedAwaitingNewCraft = g_players[playerIdx].awaitingNewCraft;
 						XvtFlightCheckpoint_SavePlayer(playerIdx, frame->timestamp);
 					}
 					g_singleObjectUpdateOverrideIdx = -1;
@@ -432,7 +433,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 					}
 				}
 				g_sim.savedElapsed = savedElapsedTicks;
-				g_sim.savedScale = savedSimStepScale;
+				g_sim.savedScale = savedSimStepsPerSecond;
 				g_sim.savedGameTime = savedGameTime;
 			}
 			if (!XvtFlightSim_UpdateEntity(playerIdx)) {
@@ -445,14 +446,14 @@ int XvtFlightSim_Advance(int targetGameTime) {
 			}
 			g_sim.replayPending = 0;
 			if (XvtFlightTiming_IsNetwork125() && !suppressSideEffects &&
-				frame->valid == XVT_INPUT_AUTHORITATIVE)
+				frame->unconfirmed == XVT_INPUT_AUTHORITATIVE)
 				XvtFlightPrediction_Confirm(playerIdx, frame->timestamp, &frame->input);
 			savedElapsedTicks = g_sim.savedElapsed;
-			savedSimStepScale = g_sim.savedScale;
+			savedSimStepsPerSecond = g_sim.savedScale;
 			savedGameTime = g_sim.savedGameTime;
 			g_elapsedTicks = (uint16_t)savedElapsedTicks;
-			g_simStepsPerSecond = (uint16_t)savedSimStepScale;
-			connectedFlag = g_players[playerIdx].connectedFlag;
+			g_simStepsPerSecond = (uint16_t)savedSimStepsPerSecond;
+			connectedFlag = g_players[playerIdx].participationState;
 			g_gameTime = savedGameTime;
 			g_flightSfxSideEffectGate = 0;
 			if (connectedFlag == 0)
@@ -521,7 +522,7 @@ XvtFlightStepResult XvtFlightSim_StepToTime(int targetGameTime) {
 		Flight_UpdateCraftSteeringAndSpeed();
 		if (g_debrisEnabled != 0 && g_flightMissionState.provingGroundsModeActive == 0 &&
 			XvtFlightTiming_ReferenceDue())
-			FlightObject_UpdateDebrisAndTransientAnimations();
+			FlightObject_RecycleLocalDebrisNearPlayer();
 		collide_collisions();
 		if (g_flightSimSideEffectsSuppressed == 0 && g_flightMissionState.missionEndPending == 1) {
 			XvtFlightTiming_EndAdvance();
@@ -573,7 +574,7 @@ void XvtFlightHistory_RestoreCheckpoint(void) {
 		int retained = 0;
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
 			const InputFrame* frame = &g_inputHistory[player][i];
-			if (!g_players[player].connectedFlag || frame->valid == XVT_INPUT_PREDICTED ||
+			if (!g_players[player].participationState || frame->unconfirmed == XVT_INPUT_PREDICTED ||
 				frame->timestamp <= g_players[player].lockstepTimestamp)
 				continue;
 			g_inputHistory[player][retained++] = *frame;
@@ -595,7 +596,7 @@ XvtInputInsertStatus XvtFlightHistory_Insert(unsigned player, int tick, const Fl
 	while (index < count && frames[index].timestamp < tick)
 		++index;
 	if (index < count && frames[index].timestamp == tick) {
-		if (!frames[index].valid || frames[index].applied == 1)
+		if (!frames[index].unconfirmed || frames[index].applied == 1)
 			return XVT_INPUT_DUPLICATE;
 	} else {
 		if (count == XVT_INPUT_HISTORY_CAPACITY)
@@ -605,7 +606,7 @@ XvtInputInsertStatus XvtFlightHistory_Insert(unsigned player, int tick, const Fl
 	}
 	InputFrame* frame = frames + index;
 	frame->timestamp = tick;
-	frame->valid = XVT_INPUT_REAL;
+	frame->unconfirmed = XVT_INPUT_REAL;
 	frame->applied = 0;
 	frame->input = *input;
 	*out = frame;
@@ -624,7 +625,7 @@ XvtInputInsertStatus XvtFlightHistory_InsertReal(unsigned player, int tick,
 		return status;
 	}
 	if (frame) {
-		frame->valid = authoritative ? XVT_INPUT_AUTHORITATIVE : XVT_INPUT_REAL;
+		frame->unconfirmed = authoritative ? XVT_INPUT_AUTHORITATIVE : XVT_INPUT_REAL;
 		frame->applied = !authoritative && NetSession_IsLocalHost();
 	} else if (authoritative) {
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
@@ -638,7 +639,7 @@ XvtInputInsertStatus XvtFlightHistory_InsertReal(unsigned player, int tick,
 				XVT_LOG_ERROR("network.input_conflict player=%u tick=%d", player, tick);
 				return XVT_INPUT_CONFLICT;
 			}
-			old->valid = old->applied = 0;
+			old->unconfirmed = old->applied = 0;
 		}
 	}
 	return status;
@@ -651,8 +652,8 @@ void XvtFlightHistory_Recover(void) {
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
 			const InputFrame* frame = &g_inputHistory[player][i];
 			/* Host records will reconstruct peer input; preserve only future local samples. */
-			if (player != (unsigned)g_localPlayer || !g_players[player].connectedFlag ||
-				frame->timestamp <= g_gameTime || frame->valid == XVT_INPUT_PREDICTED)
+			if (player != (unsigned)g_localPlayer || !g_players[player].participationState ||
+				frame->timestamp <= g_gameTime || frame->unconfirmed == XVT_INPUT_PREDICTED)
 				continue;
 			g_inputHistory[player][retained++] = *frame;
 		}

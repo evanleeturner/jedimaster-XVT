@@ -68,7 +68,7 @@ static void CaptureView(XvtCockpitView* view) {
 	view->projection_offset_y = g_projOffsetY;
 	unsigned resource = view->hud_state;
 	if (resource < 28 && resource != HUD_VIEW_FULL_SCREEN) {
-		unsigned reference = g_hudCockpitResourceDescriptors[resource].enabled;
+		unsigned reference = g_hudCockpitResourceDescriptors[resource].resourceRef;
 		if (reference >= 0xc0) {
 			resource = reference - 0xc0;
 			view->mirrored = 1;
@@ -148,13 +148,13 @@ static void SelectPagePlacement(XvtCockpitPage* page, unsigned index) {
 			width = g_mfdDamageBlitWidth;
 			height = g_mfdDamageBlitHeight;
 			break;
-		case MFD_PAGE_FLIGHT_GROUPS:
+		case MFD_PAGE_HOSTILE_CRAFT:
 		case MFD_PAGE_FRIENDLY_CRAFT:
 			binding = HUD_MFD_CRAFT_LIST_ELEMENT;
 			width = g_mfdCraftListBlitWidth;
 			height = g_mfdCraftListBlitHeight;
 			break;
-		case MFD_PAGE_COMMAND:
+		case MFD_PAGE_MAP_HELP:
 			if (!map)
 				return;
 			binding = HUD_MFD_MAP_OR_COMMAND_ELEMENT;
@@ -215,7 +215,7 @@ void XvtCockpit_LatchMessages(void) {
 									  g_readyMessagePaneBottom - g_readyMessagePaneTop };
 	page->layer = XVT_COCKPIT_AFTER_CRT;
 	if (g_flightPlayerCount >= 1)
-		page->placement.width += 4 * g_flightFontHalfHeight + 1;
+		page->placement.width += 4 * g_flightFontDigitWidth + 1;
 	if (page->visible)
 		XvtCockpitPages_Latch(MFD_PAGE_MESSAGE_LOG);
 }

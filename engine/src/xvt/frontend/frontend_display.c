@@ -502,7 +502,7 @@ int32_t AERON_DXAPI FrontendDisplay_WndProc(void* hWnd, unsigned int Msg, uint32
 		case 0:
 			return FrontendDisplay_MainWndProc(hWnd, Msg, wParam, lParam);
 		case 1:
-			return StubWndProc(hWnd, Msg, wParam, lParam);
+			return Flight_WndProc(hWnd, Msg, wParam, lParam);
 		case 2:
 			return Movie_WindowProc(hWnd, Msg, XvtPort_WinMessageParamAsPointer(wParam),
 									XvtPort_WinMessageParamAsPointer((uint32_t)lParam));

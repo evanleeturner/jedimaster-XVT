@@ -13,9 +13,9 @@ enum MfdPageId {
 	MFD_PAGE_GOALS = 1,
 	MFD_PAGE_MESSAGE_LOG = 2,
 	MFD_PAGE_DAMAGE = 3,
-	MFD_PAGE_FLIGHT_GROUPS = 4,
+	MFD_PAGE_HOSTILE_CRAFT = 4,
 	MFD_PAGE_FRIENDLY_CRAFT = 5,
-	MFD_PAGE_COMMAND = 6,
+	MFD_PAGE_MAP_HELP = 6,
 	MFD_PAGE_UNKNOWN_7 = 7,
 	MFD_PAGE_COUNT = 8,
 	MFD_PAGE_NONE = UINT16_MAX,
@@ -34,22 +34,22 @@ extern int16_t g_mfdPageStates[MFD_PAGE_COUNT];
 extern uint16_t g_mfdSavedActivePage;
 extern uint16_t g_mfdSavedSecondaryPage;
 extern int16_t g_savedMfdPageStates[MFD_PAGE_COUNT];
-extern uint16_t g_mfdCommandCameraStateCache;
+extern uint16_t g_mfdMapHelpCameraStateCache;
 extern int16_t g_mfdMissionScoreboardFirstVisibleRow;
 extern int16_t g_mfdMissionScoreboardLastPlayerCount;
 extern int16_t g_mfdMissionScoreboardLastWidth;
 extern uint16_t g_mfdCraftListCachedRowCount;
 extern int16_t g_mfdCraftListTopRowByMode[2];
-extern const char g_mfdCraftListStatusLetters[11];
+extern const char g_mfdCraftListTeamColorCodes[11];
 extern const char* g_strMapRoomText[20];
 extern const char* g_mfdDeveloperCreditsLines[47];
 
 int16_t Mfd_DrawMissionGoalsPage(void);
 void Mfd_DrawMissionScoreboardPage(void);
-void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage);
+void Mfd_DrawCraftListPage(uint16_t showHostileCraft);
 void Mfd_BuildScratchCraftListName(uint16_t objectIdx);
 int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex);
-void Mfd_DrawCommandMenuPage(void);
+void Mfd_DrawMapHelpPage(void);
 void Mfd_TogglePage(uint16_t page);
 int16_t Mfd_FindSecondaryOpenPage(void);
 int16_t Mfd_DrawMessageLogPage(void);

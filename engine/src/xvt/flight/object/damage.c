@@ -509,7 +509,7 @@ void Damage_DrawMfdSystemStatusRow(DamageSystemId systemId, int16_t y, int16_t v
 		health = craft->systemHealth[(uint16_t)systemId];
 		if (health == 0) {
 			FlightText_SetColor(0x4A);
-			repairSeconds = craft->systemTimer[(uint16_t)systemId];
+			repairSeconds = craft->systemRepairSeconds[(uint16_t)systemId];
 			repairMinutes = repairSeconds / 60;
 			remainingSeconds = repairSeconds - 60 * repairMinutes;
 			minuteTens = repairMinutes / 10;

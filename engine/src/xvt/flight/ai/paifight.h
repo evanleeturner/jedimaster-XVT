@@ -29,7 +29,7 @@ int16_t paifight_scanfortargetorder(void);
 int16_t paifight_FindAttackOrderTargetFromOrder(uint16_t orderSlot);
 int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t target1, int16_t targetOrMode,
 											  int16_t target2Type, uint16_t target2);
-int16_t paifight_FindEscortLeaderTargetFromOrder(uint16_t orderSlot);
+int16_t paifight_TargetEscortLeaderFromOrder(uint16_t orderSlot);
 int16_t paifight_TargetNearestEscortLeader(int16_t target1Type, uint16_t target1, int16_t targetRelationOp,
 										   int16_t target2Type, uint16_t target2);
 int16_t paifight_FindAttackerOfOrderTargetFromOrder(uint16_t orderSlot);

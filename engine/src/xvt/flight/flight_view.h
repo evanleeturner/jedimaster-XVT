@@ -52,7 +52,7 @@ int16_t FlightView_RotateViewByInput(int angleQ16, int rollAngleQ16, int playerI
 void FlightView_UpdatePlayerCamera(int playerIdx);
 void FlightView_Render(void);
 int FlightView_ComputeObjectViewPosition(uint16_t objectIdx);
-int FlightView_IsObjectSphereVisible(int objectIdx, unsigned int sphereRadius);
+int FlightView_ProjectAndTestSphereVisible(int objectIdx, unsigned int sphereRadius);
 int FlightView_CullWorldSphereToViewport(int worldX, int worldY, int worldZ, int sphereRadius);
 void FlightView_RenderStartupFrame(void);
 void FlightView_RenderFrame(void);

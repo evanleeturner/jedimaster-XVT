@@ -52,7 +52,7 @@ static void XvtFlightEntry_ReadLaunchSwitches(char* missionCmdLine) {
 	}
 
 	g_laserFireTimestampTrackingEnabled = 1;
-	g_asyncFlag = g_gameConfig.internetPlay;
+	g_internetPlayEnabled = g_gameConfig.internetPlay;
 	optionMatch = strstr(missionCmdLine, "traincourse");
 	g_flightConfTrainCourse = 1;
 	if (optionMatch == NULL) {

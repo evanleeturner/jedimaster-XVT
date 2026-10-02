@@ -28,8 +28,8 @@ static void FreshTick(void) {
 	g_regionMainObjectSlotEnd = 2;
 	g_regionStaticObjectSlotCount = 1;
 	g_worldLocX = 0;
-	worldlocy = 0;
-	worldlocz = 0;
+	g_worldLocY = 0;
+	g_worldLocZ = 0;
 	XvtRenderSnapshot_Init();
 	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() != NULL);
@@ -69,8 +69,8 @@ static void CheckScope(void) {
 static void CheckTargetBoxRecord(void) {
 	FreshTick();
 	g_worldLocX = 1000;
-	worldlocy = -2000;
-	worldlocz = 3000;
+	g_worldLocY = -2000;
+	g_worldLocZ = 3000;
 	XvtRenderHud_TargetBox(2, 7, 4096, 33);
 	XVT_ASSERT_INT_EQ(PublishedCount(), 1);
 	const XvtSnapTargetBox* box = &g_out->target_boxes[0];

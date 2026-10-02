@@ -32,7 +32,7 @@ extern uint8_t g_dynamicMusicOutcomeLatched;
 struct FlightGlobalCountdownTimers {
 	uint16_t unusedTimer00;
 	uint16_t missionGoalEvaluationTimer;
-	uint16_t crewMeshRotationUpdateTimer;
+	uint16_t specialBehaviorUpdateTimer;
 	uint16_t missionArrivalTriggerScanTimer;
 	uint16_t missionArrivalDelayScanTimer;
 	uint16_t missionMessageScanTimer;
@@ -75,7 +75,7 @@ extern uint8_t g_debrisEnabled;
 extern int g_flightSimSideEffectsSuppressed;
 extern int g_flightSfxSideEffectGate;
 extern uint8_t g_dormantFlightRegionSessionEarlyReturnFlag;
-extern uint8_t g_flightAltLToggle;
+extern uint8_t g_flightAltMToggle;
 extern uint8_t g_flightConfSfxEnabled;
 extern uint8_t g_flightConfVoiceEnabled;
 extern uint16_t g_localBeamTargetObjIdx;
@@ -100,7 +100,7 @@ struct FlightMissionState {
 	uint8_t collisionsEnabled;
 	uint8_t craftJumpingEnabled;
 	uint8_t randomVariationEnabled;
-	uint8_t reserved18;
+	uint8_t battleLengthIndex;
 	uint8_t locatePlayersEnabled;
 	uint8_t aiOpponentsEnabled;
 	uint8_t playerFlightGroupWaveMode;
@@ -117,7 +117,7 @@ struct FlightMissionState {
 };
 
 extern uint8_t* g_worldStateDupBuffer;
-extern unsigned int g_peerChecksumRegionLengths[16];
+extern unsigned int g_worldChecksumRegionLengths[16];
 extern uint8_t* g_worldStateBuffer;
 extern int g_worldStateDupSize;
 extern uint16_t g_worldStateDupHandle;
@@ -136,9 +136,9 @@ extern int g_flightConfNoPilot;
 extern FlightMissionState g_flightMissionState;
 extern int g_flightNetBufferWorldMessagesUntilChecksum;
 extern unsigned int g_flightNetWorldChecksumEpoch;
-extern int g_asyncFlag;
+extern int g_internetPlayEnabled;
 extern uint8_t g_worldStateReservedByte;
-extern int g_worldStateReservedDword;
+extern int g_worldStateDebrisSlotCount;
 extern int g_unusedWorldStateSerializedDword;
 extern int g_flightConfNewNet;
 extern int g_preFlightResolutionMode;
@@ -210,7 +210,7 @@ int WinMain(void* hInstance, void* hPrevInstance, char* lpCmdLine, int nShowCmd)
 int Flight_Main(char* missionCmdLine);
 int Flight_UpdateAndFocusMainWindow(void);
 int32_t Flight_PumpWindowMessages(void);
-int32_t StubWndProc(void* hWnd, unsigned int Msg, uint32_t wParam, int32_t lParam);
+int32_t Flight_WndProc(void* hWnd, unsigned int Msg, uint32_t wParam, int32_t lParam);
 void Flight_UpdateCraftSteeringAndSpeed(void);
 void Flight_SlewObjectSpeedTowardTarget(unsigned int objectIdx, int targetSpeed, int allowDecel, int fracQ16);
 void Flight_AccelerateObjectSpeed(int objectIdx, int accelerationPerSecond);

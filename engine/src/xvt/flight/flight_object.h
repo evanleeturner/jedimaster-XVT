@@ -15,7 +15,7 @@ extern uint16_t g_localDebrisRecycleSlotCursor;
 void FlightObject_UpdateSpecialBehavior(void);
 void FlightObject_AdvanceTextureFrameSequence(unsigned int objectIdx);
 void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx);
-void FlightObject_UpdateDebrisAndTransientAnimations(void);
+void FlightObject_RecycleLocalDebrisNearPlayer(void);
 
 #ifdef __cplusplus
 }

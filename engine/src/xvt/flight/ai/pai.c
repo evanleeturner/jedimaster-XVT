@@ -368,7 +368,7 @@ void pai_ProcessPlan(void) {
 // FUNCTION: XVT 0x402CB0
 void pai_setupcraftcontext(uint16_t objectIdx) {
 	AiController* controller;
-	CraftData* targetCraft;
+	CraftData* leaderOrSelfCraft;
 	ObjectRecord* object;
 
 	g_paiContext.objectIndex = objectIdx;
@@ -378,23 +378,23 @@ void pai_setupcraftcontext(uint16_t objectIdx) {
 	controller = &g_paiContext.craft->aiController;
 	g_paiContext.controller = controller;
 	if (g_paiContext.leaderObjectIndex == UINT8_MAX) {
-		targetCraft = object->mobj->pCraft;
+		leaderOrSelfCraft = object->mobj->pCraft;
 	} else {
-		targetCraft = g_objectTable[g_paiContext.leaderObjectIndex].mobj->pCraft;
+		leaderOrSelfCraft = g_objectTable[g_paiContext.leaderObjectIndex].mobj->pCraft;
 	}
-	g_paiContext.targetCraft = targetCraft;
+	g_paiContext.leaderOrSelfCraft = leaderOrSelfCraft;
 	g_paiContext.orderFlightGroupIndex = object->flightGroupIdx;
 	g_paiContext.orderSlot = controller->currentOrderSlot;
 	Mission_ResolveObjectOrMissionPointWorldLoc(objectIdx, g_paiContext.orderFlightGroupIndex);
-	g_paiContext.currentPointX = g_worldLocX;
-	g_paiContext.currentPointY = worldlocy;
-	g_paiContext.currentPointZ = worldlocz;
+	g_paiContext.craftPositionX = g_worldLocX;
+	g_paiContext.craftPositionY = g_worldLocY;
+	g_paiContext.craftPositionZ = g_worldLocZ;
 	g_paiContext.skillTier = pai_SkillValueToTier(pai_GetEffectiveSkillValue(g_paiContext.craft));
 	g_paiContext.planCursor = g_planDataPtrs[controller->pendingPlanId];
 	++g_paiContext.planCursor;
 	g_paiContext.initialManeuverId = *g_paiContext.planCursor++;
-	g_paiContext.requireLiveOrderTarget = 0;
-	g_paiContext.nullPlanId = (uint8_t)pai_findplanbyname("nullpln");
+	g_paiContext.requireUndisabledTarget = 0;
+	g_paiContext.nullPlanId = (uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
 }
 
 // FUNCTION: XVT 0x402E00
@@ -432,7 +432,7 @@ uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx) {
 }
 
 // FUNCTION: XVT 0x402EC0
-int pai_IsObjectTargetableNearCurrentPoint(int unused, unsigned int objIdx, int expandRange) {
+int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx, int expandRange) {
 	int targetable;
 	int maxRangeScore;
 
@@ -444,18 +444,18 @@ int pai_IsObjectTargetableNearCurrentPoint(int unused, unsigned int objIdx, int 
 			(uint16_t)MATH2_fraction(0x500u, g_aiSkillValueQ16ByLevel[g_paiContext.skillTier]) + 2560;
 		if (expandRange != 0)
 			maxRangeScore += (uint16_t)MATH2_fraction((unsigned int)maxRangeScore, 0x5555u);
-		if (pai_IsObjectWithinCurrentPointRange(objIdx, (unsigned int)(maxRangeScore << 8)) == 1)
+		if (pai_IsObjectWithinRangeOfCraft(objIdx, (unsigned int)(maxRangeScore << 8)) == 1)
 			return 1;
 	}
 	return 0;
 }
 
 // FUNCTION: XVT 0x403070
-int16_t pai_IsObjectWithinCurrentOrderRange(uint16_t objIdx) {
+int16_t pai_IsObjectWithinSkillRangeOfCraft(uint16_t objIdx) {
 	uint16_t skillRange;
 
 	skillRange = (uint16_t)MATH2_fraction(0x500, g_aiSkillValueQ16ByLevel[g_paiContext.skillTier]);
-	return pai_IsObjectWithinCurrentPointRange(objIdx, (skillRange + 0xA00) << 8) == 1;
+	return pai_IsObjectWithinRangeOfCraft(objIdx, (skillRange + 0xA00) << 8) == 1;
 }
 
 // FUNCTION: XVT 0x403250
@@ -492,16 +492,16 @@ int16_t pai_FindBoardingTargetFromOrder(uint16_t orderSlot) {
 }
 
 // FUNCTION: XVT 0x403360
-int pai_IsObjectWithinCurrentPointRange(unsigned int objIdx, unsigned int maxRangeScore) {
+int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx, unsigned int maxRoughDistance) {
 	ObjectRecord* object;
 	int deltaX;
 	int deltaY;
 	int deltaZ;
 
 	object = &g_objectTable[objIdx];
-	deltaX = g_paiContext.currentPointX - object->world_x;
-	deltaY = g_paiContext.currentPointY - object->world_y;
-	deltaZ = g_paiContext.currentPointZ - object->world_z;
+	deltaX = g_paiContext.craftPositionX - object->world_x;
+	deltaY = g_paiContext.craftPositionY - object->world_y;
+	deltaZ = g_paiContext.craftPositionZ - object->world_z;
 	if (deltaX < 0)
 		deltaX = (int)(0u - (unsigned int)deltaX);
 	if (deltaY < 0)
@@ -520,7 +520,7 @@ int pai_IsObjectWithinCurrentPointRange(unsigned int objIdx, unsigned int maxRan
 		g_lastRoughDistance >>= 1;
 	g_lastRoughDistance += deltaZ;
 
-	return g_lastRoughDistance < (int)maxRangeScore;
+	return g_lastRoughDistance < (int)maxRoughDistance;
 }
 
 // FUNCTION: XVT 0x403400
@@ -528,8 +528,8 @@ void pai_UpdateAimPointFromOrderTarget(void) {
 	Mission_ResolveObjectOrMissionPointWorldLoc(g_paiContext.controller->targetObjIdx,
 												g_objectTable[g_paiContext.objectIndex].flightGroupIdx);
 	g_paiContext.controller->aimPointX = g_worldLocX;
-	g_paiContext.controller->aimPointY = worldlocy;
-	g_paiContext.controller->aimPointZ = worldlocz;
+	g_paiContext.controller->aimPointY = g_worldLocY;
+	g_paiContext.controller->aimPointZ = g_worldLocZ;
 }
 
 // FUNCTION: XVT 0x403470
@@ -558,18 +558,18 @@ void pai_ObjectRefDirectionToObjectRef(unsigned int fromRef, unsigned int toRef)
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(toRef, 0);
 	targetX = g_worldLocX;
-	targetY = worldlocy;
-	targetZ = worldlocz;
+	targetY = g_worldLocY;
+	targetZ = g_worldLocZ;
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(fromRef, 0);
 	targetX = targetX - g_worldLocX;
-	targetY = targetY - worldlocy;
-	targetZ = targetZ - worldlocz;
+	targetY = targetY - g_worldLocY;
+	targetZ = targetZ - g_worldLocZ;
 	trig2_ctop(targetX, targetY, targetZ);
 }
 
 // FUNCTION: XVT 0x403540
-void pai_ObjectRefUpdateApproxRangeScore(unsigned int fromRef, unsigned int toRef) {
+void pai_ObjectRefUpdateRoughDistance(unsigned int fromRef, unsigned int toRef) {
 	int deltaX;
 	int deltaY;
 	int deltaZ;
@@ -577,13 +577,13 @@ void pai_ObjectRefUpdateApproxRangeScore(unsigned int fromRef, unsigned int toRe
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(fromRef, 0);
 	deltaX = g_worldLocX;
-	deltaY = worldlocy;
-	deltaZ = worldlocz;
+	deltaY = g_worldLocY;
+	deltaZ = g_worldLocZ;
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(toRef, 0);
 	deltaX -= g_worldLocX;
-	deltaY -= worldlocy;
-	deltaZ -= worldlocz;
+	deltaY -= g_worldLocY;
+	deltaZ -= g_worldLocZ;
 
 	if (deltaX < 0)
 		deltaX = -deltaX;
@@ -742,7 +742,7 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 				if (g_curCraft->aiFlight.objSignatures[sigIdx] == object->objectSignature)
 					++count;
 			if (count == 0) {
-				pai_ObjectRefUpdateApproxRangeScore(g_paiContext.objectIndex, objectIdx);
+				pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIdx);
 				if ((unsigned int)g_lastRoughDistance >= nearestRange)
 					continue;
 				nearestRange = g_lastRoughDistance;
@@ -807,7 +807,7 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 					}
 				}
 				if (reservedCount == 0) {
-					pai_ObjectRefUpdateApproxRangeScore(g_paiContext.objectIndex, objectIdx);
+					pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIdx);
 					if ((unsigned int)g_lastRoughDistance >= nearestRange)
 						continue;
 					nearestRange = g_lastRoughDistance;
@@ -976,7 +976,7 @@ uint16_t pai_GetEffectiveSkillValue(CraftData* craft) {
 }
 
 // FUNCTION: XVT 0x404670
-int pai_OrderSlotMatchingObjectHasOrderClass(int objectIdx, int orderClass, int targetObjIdx) {
+int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx, int leaderPlanNameIndex, int targetObjIdx) {
 	unsigned int orderSlot;
 
 	if (objectIdx == -1)
@@ -985,7 +985,7 @@ int pai_OrderSlotMatchingObjectHasOrderClass(int objectIdx, int orderClass, int 
 	for (orderSlot = 0; orderSlot < 3; ++orderSlot) {
 		uint8_t order =
 			g_missionFlightGroups[g_objectTable[objectIdx].flightGroupIdx].fg.orders[orderSlot].order;
-		if (g_orderLeaderBuiltinPlanNameIndex[order] == orderClass) {
+		if (g_orderLeaderBuiltinPlanNameIndex[order] == leaderPlanNameIndex) {
 			g_paiContext.orderSlot = (uint16_t)orderSlot;
 			if (pai_CurrentOrderTargetsMatchObject(targetObjIdx) != 0)
 				return 1;
@@ -1078,37 +1078,38 @@ int pai_FindOrderTokenIndex(const char* token) {
 
 // FUNCTION: XVT 0x46ADF0
 int pai_ReadPlanTextToken(char* token, XvtFile* stream) {
-	int tokenIndex = 1;
-	char buffer;
+	int tokenLength = 1;
+	char readChar;
 
 	*token = '\0';
 	for (;;) {
 		do {
-			if (File_RawRead(&buffer, 1, 1, stream) != 1)
+			if (File_RawRead(&readChar, 1, 1, stream) != 1)
 				return 1;
-		} while (buffer == ' ' || buffer == '\t' || buffer == '\n' || buffer == ',' || buffer == '\n');
+		} while (readChar == ' ' || readChar == '\t' || readChar == '\n' || readChar == ',' ||
+				 readChar == '\n');
 
-		if (buffer != ';')
+		if (readChar != ';')
 			break;
 
 		do {
-			if (File_RawRead(&buffer, 1, 1, stream) != 1)
+			if (File_RawRead(&readChar, 1, 1, stream) != 1)
 				return 1;
-		} while (buffer != '\n');
+		} while (readChar != '\n');
 	}
 
-	*token = buffer;
+	*token = readChar;
 	for (;;) {
-		if (File_RawRead(&buffer, 1, 1, stream) != 1) {
-			token[tokenIndex] = '\0';
+		if (File_RawRead(&readChar, 1, 1, stream) != 1) {
+			token[tokenLength] = '\0';
 			return 1;
 		}
-		if (buffer == ',' || buffer == '\n' || buffer == ' ' || buffer == '\t' || buffer == '\n')
+		if (readChar == ',' || readChar == '\n' || readChar == ' ' || readChar == '\t' || readChar == '\n')
 			break;
-		token[tokenIndex] = buffer;
-		++tokenIndex;
+		token[tokenLength] = readChar;
+		++tokenLength;
 	}
-	token[tokenIndex] = '\0';
+	token[tokenLength] = '\0';
 	return 1;
 }
 
@@ -1122,7 +1123,7 @@ int pai_CompilePlansFromText(const char* baseName) {
 
 	strcpy(fileName, baseName);
 	strcat(fileName, ".pln");
-	File_OpenGlobalStream(fileName, "r", 0, 0);
+	FeDiskIo_OpenGlobalStream(fileName, "r", 0, 0);
 	stream = (XvtFile*)g_stream;
 	if (stream == NULL)
 		return 0;
@@ -1232,7 +1233,7 @@ int pai_CompilePlansFromText(const char* baseName) {
 
 	strcpy(fileName, baseName);
 	strcat(fileName, ".plo");
-	File_OpenGlobalStream(fileName, "wb", 0, 1);
+	FeDiskIo_OpenGlobalStream(fileName, "wb", 0, 1);
 	stream = (XvtFile*)g_stream;
 	if (stream != NULL) {
 		buffer = (int)sizeof(g_planTable);
@@ -1260,7 +1261,7 @@ int pai_loadplans(char* baseName) {
 	memset(g_planTable, 0, sizeof(g_planTable));
 	g_planCount = 0;
 	memset(g_planDataPtrs, 0, 0x100);
-	File_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 1);
+	FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 1);
 	stream = (XvtFile*)g_stream;
 	if (stream == NULL)
 		return pai_CompilePlansFromText(baseName);
@@ -1321,7 +1322,7 @@ uint8_t* pai_getplandataptrbyname(const char* planName) {
 }
 
 // FUNCTION: XVT 0x46B610
-int pai_findplanbyname(const char* planName) {
+int pai_FindPlanIdByNameOrZero(const char* planName) {
 	int planIndex;
 
 	for (planIndex = 0; planIndex < 256; ++planIndex) {

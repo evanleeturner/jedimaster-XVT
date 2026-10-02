@@ -22,12 +22,12 @@ extern int g_collisionSweepEndX;
 extern int g_collisionSweepEndY;
 extern int g_collisionSweepEndZ;
 extern int g_approxDist;
-extern int g_collisionStagedModelProbe;
+extern int g_collisionIsAimPrediction;
 extern int g_collisionHitOffsetX;
 extern int g_collisionHitOffsetY;
 extern int g_collisionHitOffsetZ;
 extern int g_collideSweepRejectNearStartHits;
-extern int g_warheadLaunchHullMeshOrdinal;
+extern int g_turretFireHullMeshOrdinal;
 
 void collide_PopulateMobileObjectProximityCandidates(MobileObjectProximityList* list, uint16_t ownerObjIdx);
 void collide_collisions(void);
@@ -38,9 +38,9 @@ void collide_ResetObjectProximityForSlot(uint16_t objIdx);
 void collide_ResetNeighborProximityLists(uint16_t objectIndex);
 void collide_RemoveMobileObjectProximityCandidate(MobileObjectProximityList* list, uint16_t candidateObjIdx);
 void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx);
-int16_t collide_lasercraftcollide(uint16_t sourceObjIdx, uint16_t targetObjIdx);
+int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx, uint16_t targetObjIdx);
 int16_t collide_checkboxcollision(int radius);
-int collide_targetinrange(uint16_t sourceObjIdx, uint16_t targetObjIdx, uint16_t hardpointIndex);
+int collide_WouldShotHitTarget(uint16_t sourceObjIdx, uint16_t targetObjIdx, uint16_t hardpointIndex);
 uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx, int16_t lookaheadSteps);
 void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t hitMeshIndex);
 int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_t sourceObjIdx,

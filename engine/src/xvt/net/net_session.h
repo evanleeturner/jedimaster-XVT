@@ -84,10 +84,10 @@ typedef char xvt_size_NetSessionState[(sizeof(NetSessionState) == 25652 + sizeof
 extern NetSessionState g_netSession;
 
 extern NetSessionScratchState g_netSessionScratchPacket;
-extern int g_netSessionRecvHistoryCount;
-extern int g_netSessionRecvQueueHighWater;
-extern NetQueuedPacket g_netSessionRecvHistory[128];
-extern NetQueuedPacket g_netSessionExportRecvQueue[256];
+extern int g_netSessionSentHistoryWriteIndex;
+extern int g_netSessionSentWorldMessageWriteIndex;
+extern NetQueuedPacket g_netSessionSentHistory[128];
+extern NetQueuedPacket g_netSessionSentWorldMessageHistory[256];
 
 void NetSession_DebugTrace(const char* message);
 int NetSession_InitGameSession(const char* formalName, const char* pilotName, int isHost,
@@ -109,7 +109,7 @@ static inline void NetSession_AdvanceReceivedSequence(int* receivedSequence, uns
 void NetSession_PumpIncomingPackets(void);
 int NetSession_BroadcastPacketToPlayers(unsigned int* payload, int payloadSize);
 int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int payloadSize);
-int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t localSeq, uint8_t remoteSeq,
+int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t packetClass, uint8_t sequence,
 									   const unsigned int* packet, unsigned int packetSize);
 SessionPlayerInfo* NetSession_GetPlayerRoster(int* outCount);
 SessionPlayerInfo* NetSession_GetLocalPlayerInfo(void);
@@ -117,7 +117,7 @@ int NetSession_SetPlayerRoster(const SessionPlayerInfo* players, int playerCount
 int NetSession_GetPlayerCount(void);
 int NetSession_IsLocalHost(void);
 int* NetSession_ReceiveGamePacket(int* outSenderDpid, int* outPayloadSize);
-int NetSession_HandleHandshakePacket(int packetOpcode, int* packet);
+int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int* packet);
 void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize);
 int NetSession_SendCompactGamePacket(int directPlayId, unsigned int* payload, int payloadSize, ...);
 int* NetSession_WaitForGamePacket(int* outDpid, int* outPayloadSize, int timeoutSeconds);

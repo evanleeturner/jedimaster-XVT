@@ -189,10 +189,10 @@ static int XvtNetworkSession_Factory(void) {
 		return 0;
 	g_frontState.netRuntimeRecvHistoryCount = 0;
 	g_frontState.netRuntimeBroadcastSeqCounter = g_frontState.netRuntimeGroupSeqCounter = 0;
-	g_frontState.netRuntimeBroadcastPendingPayload.pendingFlush = 1;
+	g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty = 1;
 	g_frontState.netRuntimeBroadcastPendingPayload.payload[0] = NET_PACKET_NOP;
 	g_frontState.netRuntimeBroadcastPendingPayload.payloadLength = 1;
-	g_frontState.netRuntimeGroupPendingPayload.pendingFlush = 1;
+	g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty = 1;
 	g_frontState.netRuntimeGroupPendingPayload.payload[0] = NET_PACKET_NOP;
 	g_frontState.netRuntimeGroupPendingPayload.payloadLength = 1;
 	g_frontState.netReliablePeerSlotCount = 0;

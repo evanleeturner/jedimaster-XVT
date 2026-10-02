@@ -96,8 +96,8 @@ void Object_UpdateLifetimeAndMovement(void) {
 		MOVE_VECTOR_SHIFT = 15,
 		ROLL_IMPULSE_DECAY_SCALE = 1 << 12,
 		ROLL_IMPULSE_ANGLE_SCALE = 4,
-		EVADE_PUSH_RATE = 250,
-		SLIDE_PUSH_RATE = 750,
+		BOARDING_PUSH_RATE = 250,
+		DROPOFF_PUSH_RATE = 750,
 		EXPLOSION_OBJECT_TYPE_FIRST = 127,
 		EXPLOSION_OBJECT_TYPE_PROJECTILE = 129,
 		EXPLOSION_OBJECT_TYPE_LARGE = 130,
@@ -108,7 +108,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 
 	uint16_t playerIndex;
 	uint16_t objectIndex;
-	int savedSimStepScale;
+	int savedSimStepsPerSecond;
 	int savedElapsedTicks;
 	int overrideProcessed;
 	int objectOffsetIndex;
@@ -118,7 +118,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 		ObjectRecord* playerObject;
 		ModelIndex playerModelIndex;
 
-		if (g_players[playerIndex].connectedFlag == 0 || playerIndex == g_localPlayer) {
+		if (g_players[playerIndex].participationState == 0 || playerIndex == g_localPlayer) {
 			continue;
 		}
 		playerObjectIndex = g_players[playerIndex].objectIndex;
@@ -132,9 +132,9 @@ void Object_UpdateLifetimeAndMovement(void) {
 			pai_calcrotatedpoint(&g_objectTable[g_players[playerIndex].objectIndex], 0,
 								 g_modelDefs[playerModelIndex].primaryHardpointZ,
 								 g_modelDefs[playerModelIndex].primaryHardpointY);
-			g_players[playerIndex].hardpointLocalX = g_players[playerIndex].hardpointWorldX;
-			g_players[playerIndex].hardpointLocalY = g_players[playerIndex].hardpointWorldY;
-			g_players[playerIndex].hardpointLocalZ = g_players[playerIndex].hardpointWorldZ;
+			g_players[playerIndex].prevHardpointWorldX = g_players[playerIndex].hardpointWorldX;
+			g_players[playerIndex].prevHardpointWorldY = g_players[playerIndex].hardpointWorldY;
+			g_players[playerIndex].prevHardpointWorldZ = g_players[playerIndex].hardpointWorldZ;
 			g_players[playerIndex].hardpointWorldX = g_rotatedX;
 			g_players[playerIndex].hardpointWorldY = g_rotatedY;
 			g_players[playerIndex].hardpointWorldZ = g_rotatedZ;
@@ -153,16 +153,16 @@ void Object_UpdateLifetimeAndMovement(void) {
 			pai_calcrotatedpoint(&g_objectTable[g_players[playerIndex].objectIndex], 0,
 								 g_modelDefs[playerModelIndex].primaryHardpointZ,
 								 g_modelDefs[playerModelIndex].primaryHardpointY);
-			g_players[playerIndex].hardpointLocalX = g_players[playerIndex].hardpointWorldX;
-			g_players[playerIndex].hardpointLocalY = g_players[playerIndex].hardpointWorldY;
-			g_players[playerIndex].hardpointLocalZ = g_players[playerIndex].hardpointWorldZ;
+			g_players[playerIndex].prevHardpointWorldX = g_players[playerIndex].hardpointWorldX;
+			g_players[playerIndex].prevHardpointWorldY = g_players[playerIndex].hardpointWorldY;
+			g_players[playerIndex].prevHardpointWorldZ = g_players[playerIndex].hardpointWorldZ;
 			g_players[playerIndex].hardpointWorldX = g_rotatedX;
 			g_players[playerIndex].hardpointWorldY = g_rotatedY;
 			g_players[playerIndex].hardpointWorldZ = g_rotatedZ;
 		}
 	}
 
-	savedSimStepScale = g_simStepsPerSecond;
+	savedSimStepsPerSecond = g_simStepsPerSecond;
 	savedElapsedTicks = g_elapsedTicks;
 	objectIndex = 0;
 	overrideProcessed = 0;
@@ -181,7 +181,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 		}
 
 		objectOffsetIndex = objectIndex;
-		g_simStepsPerSecond = (uint16_t)savedSimStepScale;
+		g_simStepsPerSecond = (uint16_t)savedSimStepsPerSecond;
 		g_elapsedTicks = (uint16_t)savedElapsedTicks;
 		object = &g_objectTable[objectOffsetIndex];
 		mobileObject = object->mobj;
@@ -239,7 +239,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 						if (ModelMesh_HasFuselage(object->objectType) == 0) {
 							Craft_SpawnMainHullExplosionEffects(objectIndex, 1);
 							collide_ConvertObjectToExplosion(objectIndex, EXPLOSION_OBJECT_TYPE_LARGE);
-							g_objectTable[objectOffsetIndex].mobj->lightIntensityScale =
+							g_objectTable[objectOffsetIndex].mobj->effectSize =
 								(uint8_t)(g_modelTypeTable[object->objectType].maxBoundsExtent >>
 										  MODEL_LIGHT_SCALE_SHIFT);
 						} else {
@@ -251,7 +251,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 						break;
 					case CRAFT_GENUS_PLAYER_PROJECTILE:
 					case CRAFT_GENUS_OTHER_PROJECTILE:
-						if (g_projectileDamageByObjectType
+						if (g_projectileTypeData
 								.warheadClass[object->objectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
 							collide_ConvertObjectToExplosion(objectIndex, EXPLOSION_OBJECT_TYPE_PROJECTILE);
 						} else {
@@ -395,9 +395,9 @@ void Object_UpdateLifetimeAndMovement(void) {
 					int pushStep;
 
 					if (craft->aiController.maneuverMode == AI_MANEUVER_MODE_BOARD) {
-						maxPushRate = EVADE_PUSH_RATE;
+						maxPushRate = BOARDING_PUSH_RATE;
 					} else if (craft->aiController.maneuverMode == AI_MANEUVER_MODE_DROPOFF) {
-						maxPushRate = SLIDE_PUSH_RATE;
+						maxPushRate = DROPOFF_PUSH_RATE;
 					} else {
 						maxPushRate = g_modelDefs[craft->modelIndex].maxPushRate;
 					}
@@ -570,8 +570,8 @@ void Object_UpdateLifetimeAndMovement(void) {
 							if (targetObjectIndex >= g_activeRegionCraftObjectSlotEnd ||
 								g_objectTable[targetObjectIndex].mobj->family != 0) {
 								g_rotatedX = g_worldLocX;
-								g_rotatedY = worldlocy;
-								g_rotatedZ = worldlocz;
+								g_rotatedY = g_worldLocY;
+								g_rotatedZ = g_worldLocZ;
 							} else {
 								targetObject = &g_objectTable[targetObjectIndex];
 								if (targetComponentIndex == UINT16_MAX) {
@@ -587,13 +587,13 @@ void Object_UpdateLifetimeAndMovement(void) {
 								}
 								pai_RotateLocalVectorToWorldScratch(targetObject, centerX, centerZ, centerY);
 								g_rotatedX += g_worldLocX;
-								g_rotatedY += worldlocy;
-								g_rotatedZ += worldlocz;
+								g_rotatedY += g_worldLocY;
+								g_rotatedZ += g_worldLocZ;
 							}
 							Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
 							g_rotatedX -= g_worldLocX;
-							g_rotatedY -= worldlocy;
-							g_rotatedZ -= worldlocz;
+							g_rotatedY -= g_worldLocY;
+							g_rotatedZ -= g_worldLocZ;
 							trig2_ctop(g_rotatedX, g_rotatedY, g_rotatedZ);
 							oldYaw = object->yaw;
 
@@ -623,7 +623,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 #endif
 								homingMobileObject = object->mobj;
 								speed = homingMobileObject->speed;
-								if (guidance->minSpeed > speed) {
+								if (guidance->cruiseSpeed > speed) {
 									homingMobileObject->speed =
 										(uint16_t)(speed +
 #ifdef XVT_MODERN
@@ -774,37 +774,37 @@ void Object_UpdateLifetimeAndMovement(void) {
 #endif
 	}
 
-	g_simStepsPerSecond = (uint16_t)savedSimStepScale;
+	g_simStepsPerSecond = (uint16_t)savedSimStepsPerSecond;
 	g_elapsedTicks = (uint16_t)savedElapsedTicks;
 }
 
 // FUNCTION: XVT 0x4464C0
-int Object_AddTrigMoveDeltaAndClampWorldPosition(uint32_t* mobileObject) {
+int Object_AddTrigMoveDeltaAndClampWorldPosition(uint32_t* objectWords) {
 	int32_t result;
 
-	mobileObject[1] += (uint32_t)trig2_xmovedist;
-	if ((int32_t)mobileObject[1] < -0x01000000) {
-		mobileObject[1] = (uint32_t)-0x01000000;
+	objectWords[1] += (uint32_t)trig2_xmovedist;
+	if ((int32_t)objectWords[1] < -0x01000000) {
+		objectWords[1] = (uint32_t)-0x01000000;
 	}
-	if ((int32_t)mobileObject[1] > 0x01000000) {
-		mobileObject[1] = 0x01000000;
-	}
-
-	mobileObject[2] += (uint32_t)trig2_ymovedist;
-	if ((int32_t)mobileObject[2] < -0x01000000) {
-		mobileObject[2] = (uint32_t)-0x01000000;
-	}
-	if ((int32_t)mobileObject[2] > 0x01000000) {
-		mobileObject[2] = 0x01000000;
+	if ((int32_t)objectWords[1] > 0x01000000) {
+		objectWords[1] = 0x01000000;
 	}
 
-	mobileObject[3] += (uint32_t)trig2_zmovedist;
-	if ((int32_t)mobileObject[3] < -0x01000000) {
-		mobileObject[3] = (uint32_t)-0x01000000;
+	objectWords[2] += (uint32_t)trig2_ymovedist;
+	if ((int32_t)objectWords[2] < -0x01000000) {
+		objectWords[2] = (uint32_t)-0x01000000;
 	}
-	result = (int32_t)mobileObject[3];
+	if ((int32_t)objectWords[2] > 0x01000000) {
+		objectWords[2] = 0x01000000;
+	}
+
+	objectWords[3] += (uint32_t)trig2_zmovedist;
+	if ((int32_t)objectWords[3] < -0x01000000) {
+		objectWords[3] = (uint32_t)-0x01000000;
+	}
+	result = (int32_t)objectWords[3];
 	if (result > 0x01000000) {
-		mobileObject[3] = 0x01000000;
+		objectWords[3] = 0x01000000;
 	}
 	return result;
 }
@@ -912,7 +912,7 @@ uint16_t Object_SpawnDetachedComponent(uint16_t sourceObjectIndex, int16_t meshI
 	objectOffsetIndex = objectIndex;
 	g_objectTable[objectOffsetIndex].mobj->family = 3;
 	g_objectTable[objectOffsetIndex].genusId = CRAFT_GENUS_SMALL_DEBRIS;
-	g_objectTable[objectOffsetIndex].mobj->lightIntensityScale = 0;
+	g_objectTable[objectOffsetIndex].mobj->effectSize = 0;
 	g_objectTable[objectOffsetIndex].objectType = CRAFT_SPECIES_COMPONENT;
 	g_objectTable[objectOffsetIndex].mobj->sourceObjectType = g_objectTable[sourceObjectIndex].objectType;
 	g_objectTable[objectOffsetIndex].playerOwnerIdx = -1;
@@ -943,7 +943,7 @@ uint16_t Object_SpawnEffectFragment(uint16_t sourceObjIdx) {
 	objectOffsetIndex = objectIndex;
 	g_objectTable[objectOffsetIndex].mobj->family = 5;
 	g_objectTable[objectOffsetIndex].genusId = CRAFT_GENUS_EXPLOSION;
-	g_objectTable[objectOffsetIndex].mobj->lightIntensityScale = 0;
+	g_objectTable[objectOffsetIndex].mobj->effectSize = 0;
 	g_objectTable[objectOffsetIndex].objectType = (uint8_t)((GameRand() & 1) - 123);
 	g_objectTable[objectOffsetIndex].mobj->sourceObjectType = g_objectTable[sourceObjIdx].objectType;
 	g_objectTable[objectOffsetIndex].playerOwnerIdx = -1;
@@ -995,7 +995,7 @@ uint16_t Object_SpawnLocalEffectFragment(uint16_t sourceObjIdx) {
 	objectOffsetIndex = objectIndex;
 	g_objectTable[objectOffsetIndex].mobj->family = 5;
 	g_objectTable[objectOffsetIndex].genusId = CRAFT_GENUS_EXPLOSION;
-	g_objectTable[objectOffsetIndex].mobj->lightIntensityScale = 2;
+	g_objectTable[objectOffsetIndex].mobj->effectSize = 2;
 	g_objectTable[objectOffsetIndex].objectType = (uint8_t)-99;
 	g_objectTable[objectOffsetIndex].mobj->sourceObjectType = g_objectTable[sourceObjIdx].objectType;
 	g_objectTable[objectOffsetIndex].playerOwnerIdx = -1;
@@ -1062,7 +1062,7 @@ uint16_t Object_AllocSlotForGenus(uint16_t genusId) {
 		for (;;) {
 			if (g_objectTable[objectIndex].objectType == 0) {
 				g_objectTable[objectIndex].mobj->sourceObjIdx = 0;
-				g_objectTable[objectIndex].mobj->lightIntensityScale = 0;
+				g_objectTable[objectIndex].mobj->effectSize = 0;
 				break;
 			}
 			++objectIndex;
@@ -1224,8 +1224,8 @@ unsigned int Object_DirectionAndDistanceToMeshCenter(uint16_t fromObjIdx, uint16
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(targetObjIdx, 0);
 	targetWorldX = g_worldLocX;
-	targetWorldY = worldlocy;
-	targetWorldZ = worldlocz;
+	targetWorldY = g_worldLocY;
+	targetWorldZ = g_worldLocZ;
 	objectType = g_objectTable[targetObjIdx].objectType;
 	g_rotatedX = ModelMesh_GetCenterX(objectType, meshIdx);
 	g_rotatedY = ModelMesh_GetCenterZ(objectType, meshIdx);
@@ -1260,7 +1260,7 @@ uint8_t Object_HasActiveDecoyBeam(uint16_t objIdx) {
 	}
 
 	if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) == 0 || craft->beamActive == 0 ||
-		craft->beamTypeId != BEAM_TYPE_DECOY || craft->beamTimer == 0) {
+		craft->beamTypeId != BEAM_TYPE_DECOY || craft->beamOutput == 0) {
 		return 0;
 	}
 

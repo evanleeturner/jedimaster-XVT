@@ -419,9 +419,9 @@ static void CheckValidateRefusesOtherRanges(void) {
 	g_debrisObjectSlotStart += 1;
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Validate(g_image, written), 0);
 	g_debrisObjectSlotStart -= 1;
-	g_worldStateReservedDword += 1;
+	g_worldStateDebrisSlotCount += 1;
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Validate(g_image, written), 0);
-	g_worldStateReservedDword -= 1;
+	g_worldStateDebrisSlotCount -= 1;
 	g_explosionObjectSlotEnd += 1;
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Validate(g_image, written), 0);
 	g_explosionObjectSlotEnd -= 1;
@@ -433,7 +433,7 @@ static void CheckValidateRefusesOtherRanges(void) {
 static void SetMixedOnlyValues(int seed) {
 	int v = seed ? 0x31 : 0;
 	g_worldStateReservedByte = (uint8_t)v;
-	g_worldStateReservedDword = v + 1;
+	g_worldStateDebrisSlotCount = v + 1;
 	g_activeRegionObjectSlotStart = v + 2;
 	g_activeRegionCraftObjectSlotEnd = v + 3;
 	g_mobileObjectCharDataSlotStart = v + 4;
@@ -465,12 +465,12 @@ static void CheckLiveChecksumOfRichWorld(void) {
 		memset(&g_missionFgStats[i], 0x21 + i, sizeof g_missionFgStats[i]);
 		memset(&g_missionFlightGroups[i], 0x41 + i, sizeof g_missionFlightGroups[i]);
 	}
-	g_players[0].connectedFlag = 1;
+	g_players[0].participationState = 1;
 	g_nextObjectSignature = 9;
 	/* Every pool record carries a nonzero field, so dropping any pool's loop changes the result. */
 	g_testCraft[0].craftIndexInGroup = 3;
 	g_testCharData[0].skillValue = 4;
-	g_testGuidance[0].minSpeed = 5;
+	g_testGuidance[0].cruiseSpeed = 5;
 	g_testMobiles[0].speed = 6;
 	g_testObjects[2].world_x = 7;
 	SetMixedOnlyValues(1);
@@ -485,7 +485,7 @@ static void CheckLiveChecksumOfRichWorld(void) {
 	XVT_ASSERT_TRUE(XvtSnapshot_LiveChecksum() != live);
 	g_missionFgStats[2].spawnedCraftCount -= 1;
 	XVT_ASSERT_INT_EQ(XvtSnapshot_LiveChecksum(), live);
-	g_players[0].connectedFlag = 0;
+	g_players[0].participationState = 0;
 	XVT_ASSERT_TRUE(XvtSnapshot_LiveChecksum() != live);
 	SetMixedOnlyValues(0);
 	g_missionHeader.numFlightGroups = 0;

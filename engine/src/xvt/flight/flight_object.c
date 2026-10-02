@@ -61,7 +61,7 @@ void FlightObject_UpdateSpecialBehavior(void) {
 
 	if (g_flightMissionState.provingGroundsModeActive != 0)
 		ProvingGrounds_UpdateCourse();
-	if (g_flightGlobalCountdownTimers.crewMeshRotationUpdateTimer != 0
+	if (g_flightGlobalCountdownTimers.specialBehaviorUpdateTimer != 0
 #ifdef XVT_MODERN
 		|| !XvtFlightTiming_ReferenceDue()
 #endif
@@ -72,7 +72,7 @@ void FlightObject_UpdateSpecialBehavior(void) {
 	XvtFlightTiming_AnimationEvent();
 	animationClock = XvtFlightTiming_EnterReference();
 #endif
-	g_flightGlobalCountdownTimers.crewMeshRotationUpdateTimer = SPECIAL_BEHAVIOR_UPDATE_TICKS;
+	g_flightGlobalCountdownTimers.specialBehaviorUpdateTimer = SPECIAL_BEHAVIOR_UPDATE_TICKS;
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 		 objectIndex < g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount; ++objectIndex) {
 		if (g_objectTable[objectIndex].objectType >= FIRST_CREW_OBJECT_TYPE &&
@@ -157,41 +157,43 @@ void FlightObject_UpdateSpecialBehavior(void) {
 								int turretSide;
 								int turretForward;
 								int turretUp;
-								int angleY;
-								int angleX;
+								int targetAlongAxisY;
+								int targetAlongAxisX;
 
 								rotationScale = ModelMesh_GetRotScaleData(objectType, turretMeshIndex);
 								object = &g_objectTable[objectIndex];
 								Mission_ResolveObjectOrMissionPointWorldLoc(turretTarget->targetObjIdx, 0);
 								g_worldLocX -= object->world_x;
-								worldlocy -= object->world_y;
-								worldlocz -= object->world_z;
+								g_worldLocY -= object->world_y;
+								g_worldLocZ -= object->world_z;
 								if (object->mobj->orientMatrixDirty != 0) {
 									FVIEW_calcrotatemove(object->pitch, object->yaw, object);
 									FVIEW_calcrotateorient(object->roll, 0, object);
 								}
-								turretSide =
-									Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, object->mobj->cachedSideX,
-												 object->mobj->cachedSideY, object->mobj->cachedSideZ);
-								turretForward =
-									-Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, object->mobj->cachedFwdX,
-												  object->mobj->cachedFwdY, object->mobj->cachedFwdZ);
-								turretUp =
-									Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, object->mobj->cachedUpX,
-												 object->mobj->cachedUpY, object->mobj->cachedUpZ);
+								turretSide = Math_Dot3Q15(
+									g_worldLocX, g_worldLocY, g_worldLocZ, object->mobj->cachedSideX,
+									object->mobj->cachedSideY, object->mobj->cachedSideZ);
+								turretForward = -Math_Dot3Q15(
+									g_worldLocX, g_worldLocY, g_worldLocZ, object->mobj->cachedFwdX,
+									object->mobj->cachedFwdY, object->mobj->cachedFwdZ);
+								turretUp = Math_Dot3Q15(g_worldLocX, g_worldLocY, g_worldLocZ,
+														object->mobj->cachedUpX, object->mobj->cachedUpY,
+														object->mobj->cachedUpZ);
 								g_worldLocX = turretSide - (int)rotationScale[0];
-								worldlocy = turretForward - (int)rotationScale[1];
-								worldlocz = turretUp - (int)rotationScale[2];
-								(void)Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, (int)rotationScale[3],
-												   (int)rotationScale[4], (int)rotationScale[5]);
-								angleX =
-									Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, (int)rotationScale[6],
+								g_worldLocY = turretForward - (int)rotationScale[1];
+								g_worldLocZ = turretUp - (int)rotationScale[2];
+								(void)Math_Dot3Q15(g_worldLocX, g_worldLocY, g_worldLocZ,
+												   (int)rotationScale[3], (int)rotationScale[4],
+												   (int)rotationScale[5]);
+								targetAlongAxisX =
+									Math_Dot3Q15(g_worldLocX, g_worldLocY, g_worldLocZ, (int)rotationScale[6],
 												 (int)rotationScale[7], (int)rotationScale[8]);
-								angleY =
-									Math_Dot3Q15(g_worldLocX, worldlocy, worldlocz, (int)rotationScale[9],
+								targetAlongAxisY =
+									Math_Dot3Q15(g_worldLocX, g_worldLocY, g_worldLocZ, (int)rotationScale[9],
 												 (int)rotationScale[10], (int)rotationScale[11]);
 								g_curCraft->meshRotation[turretMeshIndex] =
-									(uint8_t)((uint16_t)trig2_arctan(angleY, angleX) >> 8);
+									(uint8_t)((uint16_t)trig2_arctan(targetAlongAxisY, targetAlongAxisX) >>
+											  8);
 							} else {
 								uint8_t rotation;
 
@@ -309,7 +311,7 @@ void FlightObject_UpdateSpecialBehavior(void) {
 					}
 					if (g_curCraft->objectKind == CRAFT_OBJECT_KIND_ACTIVE &&
 						g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF &&
-						g_curCraft->chaffActiveTimer != 0) {
+						g_curCraft->chaffActiveSeconds != 0) {
 						Object_SpawnLocalEffectFragment(objectIndex);
 						Object_SpawnLocalEffectFragment(objectIndex);
 						Object_SpawnLocalEffectFragment(objectIndex);
@@ -366,7 +368,7 @@ void FlightObject_AdvanceTextureFrameSequence(unsigned int objectIdx) {
 		if ((unsigned int)g_activeRegionCraftObjectSlotEnd > objectIdx) {
 			mobileObject = g_objectTable[objectIdx].mobj;
 			if (mobileObject->pCraft != NULL)
-				Craft_ClearEffectiveAiObjectLink(mobileObject->pCraft);
+				Craft_FreeLinkedObjects(mobileObject->pCraft);
 		}
 	} else if (sequenceValue == -3) {
 		g_billboardTextureSequenceIndex = 0;
@@ -625,7 +627,7 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx) {
 			}
 			g_objectTable[objectIdx].objectType = 0;
 			Player_SaveCraftSettings(playerIdx);
-			Craft_ClearEffectiveAiObjectLink(craft);
+			Craft_FreeLinkedObjects(craft);
 			g_players[playerIdx].hyperspacePhase = HYPERSPACE_PHASE_NONE;
 			Mission_ProcessFlightGroupWaveCompletion(flightGroupIdx);
 			if (Player_BindToAvailableCraft(playerIdx, UINT32_MAX, 0, 0) != 0) {
@@ -640,7 +642,7 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx) {
 }
 
 // FUNCTION: XVT 0x459850
-void FlightObject_UpdateDebrisAndTransientAnimations(void) {
+void FlightObject_RecycleLocalDebrisNearPlayer(void) {
 	int objectIndex;
 	uint16_t debrisIndex;
 	int deltaX;

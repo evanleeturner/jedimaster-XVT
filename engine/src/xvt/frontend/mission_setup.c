@@ -607,7 +607,7 @@ int MissionSetup_Update(int frameCounter) {
 	}
 	MissionSetup_DrawMissionDescription();
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		FrontendNet_UpdateAndDrawPanel(frameCounter);
+		FrontendNet_UpdateAndDrawChatPanel(frameCounter);
 	}
 	FrontendDraw_RectAssign(&rect, 507, 452, 562, 464);
 	sprintf(g_frontendScratchBuffer, "v. %d.%d", 2, 0);
@@ -6902,7 +6902,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 		MissionSetup_DrawTeamMissionDescription();
 	}
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		FrontendNet_UpdateAndDrawPanel(frameCounter);
+		FrontendNet_UpdateAndDrawChatPanel(frameCounter);
 	}
 	FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
 	if (g_pilotData.name[0] != '\0') {
@@ -8583,7 +8583,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, 0xFFFF);
 	}
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		FrontendNet_UpdateAndDrawPanel(frameCounter);
+		FrontendNet_UpdateAndDrawChatPanel(frameCounter);
 	}
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER && g_teamCount > 1) {
 		g_missionSetupCountdownClockMs = GetTickCount();
@@ -9982,7 +9982,7 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 	}
 	MissionSetup_BattleChoice_DrawDescription();
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		FrontendNet_UpdateAndDrawPanel(frameCounter);
+		FrontendNet_UpdateAndDrawChatPanel(frameCounter);
 	}
 
 	FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);

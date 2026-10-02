@@ -62,10 +62,10 @@ long _filelength(int fileDescriptor);
 #endif
 
 #ifndef XVT_MODERN
-typedef struct Msvc42IconFilePrefix {
+typedef struct Msvc42CrtFilePrefix {
 	uint8_t reserved[12];
 	int flags;
-} Msvc42IconFilePrefix;
+} Msvc42CrtFilePrefix;
 #endif
 
 typedef struct LfdEntryHeader {
@@ -194,7 +194,7 @@ uint16_t g_mfdDamageBlitSourceY = 0;
 // GLOBAL: XVT 0xA08C92
 uint16_t g_mfdGoalsBlitSourceY = 0;
 // GLOBAL: XVT 0x521588
-uint8_t g_hudBeamSegmentFadeByChargeStep[4] = { 0x30, 0x2D, 0x31, 0x32 };
+uint8_t g_hudBeamSegmentColorByChargeStep[4] = { 0x30, 0x2D, 0x31, 0x32 };
 // GLOBAL: XVT 0x521590
 const HudBeamSegmentOffset g_hudBeamSegmentOffsets480x360[9] = {
 	{ 14, 14 }, { 12, 12 }, { 10, 10 }, { 9, 9 }, { 7, 7 }, { 5, 5 }, { 4, 4 }, { 2, 2 }, { 0, 0 },
@@ -216,11 +216,11 @@ uint8_t g_targetLockActive = 0;
 // GLOBAL: XVT 0x9D8B68
 uint8_t g_hudFullRedrawInProgress = 0;
 // GLOBAL: XVT 0x556720
-uint8_t g_hudViewportSpanMask2[480] = { 0 };
+uint8_t g_hudCraftListInsetSpanMask[480] = { 0 };
 // GLOBAL: XVT 0x556540
-uint8_t g_hudViewportSpanMask0[480] = { 0 };
+uint8_t g_hudCockpitInsetSpanMask[480] = { 0 };
 // GLOBAL: XVT 0x556360
-uint8_t g_hudViewportSpanMask1[480] = { 0 };
+uint8_t g_hudOnlyViewInsetSpanMask[480] = { 0 };
 // GLOBAL: XVT 0xA0A130
 const char* g_strCockpitOverlayText[40] = { 0 };
 // GLOBAL: XVT 0xA0A0E0
@@ -242,7 +242,7 @@ int g_flightTickOverlayWindowTicks = 0;
 // GLOBAL: XVT 0xA0829C
 int g_flightTickOverlaySampleCount = 0;
 // GLOBAL: XVT 0x9A8BFC
-int g_pingIndicator = 0;
+int g_packetDropIndicator = 0;
 // GLOBAL: XVT 0x9EC45C
 int g_lagIndicator = 0;
 
@@ -291,7 +291,7 @@ int g_flightGroupMessagePaneRight = 0;
 // GLOBAL: XVT 0x9D6934
 int g_flightGroupMessagePaneBottom = 0;
 // GLOBAL: XVT 0x5215E0
-const char g_countermeasureAmmoWidthText[4] = "000";
+const char g_threeDigitWidthText[4] = "000";
 // GLOBAL: XVT 0x52168C
 const char g_missionClockMinutesWidthText[4] = "00:";
 // GLOBAL: XVT 0x521564
@@ -704,7 +704,7 @@ int Hud_SetHudViewState(int hudViewState, int playerIdx) {
 	int remainingLocks;
 
 	localPlayer = g_localPlayer;
-	if (playerIdx == localPlayer && g_hudCockpitResourceDescriptors[hudViewState].enabled == 0)
+	if (playerIdx == localPlayer && g_hudCockpitResourceDescriptors[hudViewState].resourceRef == 0)
 		return 0;
 	if (g_players[playerIdx].viewState.hudStateLive == hudViewState)
 		return 1;
@@ -740,7 +740,7 @@ int Hud_SetHudViewState(int hudViewState, int playerIdx) {
 // FUNCTION: XVT 0x438A30
 void Hud_InitHUD(int playerIdx) {
 	enum {
-		HUD_LAYOUT_ACTIVE_FLAG_INDEX = 127,
+		CRITICAL_WARNING_LAYOUT_INDEX = 127,
 		HUD_ELEMENT_STATE_DIRTY = -2,
 		HUD_ELEMENT_STATE_INACTIVE = -3,
 	};
@@ -846,7 +846,7 @@ void Hud_InitHUD(int playerIdx) {
 			}
 		}
 
-		g_hudElementLayouts[HUD_LAYOUT_ACTIVE_FLAG_INDEX].clipHeightOrForegroundColor = 1;
+		g_hudElementLayouts[CRITICAL_WARNING_LAYOUT_INDEX].clipHeightOrForegroundColor = 1;
 		g_hudCachedTargetObjectIdx = -1;
 		g_radarForeBlipCount = 0;
 		g_radarTargetMarkerBackgroundSaved = 0;
@@ -894,7 +894,7 @@ void Hud_RenderHud(int playerIdx) {
 				Hud_UpdateHUD();
 				Hud_UpdateCriticalHullShieldWarning();
 			} else if (hudState == HUD_STATE_FORWARD_PANEL) {
-				Hud_UpdateForwardPanel();
+				Hud_UpdateHudOnlyView();
 				Hud_UpdateCriticalHullShieldWarning();
 			} else if (hudState == HUD_STATE_COMMAND_DISPLAY) {
 				Hud_UpdateCMDText();
@@ -1101,7 +1101,7 @@ void Hud_DrawStaticCockpitText(uint16_t playerIdx) {
 		} else {
 			FlightText_SetFontTier(2);
 		}
-		textWidth = FlightText_MeasureStringWidth(g_countermeasureAmmoWidthText);
+		textWidth = FlightText_MeasureStringWidth(g_threeDigitWidthText);
 		FlightText_SetColor(0x4A);
 		FlightText_SetBackgroundColor(0x2C);
 		FlightText_SetClipRect(g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 41].x + textWidth,
@@ -1199,7 +1199,7 @@ void Hud_UpdateHUD(void) {
 	};
 
 	int objectIndex;
-	int supportedCraft;
+	int isRebelFighter;
 	CraftData* craft;
 	uint16_t sFoilIndicatorState;
 
@@ -1214,13 +1214,13 @@ void Hud_UpdateHUD(void) {
 	Hud_UpdateMissionClockDisplay();
 
 	objectIndex = g_players[g_localPlayer].objectIndex;
-	supportedCraft =
+	isRebelFighter =
 		objectIndex != -1 && (g_objectTable[objectIndex].objectType == CRAFT_SPECIES_X_WING ||
 							  g_objectTable[objectIndex].objectType == CRAFT_SPECIES_Y_WING ||
 							  g_objectTable[objectIndex].objectType == CRAFT_SPECIES_A_WING ||
 							  g_objectTable[objectIndex].objectType == CRAFT_SPECIES_Z_95_HEADHUNTER ||
 							  g_objectTable[objectIndex].objectType == CRAFT_SPECIES_B_WING);
-	if (supportedCraft) {
+	if (isRebelFighter) {
 		craft = g_objectTable[objectIndex].mobj->pCraft;
 		if ((craft->damageStats.activeHudFeatureMask & SHIELD_DISPLAY_FEATURE_MASK) != 0 &&
 			(uint16_t)g_hudElementLayouts[SHIELD_DISTRIBUTION_ELEMENT].x +
@@ -1237,13 +1237,13 @@ void Hud_UpdateHUD(void) {
 	Hud_UpdateCountermeasureStatus();
 
 	objectIndex = g_players[g_localPlayer].objectIndex;
-	supportedCraft =
+	isRebelFighter =
 		objectIndex != -1 && (g_objectTable[objectIndex].objectType == CRAFT_SPECIES_X_WING ||
 							  g_objectTable[objectIndex].objectType == CRAFT_SPECIES_Y_WING ||
 							  g_objectTable[objectIndex].objectType == CRAFT_SPECIES_A_WING ||
 							  g_objectTable[objectIndex].objectType == CRAFT_SPECIES_Z_95_HEADHUNTER ||
 							  g_objectTable[objectIndex].objectType == CRAFT_SPECIES_B_WING);
-	if (supportedCraft && g_hudElementLayouts[S_FOIL_STATE_ELEMENT].x != 0) {
+	if (isRebelFighter && g_hudElementLayouts[S_FOIL_STATE_ELEMENT].x != 0) {
 		sFoilIndicatorState = (g_objectTable[objectIndex].mobj->pCraft->sFoilState & S_FOIL_CLOSED_MASK) == 0;
 		Hud_DrawCachedSpriteElement(S_FOIL_STATE_ELEMENT, sFoilIndicatorState);
 	}
@@ -1253,7 +1253,7 @@ void Hud_UpdateHUD(void) {
 }
 
 // FUNCTION: XVT 0x4398B0
-void Hud_UpdateForwardPanel(void) {
+void Hud_UpdateHudOnlyView(void) {
 	Hud_DrawRadarBlips();
 	Hud_DrawReticle3D();
 	Hud_UpdateTargetingLockIndicator();
@@ -1578,7 +1578,7 @@ void Hud_AddBlipToRadar(int16_t objIdx) {
 		}
 	}
 
-	pai_ObjectRefUpdateApproxRangeScore(g_players[g_localPlayer].objectIndex, objectIdx);
+	pai_ObjectRefUpdateRoughDistance(g_players[g_localPlayer].objectIndex, objectIdx);
 	if (g_lastRoughDistance > 122166) {
 		if (g_radarBlipColor == 47)
 			g_radarBlipColor = 45;
@@ -1657,7 +1657,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 		HIDDEN_TARGET_DISPLAY_FLAGS = 1,
 		NORMAL_TARGET_DISPLAY_FLAGS = 3,
 		SHORT_TARGET_DISPLAY_FLAGS = 2,
-		TARGET_NUMERIC_SCALE = 0x28F,
+		PERCENTAGE_SCALE = 0x28F,
 		MAX_STATUS_FIRST_WORD_LENGTH = 40,
 		NO_SELECTED_COMPONENT = 50,
 		WAYPOINT_ZERO_OBJECT_REF = 0x8000,
@@ -1845,7 +1845,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 			if (useLeftAlignedDetails) {
 				FlightText_SetFontTier(0);
 			}
-			percentWidth = FlightText_MeasureStringWidth(g_countermeasureAmmoWidthText);
+			percentWidth = FlightText_MeasureStringWidth(g_threeDigitWidthText);
 			FlightText_SetCursor(
 				g_hudElementLayouts[g_hudInstrumentSetBaseIndex + TARGET_SHIELD_LABEL_ELEMENT].x,
 				g_hudElementLayouts[g_hudInstrumentSetBaseIndex + TARGET_SHIELD_LABEL_ELEMENT].y);
@@ -1969,8 +1969,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 
 			if (g_projectileObjectSlotStart <= currentTargetObjectIndex &&
 				g_projectileObjectSlotEnd > currentTargetObjectIndex &&
-				g_projectileDamageByObjectType
-						.warheadClass[targetObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
+				g_projectileTypeData.warheadClass[targetObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
 				WarheadGuidanceState* guidance =
 					g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx]
 						.mobj->pWarheadGuidance;
@@ -1997,7 +1996,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 				FlightText_DrawStringRightAligned(g_flightTextScratchBuffer);
 			}
 		} else {
-			if (g_hudInstrumentSetBaseIndex != HUD_MAP_INSTRUMENT_BASE_INDEX) {
+			if (g_hudInstrumentSetBaseIndex != HUD_ONLY_VIEW_INSTRUMENT_BASE_INDEX) {
 				if (useLeftAlignedDetails || g_players[g_localPlayer].mapCameraState != 0) {
 #ifdef XVT_MODERN
 					XvtCockpitReadouts_RecordTargetCover(g_hudInstrumentSetBaseIndex +
@@ -2116,7 +2115,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 		}
 		if (maxShield != 0) {
 			shieldPercentage = (uint16_t)MATH2_longratioQ16(shieldAverage, maxShield);
-			shieldPercentage = 2 * (shieldPercentage / TARGET_NUMERIC_SCALE);
+			shieldPercentage = 2 * (shieldPercentage / PERCENTAGE_SCALE);
 			if (shieldTotal != 0 && shieldPercentage == 0) {
 				shieldPercentage = 1;
 			}
@@ -2143,7 +2142,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 		} else {
 			hullPercentage = (uint16_t)MATH2_longratioQ16(targetCraft->hullMax - targetCraft->hullDamage,
 														  targetCraft->hullMax);
-			hullPercentage = hullPercentage / TARGET_NUMERIC_SCALE;
+			hullPercentage = hullPercentage / PERCENTAGE_SCALE;
 			if (hullPercentage == 0) {
 				hullPercentage = 1;
 			}
@@ -2175,7 +2174,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 				systemPercentage = 0;
 			} else {
 				systemPercentage = MATH2_ratioQ16(systemStrength - subsystemDamage, systemStrength);
-				systemPercentage /= TARGET_NUMERIC_SCALE;
+				systemPercentage /= PERCENTAGE_SCALE;
 			}
 			if (systemPercentage > 25 && targetCraft->weaponFireInhibitTimer != 0) {
 				systemPercentage = 25;
@@ -2220,7 +2219,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 				targetCraft->objectKind == CRAFT_OBJECT_KIND_BREAKING_UP ||
 				targetCraft->objectKind == CRAFT_OBJECT_KIND_EXPLODING) {
 				cargoState = 0;
-				cargoText = g_strWarheadUnknown;
+				cargoText = g_strUnknown;
 			} else {
 				cargoState = 1;
 				cargoText = targetCraft->specialCargoName;
@@ -2363,7 +2362,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 			aiController = &orderCraft->aiController;
 			displayPlanId = aiController->pendingPlanId;
 			if (orderCraft->workingSubsystems == 0) {
-				displayPlanId = (uint16_t)pai_findplanbyname("disabledpln");
+				displayPlanId = (uint16_t)pai_FindPlanIdByNameOrZero("disabledpln");
 			} else if (orderMobileObject->speed == 0) {
 				const char* planName = g_planTable[aiController->pendingPlanId].name;
 				if (strcmp(planName, "flyhomepln") == 0 || strcmp(planName, "followhomepln") == 0 ||
@@ -2373,7 +2372,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 					strcmp(planName, "outofhyperspacepln") == 0 ||
 					strcmp(planName, "starshipintohyperpln") == 0 ||
 					strcmp(planName, "starshipfollowhomepln") == 0) {
-					displayPlanId = (uint16_t)pai_findplanbyname("waitpln");
+					displayPlanId = (uint16_t)pai_FindPlanIdByNameOrZero("waitpln");
 				}
 			}
 			if (displayPlanId != g_hudElementStateCache[TARGET_CARGO_ELEMENT]) {
@@ -2874,7 +2873,7 @@ void Hud_DrawReticle3D(void) {
 		uint16_t readyState;
 		uint16_t lockState;
 		int objectIndex;
-		int supportedCraft;
+		int isRebelFighter;
 
 		laserBank = laserSlot > *laserGroupLastSlot;
 		layoutIndex = g_hudInstrumentSetBaseIndex + laserSlot;
@@ -2967,7 +2966,7 @@ void Hud_DrawReticle3D(void) {
 		lockState = 0;
 		if (charge > 0 && (craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0) {
 			if (g_players[g_localPlayer].selectedWeaponMode == 0 &&
-				g_players[g_localPlayer].selectedWarhead == laserBank) {
+				g_players[g_localPlayer].selectedWeaponBank == laserBank) {
 				switch (craft->laserState.linkMode[laserBank]) {
 					case 0:
 					case 4:
@@ -3008,12 +3007,12 @@ void Hud_DrawReticle3D(void) {
 			++readyState;
 
 		objectIndex = g_players[g_localPlayer].objectIndex;
-		supportedCraft =
+		isRebelFighter =
 			objectIndex != -1 &&
 			(g_objectTable[objectIndex].objectType == 1 || g_objectTable[objectIndex].objectType == 2 ||
 			 g_objectTable[objectIndex].objectType == 3 || g_objectTable[objectIndex].objectType == 14 ||
 			 g_objectTable[objectIndex].objectType == 4);
-		if (supportedCraft && g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_FORWARD &&
+		if (isRebelFighter && g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_FORWARD &&
 			(craft->damageStats.activeHudFeatureMask & 2) != 0 &&
 			(craft->damageStats.activeHudFeatureMask & 4) != 0 &&
 			(uint16_t)g_hudElementLayouts[g_hudInstrumentSetBaseIndex + laserSlot +
@@ -3033,8 +3032,8 @@ void Hud_DrawReticle3D(void) {
 			uint16_t targetObjectIndex = g_players[g_localPlayer].currentTargetObjectIdx;
 
 			if (targetObjectIndex != UINT16_MAX &&
-				(uint16_t)collide_targetinrange(g_players[g_localPlayer].objectIndex, targetObjectIndex,
-												laserSlot) != 0) {
+				(uint16_t)collide_WouldShotHitTarget(g_players[g_localPlayer].objectIndex, targetObjectIndex,
+													 laserSlot) != 0) {
 				g_targetLockActive = 1;
 				lockState = 2;
 			} else {
@@ -3053,12 +3052,12 @@ void Hud_DrawReticle3D(void) {
 #endif
 
 		objectIndex = g_players[g_localPlayer].objectIndex;
-		supportedCraft =
+		isRebelFighter =
 			objectIndex != -1 &&
 			(g_objectTable[objectIndex].objectType == 1 || g_objectTable[objectIndex].objectType == 2 ||
 			 g_objectTable[objectIndex].objectType == 3 || g_objectTable[objectIndex].objectType == 14 ||
 			 g_objectTable[objectIndex].objectType == 4);
-		if (supportedCraft)
+		if (isRebelFighter)
 			Hud_DrawCachedSpriteElement(g_hudInstrumentSetBaseIndex + laserSlot + LASER_LOCK_ELEMENT_BASE,
 										lockState);
 	}
@@ -3113,7 +3112,7 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot, uint1
 	uint8_t launcherFlags;
 	ModelIndex craftModelIndex;
 	int objectIndex;
-	int usesCompactPowerDisplay;
+	int isRebelFighter;
 	int localPlayer;
 	MobileObject** playerMobileObject;
 
@@ -3137,11 +3136,11 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot, uint1
 			} else if (g_players[localPlayer].selectedWeaponMode == 0) {
 				selectionState = 1;
 			} else {
-				if (warheadBank != g_players[localPlayer].selectedWarhead) {
+				if (warheadBank != g_players[localPlayer].selectedWeaponBank) {
 					selectionState = 1;
 				} else {
 					launcherFlags =
-						(uint8_t)craft->warheadLauncherFlags[g_players[localPlayer].selectedWarhead];
+						(uint8_t)craft->warheadLauncherFlags[g_players[localPlayer].selectedWeaponBank];
 					if ((launcherFlags & 0x7F) == 3) {
 						selectionState = 2;
 					} else {
@@ -3156,7 +3155,7 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot, uint1
 		if (warheadCount != 0) {
 			FlightText_SetFontTier(2);
 			FlightText_SetClipRect(0, 0, g_screenWidth, g_screenHeight);
-			FlightText_SetCursor(displaySlot * (g_flightFontHalfHeight + 1) + 2, 2);
+			FlightText_SetCursor(displaySlot * (g_flightFontDigitWidth + 1) + 2, 2);
 			FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			if (selectionState == 2) {
 				FlightText_SetColor(0x52);
@@ -3186,8 +3185,8 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot, uint1
 			}
 		} else {
 			FlightText_SetFontTier(2);
-			FlightText_SetClipRect(displaySlot * (g_flightFontHalfHeight + 1) + 2, 2,
-								   g_flightFontHalfHeight + displaySlot * (g_flightFontHalfHeight + 1) + 3,
+			FlightText_SetClipRect(displaySlot * (g_flightFontDigitWidth + 1) + 2, 2,
+								   g_flightFontDigitWidth + displaySlot * (g_flightFontDigitWidth + 1) + 3,
 								   g_flightFontLineHeight + 3);
 #ifdef XVT_MODERN
 			XvtCockpitReadouts_ClearLauncher(displaySlot);
@@ -3239,11 +3238,11 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot, uint1
 		} else if (g_players[g_localPlayer].selectedWeaponMode == 0) {
 			selectionState = 1;
 		} else {
-			if (warheadBank != g_players[g_localPlayer].selectedWarhead) {
+			if (warheadBank != g_players[g_localPlayer].selectedWeaponBank) {
 				selectionState = 1;
 			} else {
 				launcherFlags =
-					(uint8_t)craft->warheadLauncherFlags[g_players[g_localPlayer].selectedWarhead];
+					(uint8_t)craft->warheadLauncherFlags[g_players[g_localPlayer].selectedWeaponBank];
 				if ((launcherFlags & 0x7F) == 3) {
 					selectionState = 2;
 				} else {
@@ -3256,12 +3255,12 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot, uint1
 	}
 
 	objectIndex = g_players[g_localPlayer].objectIndex;
-	usesCompactPowerDisplay =
+	isRebelFighter =
 		objectIndex != -1 &&
 		(g_objectTable[objectIndex].objectType == 1 || g_objectTable[objectIndex].objectType == 2 ||
 		 g_objectTable[objectIndex].objectType == 3 || g_objectTable[objectIndex].objectType == 14 ||
 		 g_objectTable[objectIndex].objectType == 4);
-	if (usesCompactPowerDisplay && selectionState == 2) {
+	if (isRebelFighter && selectionState == 2) {
 		selectionState = 4;
 	}
 	Hud_DrawCachedSpriteElement(displaySlot + 19, selectionState);
@@ -3283,49 +3282,49 @@ void Hud_DrawShieldStrength2D(void) {
 		shield = 0;
 	maxShield = Craft_GetObjectMaxShield(g_players[g_localPlayer].objectIndex) / 2;
 	if (g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 35].colorIndexOrWidgetParam != 0xFFFFu) {
-		uint16_t percentage;
+		uint16_t shieldRatioQ16;
 		uint16_t strengthLevel;
-		uint16_t secondaryLevel;
+		uint16_t shieldPercent;
 		int16_t primaryFade;
 		int16_t secondaryFade;
 		if (maxShield <= shield) {
 			strengthLevel = 9;
-			percentage = MATH2_longratioQ16((unsigned int)(shield - maxShield), (unsigned int)maxShield);
-			secondaryLevel = MATH2_longfraction(9, (uint16_t)percentage);
+			shieldRatioQ16 = MATH2_longratioQ16((unsigned int)(shield - maxShield), (unsigned int)maxShield);
+			shieldPercent = MATH2_longfraction(9, (uint16_t)shieldRatioQ16);
 		} else {
-			percentage = MATH2_longratioQ16((unsigned int)shield, (unsigned int)maxShield);
-			strengthLevel = MATH2_longfraction(9, (uint16_t)percentage);
-			secondaryLevel = 0;
+			shieldRatioQ16 = MATH2_longratioQ16((unsigned int)shield, (unsigned int)maxShield);
+			strengthLevel = MATH2_longfraction(9, (uint16_t)shieldRatioQ16);
+			shieldPercent = 0;
 		}
 		if (g_playerFlightTransientTimers[g_localPlayer].shieldHitFlashTimer != 0 &&
 			g_lastShieldDamageSide == 0) {
-			if (secondaryLevel == 0)
+			if (shieldPercent == 0)
 				strengthLevel = 10;
 			else
-				secondaryLevel = 10;
+				shieldPercent = 10;
 		}
 		primaryFade =
 			strengthLevel != 0 ? g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 35].clipWidth : -1;
 		secondaryFade =
-			secondaryLevel != 0 ? g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 36].clipWidth : -1;
+			shieldPercent != 0 ? g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 36].clipWidth : -1;
 		Hud_DrawCachedFadedSpriteElement((uint16_t)(g_hudInstrumentSetBaseIndex + 35),
 										 (int16_t)g_hudShieldColors[strengthLevel], primaryFade);
 		Hud_DrawCachedFadedSpriteElement((uint16_t)(g_hudInstrumentSetBaseIndex + 36),
-										 (int16_t)g_hudShieldColors[secondaryLevel], secondaryFade);
+										 (int16_t)g_hudShieldColors[shieldPercent], secondaryFade);
 	} else {
 		uint16_t strengthLevel;
-		uint16_t percentage;
-		uint16_t secondaryLevel;
+		uint16_t shieldRatioQ16;
+		uint16_t shieldPercent;
 		if (maxShield <= shield) {
-			percentage = MATH2_longratioQ16((unsigned int)(shield - maxShield), (unsigned int)maxShield);
+			shieldRatioQ16 = MATH2_longratioQ16((unsigned int)(shield - maxShield), (unsigned int)maxShield);
 			strengthLevel = 9;
-			secondaryLevel = (uint16_t)(percentage / 0x28Fu + 100);
+			shieldPercent = (uint16_t)(shieldRatioQ16 / 0x28Fu + 100);
 		} else {
-			percentage = MATH2_longratioQ16((unsigned int)shield, (unsigned int)maxShield);
-			strengthLevel = MATH2_longfraction(9, (uint16_t)percentage);
-			secondaryLevel = (uint16_t)(percentage / 0x28Fu);
+			shieldRatioQ16 = MATH2_longratioQ16((unsigned int)shield, (unsigned int)maxShield);
+			strengthLevel = MATH2_longfraction(9, (uint16_t)shieldRatioQ16);
+			shieldPercent = (uint16_t)(shieldRatioQ16 / 0x28Fu);
 		}
-		if ((uint16_t)g_hudElementStateCache[g_hudInstrumentSetBaseIndex + 35] != secondaryLevel) {
+		if ((uint16_t)g_hudElementStateCache[g_hudInstrumentSetBaseIndex + 35] != shieldPercent) {
 			FlightText_SetFontTier(2);
 			FlightText_SetClipRect(g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 35].x,
 								   g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 35].y,
@@ -3338,14 +3337,14 @@ void Hud_DrawShieldStrength2D(void) {
 			FlightText_SetColor(g_hudShieldColors[HUD_SHIELD_TEXT_COLOR_OFFSET + strengthLevel]);
 			FlightText_SetCursor(g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 35].x,
 								 g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 35].y);
-			FlightText_FormatScratchInt(secondaryLevel);
+			FlightText_FormatScratchInt(shieldPercent);
 			FlightText_AppendScratchChar('%');
 #ifdef XVT_MODERN
 			XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_SHIELD_FORE, g_flightTextScratchBuffer,
 									   XVT_COCKPIT_ALIGN_RIGHT);
 #endif
 			FlightText_DrawStringRightAligned(g_flightTextScratchBuffer);
-			g_hudElementStateCache[g_hudInstrumentSetBaseIndex + 35] = (int16_t)secondaryLevel;
+			g_hudElementStateCache[g_hudInstrumentSetBaseIndex + 35] = (int16_t)shieldPercent;
 		}
 	}
 	craft = g_objectTable[g_players[g_localPlayer].objectIndex].mobj->pCraft;
@@ -3356,18 +3355,18 @@ void Hud_DrawShieldStrength2D(void) {
 		shield = 0;
 	maxShield = Craft_GetObjectMaxShield(g_players[g_localPlayer].objectIndex) / 2;
 	if (g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 37].colorIndexOrWidgetParam != 0xFFFFu) {
-		uint16_t percentage;
+		uint16_t shieldRatioQ16;
 		uint16_t strengthLevel;
 		uint16_t secondaryLevel;
 		int16_t primaryFade;
 		int16_t secondaryFade;
 		if (maxShield <= shield) {
 			strengthLevel = 9;
-			percentage = MATH2_longratioQ16((unsigned int)(shield - maxShield), (unsigned int)maxShield);
-			secondaryLevel = MATH2_longfraction(9, (uint16_t)percentage);
+			shieldRatioQ16 = MATH2_longratioQ16((unsigned int)(shield - maxShield), (unsigned int)maxShield);
+			secondaryLevel = MATH2_longfraction(9, (uint16_t)shieldRatioQ16);
 		} else {
-			percentage = MATH2_longratioQ16((unsigned int)shield, (unsigned int)maxShield);
-			strengthLevel = MATH2_longfraction(9, (uint16_t)percentage);
+			shieldRatioQ16 = MATH2_longratioQ16((unsigned int)shield, (unsigned int)maxShield);
+			strengthLevel = MATH2_longfraction(9, (uint16_t)shieldRatioQ16);
 			secondaryLevel = 0;
 		}
 		if (g_playerFlightTransientTimers[g_localPlayer].shieldHitFlashTimer != 0 &&
@@ -3388,15 +3387,15 @@ void Hud_DrawShieldStrength2D(void) {
 	} else {
 		uint16_t secondaryLevel;
 		uint16_t strengthLevel;
-		uint16_t percentage;
+		uint16_t shieldRatioQ16;
 		if (maxShield <= shield) {
-			percentage = MATH2_longratioQ16((unsigned int)(shield - maxShield), (unsigned int)maxShield);
+			shieldRatioQ16 = MATH2_longratioQ16((unsigned int)(shield - maxShield), (unsigned int)maxShield);
 			strengthLevel = 9;
-			secondaryLevel = (uint16_t)(percentage / 0x28Fu + 100);
+			secondaryLevel = (uint16_t)(shieldRatioQ16 / 0x28Fu + 100);
 		} else {
-			percentage = MATH2_longratioQ16((unsigned int)shield, (unsigned int)maxShield);
-			strengthLevel = MATH2_longfraction(9, (uint16_t)percentage);
-			secondaryLevel = (uint16_t)(percentage / 0x28Fu);
+			shieldRatioQ16 = MATH2_longratioQ16((unsigned int)shield, (unsigned int)maxShield);
+			strengthLevel = MATH2_longfraction(9, (uint16_t)shieldRatioQ16);
+			secondaryLevel = (uint16_t)(shieldRatioQ16 / 0x28Fu);
 		}
 		if ((uint16_t)g_hudElementStateCache[g_hudInstrumentSetBaseIndex + 37] != secondaryLevel) {
 			FlightText_SetFontTier(2);
@@ -3551,7 +3550,7 @@ void Hud_DrawBeamStrength2D(void) {
 	uint16_t beamActiveState;
 	int originalBeamStrength;
 	int16_t segmentIndex;
-	uint16_t fade;
+	uint16_t segmentColor;
 	int16_t clampedStrength;
 	uint16_t x;
 	uint16_t y;
@@ -3562,7 +3561,7 @@ void Hud_DrawBeamStrength2D(void) {
 		return;
 	}
 
-	beamStrength = craft->beamPresent;
+	beamStrength = craft->beamCharge;
 	if (beamStrength < 0) {
 		beamStrength = 0;
 	}
@@ -3585,16 +3584,16 @@ void Hud_DrawBeamStrength2D(void) {
 	segmentIndex = 0;
 	do {
 		if (200 * (5 * segmentIndex + 5) < originalBeamStrength) {
-			fade = g_hudBeamSegmentFadeByChargeStep[3];
+			segmentColor = g_hudBeamSegmentColorByChargeStep[3];
 		} else {
 			clampedStrength = beamStrength;
 			if (beamStrength < 0) {
-				fade = g_hudBeamSegmentFadeByChargeStep[0];
+				segmentColor = g_hudBeamSegmentColorByChargeStep[0];
 			} else {
 				if (beamStrength > 1000) {
 					clampedStrength = 1000;
 				}
-				fade = g_hudBeamSegmentFadeByChargeStep[clampedStrength / 333];
+				segmentColor = g_hudBeamSegmentColorByChargeStep[clampedStrength / 333];
 			}
 		}
 
@@ -3615,8 +3614,9 @@ void Hud_DrawBeamStrength2D(void) {
 		g_flightBlitSpriteFadedFn(
 			g_hudPanelSpriteDataByIndex[g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 51].selector +
 										segmentIndex],
-			x, y, g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 51].colorIndexOrWidgetParam, (int8_t)fade,
-			g_hudBeamSegmentFadeByChargeStep[0] == fade
+			x, y, g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 51].colorIndexOrWidgetParam,
+			(int8_t)segmentColor,
+			g_hudBeamSegmentColorByChargeStep[0] == segmentColor
 				? 0
 				: g_hudElementLayouts[g_hudInstrumentSetBaseIndex + 51].clipWidth);
 		++segmentIndex;
@@ -3652,7 +3652,7 @@ void Hud_UpdateThrottlePercent(void) {
 		mobileObject = g_objectTable[g_players[g_localPlayer].objectIndex].mobj;
 		craft = mobileObject->pCraft;
 		throttlePercent = craft->throttleSpeed / 0x28F;
-		if (craft->engineOutputScale == 0)
+		if (craft->engineOverdriveOff == 0)
 			throttlePercent *= 2;
 		if (g_hudInstrumentSetBaseIndex != HUD_COCKPIT_INSTRUMENT_BASE_INDEX)
 			FlightText_SetFontTier(0);
@@ -3774,8 +3774,8 @@ void Hud_DrawPowerSettings2D(void) {
 		craft = g_objectTable[g_players[g_localPlayer].objectIndex].mobj->pCraft;
 		if ((craft->damageStats.activeHudFeatureMask & 0x1000) != 0 &&
 			(craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) != 0) {
-			Hud_DrawCachedSegmentedBar(3 * (uint8_t)craft->beamLevel, g_hudInstrumentSetBaseIndex + 45, 12,
-									   yStep);
+			Hud_DrawCachedSegmentedBar(3 * (uint8_t)craft->beamRechargeLevel,
+									   g_hudInstrumentSetBaseIndex + 45, 12, yStep);
 		}
 
 		craft = g_objectTable[g_players[g_localPlayer].objectIndex].mobj->pCraft;
@@ -3785,7 +3785,7 @@ void Hud_DrawPowerSettings2D(void) {
 			if ((systemFlags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0)
 				enginePower = (uint16_t)(enginePower - (uint8_t)craft->shieldRechargeLevel + 2);
 			if ((systemFlags & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) != 0)
-				enginePower = (uint16_t)(enginePower - (uint8_t)craft->beamLevel + 2);
+				enginePower = (uint16_t)(enginePower - (uint8_t)craft->beamRechargeLevel + 2);
 			Hud_DrawCachedSegmentedBar(enginePower, g_hudInstrumentSetBaseIndex + 42, 12, yStep);
 		}
 	} else {
@@ -3895,14 +3895,14 @@ void Hud_UpdateThreatIndicators(int hudMode) {
 														ai->maneuverMode == AI_MANEUVER_MODE_ROCKET_ATTACK)) {
 				int cannon;
 
-				for (cannon = 0; cannon < craft->cannonClassCount; ++cannon) {
+				for (cannon = 0; cannon < craft->cannonGroupCount; ++cannon) {
 					if ((craft->laserState.projectileTypeId[cannon] == 0x8B ||
 						 craft->laserState.projectileTypeId[cannon] == 0x89) &&
 						craft->laserState.linkMode[cannon] != 0)
 						attackThreat = 1;
 				}
-				if (craft->beamActive != 0 && craft->beamPresent != 0 &&
-					craft->beamTypeId != BEAM_TYPE_NONE && (uint8_t)craft->beamTypeId < BEAM_TYPE_DECOY)
+				if (craft->beamActive != 0 && craft->beamCharge != 0 && craft->beamTypeId != BEAM_TYPE_NONE &&
+					(uint8_t)craft->beamTypeId < BEAM_TYPE_DECOY)
 					beamThreat = (uint8_t)craft->beamTypeId;
 			}
 		} else {
@@ -3918,13 +3918,13 @@ void Hud_UpdateThreatIndicators(int hudMode) {
 			playerOwnerIdx = g_objectTable[objectIdx].playerOwnerIdx;
 			if ((uint16_t)g_players[playerOwnerIdx].currentTargetObjectIdx == playerObjectIdx &&
 				g_players[playerOwnerIdx].selectedWeaponMode == 0) {
-				pai_ObjectRefUpdateApproxRangeScore(objectIdx, playerObjectIdx);
+				pai_ObjectRefUpdateRoughDistance(objectIdx, playerObjectIdx);
 				if (g_lastRoughDistance < 0x10000 &&
 					Targeting_TestAimCone(playerObjectIdx, 0, playerOwnerIdx))
 					attackThreat = 1;
 			}
 			if ((uint16_t)g_players[playerOwnerIdx].currentTargetObjectIdx == playerObjectIdx &&
-				craft->beamActive != 0 && craft->beamPresent != 0 && craft->beamTypeId != BEAM_TYPE_NONE &&
+				craft->beamActive != 0 && craft->beamCharge != 0 && craft->beamTypeId != BEAM_TYPE_NONE &&
 				(uint8_t)craft->beamTypeId < BEAM_TYPE_DECOY)
 				beamThreat = (uint8_t)craft->beamTypeId;
 		}
@@ -3937,7 +3937,7 @@ void Hud_UpdateThreatIndicators(int hudMode) {
 					craft->componentHp[g_modelDefs[craft->modelIndex].weaponHardpoints[slot].meshIdx] != 0)
 					laserThreat = 1;
 			}
-			if (craft->beamActive != 0 && craft->beamPresent != 0 &&
+			if (craft->beamActive != 0 && craft->beamCharge != 0 &&
 				(uint16_t)craft->beamTargetObjIdx == playerObjectIdx && craft->beamTypeId != BEAM_TYPE_NONE &&
 				(uint8_t)craft->beamTypeId < BEAM_TYPE_DECOY)
 				beamThreat = (uint8_t)craft->beamTypeId;
@@ -3997,7 +3997,7 @@ void Hud_UpdateCriticalHullShieldWarning(void) {
 	int supportedCraft;
 	CraftData* craft;
 	unsigned int shieldEnergy;
-	unsigned int criticalHullThreshold;
+	unsigned int hullThird;
 	unsigned int hullDamageLevel;
 	uint16_t warningState;
 	unsigned int warningTextIdx;
@@ -4014,10 +4014,10 @@ void Hud_UpdateCriticalHullShieldWarning(void) {
 
 	craft = g_objectTable[objectIdx].mobj->pCraft;
 	shieldEnergy = craft->shieldEnergy[0] + craft->shieldEnergy[1];
-	criticalHullThreshold = craft->hullMax / 3;
+	hullThird = craft->hullMax / 3;
 	hullDamageLevel = 2;
-	if (criticalHullThreshold != 0) {
-		hullDamageLevel = craft->hullDamage / criticalHullThreshold;
+	if (hullThird != 0) {
+		hullDamageLevel = craft->hullDamage / hullThird;
 	}
 	if (shieldEnergy < 100 && hullDamageLevel == 2) {
 		warningState = (g_missionElapsedClock.subsecondTicks / 59) & 1;
@@ -4080,8 +4080,7 @@ void Hud_UpdateCountermeasureStatus(void) {
 				return;
 
 			FlightText_SetFontTier(2);
-			FlightText_SetClipRect(left, y,
-								   left + FlightText_MeasureStringWidth(g_countermeasureAmmoWidthText),
+			FlightText_SetClipRect(left, y, left + FlightText_MeasureStringWidth(g_threeDigitWidthText),
 								   y + g_flightFontLineHeight);
 			FlightText_SetCursor(left, y);
 			FlightText_SetBackgroundColor(0x2C);
@@ -4094,7 +4093,8 @@ void Hud_UpdateCountermeasureStatus(void) {
 			g_hudElementStateCache[g_hudInstrumentSetBaseIndex + 48] = countermeasureCount;
 		}
 
-		if ((uint8_t)g_objectTable[g_players[g_localPlayer].objectIndex].mobj->pCraft->chaffActiveTimer != 0)
+		if ((uint8_t)g_objectTable[g_players[g_localPlayer].objectIndex].mobj->pCraft->chaffActiveSeconds !=
+			0)
 			Hud_DrawCachedSpriteElement(47, 1);
 		else
 			Hud_DrawCachedSpriteElement(47, 0);
@@ -4404,7 +4404,7 @@ void Hud_DrawCmdTargetDetails(void) {
 					}
 				} else {
 					cargoState = 0;
-					cargoText = g_strWarheadUnknown;
+					cargoText = g_strUnknown;
 				}
 			}
 		}
@@ -4454,7 +4454,7 @@ void Hud_DrawCmdTargetDetails(void) {
 
 		displayPlanId = controller->pendingPlanId;
 		if (targetCraft->workingSubsystems == 0) {
-			displayPlanId = pai_findplanbyname("disabledpln");
+			displayPlanId = pai_FindPlanIdByNameOrZero("disabledpln");
 		} else if (targetMobileObject->speed == 0) {
 			const char* planName;
 
@@ -4465,7 +4465,7 @@ void Hud_DrawCmdTargetDetails(void) {
 				strcmp(planName, "intohyperspacepln") == 0 || strcmp(planName, "outofhyperspacepln") == 0 ||
 				strcmp(planName, "starshipintohyperpln") == 0 ||
 				strcmp(planName, "starshipfollowhomepln") == 0) {
-				displayPlanId = pai_findplanbyname("waitpln");
+				displayPlanId = pai_FindPlanIdByNameOrZero("waitpln");
 			}
 		}
 
@@ -4702,10 +4702,10 @@ void Hud_DrawCmdTargetDetails(void) {
 					} else {
 #ifdef XVT_MODERN
 						XvtCockpitReadouts_ClearOrderTime();
-						XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CMD_TIME_UNKNOWN, g_strWarheadUnknown,
+						XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CMD_TIME_UNKNOWN, g_strUnknown,
 												   XVT_COCKPIT_ALIGN_LEFT);
 #endif
-						FlightText_DrawString(g_strWarheadUnknown);
+						FlightText_DrawString(g_strUnknown);
 					}
 					return;
 				}
@@ -4782,15 +4782,15 @@ void Hud_DrawCmdTargetStatusIndicators(void) {
 		if (g_activeRegionCraftObjectSlotEnd > currentTargetObjectIdx) {
 			unsigned int shield;
 			unsigned int maxShield;
-			unsigned int shieldPercentage;
+			unsigned int shieldRatioQ16;
 			craft = g_objectTable[currentTargetObjectIdx].mobj->pCraft;
 			shield = (unsigned int)(craft->shieldEnergy[0] + craft->shieldEnergy[1]);
 			maxShield = Craft_GetObjectMaxShield(g_players[g_localPlayer].currentTargetObjectIdx);
 			shield >>= 1;
 			if (maxShield != 0) {
-				shieldPercentage = MATH2_longratioQ16(shield, maxShield);
-				shieldPercentage &= 0xFFFFu;
-				shieldPercent = 2 * (shieldPercentage / 0x28F);
+				shieldRatioQ16 = MATH2_longratioQ16(shield, maxShield);
+				shieldRatioQ16 &= 0xFFFFu;
+				shieldPercent = 2 * (shieldRatioQ16 / 0x28F);
 			} else
 				shieldPercent = 0;
 		} else {
@@ -4801,7 +4801,7 @@ void Hud_DrawCmdTargetStatusIndicators(void) {
 
 	{
 		unsigned int hullPercent;
-		unsigned int hullPercentage;
+		unsigned int hullRatioQ16;
 		if (g_activeRegionCraftObjectSlotEnd > currentTargetObjectIdx) {
 			craft = g_objectTable[currentTargetObjectIdx].mobj->pCraft;
 			if (craft->objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
@@ -4809,10 +4809,10 @@ void Hud_DrawCmdTargetStatusIndicators(void) {
 				if (craft->hullMax < craft->hullDamage) {
 					hullPercent = 1;
 				} else {
-					hullPercentage =
+					hullRatioQ16 =
 						(uint16_t)MATH2_longratioQ16(craft->hullMax - craft->hullDamage, craft->hullMax);
-					hullPercentage &= 0xFFFFu;
-					hullPercent = hullPercentage / 0x28F;
+					hullRatioQ16 &= 0xFFFFu;
+					hullPercent = hullRatioQ16 / 0x28F;
 					if (hullPercent == 0)
 						hullPercent = 100;
 				}
@@ -4832,7 +4832,7 @@ void Hud_DrawCmdTargetStatusIndicators(void) {
 		if (g_activeRegionCraftObjectSlotEnd > currentTargetObjectIdx) {
 			uint8_t cannonClassCount;
 			i = 0;
-			cannonClassCount = craft->cannonClassCount;
+			cannonClassCount = craft->cannonGroupCount;
 			if (cannonClassCount != 0)
 				do {
 					uint8_t projectileType;
@@ -4880,7 +4880,7 @@ void Hud_DrawCmdTargetStatusIndicators(void) {
 		if (g_activeRegionCraftObjectSlotEnd > currentTargetObjectIdx) {
 			uint8_t cannonClassCount;
 			i = 0;
-			cannonClassCount = craft->cannonClassCount;
+			cannonClassCount = craft->cannonGroupCount;
 			while (i < cannonClassCount) {
 				if (craft->laserState.projectileTypeId[i] == PROJECTILE_OBJECT_TYPE_ION_LASER) {
 					ionState = 1;
@@ -4987,7 +4987,7 @@ void Hud_DrawCmdTargetStatusIndicators(void) {
 		if (g_activeRegionCraftObjectSlotEnd > currentTargetObjectIdx &&
 			craft->beamTypeId != BEAM_TYPE_NONE) {
 			beamState = 1;
-			if (craft->beamActive != 0 && craft->beamPresent != 0)
+			if (craft->beamActive != 0 && craft->beamCharge != 0)
 				beamState = 2;
 		}
 #ifdef XVT_MODERN
@@ -5051,7 +5051,7 @@ void Hud_DrawCachedNumericElement(uint16_t elementIdx, int16_t value, uint16_t m
 	g_hudElementStateCache[elementIdx] = value;
 	selector = g_hudElementLayouts[elementIdx].selector;
 	FlightText_SetClipRect(g_hudElementLayouts[elementIdx].x, g_hudElementLayouts[elementIdx].y,
-						   g_hudElementLayouts[elementIdx].x + selector * g_flightFontHalfHeight + 2,
+						   g_hudElementLayouts[elementIdx].x + selector * g_flightFontDigitWidth + 2,
 						   g_hudElementLayouts[elementIdx].y + g_flightFontLineHeight);
 	g_flightFillClipRectFn();
 
@@ -5068,7 +5068,7 @@ void Hud_DrawCachedNumericElement(uint16_t elementIdx, int16_t value, uint16_t m
 				normalizedElementIdx == 102 || normalizedElementIdx == 103)) {
 		FlightText_SetColor(78);
 	} else if ((normalizedElementIdx == 41 || normalizedElementIdx == 40) &&
-			   g_objectTable[g_players[g_localPlayer].objectIndex].mobj->pCraft->engineOutputScale == 0) {
+			   g_objectTable[g_players[g_localPlayer].objectIndex].mobj->pCraft->engineOverdriveOff == 0) {
 		FlightText_SetColor(82);
 	} else {
 		FlightText_SetColor(g_hudElementLayouts[elementIdx].colorIndexOrWidgetParam);
@@ -5108,7 +5108,7 @@ void Hud_LoadCockpitInterfaceFile(const char* basePath) {
 
 	strcpy(g_hudCockpitResourcePath, basePath);
 	strcat(g_hudCockpitResourcePath, ".INT");
-	File_OpenGlobalStream(g_hudCockpitResourcePath, "rb", 1, 0);
+	FeDiskIo_OpenGlobalStream(g_hudCockpitResourcePath, "rb", 1, 0);
 	stream = g_stream;
 	FeDiskIo_ReadWithRetryPrompt(g_hudCockpitResourceDescriptors, sizeof(HudCockpitResourceDescriptor), 28,
 								 stream);
@@ -5116,14 +5116,14 @@ void Hud_LoadCockpitInterfaceFile(const char* basePath) {
 								 HUD_CRAFT_LIST_INSTRUMENT_BASE_INDEX, stream);
 	FeDiskIo_ReadWithRetryPrompt(&g_hudPanelSpriteFileInfo, sizeof(HudPanelSpriteFileInfo), 1, stream);
 	if (g_flightResolutionMode == FLIGHT_RESOLUTION_640X480) {
-		FeDiskIo_ReadWithRetryPrompt(g_hudViewportSpanMask0, 480, 1, stream);
-		FeDiskIo_ReadWithRetryPrompt(g_hudViewportSpanMask1, 480, 1, stream);
+		FeDiskIo_ReadWithRetryPrompt(g_hudCockpitInsetSpanMask, 480, 1, stream);
+		FeDiskIo_ReadWithRetryPrompt(g_hudOnlyViewInsetSpanMask, 480, 1, stream);
 	} else if (g_flightResolutionMode == FLIGHT_RESOLUTION_480X360) {
-		FeDiskIo_ReadWithRetryPrompt(g_hudViewportSpanMask0, 480, 1, stream);
-		FeDiskIo_ReadWithRetryPrompt(g_hudViewportSpanMask1, 480, 1, stream);
+		FeDiskIo_ReadWithRetryPrompt(g_hudCockpitInsetSpanMask, 480, 1, stream);
+		FeDiskIo_ReadWithRetryPrompt(g_hudOnlyViewInsetSpanMask, 480, 1, stream);
 	} else {
-		FeDiskIo_ReadWithRetryPrompt(g_hudViewportSpanMask0, 200, 1, stream);
-		FeDiskIo_ReadWithRetryPrompt(g_hudViewportSpanMask1, 200, 1, stream);
+		FeDiskIo_ReadWithRetryPrompt(g_hudCockpitInsetSpanMask, 200, 1, stream);
+		FeDiskIo_ReadWithRetryPrompt(g_hudOnlyViewInsetSpanMask, 200, 1, stream);
 	}
 	FeDiskIo_CloseGlobalStream(0);
 #ifdef XVT_MODERN
@@ -5138,16 +5138,16 @@ int16_t Hud_LoadAuxiliaryCockpitInterfaceFile(void) {
 	strcpy(g_hudCockpitResourcePath, g_hudCockpitResolutionDirectory);
 	strcat(g_hudCockpitResourcePath, g_hudCockpitResourceDescriptors[HUD_VIEW_CRAFT_LIST].lfdName);
 	strcat(g_hudCockpitResourcePath, ".INT");
-	File_OpenGlobalStream(g_hudCockpitResourcePath, "rb", 1, 0);
+	FeDiskIo_OpenGlobalStream(g_hudCockpitResourcePath, "rb", 1, 0);
 	stream = g_stream;
 	FeDiskIo_ReadWithRetryPrompt(&g_hudElementLayouts[HUD_CRAFT_LIST_INSTRUMENT_BASE_INDEX],
 								 sizeof(HudElementLayout), HUD_INSTRUMENTS_PER_SET, stream);
 	if (g_flightResolutionMode == FLIGHT_RESOLUTION_640X480) {
-		FeDiskIo_ReadWithRetryPrompt(g_hudViewportSpanMask2, 480, 1, stream);
+		FeDiskIo_ReadWithRetryPrompt(g_hudCraftListInsetSpanMask, 480, 1, stream);
 	} else if (g_flightResolutionMode == FLIGHT_RESOLUTION_480X360) {
-		FeDiskIo_ReadWithRetryPrompt(g_hudViewportSpanMask2, 480, 1, stream);
+		FeDiskIo_ReadWithRetryPrompt(g_hudCraftListInsetSpanMask, 480, 1, stream);
 	} else {
-		FeDiskIo_ReadWithRetryPrompt(g_hudViewportSpanMask2, 200, 1, stream);
+		FeDiskIo_ReadWithRetryPrompt(g_hudCraftListInsetSpanMask, 200, 1, stream);
 	}
 #ifdef XVT_MODERN
 	XvtRenderAssets_CaptureCockpit(1);
@@ -5194,7 +5194,7 @@ void Hud_RebuildDisplayForViewState(int hudViewState, int playerIdx) {
 #endif
 	mirrorHorizontal = 0;
 	cockpitX = 0;
-	resourceIndex = g_hudCockpitResourceDescriptors[hudViewState].enabled;
+	resourceIndex = g_hudCockpitResourceDescriptors[hudViewState].resourceRef;
 	if (hudViewState != HUD_VIEW_FULL_SCREEN) {
 		if (resourceIndex >= HUD_RESOURCE_MIRRORED_REFERENCE) {
 			resourceIndex -= HUD_RESOURCE_MIRRORED_REFERENCE;
@@ -5321,14 +5321,14 @@ void Hud_RebuildDisplayForViewState(int hudViewState, int playerIdx) {
 				g_mfdPageStates[pageIndex] = g_savedMfdPageStates[pageIndex];
 			}
 		}
-		g_hudInstrumentSetBaseIndex = HUD_MAP_INSTRUMENT_BASE_INDEX;
+		g_hudInstrumentSetBaseIndex = HUD_ONLY_VIEW_INSTRUMENT_BASE_INDEX;
 	} else if (hudViewState == HUD_VIEW_CRAFT_LIST) {
 		for (pageIndex = MFD_PAGE_SCOREBOARD; pageIndex < MFD_PAGE_COUNT; ++pageIndex) {
 			if (g_mfdPageStates[pageIndex] != MFD_PAGE_STATE_CLOSED)
 				g_mfdPageStates[pageIndex] = MFD_PAGE_STATE_CLOSING;
 		}
 		g_hudInstrumentSetBaseIndex = HUD_CRAFT_LIST_INSTRUMENT_BASE_INDEX;
-		++g_mfdPageStates[MFD_PAGE_COMMAND];
+		++g_mfdPageStates[MFD_PAGE_MAP_HELP];
 		++g_mfdPageStates[MFD_PAGE_FRIENDLY_CRAFT];
 		g_mfdActivePage = MFD_PAGE_FRIENDLY_CRAFT;
 		g_mfdSecondaryPage = MFD_PAGE_FRIENDLY_CRAFT;
@@ -5397,7 +5397,7 @@ void Hud_LoadCockpitLfdEntries(const char* lfdName, uint8_t** outEntries, unsign
 	strcpy(g_hudCockpitResourcePath, g_hudCockpitResolutionDirectory);
 	strcat(g_hudCockpitResourcePath, lfdName);
 	strcat(g_hudCockpitResourcePath, ".LFD");
-	File_OpenGlobalStream(g_hudCockpitResourcePath, "rb", 1, 0);
+	FeDiskIo_OpenGlobalStream(g_hudCockpitResourcePath, "rb", 1, 0);
 	stream = g_stream;
 	entryIndex = 0;
 	while (entryIndex < entryCount) {
@@ -5446,11 +5446,11 @@ void Hud_LoadCockpitSpriteResources(unsigned int modelIndex) {
 		size_t fileSize;
 
 		g_hudCockpitResources[resourceIndex].memoryHandle = 0;
-		if (g_hudCockpitResourceDescriptors[resourceIndex].enabled == 1) {
+		if (g_hudCockpitResourceDescriptors[resourceIndex].resourceRef == 1) {
 			strcpy(g_hudCockpitResourcePath, g_hudCockpitResolutionDirectory);
 			strcat(g_hudCockpitResourcePath, g_hudCockpitResourceDescriptors[resourceIndex].lfdName);
 			strcat(g_hudCockpitResourcePath, ".LFD");
-			File_OpenGlobalStream(g_hudCockpitResourcePath, "rb", 1, 0);
+			FeDiskIo_OpenGlobalStream(g_hudCockpitResourcePath, "rb", 1, 0);
 			if (g_stream != NULL) {
 #ifdef XVT_MODERN
 				File_RawSeek((XvtFile*)g_stream, 0, SEEK_END);
@@ -5483,7 +5483,7 @@ void Hud_LoadCockpitSpriteResources(unsigned int modelIndex) {
 		 ++resourceIndex) {
 		uint16_t memoryHandle;
 
-		if (g_hudCockpitResourceDescriptors[resourceIndex].enabled == 1) {
+		if (g_hudCockpitResourceDescriptors[resourceIndex].resourceRef == 1) {
 			strcpy(g_hudCockpitResourcePath, g_hudCockpitResolutionDirectory);
 			strcat(g_hudCockpitResourcePath, g_hudCockpitResourceDescriptors[resourceIndex].lfdName);
 			strcat(g_hudCockpitResourcePath, ".LFD");
@@ -5544,7 +5544,7 @@ void Hud_UpdateMfdPages(void) {
 					g_hudElementStateCache[g_hudInstrumentSetBaseIndex + HUD_MFD_DAMAGE_ELEMENT] = pageState;
 				}
 				break;
-			case MFD_PAGE_FLIGHT_GROUPS:
+			case MFD_PAGE_HOSTILE_CRAFT:
 				if (pageState == MFD_PAGE_STATE_CLOSING) {
 					Mfd_DrawCraftListPage(1);
 					g_hudElementStateCache[g_hudInstrumentSetBaseIndex + HUD_MFD_MAP_OR_COMMAND_ELEMENT] =
@@ -5558,9 +5558,9 @@ void Hud_UpdateMfdPages(void) {
 						pageState;
 				}
 				break;
-			case MFD_PAGE_COMMAND:
+			case MFD_PAGE_MAP_HELP:
 				if (pageState == MFD_PAGE_STATE_CLOSING) {
-					Mfd_DrawCommandMenuPage();
+					Mfd_DrawMapHelpPage();
 					g_hudElementStateCache[g_hudInstrumentSetBaseIndex + HUD_MFD_MAP_OR_COMMAND_ELEMENT] =
 						pageState;
 				}
@@ -5604,7 +5604,7 @@ void Hud_UpdateMfdPages(void) {
 					}
 				}
 				break;
-			case MFD_PAGE_FLIGHT_GROUPS:
+			case MFD_PAGE_HOSTILE_CRAFT:
 				if (pageState) {
 					Mfd_DrawCraftListPage(1);
 					g_hudElementStateCache[g_hudInstrumentSetBaseIndex + HUD_MFD_MAP_OR_COMMAND_ELEMENT] =
@@ -5618,9 +5618,9 @@ void Hud_UpdateMfdPages(void) {
 						pageState;
 				}
 				break;
-			case MFD_PAGE_COMMAND:
+			case MFD_PAGE_MAP_HELP:
 				if (pageState) {
-					Mfd_DrawCommandMenuPage();
+					Mfd_DrawMapHelpPage();
 					g_hudElementStateCache[g_hudInstrumentSetBaseIndex + HUD_MFD_MAP_OR_COMMAND_ELEMENT] =
 						pageState;
 				}
@@ -5698,7 +5698,7 @@ void Hud_BlitSoftwareMfdPages(void) {
 						g_mfdDamageBlitWidth, g_mfdDamageBlitHeight, g_flightBytesPerPixel * g_screenWidth);
 				}
 				break;
-			case MFD_PAGE_FLIGHT_GROUPS:
+			case MFD_PAGE_HOSTILE_CRAFT:
 				if (pageState != MFD_PAGE_STATE_CLOSED) {
 					if (g_players[g_localPlayer].mapCameraState != 0) {
 						FlightSw_BlitRectToFlightSurface(
@@ -5731,7 +5731,7 @@ void Hud_BlitSoftwareMfdPages(void) {
 						g_flightBytesPerPixel * g_screenWidth);
 				}
 				break;
-			case MFD_PAGE_COMMAND:
+			case MFD_PAGE_MAP_HELP:
 				if (pageState != MFD_PAGE_STATE_CLOSED && g_players[g_localPlayer].mapCameraState != 0) {
 					FlightSw_BlitRectToFlightSurface(
 						g_flightOffscreenBuffer, g_flightTransparentColorIndex, g_mfdMapBlitSourceX,
@@ -5746,7 +5746,7 @@ void Hud_BlitSoftwareMfdPages(void) {
 		}
 	}
 
-	if (g_hudInstrumentSetBaseIndex == HUD_MAP_INSTRUMENT_BASE_INDEX) {
+	if (g_hudInstrumentSetBaseIndex == HUD_ONLY_VIEW_INSTRUMENT_BASE_INDEX) {
 		craft = g_objectTable[g_players[g_localPlayer].objectIndex].mobj->pCraft;
 		if ((craft->damageStats.activeHudFeatureMask & 8) != 0) {
 			modelIndex = craft->modelIndex;
@@ -5761,13 +5761,13 @@ void Hud_BlitSoftwareMfdPages(void) {
 #ifdef XVT_MODERN
 					XvtCockpit_LatchLauncher(launcherIndex, g_hudElementLayouts[layoutIndex + 27].x,
 											 g_hudElementLayouts[layoutIndex + 27].y,
-											 (g_flightFontHalfHeight + 1) * selector, g_flightFontLineHeight);
+											 (g_flightFontDigitWidth + 1) * selector, g_flightFontLineHeight);
 #endif
 					FlightSw_BlitRectToFlightSurface(
 						g_flightOffscreenBuffer, g_flightTransparentColorIndex,
-						(g_flightFontHalfHeight + 1) * launcherIndex + 2, 2,
+						(g_flightFontDigitWidth + 1) * launcherIndex + 2, 2,
 						g_hudElementLayouts[layoutIndex + 27].x, g_hudElementLayouts[layoutIndex + 27].y,
-						(g_flightFontHalfHeight + 1) * selector, g_flightFontLineHeight,
+						(g_flightFontDigitWidth + 1) * selector, g_flightFontLineHeight,
 						g_flightBytesPerPixel * g_screenWidth);
 				}
 				++launcherIndex;
@@ -5794,9 +5794,9 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 	};
 
 	int savedProjOffsetY;
-	int savedTargetX;
-	int savedTargetY;
-	int savedTargetZ;
+	int savedCameraWorldX;
+	int savedCameraWorldY;
+	int savedCameraWorldZ;
 	uint16_t savedRenderObjectRef;
 	unsigned int baseOffset;
 	int componentRelX;
@@ -5811,10 +5811,10 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 	XvtRenderDraw_Scope(XVT_SCOPE_CRT);
 #endif
 	savedProjOffsetY = g_projOffsetY;
-	savedTargetX = g_players[g_localPlayer].viewState.savedTargetX;
+	savedCameraWorldX = g_players[g_localPlayer].viewState.cameraWorldX;
 	savedRenderObjectRef = g_renderObjectRef;
-	savedTargetY = g_players[g_localPlayer].viewState.savedTargetY;
-	savedTargetZ = g_players[g_localPlayer].viewState.savedTargetZ;
+	savedCameraWorldY = g_players[g_localPlayer].viewState.cameraWorldY;
+	savedCameraWorldZ = g_players[g_localPlayer].viewState.cameraWorldZ;
 	g_projOffsetY = 0;
 	baseOffset = (unsigned int)g_flightComputePixelOffsetFn(screenX, screenY);
 	PushFlightViewport(width, height, refreshSpanMask, baseOffset);
@@ -5828,15 +5828,15 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 		destinationMask = &g_flightAuxBuffer[g_viewportSpanMaskOffset];
 		hudInstrumentBaseIndex = g_hudInstrumentSetBaseIndex;
 		if (hudInstrumentBaseIndex != HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
-			if (hudInstrumentBaseIndex == HUD_MAP_INSTRUMENT_BASE_INDEX) {
-				sourceMask = g_hudViewportSpanMask1;
+			if (hudInstrumentBaseIndex == HUD_ONLY_VIEW_INSTRUMENT_BASE_INDEX) {
+				sourceMask = g_hudOnlyViewInsetSpanMask;
 			} else if (hudInstrumentBaseIndex == HUD_CRAFT_LIST_INSTRUMENT_BASE_INDEX) {
-				sourceMask = g_hudViewportSpanMask2;
+				sourceMask = g_hudCraftListInsetSpanMask;
 			} else {
-				sourceMask = g_hudViewportSpanMask0;
+				sourceMask = g_hudCockpitInsetSpanMask;
 			}
 		} else {
-			sourceMask = g_hudViewportSpanMask0;
+			sourceMask = g_hudCockpitInsetSpanMask;
 		}
 		if (g_flightResolutionMode == FLIGHT_RESOLUTION_320X240) {
 			for (maskIndex = LOW_RESOLUTION_MASK_SIZE; maskIndex != 0; --maskIndex) {
@@ -5864,9 +5864,9 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 	g_flightBackgroundColorIndex = CRT_RENDER_COLOR;
 	RenderScene_Initialize(1);
 	g_sceneBillboardQueueCount = 0;
-	g_camRelWorldX = g_worldLocX - g_players[g_localPlayer].viewState.savedTargetX;
-	g_camRelWorldY = worldlocy - g_players[g_localPlayer].viewState.savedTargetY;
-	g_camRelWorldZ = worldlocz - g_players[g_localPlayer].viewState.savedTargetZ;
+	g_camRelWorldX = g_worldLocX - g_players[g_localPlayer].viewState.cameraWorldX;
+	g_camRelWorldY = g_worldLocY - g_players[g_localPlayer].viewState.cameraWorldY;
+	g_camRelWorldZ = g_worldLocZ - g_players[g_localPlayer].viewState.cameraWorldZ;
 
 	if (g_players[g_localPlayer].targetBoxEnabled != 0) {
 		targetObjectIdx = (uint16_t)g_players[g_localPlayer].currentTargetObjectIdx;
@@ -5883,9 +5883,9 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 			pai_RotateLocalVectorToWorldScratch(
 				&g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx], g_rotatedX,
 				g_rotatedY, g_rotatedZ);
-			componentRelX = g_rotatedX + g_worldLocX - g_players[g_localPlayer].viewState.savedTargetX;
-			componentRelY = g_rotatedY + worldlocy - g_players[g_localPlayer].viewState.savedTargetY;
-			componentRelZ = g_rotatedZ + worldlocz - g_players[g_localPlayer].viewState.savedTargetZ;
+			componentRelX = g_rotatedX + g_worldLocX - g_players[g_localPlayer].viewState.cameraWorldX;
+			componentRelY = g_rotatedY + g_worldLocY - g_players[g_localPlayer].viewState.cameraWorldY;
+			componentRelZ = g_rotatedZ + g_worldLocZ - g_players[g_localPlayer].viewState.cameraWorldZ;
 		}
 	}
 
@@ -5956,15 +5956,15 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 						if (g_players[g_localPlayer].mapCameraState != 0) {
 							if (object->mobj->sourceObjIdx !=
 									g_players[g_localPlayer].currentTargetObjectIdx ||
-								FlightView_IsObjectSphereVisible(objectIndex, g_currentObjectBoundsExtent) ==
-									0) {
+								FlightView_ProjectAndTestSphereVisible(objectIndex,
+																	   g_currentObjectBoundsExtent) == 0) {
 								continue;
 							}
 						} else if ((g_players[g_localPlayer].currentTargetObjectIdx !=
 										object->mobj->sourceObjIdx &&
 									g_players[g_localPlayer].objectIndex != object->mobj->sourceObjIdx) ||
-								   FlightView_IsObjectSphereVisible(objectIndex,
-																	g_currentObjectBoundsExtent) == 0) {
+								   FlightView_ProjectAndTestSphereVisible(objectIndex,
+																		  g_currentObjectBoundsExtent) == 0) {
 							continue;
 						}
 						FVIEW_SetObjectTransform(
@@ -5972,8 +5972,8 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 							g_objectTable[objectTableIndex].yaw, 0, &g_objectTable[objectTableIndex]);
 						RenderBillboard_DrawRollAlignedObjectModel(objectIndex);
 					} else if (genusId == CRAFT_GENUS_EXPLOSION &&
-							   FlightView_IsObjectSphereVisible(objectIndex, g_currentObjectBoundsExtent) !=
-								   0) {
+							   FlightView_ProjectAndTestSphereVisible(objectIndex,
+																	  g_currentObjectBoundsExtent) != 0) {
 						FVIEW_SetObjectTransform(
 							g_objectTable[objectTableIndex].roll, g_objectTable[objectTableIndex].pitch,
 							g_objectTable[objectTableIndex].yaw, 0, &g_objectTable[objectTableIndex]);
@@ -6015,9 +6015,9 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 	g_flightBackgroundColorIndex = g_flightTransparentColorIndex;
 	PopFlightViewport();
 	g_renderObjectRef = savedRenderObjectRef;
-	g_players[g_localPlayer].viewState.savedTargetX = savedTargetX;
-	g_players[g_localPlayer].viewState.savedTargetY = savedTargetY;
-	g_players[g_localPlayer].viewState.savedTargetZ = savedTargetZ;
+	g_players[g_localPlayer].viewState.cameraWorldX = savedCameraWorldX;
+	g_players[g_localPlayer].viewState.cameraWorldY = savedCameraWorldY;
+	g_players[g_localPlayer].viewState.cameraWorldZ = savedCameraWorldZ;
 	g_projOffsetY = savedProjOffsetY;
 #ifdef XVT_MODERN
 	XvtRenderDraw_Scope(XVT_SCOPE_COCKPIT);
@@ -6028,7 +6028,7 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 void Hud_DrawComponentMarkerBox(int x, int y, int width, int height, uint8_t colorIdx) {
 	enum { COMPONENT_MARKER_DEPTH = 1 };
 
-	Hud_DrawBoxInXTrans(x, y, width, height, colorIdx, COMPONENT_MARKER_DEPTH);
+	Hud_DrawDepthTestedBoxCorners(x, y, width, height, colorIdx, COMPONENT_MARKER_DEPTH);
 }
 
 // FUNCTION: XVT 0x442BF0
@@ -6060,14 +6060,14 @@ void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale, int playerId
 
 	Mission_ResolveObjectOrMissionPointWorldLoc(targetIdx, 0);
 	if (g_players[playerIdx].mapCameraState != 0) {
-		deltaX = (int32_t)((uint32_t)g_worldLocX - (uint32_t)g_players[playerIdx].viewState.savedTargetX);
-		deltaY = (int32_t)((uint32_t)worldlocy - (uint32_t)g_players[playerIdx].viewState.savedTargetY);
-		deltaZ = (int32_t)((uint32_t)worldlocz - (uint32_t)g_players[playerIdx].viewState.savedTargetZ);
+		deltaX = (int32_t)((uint32_t)g_worldLocX - (uint32_t)g_players[playerIdx].viewState.cameraWorldX);
+		deltaY = (int32_t)((uint32_t)g_worldLocY - (uint32_t)g_players[playerIdx].viewState.cameraWorldY);
+		deltaZ = (int32_t)((uint32_t)g_worldLocZ - (uint32_t)g_players[playerIdx].viewState.cameraWorldZ);
 	} else {
 		ObjectRecord* playerObject = &g_objectTable[g_players[playerIdx].objectIndex];
 		deltaX = (int32_t)((uint32_t)g_worldLocX - (uint32_t)playerObject->world_x);
-		deltaY = (int32_t)((uint32_t)worldlocy - (uint32_t)playerObject->world_y);
-		deltaZ = (int32_t)((uint32_t)worldlocz - (uint32_t)playerObject->world_z);
+		deltaY = (int32_t)((uint32_t)g_worldLocY - (uint32_t)playerObject->world_y);
+		deltaZ = (int32_t)((uint32_t)g_worldLocZ - (uint32_t)playerObject->world_z);
 	}
 	scaledX = (int32_t)((uint32_t)deltaX * 2u);
 	scaledY = (int32_t)((uint32_t)deltaY * 2u);
@@ -6186,23 +6186,23 @@ void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale, int playerId
 	if (resolutionMode == FLIGHT_RESOLUTION_640X480)
 		scale = ((uint16_t)scale >> 2) + (uint16_t)scale;
 	scale = (uint16_t)scale;
-	g_players[playerIdx].viewState.savedTargetX = Math_MulQ15((int)scale, g_camMatR2_X);
-	g_players[playerIdx].viewState.savedTargetY = Math_MulQ15((int)scale, g_camMatR2_Y);
-	g_players[playerIdx].viewState.savedTargetZ = Math_MulQ15((int)scale, g_camMatR2_Z);
+	g_players[playerIdx].viewState.cameraWorldX = Math_MulQ15((int)scale, g_camMatR2_X);
+	g_players[playerIdx].viewState.cameraWorldY = Math_MulQ15((int)scale, g_camMatR2_Y);
+	g_players[playerIdx].viewState.cameraWorldZ = Math_MulQ15((int)scale, g_camMatR2_Z);
 	if (scaleShift != 0) {
-		g_players[playerIdx].viewState.savedTargetX =
-			(int32_t)((uint32_t)g_players[playerIdx].viewState.savedTargetX << scaleShift);
-		g_players[playerIdx].viewState.savedTargetY =
-			(int32_t)((uint32_t)g_players[playerIdx].viewState.savedTargetY << scaleShift);
-		g_players[playerIdx].viewState.savedTargetZ =
-			(int32_t)((uint32_t)g_players[playerIdx].viewState.savedTargetZ << scaleShift);
+		g_players[playerIdx].viewState.cameraWorldX =
+			(int32_t)((uint32_t)g_players[playerIdx].viewState.cameraWorldX << scaleShift);
+		g_players[playerIdx].viewState.cameraWorldY =
+			(int32_t)((uint32_t)g_players[playerIdx].viewState.cameraWorldY << scaleShift);
+		g_players[playerIdx].viewState.cameraWorldZ =
+			(int32_t)((uint32_t)g_players[playerIdx].viewState.cameraWorldZ << scaleShift);
 	}
-	g_players[playerIdx].viewState.savedTargetX =
-		(int32_t)((uint32_t)g_worldLocX - (uint32_t)g_players[playerIdx].viewState.savedTargetX);
-	g_players[playerIdx].viewState.savedTargetY =
-		(int32_t)((uint32_t)worldlocy - (uint32_t)g_players[playerIdx].viewState.savedTargetY);
-	g_players[playerIdx].viewState.savedTargetZ =
-		(int32_t)((uint32_t)worldlocz - (uint32_t)g_players[playerIdx].viewState.savedTargetZ);
+	g_players[playerIdx].viewState.cameraWorldX =
+		(int32_t)((uint32_t)g_worldLocX - (uint32_t)g_players[playerIdx].viewState.cameraWorldX);
+	g_players[playerIdx].viewState.cameraWorldY =
+		(int32_t)((uint32_t)g_worldLocY - (uint32_t)g_players[playerIdx].viewState.cameraWorldY);
+	g_players[playerIdx].viewState.cameraWorldZ =
+		(int32_t)((uint32_t)g_worldLocZ - (uint32_t)g_players[playerIdx].viewState.cameraWorldZ);
 }
 
 // FUNCTION: XVT 0x450260
@@ -6388,7 +6388,7 @@ void Hud_ShowFlightMessagePane(int16_t paneType) {
 		if (g_readyMessagePaneQueue[0].stateOrMessageId == 374)
 			fsfx_PlaySound(FLIGHT_SOUND_MESSAGE_READY, -1, g_localPlayer);
 		if (g_mfdPageStates[MFD_PAGE_MESSAGE_LOG] != MFD_PAGE_STATE_CLOSED) {
-			Hud_SetFlightMessagePaneTimer(g_readyMessagePaneQueue[0].paneType, lastChar);
+			Hud_FinishFlightMessagePane(g_readyMessagePaneQueue[0].paneType, lastChar);
 			++g_readyMessagePaneQueue[0].showCount;
 			FlightSw_SetRenderTarget(NULL, 320, 200, 0);
 			return;
@@ -6446,13 +6446,13 @@ void Hud_ShowFlightMessagePane(int16_t paneType) {
 	XvtCockpitMessages_RecordReveal(visibleChars);
 #endif
 	if (prefix == 3 || prefix == 4 || prefix == 7) {
-		Hud_SetFlightMessagePaneTimer(g_systemMessagePane.paneType, lastChar);
+		Hud_FinishFlightMessagePane(g_systemMessagePane.paneType, lastChar);
 		++g_systemMessagePane.showCount;
 	} else if (prefix == 8) {
-		Hud_SetFlightMessagePaneTimer(g_flightGroupMessagePane.paneType, lastChar);
+		Hud_FinishFlightMessagePane(g_flightGroupMessagePane.paneType, lastChar);
 		++g_flightGroupMessagePane.showCount;
 	} else {
-		Hud_SetFlightMessagePaneTimer(g_readyMessagePaneQueue[0].paneType, lastChar);
+		Hud_FinishFlightMessagePane(g_readyMessagePaneQueue[0].paneType, lastChar);
 		++g_readyMessagePaneQueue[0].showCount;
 	}
 	FlightSw_SetRenderTarget(NULL, 320, 200, 0);
@@ -6480,7 +6480,7 @@ void Hud_SetupReadyMessagePaneText(void) {
 }
 
 // FUNCTION: XVT 0x451100
-void Hud_SetFlightMessagePaneTimer(int16_t paneType, char lastChar) {
+void Hud_FinishFlightMessagePane(int16_t paneType, char lastChar) {
 	if (g_mfdPageStates[MFD_PAGE_MESSAGE_LOG] == MFD_PAGE_STATE_CLOSED) {
 		if (lastChar != '?' && lastChar != '!' && lastChar != ':' && lastChar != ' ' && lastChar != '.')
 			g_flightDrawCharFn('.');
@@ -6586,7 +6586,8 @@ void Hud_UpdateFlightMessagePanes(void) {
 	{
 		int playerIndex;
 		for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
-			if (g_players[playerIndex].connectedFlag != 0 && g_players[playerIndex].pendingActionTimer == 0)
+			if (g_players[playerIndex].participationState != 0 &&
+				g_players[playerIndex].pendingActionTimer == 0)
 				g_players[playerIndex].pendingActionId = 0;
 		}
 	}
@@ -6663,11 +6664,11 @@ void Hud_DrawCraftNameFpsAndNetworkStatus(void) {
 		FlightText_SetFontTier(0);
 		offscreenPitchBytes = g_flightBytesPerPixel * g_screenWidth;
 		FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight, offscreenPitchBytes);
-		FlightText_SetClipRect(g_readyMessagePaneLeft - 2 * g_flightFontHalfHeight, g_readyMessagePaneTop,
-							   2 * g_flightFontHalfHeight + g_readyMessagePaneRight + 1,
+		FlightText_SetClipRect(g_readyMessagePaneLeft - 2 * g_flightFontDigitWidth, g_readyMessagePaneTop,
+							   2 * g_flightFontDigitWidth + g_readyMessagePaneRight + 1,
 							   g_readyMessagePaneBottom);
-		FlightText_SetCursor(g_readyMessagePaneLeft - 2 * g_flightFontHalfHeight, g_readyMessagePaneTop);
-		switch (g_pingIndicator) {
+		FlightText_SetCursor(g_readyMessagePaneLeft - 2 * g_flightFontDigitWidth, g_readyMessagePaneTop);
+		switch (g_packetDropIndicator) {
 			case 0:
 				FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 				FlightText_SetColor(g_flightTransparentColorIndex);
@@ -6735,19 +6736,19 @@ void Hud_BlitSoftwareHudTextPanes(void) {
 		FlightText_SetFontTier(0);
 #ifdef XVT_MODERN
 		XvtCockpit_LatchMessage(
-			XVT_COCKPIT_MESSAGE_READY, g_readyMessagePaneLeft - 2 * g_flightFontHalfHeight,
+			XVT_COCKPIT_MESSAGE_READY, g_readyMessagePaneLeft - 2 * g_flightFontDigitWidth,
 			g_readyMessagePaneTop,
 			g_hudElementLayouts[g_hudInstrumentSetBaseIndex + HUD_MFD_MESSAGE_LOG_ELEMENT].x,
 			g_hudElementLayouts[g_hudInstrumentSetBaseIndex + HUD_MFD_MESSAGE_LOG_ELEMENT].y,
-			g_readyMessagePaneRight + 4 * g_flightFontHalfHeight - g_readyMessagePaneLeft + 1,
+			g_readyMessagePaneRight + 4 * g_flightFontDigitWidth - g_readyMessagePaneLeft + 1,
 			g_readyMessagePaneBottom - g_readyMessagePaneTop);
 #endif
 		FlightSw_BlitRectToFlightSurface(
-			g_flightOffscreenBuffer, transparentColor, g_readyMessagePaneLeft - 2 * g_flightFontHalfHeight,
+			g_flightOffscreenBuffer, transparentColor, g_readyMessagePaneLeft - 2 * g_flightFontDigitWidth,
 			g_readyMessagePaneTop,
 			g_hudElementLayouts[g_hudInstrumentSetBaseIndex + HUD_MFD_MESSAGE_LOG_ELEMENT].x,
 			g_hudElementLayouts[g_hudInstrumentSetBaseIndex + HUD_MFD_MESSAGE_LOG_ELEMENT].y,
-			g_readyMessagePaneRight + 4 * g_flightFontHalfHeight - g_readyMessagePaneLeft + 1,
+			g_readyMessagePaneRight + 4 * g_flightFontDigitWidth - g_readyMessagePaneLeft + 1,
 			g_readyMessagePaneBottom - g_readyMessagePaneTop, g_screenWidth * g_flightBytesPerPixel);
 	} else {
 #ifdef XVT_MODERN
@@ -6877,7 +6878,7 @@ uint16_t Hud_MeasureFlightMessagePaneText(int16_t paneType) {
 }
 
 // FUNCTION: XVT 0x497E00
-void Hud_DrawBoxInXTrans(int x, int y, int width, int height, int colorIdx, int depth) {
+void Hud_DrawDepthTestedBoxCorners(int x, int y, int width, int height, int colorIdx, int depth) {
 
 	int bottom;
 	int cornerWidth;
@@ -7058,7 +7059,7 @@ int16_t Hud_LoadPanelSpriteRecords(const char* fileName, uint16_t firstSpriteInd
 	int16_t byteValue;
 	XvtFile* stream;
 
-	File_OpenGlobalStream(fileName, "rb", 1, 0);
+	FeDiskIo_OpenGlobalStream(fileName, "rb", 1, 0);
 	remainingSprites = spriteCount;
 	stream = g_stream;
 #ifdef XVT_MODERN
@@ -7075,7 +7076,7 @@ int16_t Hud_LoadPanelSpriteRecords(const char* fileName, uint16_t firstSpriteInd
 		for (byteValue = (int16_t)File_Getc(stream); !File_Eof(stream) && !File_HasError(stream);
 			 byteValue = (int16_t)File_Getc(stream)) {
 #else
-		for (byteValue = (int16_t)File_Getc(stream); (((Msvc42IconFilePrefix*)stream)->flags & 0x10) == 0;
+		for (byteValue = (int16_t)File_Getc(stream); (((Msvc42CrtFilePrefix*)stream)->flags & 0x10) == 0;
 			 byteValue = (int16_t)File_Getc(stream)) {
 #endif
 			if (byteValue == 0xff) {
@@ -7116,7 +7117,7 @@ int FlightIcon_LoadFrames(char* fileName, uint8_t* dataBuffer, uint8_t** framePo
 	int* streamFlags;
 #endif
 
-	if (File_OpenGlobalStream(fileName, "rb", 1, 0) == 0) {
+	if (FeDiskIo_OpenGlobalStream(fileName, "rb", 1, 0) == 0) {
 		return 0;
 	}
 	frameCount = 0;
@@ -7153,7 +7154,7 @@ int FlightIcon_LoadFrames(char* fileName, uint8_t* dataBuffer, uint8_t** framePo
 		++dataBuffer;
 	}
 #else
-	streamFlags = &((Msvc42IconFilePrefix*)stream)->flags;
+	streamFlags = &((Msvc42CrtFilePrefix*)stream)->flags;
 	for (; (*streamFlags & 0x10) == 0; ++dataBuffer) {
 		framePointers[frameCount] = dataBuffer;
 		for (value = (int16_t)File_Getc(stream); (*streamFlags & 0x10) == 0;

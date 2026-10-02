@@ -175,14 +175,14 @@ void ProvingGrounds_DrawCourseObject(uint16_t objectIndex) {
 
 // FUNCTION: XVT 0x42B550
 void ProvingGrounds_InitCourseObjects(void) {
-	uint16_t modelTypes[13];
+	uint16_t objectTypes[13];
 	uint16_t rolls[13];
 	uint16_t yaws[13];
 	uint16_t pitches[13];
 	uint16_t objectIndex;
 	uint16_t componentIndex;
 	uint16_t beamIndex;
-	uint16_t modelType;
+	uint16_t objectType;
 	int16_t localX;
 	int16_t localY;
 	int16_t sizeY;
@@ -200,59 +200,59 @@ void ProvingGrounds_InitCourseObjects(void) {
 	offsetY = 0;
 	offsetZ = 0;
 
-	modelTypes[1] = 98;
+	objectTypes[1] = 98;
 	pitches[1] = 0x4000;
 	yaws[1] = 0;
 	rolls[1] = 0;
-	modelTypes[2] = 99;
+	objectTypes[2] = 99;
 	pitches[2] = 0x4000;
 	yaws[2] = 0;
 	rolls[2] = 0;
-	modelTypes[3] = 98;
+	objectTypes[3] = 98;
 	pitches[3] = 0;
 	yaws[3] = 0;
 	rolls[3] = 0;
-	modelTypes[4] = 99;
+	objectTypes[4] = 99;
 	pitches[4] = 0;
 	yaws[4] = 0x4000;
 	rolls[4] = 0;
-	modelTypes[5] = 98;
+	objectTypes[5] = 98;
 	pitches[5] = 0x4000;
 	yaws[5] = 0xC000;
 	rolls[5] = 0;
-	modelTypes[6] = 99;
+	objectTypes[6] = 99;
 	pitches[6] = 0x4000;
 	yaws[6] = 0xC000;
 	rolls[6] = 0x8000;
-	modelTypes[7] = 98;
+	objectTypes[7] = 98;
 	pitches[7] = 0x8000;
 	yaws[7] = 0;
 	rolls[7] = 0;
-	modelTypes[8] = 99;
+	objectTypes[8] = 99;
 	pitches[8] = 0x8000;
 	yaws[8] = 0x8000;
 	rolls[8] = 0;
-	modelTypes[9] = 98;
+	objectTypes[9] = 98;
 	pitches[9] = 0x4000;
 	yaws[9] = 0x8000;
 	rolls[9] = 0;
-	modelTypes[10] = 99;
+	objectTypes[10] = 99;
 	pitches[10] = 0x4000;
 	yaws[10] = 0x8000;
 	rolls[10] = 0x4000;
-	modelTypes[11] = 98;
+	objectTypes[11] = 98;
 	pitches[11] = 0x4000;
 	yaws[11] = 0x4000;
 	rolls[11] = 0;
 	objectIndex = 1;
-	modelTypes[12] = 99;
+	objectTypes[12] = 99;
 	pitches[12] = 0x4000;
 	yaws[12] = 0x4000;
 	rolls[12] = 0x4000;
 
 	do {
-		modelType = modelTypes[objectIndex];
-		g_objectTable[objectIndex].objectType = (uint8_t)modelType;
+		objectType = objectTypes[objectIndex];
+		g_objectTable[objectIndex].objectType = (uint8_t)objectType;
 		g_objectTable[objectIndex].objectSignature = 1;
 		g_objectTable[objectIndex].mobj->family = 6;
 		g_objectTable[objectIndex].genusId = 14;
@@ -305,17 +305,17 @@ void ProvingGrounds_InitCourseObjects(void) {
 							 &g_objectTable[objectIndex]);
 		FVIEW_calcrotateorient(g_objectTable[objectIndex].roll, 0, &g_objectTable[objectIndex]);
 
-		localX = (int16_t)-ModelBounds_GetMaxY(modelType);
-		if (modelType == 98) {
+		localX = (int16_t)-ModelBounds_GetMaxY(objectType);
+		if (objectType == 98) {
 			localY = 0;
-			sizeY = (int16_t)ModelBounds_GetSizeY(modelType);
+			sizeY = (int16_t)ModelBounds_GetSizeY(objectType);
 			localZ = 0;
-		} else if (modelType == 99) {
+		} else if (objectType == 99) {
 			localY = 0;
-			deltaX = ModelBounds_GetMinY(modelType);
-			sizeY = (int16_t)(deltaX + ModelBounds_GetSizeY(modelType));
-			deltaX = ModelBounds_GetMinZ(modelType);
-			localZ = (int16_t)(deltaX + ModelBounds_GetSizeZ(modelType));
+			deltaX = ModelBounds_GetMinY(objectType);
+			sizeY = (int16_t)(deltaX + ModelBounds_GetSizeY(objectType));
+			deltaX = ModelBounds_GetMinZ(objectType);
+			localZ = (int16_t)(deltaX + ModelBounds_GetSizeZ(objectType));
 		}
 
 		deltaX = Math_MulQ15(0, g_fviewSideX_Q15);
@@ -360,12 +360,12 @@ void ProvingGrounds_StartLevel(uint16_t level) {
 		SECONDS_PER_HALF_MINUTE = 30,
 		SECONDS_PER_SHORT_LEVEL = 5,
 		COMPONENT_DISABLED = 2,
-		LASER_ROTATION_PER_LEVEL = 2,
+		LASER_HP_PER_LEVEL = 2,
 		CARGO_FIRST_ACTIVE_LEVEL = 2,
-		CARGO_ROTATION_PER_LEVEL = 3,
+		CARGO_HP_PER_LEVEL = 3,
 		HULL_FIRST_ACTIVE_LEVEL = 5,
 		ANTENNA_FIRST_ACTIVE_LEVEL = 3,
-		ANTENNA_ROTATION_PER_LEVEL = 24,
+		ANTENNA_HP_PER_LEVEL = 24,
 	};
 
 	uint8_t countdownSeconds;
@@ -429,7 +429,7 @@ void ProvingGrounds_StartLevel(uint16_t level) {
 					g_curCraft->componentState[modelNodeIndex - 1] = COMPONENT_DISABLED;
 					break;
 				case MESH_COMPONENT_05_LASR_GUN:
-					g_curCraft->componentHp[modelNodeIndex - 1] = LASER_ROTATION_PER_LEVEL * level;
+					g_curCraft->componentHp[modelNodeIndex - 1] = LASER_HP_PER_LEVEL * level;
 					g_curCraft->componentState[modelNodeIndex - 1] = 0;
 					break;
 				case MESH_COMPONENT_17_CARGO:
@@ -437,7 +437,7 @@ void ProvingGrounds_StartLevel(uint16_t level) {
 						g_curCraft->componentState[modelNodeIndex - 1] = COMPONENT_DISABLED;
 						g_curCraft->componentHp[modelNodeIndex - 1] = 0;
 					} else {
-						g_curCraft->componentHp[modelNodeIndex - 1] = CARGO_ROTATION_PER_LEVEL * level;
+						g_curCraft->componentHp[modelNodeIndex - 1] = CARGO_HP_PER_LEVEL * level;
 						g_curCraft->componentState[modelNodeIndex - 1] = 0;
 						g_curCraft->meshRotation[modelNodeIndex - 1] = 0;
 					}
@@ -457,7 +457,7 @@ void ProvingGrounds_StartLevel(uint16_t level) {
 						g_curCraft->componentState[modelNodeIndex - 1] = COMPONENT_DISABLED;
 						g_curCraft->componentHp[modelNodeIndex - 1] = 0;
 					} else {
-						g_curCraft->componentHp[modelNodeIndex - 1] = ANTENNA_ROTATION_PER_LEVEL * level;
+						g_curCraft->componentHp[modelNodeIndex - 1] = ANTENNA_HP_PER_LEVEL * level;
 						g_curCraft->componentState[modelNodeIndex - 1] = 0;
 						g_curCraft->meshRotation[modelNodeIndex - 1] = 0;
 					}

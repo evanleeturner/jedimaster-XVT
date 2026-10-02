@@ -168,7 +168,7 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 
 	strcpy(fileName, baseName);
 	strcat(fileName, ".opt");
-	File_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
+	FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
 	stream = g_stream;
 #ifdef XVT_MODERN
 	if (!stream)
@@ -182,7 +182,7 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 	if (stream == NULL) {
 		strcpy(fileName, baseName);
 		strcat(fileName, ".iv");
-		File_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
+		FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
 		stream = g_stream;
 		if (stream == NULL) {
 			return 0;
@@ -360,11 +360,11 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 							 g_modelPreviewAngleD, NULL);
 
 	g_modelPreviewViewDelta.x =
-		(float)(g_modelPreviewObject.world_x - g_players[g_localPlayer].viewState.savedTargetX);
+		(float)(g_modelPreviewObject.world_x - g_players[g_localPlayer].viewState.cameraWorldX);
 	g_modelPreviewViewDelta.y =
-		(float)(g_modelPreviewObject.world_y - g_players[g_localPlayer].viewState.savedTargetY);
+		(float)(g_modelPreviewObject.world_y - g_players[g_localPlayer].viewState.cameraWorldY);
 	g_modelPreviewViewDelta.z =
-		(float)(g_modelPreviewObject.world_z - g_players[g_localPlayer].viewState.savedTargetZ);
+		(float)(g_modelPreviewObject.world_z - g_players[g_localPlayer].viewState.cameraWorldZ);
 	g_modelPreviewMatrix[0] = (float)g_camMatR0_X * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[1] = (float)g_camMatR1_X * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[2] = (float)g_camMatR2_X * g_modelPreviewMatrixQ15ToFloatScale;
@@ -737,9 +737,9 @@ int ModelPreview_ResetViewAndRenderState(void) {
 	PlayerData* player = &g_players[g_localPlayer];
 
 	g_projOffsetY = 0;
-	player->viewState.savedTargetX = 0;
-	player->viewState.savedTargetY = -1280;
-	player->viewState.savedTargetZ = 0;
+	player->viewState.cameraWorldX = 0;
+	player->viewState.cameraWorldY = -1280;
+	player->viewState.cameraWorldZ = 0;
 	player->viewState.viewRoll = 0;
 	player->viewState.viewPitch = 0x4000;
 	player->viewState.viewYaw = 0;

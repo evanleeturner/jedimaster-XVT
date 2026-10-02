@@ -54,7 +54,7 @@ static void World(int host) {
 		g_playerAbortFlags[i] = 0;
 		g_flightNetPeerSilenceTicks[i] = 0;
 	}
-	g_players[0].connectedFlag = 1;
+	g_players[0].participationState = 1;
 	g_localPlayer = 0;
 	memset(&g_netSession, 0, sizeof g_netSession);
 	g_netSession.localIsHost = host;
@@ -69,10 +69,10 @@ static void World(int host) {
 	g_activeFlightPlayerCount = 1;
 	g_flightNetPendingAckCount = 0;
 	g_flightNetClockAdjustAccumTicks = 0;
-	g_flightNetNextWorldMessageTimestamp = 0;
+	g_flightNetWorldMessageTurnTimestamp = 0;
 	g_flightNetClockLeadTicks = 0;
 	g_flightNetLastSentWorldMessageTimestamp = 0;
-	g_flightNetWorldChecksumResetAccumTicks = 0;
+	g_flightNetChecksumRequestAccumTicks = 0;
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(SECOND_US);
 	Time_ResetElapsedTicks();
@@ -108,7 +108,7 @@ static FlightInputFrameRecord Controls(int8_t axis) {
 static void AddFrame(unsigned player, int tick, int valid, int applied) {
 	InputFrame* frame = &g_inputHistory[player][g_inputFrameCount[player]++];
 	frame->timestamp = tick;
-	frame->valid = valid;
+	frame->unconfirmed = valid;
 	frame->applied = applied;
 	frame->input = Controls(10);
 }
@@ -291,8 +291,8 @@ static void CheckAdmitInputRefusals(void) {
 
 static void CheckInsertWorld(void) {
 	World(0);
-	g_players[1].connectedFlag = 1;
-	g_players[2].connectedFlag = 1;
+	g_players[1].participationState = 1;
+	g_players[2].participationState = 1;
 	memset(&g_message, 0, sizeof g_message);
 	AddRecord(&g_message, 1, 4, 10);
 	AddRecord(&g_message, 1, 6, 20);
@@ -301,7 +301,7 @@ static void CheckInsertWorld(void) {
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 2);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[2], 1);
 	const InputFrame* frame = FrameAt(1, 6);
-	XVT_ASSERT_INT_EQ(frame->valid, XVT_INPUT_AUTHORITATIVE);
+	XVT_ASSERT_INT_EQ(frame->unconfirmed, XVT_INPUT_AUTHORITATIVE);
 	XVT_ASSERT_INT_EQ(frame->applied, 0);
 	XVT_ASSERT_INT_EQ(frame->input.axisX, 20);
 	XVT_ASSERT_INT_EQ(FrameAt(2, 4)->input.axisX, 30);
@@ -372,7 +372,7 @@ static void CheckReceiveBatch(void) {
 	/* From a connected remote player: its predicted frames are replaced by the records, as real input. */
 	World(0);
 	uint32_t cookie = AgreeCookie();
-	g_players[1].connectedFlag = 1;
+	g_players[1].participationState = 1;
 	AddFrame(1, 2, XVT_INPUT_REAL, 1);
 	AddFrame(1, 4, XVT_INPUT_PREDICTED, 0);
 	AddFrame(1, 8, XVT_INPUT_PREDICTED, 0);
@@ -384,7 +384,7 @@ static void CheckReceiveBatch(void) {
 	for (int i = 0; i < 2; ++i) {
 		const InputFrame* frame = FrameAt(1, ticks[i]);
 		XVT_ASSERT_TRUE(frame != NULL);
-		XVT_ASSERT_INT_EQ(frame->valid, XVT_INPUT_REAL);
+		XVT_ASSERT_INT_EQ(frame->unconfirmed, XVT_INPUT_REAL);
 		XVT_ASSERT_INT_EQ(frame->input.axisX, 2 * i + 40);
 	}
 
@@ -392,7 +392,7 @@ static void CheckReceiveBatch(void) {
 	 * connected. */
 	World(0);
 	cookie = AgreeCookie();
-	g_players[1].connectedFlag = 1;
+	g_players[1].participationState = 1;
 	size = Batch(cookie + 1, ticks, 2);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Receive(Dpid(1), g_packet, size), 1);
 	size = Batch(cookie, ticks, 2);
@@ -405,7 +405,7 @@ static void CheckReceiveBatch(void) {
 	/* A full history requests recovery. */
 	World(0);
 	cookie = AgreeCookie();
-	g_players[1].connectedFlag = 1;
+	g_players[1].participationState = 1;
 	for (int i = 0; i < XVT_INPUT_HISTORY_CAPACITY; ++i)
 		AddFrame(1, 2 * (i + 1), XVT_INPUT_REAL, 1);
 	const int late[] = { 2 * XVT_INPUT_HISTORY_CAPACITY + 2 };
@@ -540,7 +540,7 @@ enum { PRIME = 1000 };
  * has applied input past the next message's tick. */
 static void SendReady(void) {
 	World(1);
-	g_players[1].connectedFlag = 1;
+	g_players[1].participationState = 1;
 	AddFrame(0, 20, XVT_INPUT_REAL, 1);
 	AddFrame(1, 20, XVT_INPUT_REAL, 1);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME), 0);
@@ -560,7 +560,7 @@ static void CheckShouldSend(void) {
 	/* A connected player with no applied input blocks it, as does applied input that does not pass the
 	 * next message's tick; a player not connected does not. */
 	SendReady();
-	g_players[2].connectedFlag = 1;
+	g_players[2].participationState = 1;
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME + XVT_WORLD_MESSAGE_TICKS), 0);
 	AddFrame(2, XVT_WORLD_MESSAGE_TICKS, XVT_INPUT_REAL, 1);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME + XVT_WORLD_MESSAGE_TICKS), 0);
@@ -572,7 +572,7 @@ static void CheckShouldSend(void) {
 
 	/* Far enough behind, it sends at once, even while a player blocks it. */
 	SendReady();
-	g_players[2].connectedFlag = 1;
+	g_players[2].participationState = 1;
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME + XVT_WORLD_MESSAGE_TICKS), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(
 						  PRIME + (XVT_WORLD_LATE_INTERVALS + 1) * XVT_WORLD_MESSAGE_TICKS + 1),
@@ -671,7 +671,7 @@ static void CheckSendWorldRefusals(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 0);
 	XVT_ASSERT_INT_EQ(g_flightNetLastSentWorldMessageTimestamp, 0);
 	World(1);
-	g_players[0].connectedFlag = 0;
+	g_players[0].participationState = 0;
 	XvtFlightNetwork_SendWorld();
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 0);
 

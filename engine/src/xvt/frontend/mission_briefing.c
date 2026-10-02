@@ -418,7 +418,7 @@ int MissionBriefing_Update(int frameCounter) {
 	MissionSetup_DrawCraftLoadout();
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		MissionSetup_DrawPlayerLoadouts(frameCounter);
-		FrontendNet_UpdateAndDrawPanel(frameCounter);
+		FrontendNet_UpdateAndDrawChatPanel(frameCounter);
 	}
 
 	FrontendDraw_RectAssign(&rect, 84, 419, 430, 434);

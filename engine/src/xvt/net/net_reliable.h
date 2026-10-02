@@ -42,7 +42,7 @@ struct NetQueuedPacket {
 	uint8_t nackRetryCount;
 	uint8_t packetClass;
 	uint8_t sequenceByte;
-	uint8_t queuedFlag;
+	uint8_t isResentCopy;
 	uint8_t payload[512];
 };
 
@@ -58,10 +58,10 @@ typedef struct NetPlayerNameMessage {
 
 #pragma pack(push, 1)
 
-struct NetPendingPayload {
+struct NetPiggybackPayload {
 	uint8_t payload[512];
 	int payloadLength;
-	int pendingFlush;
+	int piggybackEmpty;
 };
 
 #pragma pack(pop)
@@ -75,7 +75,7 @@ extern int g_netLastDeliveredRecvSequence;
 
 int NetReliable_GetLastDeliveredRecvSequence(void);
 int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence, int channelA, int channelB);
-int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int wantType0, int wantType2, int peerSlot);
+int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA, int channelB, int peerSlot);
 int NetReliable_RemoveQueuedPacket(unsigned int queueIndex);
 unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId);
 void NetReliable_ResetRecvQueueState(void);

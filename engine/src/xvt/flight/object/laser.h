@@ -14,7 +14,7 @@ struct WarheadGuidanceState {
 	uint16_t targetComponentIdx;
 	uint16_t targetObjIdx;
 	uint16_t targetSignature;
-	uint16_t minSpeed;
+	uint16_t cruiseSpeed;
 };
 
 struct CraftLaserState {
@@ -23,7 +23,7 @@ struct CraftLaserState {
 	uint8_t burstRemaining[2];
 	uint8_t nextSlot[2];
 	int16_t fireCooldownTicks[2];
-	int lastFireTimestamp[2];
+	int nextFireTimestamp[2];
 };
 
 /* Stored as int16_t in the binary (IDB enum WarheadKindIndex). */
@@ -76,9 +76,9 @@ struct ProjectileTypeDataTables {
 	uint16_t warheadPointValue[PROJECTILE_OBJECT_TYPE_COUNT];
 };
 
-extern const struct ProjectileTypeDataTables g_projectileDamageByObjectType;
+extern const struct ProjectileTypeDataTables g_projectileTypeData;
 extern const uint8_t g_warheadTypeIds[11];
-extern const uint16_t g_warheadAmmoCounts[12];
+extern const uint16_t g_warheadAmmoFractionQ16[12];
 extern const uint8_t g_meshTypeComponentMaxHp[32];
 extern const uint8_t g_platformBeamDisabledComponentIds[60];
 extern int g_laserFireTimestampTrackingEnabled;
@@ -94,7 +94,7 @@ uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx, uint16_t target
 int laser_createcountermeasureprojectile(unsigned int ownerObjIdx, int projectileObjectType);
 void laser_warnplayer(uint16_t projectileGuidanceIdx);
 void laser_UpdateMineWeaponFire(uint16_t mineObjIdx);
-void laser_firewarheadlauncher(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, uint16_t targetRef);
+void laser_fireturretslot(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, uint16_t targetRef);
 
 #ifdef __cplusplus
 }

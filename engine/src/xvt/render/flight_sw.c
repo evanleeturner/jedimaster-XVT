@@ -1536,7 +1536,7 @@ void FlightScreenshot_Capture(void) {
 #ifdef XVT_MODERN
 		g_stream = XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, fileName, g_fileModeReadBinary);
 #else
-		File_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 1);
+		FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 1);
 #endif
 		if (g_stream == NULL) {
 			break;
@@ -1566,13 +1566,13 @@ void FlightScreenshot_Capture(void) {
 	}
 
 	FlightDisplay_Flip();
-	savedLockBackBufferForHudDraw = g_flightLockBackBufferForHudDraw;
-	g_flightLockBackBufferForHudDraw = 0;
+	savedLockBackBufferForHudDraw = g_flightDrawToHudLayer;
+	g_flightDrawToHudLayer = 0;
 	FlightSurface_Lock();
 	FrontImage_SaveBmpFile(fileName, g_surfacePixels, g_surfaceWidth, g_surfaceHeight, g_surfacePitch,
 						   8 * g_flightBytesPerPixel, Display_IsPixelFormat555(), palette);
 	FlightSurface_Unlock();
-	g_flightLockBackBufferForHudDraw = savedLockBackBufferForHudDraw;
+	g_flightDrawToHudLayer = savedLockBackBufferForHudDraw;
 
 	if (lockCount > 0) {
 		do {

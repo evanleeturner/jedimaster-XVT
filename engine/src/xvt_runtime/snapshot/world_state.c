@@ -130,8 +130,8 @@ size_t XvtSnapshot_Encode(uint8_t* image, size_t capacity) {
 	cursor += sizeof(g_projectileObjectSlotsTotal);
 	memcpy(cursor, &g_debrisObjectSlotsTotal, sizeof(g_debrisObjectSlotsTotal));
 	cursor += sizeof(g_debrisObjectSlotsTotal);
-	memcpy(cursor, &g_worldStateReservedDword, sizeof(g_worldStateReservedDword));
-	cursor += sizeof(g_worldStateReservedDword);
+	memcpy(cursor, &g_worldStateDebrisSlotCount, sizeof(g_worldStateDebrisSlotCount));
+	cursor += sizeof(g_worldStateDebrisSlotCount);
 	memcpy(cursor, &g_regionMainObjectSlotStart, sizeof(g_regionMainObjectSlotStart));
 	cursor += sizeof(g_regionMainObjectSlotStart);
 	memcpy(cursor, &g_activeRegionObjectSlotStart, sizeof(g_activeRegionObjectSlotStart));
@@ -213,8 +213,8 @@ static void XvtSnapshot_DecodePrefix(const uint8_t* image) {
 	cursor += sizeof(g_projectileObjectSlotsTotal);
 	memcpy(&g_debrisObjectSlotsTotal, cursor, sizeof(g_debrisObjectSlotsTotal));
 	cursor += sizeof(g_debrisObjectSlotsTotal);
-	memcpy(&g_worldStateReservedDword, cursor, sizeof(g_worldStateReservedDword));
-	cursor += sizeof(g_worldStateReservedDword);
+	memcpy(&g_worldStateDebrisSlotCount, cursor, sizeof(g_worldStateDebrisSlotCount));
+	cursor += sizeof(g_worldStateDebrisSlotCount);
 	memcpy(&g_regionMainObjectSlotStart, cursor, sizeof(g_regionMainObjectSlotStart));
 	cursor += sizeof(g_regionMainObjectSlotStart);
 	memcpy(&g_activeRegionObjectSlotStart, cursor, sizeof(g_activeRegionObjectSlotStart));
@@ -816,7 +816,7 @@ int XvtSnapshot_LiveChecksum(void) {
 	checksum = XvtSnapshot_MixChecksum(checksum, g_mobileObjectCharDataCount);
 	checksum = XvtSnapshot_MixChecksum(checksum, g_projectileObjectSlotsTotal);
 	checksum = XvtSnapshot_MixChecksum(checksum, g_debrisObjectSlotsTotal);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_worldStateReservedDword);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_worldStateDebrisSlotCount);
 	checksum = XvtSnapshot_MixChecksum(checksum, g_regionMainObjectSlotStart);
 	checksum = XvtSnapshot_MixChecksum(checksum, g_activeRegionObjectSlotStart);
 	checksum = XvtSnapshot_MixChecksum(checksum, g_activeRegionCraftObjectSlotEnd);
@@ -840,7 +840,7 @@ int XvtSnapshot_LiveChecksum(void) {
 	checksum = XvtSnapshot_MixChecksum(checksum, g_flightConfNewNet);
 
 	for (playerIndex = 0; playerIndex < 8; playerIndex++) {
-		if (g_players[playerIndex].connectedFlag != 0) {
+		if (g_players[playerIndex].participationState != 0) {
 			checksum =
 				XvtSnapshot_MixChecksum(checksum, XvtSnapshot_ChecksumPlayerData(&g_players[playerIndex]));
 		}
@@ -868,7 +868,7 @@ static int XvtSnapshot_RangesMatchLive(const uint8_t* image_ranges) {
 											  .character_count = g_mobileObjectCharDataCount,
 											  .projectile_count = g_projectileObjectSlotsTotal,
 											  .debris_count = g_debrisObjectSlotsTotal,
-											  .reserved = g_worldStateReservedDword,
+											  .reserved = g_worldStateDebrisSlotCount,
 											  .main_start = g_regionMainObjectSlotStart,
 											  .active_start = g_activeRegionObjectSlotStart,
 											  .craft_end = g_activeRegionCraftObjectSlotEnd,
@@ -1050,6 +1050,6 @@ void XvtSnapshot_Checksum(int unusedArg0, int unusedArg1) {
 	(void)unusedArg0;
 	(void)unusedArg1;
 	if (!XvtSnapshot_ChecksumImage(g_worldStateBuffer, g_worldStateSize, g_worldChecksum,
-								   g_peerChecksumRegionLengths))
+								   g_worldChecksumRegionLengths))
 		g_flightMissionState.missionEndPending = 1;
 }

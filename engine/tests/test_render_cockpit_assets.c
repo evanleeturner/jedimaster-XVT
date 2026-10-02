@@ -71,7 +71,7 @@ static void Fresh(void) {
 	for (unsigned i = 0; i < 28; ++i) {
 		HudCockpitResourceDescriptor* d = &g_hudCockpitResourceDescriptors[i];
 		memset(d, 0, sizeof *d);
-		d->enabled = (uint8_t)(i % 2);
+		d->resourceRef = (uint8_t)(i % 2);
 		memcpy(d->lfdName, "COCKPITxx", 9);
 		d->lfdName[7] = (char)('A' + i);
 		memcpy(d->displayName, "Display name ...", 16);
@@ -87,9 +87,9 @@ static void Fresh(void) {
 	g_hudPanelSpriteFileInfo.spriteCount = 40;
 	g_hudPanelSpriteFileInfo.spriteCountAddend = 3;
 	for (unsigned i = 0; i < 480; ++i) {
-		g_hudViewportSpanMask0[i] = (uint8_t)i;
-		g_hudViewportSpanMask1[i] = (uint8_t)(i * 3);
-		g_hudViewportSpanMask2[i] = (uint8_t)(i * 5);
+		g_hudCockpitInsetSpanMask[i] = (uint8_t)i;
+		g_hudOnlyViewInsetSpanMask[i] = (uint8_t)(i * 3);
+		g_hudCraftListInsetSpanMask[i] = (uint8_t)(i * 5);
 	}
 	g_flightResolutionMode = FLIGHT_RESOLUTION_640X480;
 	g_flightFontMicroSw = g_microFont;
@@ -97,8 +97,8 @@ static void Fresh(void) {
 	g_flightFontMediumSw = g_mediumFont;
 	g_flightMicroFontHandle = 41;
 	g_flightTinyFontHandle = 42;
-	g_flightSmallFontHandle = 43;
-	g_flightLog1BufferHandle = 66;
+	g_flightMediumFontHandle = 43;
+	g_flightScratchScreenBufferHandle = 66;
 	g_hudPanelSpriteDataHandle = 70;
 	g_flightIconFramesHandle = 71;
 	XvtRenderAssets_Shutdown();
@@ -148,7 +148,7 @@ static void CheckCaptureCockpit(void) {
 	for (unsigned i = 0; i < 28; ++i) {
 		const HudCockpitResourceDescriptor* live = &g_hudCockpitResourceDescriptors[i];
 		const XvtSnapCockpitDescriptor* copy = &d->layout.descriptors[i];
-		XVT_ASSERT_INT_EQ(copy->enabled, live->enabled);
+		XVT_ASSERT_INT_EQ(copy->enabled, live->resourceRef);
 		XVT_ASSERT_INT_EQ(memcmp(copy->lfd_name, live->lfdName, 9), 0);
 		XVT_ASSERT_INT_EQ(memcmp(copy->display_name, live->displayName, 16), 0);
 		XVT_ASSERT_INT_EQ(copy->viewport.x, live->viewportOriginX);
@@ -161,7 +161,7 @@ static void CheckCaptureCockpit(void) {
 	XVT_ASSERT_INT_EQ(d->layout.sprite_count, 40);
 	XVT_ASSERT_INT_EQ(d->layout.sprite_count_addend, 3);
 	for (int mask = 0; mask < 2; ++mask) {
-		const uint8_t* live = mask ? g_hudViewportSpanMask1 : g_hudViewportSpanMask0;
+		const uint8_t* live = mask ? g_hudOnlyViewInsetSpanMask : g_hudCockpitInsetSpanMask;
 		XVT_ASSERT_TRUE(d->layout.mask_bytes[mask] > 0 && d->layout.mask_bytes[mask] <= 480);
 		XVT_ASSERT_INT_EQ(memcmp(d->layout.masks[mask], live, d->layout.mask_bytes[mask]), 0);
 	}
@@ -170,11 +170,11 @@ static void CheckCaptureCockpit(void) {
 	 * and 1 as they were. */
 	XvtCockpitDefinition before = *d;
 	for (unsigned i = 0; i < 28; ++i)
-		g_hudCockpitResourceDescriptors[i].enabled ^= 1;
+		g_hudCockpitResourceDescriptors[i].resourceRef ^= 1;
 	memcpy(g_hudPanelSpriteFileInfo.baseName, "OTHERNAME", 9);
 	for (unsigned i = 0; i < 480; ++i) {
-		g_hudViewportSpanMask0[i] ^= 0xFF;
-		g_hudViewportSpanMask1[i] ^= 0xFF;
+		g_hudCockpitInsetSpanMask[i] ^= 0xFF;
+		g_hudOnlyViewInsetSpanMask[i] ^= 0xFF;
 	}
 	XvtRenderAssets_CaptureCockpit(1);
 	d = Definition();
@@ -186,7 +186,7 @@ static void CheckCaptureCockpit(void) {
 	XVT_ASSERT_INT_EQ(memcmp(d->layout.masks[0], before.layout.masks[0], sizeof d->layout.masks[0]), 0);
 	XVT_ASSERT_INT_EQ(memcmp(d->layout.masks[1], before.layout.masks[1], sizeof d->layout.masks[1]), 0);
 	XVT_ASSERT_TRUE(d->layout.mask_bytes[2] > 0 && d->layout.mask_bytes[2] <= 480);
-	XVT_ASSERT_INT_EQ(memcmp(d->layout.masks[2], g_hudViewportSpanMask2, d->layout.mask_bytes[2]), 0);
+	XVT_ASSERT_INT_EQ(memcmp(d->layout.masks[2], g_hudCraftListInsetSpanMask, d->layout.mask_bytes[2]), 0);
 }
 
 /* The copy has layout generation 0 and element 127's warning timer zeroed, so equal content compares
@@ -206,7 +206,7 @@ static void CheckDefinitionCopy(void) {
 	const XvtCockpitDefinition* d = Definition();
 	XVT_ASSERT_INT_EQ(d->layout.elements[5].x, 4321);
 	XVT_ASSERT_INT_EQ(d->layout.elements[400].selector, 77);
-	XVT_ASSERT_INT_EQ(memcmp(d->beam_fades, g_hudBeamSegmentFadeByChargeStep, sizeof d->beam_fades), 0);
+	XVT_ASSERT_INT_EQ(memcmp(d->beam_fades, g_hudBeamSegmentColorByChargeStep, sizeof d->beam_fades), 0);
 	XVT_ASSERT_INT_EQ(memcmp(d->shield_colors, g_hudShieldColors, sizeof d->shield_colors), 0);
 	free(first);
 }
@@ -299,7 +299,7 @@ static void CheckRegisterLfd(void) {
 	XVT_ASSERT_TRUE(unhandled != 0 && unhandled != id);
 	XvtRenderAssets_RetireHandle(55);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(g_hudCockpitResources[6].entries), unhandled);
-	XvtRenderAssets_RetireHandle(g_flightLog1BufferHandle);
+	XvtRenderAssets_RetireHandle(g_flightScratchScreenBufferHandle);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(g_hudCockpitResources[6].entries), 0);
 	XVT_ASSERT_INT_EQ(Definition()->layout.descriptors[6].lfd_asset_id, 0);
 

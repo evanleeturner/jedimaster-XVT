@@ -53,7 +53,7 @@ static void DismissDialog(void) {
 /* Fills the state Return clears with values it must not keep. */
 static void Dirty(void) {
 	g_frontendNetSelectedSessionIdx = 3;
-	g_frontendNetProbeResponseType = 2;
+	g_frontendNetProbeMissionElapsedSeconds = 2;
 	g_frontendNetReceivedMissionDescriptionId = 17;
 	memset(g_frontendNetSelectedGameName, 'g', sizeof g_frontendNetSelectedGameName - 1);
 }
@@ -61,7 +61,7 @@ static void Dirty(void) {
 static void CheckCleared(void) {
 	XVT_ASSERT_INT_EQ(g_frontendSkipScreenEntrySetup, 1);
 	XVT_ASSERT_INT_EQ(g_frontendNetSelectedSessionIdx, -1);
-	XVT_ASSERT_INT_EQ(g_frontendNetProbeResponseType, 0);
+	XVT_ASSERT_INT_EQ(g_frontendNetProbeMissionElapsedSeconds, 0);
 	XVT_ASSERT_INT_EQ(g_frontendNetReceivedMissionDescriptionId, -1);
 	for (unsigned i = 0; i < sizeof g_frontendNetSelectedGameName; ++i)
 		XVT_ASSERT_INT_EQ(g_frontendNetSelectedGameName[i], 0);

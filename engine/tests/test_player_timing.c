@@ -223,9 +223,9 @@ static void CheckBeginControlsMode(void) {
 
 	/* ...beamEffectAccum[1] set, which disables only while no chaff is active, ... */
 	g_testCraft.beamEffectAccum[1] = 1;
-	g_testCraft.chaffActiveTimer = 5;
+	g_testCraft.chaffActiveSeconds = 5;
 	ExpectControlsKeep(1);
-	g_testCraft.chaffActiveTimer = 0;
+	g_testCraft.chaffActiveSeconds = 0;
 	ExpectControlsKeep(0);
 	g_testCraft.beamEffectAccum[1] = 0;
 	ExpectControlsKeep(0);
@@ -379,7 +379,7 @@ static void CheckLockHalfCarryDropped(void) {
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
 	/* ...another selected warhead, ... */
 	OddTickCarried();
-	g_players[0].selectedWarhead = 1;
+	g_players[0].selectedWeaponBank = 1;
 	Step(3);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
 	/* ...another player object, ... */

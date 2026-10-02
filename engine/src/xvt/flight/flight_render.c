@@ -61,7 +61,7 @@ void FlightRender_InstallCallbacks(int pixelMode) {
 			g_flightComputePixelOffsetFn = FlightSw_ComputePixelOffset8bpp;
 			g_flightBlitSpriteFn = FlightSw_BlitSpriteRle8bpp;
 			g_flightBlitSpriteFadedFn = FlightSw_BlitSpriteRleFaded8bpp;
-			g_flightDrawCharFn = FlightText_DrawSoftwareGlyph8bpp;
+			g_flightDrawCharFn = FlightText_DrawWideGlyph8bpp;
 			g_flightFillClipRectFn = FlightSw_FillClipRect8bpp;
 			g_flightFillRectClippedFn = FlightSw_FillRectClipped8bpp;
 			g_flightSaveScreenRectFn = (FlightScreenRectFn)FlightSw_SaveScreenRect8bpp;
@@ -85,7 +85,7 @@ void FlightRender_InstallCallbacks(int pixelMode) {
 			g_flightComputePixelOffsetFn = FlightSw_ComputePixelOffset;
 			g_flightBlitSpriteFn = FlightSw_BlitSpriteRle;
 			g_flightBlitSpriteFadedFn = FlightSw_BlitSpriteRleFaded;
-			g_flightDrawCharFn = FlightText_DrawSoftwareGlyph;
+			g_flightDrawCharFn = FlightText_DrawWideGlyph;
 			g_flightFillClipRectFn = FlightSw_FillClipRect;
 			g_flightFillRectClippedFn = FlightSw_FillRectClipped;
 			g_flightSaveScreenRectFn = (FlightScreenRectFn)FlightSw_SaveScreenRect;
@@ -112,7 +112,7 @@ void FlightRender_InstallCallbacks(int pixelMode) {
 			g_flightComputePixelOffsetFn = FlightSw_ComputePixelOffset8bpp;
 			g_flightBlitSpriteFn = FlightSw_BlitSpriteRle8bpp;
 			g_flightBlitSpriteFadedFn = FlightSw_BlitSpriteRleFaded8bpp;
-			g_flightDrawCharFn = FlightText_DrawSoftwareGlyph8bpp;
+			g_flightDrawCharFn = FlightText_DrawWideGlyph8bpp;
 			g_flightFillClipRectFn = FlightSw_FillClipRect8bpp;
 			g_flightFillRectClippedFn = FlightSw_FillRectClipped8bpp;
 			g_flightSaveScreenRectFn = (FlightScreenRectFn)FlightSw_SaveScreenRect8bpp;

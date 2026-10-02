@@ -39,7 +39,7 @@ static void CheckReset(void) {
 	g_craftDataPoolHandle = 14;
 	g_warheadGuidancePoolHandle = 15;
 	g_stringDataHandle = 16;
-	g_visibleObjectsHandle = 17;
+	g_renderObjectListHandle = 17;
 	g_messageLogHandle = 18;
 
 	XvtFlightLoading_Reset();
@@ -54,7 +54,7 @@ static void CheckReset(void) {
 	XVT_ASSERT_INT_EQ(g_craftDataPoolHandle, 0);
 	XVT_ASSERT_INT_EQ(g_warheadGuidancePoolHandle, 0);
 	XVT_ASSERT_INT_EQ(g_stringDataHandle, 0);
-	XVT_ASSERT_INT_EQ(g_visibleObjectsHandle, 0);
+	XVT_ASSERT_INT_EQ(g_renderObjectListHandle, 0);
 	XVT_ASSERT_INT_EQ(g_messageLogHandle, 0);
 	/* The sanitizer reports a double free here if Reset freed any of them. */
 	free(objects);

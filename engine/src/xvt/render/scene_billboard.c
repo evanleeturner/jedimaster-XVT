@@ -119,7 +119,7 @@ void SceneBillboard_QueueObjectTextured(int objectIndex) {
 	}
 
 	screenY = g_flightVpHeight - projectedY;
-	screenSize = g_objectTable[objectIndex].mobj->lightIntensityScale;
+	screenSize = g_objectTable[objectIndex].mobj->effectSize;
 	if (screenSize != 0) {
 		screenSize = (uint16_t)(screenSize << BILLBOARD_LIGHT_SIZE_SHIFT);
 		if (screenSize >= BILLBOARD_DEFAULT_SCREEN_SIZE) {
@@ -221,9 +221,9 @@ void RenderBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex) {
 
 	g_billboardObjectOrTypeIndex = objectIndex;
 	object = &g_objectTable[objectIndex];
-	deltaX = g_players[g_localPlayer].viewState.savedTargetX - object->world_x;
-	deltaY = g_players[g_localPlayer].viewState.savedTargetY - object->world_y;
-	deltaZ = g_players[g_localPlayer].viewState.savedTargetZ - object->world_z;
+	deltaX = g_players[g_localPlayer].viewState.cameraWorldX - object->world_x;
+	deltaY = g_players[g_localPlayer].viewState.cameraWorldY - object->world_y;
+	deltaZ = g_players[g_localPlayer].viewState.cameraWorldZ - object->world_z;
 	sideProjection = Math_Dot3Q15(object->mobj->cachedSideX, object->mobj->cachedSideY,
 								  object->mobj->cachedSideZ, deltaX, deltaY, deltaZ);
 	upProjection = Math_Dot3Q15(object->mobj->cachedUpX, object->mobj->cachedUpY, object->mobj->cachedUpZ,

@@ -11,14 +11,14 @@ extern "C" {
 
 struct MobileObjectProximityList {
 	uint8_t count;
-	int score[16];
+	int contactTicks[16];
 	uint16_t objIdx[16];
-	int overflowScore;
+	int rebuildTicks;
 };
 
 struct MobileObject {
 	uint8_t family;
-	uint8_t lightIntensityScale;
+	uint8_t effectSize;
 	int32_t simStateTimestamp;
 	int prevWorldX;
 	int prevWorldY;

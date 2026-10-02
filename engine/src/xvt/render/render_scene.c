@@ -1361,9 +1361,9 @@ void RenderScene_DrawObjectModel(ObjectRecord* obj) {
 
 	memset(&mesh, 0, sizeof(mesh));
 	mesh.pObject = obj;
-	mesh.viewPosX = (float)(obj->world_x - g_players[g_localPlayer].viewState.savedTargetX);
-	mesh.viewPosY = (float)(obj->world_y - g_players[g_localPlayer].viewState.savedTargetY);
-	mesh.viewPosZ = (float)(obj->world_z - g_players[g_localPlayer].viewState.savedTargetZ);
+	mesh.viewPosX = (float)(obj->world_x - g_players[g_localPlayer].viewState.cameraWorldX);
+	mesh.viewPosY = (float)(obj->world_y - g_players[g_localPlayer].viewState.cameraWorldY);
+	mesh.viewPosZ = (float)(obj->world_z - g_players[g_localPlayer].viewState.cameraWorldZ);
 	mesh.viewOrient[0] = (float)g_camMatR0_X * g_renderMatrixQ15ToFloatScale;
 	mesh.viewOrient[1] = (float)g_camMatR1_X * g_renderMatrixQ15ToFloatScale;
 	mesh.viewOrient[2] = (float)g_camMatR2_X * g_renderMatrixQ15ToFloatScale;
@@ -1501,9 +1501,9 @@ void RenderScene_DrawNoAssetSourceModel(ObjectRecord* obj, int nodeSwitchIndex) 
 
 	memset(&mesh, 0, sizeof(mesh));
 	mesh.pObject = obj;
-	mesh.viewPosX = (float)(obj->world_x - g_players[g_localPlayer].viewState.savedTargetX);
-	mesh.viewPosY = (float)(obj->world_y - g_players[g_localPlayer].viewState.savedTargetY);
-	mesh.viewPosZ = (float)(obj->world_z - g_players[g_localPlayer].viewState.savedTargetZ);
+	mesh.viewPosX = (float)(obj->world_x - g_players[g_localPlayer].viewState.cameraWorldX);
+	mesh.viewPosY = (float)(obj->world_y - g_players[g_localPlayer].viewState.cameraWorldY);
+	mesh.viewPosZ = (float)(obj->world_z - g_players[g_localPlayer].viewState.cameraWorldZ);
 	mesh.viewOrient[0] = (float)g_camMatR0_X * g_renderMatrixQ15ToFloatScale;
 	mesh.viewOrient[1] = (float)g_camMatR1_X * g_renderMatrixQ15ToFloatScale;
 	mesh.viewOrient[2] = (float)g_camMatR2_X * g_renderMatrixQ15ToFloatScale;

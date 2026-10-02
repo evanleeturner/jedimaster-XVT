@@ -325,9 +325,9 @@ void FlightLight_SetupObjectLighting(ObjectRecord* object) {
 								default:
 									break;
 							}
-							if (lightObject->mobj != NULL && lightObject->mobj->lightIntensityScale >= 4)
+							if (lightObject->mobj != NULL && lightObject->mobj->effectSize >= 4)
 								g_objectPointLights[lightCount].intensity *=
-									(lightObject->mobj->lightIntensityScale + 4) / 4;
+									(lightObject->mobj->effectSize + 4) / 4;
 							break;
 						case 131:
 						case 132:

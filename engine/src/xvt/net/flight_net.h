@@ -9,10 +9,10 @@
 extern "C" {
 #endif
 
-extern int g_flightNetNextWorldMessageTimestamp;
+extern int g_flightNetWorldMessageTurnTimestamp;
 extern int g_flightNetSmallSessionPlayerThreshold;
 extern int g_flightNetLastSentWorldMessageTimestamp;
-extern int g_flightNetWorldChecksumResetAccumTicks;
+extern int g_flightNetChecksumRequestAccumTicks;
 extern int g_flightNetSentWorldMessageCount;
 extern int g_flightNetReceivedWorldMessageCount;
 extern int g_netUpdateIntervalTicks;
@@ -47,7 +47,7 @@ typedef char
 
 struct FlightNetWorldStateChunkPacket {
 	int packetType;
-	int baseChecksum;
+	int checksumEpoch;
 	int chunkIndex;
 	uint8_t payload[500];
 };
@@ -75,9 +75,9 @@ extern int g_flightNetWorldChecksumPeerStatus[8];
 extern int g_playerConnected[8];
 extern FlightInputFrameRecord g_currentInputFrame;
 extern FlightNetScratchPacket g_flightNetScratchPacket;
-extern int g_flightNetLastInputDeltaCodeByPlayer[8];
+extern int g_flightNetLastInputTimestampByPlayer[8];
 extern int g_flightNetPeerSilenceTicks[8];
-extern int g_lastFrameTime;
+extern int g_lastSentInputTimestamp;
 extern int g_lastKeyframeTime;
 extern int g_flightNetLastInputBatchSendTime;
 extern FlightNetInputDeltaBatchPacket g_flightNetInputDeltaBatchPacket;
@@ -93,7 +93,7 @@ extern int g_flightNetResyncPlayerDplayId;
 extern int g_flightNetRecoveryUiActive;
 extern int g_flightNetPendingAckCount;
 
-char* FlightNet_GetStatusPlayerName(void);
+char* FlightNet_ResolveResyncPlayerName(void);
 int FlightNet_SyncPlayerOptionsAndTaunts(void);
 int FlightNet_WaitForMissionStart(void);
 int FlightNet_SendClockProbeToHost(void);
@@ -106,12 +106,12 @@ int FlightNet_FindPilotNetworkPlayerIndex(int playerIdx);
 void FlightNet_MarkPilotNetworkPlayerLeft(int playerSlot);
 void FlightNet_ProcessIncomingPackets(void);
 int32_t FlightNet_SampleLocalInput(void);
-void FlightNet_InitMissionStartAckState(void);
-int FlightNet_ShouldSendWorldMessage(int inputTimestamp);
+void FlightNet_ResetWorldMessageSchedule(void);
+int FlightNet_TakeWorldMessageTurn(int inputTimestamp);
 void FlightNet_BroadcastWorldMessage(int inputTimestamp);
-int FlightNet_SendWorldChecksumToHost(const int* worldChecksum, const int* peerChecksum,
+int FlightNet_SendWorldChecksumToHost(const int* worldChecksum, const int* regionLengths,
 									  int checksumDwordCount);
-int FlightNet_BroadcastWorldChecksum(const int* worldChecksum, const int* peerChecksum,
+int FlightNet_BroadcastWorldChecksum(const int* worldChecksum, const int* regionLengths,
 									 int checksumDwordCount);
 void FlightNet_SendWorldStateResyncApplyRequest(int directPlayId, int worldStateSize);
 int FlightNet_SendWorldStateResyncToPlayer(int directPlayId, uint8_t* worldState, int worldStateSize);

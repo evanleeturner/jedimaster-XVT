@@ -151,7 +151,7 @@ void Craft_ClearTurretObjectLinks(CraftData* craft) {
 }
 
 // FUNCTION: XVT 0x458780
-void Craft_ClearEffectiveAiObjectLink(CraftData* craft) {
+void Craft_FreeLinkedObjects(CraftData* craft) {
 	int remaining;
 	ObjectRecord** objectLink;
 
@@ -347,13 +347,13 @@ int Craft_IsSelectableDamageComponentMesh(int objectType, int meshIndex) {
 // FUNCTION: XVT 0x4A6990
 int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned int damageAmount,
 						  uint16_t sourceObjIdx) {
-	enum { FIRST_OPT_OBJECT_TYPE = 73, SPECIAL_OBJECT_TYPE = 54, MAX_PLAYERS = 8 };
+	enum { OBJECT_TYPE_MESH_CACHE_COUNT = 73, SUPER_STAR_DESTROYER_OBJECT_TYPE = 54, MAX_PLAYERS = 8 };
 
-	unsigned int relatedObjIdx;
+	unsigned int victimIdx;
 	int playerIndex;
 	int meshCount;
 	int meshType;
-	unsigned int componentDamage;
+	unsigned int componentHpAsDamage;
 	int meshIndex;
 	--hitMeshIndex;
 	meshIndex = (uint16_t)hitMeshIndex;
@@ -363,11 +363,11 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 	if (g_curCraft->componentHp[meshIndex] == UINT8_MAX) {
 		int adjustedIndex;
 		int objectType;
-		if (g_objectTable[victimObjIdx].objectType != SPECIAL_OBJECT_TYPE)
+		if (g_objectTable[victimObjIdx].objectType != SUPER_STAR_DESTROYER_OBJECT_TYPE)
 			return damageAmount;
 		adjustedIndex = meshIndex;
 		objectType = g_objectTable[victimObjIdx].objectType;
-		if (objectType < FIRST_OPT_OBJECT_TYPE) {
+		if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (adjustedIndex < 0)
 				meshType = MESH_COMPONENT_00_HULL;
 			else {
@@ -385,10 +385,11 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 	if (damageAmount == 0)
 		damageAmount = 1;
 
-	if (g_missionFileVersion == 14 && g_objectTable[victimObjIdx].objectType == SPECIAL_OBJECT_TYPE) {
+	if (g_missionFileVersion == 14 &&
+		g_objectTable[victimObjIdx].objectType == SUPER_STAR_DESTROYER_OBJECT_TYPE) {
 		int adjustedIndex = meshIndex;
 		int objectType = g_objectTable[victimObjIdx].objectType;
-		if (objectType < FIRST_OPT_OBJECT_TYPE) {
+		if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (adjustedIndex < 0)
 				meshType = MESH_COMPONENT_00_HULL;
 			else {
@@ -404,7 +405,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 			int shieldGeneratorCount;
 			int i;
 			objectType = g_objectTable[victimObjIdx].objectType;
-			if (objectType < FIRST_OPT_OBJECT_TYPE)
+			if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT)
 				meshCount = g_objectTypeMeshCache[objectType].meshCount;
 			else
 				meshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
@@ -412,7 +413,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 			for (i = 0; meshCount > i; ++i) {
 				int candidateIndex = i;
 				objectType = g_objectTable[victimObjIdx].objectType;
-				if (objectType < FIRST_OPT_OBJECT_TYPE) {
+				if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 					if (candidateIndex < 0)
 						meshType = MESH_COMPONENT_00_HULL;
 					else {
@@ -445,15 +446,15 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 		}
 	}
 
-	componentDamage = 16 * g_curCraft->componentHp[meshIndex];
-	if (damageAmount >= componentDamage) {
+	componentHpAsDamage = 16 * g_curCraft->componentHp[meshIndex];
+	if (damageAmount >= componentHpAsDamage) {
 		g_curCraft->componentHp[meshIndex] = 0;
-		damageAmount -= componentDamage;
+		damageAmount -= componentHpAsDamage;
 
 		if (g_missionFileVersion == 14 && g_flightMissionState.difficulty == 0) {
 			int adjustedIndex = meshIndex;
 			int objectType = g_objectTable[victimObjIdx].objectType;
-			if (objectType < FIRST_OPT_OBJECT_TYPE) {
+			if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 				if (adjustedIndex < 0)
 					meshType = MESH_COMPONENT_00_HULL;
 				else {
@@ -468,7 +469,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 				int activeGenerators = 0;
 				int i;
 				objectType = g_objectTable[victimObjIdx].objectType;
-				if (objectType < FIRST_OPT_OBJECT_TYPE)
+				if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT)
 					meshCount = g_objectTypeMeshCache[objectType].meshCount;
 				else
 					meshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
@@ -478,7 +479,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 						continue;
 					candidateIndex = i;
 					objectType = g_objectTable[victimObjIdx].objectType;
-					if (objectType < FIRST_OPT_OBJECT_TYPE) {
+					if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 						if (candidateIndex < 0)
 							meshType = MESH_COMPONENT_00_HULL;
 						else {
@@ -500,29 +501,29 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 			}
 		}
 
-		relatedObjIdx = victimObjIdx;
-		if (ModelMesh_IsObjectTypeMeshDamageable(g_objectTable[relatedObjIdx].objectType, meshIndex) != 0) {
+		victimIdx = victimObjIdx;
+		if (ModelMesh_IsObjectTypeMeshDamageable(g_objectTable[victimIdx].objectType, meshIndex) != 0) {
 			g_curCraft->componentState[meshIndex] = 2;
 			for (playerIndex = 0; playerIndex < MAX_PLAYERS; ++playerIndex) {
-				if (g_players[playerIndex].connectedFlag != 0 &&
+				if (g_players[playerIndex].participationState != 0 &&
 					victimObjIdx == (uint16_t)g_players[playerIndex].currentTargetObjectIdx &&
 					g_players[playerIndex].selectedTargetComponent == hitMeshIndex) {
-					int objectType = g_objectTable[relatedObjIdx].objectType;
-					int playerMeshCount;
-					if (objectType < FIRST_OPT_OBJECT_TYPE)
-						playerMeshCount = g_objectTypeMeshCache[objectType].meshCount;
+					int objectType = g_objectTable[victimIdx].objectType;
+					int victimMeshCount;
+					if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT)
+						victimMeshCount = g_objectTypeMeshCache[objectType].meshCount;
 					else
-						playerMeshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
+						victimMeshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
 					do {
 						uint16_t nextComponent =
 							(uint16_t)(g_players[playerIndex].selectedTargetComponent + 1);
 						g_players[playerIndex].selectedTargetComponent = nextComponent;
-						if (nextComponent >= playerMeshCount)
+						if (nextComponent >= victimMeshCount)
 							g_players[playerIndex].selectedTargetComponent = 0;
 						if (g_curCraft->componentState[(uint16_t)g_players[playerIndex]
 														   .selectedTargetComponent] == 0 &&
 							Craft_IsSelectableDamageComponentMesh(
-								g_objectTable[relatedObjIdx].objectType,
+								g_objectTable[victimIdx].objectType,
 								(uint16_t)g_players[playerIndex].selectedTargetComponent) != 0)
 							break;
 					} while (g_players[playerIndex].selectedTargetComponent != hitMeshIndex);
@@ -546,18 +547,18 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 			}
 
 			{
-				uint16_t debrisIndex = Object_AllocSlotForGenus(CRAFT_GENUS_EXPLOSION);
-				if (debrisIndex != UINT16_MAX) {
+				uint16_t explosionObjIdx = Object_AllocSlotForGenus(CRAFT_GENUS_EXPLOSION);
+				if (explosionObjIdx != UINT16_MAX) {
 					int centerX;
 					int centerY;
 					int centerZ;
 					int effectSize;
-					g_objectTable[debrisIndex].world_x = g_objectTable[relatedObjIdx].world_x;
-					g_objectTable[debrisIndex].world_y = g_objectTable[relatedObjIdx].world_y;
-					g_objectTable[debrisIndex].world_z = g_objectTable[relatedObjIdx].world_z;
-					centerX = ModelMesh_GetCenterX(g_objectTable[relatedObjIdx].objectType, meshIndex);
-					centerY = ModelMesh_GetCenterY(g_objectTable[relatedObjIdx].objectType, meshIndex);
-					centerZ = ModelMesh_GetCenterZ(g_objectTable[relatedObjIdx].objectType, meshIndex);
+					g_objectTable[explosionObjIdx].world_x = g_objectTable[victimIdx].world_x;
+					g_objectTable[explosionObjIdx].world_y = g_objectTable[victimIdx].world_y;
+					g_objectTable[explosionObjIdx].world_z = g_objectTable[victimIdx].world_z;
+					centerX = ModelMesh_GetCenterX(g_objectTable[victimIdx].objectType, meshIndex);
+					centerY = ModelMesh_GetCenterY(g_objectTable[victimIdx].objectType, meshIndex);
+					centerZ = ModelMesh_GetCenterZ(g_objectTable[victimIdx].objectType, meshIndex);
 					if (g_flightMissionState.provingGroundsModeActive != 0) {
 						int16_t meshRotation = g_curCraft->meshRotation[meshIndex];
 						if (meshRotation != 0) {
@@ -573,39 +574,38 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 					g_rotatedX = centerX;
 					g_rotatedY = centerZ;
 					g_rotatedZ = -centerY;
-					pai_RotateLocalVectorToWorldScratch(&g_objectTable[relatedObjIdx], centerX, centerZ,
+					pai_RotateLocalVectorToWorldScratch(&g_objectTable[victimIdx], centerX, centerZ,
 														-centerY);
-					g_objectTable[debrisIndex].world_x += g_rotatedX;
-					g_objectTable[debrisIndex].world_y += g_rotatedY;
-					g_objectTable[debrisIndex].world_z += g_rotatedZ;
-					g_objectTable[debrisIndex].objectType = -127;
-					g_objectTable[debrisIndex].genusId = CRAFT_GENUS_EXPLOSION;
-					g_objectTable[debrisIndex].mobj->family = 5;
-					g_objectTable[debrisIndex].typeSpecificByte[0] = 2;
-					g_objectTable[debrisIndex].mobj->secondsAlive = 0;
-					g_objectTable[debrisIndex].mobj->lifetimeTimer = 0;
-					g_objectTable[debrisIndex].mobj->speed = g_objectTable[relatedObjIdx].mobj->speed;
-					g_objectTable[debrisIndex].pitch = g_objectTable[relatedObjIdx].pitch;
-					g_objectTable[debrisIndex].yaw = g_objectTable[relatedObjIdx].yaw;
-					g_objectTable[debrisIndex].roll = 0;
-					g_objectTable[debrisIndex].mobj->orientMatrixDirty = 1;
-					g_objectTable[debrisIndex].mobj->moveVectorDirty =
-						g_objectTable[debrisIndex].mobj->orientMatrixDirty;
-					fsfx_PlaySound((GameRand() & 3) + FLIGHT_SOUND_SMALL_EXPLOSION_FIRST, debrisIndex,
+					g_objectTable[explosionObjIdx].world_x += g_rotatedX;
+					g_objectTable[explosionObjIdx].world_y += g_rotatedY;
+					g_objectTable[explosionObjIdx].world_z += g_rotatedZ;
+					g_objectTable[explosionObjIdx].objectType = -127;
+					g_objectTable[explosionObjIdx].genusId = CRAFT_GENUS_EXPLOSION;
+					g_objectTable[explosionObjIdx].mobj->family = 5;
+					g_objectTable[explosionObjIdx].typeSpecificByte[0] = 2;
+					g_objectTable[explosionObjIdx].mobj->secondsAlive = 0;
+					g_objectTable[explosionObjIdx].mobj->lifetimeTimer = 0;
+					g_objectTable[explosionObjIdx].mobj->speed = g_objectTable[victimIdx].mobj->speed;
+					g_objectTable[explosionObjIdx].pitch = g_objectTable[victimIdx].pitch;
+					g_objectTable[explosionObjIdx].yaw = g_objectTable[victimIdx].yaw;
+					g_objectTable[explosionObjIdx].roll = 0;
+					g_objectTable[explosionObjIdx].mobj->orientMatrixDirty = 1;
+					g_objectTable[explosionObjIdx].mobj->moveVectorDirty =
+						g_objectTable[explosionObjIdx].mobj->orientMatrixDirty;
+					fsfx_PlaySound((GameRand() & 3) + FLIGHT_SOUND_SMALL_EXPLOSION_FIRST, explosionObjIdx,
 								   g_localPlayer);
 					effectSize =
-						ModelMesh_GetComponentMaxExtent(g_objectTable[relatedObjIdx].objectType, meshIndex) >>
-						9;
+						ModelMesh_GetComponentMaxExtent(g_objectTable[victimIdx].objectType, meshIndex) >> 9;
 					if (effectSize > UINT8_MAX)
 						effectSize = UINT8_MAX;
-					g_objectTable[debrisIndex].mobj->lightIntensityScale = (uint8_t)effectSize;
+					g_objectTable[explosionObjIdx].mobj->effectSize = (uint8_t)effectSize;
 				}
 			}
 
 			if (g_players[g_localPlayer].objectIndex == sourceObjIdx) {
 				int adjustedIndex = meshIndex;
-				int objectType = g_objectTable[relatedObjIdx].objectType;
-				if (objectType < FIRST_OPT_OBJECT_TYPE) {
+				int objectType = g_objectTable[victimIdx].objectType;
+				if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 					if (adjustedIndex < 0)
 						meshType = MESH_COMPONENT_00_HULL;
 					else {
@@ -654,7 +654,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 // FUNCTION: XVT 0x4A7480
 void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx, int16_t forceMainExplosion) {
 	/* Spawn main-hull explosion effects for eligible mesh components. */
-	enum { FIRST_OPT_OBJECT_TYPE = 73, MAX_HULL_MESHES = 16, MAIN_EXPLOSION_SLOT_COUNT = 1 };
+	enum { OBJECT_TYPE_MESH_CACHE_COUNT = 73, MAX_HULL_MESHES = 16, MAIN_EXPLOSION_SLOT_COUNT = 1 };
 
 	uint8_t hullMeshes[MAX_HULL_MESHES];
 	ObjectRecord* object;
@@ -671,7 +671,7 @@ void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx, int16_t forceMainEx
 	objectType = object->objectType;
 	if (object->mobj->orientMatrixDirty != 0)
 		FVIEW_SetObjectTransform(object->roll, object->pitch, object->yaw, 0, object);
-	if (objectType < FIRST_OPT_OBJECT_TYPE)
+	if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT)
 		meshCount = g_objectTypeMeshCache[objectType].meshCount;
 	else
 		meshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
@@ -680,7 +680,7 @@ void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx, int16_t forceMainEx
 	for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
 		int lookupIndex = meshIndex;
 		int meshType;
-		if (objectType < FIRST_OPT_OBJECT_TYPE) {
+		if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (lookupIndex < 0)
 				meshType = MESH_COMPONENT_00_HULL;
 			else {
@@ -764,7 +764,7 @@ int Craft_SpawnExplosionObjectAtMesh(ObjectRecord* objRecord, uint16_t meshIndex
 		g_objectTable[objectIdx].typeSpecificByte[0] = 2;
 		g_objectTable[objectIdx].mobj->secondsAlive = 0;
 		g_objectTable[objectIdx].mobj->lifetimeTimer = 0;
-		g_objectTable[objectIdx].mobj->lightIntensityScale = effectSize >> 6;
+		g_objectTable[objectIdx].mobj->effectSize = effectSize >> 6;
 		g_objectTable[objectIdx].mobj->speed = 0;
 		g_objectTable[objectIdx].pitch = 0;
 		g_objectTable[objectIdx].yaw = 0;

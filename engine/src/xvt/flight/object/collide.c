@@ -77,7 +77,7 @@ int g_collideSweepHitMeshOrdinal = 0;
 // GLOBAL: XVT 0x622C8C
 int g_collideSweepCurrentMeshOrdinal = 0;
 // GLOBAL: XVT 0x622C94
-int g_warheadLaunchHullMeshOrdinal = 0;
+int g_turretFireHullMeshOrdinal = 0;
 // GLOBAL: XVT 0x622C90
 float g_collideCurrentMeshRotationAngle = 0.0f;
 // GLOBAL: XVT 0x622C98
@@ -97,7 +97,7 @@ int g_collisionSegmentStartWorldZ = 0;
 // GLOBAL: XVT 0x9A7398
 int g_approxDist = 0;
 // GLOBAL: XVT 0x51BF58
-int g_collisionStagedModelProbe = 0;
+int g_collisionIsAimPrediction = 0;
 // GLOBAL: XVT 0x9D80C0
 int g_collisionSweepStartX = 0;
 // GLOBAL: XVT 0x9D8C18
@@ -278,7 +278,7 @@ void collide_PopulateMobileObjectProximityCandidates(MobileObjectProximityList* 
 				}
 #endif
 				if (candidateObjIdx >= g_activeRegionCraftObjectSlotEnd &&
-					(g_projectileDamageByObjectType
+					(g_projectileTypeData
 							 .warheadClass[candidateObject->objectType - PROJECTILE_OBJECT_TYPE_FIRST] == 0 ||
 					 candidateObjIdx == ownerObjIdx || candidateObject->mobj->sourceObjIdx == sourceObjIdx)) {
 					continue;
@@ -320,7 +320,7 @@ void collide_collisions(void) {
 		NEW_OBJECT_COLLISION_GRACE_SECONDS = 3,
 		INSPECTION_LARGE_MODEL_EXTENT = 3000,
 		INSPECTION_RANGE_SCALE = 4,
-		IFF_COUNT = 10,
+		TEAM_COUNT = 10,
 		MISSION_GOAL_COUNT = 8,
 		TARGET_DESCRIPTION_REFRESH_TICKS = 944,
 		ACTION_PROMPT_TICKS = 1888,
@@ -365,7 +365,7 @@ void collide_collisions(void) {
 			if (g_players[playerIdx].hyperspacePhase == 2) {
 				continue;
 			}
-			if (g_players[playerIdx].impactDamageCooldownTime < g_gameTime
+			if (g_players[playerIdx].nextEngineWashCheckTime < g_gameTime
 #ifdef XVT_MODERN
 				&& XvtFlightTiming_ReferenceDue()
 #endif
@@ -374,7 +374,7 @@ void collide_collisions(void) {
 
 				g_players[playerIdx].engineWashSourceObjIdx = -1;
 				g_players[playerIdx].engineWashStrength = 0;
-				g_players[playerIdx].impactDamageCooldownTime = g_gameTime + ENGINE_WASH_UPDATE_TICKS;
+				g_players[playerIdx].nextEngineWashCheckTime = g_gameTime + ENGINE_WASH_UPDATE_TICKS;
 				for (sourceObjIdx = (uint16_t)g_activeRegionObjectSlotStart;
 					 sourceObjIdx < g_activeRegionCraftObjectSlotEnd; ++sourceObjIdx) {
 					ObjectRecord* sourceObject = &g_objectTable[sourceObjIdx];
@@ -426,22 +426,22 @@ void collide_collisions(void) {
 							maxBoundsExtent >>= 1;
 						}
 						if (INSPECTION_RANGE_SCALE * maxBoundsExtent > g_approxDist) {
-							uint16_t maxVisibility = 0;
+							uint16_t inspectionOrder = 0;
 							uint16_t playerTeam = (uint16_t)g_players[playerIdx].team;
 							uint8_t flightGroupIdx = targetObject->flightGroupIdx;
 							int specialCargoFlag = 0;
 							int goalMessageRequired = 0;
 							int playerScored;
-							uint16_t iffIndex;
+							uint16_t teamIndex;
 							int goalIndex;
 
-							for (iffIndex = 0; iffIndex < IFF_COUNT; ++iffIndex) {
-								if (maxVisibility < targetCraft->identifiedOrderByTeam[iffIndex]) {
-									maxVisibility = targetCraft->identifiedOrderByTeam[iffIndex];
+							for (teamIndex = 0; teamIndex < TEAM_COUNT; ++teamIndex) {
+								if (inspectionOrder < targetCraft->identifiedOrderByTeam[teamIndex]) {
+									inspectionOrder = targetCraft->identifiedOrderByTeam[teamIndex];
 								}
 							}
-							++maxVisibility;
-							targetCraft->identifiedOrderByTeam[playerTeam] = (uint8_t)maxVisibility;
+							++inspectionOrder;
+							targetCraft->identifiedOrderByTeam[playerTeam] = (uint8_t)inspectionOrder;
 							++g_flightMissionState.runtime
 								  .teamFgInspectedCapturedCounts[0][playerTeam][flightGroupIdx];
 							++g_players[playerIdx].perMissionKills.numCraftInspected;
@@ -456,10 +456,10 @@ void collide_collisions(void) {
 								++g_missionFgStats[flightGroupIdx].teamSpecialCargoInspected[playerTeam];
 							}
 							playerScored = Mission_ApplyFlightGroupGoalScore(
-								MISSION_COND_INSPECTED, flightGroupIdx, playerIdx, maxVisibility - 1,
+								MISSION_COND_INSPECTED, flightGroupIdx, playerIdx, inspectionOrder - 1,
 								specialCargoFlag, playerTeam);
 							Mission_ApplyFlightGroupGoalScore(MISSION_COND_INSPECTED, flightGroupIdx, -1,
-															  maxVisibility - 1, specialCargoFlag,
+															  inspectionOrder - 1, specialCargoFlag,
 															  playerTeam);
 							for (goalIndex = 0; goalIndex < MISSION_GOAL_COUNT; ++goalIndex) {
 								FlightGroupGoal* goal =
@@ -495,7 +495,8 @@ void collide_collisions(void) {
 								msg_emitCraftMessage(targetObjIdx, targetCraft, CRAFT_MESSAGE_INSPECTED);
 								if (playerScored != 0 && g_flightPlayerCount > 1 &&
 									g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
-									g_msgArgTable[0] = (uint16_t)(maxVisibility + INSPECTION_PLAYER_ARG_BASE);
+									g_msgArgTable[0] =
+										(uint16_t)(inspectionOrder + INSPECTION_PLAYER_ARG_BASE);
 									msg_emitInFlightMessage(IFMSG_308_YOU_ARE_THE_ARG_TO_INSPECT_THIS_CRAFT,
 															g_localPlayer);
 								}
@@ -583,9 +584,9 @@ void collide_collisions(void) {
 			continue;
 		}
 		list = &g_objectTable[ownerObjIdx].mobj->proximityList;
-		list->overflowScore -= g_elapsedTicks;
-		if (list->overflowScore <= 0) {
-			list->overflowScore = 0x7FFF;
+		list->rebuildTicks -= g_elapsedTicks;
+		if (list->rebuildTicks <= 0) {
+			list->rebuildTicks = 0x7FFF;
 			collide_PopulateMobileObjectProximityCandidates(list, ownerObjIdx);
 		}
 
@@ -606,8 +607,8 @@ void collide_collisions(void) {
 				g_objectTable[ownerObjIdx].genusId != CRAFT_GENUS_OTHER_PROJECTILE) {
 				continue;
 			}
-			list->score[candidateSlot] -= g_elapsedTicks;
-			if (list->score[candidateSlot] > 0) {
+			list->contactTicks[candidateSlot] -= g_elapsedTicks;
+			if (list->contactTicks[candidateSlot] > 0) {
 				continue;
 			}
 			if (g_objectTable[ownerObjIdx].mobj->secondsAlive < NEW_OBJECT_COLLISION_GRACE_SECONDS &&
@@ -648,7 +649,7 @@ void collide_collisions(void) {
 					g_collisionSweepStartX = g_objectTable[candidateObjIdx].mobj->prevWorldX;
 					g_collisionSweepStartY = g_objectTable[candidateObjIdx].mobj->prevWorldY;
 					g_collisionSweepStartZ = g_objectTable[candidateObjIdx].mobj->prevWorldZ;
-					hitMeshIndex = collide_lasercraftcollide(ownerObjIdx, candidateObjIdx);
+					hitMeshIndex = collide_TestSweptPairCollision(ownerObjIdx, candidateObjIdx);
 					if (hitMeshIndex != 0) {
 						if (g_flightMissionState.provingGroundsModeActive != 0) {
 							g_objectTable[ownerObjIdx].mobj->speed = 0;
@@ -847,7 +848,7 @@ void collide_collisions(void) {
 						}
 					}
 				} else if (g_flightMissionState.provingGroundsModeActive == 0 &&
-						   static_laserstaticcollide(ownerObjIdx, candidateObjIdx) != 0) {
+						   static_TestSweptStaticCollision(ownerObjIdx, candidateObjIdx) != 0) {
 					collide_applyCraftImpactBounce(ownerObjIdx, candidateObjIdx);
 					if (g_flightMissionState.collisionsEnabled != 0) {
 						XvtFlightGroup* candidateGroup =
@@ -859,7 +860,7 @@ void collide_collisions(void) {
 							candidateGroup->status2 != FLIGHT_GROUP_STATUS_PROTECTED &&
 							ownerGroup->status1 != FLIGHT_GROUP_STATUS_PROTECTED &&
 							ownerGroup->status2 != FLIGHT_GROUP_STATUS_PROTECTED) {
-							static_laserhitstatic(ownerObjIdx, candidateObjIdx);
+							static_ApplyStaticHit(ownerObjIdx, candidateObjIdx);
 						}
 						collide_damagecraft(ownerObjIdx, INVALID_MESH_INDEX, candidateObjIdx, 0);
 					}
@@ -876,7 +877,7 @@ void collide_collisions(void) {
 						g_collisionSegmentStartWorldY = g_objectTable[ownerObjIdx].mobj->prevWorldY;
 						g_collisionSegmentStartWorldZ = g_objectTable[ownerObjIdx].mobj->prevWorldZ;
 						if (candidateObjIdx >= g_regionMainObjectSlotEnd &&
-							static_laserstaticcollide(ownerObjIdx, candidateObjIdx) != 0) {
+							static_TestSweptStaticCollision(ownerObjIdx, candidateObjIdx) != 0) {
 							if (g_flightMissionState.collisionsEnabled != 0) {
 								collide_damagecraft(ownerObjIdx, INVALID_MESH_INDEX, candidateObjIdx, 0);
 							} else {
@@ -947,7 +948,8 @@ void collide_collisions(void) {
 						g_collisionSegmentStartWorldY = g_objectTable[candidateObjIdx].mobj->prevWorldY;
 						g_collisionSegmentStartWorldZ = g_objectTable[candidateObjIdx].mobj->prevWorldZ;
 						{
-							int16_t hitMeshIndex = collide_lasercraftcollide(candidateObjIdx, ownerObjIdx);
+							int16_t hitMeshIndex =
+								collide_TestSweptPairCollision(candidateObjIdx, ownerObjIdx);
 							if (hitMeshIndex != 0) {
 								collide_damagecraft(ownerObjIdx, hitMeshIndex, candidateObjIdx, 0);
 								collide_damagecraft(candidateObjIdx, INVALID_MESH_INDEX, ownerObjIdx, 0);
@@ -987,13 +989,13 @@ void collide_collisions(void) {
 							g_collisionSweepStartX = g_objectTable[candidateObjIdx].mobj->prevWorldX;
 							g_collisionSweepStartY = g_objectTable[candidateObjIdx].mobj->prevWorldY;
 							g_collisionSweepStartZ = g_objectTable[candidateObjIdx].mobj->prevWorldZ;
-							hitMeshIndex = collide_lasercraftcollide(ownerObjIdx, candidateObjIdx);
+							hitMeshIndex = collide_TestSweptPairCollision(ownerObjIdx, candidateObjIdx);
 							if (hitMeshIndex != 0) {
 								if (candidateObjIdx >= g_activeRegionCraftObjectSlotEnd) {
-									if (g_projectileDamageByObjectType
+									if (g_projectileTypeData
 											.warheadClass[g_objectTable[ownerObjIdx].objectType -
 														  PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
-										if (g_projectileDamageByObjectType
+										if (g_projectileTypeData
 												.warheadClass[g_objectTable[candidateObjIdx].objectType -
 															  PROJECTILE_OBJECT_TYPE_FIRST] == 0) {
 											Mission_RecordProjectileHitStats(candidateObjIdx);
@@ -1028,8 +1030,8 @@ void collide_collisions(void) {
 								}
 							}
 						} else if (g_flightMissionState.provingGroundsModeActive == 0 &&
-								   static_laserstaticcollide(ownerObjIdx, candidateObjIdx) != 0) {
-							static_laserhitstatic(ownerObjIdx, candidateObjIdx);
+								   static_TestSweptStaticCollision(ownerObjIdx, candidateObjIdx) != 0) {
+							static_ApplyStaticHit(ownerObjIdx, candidateObjIdx);
 							Mission_RecordProjectileHitStats(ownerObjIdx);
 						}
 						break;
@@ -1042,7 +1044,7 @@ void collide_collisions(void) {
 
 			if (g_objectTable[ownerObjIdx].objectType == 0 ||
 				g_objectTable[ownerObjIdx].genusId == CRAFT_GENUS_EXPLOSION) {
-				list->overflowScore = 0;
+				list->rebuildTicks = 0;
 				list->count = 0;
 				break;
 			}
@@ -1061,7 +1063,7 @@ void collide_InsertMobileObjectProximityCandidate(MobileObjectProximityList* lis
 	int clearance;
 	int candidateSpeed;
 	int combinedSpeed;
-	int proximityScore;
+	int contactTicks;
 	int index;
 	uint8_t count;
 	int moveIndex;
@@ -1076,7 +1078,7 @@ void collide_InsertMobileObjectProximityCandidate(MobileObjectProximityList* lis
 	clearance -= g_modelTypeTable[g_objectTable[ownerObjIdx].objectType].maxBoundsExtent;
 	clearance -= g_modelTypeTable[g_objectTable[candidateObjIdx].objectType].maxBoundsExtent;
 	if (clearance < 0) {
-		proximityScore = 0;
+		contactTicks = 0;
 	} else {
 		candidateSpeed = collide_GetMobileObjectProximitySpeedQ12(candidateObjIdx);
 		clearance >>= 8;
@@ -1084,22 +1086,22 @@ void collide_InsertMobileObjectProximityCandidate(MobileObjectProximityList* lis
 		if (combinedSpeed == 0) {
 			return;
 		}
-		proximityScore = 13275 * clearance / combinedSpeed;
+		contactTicks = 13275 * clearance / combinedSpeed;
 	}
 
 	index = 0;
 	count = list->count;
 	if (count != 0) {
-		score = list->score;
+		score = list->contactTicks;
 		objectIndex = list->objIdx;
 		for (;;) {
 			if (*objectIndex == candidateObjIdx) {
-				list->score[index] = proximityScore;
+				list->contactTicks[index] = contactTicks;
 				moveIndex = index + 1;
-				while (moveIndex < list->count && proximityScore > list->score[moveIndex]) {
-					list->score[moveIndex - 1] = list->score[moveIndex];
+				while (moveIndex < list->count && contactTicks > list->contactTicks[moveIndex]) {
+					list->contactTicks[moveIndex - 1] = list->contactTicks[moveIndex];
 					list->objIdx[moveIndex - 1] = list->objIdx[moveIndex];
-					list->score[moveIndex] = proximityScore;
+					list->contactTicks[moveIndex] = contactTicks;
 					list->objIdx[moveIndex] = candidateObjIdx;
 					++moveIndex;
 				}
@@ -1107,19 +1109,19 @@ void collide_InsertMobileObjectProximityCandidate(MobileObjectProximityList* lis
 				if (index > 0) {
 					moveIndex = index - 1;
 					do {
-						if (proximityScore >= list->score[moveIndex]) {
+						if (contactTicks >= list->contactTicks[moveIndex]) {
 							break;
 						}
-						list->score[moveIndex + 1] = list->score[moveIndex];
+						list->contactTicks[moveIndex + 1] = list->contactTicks[moveIndex];
 						list->objIdx[moveIndex + 1] = list->objIdx[moveIndex];
 						--moveIndex;
-						list->score[moveIndex + 1] = proximityScore;
+						list->contactTicks[moveIndex + 1] = contactTicks;
 						list->objIdx[moveIndex + 1] = candidateObjIdx;
 					} while (moveIndex >= 0);
 				}
 				return;
 			}
-			if (*score > proximityScore) {
+			if (*score > contactTicks) {
 				break;
 			}
 			++score;
@@ -1133,12 +1135,12 @@ void collide_InsertMobileObjectProximityCandidate(MobileObjectProximityList* lis
 
 	if (index == count) {
 		if (count == 16) {
-			if (list->overflowScore > proximityScore) {
-				list->overflowScore = proximityScore;
+			if (list->rebuildTicks > contactTicks) {
+				list->rebuildTicks = contactTicks;
 			}
 			return;
 		}
-		list->score[index] = proximityScore;
+		list->contactTicks[index] = contactTicks;
 		list->objIdx[index] = candidateObjIdx;
 		++list->count;
 		return;
@@ -1146,20 +1148,20 @@ void collide_InsertMobileObjectProximityCandidate(MobileObjectProximityList* lis
 
 	moveIndex = count;
 	if (count == 16) {
-		displacedScore = list->score[count - 1];
-		if (list->overflowScore > displacedScore) {
-			list->overflowScore = displacedScore;
+		displacedScore = list->contactTicks[count - 1];
+		if (list->rebuildTicks > displacedScore) {
+			list->rebuildTicks = displacedScore;
 		}
 		--count;
 		moveIndex = count;
 		list->count = count;
 	}
 	while (moveIndex > index) {
-		list->score[moveIndex] = list->score[moveIndex - 1];
+		list->contactTicks[moveIndex] = list->contactTicks[moveIndex - 1];
 		list->objIdx[moveIndex] = list->objIdx[moveIndex - 1];
 		--moveIndex;
 	}
-	list->score[index] = proximityScore;
+	list->contactTicks[index] = contactTicks;
 	list->objIdx[index] = candidateObjIdx;
 	++list->count;
 }
@@ -1185,7 +1187,7 @@ int collide_GetMobileObjectProximitySpeedQ12(uint16_t objIdx) {
 
 		case 1:
 			if (mobileObject->pWarheadGuidance != NULL)
-				return mobileObject->pWarheadGuidance->minSpeed << 12;
+				return mobileObject->pWarheadGuidance->cruiseSpeed << 12;
 			speed = mobileObject->speed;
 			break;
 
@@ -1205,7 +1207,7 @@ void collide_ResetObjectProximityForSlot(uint16_t objIdx) {
 
 	mobileObject = g_objectTable[objIdx].mobj;
 	if (mobileObject != NULL) {
-		mobileObject->proximityList.overflowScore = 0;
+		mobileObject->proximityList.rebuildTicks = 0;
 		g_objectTable[objIdx].mobj->proximityList.count = 0;
 		return;
 	}
@@ -1274,7 +1276,7 @@ void collide_RemoveMobileObjectProximityCandidate(MobileObjectProximityList* lis
 	if (index < list->count) {
 		do {
 			list->objIdx[index - 1] = list->objIdx[index];
-			list->score[index - 1] = list->score[index];
+			list->contactTicks[index - 1] = list->contactTicks[index];
 			++index;
 		} while (list->count > index);
 	}
@@ -1435,7 +1437,7 @@ void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx) 
 }
 
 // FUNCTION: XVT 0x41C1D0
-int16_t collide_lasercraftcollide(uint16_t sourceObjIdx, uint16_t targetObjIdx) {
+int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx, uint16_t targetObjIdx) {
 	enum { COLLISION_MARGIN = 0x20000, LARGE_MODEL_EXTENT = 1095 };
 
 	int maxDistance;
@@ -1516,11 +1518,10 @@ int16_t collide_lasercraftcollide(uint16_t sourceObjIdx, uint16_t targetObjIdx) 
 				if (maxExtent > LARGE_MODEL_EXTENT)
 					maxExtent = LARGE_MODEL_EXTENT - 1;
 			}
-			if (g_asyncFlag != 0 && target->playerOwnerIdx != -1 &&
+			if (g_internetPlayEnabled != 0 && target->playerOwnerIdx != -1 &&
 				sourceGenus == CRAFT_GENUS_PLAYER_PROJECTILE) {
 				sourceObjectType = source->objectType;
-				if (g_projectileDamageByObjectType
-						.warheadClass[sourceObjectType - PROJECTILE_OBJECT_TYPE_FIRST] == 0) {
+				if (g_projectileTypeData.warheadClass[sourceObjectType - PROJECTILE_OBJECT_TYPE_FIRST] == 0) {
 					switch (targetObjectType) {
 						case MODEL_002_A_WING:
 						case MODEL_004_TIE_FIGHTER:
@@ -1547,8 +1548,8 @@ int16_t collide_lasercraftcollide(uint16_t sourceObjIdx, uint16_t targetObjIdx) 
 		return 0;
 	if ((useDetailedCollision != 0 && maxExtent >= LARGE_MODEL_EXTENT) ||
 		target->objectType == MODEL_058_CONTAINER_I) {
-		if (g_collisionStagedModelProbe != 0) {
-			g_collisionStagedModelProbe = 0;
+		if (g_collisionIsAimPrediction != 0) {
+			g_collisionIsAimPrediction = 0;
 			if (target->mobj->speed < 40)
 				return (int16_t)collide_CheckSweptModelCollision(sourceObjIdx, targetObjIdx);
 		} else {
@@ -1781,7 +1782,7 @@ int16_t collide_checkboxcollision(int radius) {
 }
 
 // FUNCTION: XVT 0x41CA60
-int collide_targetinrange(uint16_t sourceObjIdx, uint16_t targetObjIdx, uint16_t hardpointIndex) {
+int collide_WouldShotHitTarget(uint16_t sourceObjIdx, uint16_t targetObjIdx, uint16_t hardpointIndex) {
 	enum {
 		CHARGED_PROJECTILE_THRESHOLD = 64,
 		PROJECTILE_SPEED_SCALE = 4660,
@@ -1828,16 +1829,15 @@ int collide_targetinrange(uint16_t sourceObjIdx, uint16_t targetObjIdx, uint16_t
 	sourceCraft = sourceObject->mobj->pCraft;
 	sourceModelIndex = sourceCraft->modelIndex;
 	projectileType =
-		g_modelDefs[sourceModelIndex].laserGroupWeaponType[g_players[g_localPlayer].selectedWarhead];
+		g_modelDefs[sourceModelIndex].laserGroupWeaponType[g_players[g_localPlayer].selectedWeaponBank];
 	if (sourceCraft->weaponSlots[hardpointIndex].laserCharge >= CHARGED_PROJECTILE_THRESHOLD)
 		++projectileType;
-	projectileSpeed = g_projectileDamageByObjectType.speed[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
-	lifetimeTicks =
-		SIMULATION_TICKS_PER_SECOND *
-		g_projectileDamageByObjectType.lifetimeSeconds[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
+	projectileSpeed = g_projectileTypeData.speed[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
+	lifetimeTicks = SIMULATION_TICKS_PER_SECOND *
+					g_projectileTypeData.lifetimeSeconds[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
 	lifetimeTicks += (uint16_t)MATH2_fraction(
 		SIMULATION_TICKS_PER_SECOND,
-		g_projectileDamageByObjectType.lifetimeFracQ16[projectileType - PROJECTILE_OBJECT_TYPE_FIRST]);
+		g_projectileTypeData.lifetimeFracQ16[projectileType - PROJECTILE_OBJECT_TYPE_FIRST]);
 
 	g_collisionSegmentStartWorldX = sourceObject->world_x;
 	g_collisionSegmentStartWorldY = sourceObject->world_y;
@@ -1875,24 +1875,25 @@ int collide_targetinrange(uint16_t sourceObjIdx, uint16_t targetObjIdx, uint16_t
 	targetObject = &g_objectTable[targetObjIdx];
 	if (targetObject->mobj != NULL) {
 		MobileObject** targetMobileObjectLink = &targetObject->mobj;
-		int targetDistance;
+		int targetTravelDistance;
 
 		g_collisionSweepStartX = targetObject->world_x;
 		g_collisionSweepStartY = targetObject->world_y;
 		g_collisionSweepStartZ = targetObject->world_z;
 		if (g_players[g_localPlayer].selectedTargetComponent != 0) {
 			uint16_t componentIndex = (uint16_t)g_players[g_localPlayer].selectedTargetComponent;
-			int modelType = targetObject->objectType;
+			int objectType = targetObject->objectType;
 
-			pai_RotateLocalVectorToWorldScratch(targetObject, ModelMesh_GetCenterX(modelType, componentIndex),
-												ModelMesh_GetCenterZ(modelType, componentIndex),
-												-ModelMesh_GetCenterY(modelType, componentIndex));
+			pai_RotateLocalVectorToWorldScratch(targetObject,
+												ModelMesh_GetCenterX(objectType, componentIndex),
+												ModelMesh_GetCenterZ(objectType, componentIndex),
+												-ModelMesh_GetCenterY(objectType, componentIndex));
 			g_collisionSweepStartX += g_rotatedX;
 			g_collisionSweepStartY += g_rotatedY;
 			g_collisionSweepStartZ += g_rotatedZ;
 		}
 
-		targetDistance =
+		targetTravelDistance =
 			lifetimeTicks *
 			((PROJECTILE_SPEED_SCALE * (*targetMobileObjectLink)->speed + PROJECTILE_SPEED_ROUNDING) >>
 			 PROJECTILE_SPEED_SHIFT) /
@@ -1900,19 +1901,19 @@ int collide_targetinrange(uint16_t sourceObjIdx, uint16_t targetObjIdx, uint16_t
 		if ((*targetMobileObjectLink)->moveVectorDirty != 0)
 			FVIEW_calcrotatemove(targetObject->pitch, targetObject->yaw, targetObject);
 		targetMoveX = (*targetMobileObjectLink)->moveX;
-		targetMoveX = Math_MulQ15(targetMoveX, targetDistance);
+		targetMoveX = Math_MulQ15(targetMoveX, targetTravelDistance);
 		g_collisionSweepEndX = g_collisionSweepStartX + targetMoveX;
 		targetMoveY = (*targetMobileObjectLink)->moveY;
-		targetMoveY = Math_MulQ15(targetMoveY, targetDistance);
+		targetMoveY = Math_MulQ15(targetMoveY, targetTravelDistance);
 		g_collisionSweepEndY = g_collisionSweepStartY + targetMoveY;
 		targetMoveZ = (*targetMobileObjectLink)->moveZ;
-		targetMoveZ = Math_MulQ15(targetMoveZ, targetDistance);
+		targetMoveZ = Math_MulQ15(targetMoveZ, targetTravelDistance);
 		g_collisionSweepEndZ = g_collisionSweepStartZ + targetMoveZ;
-		g_collisionStagedModelProbe = 1;
-		result = (uint16_t)collide_lasercraftcollide(sourceObjIdx, targetObjIdx);
+		g_collisionIsAimPrediction = 1;
+		result = (uint16_t)collide_TestSweptPairCollision(sourceObjIdx, targetObjIdx);
 	} else {
-		g_collisionStagedModelProbe = 1;
-		result = (int16_t)static_laserstaticcollide(sourceObjIdx, targetObjIdx);
+		g_collisionIsAimPrediction = 1;
+		result = (int16_t)static_TestSweptStaticCollision(sourceObjIdx, targetObjIdx);
 	}
 
 	g_collisionSegmentStartWorldX = savedCollision.segmentStartWorldX;
@@ -1930,14 +1931,14 @@ int collide_targetinrange(uint16_t sourceObjIdx, uint16_t targetObjIdx, uint16_t
 	g_collisionHitOffsetX = savedCollision.hitOffsetX;
 	g_collisionHitOffsetY = savedCollision.hitOffsetY;
 	g_collisionHitOffsetZ = savedCollision.hitOffsetZ;
-	g_collisionStagedModelProbe = 0;
+	g_collisionIsAimPrediction = 0;
 	return result;
 }
 
 // FUNCTION: XVT 0x41CFD0
-uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx, int16_t lookaheadSteps) {
+uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx, int16_t lookaheadSeconds) {
 	ObjectRecord* source = &g_objectTable[sourceObjIdx];
-	int16_t lookahead = (int16_t)(g_simStepsPerSecond * lookaheadSteps);
+	int16_t lookaheadFrames = (int16_t)(g_simStepsPerSecond * lookaheadSeconds);
 	uint16_t movementStep;
 	uint16_t objectIndex;
 	MobileObjectProximityList* proximityList;
@@ -1950,11 +1951,11 @@ uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx, int16_t lookahead
 	if (source->mobj->moveVectorDirty != 0)
 		FVIEW_calcrotatemove(source->pitch, source->yaw, source);
 	g_collisionProbeWorldX =
-		g_collisionSegmentStartWorldX + Math_MulQ15(source->mobj->moveX, (int)movementStep) * lookahead;
+		g_collisionSegmentStartWorldX + Math_MulQ15(source->mobj->moveX, (int)movementStep) * lookaheadFrames;
 	g_collisionProbeWorldY =
-		g_collisionSegmentStartWorldY + Math_MulQ15(source->mobj->moveY, (int)movementStep) * lookahead;
+		g_collisionSegmentStartWorldY + Math_MulQ15(source->mobj->moveY, (int)movementStep) * lookaheadFrames;
 	g_collisionProbeWorldZ =
-		g_collisionSegmentStartWorldZ + Math_MulQ15(source->mobj->moveZ, (int)movementStep) * lookahead;
+		g_collisionSegmentStartWorldZ + Math_MulQ15(source->mobj->moveZ, (int)movementStep) * lookaheadFrames;
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 		 objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 		ObjectRecord* candidate = &g_objectTable[objectIndex];
@@ -1969,13 +1970,13 @@ uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx, int16_t lookahead
 			candidateStep = (uint16_t)MATH2_mphconvert(candidate->mobj->speed, g_simStepsPerSecond);
 			if (candidate->mobj->moveVectorDirty != 0)
 				FVIEW_calcrotatemove(candidate->pitch, candidate->yaw, candidate);
-			g_collisionSweepEndX =
-				g_collisionSweepStartX + Math_MulQ15(candidate->mobj->moveX, (int)candidateStep) * lookahead;
-			g_collisionSweepEndY =
-				g_collisionSweepStartY + Math_MulQ15(candidate->mobj->moveY, (int)candidateStep) * lookahead;
-			g_collisionSweepEndZ =
-				g_collisionSweepStartZ + Math_MulQ15(candidate->mobj->moveZ, (int)candidateStep) * lookahead;
-			if (collide_lasercraftcollide(sourceObjIdx, objectIndex) != 0)
+			g_collisionSweepEndX = g_collisionSweepStartX +
+								   Math_MulQ15(candidate->mobj->moveX, (int)candidateStep) * lookaheadFrames;
+			g_collisionSweepEndY = g_collisionSweepStartY +
+								   Math_MulQ15(candidate->mobj->moveY, (int)candidateStep) * lookaheadFrames;
+			g_collisionSweepEndZ = g_collisionSweepStartZ +
+								   Math_MulQ15(candidate->mobj->moveZ, (int)candidateStep) * lookaheadFrames;
+			if (collide_TestSweptPairCollision(sourceObjIdx, objectIndex) != 0)
 				return objectIndex;
 		}
 	}
@@ -1984,14 +1985,14 @@ uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx, int16_t lookahead
 		uint16_t candidateIndex = proximityList->objIdx[objectIndex];
 		if (candidateIndex >= g_regionMainObjectSlotEnd &&
 			candidateIndex < g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd &&
-			static_laserstaticcollide(sourceObjIdx, candidateIndex) != 0)
+			static_TestSweptStaticCollision(sourceObjIdx, candidateIndex) != 0)
 			return candidateIndex;
 	}
 	return UINT16_MAX;
 }
 
 // FUNCTION: XVT 0x41D320
-void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t hitMeshIndex) {
+void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx, int16_t hitMeshIndex) {
 	enum {
 		ATTACK_COUNT_MASK = 0x70,
 		ATTACK_COUNT_SHIFT = 4,
@@ -2007,14 +2008,14 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 		LASER_SYSTEM_MESSAGE_ARG = 92,
 		SYSTEM_FAILED_MESSAGE_ARG = 87,
 		EXPLOSION_GENUS = 13,
-		EXPLOSION_STATE = 5,
+		EXPLOSION_FAMILY = 5,
 		IMPACT_EFFECT_SUBTYPE = 2,
 		WARHEAD_IMPACT_EFFECT_TYPE = 129,
 		LASER_IMPACT_EFFECT_TYPE = 131,
 		ION_IMPACT_EFFECT_TYPE = 132,
 	};
 
-	uint16_t sourceObjIdx = g_objectTable[otherObjIdx].mobj->sourceObjIdx;
+	uint16_t sourceObjIdx = g_objectTable[projectileObjIdx].mobj->sourceObjIdx;
 	uint16_t attackerTeam = g_missionFlightGroups[g_objectTable[sourceObjIdx].flightGroupIdx].fg.team;
 	CraftData* craft;
 	int8_t* attackedByTeam;
@@ -2043,7 +2044,7 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 				(uint16_t)g_players[g_localPlayer].team &&
 			g_objectTable[craftObjIdx].genusId != CRAFT_GENUS_STARFIGHTER) {
 			if (sourceObjIdx < g_activeRegionCraftObjectSlotEnd) {
-				int projectileType = g_objectTable[otherObjIdx].objectType;
+				int projectileType = g_objectTable[projectileObjIdx].objectType;
 
 				if (projectileType == WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE ||
 					projectileType == WARHEAD_OBJECT_TYPE_ADVANCED_CONCUSSION_MISSILE) {
@@ -2119,11 +2120,11 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 							((uint8_t)*attackedByTeam & ATTACK_COUNT_MASK) >> ATTACK_COUNT_SHIFT;
 
 						if (attackCount < ATTACK_COUNT_LASER_LIMIT) {
-							attackCount += g_projectileDamageByObjectType
-													   .warheadClass[g_objectTable[otherObjIdx].objectType -
-																	 PROJECTILE_OBJECT_TYPE_FIRST] != 0
-											   ? ATTACK_COUNT_WARHEAD_INCREMENT
-											   : 0;
+							attackCount +=
+								g_projectileTypeData.warheadClass[g_objectTable[projectileObjIdx].objectType -
+																  PROJECTILE_OBJECT_TYPE_FIRST] != 0
+									? ATTACK_COUNT_WARHEAD_INCREMENT
+									: 0;
 							if (attackCount > ATTACK_COUNT_MAX)
 								attackCount = ATTACK_COUNT_MAX;
 							*attackedByTeam = (int8_t)(((uint8_t)*attackedByTeam & ATTACKED_PRESERVE_MASK) |
@@ -2148,7 +2149,7 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 	}
 
 	craft->aiFlight.threatObjIdx = sourceObjIdx;
-	++craft->aiFlight.reactionTimer;
+	++craft->aiFlight.hitsThisManeuver;
 	if (g_objectTable[craftObjIdx].mobj->orientMatrixDirty != 0) {
 		FVIEW_calcrotatemove(g_objectTable[craftObjIdx].pitch, g_objectTable[craftObjIdx].yaw,
 							 &g_objectTable[craftObjIdx]);
@@ -2166,24 +2167,24 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 		hitSide = forwardDot >= 0;
 
 	if (g_flightMissionState.craftImpactBounceEnabled != 0 && craft->objectKind == CRAFT_OBJECT_KIND_ACTIVE &&
-		g_projectileDamageByObjectType
-				.warheadClass[g_objectTable[otherObjIdx].objectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0)
-		collide_applyCraftImpactBounce(craftObjIdx, otherObjIdx);
+		g_projectileTypeData
+				.warheadClass[g_objectTable[projectileObjIdx].objectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0)
+		collide_applyCraftImpactBounce(craftObjIdx, projectileObjIdx);
 
-	projectileObjectType = g_objectTable[otherObjIdx].objectType;
+	projectileObjectType = g_objectTable[projectileObjIdx].objectType;
 	if (projectileObjectType != WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE) {
 		int chaffIntercepted = 0;
 
-		if (craft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF && craft->chaffActiveTimer != 0 &&
-			g_projectileDamageByObjectType
-					.warheadClass[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0 &&
+		if (craft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF && craft->chaffActiveSeconds != 0 &&
+			g_projectileTypeData.warheadClass[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0 &&
 			forwardPositive) {
 			chaffIntercepted = 1;
 			msg_emitInFlightMessage(IFMSG_369_WARHEAD_SCATTERED_BY_CHAFF_NO_DAMAGE,
 									g_objectTable[craftObjIdx].playerOwnerIdx);
 		}
 		if (chaffIntercepted == 0)
-			hitRegistered = (uint8_t)collide_damagecraft(craftObjIdx, hitMeshIndex, otherObjIdx, hitSide);
+			hitRegistered =
+				(uint8_t)collide_damagecraft(craftObjIdx, hitMeshIndex, projectileObjIdx, hitSide);
 		else
 			hitRegistered = 0;
 	} else {
@@ -2197,7 +2198,7 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 			if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0) {
 				craft->workingSubsystems &= CRAFT_SUBSYSTEM_FLAG_CANNONS ^ CRAFT_SUBSYSTEM_FLAGS_ALL;
 				craft->systemHealth[DAMAGE_SYSTEM_03_CANNON_SYSTEM] = 0;
-				craft->systemTimer[DAMAGE_SYSTEM_03_CANNON_SYSTEM] =
+				craft->systemRepairSeconds[DAMAGE_SYSTEM_03_CANNON_SYSTEM] =
 					g_subsystemRepairDuration[DAMAGE_SYSTEM_03_CANNON_SYSTEM];
 				if (g_objectTable[craftObjIdx].playerOwnerIdx == g_localPlayer &&
 					g_players[g_localPlayer].awaitingNewCraft == 0) {
@@ -2223,38 +2224,39 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 		hitRegistered = 1;
 	}
 
-	g_objectTable[otherObjIdx].world_x = g_collisionSegmentStartWorldX + g_collisionHitOffsetX;
-	g_objectTable[otherObjIdx].world_y = g_collisionSegmentStartWorldY + g_collisionHitOffsetY;
-	g_objectTable[otherObjIdx].world_z = g_collisionSegmentStartWorldZ + g_collisionHitOffsetZ;
-	projectileObjectType = g_objectTable[otherObjIdx].objectType;
-	if (g_projectileDamageByObjectType.warheadClass[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0)
-		g_objectTable[otherObjIdx].objectType = WARHEAD_IMPACT_EFFECT_TYPE;
+	g_objectTable[projectileObjIdx].world_x = g_collisionSegmentStartWorldX + g_collisionHitOffsetX;
+	g_objectTable[projectileObjIdx].world_y = g_collisionSegmentStartWorldY + g_collisionHitOffsetY;
+	g_objectTable[projectileObjIdx].world_z = g_collisionSegmentStartWorldZ + g_collisionHitOffsetZ;
+	projectileObjectType = g_objectTable[projectileObjIdx].objectType;
+	if (g_projectileTypeData.warheadClass[projectileObjectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0)
+		g_objectTable[projectileObjIdx].objectType = WARHEAD_IMPACT_EFFECT_TYPE;
 	else if (projectileObjectType == PROJECTILE_OBJECT_TYPE_ION_LASER ||
 			 projectileObjectType == PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER)
-		g_objectTable[otherObjIdx].objectType = ION_IMPACT_EFFECT_TYPE;
+		g_objectTable[projectileObjIdx].objectType = ION_IMPACT_EFFECT_TYPE;
 	else
-		g_objectTable[otherObjIdx].objectType = LASER_IMPACT_EFFECT_TYPE;
-	g_objectTable[otherObjIdx].genusId = EXPLOSION_GENUS;
-	g_objectTable[otherObjIdx].mobj->family = EXPLOSION_STATE;
-	g_objectTable[otherObjIdx].typeSpecificByte[0] = IMPACT_EFFECT_SUBTYPE;
-	g_objectTable[otherObjIdx].mobj->secondsAlive = 0;
-	g_objectTable[otherObjIdx].mobj->lifetimeTimer = 0;
-	g_objectTable[otherObjIdx].mobj->lightIntensityScale = 0;
-	g_objectTable[otherObjIdx].mobj->speed = g_objectTable[craftObjIdx].mobj->speed;
-	g_objectTable[otherObjIdx].pitch = g_objectTable[craftObjIdx].pitch;
-	g_objectTable[otherObjIdx].yaw = g_objectTable[craftObjIdx].yaw;
-	g_objectTable[otherObjIdx].roll = 0;
-	g_objectTable[otherObjIdx].mobj->orientMatrixDirty = 1;
-	g_objectTable[otherObjIdx].mobj->moveVectorDirty = g_objectTable[otherObjIdx].mobj->orientMatrixDirty;
+		g_objectTable[projectileObjIdx].objectType = LASER_IMPACT_EFFECT_TYPE;
+	g_objectTable[projectileObjIdx].genusId = EXPLOSION_GENUS;
+	g_objectTable[projectileObjIdx].mobj->family = EXPLOSION_FAMILY;
+	g_objectTable[projectileObjIdx].typeSpecificByte[0] = IMPACT_EFFECT_SUBTYPE;
+	g_objectTable[projectileObjIdx].mobj->secondsAlive = 0;
+	g_objectTable[projectileObjIdx].mobj->lifetimeTimer = 0;
+	g_objectTable[projectileObjIdx].mobj->effectSize = 0;
+	g_objectTable[projectileObjIdx].mobj->speed = g_objectTable[craftObjIdx].mobj->speed;
+	g_objectTable[projectileObjIdx].pitch = g_objectTable[craftObjIdx].pitch;
+	g_objectTable[projectileObjIdx].yaw = g_objectTable[craftObjIdx].yaw;
+	g_objectTable[projectileObjIdx].roll = 0;
+	g_objectTable[projectileObjIdx].mobj->orientMatrixDirty = 1;
+	g_objectTable[projectileObjIdx].mobj->moveVectorDirty =
+		g_objectTable[projectileObjIdx].mobj->orientMatrixDirty;
 
 	if (hitRegistered != 0) {
 		if (g_objectTable[craftObjIdx].playerOwnerIdx == g_localPlayer) {
-			fsfx_PlaySound(FLIGHT_SOUND_SHIELD_HIT, otherObjIdx, g_localPlayer);
-		} else if (g_objectTable[otherObjIdx].objectType == LASER_IMPACT_EFFECT_TYPE ||
-				   g_objectTable[otherObjIdx].objectType == ION_IMPACT_EFFECT_TYPE) {
-			fsfx_PlaySound(FLIGHT_SOUND_LASER_IMPACT, otherObjIdx, g_localPlayer);
+			fsfx_PlaySound(FLIGHT_SOUND_SHIELD_HIT, projectileObjIdx, g_localPlayer);
+		} else if (g_objectTable[projectileObjIdx].objectType == LASER_IMPACT_EFFECT_TYPE ||
+				   g_objectTable[projectileObjIdx].objectType == ION_IMPACT_EFFECT_TYPE) {
+			fsfx_PlaySound(FLIGHT_SOUND_LASER_IMPACT, projectileObjIdx, g_localPlayer);
 		} else {
-			fsfx_PlaySound((GameRand2() & 3) + FLIGHT_SOUND_SMALL_EXPLOSION_FIRST, otherObjIdx,
+			fsfx_PlaySound((GameRand2() & 3) + FLIGHT_SOUND_SMALL_EXPLOSION_FIRST, projectileObjIdx,
 						   g_localPlayer);
 		}
 	}
@@ -2265,11 +2267,11 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 							uint16_t hitSideOrDamageAmount) {
 	enum {
 		PLAYER_COUNT = 8,
-		FIRST_OPT_OBJECT_TYPE = 73,
+		OBJECT_TYPE_MESH_CACHE_COUNT = 73,
 		MISSION_STATUS_INVULNERABLE = 20,
 		SYNTHETIC_STARSHIP_SOURCE = UINT16_MAX - 1,
 		DEFAULT_COLLISION_OBJECT_TYPE = 53,
-		SPECIAL_COLLISION_OBJECT_TYPE = 58,
+		CONTAINER_CLASS_H_OBJECT_TYPE = 58,
 		MISSION_V14_DAMAGE_REDUCTION_TYPE_1 = 37,
 		MISSION_V14_DAMAGE_REDUCTION_TYPE_2 = 38,
 		ION_OBJECT_TYPE_1 = 141,
@@ -2302,7 +2304,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 	uint16_t damageObjectType;
 	uint8_t cockpitStatusDirty;
 	int* shieldEnergy;
-	uint8_t sourceState;
+	uint8_t sourceFamily;
 	AiController* aiController;
 	CraftData* craft;
 	unsigned int damageAmount;
@@ -2377,14 +2379,14 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 	if (sourceObjIdx != attackerSourceObjIdx && g_objectTable[sourceObjIdx].mobj != NULL) {
 		int sourcePlayerIdx;
 
-		sourceState = g_objectTable[sourceObjIdx].mobj->family;
-		if (sourceState == 0) {
+		sourceFamily = g_objectTable[sourceObjIdx].mobj->family;
+		if (sourceFamily == 0) {
 			attackerSourceObjIdx = sourceObjIdx;
 			sourcePlayerIdx = g_objectTable[sourceObjIdx].playerOwnerIdx;
 		} else {
 			attackerSourceObjIdx = g_objectTable[sourceObjIdx].mobj->sourceObjIdx;
 			sourcePlayerIdx = g_objectTable[attackerSourceObjIdx].playerOwnerIdx;
-			if (sourceState == 1 && g_objectTable[sourceObjIdx].mobj->pWarheadGuidance != NULL)
+			if (sourceFamily == 1 && g_objectTable[sourceObjIdx].mobj->pWarheadGuidance != NULL)
 				sourcePlayerIdx = g_objectTable[sourceObjIdx].mobj->pWarheadGuidance->sourcePlayerIdx;
 		}
 
@@ -2393,7 +2395,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 			if (g_objectTable[sourceObjIdx].mobj->family == 0)
 				craft->damageStats.damageFromCollision += damageAmount;
 		} else {
-			if (sourceState == 0) {
+			if (sourceFamily == 0) {
 				craft->damageStats.damageFromCollision += damageAmount;
 			} else {
 				if (g_objectTable[attackerSourceObjIdx].genusId == CRAFT_GENUS_STARFIGHTER) {
@@ -2516,7 +2518,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 							if (subsystemIndex < CRAFT_SUBSYSTEM_COUNT &&
 								g_objectTable[victimObjIdx].playerOwnerIdx != -1) {
 								craft->systemHealth[subsystemIndex] = 0;
-								craft->systemTimer[subsystemIndex] =
+								craft->systemRepairSeconds[subsystemIndex] =
 									g_subsystemRepairDuration[subsystemIndex];
 							}
 						} while (--disableCount != 0);
@@ -2530,7 +2532,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 							if ((craft->workingSubsystems & subsystemFlag) != 0) {
 								craft->workingSubsystems &= subsystemFlag ^ CRAFT_SUBSYSTEM_FLAGS_ALL;
 								craft->systemHealth[subsystemIndex] = 0;
-								craft->systemTimer[subsystemIndex] =
+								craft->systemRepairSeconds[subsystemIndex] =
 									g_subsystemRepairDuration[subsystemIndex];
 							}
 						}
@@ -2574,7 +2576,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 									if (craft->weaponSlots[slotIndex].projectileTypeId == 2)
 										craft->turretTargetStates[slotIndex].targetObjIdx = UINT16_MAX;
 								}
-								for (slotIndex = 0; slotIndex < craft->cannonClassCount; ++slotIndex)
+								for (slotIndex = 0; slotIndex < craft->cannonGroupCount; ++slotIndex)
 									craft->laserState.linkMode[slotIndex] = 0;
 							}
 							{
@@ -2642,7 +2644,8 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 								g_players[g_localPlayer].awaitingNewCraft == 0)
 								msg_emitInFlightMessage(IFMSG_086_ARG_SYSTEM_IS_ARG, g_localPlayer);
 							craft->systemHealth[subsystemIndex] = 0;
-							craft->systemTimer[subsystemIndex] = g_subsystemRepairDuration[subsystemIndex];
+							craft->systemRepairSeconds[subsystemIndex] =
+								g_subsystemRepairDuration[subsystemIndex];
 						}
 					}
 				}
@@ -2820,7 +2823,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 				craft->objectKind = CRAFT_OBJECT_KIND_BREAKING_UP;
 			} else if ((g_modelTypeTable[damageObjectType].maxBoundsExtent <= 1095 ||
 						g_modelTypeTable[damageObjectType].familyId != CRAFT_FAMILY_SPACE_CRAFT) &&
-					   damageObjectType != SPECIAL_COLLISION_OBJECT_TYPE &&
+					   damageObjectType != CONTAINER_CLASS_H_OBJECT_TYPE &&
 					   g_objectTable[victimObjIdx].mobj->speed != 0) {
 				if ((uint16_t)GameRand() < 0x4000u && g_objectTable[victimObjIdx].playerOwnerIdx != -1) {
 					g_objectTable[victimObjIdx].mobj->lifetimeTimer = 1;
@@ -2834,7 +2837,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 					int16_t side;
 					int16_t detachedRollRate;
 
-					if (victimObjectType < FIRST_OPT_OBJECT_TYPE)
+					if (victimObjectType < OBJECT_TYPE_MESH_CACHE_COUNT)
 						meshCount = (uint16_t)g_objectTypeMeshCache[victimObjectType].meshCount;
 					else
 						meshCount = (uint16_t)ModelMesh_GetObjectTypeMeshCount(victimObjectType);
@@ -2847,7 +2850,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 							int componentIndex = meshIndex;
 							MeshComponentType meshType;
 
-							if (victimObjectType < FIRST_OPT_OBJECT_TYPE)
+							if (victimObjectType < OBJECT_TYPE_MESH_CACHE_COUNT)
 								meshType =
 									ModelMesh_GetCachedObjectTypeMeshType(victimObjectType, componentIndex);
 							else
@@ -2945,12 +2948,12 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 }
 
 // FUNCTION: XVT 0x41F300
-int collide_ConvertObjectToExplosion(unsigned int objectIndex, uint8_t objectType) {
-	g_objectTable[objectIndex].objectType = objectType;
+int collide_ConvertObjectToExplosion(unsigned int objectIndex, uint8_t explosionObjectType) {
+	g_objectTable[objectIndex].objectType = explosionObjectType;
 	g_objectTable[objectIndex].genusId = 13;
 	g_objectTable[objectIndex].mobj->family = 5;
 	g_objectTable[objectIndex].typeSpecificByte[0] = 2;
-	g_objectTable[objectIndex].mobj->lightIntensityScale = 0;
+	g_objectTable[objectIndex].mobj->effectSize = 0;
 	g_objectTable[objectIndex].mobj->speed = 0;
 	g_objectTable[objectIndex].mobj->secondsAlive = 0;
 	g_objectTable[objectIndex].mobj->lifetimeTimer = 0;
@@ -3277,8 +3280,8 @@ unsigned int collide_ComputeCraftDamageAmount(uint16_t victimObjIdx, uint16_t so
 					launcherDamage = 4800000;
 				} else {
 					launcherDamage =
-						(loadedWarheadCount * g_projectileDamageByObjectType
-												  .damage[projectileType - PROJECTILE_OBJECT_TYPE_FIRST]) >>
+						(loadedWarheadCount *
+						 g_projectileTypeData.damage[projectileType - PROJECTILE_OBJECT_TYPE_FIRST]) >>
 						3;
 				}
 				damageAmount += launcherDamage;
@@ -3300,7 +3303,7 @@ int collide_IsLegacyProjectedEdgeCrossNonpositive(int pointDeltaU, int edgeDelta
 
 // FUNCTION: XVT 0x4A5490
 int collide_CheckSweptModelCollision(uint16_t sourceObjIdx, uint16_t targetObjIdx) {
-	enum { FIRST_OPT_OBJECT_TYPE = 73, SPECIAL_OBJECT_TYPE = 54 };
+	enum { OBJECT_TYPE_MESH_CACHE_COUNT = 73, SUPER_STAR_DESTROYER_OBJECT_TYPE = 54 };
 
 	ObjectRecord* target = &g_objectTable[targetObjIdx];
 	int worldX;
@@ -3409,7 +3412,7 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx, uint16_t targetObjId
 			int targetType = g_objectTable[targetObjIdx].objectType;
 			int componentIndex = g_collideSweepCurrentMeshOrdinal - 1;
 			int componentType;
-			if (targetType < FIRST_OPT_OBJECT_TYPE) {
+			if (targetType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 				if (componentIndex < 0)
 					componentType = MESH_COMPONENT_00_HULL;
 				else {
@@ -3423,8 +3426,8 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx, uint16_t targetObjId
 			}
 			if (componentType == MESH_COMPONENT_04_LASR_TUR || componentType == MESH_COMPONENT_05_LASR_GUN ||
 				componentType == MESH_COMPONENT_21_LASR_TUR ||
-				(g_objectTable[targetObjIdx].objectType == SPECIAL_OBJECT_TYPE &&
-				 g_collideSweepCurrentMeshOrdinal - g_warheadLaunchHullMeshOrdinal == 1))
+				(g_objectTable[targetObjIdx].objectType == SUPER_STAR_DESTROYER_OBJECT_TYPE &&
+				 g_collideSweepCurrentMeshOrdinal - g_turretFireHullMeshOrdinal == 1))
 				continue;
 		}
 		if (target->mobj != NULL && target->mobj->pCraft != NULL) {
@@ -3440,7 +3443,7 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx, uint16_t targetObjId
 		}
 		descriptorIndex = g_collideSweepCurrentMeshOrdinal - 1;
 		descriptorType = g_objectTable[targetObjIdx].objectType;
-		if (descriptorType < FIRST_OPT_OBJECT_TYPE) {
+		if (descriptorType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (descriptorIndex < 0)
 				descriptor = NULL;
 			else {
@@ -3807,9 +3810,9 @@ int collide_PointInFacePolygon(const float* faceNormal, const float* vertexCoord
 // FUNCTION: XVT 0x4A8740
 void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx) {
 	enum {
-		FIRST_OPT_OBJECT_TYPE = 73,
-		SPECIAL_ENGINE_WASH_OBJECT_TYPE = 54,
-		ASYMMETRIC_ENGINE_WASH_OBJECT_TYPE = 49,
+		OBJECT_TYPE_MESH_CACHE_COUNT = 73,
+		SUPER_STAR_DESTROYER_OBJECT_TYPE = 54,
+		CALAMARI_CRUISER_OBJECT_TYPE = 49,
 		ENGINE_WASH_RANGE_SCALE = 3,
 		ENGINE_WASH_LENGTH_SCALE = 8,
 		ENGINE_WASH_MAX_DAMAGE = 64,
@@ -3853,7 +3856,7 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx) {
 						   deltaY, deltaZ);
 
 	objectType = source->objectType;
-	if (objectType < FIRST_OPT_OBJECT_TYPE)
+	if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT)
 		meshCount = g_objectTypeMeshCache[objectType].meshCount;
 	else
 		meshCount = ModelMesh_GetObjectTypeMeshCount((int)objectType);
@@ -3869,7 +3872,7 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx) {
 		ObjectRecord* victim;
 		int playerOwnerIdx;
 
-		if (descriptorObjectType < FIRST_OPT_OBJECT_TYPE) {
+		if (descriptorObjectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (meshIndex < 0) {
 				descriptor = NULL;
 			} else {
@@ -3887,14 +3890,14 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx) {
 
 		engineMeshExtent = (int)(descriptor->boxMax.y - descriptor->boxMin.y);
 		sourceObjectType = source->objectType;
-		if (sourceObjectType == SPECIAL_ENGINE_WASH_OBJECT_TYPE)
+		if (sourceObjectType == SUPER_STAR_DESTROYER_OBJECT_TYPE)
 			engineMeshExtent >>= 6;
 		sideExtent = (int)(descriptor->boxMax.x - descriptor->boxMin.x);
 		upExtent = (int)(descriptor->boxMax.z - descriptor->boxMin.z);
-		if (sourceObjectType == SPECIAL_ENGINE_WASH_OBJECT_TYPE && localUp > descriptor->boxMax.z)
+		if (sourceObjectType == SUPER_STAR_DESTROYER_OBJECT_TYPE && localUp > descriptor->boxMax.z)
 			continue;
-		if (sourceObjectType == ASYMMETRIC_ENGINE_WASH_OBJECT_TYPE &&
-			descriptor->center.z < g_collideZeroFloat && localUp > descriptor->boxMax.z)
+		if (sourceObjectType == CALAMARI_CRUISER_OBJECT_TYPE && descriptor->center.z < g_collideZeroFloat &&
+			localUp > descriptor->boxMax.z)
 			continue;
 
 		if (engineMeshExtent < sideExtent)
@@ -3904,7 +3907,7 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx) {
 		washLength = ENGINE_WASH_LENGTH_SCALE * engineMeshExtent;
 		if (washLength > 2 * sourceBoundsExtent)
 			washLength = 2 * sourceBoundsExtent;
-		if (sourceObjectType == SPECIAL_ENGINE_WASH_OBJECT_TYPE)
+		if (sourceObjectType == SUPER_STAR_DESTROYER_OBJECT_TYPE)
 			depthIntoWash = (washLength >> 8) - (int)descriptor->boxMax.y + localForward;
 		else
 			depthIntoWash = localForward - (int)descriptor->boxMin.y;
@@ -3930,7 +3933,7 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx) {
 					   (sideExtent + upExtent)) /
 					  ENGINE_WASH_PERCENT_SCALE) /
 					 ENGINE_WASH_PERCENT_SCALE;
-		if (sourceObjectType == SPECIAL_ENGINE_WASH_OBJECT_TYPE) {
+		if (sourceObjectType == SUPER_STAR_DESTROYER_OBJECT_TYPE) {
 			washDamage >>= 4;
 			washDamage += washDamage >> 1;
 		}
@@ -4072,7 +4075,7 @@ void collide_ApplyHostileProximityWeaponDisruption(int ownerObjIdx, int hostileO
 		CraftData* ownerCraft = ownerMobj->pCraft;
 		if (ownerCraft != NULL) {
 			ownerCraft->beamEffectAccum[2] = 163840;
-			ownerCraft->chaffActiveTimer = 0;
+			ownerCraft->chaffActiveSeconds = 0;
 		}
 	}
 }

@@ -207,11 +207,11 @@ void FlightHyperspace_RenderTransitionEffect(void) {
 		int streakLength;
 
 		g_objectTable->world_x =
-			g_players[g_localPlayer].viewState.savedTargetX + g_hyperspaceStreakOffsetX[streakIndex];
+			g_players[g_localPlayer].viewState.cameraWorldX + g_hyperspaceStreakOffsetX[streakIndex];
 		g_objectTable->world_y =
-			g_players[g_localPlayer].viewState.savedTargetY + g_hyperspaceStreakOffsetY[streakIndex];
+			g_players[g_localPlayer].viewState.cameraWorldY + g_hyperspaceStreakOffsetY[streakIndex];
 		g_objectTable->world_z =
-			g_players[g_localPlayer].viewState.savedTargetZ + g_hyperspaceStreakOffsetZ[streakIndex];
+			g_players[g_localPlayer].viewState.cameraWorldZ + g_hyperspaceStreakOffsetZ[streakIndex];
 		g_objectTable->objectType = HYPERSPACE_TRANSITION_OBJECT_TYPE;
 		g_objectTable->genusId = CRAFT_GENUS_OTHER_PROJECTILE;
 		g_objectTable->roll = (int16_t)g_hyperspaceStreakRollAngle[streakIndex];

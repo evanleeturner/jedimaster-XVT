@@ -20,7 +20,7 @@ extern uint8_t g_aiUnderAttackSideRearManeuverChoices[8];
 extern int g_aiWarheadThreatRangeBySkill[4];
 extern PaiOrderFunc g_orderTable[48];
 
-int16_t paiorder_checkconditionalorder(void);
+int16_t paiorder_playerinputorder(void);
 int16_t paiorder_nullhandler(void);
 int16_t paiorder_updatecourseorder(void);
 int16_t paiorder_underattackorder(void);
@@ -41,7 +41,7 @@ int16_t paiorder_abortboardorder(void);
 int16_t paiorder_returnboardorder(void);
 int16_t paiorder_awaitboardorder(void);
 int16_t paiorder_makedisabledorder(void);
-int16_t paiorder_returnboardorder_2(void);
+int16_t paiorder_neartargetorder(void);
 int16_t paiorder_rocketsonboardorder(void);
 int16_t paiorder_avoidhitorder(void);
 int16_t paiorder_waitforallreturnorder(void);

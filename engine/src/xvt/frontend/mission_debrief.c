@@ -792,7 +792,7 @@ int MissionDebrief_Update(int frameCounter) {
 				FrontendScreen_SetCallbacks(MissionSetup_Update, MissionSetup_Exit);
 				return 0;
 			}
-			FrontendNet_UpdateAndDrawPanel(frameCounter);
+			FrontendNet_UpdateAndDrawChatPanel(frameCounter);
 		}
 
 		if (g_debriefTab == 0) {

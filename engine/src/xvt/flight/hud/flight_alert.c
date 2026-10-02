@@ -62,12 +62,12 @@ void FlightAlert_SaveBoxBackground(void) {
 	XvtRenderCapture_BeginOverlay();
 #endif
 	FlightDisplay_Flip();
-	g_flightLockBackBufferForHudDraw = 0;
+	g_flightDrawToHudLayer = 0;
 	FlightSurface_Lock();
 	g_flightSaveScreenRectFn(g_flightAlertBoxSavedPixels, (uint16_t)boxX, (uint16_t)boxY, (uint16_t)boxWidth,
 							 (uint16_t)boxHeight);
 	FlightSurface_Unlock();
-	g_flightLockBackBufferForHudDraw = 1;
+	g_flightDrawToHudLayer = 1;
 	FlightDisplay_Flip();
 
 #ifdef XVT_MODERN
@@ -81,16 +81,16 @@ void FlightAlert_RestoreBoxBackground(void) {
 	int boxY;
 	int boxWidth;
 	int boxHeight;
-	int renderMode;
+	int viewportInsetX;
 	int surfaceWidth;
 	FlightScreenRectFn restoreScreenRect;
 
 	FlightText_SetFontTier(0);
 	surfaceWidth = g_surfaceWidth;
-	renderMode = g_flightViewportInsetX;
-	boxWidth = (unsigned int)(surfaceWidth - renderMode) >> 1;
+	viewportInsetX = g_flightViewportInsetX;
+	boxWidth = (unsigned int)(surfaceWidth - viewportInsetX) >> 1;
 	boxHeight = 5 * g_flightFontLineHeight;
-	boxX = ((unsigned int)(renderMode + surfaceWidth) >> 1) - boxWidth / 2 - 1;
+	boxX = ((unsigned int)(viewportInsetX + surfaceWidth) >> 1) - boxWidth / 2 - 1;
 	boxY = ((unsigned int)(g_flightAlertBoxVerticalOffset + g_surfaceHeight) >> 1) - boxHeight / 2 - 1;
 	boxWidth += 2;
 	boxHeight += 2;
@@ -100,7 +100,7 @@ void FlightAlert_RestoreBoxBackground(void) {
 		XvtRenderCapture_BeginOverlay();
 #endif
 		FlightDisplay_Flip();
-		g_flightLockBackBufferForHudDraw = 0;
+		g_flightDrawToHudLayer = 0;
 		FlightSurface_Lock();
 		restoreScreenRect = g_flightRestoreScreenRectFn;
 		restoreScreenRect(g_flightAlertBoxSavedPixels, (uint16_t)boxX, (uint16_t)boxY, (uint16_t)boxWidth,
@@ -109,7 +109,7 @@ void FlightAlert_RestoreBoxBackground(void) {
 		XvtCockpitMessages_EndAlert();
 #endif
 		FlightSurface_Unlock();
-		g_flightLockBackBufferForHudDraw = 1;
+		g_flightDrawToHudLayer = 1;
 		FlightDisplay_Flip();
 #ifdef XVT_MODERN
 		XvtRenderCapture_EndOverlay();
@@ -118,7 +118,7 @@ void FlightAlert_RestoreBoxBackground(void) {
 }
 
 // FUNCTION: XVT 0x448F90
-void FlightAlert_DrawBox(int verticalMode, char* line1, uint8_t bgColor) {
+void FlightAlert_DrawBox(int textRow, char* text, uint8_t bgColor) {
 	int boxX;
 	int boxY;
 	int boxWidth;
@@ -144,31 +144,30 @@ void FlightAlert_DrawBox(int verticalMode, char* line1, uint8_t bgColor) {
 	XvtRenderCapture_BeginOverlay();
 #endif
 	FlightDisplay_Flip();
-	g_flightLockBackBufferForHudDraw = 0;
+	g_flightDrawToHudLayer = 0;
 	FlightSurface_Lock();
 
 #ifdef XVT_MODERN
-	XvtCockpitMessages_BeginAlertLine(verticalMode, boxX, boxY, boxWidth, boxHeight);
+	XvtCockpitMessages_BeginAlertLine(textRow, boxX, boxY, boxWidth, boxHeight);
 #endif
-	if (verticalMode == 1) {
+	if (textRow == 1) {
 		FlightText_SetClipRect(boxX - 1, boxY - 1, boxX + boxWidth + 1, boxY + boxHeight + 1);
 		g_flightFillClipRectFn();
-		verticalMode = 0;
+		textRow = 0;
 	}
 	FlightText_SetBackgroundColor(backgroundColor);
-	FlightText_SetClipRect(boxX, boxY + verticalMode * g_flightFontLineHeight, boxX + boxWidth,
-						   boxY + boxHeight);
+	FlightText_SetClipRect(boxX, boxY + textRow * g_flightFontLineHeight, boxX + boxWidth, boxY + boxHeight);
 	g_flightFillClipRectFn();
-	if (verticalMode == 0) {
-		verticalMode = 1;
+	if (textRow == 0) {
+		textRow = 1;
 	}
-	FlightText_SetCursor(boxX + g_flightFontLineHeight, boxY + verticalMode * g_flightFontLineHeight);
-	FlightText_DrawStringCentered(line1);
+	FlightText_SetCursor(boxX + g_flightFontLineHeight, boxY + textRow * g_flightFontLineHeight);
+	FlightText_DrawStringCentered(text);
 #ifdef XVT_MODERN
 	XvtCockpitMessages_EndAlertLine();
 #endif
 	FlightSurface_Unlock();
-	g_flightLockBackBufferForHudDraw = 1;
+	g_flightDrawToHudLayer = 1;
 	FlightDisplay_Flip();
 
 #ifdef XVT_MODERN

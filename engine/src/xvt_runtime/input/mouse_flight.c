@@ -87,7 +87,7 @@ static void XvtMouseFlight_QueueKey(uint16_t key) {
 
 uint16_t XvtMouseFlight_ReadKey(void) {
 	if (!XvtInput_MouseFlightAllowed() || (unsigned)g_localPlayer >= 8 ||
-		g_players[g_localPlayer].msgTypeId != FLIGHT_CHAT_RECIPIENT_INACTIVE) {
+		g_players[g_localPlayer].chatRecipientMode != FLIGHT_CHAT_RECIPIENT_INACTIVE) {
 		g_mouseFlight.read_key = g_mouseFlight.write_key = 0;
 		return 0;
 	}
@@ -142,7 +142,8 @@ void XvtMouseFlight_Pump(void) {
 		g_mouseFlight.rmb_down = rmb;
 		g_mouseFlight.roll_lock = rmb && now - g_mouseFlight.rmb_press_time_us >= MOUSE_FLIGHT_TAP_US;
 	}
-	if ((unsigned)g_localPlayer < 8 && g_players[g_localPlayer].msgTypeId == FLIGHT_CHAT_RECIPIENT_INACTIVE) {
+	if ((unsigned)g_localPlayer < 8 &&
+		g_players[g_localPlayer].chatRecipientMode == FLIGHT_CHAT_RECIPIENT_INACTIVE) {
 		if (g_mouseFlight.target_tap)
 			XvtMouseFlight_QueueKey(FLIGHT_KEY_ALT_1);
 		uint32_t pressed = XvtInput_FilterMouseButtons(in->mouse.pressed_buttons);

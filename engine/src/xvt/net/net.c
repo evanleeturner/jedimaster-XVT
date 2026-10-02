@@ -66,7 +66,7 @@ struct NetDirectPlayEncodedPacket {
 
 typedef struct NetDirectPlaySequencedPacket {
 	int16_t packetTypeHeader;
-	uint8_t sequenceMode;
+	uint8_t packetClass;
 	int16_t payloadSize;
 	uint8_t payload[1019];
 } NetDirectPlaySequencedPacket;
@@ -192,7 +192,7 @@ int Net_StartNetworkSession(int appGuidData1, int appGuidData2, int appGuidData3
 	DPID directPlayPlayer;
 	int* receivedPacket;
 	const uint8_t* rosterEntries;
-	uint32_t sequenceIndex;
+	uint32_t peerSlotIndex;
 	int rosterEntryOffset;
 
 	(void)unusedA11;
@@ -202,11 +202,11 @@ int Net_StartNetworkSession(int appGuidData1, int appGuidData2, int appGuidData3
 	Net_DisableAutoDialRegistrySetting();
 	g_frontState.netRuntimeRecvHistoryCount = 0;
 	g_frontState.netRuntimeBroadcastSeqCounter = 0;
-	g_frontState.netRuntimeBroadcastPendingPayload.pendingFlush = 1;
+	g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty = 1;
 	g_frontState.netRuntimeBroadcastPendingPayload.payload[0] = NET_PACKET_NOP;
 	g_frontState.netRuntimeBroadcastPendingPayload.payloadLength = 1;
 	g_frontState.netRuntimeGroupSeqCounter = 0;
-	g_frontState.netRuntimeGroupPendingPayload.pendingFlush = 1;
+	g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty = 1;
 	g_frontState.netRuntimeGroupPendingPayload.payload[0] = NET_PACKET_NOP;
 	g_frontState.netRuntimeGroupPendingPayload.payloadLength = 1;
 	g_frontState.netReliablePeerSlotCount = 0;
@@ -458,10 +458,10 @@ int Net_StartNetworkSession(int appGuidData1, int appGuidData2, int appGuidData3
 
 			g_frontState.netHostPlayerId = senderId;
 			memset(&savedHostSlot, 0, sizeof(savedHostSlot));
-			for (sequenceIndex = 0; g_frontState.netReliablePeerSlotCount > sequenceIndex; ++sequenceIndex) {
-				if (g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].directPlayId ==
+			for (peerSlotIndex = 0; g_frontState.netReliablePeerSlotCount > peerSlotIndex; ++peerSlotIndex) {
+				if (g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].directPlayId ==
 					g_frontState.netHostPlayerId) {
-					memcpy(&savedHostSlot, &g_frontState.netRuntimeReliablePeerSlots[sequenceIndex],
+					memcpy(&savedHostSlot, &g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex],
 						   sizeof(savedHostSlot));
 					break;
 				}
@@ -470,48 +470,48 @@ int Net_StartNetworkSession(int appGuidData1, int appGuidData2, int appGuidData3
 			g_frontState.netReliablePeerSlotCount = (uint32_t)receivedPacket[2];
 			result = receivedPacket[3];
 			rosterEntries = (const uint8_t*)receivedPacket + NET_JOIN_ROSTER_ENTRY_OFFSET;
-			for (sequenceIndex = 0; g_frontState.netReliablePeerSlotCount > sequenceIndex; ++sequenceIndex) {
-				rosterEntryOffset = sequenceIndex * NET_JOIN_ROSTER_ENTRY_SIZE;
-				memcpy(&g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].directPlayId,
+			for (peerSlotIndex = 0; g_frontState.netReliablePeerSlotCount > peerSlotIndex; ++peerSlotIndex) {
+				rosterEntryOffset = peerSlotIndex * NET_JOIN_ROSTER_ENTRY_SIZE;
+				memcpy(&g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].directPlayId,
 					   &rosterEntries[rosterEntryOffset],
-					   sizeof(g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].directPlayId));
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].prevRecvSeqChannelA =
+					   sizeof(g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].directPlayId));
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].prevRecvSeqChannelA =
 					rosterEntries[rosterEntryOffset + 4];
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].prevRecvSeqChannelB =
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].prevRecvSeqChannelB =
 					rosterEntries[rosterEntryOffset + 5];
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqChannelA =
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].recvSeqChannelA =
 					rosterEntries[rosterEntryOffset + 6];
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqChannelB =
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].recvSeqChannelB =
 					rosterEntries[rosterEntryOffset + 7];
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].prevRecvSeqDefault =
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].prevRecvSeqDefault =
 					NET_RELIABLE_SEQUENCE_INITIAL;
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqDefault =
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].recvSeqDefault =
 					NET_RELIABLE_SEQUENCE_INITIAL;
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].sendSeq = 0;
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastPiggybackType = NET_PACKET_NOP;
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].piggybackLength = 1;
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastActivityMs = GetTickCount();
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastHeardMs = GetTickCount();
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].sendSeq = 0;
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].lastPiggybackType = NET_PACKET_NOP;
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].piggybackLength = 1;
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].lastActivityMs = GetTickCount();
+				g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].lastHeardMs = GetTickCount();
 			}
 
 			if (savedHostSlot.directPlayId != 0) {
-				for (sequenceIndex = 0; g_frontState.netReliablePeerSlotCount > sequenceIndex;
-					 ++sequenceIndex) {
-					if (g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].directPlayId ==
+				for (peerSlotIndex = 0; g_frontState.netReliablePeerSlotCount > peerSlotIndex;
+					 ++peerSlotIndex) {
+					if (g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].directPlayId ==
 						g_frontState.netHostPlayerId) {
-						g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].prevRecvSeqDefault =
+						g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].prevRecvSeqDefault =
 							savedHostSlot.prevRecvSeqDefault;
-						g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqDefault =
+						g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].recvSeqDefault =
 							savedHostSlot.recvSeqDefault;
-						g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].sendSeq =
+						g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].sendSeq =
 							savedHostSlot.sendSeq;
-						memcpy(&g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastPiggybackType,
+						memcpy(&g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].lastPiggybackType,
 							   &savedHostSlot.lastPiggybackType, savedHostSlot.piggybackLength);
-						g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].piggybackLength =
+						g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].piggybackLength =
 							savedHostSlot.piggybackLength;
-						g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastActivityMs =
+						g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].lastActivityMs =
 							savedHostSlot.lastActivityMs;
-						g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastHeardMs =
+						g_frontState.netRuntimeReliablePeerSlots[peerSlotIndex].lastHeardMs =
 							savedHostSlot.lastHeardMs;
 					}
 				}
@@ -624,9 +624,9 @@ int Net_ShutdownDirectPlaySessionEx(int suppressRestart, int allowJoinAbortExit)
 	g_frontState.netRuntimeRecvQueueReadIndex = 0;
 	g_frontState.netRuntimeRecvQueueCount = 0;
 	g_frontState.netRuntimeBroadcastSeqCounter = 0;
-	g_frontState.netRuntimeBroadcastPendingPayload.pendingFlush = 1;
+	g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty = 1;
 	g_frontState.netRuntimeGroupSeqCounter = 0;
-	g_frontState.netRuntimeGroupPendingPayload.pendingFlush = 1;
+	g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty = 1;
 	g_frontState.netReliablePeerSlotCount = 0;
 	g_frontState.netReliableRetryLongTimeoutMode = 0;
 	for (peerIndex = 0; peerIndex < NET_RELIABLE_PEER_CAPACITY; ++peerIndex) {
@@ -854,7 +854,7 @@ void Net_PumpIncomingPackets(void) {
 		PEER_CAPACITY = 40,
 		MAX_PAYLOAD_SIZE = 508,
 		SEQUENCE_LIMIT = 127,
-		SEQUENCE_MISSING = 128,
+		SEQUENCE_NOTHING_TO_RESEND = 128,
 		LATENCY_SEND_BIAS_MS = 40,
 		LATENCY_MAX_MS = 750,
 		LATENCY_OUTLIER_PERCENT = 50,
@@ -877,7 +877,7 @@ void Net_PumpIncomingPackets(void) {
 	FrontendDisplay_UnlockBackBuffer();
 	if (g_frontState.netDirectPlay != NULL) {
 		Net_SendSequenceKeepalives();
-		Net_UpdateKeepaliveSequences();
+		Net_DropSilentPeers();
 		for (;;) {
 			int* payload;
 			uint32_t payloadSize;
@@ -907,7 +907,7 @@ void Net_PumpIncomingPackets(void) {
 					fromId;
 				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].payloadSize =
 					wireSize;
-				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].queuedFlag = 0;
+				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].isResentCopy = 0;
 				memcpy(g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].payload,
 					   &wirePacket.header, wireSize);
 				++g_frontState.netRuntimeRecvQueueWriteIndex;
@@ -1013,13 +1013,13 @@ void Net_PumpIncomingPackets(void) {
 
 			if (packetType == NET_PACKET_WORLD_NACK) {
 				NetQueuedPacket* queued;
-				int controlValue0;
+				int missingWorldTick;
 				int controlValue1;
 				int searchIndex;
 				unsigned int searchCount;
 
 				if (g_frontState.netExportRecvQueuePtr != NULL) {
-					controlValue0 = payload[0];
+					missingWorldTick = payload[0];
 					controlValue1 = payload[1];
 					peerIndex = Net_FindOrCreatePeerSlot((int)fromId);
 					if ((unsigned int)g_frontState.netRuntimeReliablePeerSlots[peerIndex].packetCount >
@@ -1032,7 +1032,7 @@ void Net_PumpIncomingPackets(void) {
 						queued = &g_frontState.netExportRecvQueuePtr[searchIndex];
 						if (queued->payloadSize != 0) {
 							if ((*(const uint32_t*)&queued->payload[sizeof(int)] & 0x7FFFFFFF) ==
-								(uint32_t)controlValue0) {
+								(uint32_t)missingWorldTick) {
 								break;
 							}
 						}
@@ -1056,12 +1056,12 @@ void Net_PumpIncomingPackets(void) {
 			}
 
 			if (packetType == NET_PACKET_NACK) {
-				int controlValue0;
+				int expectedBroadcastSequence;
 				int controlValue1;
 				int searchIndex;
 				unsigned int searchCount;
 
-				controlValue0 = payload[0];
+				expectedBroadcastSequence = payload[0];
 				controlValue1 = payload[1];
 				peerIndex = Net_FindOrCreatePeerSlot((int)fromId);
 				g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastHeardMs = GetTickCount();
@@ -1075,12 +1075,12 @@ void Net_PumpIncomingPackets(void) {
 					if (g_frontState.netRuntimeRecvHistory[searchIndex].payloadSize != 0) {
 						if (controlValue1 == 0 || controlValue1 == 2) {
 							if (g_frontState.netRuntimeRecvHistory[searchIndex].sequenceByte ==
-									controlValue0 &&
+									expectedBroadcastSequence &&
 								g_frontState.netRuntimeRecvHistory[searchIndex].packetClass == controlValue1)
 								break;
 						} else if (g_frontState.netRuntimeRecvHistory[searchIndex].directPlayId == fromId &&
 								   g_frontState.netRuntimeRecvHistory[searchIndex].sequenceByte ==
-									   controlValue0 &&
+									   expectedBroadcastSequence &&
 								   g_frontState.netRuntimeRecvHistory[searchIndex].packetClass ==
 									   controlValue1) {
 							break;
@@ -1093,28 +1093,28 @@ void Net_PumpIncomingPackets(void) {
 				}
 				if (searchCount < HISTORY_CAPACITY) {
 					Net_SendSequencedDirectPlayPacket(
-						(int)fromId, controlValue1, controlValue0,
+						(int)fromId, controlValue1, expectedBroadcastSequence,
 						g_frontState.netRuntimeRecvHistory[searchIndex].payload,
 						g_frontState.netRuntimeRecvHistory[searchIndex].payloadSize);
 				}
 				if (searchCount >= HISTORY_CAPACITY) {
 					packetWords[0] = NET_PACKET_NOP;
-					Net_SendSequencedDirectPlayPacket((int)fromId, controlValue1, controlValue0, packetWords,
-													  sizeof(packetWords[0]));
+					Net_SendSequencedDirectPlayPacket((int)fromId, controlValue1, expectedBroadcastSequence,
+													  packetWords, sizeof(packetWords[0]));
 				}
 				continue;
 			}
 
 			if (packetType == NET_PACKET_KEEPALIVE) {
 				int controlValue0;
-				int controlValue1;
-				int controlValue2;
+				int expectedGroupSequence;
+				int expectedDirectSequence;
 				int searchIndex;
 				unsigned int searchCount;
 
 				controlValue0 = payload[0];
-				controlValue1 = payload[1];
-				controlValue2 = payload[2];
+				expectedGroupSequence = payload[1];
+				expectedDirectSequence = payload[2];
 				if (g_frontState.netHostPlayerId == fromId) {
 					peerIndex = Net_FindOrCreatePeerSlot((int)fromId);
 					g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastHeardMs = GetTickCount();
@@ -1127,19 +1127,20 @@ void Net_PumpIncomingPackets(void) {
 											 5 * sizeof(packetWords[0]), 0);
 				}
 				if (g_frontState.netRuntimeBroadcastSeqCounter == controlValue0)
-					controlValue0 = SEQUENCE_MISSING;
-				if (g_frontState.netRuntimeGroupSeqCounter == controlValue1)
-					controlValue1 = SEQUENCE_MISSING;
+					controlValue0 = SEQUENCE_NOTHING_TO_RESEND;
+				if (g_frontState.netRuntimeGroupSeqCounter == expectedGroupSequence)
+					expectedGroupSequence = SEQUENCE_NOTHING_TO_RESEND;
 				peerIndex = Net_FindOrCreatePeerSlot((int)fromId);
 				if (g_frontState.netReliablePeerSlotCount == peerIndex ||
-					g_frontState.netRuntimeReliablePeerSlots[peerIndex].sendSeq == controlValue2)
-					controlValue2 = SEQUENCE_MISSING;
+					g_frontState.netRuntimeReliablePeerSlots[peerIndex].sendSeq == expectedDirectSequence)
+					expectedDirectSequence = SEQUENCE_NOTHING_TO_RESEND;
 
 				searchCount = HISTORY_CAPACITY;
 				searchIndex = g_frontState.netRuntimeRecvHistoryCount;
 				do {
-					if (controlValue0 == SEQUENCE_MISSING && controlValue1 == SEQUENCE_MISSING &&
-						controlValue2 == SEQUENCE_MISSING)
+					if (controlValue0 == SEQUENCE_NOTHING_TO_RESEND &&
+						expectedGroupSequence == SEQUENCE_NOTHING_TO_RESEND &&
+						expectedDirectSequence == SEQUENCE_NOTHING_TO_RESEND)
 						break;
 					if (g_frontState.netRuntimeRecvHistory[searchIndex].payloadSize != 0) {
 						uint8_t packetClass = g_frontState.netRuntimeRecvHistory[searchIndex].packetClass;
@@ -1150,26 +1151,26 @@ void Net_PumpIncomingPackets(void) {
 									(int)fromId, 0, controlValue0,
 									g_frontState.netRuntimeRecvHistory[searchIndex].payload,
 									g_frontState.netRuntimeRecvHistory[searchIndex].payloadSize);
-								controlValue0 = SEQUENCE_MISSING;
+								controlValue0 = SEQUENCE_NOTHING_TO_RESEND;
 							}
 						} else if (packetClass == 2) {
 							if (g_frontState.netRuntimeRecvHistory[searchIndex].sequenceByte ==
-								controlValue1) {
+								expectedGroupSequence) {
 								Net_SendSequencedDirectPlayPacket(
-									(int)fromId, 2, controlValue1,
+									(int)fromId, 2, expectedGroupSequence,
 									g_frontState.netRuntimeRecvHistory[searchIndex].payload,
 									g_frontState.netRuntimeRecvHistory[searchIndex].payloadSize);
-								controlValue1 = SEQUENCE_MISSING;
+								expectedGroupSequence = SEQUENCE_NOTHING_TO_RESEND;
 							}
 						} else {
 							if (g_frontState.netRuntimeRecvHistory[searchIndex].directPlayId == fromId &&
 								g_frontState.netRuntimeRecvHistory[searchIndex].sequenceByte ==
-									controlValue2) {
+									expectedDirectSequence) {
 								Net_SendSequencedDirectPlayPacket(
-									(int)fromId, 1, controlValue2,
+									(int)fromId, 1, expectedDirectSequence,
 									g_frontState.netRuntimeRecvHistory[searchIndex].payload,
 									g_frontState.netRuntimeRecvHistory[searchIndex].payloadSize);
-								controlValue2 = SEQUENCE_MISSING;
+								expectedDirectSequence = SEQUENCE_NOTHING_TO_RESEND;
 							}
 						}
 					}
@@ -1223,7 +1224,7 @@ void Net_PumpIncomingPackets(void) {
 				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].lastNackMs = 0;
 				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].nackRetryCount =
 					0;
-				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].queuedFlag = 1;
+				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].isResentCopy = 1;
 				peerIndex = Net_FindOrCreatePeerSlot((int)fromId);
 				if (broadcastChannel != 0) {
 					g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].packetClass =
@@ -1278,7 +1279,7 @@ void Net_PumpIncomingPackets(void) {
 
 			if (hasLength) {
 				uint8_t* piggybackPayload;
-				unsigned int searchCount;
+				unsigned int piggybackSize;
 				int previousSequence;
 				int previousPacketType;
 
@@ -1291,26 +1292,27 @@ void Net_PumpIncomingPackets(void) {
 					piggybackPayload = (uint8_t*)payload + payloadSize;
 					previousPacketType = *piggybackPayload++;
 					if (previousPacketType != NET_PACKET_NOP) {
-						searchCount = wireSize - (uint16_t)(piggybackPayload - (uint8_t*)&wirePacket.header);
-						if (searchCount > MAX_PAYLOAD_SIZE)
-							searchCount = MAX_PAYLOAD_SIZE;
+						piggybackSize =
+							wireSize - (uint16_t)(piggybackPayload - (uint8_t*)&wirePacket.header);
+						if (piggybackSize > MAX_PAYLOAD_SIZE)
+							piggybackSize = MAX_PAYLOAD_SIZE;
 						*(uint32_t*)g_frontState
 							 .netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex]
 							 .payload = previousPacketType;
 						memcpy(g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex]
 									   .payload +
 								   sizeof(int),
-							   piggybackPayload, searchCount);
+							   piggybackPayload, piggybackSize);
 						g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex]
 							.directPlayId = fromId;
 						g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex]
-							.payloadSize = searchCount + sizeof(int);
+							.payloadSize = piggybackSize + sizeof(int);
 						g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex]
 							.lastNackMs = 0;
 						g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex]
 							.nackRetryCount = 0;
 						g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex]
-							.queuedFlag = 0;
+							.isResentCopy = 0;
 						if (broadcastChannel != 0) {
 							g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex]
 								.packetClass = 0;
@@ -1363,8 +1365,8 @@ void Net_PumpIncomingPackets(void) {
 				payloadSize + sizeof(packetType);
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].lastNackMs = 0;
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].nackRetryCount = 0;
-			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].queuedFlag = 0;
-			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].queuedFlag =
+			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].isResentCopy = 0;
+			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].isResentCopy =
 				peerIndex != 0;
 			if (broadcastChannel != 0) {
 				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].packetClass = 0;
@@ -1442,10 +1444,10 @@ int Net_SendPacketInternal(int toPlayerId, const void* packet, unsigned int pack
 		encodedPayload += packetSize - 4;
 		encodedSize += packetSize - 4;
 		if (appendPending) {
-			if (g_frontState.netRuntimeBroadcastPendingPayload.pendingFlush != 0) {
+			if (g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty != 0) {
 				*encodedPayload = NET_PACKET_NOP;
 				++encodedSize;
-				g_frontState.netRuntimeBroadcastPendingPayload.pendingFlush = 0;
+				g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty = 0;
 			} else {
 				memcpy(encodedPayload, g_frontState.netRuntimeBroadcastPendingPayload.payload,
 					   g_frontState.netRuntimeBroadcastPendingPayload.payloadLength);
@@ -1475,10 +1477,10 @@ int Net_SendPacketInternal(int toPlayerId, const void* packet, unsigned int pack
 		encodedPayload += packetSize - 4;
 		encodedSize += packetSize - 4;
 		if (appendPending) {
-			if (g_frontState.netRuntimeGroupPendingPayload.pendingFlush != 0) {
+			if (g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty != 0) {
 				*encodedPayload = NET_PACKET_NOP;
 				++encodedSize;
-				g_frontState.netRuntimeGroupPendingPayload.pendingFlush = 0;
+				g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty = 0;
 			} else {
 				memcpy(encodedPayload, g_frontState.netRuntimeGroupPendingPayload.payload,
 					   g_frontState.netRuntimeGroupPendingPayload.payloadLength);
@@ -1490,15 +1492,15 @@ int Net_SendPacketInternal(int toPlayerId, const void* packet, unsigned int pack
 			   packetSize - 4);
 		g_frontState.netRuntimeGroupPendingPayload.payloadLength = packetSize - 3;
 	} else {
-		unsigned int sequenceIndex = Net_FindOrCreatePeerSlot(toPlayerId);
-		if (g_frontState.netReliablePeerSlotCount > sequenceIndex && sequenceIndex < 40) {
+		unsigned int peerIndex = Net_FindOrCreatePeerSlot(toPlayerId);
+		if (g_frontState.netReliablePeerSlotCount > peerIndex && peerIndex < 40) {
 			int sendSequence;
-			sprintf(debugText, "(SS %u) ", g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].sendSeq);
-			sendSequence = g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].sendSeq;
+			sprintf(debugText, "(SS %u) ", g_frontState.netRuntimeReliablePeerSlots[peerIndex].sendSeq);
+			sendSequence = g_frontState.netRuntimeReliablePeerSlots[peerIndex].sendSeq;
 			packetHeader |= (sendSequence++ & 0x7F) << 8;
-			g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].sendSeq = sendSequence;
+			g_frontState.netRuntimeReliablePeerSlots[peerIndex].sendSeq = sendSequence;
 			if (sendSequence > 127)
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].sendSeq = 0;
+				g_frontState.netRuntimeReliablePeerSlots[peerIndex].sendSeq = 0;
 		}
 		packetHeader |= 0x8000;
 		encodedPacket.packetTypeHeader = packetHeader;
@@ -1513,14 +1515,14 @@ int Net_SendPacketInternal(int toPlayerId, const void* packet, unsigned int pack
 		encodedPayload += packetSize - 4;
 		encodedSize += packetSize - 4;
 		if (appendPending) {
-			memcpy(encodedPayload, &g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastPiggybackType,
-				   g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].piggybackLength);
-			encodedSize += g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].piggybackLength;
+			memcpy(encodedPayload, &g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastPiggybackType,
+				   g_frontState.netRuntimeReliablePeerSlots[peerIndex].piggybackLength);
+			encodedSize += g_frontState.netRuntimeReliablePeerSlots[peerIndex].piggybackLength;
 		}
-		g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastPiggybackType = packetTypeByte;
-		memcpy(g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].piggybackPayload,
+		g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastPiggybackType = packetTypeByte;
+		memcpy(g_frontState.netRuntimeReliablePeerSlots[peerIndex].piggybackPayload,
 			   (const uint8_t*)packet + 4, packetSize - 4);
-		g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].piggybackLength = packetSize - 3;
+		g_frontState.netRuntimeReliablePeerSlots[peerIndex].piggybackLength = packetSize - 3;
 	}
 
 	if (g_frontState.netRuntimeLocalPlayer.playerId != (DPID)toPlayerId) {
@@ -1547,7 +1549,7 @@ int Net_SendPacketInternal(int toPlayerId, const void* packet, unsigned int pack
 	if ((g_frontState.netRuntimeLocalPlayer.playerId == (DPID)toPlayerId || toPlayerId == 0 ||
 		 g_frontState.netDirectPlay == NULL || g_frontState.netGroupDplayId == (DPID)toPlayerId) &&
 		g_frontState.netRuntimeRecvQueueCount < 1024) {
-		unsigned int sequenceIndex;
+		unsigned int peerIndex;
 		memcpy(g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].payload, packet,
 			   packetSize);
 		g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].directPlayId =
@@ -1555,24 +1557,24 @@ int Net_SendPacketInternal(int toPlayerId, const void* packet, unsigned int pack
 		g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].payloadSize = packetSize;
 		g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].lastNackMs = 0;
 		g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].nackRetryCount = 0;
-		g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].queuedFlag = 0;
-		sequenceIndex = Net_FindOrCreatePeerSlot(g_frontState.netRuntimeLocalPlayer.playerId);
+		g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].isResentCopy = 0;
+		peerIndex = Net_FindOrCreatePeerSlot(g_frontState.netRuntimeLocalPlayer.playerId);
 		if (toPlayerId == 0) {
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].packetClass = 0;
-			if (g_frontState.netReliablePeerSlotCount > sequenceIndex && sequenceIndex < 40) {
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqChannelA =
+			if (g_frontState.netReliablePeerSlotCount > peerIndex && peerIndex < 40) {
+				g_frontState.netRuntimeReliablePeerSlots[peerIndex].recvSeqChannelA =
 					(packetHeader & 0x7F00) >> 8;
 			}
 		} else if (g_frontState.netGroupDplayId == (DPID)toPlayerId) {
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].packetClass = 2;
-			if (g_frontState.netReliablePeerSlotCount > sequenceIndex && sequenceIndex < 40) {
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqChannelB =
+			if (g_frontState.netReliablePeerSlotCount > peerIndex && peerIndex < 40) {
+				g_frontState.netRuntimeReliablePeerSlots[peerIndex].recvSeqChannelB =
 					(packetHeader & 0x7F00) >> 8;
 			}
 		} else {
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].packetClass = 1;
-			if (g_frontState.netReliablePeerSlotCount > sequenceIndex && sequenceIndex < 40) {
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqDefault =
+			if (g_frontState.netReliablePeerSlotCount > peerIndex && peerIndex < 40) {
+				g_frontState.netRuntimeReliablePeerSlots[peerIndex].recvSeqDefault =
 					(packetHeader & 0x7F00) >> 8;
 			}
 		}
@@ -1690,7 +1692,7 @@ int Net_SendSequencedDirectPlayPacket(int destPlayerId, int sequenceMode, int se
 	encodedHeaderSize = 3;
 	encodedPacket.packetTypeHeader =
 		(int16_t)(((((sequenceId & 0x7F) << 8) | packetTypeByte) & 0x7F7F) | 0x80);
-	encodedPacket.sequenceMode = (uint8_t)sequenceMode;
+	encodedPacket.packetClass = (uint8_t)sequenceMode;
 	if (appendTerminator) {
 		if (NetSession_GetFixedPayloadSize(packetType) == 0) {
 			encodedPayload = encodedPacket.payload;
@@ -1723,7 +1725,7 @@ int Net_SendSequencedDirectPlayPacket(int destPlayerId, int sequenceMode, int se
 				(uint8_t)sequenceMode;
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].sequenceByte =
 				(uint8_t)sequenceId;
-			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].queuedFlag = 1;
+			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].isResentCopy = 1;
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].lastNackMs = 0;
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].nackRetryCount = 0;
 			++g_frontState.netRuntimeRecvQueueCount;
@@ -1884,7 +1886,7 @@ int Net_PollForPacketTypeOrBacklog(int packetType) {
 }
 
 // FUNCTION: XVT 0x4CFFB0
-int Net_PollForJoinRequestOrBacklog(void) {
+int Net_PollForPlayerCreatedOrBacklog(void) {
 	enum {
 		QUEUE_CAPACITY =
 			sizeof(g_frontState.netRuntimeRecvQueue) / sizeof(g_frontState.netRuntimeRecvQueue[0]),
@@ -1935,7 +1937,7 @@ int* Net_GetNextAppPacket(DPID* outSenderId, uint32_t* outPacketSize) {
 		if (packet == NULL || *outSenderId != 0) {
 			break;
 		}
-		Net_HandleFrontendRosterPacket(*packet, packet);
+		Net_HandleDirectPlaySystemMessage(*packet, packet);
 	} while (1);
 	if (backBufferLocked != 0) {
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
@@ -1944,7 +1946,7 @@ int* Net_GetNextAppPacket(DPID* outSenderId, uint32_t* outPacketSize) {
 }
 
 // FUNCTION: XVT 0x4D00D0
-void Net_HandleFrontendRosterPacket(int packetType, const void* packetData) {
+void Net_HandleDirectPlaySystemMessage(int packetType, const void* packetData) {
 	enum {
 		SEQUENCE_STATUS_PACKET_SIZE = 512,
 		SEQUENCE_INITIAL_VALUE = 127,
@@ -1969,7 +1971,7 @@ void Net_HandleFrontendRosterPacket(int packetType, const void* packetData) {
 					typedef struct NetSequenceStatusPacket {
 						int packetType;
 						int playerCount;
-						int sequenceCount;
+						int peerSlotCount;
 						uint32_t timestampMs;
 						NetSequenceStatusRecord records[(SEQUENCE_STATUS_PACKET_SIZE - 4 * sizeof(int)) /
 														sizeof(NetSequenceStatusRecord)];
@@ -1977,30 +1979,30 @@ void Net_HandleFrontendRosterPacket(int packetType, const void* packetData) {
 
 					NetSequenceStatusRecord* statusRecords;
 					NetSequenceStatusPacket statusPacket;
-					unsigned int sequenceIndex;
+					unsigned int peerIndex;
 					uint32_t nowMs;
 
 					g_frontState.netPlayerCount = 1;
 					Net_RefreshPlayerRoster();
 					statusPacket.playerCount = g_frontState.netPlayerCount;
-					statusPacket.sequenceCount = g_frontState.netReliablePeerSlotCount;
+					statusPacket.peerSlotCount = g_frontState.netReliablePeerSlotCount;
 					statusPacket.packetType = NET_PACKET_SEQUENCE_STATUS;
 					nowMs = GetTickCount();
-					sequenceIndex = 0;
+					peerIndex = 0;
 					statusRecords = statusPacket.records;
 					statusPacket.timestampMs = nowMs;
 					if (g_frontState.netReliablePeerSlotCount > 0) {
 						do {
 							const NetReliablePeerSlot* peer =
-								&g_frontState.netRuntimeReliablePeerSlots[sequenceIndex];
-							NetSequenceStatusRecord* record = &statusRecords[sequenceIndex];
+								&g_frontState.netRuntimeReliablePeerSlots[peerIndex];
+							NetSequenceStatusRecord* record = &statusRecords[peerIndex];
 							record->playerId = peer->directPlayId;
 							record->previousChannelA = (uint8_t)peer->prevRecvSeqChannelA;
 							record->previousChannelB = (uint8_t)peer->prevRecvSeqChannelB;
 							record->channelA = (uint8_t)peer->recvSeqChannelA;
 							record->channelB = (uint8_t)peer->recvSeqChannelB;
-							++sequenceIndex;
-						} while (g_frontState.netReliablePeerSlotCount > sequenceIndex);
+							++peerIndex;
+						} while (g_frontState.netReliablePeerSlotCount > peerIndex);
 					}
 					Net_SendPacketAndFlush(packetWords[2], &statusPacket,
 										   (unsigned int)(sizeof(statusPacket.packetType) +
@@ -2022,7 +2024,7 @@ void Net_HandleFrontendRosterPacket(int packetType, const void* packetData) {
 			if (g_frontState.netIsHost != 0) {
 				if (packetWords[1] == DPPLAYERTYPE_PLAYER) {
 					unsigned int playerIndex;
-					unsigned int sequenceIndex;
+					unsigned int peerIndex;
 
 					for (playerIndex = 0; playerIndex < (unsigned int)g_frontState.netPlayerCount;
 						 ++playerIndex) {
@@ -2034,12 +2036,11 @@ void Net_HandleFrontendRosterPacket(int packetType, const void* packetData) {
 						}
 					}
 					Net_ClearPlayerReadyFlagWithLockGuard((DPID)packetWords[2]);
-					for (sequenceIndex = 0; sequenceIndex < g_frontState.netReliablePeerSlotCount;
-						 ++sequenceIndex) {
-						if (g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].directPlayId ==
+					for (peerIndex = 0; peerIndex < g_frontState.netReliablePeerSlotCount; ++peerIndex) {
+						if (g_frontState.netRuntimeReliablePeerSlots[peerIndex].directPlayId ==
 							(DPID)packetWords[2]) {
 							--g_frontState.netReliablePeerSlotCount;
-							g_frontState.netRuntimeReliablePeerSlots[sequenceIndex] =
+							g_frontState.netRuntimeReliablePeerSlots[peerIndex] =
 								g_frontState
 									.netRuntimeReliablePeerSlots[g_frontState.netReliablePeerSlotCount];
 							g_frontState.netRuntimeReliablePeerSlots[g_frontState.netReliablePeerSlotCount]
@@ -2091,9 +2092,9 @@ void Net_HandleFrontendRosterPacket(int packetType, const void* packetData) {
 				}
 			} else if (packetWords[1] == DPPLAYERTYPE_PLAYER &&
 					   (DPID)packetWords[2] == g_frontState.netHostPlayerId) {
-				const int keepalivePacket = NET_PACKET_HOST_CANCELLED;
-				Net_SendPacketAndFlush(g_frontState.netRuntimeLocalPlayer.playerId, &keepalivePacket,
-									   sizeof(keepalivePacket));
+				const int hostCancelledPacket = NET_PACKET_HOST_CANCELLED;
+				Net_SendPacketAndFlush(g_frontState.netRuntimeLocalPlayer.playerId, &hostCancelledPacket,
+									   sizeof(hostCancelledPacket));
 			}
 			g_frontState.netPlayerCount = 1;
 			Net_RefreshPlayerRoster();
@@ -2144,7 +2145,7 @@ void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize) {
 		NET_RELIABLE_CHANNEL_B = 2,
 		NET_RELIABLE_SEQUENCE_LIMIT = 127,
 		NET_RELIABLE_SEQUENCE_COUNT = NET_RELIABLE_SEQUENCE_LIMIT + 1,
-		NET_RELIABLE_CONTROL_PACKET_LIMIT = NET_PACKET_WORLD_NACK,
+		NET_FIRST_NON_FLIGHT_PACKET_TYPE = NET_PACKET_WORLD_NACK,
 		NET_RELIABLE_REORDER_ALLOWANCE = 90,
 		NET_RELIABLE_NEGATIVE_WINDOW = -28,
 		NET_RELIABLE_PRESSURE_NEGATIVE_WINDOW = -27,
@@ -2168,7 +2169,7 @@ void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize) {
 	int channelIndex;
 	int sentRetryRequest;
 	int firstMissingSequence;
-	uint8_t expectedSequences[NET_RELIABLE_PEER_CAPACITY][NET_RELIABLE_CHANNEL_COUNT];
+	uint8_t lastSeenSequences[NET_RELIABLE_PEER_CAPACITY][NET_RELIABLE_CHANNEL_COUNT];
 	uint8_t processedPacketCounts[NET_RELIABLE_PEER_CAPACITY];
 	uint8_t reorderAllowances[NET_RELIABLE_PEER_CAPACITY];
 	char debugText[256];
@@ -2190,13 +2191,13 @@ void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize) {
 
 	memset(processedPacketCounts, 0, sizeof(processedPacketCounts));
 	memset(reorderAllowances, NET_RELIABLE_REORDER_ALLOWANCE, sizeof(reorderAllowances));
-	memset(expectedSequences, 0, sizeof(expectedSequences));
+	memset(lastSeenSequences, 0, sizeof(lastSeenSequences));
 	for (channelIndex = 0; channelIndex < (int)g_frontState.netReliablePeerSlotCount; ++channelIndex) {
-		expectedSequences[channelIndex][NET_RELIABLE_CHANNEL_A] =
+		lastSeenSequences[channelIndex][NET_RELIABLE_CHANNEL_A] =
 			(uint8_t)g_frontState.netRuntimeReliablePeerSlots[channelIndex].prevRecvSeqChannelA;
-		expectedSequences[channelIndex][NET_RELIABLE_CHANNEL_DEFAULT] =
+		lastSeenSequences[channelIndex][NET_RELIABLE_CHANNEL_DEFAULT] =
 			(uint8_t)g_frontState.netRuntimeReliablePeerSlots[channelIndex].prevRecvSeqDefault;
-		expectedSequences[channelIndex][NET_RELIABLE_CHANNEL_B] =
+		lastSeenSequences[channelIndex][NET_RELIABLE_CHANNEL_B] =
 			(uint8_t)g_frontState.netRuntimeReliablePeerSlots[channelIndex].prevRecvSeqChannelB;
 	}
 
@@ -2228,27 +2229,26 @@ void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize) {
 			peerIndex =
 				Net_FindOrCreatePeerSlot((int)g_frontState.netRuntimeRecvQueue[scanIndex].directPlayId);
 			if (channelIndex == (int)peerIndex && peerIndex < NET_RELIABLE_PEER_CAPACITY) {
-				expectedSequences[peerIndex][NET_RELIABLE_CHANNEL_A] = NET_RELIABLE_SEQUENCE_LIMIT;
-				expectedSequences[peerIndex][NET_RELIABLE_CHANNEL_DEFAULT] =
-					NET_RELIABLE_SEQUENCE_LIMIT;
-				expectedSequences[peerIndex][NET_RELIABLE_CHANNEL_B] = NET_RELIABLE_SEQUENCE_LIMIT;
+				lastSeenSequences[peerIndex][NET_RELIABLE_CHANNEL_A] = NET_RELIABLE_SEQUENCE_LIMIT;
+				lastSeenSequences[peerIndex][NET_RELIABLE_CHANNEL_DEFAULT] = NET_RELIABLE_SEQUENCE_LIMIT;
+				lastSeenSequences[peerIndex][NET_RELIABLE_CHANNEL_B] = NET_RELIABLE_SEQUENCE_LIMIT;
 			}
 
 			if (g_frontState.netReliablePeerSlotCount > peerIndex) {
-				if ((unsigned int)packetType < NET_RELIABLE_CONTROL_PACKET_LIMIT) {
-					if (g_frontState.netRuntimeRecvQueue[scanIndex].queuedFlag == 0) {
+				if ((unsigned int)packetType < NET_FIRST_NON_FLIGHT_PACKET_TYPE) {
+					if (g_frontState.netRuntimeRecvQueue[scanIndex].isResentCopy == 0) {
 						if (useChannelA != 0) {
-							expectedSequences[peerIndex][NET_RELIABLE_CHANNEL_A] = (uint8_t)receivedSequence;
+							lastSeenSequences[peerIndex][NET_RELIABLE_CHANNEL_A] = (uint8_t)receivedSequence;
 							g_frontState.netRuntimeReliablePeerSlots[peerIndex].prevRecvSeqChannelA =
 								receivedSequence;
 						} else if (useChannelB != 0) {
 							g_frontState.netRuntimeReliablePeerSlots[peerIndex].prevRecvSeqChannelB =
 								receivedSequence;
-							expectedSequences[peerIndex][NET_RELIABLE_CHANNEL_B] = (uint8_t)receivedSequence;
+							lastSeenSequences[peerIndex][NET_RELIABLE_CHANNEL_B] = (uint8_t)receivedSequence;
 						} else {
 							g_frontState.netRuntimeReliablePeerSlots[peerIndex].prevRecvSeqDefault =
 								receivedSequence;
-							expectedSequences[peerIndex][NET_RELIABLE_CHANNEL_DEFAULT] =
+							lastSeenSequences[peerIndex][NET_RELIABLE_CHANNEL_DEFAULT] =
 								(uint8_t)receivedSequence;
 						}
 					}
@@ -2264,7 +2264,7 @@ void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize) {
 					continue;
 				}
 				g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastHeardMs = GetTickCount();
-				if (g_frontState.netRuntimeRecvQueue[scanIndex].queuedFlag == 0) {
+				if (g_frontState.netRuntimeRecvQueue[scanIndex].isResentCopy == 0) {
 					++processedPacketCounts[peerIndex];
 				}
 
@@ -2312,7 +2312,7 @@ void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize) {
 						*outPacketSize = g_frontState.netRuntimeRecvScratchPacket.payloadSize;
 						return g_frontState.netRuntimeRecvScratchPacket.payload;
 					}
-					if (g_frontState.netRuntimeRecvQueue[scanIndex].queuedFlag == 0) {
+					if (g_frontState.netRuntimeRecvQueue[scanIndex].isResentCopy == 0) {
 						if (useChannelA != 0) {
 							channelIndex = NET_RELIABLE_CHANNEL_A;
 						} else if (useChannelB != 0) {
@@ -2320,8 +2320,8 @@ void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize) {
 						} else {
 							channelIndex = NET_RELIABLE_CHANNEL_DEFAULT;
 						}
-						sequenceCursor = (int)expectedSequences[peerIndex][channelIndex] + 1;
-						expectedSequences[peerIndex][channelIndex] = (uint8_t)receivedSequence;
+						sequenceCursor = (int)lastSeenSequences[peerIndex][channelIndex] + 1;
+						lastSeenSequences[peerIndex][channelIndex] = (uint8_t)receivedSequence;
 						if (sequenceCursor > NET_RELIABLE_SEQUENCE_LIMIT) {
 							sequenceCursor = 0;
 						}
@@ -2896,14 +2896,16 @@ HRESULT Net_BuildDirectPlayAddress(IDirectPlayLobbyA* directPlayLobby, const GUI
 
 // FUNCTION: XVT 0x4D1940
 int NetSession_ImportRuntimeState(void** dplayInterfaceOut, GUID* appGuidOut, GUID* sessionGuidOut,
-								  int32_t* groupIdOut, int* hostPlayerIdOut, NetPlayerInfo* sessionNameOut,
-								  NetQueuedPacket* directPlaySlotsOut, int32_t* recvQueueReadOut,
-								  int* recvQueueCountOut, int* recvQueueWriteOut,
-								  NetReliablePeerSlot* reliablePeerSlotsOut, uint32_t* netSlotCountOut,
-								  uint32_t* smallStateOut, char* broadcastPayloadOut, int* stateDwordAOut,
-								  int* stateDwordBOut, uint32_t* stateDwordCOut, char* groupPayloadOut,
-								  int* stateDwordDOut, int* stateDwordEOut, NetQueuedPacket* recvHistoryOut,
-								  int* recvHistoryCountOut) {
+								  int32_t* groupIdOut, int* hostPlayerIdOut,
+								  NetPlayerInfo* localPlayerInfoOut, NetQueuedPacket* recvQueueOut,
+								  int32_t* recvQueueReadOut, int* recvQueueCountOut, int* recvQueueWriteOut,
+								  NetReliablePeerSlot* reliablePeerSlotsOut,
+								  uint32_t* reliablePeerSlotCountOut, uint32_t* broadcastSeqCounterOut,
+								  char* broadcastPayloadOut, int* broadcastPayloadLengthOut,
+								  int* broadcastPendingFlushOut, uint32_t* groupSeqCounterOut,
+								  char* groupPayloadOut, int* groupPayloadLengthOut,
+								  int* groupPendingFlushOut, NetQueuedPacket* sentHistoryOut,
+								  int* sentHistoryWriteIndexOut) {
 	int packetIndex;
 	int queueIndex;
 
@@ -2912,54 +2914,55 @@ int NetSession_ImportRuntimeState(void** dplayInterfaceOut, GUID* appGuidOut, GU
 	*sessionGuidOut = g_frontState.netJoinedSessionGuid;
 	*groupIdOut = g_frontState.netGroupDplayId;
 	*hostPlayerIdOut = g_frontState.netHostPlayerId;
-	*sessionNameOut = g_frontState.netRuntimeLocalPlayer;
+	*localPlayerInfoOut = g_frontState.netRuntimeLocalPlayer;
 	*recvQueueCountOut = g_frontState.netRuntimeRecvQueueCount;
 	*recvQueueReadOut = g_frontState.netRuntimeRecvQueueReadIndex;
 	*recvQueueWriteOut = g_frontState.netRuntimeRecvQueueWriteIndex;
 	queueIndex = g_frontState.netRuntimeRecvQueueReadIndex;
 	for (packetIndex = 0; packetIndex < g_frontState.netRuntimeRecvQueueCount; packetIndex++) {
-		memcpy(&directPlaySlotsOut[queueIndex], &g_frontState.netRuntimeRecvQueue[queueIndex],
-			   sizeof(directPlaySlotsOut[queueIndex]));
+		memcpy(&recvQueueOut[queueIndex], &g_frontState.netRuntimeRecvQueue[queueIndex],
+			   sizeof(recvQueueOut[queueIndex]));
 		queueIndex++;
 		if (queueIndex >= 1024) {
 			queueIndex = 0;
 		}
 	}
 
-	*netSlotCountOut = g_frontState.netReliablePeerSlotCount;
+	*reliablePeerSlotCountOut = g_frontState.netReliablePeerSlotCount;
 	for (packetIndex = 0; packetIndex < (int)g_frontState.netReliablePeerSlotCount; packetIndex++) {
 		memcpy(&reliablePeerSlotsOut[packetIndex], &g_frontState.netRuntimeReliablePeerSlots[packetIndex],
 			   sizeof(reliablePeerSlotsOut[packetIndex]));
 	}
 
-	*smallStateOut = g_frontState.netRuntimeBroadcastSeqCounter;
+	*broadcastSeqCounterOut = g_frontState.netRuntimeBroadcastSeqCounter;
 	memcpy(broadcastPayloadOut, g_frontState.netRuntimeBroadcastPendingPayload.payload,
 		   sizeof(g_frontState.netRuntimeBroadcastPendingPayload.payload));
-	*stateDwordAOut = g_frontState.netRuntimeBroadcastPendingPayload.payloadLength;
-	*stateDwordBOut = g_frontState.netRuntimeBroadcastPendingPayload.pendingFlush;
-	*stateDwordCOut = g_frontState.netRuntimeGroupSeqCounter;
+	*broadcastPayloadLengthOut = g_frontState.netRuntimeBroadcastPendingPayload.payloadLength;
+	*broadcastPendingFlushOut = g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty;
+	*groupSeqCounterOut = g_frontState.netRuntimeGroupSeqCounter;
 	memcpy(groupPayloadOut, g_frontState.netRuntimeGroupPendingPayload.payload,
 		   sizeof(g_frontState.netRuntimeGroupPendingPayload.payload));
-	*stateDwordDOut = g_frontState.netRuntimeGroupPendingPayload.payloadLength;
-	*stateDwordEOut = g_frontState.netRuntimeGroupPendingPayload.pendingFlush;
+	*groupPayloadLengthOut = g_frontState.netRuntimeGroupPendingPayload.payloadLength;
+	*groupPendingFlushOut = g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty;
 
-	memset(recvHistoryOut, 0, sizeof(g_frontState.netRuntimeRecvHistory));
+	memset(sentHistoryOut, 0, sizeof(g_frontState.netRuntimeRecvHistory));
 	for (packetIndex = 0; packetIndex < 128; packetIndex++) {
-		memcpy(&recvHistoryOut[packetIndex], &g_frontState.netRuntimeRecvHistory[packetIndex],
-			   sizeof(recvHistoryOut[packetIndex]));
+		memcpy(&sentHistoryOut[packetIndex], &g_frontState.netRuntimeRecvHistory[packetIndex],
+			   sizeof(sentHistoryOut[packetIndex]));
 	}
-	*recvHistoryCountOut = g_frontState.netRuntimeRecvHistoryCount;
+	*sentHistoryWriteIndexOut = g_frontState.netRuntimeRecvHistoryCount;
 	return 1;
 }
 
 // FUNCTION: XVT 0x4D1B10
 int NetSession_ExportRuntimeState(
 	void** dplayInterface, const void* appGuid, const void* sessionGuid, int* groupId, int* hostPlayerId,
-	const void* localPlayerInfo, const NetQueuedPacket* directPlaySlots, int* recvQueueRead,
-	int* recvQueueCount, int* recvQueueWrite, const NetReliablePeerSlot* reliablePeerSlots, int* netSlotCount,
-	int* smallState, const void* broadcastPayload, int* stateDwordA, int* stateDwordB, int* stateDwordC,
-	const void* groupPayload, int* stateDwordD, int* stateDwordE, const NetQueuedPacket* recvHistory,
-	int* recvHistoryCount, NetQueuedPacket* recvQueue, int* recvQueueHighWater) {
+	const void* localPlayerInfo, const NetQueuedPacket* recvQueueEntries, int* recvQueueRead,
+	int* recvQueueCount, int* recvQueueWrite, const NetReliablePeerSlot* reliablePeerSlots,
+	int* reliablePeerSlotCount, int* broadcastSeqCounter, const void* broadcastPayload,
+	int* broadcastPayloadLength, int* broadcastPendingFlush, int* groupSeqCounter, const void* groupPayload,
+	int* groupPayloadLength, int* groupPendingFlush, const NetQueuedPacket* sentHistory,
+	int* sentHistoryWriteIndex, NetQueuedPacket* sentWorldMessageHistory, int* sentWorldMessageWriteIndex) {
 	int queueIndex;
 	int packetIndex;
 	int peerIndex;
@@ -2976,39 +2979,39 @@ int NetSession_ExportRuntimeState(
 	g_frontState.netRuntimeRecvQueueReadIndex = *recvQueueRead;
 	g_frontState.netRuntimeRecvQueueWriteIndex = *recvQueueWrite;
 	for (packetIndex = 0; packetIndex < g_frontState.netRuntimeRecvQueueCount; ++packetIndex) {
-		memcpy(&g_frontState.netRuntimeRecvQueue[queueIndex], &directPlaySlots[queueIndex],
+		memcpy(&g_frontState.netRuntimeRecvQueue[queueIndex], &recvQueueEntries[queueIndex],
 			   sizeof(g_frontState.netRuntimeRecvQueue[queueIndex]));
 		++queueIndex;
 		if (queueIndex >= 1024)
 			queueIndex = 0;
 	}
 
-	g_frontState.netReliablePeerSlotCount = *netSlotCount;
+	g_frontState.netReliablePeerSlotCount = *reliablePeerSlotCount;
 	for (peerIndex = 0; peerIndex < (int)g_frontState.netReliablePeerSlotCount; ++peerIndex) {
 		memcpy(&g_frontState.netRuntimeReliablePeerSlots[peerIndex], &reliablePeerSlots[peerIndex],
 			   sizeof(g_frontState.netRuntimeReliablePeerSlots[peerIndex]));
 		g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastHeardMs = GetTickCount();
 	}
 
-	g_frontState.netRuntimeBroadcastSeqCounter = *smallState;
+	g_frontState.netRuntimeBroadcastSeqCounter = *broadcastSeqCounter;
 	memcpy(g_frontState.netRuntimeBroadcastPendingPayload.payload, broadcastPayload,
 		   sizeof(g_frontState.netRuntimeBroadcastPendingPayload.payload));
-	g_frontState.netRuntimeBroadcastPendingPayload.payloadLength = *stateDwordA;
-	g_frontState.netRuntimeBroadcastPendingPayload.pendingFlush = *stateDwordB;
-	g_frontState.netRuntimeGroupSeqCounter = *stateDwordC;
+	g_frontState.netRuntimeBroadcastPendingPayload.payloadLength = *broadcastPayloadLength;
+	g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty = *broadcastPendingFlush;
+	g_frontState.netRuntimeGroupSeqCounter = *groupSeqCounter;
 	memcpy(g_frontState.netRuntimeGroupPendingPayload.payload, groupPayload,
 		   sizeof(g_frontState.netRuntimeGroupPendingPayload.payload));
-	g_frontState.netRuntimeGroupPendingPayload.payloadLength = *stateDwordD;
-	g_frontState.netRuntimeGroupPendingPayload.pendingFlush = *stateDwordE;
+	g_frontState.netRuntimeGroupPendingPayload.payloadLength = *groupPayloadLength;
+	g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty = *groupPendingFlush;
 
 	memset(g_frontState.netRuntimeRecvHistory, 0, sizeof(g_frontState.netRuntimeRecvHistory));
 	for (packetIndex = 0; packetIndex < 128; ++packetIndex) {
-		memcpy(&g_frontState.netRuntimeRecvHistory[packetIndex], &recvHistory[packetIndex],
+		memcpy(&g_frontState.netRuntimeRecvHistory[packetIndex], &sentHistory[packetIndex],
 			   sizeof(g_frontState.netRuntimeRecvHistory[packetIndex]));
 	}
-	g_frontState.netRuntimeRecvHistoryCount = *recvHistoryCount;
-	g_frontState.netExportRecvQueuePtr = recvQueue;
-	g_frontState.netExportRecvQueueHighWater = *recvQueueHighWater;
+	g_frontState.netRuntimeRecvHistoryCount = *sentHistoryWriteIndex;
+	g_frontState.netExportRecvQueuePtr = sentWorldMessageHistory;
+	g_frontState.netExportRecvQueueHighWater = *sentWorldMessageWriteIndex;
 	return 1;
 }
 
@@ -3125,36 +3128,32 @@ int Net_SendSequenceKeepalives(void) {
 
 			nowMs = GetTickCount();
 			if (g_frontState.netRuntimeLocalPlayer.playerId != playerRoster[playerIndex].playerId) {
-				unsigned int sequenceIndex;
+				unsigned int peerIndex;
 
-				sequenceIndex = Net_FindOrCreatePeerSlot(playerRoster[playerIndex].playerId);
-				if (g_frontState.netReliablePeerSlotCount > sequenceIndex && sequenceIndex < 40) {
+				peerIndex = Net_FindOrCreatePeerSlot(playerRoster[playerIndex].playerId);
+				if (g_frontState.netReliablePeerSlotCount > peerIndex && peerIndex < 40) {
 					unsigned int sequence;
-					if (nowMs - g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastActivityMs >
-						3000) {
+					if (nowMs - g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastActivityMs > 3000) {
 						packet[0] = NET_PACKET_KEEPALIVE;
-						g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastActivityMs = nowMs;
-						sequence =
-							g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqChannelA + 1;
+						g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastActivityMs = nowMs;
+						sequence = g_frontState.netRuntimeReliablePeerSlots[peerIndex].recvSeqChannelA + 1;
 						if (sequence > 127) {
 							sequence = 0;
 						}
 						packet[1] = sequence;
-						sequence =
-							g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqChannelB + 1;
+						sequence = g_frontState.netRuntimeReliablePeerSlots[peerIndex].recvSeqChannelB + 1;
 						if (sequence > 127) {
 							sequence = 0;
 						}
 						packet[2] = sequence;
-						sequence = g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqDefault + 1;
+						sequence = g_frontState.netRuntimeReliablePeerSlots[peerIndex].recvSeqDefault + 1;
 						if (sequence > 127) {
 							sequence = 0;
 						}
 						packet[3] = sequence;
 						packet[4] = GetTickCount();
 						((int (*)(int, const void*, int, int))Net_SendDirectPlayPacket)(
-							g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].directPlayId, packet, 20,
-							0);
+							g_frontState.netRuntimeReliablePeerSlots[peerIndex].directPlayId, packet, 20, 0);
 					}
 				}
 			}
@@ -3166,26 +3165,26 @@ int Net_SendSequenceKeepalives(void) {
 
 // FUNCTION: XVT 0x4D1FA0
 int Net_CheckAndRecordIncomingSequence(int playerId, int sequenceId, int useChannel0, int useChannel2) {
-	unsigned int previousSequenceCount;
-	unsigned int sequenceIndex;
+	unsigned int previousPeerSlotCount;
+	unsigned int peerIndex;
 	NetReliablePeerSlot* peer;
 	int previousSequence;
 	int sequenceDelta;
 
-	previousSequenceCount = g_frontState.netReliablePeerSlotCount;
-	sequenceIndex = Net_FindOrCreatePeerSlot(playerId);
-	if (previousSequenceCount != g_frontState.netReliablePeerSlotCount || sequenceIndex >= 40) {
+	previousPeerSlotCount = g_frontState.netReliablePeerSlotCount;
+	peerIndex = Net_FindOrCreatePeerSlot(playerId);
+	if (previousPeerSlotCount != g_frontState.netReliablePeerSlotCount || peerIndex >= 40) {
 		return 0;
 	}
 
 	if (useChannel0 != 0) {
-		peer = &g_frontState.netRuntimeReliablePeerSlots[sequenceIndex];
+		peer = &g_frontState.netRuntimeReliablePeerSlots[peerIndex];
 		previousSequence = peer->recvSeqChannelA;
 	} else if (useChannel2 != 0) {
-		peer = &g_frontState.netRuntimeReliablePeerSlots[sequenceIndex];
+		peer = &g_frontState.netRuntimeReliablePeerSlots[peerIndex];
 		previousSequence = peer->recvSeqChannelB;
 	} else {
-		peer = &g_frontState.netRuntimeReliablePeerSlots[sequenceIndex];
+		peer = &g_frontState.netRuntimeReliablePeerSlots[peerIndex];
 		previousSequence = peer->recvSeqDefault;
 	}
 
@@ -3206,7 +3205,7 @@ int Net_CheckAndRecordIncomingSequence(int playerId, int sequenceId, int useChan
 
 // FUNCTION: XVT 0x4D2080
 int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId, int useChannel0, int useChannel2,
-								  int sequenceEntryIndex) {
+								  int peerSlotIndex) {
 	int remaining;
 	int queueIndex;
 	int sequenceByte;
@@ -3220,7 +3219,7 @@ int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId, int useC
 
 	queueIndex = g_frontState.netRuntimeRecvQueueReadIndex;
 	for (remaining = g_frontState.netRuntimeRecvQueueCount; remaining != 0; --remaining) {
-		if (g_frontState.netRuntimeRecvQueue[queueIndex].queuedFlag != 0) {
+		if (g_frontState.netRuntimeRecvQueue[queueIndex].isResentCopy != 0) {
 			directPlayId = g_frontState.netRuntimeRecvQueue[queueIndex].directPlayId;
 			sequenceByte = g_frontState.netRuntimeRecvQueue[queueIndex].sequenceByte;
 			isClass0 = g_frontState.netRuntimeRecvQueue[queueIndex].packetClass == 0;
@@ -3239,7 +3238,7 @@ int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId, int useC
 					}
 				}
 			}
-			if (slot == (unsigned int)sequenceEntryIndex) {
+			if (slot == (unsigned int)peerSlotIndex) {
 				if (useChannel0 != 0) {
 					if (isClass0 && sequenceByte == sequenceId) {
 						return queueIndex;
@@ -3434,16 +3433,16 @@ int Net_GetPacketDropRateBasisPoints(int playerId) {
 	int result;
 
 	if (g_frontState.netIsHost != 0) {
-		unsigned int sequenceIndex;
+		unsigned int peerIndex;
 		int packetCount;
 		int weightedDropCount;
 		int playerIndex;
 
-		sequenceIndex = Net_FindOrCreatePeerSlot(playerId);
-		if (g_frontState.netReliablePeerSlotCount > sequenceIndex && sequenceIndex < 40) {
-			packetCount = g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].packetCount;
-			weightedDropCount = g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].packetDropCount +
-								2 * g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].packetRetryCount;
+		peerIndex = Net_FindOrCreatePeerSlot(playerId);
+		if (g_frontState.netReliablePeerSlotCount > peerIndex && peerIndex < 40) {
+			packetCount = g_frontState.netRuntimeReliablePeerSlots[peerIndex].packetCount;
+			weightedDropCount = g_frontState.netRuntimeReliablePeerSlots[peerIndex].packetDropCount +
+								2 * g_frontState.netRuntimeReliablePeerSlots[peerIndex].packetRetryCount;
 		} else {
 			packetCount = 0;
 			weightedDropCount = 0;
@@ -3488,7 +3487,7 @@ int Net_GetPacketDropRateBasisPoints(int playerId) {
 }
 
 // FUNCTION: XVT 0x4D25D0
-int Net_UpdateKeepaliveSequences(void) {
+int Net_DropSilentPeers(void) {
 	enum {
 		PEER_SILENCE_TIMEOUT_MS = 45000,
 		RECV_QUEUE_CAPACITY = 1024,
@@ -3502,7 +3501,7 @@ int Net_UpdateKeepaliveSequences(void) {
 		for (playerIndex = 0;
 			 playerIndex < (int)(sizeof(g_frontState.netPlayers) / sizeof(g_frontState.netPlayers[0]));
 			 ++playerIndex) {
-			unsigned int sequenceIndex;
+			unsigned int peerIndex;
 			unsigned int sequence;
 			unsigned int nowMs;
 
@@ -3513,16 +3512,16 @@ int Net_UpdateKeepaliveSequences(void) {
 				g_frontState.netPlayers[playerIndex].readyFlag == 0) {
 				continue;
 			}
-			sequenceIndex = Net_FindOrCreatePeerSlot(g_frontState.netPlayers[playerIndex].playerId);
-			if (g_frontState.netReliablePeerSlotCount <= sequenceIndex) {
+			peerIndex = Net_FindOrCreatePeerSlot(g_frontState.netPlayers[playerIndex].playerId);
+			if (g_frontState.netReliablePeerSlotCount <= peerIndex) {
 				continue;
 			}
 			nowMs = GetTickCount();
-			if (nowMs - g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastHeardMs <=
+			if (nowMs - g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastHeardMs <=
 				PEER_SILENCE_TIMEOUT_MS) {
 				continue;
 			}
-			g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastHeardMs = GetTickCount();
+			g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastHeardMs = GetTickCount();
 			if (g_frontState.netRuntimeRecvQueueCount >= RECV_QUEUE_CAPACITY) {
 				continue;
 			}
@@ -3536,13 +3535,13 @@ int Net_UpdateKeepaliveSequences(void) {
 				sizeof(int);
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].lastNackMs = 0;
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].nackRetryCount = 0;
-			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].queuedFlag = 0;
+			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].isResentCopy = 0;
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].packetClass = 1;
-			sequence = g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqDefault + 1;
+			sequence = g_frontState.netRuntimeReliablePeerSlots[peerIndex].recvSeqDefault + 1;
 			if (sequence > MAX_SEQUENCE) {
 				sequence = 0;
 			}
-			g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqDefault = sequence;
+			g_frontState.netRuntimeReliablePeerSlots[peerIndex].recvSeqDefault = sequence;
 			g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].sequenceByte =
 				(uint8_t)sequence;
 			++g_frontState.netRuntimeRecvQueueCount;
@@ -3551,17 +3550,17 @@ int Net_UpdateKeepaliveSequences(void) {
 			}
 		}
 	} else {
-		unsigned int sequenceIndex = Net_FindOrCreatePeerSlot(g_frontState.netHostPlayerId);
+		unsigned int peerIndex = Net_FindOrCreatePeerSlot(g_frontState.netHostPlayerId);
 		unsigned int sequence;
 		unsigned int nowMs;
 
-		if (g_frontState.netReliablePeerSlotCount <= sequenceIndex) {
+		if (g_frontState.netReliablePeerSlotCount <= peerIndex) {
 			return 0;
 		}
 		nowMs = GetTickCount();
-		if (nowMs - g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastHeardMs >
+		if (nowMs - g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastHeardMs >
 			PEER_SILENCE_TIMEOUT_MS) {
-			g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].lastHeardMs = GetTickCount();
+			g_frontState.netRuntimeReliablePeerSlots[peerIndex].lastHeardMs = GetTickCount();
 			if (g_frontState.netRuntimeRecvQueueCount < RECV_QUEUE_CAPACITY) {
 				*(int*)g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].payload =
 					NET_PACKET_HOST_CANCELLED;
@@ -3572,13 +3571,13 @@ int Net_UpdateKeepaliveSequences(void) {
 				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].lastNackMs = 0;
 				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].nackRetryCount =
 					0;
-				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].queuedFlag = 0;
+				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].isResentCopy = 0;
 				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].packetClass = 0;
-				sequence = g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqChannelA + 1;
+				sequence = g_frontState.netRuntimeReliablePeerSlots[peerIndex].recvSeqChannelA + 1;
 				if (sequence > MAX_SEQUENCE) {
 					sequence = 0;
 				}
-				g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].recvSeqChannelA = sequence;
+				g_frontState.netRuntimeReliablePeerSlots[peerIndex].recvSeqChannelA = sequence;
 				g_frontState.netRuntimeRecvQueue[g_frontState.netRuntimeRecvQueueWriteIndex].sequenceByte =
 					(uint8_t)sequence;
 				++g_frontState.netRuntimeRecvQueueCount;
@@ -3593,13 +3592,13 @@ int Net_UpdateKeepaliveSequences(void) {
 
 // FUNCTION: XVT 0x4D28F0
 int Net_GetPlayerPacketCount(int playerId) {
-	unsigned int sequenceIndex;
+	unsigned int peerIndex;
 	int packetCount;
 	int playerIndex;
 
-	sequenceIndex = Net_FindOrCreatePeerSlot(playerId);
-	if (g_frontState.netReliablePeerSlotCount > sequenceIndex && sequenceIndex < 40) {
-		packetCount = g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].packetCount;
+	peerIndex = Net_FindOrCreatePeerSlot(playerId);
+	if (g_frontState.netReliablePeerSlotCount > peerIndex && peerIndex < 40) {
+		packetCount = g_frontState.netRuntimeReliablePeerSlots[peerIndex].packetCount;
 	} else {
 		packetCount = 0;
 	}
@@ -3613,13 +3612,13 @@ int Net_GetPlayerPacketCount(int playerId) {
 
 // FUNCTION: XVT 0x4D2950
 int Net_GetPlayerPacketDropCount(int playerId) {
-	unsigned int sequenceIndex;
+	unsigned int peerIndex;
 	int packetDropCount;
 	int playerIndex;
 
-	sequenceIndex = Net_FindOrCreatePeerSlot(playerId);
-	if (g_frontState.netReliablePeerSlotCount > sequenceIndex && sequenceIndex < 40) {
-		packetDropCount = g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].packetDropCount;
+	peerIndex = Net_FindOrCreatePeerSlot(playerId);
+	if (g_frontState.netReliablePeerSlotCount > peerIndex && peerIndex < 40) {
+		packetDropCount = g_frontState.netRuntimeReliablePeerSlots[peerIndex].packetDropCount;
 	} else {
 		packetDropCount = 0;
 	}
@@ -3634,13 +3633,13 @@ int Net_GetPlayerPacketDropCount(int playerId) {
 
 // FUNCTION: XVT 0x4D29C0
 int Net_GetPlayerPacketRetryCount(int playerId) {
-	unsigned int sequenceIndex;
+	unsigned int peerIndex;
 	int packetRetryCount;
 	int playerIndex;
 
-	sequenceIndex = Net_FindOrCreatePeerSlot(playerId);
-	if (g_frontState.netReliablePeerSlotCount > sequenceIndex && sequenceIndex < 40) {
-		packetRetryCount = g_frontState.netRuntimeReliablePeerSlots[sequenceIndex].packetRetryCount;
+	peerIndex = Net_FindOrCreatePeerSlot(playerId);
+	if (g_frontState.netReliablePeerSlotCount > peerIndex && peerIndex < 40) {
+		packetRetryCount = g_frontState.netRuntimeReliablePeerSlots[peerIndex].packetRetryCount;
 	} else {
 		packetRetryCount = 0;
 	}

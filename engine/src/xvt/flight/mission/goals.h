@@ -50,11 +50,11 @@ typedef enum MissionConditionType {
 	MISSION_COND_PRIMARY_GOAL_FAILED = 14,
 	MISSION_COND_BONUS_GOAL_COMPLETE = 17,
 	MISSION_COND_BONUS_GOAL_FAILED = 18,
-	MISSION_COND_REINFORCEMENT_NOT_CALLED = 20,
+	MISSION_COND_REINFORCEMENTS_CALLED = 20,
 	MISSION_COND_SHIELDS_DEPLETED = 21,
 	MISSION_COND_HULL_DAMAGE_ABOVE_50 = 22,
 	MISSION_COND_NO_WARHEADS = 23,
-	MISSION_COND_SYSTEM_DAMAGED = 24,
+	MISSION_COND_CANNONS_DISABLED = 24,
 	MISSION_COND_NOT_ARRIVED = 25,
 	MISSION_COND_NOT_ATTACKED = 26,
 	MISSION_COND_NOT_DISABLED = 27,
@@ -68,7 +68,7 @@ typedef enum MissionConditionType {
 	MISSION_COND_SHIELDS_BELOW_25 = 35,
 	MISSION_COND_HULL_DAMAGE_ABOVE_25 = 36,
 	MISSION_COND_HULL_DAMAGE_ABOVE_75 = 37,
-	MISSION_COND_ALWAYS_PENDING = 38,
+	MISSION_COND_ALWAYS_FAILED = 38,
 	MISSION_COND_NO_CONDITION = 39,
 	MISSION_COND_PLAYER_CONNECTED = 41,
 	MISSION_COND_PLAYER_DISCONNECTED = 42,
@@ -253,11 +253,11 @@ extern const char* g_strGoalOperators[2];
 extern const char* g_strGoalTitles[9];
 extern const char* g_strGoalPercentages[14];
 extern const char* g_strGoalFamilyNames0To6[7];
-extern const char* g_strGoalFamilyNames7To22[16];
+extern const char* g_strGoalGenusNames[16];
 extern const char* g_strGoalConjunctions[8];
 extern const char* g_strGoalEscape[3];
 extern const char* g_strGoalSides[3];
-extern const char* g_strWarheadUnknown;
+extern const char* g_strUnknown;
 extern const char* g_strBuoyNames[16];
 extern const char* g_strStatusStrings[9];
 extern const char* g_strWarheadNames[13];

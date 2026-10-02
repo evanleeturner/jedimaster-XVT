@@ -128,7 +128,7 @@ static void XvtFlightFrame_InvalidateRemoteTransforms(void) {
 	 * Network125 predicts again before the next authoritative restore. */
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
 		int slot = g_players[player].objectIndex;
-		if (player == (unsigned)g_localPlayer || !g_players[player].connectedFlag || slot < 0 ||
+		if (player == (unsigned)g_localPlayer || !g_players[player].participationState || slot < 0 ||
 			slot >= g_regionMainObjectSlotEnd)
 			continue;
 		ObjectRecord* object = &g_objectTable[slot];
@@ -160,7 +160,7 @@ static void XvtFlightFrame_UpdateLagIndicator(void) {
  * that a drop score rises with each new host packet drop and falls by one per frame. */
 static void XvtFlightFrame_UpdatePingIndicator(void) {
 	if (g_flightPingPrevHostDropCount == 0) {
-		g_pingIndicator = 0;
+		g_packetDropIndicator = 0;
 	} else {
 		int hostDplayId;
 		int hostDropCount;
@@ -169,13 +169,13 @@ static void XvtFlightFrame_UpdatePingIndicator(void) {
 		hostDropCount = NetReliable_GetPeerPacketDropCountByDpid(hostDplayId);
 		g_flightPingDropScore += PING_DROP_SCORE_STEP * (hostDropCount - g_flightPingPrevHostDropCount);
 		if (g_flightPingDropScore == 0) {
-			g_pingIndicator = 0;
+			g_packetDropIndicator = 0;
 		} else if (g_flightPingDropScore < PING_LEVEL_2_SCORE) {
-			g_pingIndicator = 1;
+			g_packetDropIndicator = 1;
 		} else if (g_flightPingDropScore < PING_LEVEL_3_SCORE) {
-			g_pingIndicator = 2;
+			g_packetDropIndicator = 2;
 		} else {
-			g_pingIndicator = 3;
+			g_packetDropIndicator = 3;
 		}
 		g_flightPingPrevHostDropCount = hostDropCount;
 		if (g_flightPingDropScore != 0) {
@@ -410,14 +410,14 @@ static void XvtFlightFrame_Checksum(void) {
 
 		char sums[REGIONS * 9 + 1], lengths[REGIONS * 9 + 1];
 		XvtLog_FormatHexList(sums, sizeof sums, g_worldChecksum, REGIONS);
-		XvtLog_FormatHexList(lengths, sizeof lengths, g_peerChecksumRegionLengths, REGIONS);
+		XvtLog_FormatHexList(lengths, sizeof lengths, g_worldChecksumRegionLengths, REGIONS);
 		XVT_LOG_DEBUG("network.checksum tick=%d host=%d sums=\"%s\" lengths=\"%s\"", g_serverTickTime,
 					  NetSession_IsLocalHost() != 0, sums, lengths);
 	}
 	if (NetSession_IsLocalHost())
-		FlightNet_BroadcastWorldChecksum((const int*)g_worldChecksum, (const int*)g_peerChecksumRegionLengths,
-										 16);
-	FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum, (const int*)g_peerChecksumRegionLengths,
+		FlightNet_BroadcastWorldChecksum((const int*)g_worldChecksum,
+										 (const int*)g_worldChecksumRegionLengths, 16);
+	FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum, (const int*)g_worldChecksumRegionLengths,
 									  16);
 	g_flightNetBufferWorldMessagesUntilChecksum = 1;
 	FlightSync_SnapshotWorldStateForReplay();
@@ -478,7 +478,7 @@ static XvtFlightReplayResult XvtFlightFrame_Confirm(XvtFlightQueue queue) {
 	if (g_gameTime < target)
 		return XVT_REPLAY_PENDING;
 	for (unsigned i = 0; i < XVT_FLIGHT_PLAYERS; ++i)
-		if (g_players[i].connectedFlag && i != (unsigned)g_localPlayer)
+		if (g_players[i].participationState && i != (unsigned)g_localPlayer)
 			FlightView_UpdatePlayerCamera(i);
 	FlightView_UpdatePlayerCamera(g_localPlayer);
 	g_serverTickTime = g_gameTime;
@@ -527,7 +527,7 @@ static int XvtFlightFrame_NetworkUpdate(void) {
 		XvtFlightNetwork_FlushInput(g_inputTimestamp);
 		XvtFlightNetwork_FlushWorld();
 		FlightNet_ProcessIncomingPackets();
-		if (!g_players[g_localPlayer].connectedFlag || g_flightNetHostAbortReceived)
+		if (!g_players[g_localPlayer].participationState || g_flightNetHostAbortReceived)
 			return XvtFlightFrame_End(g_flightNetHostAbortReceived ? "host_abort" : "disconnected");
 		if (XvtResync_IsActive())
 			return 0;

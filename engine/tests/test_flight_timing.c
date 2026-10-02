@@ -17,7 +17,7 @@ static void Begin(XvtFlightTimingProfile profile) {
 	g_simStepsPerSecond = 0;
 	g_gameTime = 0;
 	g_netUpdateIntervalTicks = 0;
-	g_flightGlobalCountdownTimers.crewMeshRotationUpdateTimer = 0;
+	g_flightGlobalCountdownTimers.specialBehaviorUpdateTimer = 0;
 	XvtFlightTiming_BeginSession(profile);
 }
 
@@ -251,7 +251,7 @@ static void CheckRestoredAnimation(void) {
 	for (unsigned i = 0; i < sizeof ticks / sizeof ticks[0]; ++i) {
 		for (unsigned j = 0; j < sizeof timers / sizeof timers[0]; ++j) {
 			Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-			g_flightGlobalCountdownTimers.crewMeshRotationUpdateTimer = timers[j];
+			g_flightGlobalCountdownTimers.specialBehaviorUpdateTimer = timers[j];
 			XvtFlightTiming_RestoreNetworkTick(ticks[i]);
 			int time = XvtFlightTiming_AnimationTime();
 			XVT_ASSERT_TRUE(time >= 0);

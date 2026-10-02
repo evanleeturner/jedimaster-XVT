@@ -106,7 +106,7 @@ static void XvtFlightTask_ReleaseMission(int quitting) {
 	if (g_flight.optionsFailed)
 		nullsub_10();
 	if (g_flight.resources) {
-		FeDiskIo_FreeModelResources();
+		FeDiskIo_FreeFlightResources();
 		g_flight.resources = 0;
 	}
 	if (g_flight.missionEntered && !quitting && g_preFlightResolutionMode != g_flightResolutionMode)
@@ -151,7 +151,7 @@ static int XvtFlightTask_StartWorld(void) {
 	XvtFlightNetwork_ResetMission();
 	unsigned mask = 0;
 	for (unsigned i = 0; i < 8; ++i)
-		if (g_players[i].connectedFlag)
+		if (g_players[i].participationState)
 			mask |= 1u << i;
 	XvtFlightCheckpoint_Begin((uint8_t)mask);
 	g_flightStartupObjectPassState = 0;

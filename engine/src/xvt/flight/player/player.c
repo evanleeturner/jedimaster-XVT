@@ -130,7 +130,7 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 			craft->laserState.burstRemaining[weaponBank] = 0;
 			craft->laserState.nextSlot[weaponBank] = 0;
 			craft->laserState.fireCooldownTicks[weaponBank] = 0;
-			craft->laserState.lastFireTimestamp[weaponBank] = 0;
+			craft->laserState.nextFireTimestamp[weaponBank] = 0;
 			modelIndex = GetModelIndexFromType(g_objectTable[selectedObjectIdx].objectType);
 			if (craft->laserState.projectileTypeId[weaponBank] != 0 &&
 				g_modelDefs[modelIndex].laserGroupMountType[weaponBank] != GUNNER_LASER_MOUNT_TYPE) {
@@ -190,7 +190,7 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 	}
 	craft->shieldRechargeLevel = g_players[playerIdx].savedCraftSettings.shieldRechargeLevel;
 	craft->laserRechargeLevel = g_players[playerIdx].savedCraftSettings.laserRechargeLevel;
-	craft->beamLevel = g_players[playerIdx].savedCraftSettings.beamLevel;
+	craft->beamRechargeLevel = g_players[playerIdx].savedCraftSettings.beamLevel;
 
 	g_players[playerIdx].objectIndex = selectedObjectIdx;
 	g_players[playerIdx].boundObjectSignature = g_objectTable[selectedObjectIdx].objectSignature;
@@ -199,7 +199,7 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 	if (matchedPreferredSignature != 0 || previousObjectIdx != UINT32_MAX)
 		craft->throttleSpeed = g_players[playerIdx].savedCraftSettings.throttleSpeed;
 	if (matchedPreferredSignature == 0) {
-		g_players[playerIdx].selectedWarhead = 0;
+		g_players[playerIdx].selectedWeaponBank = 0;
 		g_players[playerIdx].selectedWeaponMode = 0;
 	}
 	g_players[playerIdx].targetCycleStart = -1;
@@ -227,7 +227,7 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 		g_players[playerIdx].currentTargetObjectIdx = -1;
 	Player_ValidateCurrentTargets(playerIdx);
 	g_players[playerIdx].missileLockState = 0;
-	craft->aiController.pendingPlanId = (uint8_t)pai_findplanbyname("nullpln");
+	craft->aiController.pendingPlanId = (uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
 	craft->aiController.targetObjIdx = UINT16_MAX;
 	g_players[playerIdx].pendingActionTimer = 0;
 	g_players[playerIdx].beamFireCooldownTimer = 0;
@@ -249,9 +249,9 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 	g_players[playerIdx].hardpointWorldX = g_rotatedX;
 	g_players[playerIdx].hardpointWorldY = g_rotatedY;
 	g_players[playerIdx].hardpointWorldZ = g_rotatedZ;
-	g_players[playerIdx].hardpointLocalX = g_players[playerIdx].hardpointWorldX;
-	g_players[playerIdx].hardpointLocalY = g_players[playerIdx].hardpointWorldY;
-	g_players[playerIdx].hardpointLocalZ = g_players[playerIdx].hardpointWorldZ;
+	g_players[playerIdx].prevHardpointWorldX = g_players[playerIdx].hardpointWorldX;
+	g_players[playerIdx].prevHardpointWorldY = g_players[playerIdx].hardpointWorldY;
+	g_players[playerIdx].prevHardpointWorldZ = g_players[playerIdx].hardpointWorldZ;
 	g_players[playerIdx].viewState.hudAimXSnapState = 0;
 	g_players[playerIdx].viewState.hudAimX = 0;
 	g_players[playerIdx].viewState.hudAimY = 0;
@@ -278,7 +278,7 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int
 		MAX_OWNED_CRAFT_WITHOUT_REPLACEMENT = 1,
 		WEAPON_BANK_COUNT = 2,
 		ORDER_SLOT_COUNT = 3,
-		WARHEAD_LINK_PRESERVE_MASK = 0x80,
+		WARHEAD_KEEP_SIDE_SELECT_MASK = 0x80,
 		WARHEAD_LINK_DEFAULT = 1,
 		ESCORT_THROTTLE_SPEED = 0x8000,
 	};
@@ -324,11 +324,11 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int
 		craft->laserState.burstRemaining[laserBank] = 0;
 		craft->laserState.nextSlot[laserBank] = 0;
 		craft->laserState.fireCooldownTicks[laserBank] = 0;
-		craft->laserState.lastFireTimestamp[laserBank] = 0;
+		craft->laserState.nextFireTimestamp[laserBank] = 0;
 	}
 	for (launcherIndex = 0; launcherIndex < WEAPON_BANK_COUNT; ++launcherIndex) {
 		craft->warheadLauncherFlags[launcherIndex] =
-			(int8_t)((craft->warheadLauncherFlags[launcherIndex] & WARHEAD_LINK_PRESERVE_MASK) |
+			(int8_t)((craft->warheadLauncherFlags[launcherIndex] & WARHEAD_KEEP_SIDE_SELECT_MASK) |
 					 WARHEAD_LINK_DEFAULT);
 		craft->warheadLauncherCooldownTicks[launcherIndex] = 0;
 	}
@@ -396,7 +396,7 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int
 			}
 		}
 	} else {
-		g_curCraft->aiController.pendingPlanId = (uint8_t)pai_findplanbyname("nullpln");
+		g_curCraft->aiController.pendingPlanId = (uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
 		g_curCraft->aiController.currentPlanId = g_curCraft->aiController.pendingPlanId;
 		g_curCraft = craft;
 		pai_setupcraftcontext((uint16_t)objectIdx);
@@ -418,7 +418,7 @@ void Player_SaveCraftSettings(int playerIndex) {
 	g_players[playerIndex].savedCraftSettings.throttleSpeed = craft->throttleSpeed;
 	g_players[playerIndex].savedCraftSettings.laserRechargeLevel = craft->laserRechargeLevel;
 	g_players[playerIndex].savedCraftSettings.shieldRechargeLevel = craft->shieldRechargeLevel;
-	g_players[playerIndex].savedCraftSettings.beamLevel = craft->beamLevel;
+	g_players[playerIndex].savedCraftSettings.beamLevel = craft->beamRechargeLevel;
 	g_players[playerIndex].savedCraftSettings.shieldDistribMode = craft->shieldDistribMode;
 	g_players[playerIndex].savedCraftSettings.laserLinkMode[0] = craft->laserState.linkMode[0];
 	g_players[playerIndex].savedCraftSettings.laserLinkMode[1] = craft->laserState.linkMode[1];
@@ -562,7 +562,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 			if ((uint16_t)g_scaledInputPitch >= 0x8000u)
 				desiredPitch = (int16_t)-desiredPitch;
 			if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS) == 0 ||
-				(craft->beamEffectAccum[1] != 0 && craft->chaffActiveTimer == 0)) {
+				(craft->beamEffectAccum[1] != 0 && craft->chaffActiveSeconds == 0)) {
 				desiredYaw = 0;
 				desiredPitch = 0;
 			}
@@ -662,7 +662,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 			independentRollStep = XvtFlightControls_RollStep(playerIdx, rollRate, keyMode ? yawStep : 0);
 #endif
 			if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS) == 0 ||
-				(craft->beamEffectAccum[1] != 0 && craft->chaffActiveTimer == 0)) {
+				(craft->beamEffectAccum[1] != 0 && craft->chaffActiveSeconds == 0)) {
 				yawStep = 0;
 				pitchStep = 0;
 #ifdef XVT_MODERN
@@ -719,13 +719,13 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 				}
 			} else {
 				if (g_players[playerIdx].viewState.cameraFocusObjIdx != UINT16_MAX) {
-					g_players[playerIdx].viewState.savedTargetX =
+					g_players[playerIdx].viewState.cameraWorldX =
 						g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].world_x;
-					g_players[playerIdx].viewState.savedTargetY =
+					g_players[playerIdx].viewState.cameraWorldY =
 						g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].world_y;
-					g_players[playerIdx].viewState.savedTargetZ =
+					g_players[playerIdx].viewState.cameraWorldZ =
 						g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].world_z;
-					g_players[playerIdx].viewState.savedTargetZ +=
+					g_players[playerIdx].viewState.cameraWorldZ +=
 						g_players[playerIdx].viewState.cameraDistance;
 				}
 				g_players[playerIdx].viewState.cameraFocusObjIdx = UINT16_MAX;
@@ -772,11 +772,11 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 #endif
 		;
 	if ((g_players[playerIdx].mapCameraState & MAP_CAMERA_DIRECTION_BIT) != 0) {
-		g_players[playerIdx].viewState.savedTargetX +=
-			yawStep * ((g_players[playerIdx].viewState.savedTargetZ >> CAMERA_DISTANCE_COORDINATE_SHIFT) + 1);
-		g_players[playerIdx].viewState.savedTargetY +=
+		g_players[playerIdx].viewState.cameraWorldX +=
+			yawStep * ((g_players[playerIdx].viewState.cameraWorldZ >> CAMERA_DISTANCE_COORDINATE_SHIFT) + 1);
+		g_players[playerIdx].viewState.cameraWorldY +=
 			pitchStep *
-			((g_players[playerIdx].viewState.savedTargetZ >> CAMERA_DISTANCE_COORDINATE_SHIFT) + 1);
+			((g_players[playerIdx].viewState.cameraWorldZ >> CAMERA_DISTANCE_COORDINATE_SHIFT) + 1);
 	} else {
 		if (g_players[playerIdx].viewState.cameraFocusObjIdx != UINT16_MAX) {
 			g_players[playerIdx].viewState.hudAimY += yawStep;
@@ -822,7 +822,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 	}
 
 	if (g_players[playerIdx].mapCameraState > 1) {
-		distance = g_players[playerIdx].viewState.savedTargetZ;
+		distance = g_players[playerIdx].viewState.cameraWorldZ;
 		cameraDistanceStep = &g_players[playerIdx].viewState.cameraDistanceStep;
 		if ((distance & ~1) > CAMERA_DISTANCE_LARGE_THRESHOLD)
 			*cameraDistanceStep = CAMERA_DISTANCE_LARGE_LIMIT;
@@ -844,9 +844,9 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 			targetObject = &g_objectTable[g_players[playerIdx].viewState.aimTargetIdx];
 			cameraDistanceStep = &g_players[playerIdx].viewState.cameraDistanceStep;
 			distance =
-				collide_roughdistance3d(targetObject->world_x - g_players[playerIdx].viewState.savedTargetX,
-										targetObject->world_y - g_players[playerIdx].viewState.savedTargetY,
-										targetObject->world_z - g_players[playerIdx].viewState.savedTargetZ);
+				collide_roughdistance3d(targetObject->world_x - g_players[playerIdx].viewState.cameraWorldX,
+										targetObject->world_y - g_players[playerIdx].viewState.cameraWorldY,
+										targetObject->world_z - g_players[playerIdx].viewState.cameraWorldZ);
 			if (distance <= CAMERA_DISTANCE_LARGE_LIMIT)
 				*cameraDistanceStep = (int16_t)distance;
 			else
@@ -991,7 +991,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 #endif
 			;
 		cameraMovementX = Math_MulQ15(cameraMovementX, cameraScaleX);
-		g_players[playerIdx].viewState.savedTargetX += cameraMovementX;
+		g_players[playerIdx].viewState.cameraWorldX += cameraMovementX;
 		cameraScaleY = g_camMatR2_Y;
 		cameraMovementY = (int16_t)
 #ifdef XVT_MODERN
@@ -1002,7 +1002,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 #endif
 			;
 		cameraMovementY = Math_MulQ15(cameraMovementY, cameraScaleY);
-		g_players[playerIdx].viewState.savedTargetY += cameraMovementY;
+		g_players[playerIdx].viewState.cameraWorldY += cameraMovementY;
 		cameraScaleZ = g_camMatR2_Z;
 		cameraMovementZ = (int16_t)
 #ifdef XVT_MODERN
@@ -1013,13 +1013,13 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 #endif
 			;
 		cameraMovementZ = Math_MulQ15(cameraMovementZ, cameraScaleZ);
-		g_players[playerIdx].viewState.savedTargetZ += cameraMovementZ;
+		g_players[playerIdx].viewState.cameraWorldZ += cameraMovementZ;
 		if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX) {
 			targetObject = &g_objectTable[g_players[playerIdx].viewState.aimTargetIdx];
 			distance =
-				collide_roughdistance3d(targetObject->world_x - g_players[playerIdx].viewState.savedTargetX,
-										targetObject->world_y - g_players[playerIdx].viewState.savedTargetY,
-										targetObject->world_z - g_players[playerIdx].viewState.savedTargetZ);
+				collide_roughdistance3d(targetObject->world_x - g_players[playerIdx].viewState.cameraWorldX,
+										targetObject->world_y - g_players[playerIdx].viewState.cameraWorldY,
+										targetObject->world_z - g_players[playerIdx].viewState.cameraWorldZ);
 			targetClearance =
 				g_modelTypeTable[g_objectTable[g_players[playerIdx].viewState.aimTargetIdx].objectType]
 					.maxBoundsExtent +
@@ -1033,30 +1033,30 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 				movement = distance - targetClearance;
 				clearanceScaleX = g_camMatR2_X;
 				clearanceMovementX = Math_MulQ15(movement, clearanceScaleX);
-				g_players[playerIdx].viewState.savedTargetX += clearanceMovementX;
+				g_players[playerIdx].viewState.cameraWorldX += clearanceMovementX;
 				clearanceScaleY = g_camMatR2_Y;
 				clearanceMovementY = Math_MulQ15(movement, clearanceScaleY);
-				g_players[playerIdx].viewState.savedTargetY += clearanceMovementY;
+				g_players[playerIdx].viewState.cameraWorldY += clearanceMovementY;
 				clearanceScaleZ = g_camMatR2_Z;
 				clearanceMovementZ = Math_MulQ15(movement, clearanceScaleZ);
-				g_players[playerIdx].viewState.savedTargetZ += clearanceMovementZ;
+				g_players[playerIdx].viewState.cameraWorldZ += clearanceMovementZ;
 			}
 		}
 		if (g_players[playerIdx].mapCameraState > 1 &&
-			g_players[playerIdx].viewState.savedTargetZ < CAMERA_MINIMUM)
-			g_players[playerIdx].viewState.savedTargetZ = CAMERA_MINIMUM;
-		if (g_players[playerIdx].viewState.savedTargetX < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetX = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.savedTargetX > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetX = CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.savedTargetY < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetY = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.savedTargetY > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetY = CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.savedTargetZ < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetZ = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.savedTargetZ > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetZ = CAMERA_WORLD_LIMIT;
+			g_players[playerIdx].viewState.cameraWorldZ < CAMERA_MINIMUM)
+			g_players[playerIdx].viewState.cameraWorldZ = CAMERA_MINIMUM;
+		if (g_players[playerIdx].viewState.cameraWorldX < -CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldX = -CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldX > CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldX = CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldY < -CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldY = -CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldY > CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldY = CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldZ < -CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldZ = -CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldZ > CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldZ = CAMERA_WORLD_LIMIT;
 	} else {
 		if (g_players[playerIdx].mapCameraState == 0) {
 			g_players[playerIdx].viewState.cameraDistance += (int16_t)
@@ -1099,7 +1099,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 #endif
 			;
 		reverseMovementX = Math_MulQ15(reverseMovementX, reverseScaleX);
-		g_players[playerIdx].viewState.savedTargetX -= reverseMovementX;
+		g_players[playerIdx].viewState.cameraWorldX -= reverseMovementX;
 		reverseScaleY = g_camMatR2_Y;
 		reverseMovementY = (int16_t)
 #ifdef XVT_MODERN
@@ -1110,7 +1110,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 #endif
 			;
 		reverseMovementY = Math_MulQ15(reverseMovementY, reverseScaleY);
-		g_players[playerIdx].viewState.savedTargetY -= reverseMovementY;
+		g_players[playerIdx].viewState.cameraWorldY -= reverseMovementY;
 		reverseScaleZ = g_camMatR2_Z;
 		reverseMovementZ = (int16_t)
 #ifdef XVT_MODERN
@@ -1121,19 +1121,19 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 #endif
 			;
 		reverseMovementZ = Math_MulQ15(reverseMovementZ, reverseScaleZ);
-		g_players[playerIdx].viewState.savedTargetZ -= reverseMovementZ;
-		if (g_players[playerIdx].viewState.savedTargetX < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetX = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.savedTargetX > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetX = CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.savedTargetY < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetY = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.savedTargetY > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetY = CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.savedTargetZ < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetZ = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.savedTargetZ > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.savedTargetZ = CAMERA_WORLD_LIMIT;
+		g_players[playerIdx].viewState.cameraWorldZ -= reverseMovementZ;
+		if (g_players[playerIdx].viewState.cameraWorldX < -CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldX = -CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldX > CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldX = CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldY < -CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldY = -CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldY > CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldY = CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldZ < -CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldZ = -CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldZ > CAMERA_WORLD_LIMIT)
+			g_players[playerIdx].viewState.cameraWorldZ = CAMERA_WORLD_LIMIT;
 	}
 }
 
@@ -1158,19 +1158,19 @@ void FlightChat_HandleInput(int playerIdx) {
 				player->msgText[messageLength + 1] = '\0';
 			}
 			msg_addMessagePtr(0, player->msgText);
-			msg_emitInFlightMessage((InFlightMessageId)((uint8_t)player->msgTypeId + IFMSG_374_FROM_ARG_ARG),
-									playerIdx);
+			msg_emitInFlightMessage(
+				(InFlightMessageId)((uint8_t)player->chatRecipientMode + IFMSG_374_FROM_ARG_ARG), playerIdx);
 			return;
 
 		case 9:
 			player = &g_players[playerIdx];
-			++player->msgTypeId;
-			if ((uint8_t)player->msgTypeId > FLIGHT_CHAT_RECIPIENT_ALL) {
-				player->msgTypeId = FLIGHT_CHAT_RECIPIENT_TEAM;
+			++player->chatRecipientMode;
+			if ((uint8_t)player->chatRecipientMode > FLIGHT_CHAT_RECIPIENT_ALL) {
+				player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_TEAM;
 			}
 			msg_addMessagePtr(0, player->msgText);
-			msg_emitInFlightMessage((InFlightMessageId)((uint8_t)player->msgTypeId + IFMSG_374_FROM_ARG_ARG),
-									playerIdx);
+			msg_emitInFlightMessage(
+				(InFlightMessageId)((uint8_t)player->chatRecipientMode + IFMSG_374_FROM_ARG_ARG), playerIdx);
 			return;
 
 		case 13:
@@ -1180,9 +1180,9 @@ void FlightChat_HandleInput(int playerIdx) {
 			msg_addMessagePtr(1, player->msgText);
 			for (recipientIndex = 0; recipientIndex < 8; ++recipientIndex) {
 				recipient = &g_players[recipientIndex];
-				if (recipient->connectedFlag != 0) {
+				if (recipient->participationState != 0) {
 					g_msgSenderIff = 3;
-					recipientMode = player->msgTypeId;
+					recipientMode = player->chatRecipientMode;
 					shouldSend = 0;
 					if (recipientMode == FLIGHT_CHAT_RECIPIENT_TEAM) {
 						if (player->team == recipient->team) {
@@ -1201,13 +1201,13 @@ void FlightChat_HandleInput(int playerIdx) {
 					}
 				}
 			}
-			player->msgTypeId = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+			player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
 			msg_emitInFlightMessage(IFMSG_378_MESSAGE_SENT, playerIdx);
 			return;
 
 		case 27:
 			player = &g_players[playerIdx];
-			player->msgTypeId = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+			player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
 			msg_emitInFlightMessage(IFMSG_379_MESSAGE_ABORTED, playerIdx);
 			return;
 
@@ -1222,9 +1222,9 @@ void FlightChat_HandleInput(int playerIdx) {
 			msg_addMessagePtr(1, tauntText);
 			for (recipientIndex = 0; recipientIndex < 8; ++recipientIndex) {
 				recipient = &g_players[recipientIndex];
-				if (recipient->connectedFlag != 0) {
+				if (recipient->participationState != 0) {
 					g_msgSenderIff = 3;
-					recipientMode = player->msgTypeId;
+					recipientMode = player->chatRecipientMode;
 					shouldSend = 0;
 					if (recipientMode == FLIGHT_CHAT_RECIPIENT_TEAM) {
 						if (player->team == recipient->team) {
@@ -1243,7 +1243,7 @@ void FlightChat_HandleInput(int playerIdx) {
 					}
 				}
 			}
-			player->msgTypeId = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+			player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
 			msg_emitInFlightMessage(IFMSG_378_MESSAGE_SENT, playerIdx);
 			return;
 
@@ -1259,13 +1259,15 @@ void FlightChat_HandleInput(int playerIdx) {
 				}
 				msg_addMessagePtr(0, player->msgText);
 				msg_emitInFlightMessage(
-					(InFlightMessageId)((uint8_t)player->msgTypeId + IFMSG_374_FROM_ARG_ARG), playerIdx);
+					(InFlightMessageId)((uint8_t)player->chatRecipientMode + IFMSG_374_FROM_ARG_ARG),
+					playerIdx);
 			} else if (playerIdx == g_localPlayer &&
 					   (int16_t)g_playerFlightTransientTimers[playerIdx].flightGroupMessagePaneTimer <
 						   SIMULATION_TICKS_PER_SECOND) {
 				msg_addMessagePtr(0, player->msgText);
 				msg_emitInFlightMessage(
-					(InFlightMessageId)((uint8_t)player->msgTypeId + IFMSG_374_FROM_ARG_ARG), playerIdx);
+					(InFlightMessageId)((uint8_t)player->chatRecipientMode + IFMSG_374_FROM_ARG_ARG),
+					playerIdx);
 			}
 			return;
 	}
@@ -1275,7 +1277,7 @@ void FlightChat_HandleInput(int playerIdx) {
 int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 	enum {
 		FLIGHT_GROUP_GOAL_COUNT = 8,
-		GOAL_STATE_COMPLETE = 4,
+		GOAL_STATE_PENDING = 4,
 		TRIGGER_CONDITION_NONE = 0,
 		TRIGGER_CONDITION_ALWAYS = 10,
 	};
@@ -1320,7 +1322,7 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 && goal->goalKind == (uint8_t)goalType &&
 				goal->points >= 0 &&
 				g_missionFgStats[g_objectTable[objectIdx].flightGroupIdx]
-						.goalState[FLIGHT_GROUP_GOAL_COUNT * playerTeam + goalIndex] == GOAL_STATE_COMPLETE) {
+						.goalState[FLIGHT_GROUP_GOAL_COUNT * playerTeam + goalIndex] == GOAL_STATE_PENDING) {
 				objective = 1;
 			}
 		}
@@ -1392,7 +1394,7 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 && goal->goalKind == (uint8_t)goalType &&
 				goal->points >= 0 &&
 				g_missionFgStats[flightGroupIdx]
-						.goalState[FLIGHT_GROUP_GOAL_COUNT * playerTeam + goalIndex] == GOAL_STATE_COMPLETE) {
+						.goalState[FLIGHT_GROUP_GOAL_COUNT * playerTeam + goalIndex] == GOAL_STATE_PENDING) {
 				Player_ComputePolarToObjectRef(playerIdx, objectIdx);
 				if (bestActionableRange > (unsigned int)trig2_polardistance) {
 					bestActionableRange = (unsigned int)trig2_polardistance;
@@ -1680,7 +1682,7 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 
 // FUNCTION: XVT 0x4833D0
 void Player_SetTarget(int newTargetObjIdx, int playerIdx) {
-	enum { FIRST_OPT_OBJECT_TYPE = 73 };
+	enum { OBJECT_TYPE_MESH_CACHE_COUNT = 73 };
 
 	int targetObjIdx;
 	int playerObjectIdx;
@@ -1714,7 +1716,7 @@ void Player_SetTarget(int newTargetObjIdx, int playerIdx) {
 
 					objectType =
 						g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx].objectType;
-					if (objectType < FIRST_OPT_OBJECT_TYPE)
+					if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT)
 						meshCount = g_objectTypeMeshCache[objectType].meshCount;
 					else
 						meshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
@@ -1725,7 +1727,7 @@ void Player_SetTarget(int newTargetObjIdx, int playerIdx) {
 						cachedMeshIndex = meshIndex;
 						objectType =
 							g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx].objectType;
-						if (objectType < FIRST_OPT_OBJECT_TYPE)
+						if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT)
 							meshType = ModelMesh_GetCachedObjectTypeMeshType(objectType, cachedMeshIndex);
 						else
 							meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshIndex);
@@ -1832,12 +1834,13 @@ uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int pl
 }
 
 // FUNCTION: XVT 0x483A00
-int16_t USER_calcdeltapitch(int16_t angleQ16, int16_t yawAngleQ16, uint16_t objectIndex, CraftData* craft) {
+int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16, uint16_t objectIndex,
+							CraftData* craft) {
 #ifdef XVT_MODERN
 	ObjectRecord* object = &g_objectTable[objectIndex];
 	XvtOrientationAngles current = { object->yaw, object->pitch, object->roll };
 	XvtOrientationAngles updated =
-		XvtOrientation_ApplyPitchYaw(current, angleQ16, (g_flightKeyMods & 0xE) == 2 ? 0 : yawAngleQ16);
+		XvtOrientation_ApplyPitchYaw(current, pitchAngleQ16, (g_flightKeyMods & 0xE) == 2 ? 0 : yawAngleQ16);
 	/* BoP also retains the commanded pitch in CraftData. Publish a coherent
 	 * orientation immediately, as XWA does, before the per-object step gate. */
 	craft->pitch = object->pitch = updated.pitch;
@@ -1876,7 +1879,7 @@ int16_t USER_calcdeltapitch(int16_t angleQ16, int16_t yawAngleQ16, uint16_t obje
 	g_curMatR0_X = g_objectTable[objectIndex].mobj->cachedSideX;
 	g_curMatR0_Y = g_objectTable[objectIndex].mobj->cachedSideY;
 	g_curMatR0_Z = g_objectTable[objectIndex].mobj->cachedSideZ;
-	FVIEW_transformaxes(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, angleQ16);
+	FVIEW_transformaxes(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, pitchAngleQ16);
 	if ((g_flightKeyMods & 0xE) != 2)
 		FVIEW_transformaxes(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, yawAngleQ16);
 
@@ -2120,7 +2123,7 @@ int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx, int16_t excludedObjId
 			}
 			playerOwnerIdx = g_objectTable[objectIdx].playerOwnerIdx;
 			if ((uint16_t)g_players[playerOwnerIdx].currentTargetObjectIdx == targetObjIdx) {
-				pai_ObjectRefUpdateApproxRangeScore(objectIdx, targetObjIdx);
+				pai_ObjectRefUpdateRoughDistance(objectIdx, targetObjIdx);
 				if (g_lastRoughDistance < 0x10000 && Targeting_TestAimCone(targetObjIdx, 0, playerOwnerIdx))
 					qualifies = 1;
 				if (craft->warheadLockTicks != 0)
@@ -2155,12 +2158,12 @@ void Player_StartPostDestructionState(int playerIdx, unsigned int sourceObjectIn
 			Hud_ClearReadyMessageQueue();
 	} else {
 		g_players[playerIdx].viewState.cameraFocusObjIdx = UINT16_MAX;
-		g_players[playerIdx].viewState.savedTargetX =
+		g_players[playerIdx].viewState.cameraWorldX =
 			g_objectTable[g_players[playerIdx].objectIndex].mobj->prevWorldX;
-		g_players[playerIdx].viewState.savedTargetY =
+		g_players[playerIdx].viewState.cameraWorldY =
 			g_objectTable[g_players[playerIdx].objectIndex].mobj->prevWorldY;
 		localPlayer = g_localPlayer;
-		g_players[playerIdx].viewState.savedTargetZ =
+		g_players[playerIdx].viewState.cameraWorldZ =
 			g_objectTable[g_players[playerIdx].objectIndex].mobj->prevWorldZ;
 		g_players[playerIdx].viewState.externalCameraActive = 1;
 		g_players[playerIdx].viewState.playerInputBlocked = 1;
@@ -2243,20 +2246,20 @@ void Player_AppendKillMessageActorName(int slot, char* text, int objectIndex) {
 // FUNCTION: XVT 0x485000
 void Player_ComputePolarToObjectRef(int playerIdx, unsigned int objectRef) {
 	unsigned int objectIndex;
-	int savedTargetX;
-	int savedTargetY;
-	int savedTargetZ;
+	int deltaX;
+	int deltaY;
+	int deltaZ;
 
 	objectIndex = g_players[playerIdx].objectIndex;
 	if (objectIndex == UINT32_MAX) {
 		Mission_ResolveObjectOrMissionPointWorldLoc(objectRef, 0);
-		savedTargetX = g_players[playerIdx].viewState.savedTargetX;
-		savedTargetY = g_players[playerIdx].viewState.savedTargetY;
-		savedTargetZ = g_players[playerIdx].viewState.savedTargetZ;
-		savedTargetX = g_worldLocX - savedTargetX;
-		savedTargetY = worldlocy - savedTargetY;
-		savedTargetZ = worldlocz - savedTargetZ;
-		trig2_ctop(savedTargetX, savedTargetY, savedTargetZ);
+		deltaX = g_players[playerIdx].viewState.cameraWorldX;
+		deltaY = g_players[playerIdx].viewState.cameraWorldY;
+		deltaZ = g_players[playerIdx].viewState.cameraWorldZ;
+		deltaX = g_worldLocX - deltaX;
+		deltaY = g_worldLocY - deltaY;
+		deltaZ = g_worldLocZ - deltaZ;
+		trig2_ctop(deltaX, deltaY, deltaZ);
 	} else {
 		pai_ObjectRefDirectionToObjectRef(objectIndex, objectRef);
 	}
@@ -2274,10 +2277,10 @@ void Player_EndFlightParticipation(int playerIdx) {
 	unsigned int activePlayerCount;
 	unsigned int playerIndex;
 
-	g_players[playerIdx].connectedFlag = PLAYER_DISCONNECTED;
+	g_players[playerIdx].participationState = PLAYER_DISCONNECTED;
 	activePlayerCount = 0;
 	for (playerIndex = 0; playerIndex < sizeof(g_players) / sizeof(g_players[0]); ++playerIndex) {
-		if (g_players[playerIndex].connectedFlag == PLAYER_CONNECTED)
+		if (g_players[playerIndex].participationState == PLAYER_CONNECTED)
 			++activePlayerCount;
 	}
 	if (activePlayerCount != 0) {
@@ -2288,11 +2291,11 @@ void Player_EndFlightParticipation(int playerIdx) {
 		g_players[playerIdx].viewState.cameraDistance = EXTERNAL_CAMERA_INITIAL_DISTANCE;
 		g_players[playerIdx].viewState.cameraFocusObjIdx = UINT16_MAX;
 		g_players[playerIdx].viewState.aimTargetIdx = UINT16_MAX;
-		g_players[playerIdx].viewState.savedTargetZ = EXTERNAL_CAMERA_INITIAL_DISTANCE;
+		g_players[playerIdx].viewState.cameraWorldZ = EXTERNAL_CAMERA_INITIAL_DISTANCE;
 		if ((uint16_t)g_players[playerIdx].currentTargetObjectIdx != UINT16_MAX) {
-			g_players[playerIdx].viewState.savedTargetX =
+			g_players[playerIdx].viewState.cameraWorldX =
 				g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx].world_x;
-			g_players[playerIdx].viewState.savedTargetY =
+			g_players[playerIdx].viewState.cameraWorldY =
 				g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx].world_y;
 			g_players[playerIdx].viewState.cameraDistance =
 				CAMERA_TARGET_EXTENT_SCALE *
@@ -2322,11 +2325,11 @@ void Player_EmitRemotePlayerDepartedMessages(int playerIdx) {
 		msg_emitInFlightMessage(IFMSG_381_ARG_HAS_NO_MORE_CRAFT_AND_IS_OUT_OF_THE_MISSION, g_localPlayer);
 		connectedCount = 0;
 		for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
-			if (g_players[playerIndex].connectedFlag == 1) {
+			if (g_players[playerIndex].participationState == 1) {
 				++connectedCount;
 			}
 		}
-		if (g_players[g_localPlayer].connectedFlag == 1) {
+		if (g_players[g_localPlayer].participationState == 1) {
 			if (connectedCount == 1) {
 				msg_emitInFlightMessage(IFMSG_383_YOU_ARE_THE_ONLY_PLAYER_LEFT, g_localPlayer);
 			} else {
@@ -2393,7 +2396,7 @@ void Player_ValidateAllCurrentTargets(void) {
 	unsigned int playerIdx;
 
 	for (playerIdx = 0; playerIdx < sizeof(g_players) / sizeof(g_players[0]); ++playerIdx) {
-		if (g_players[playerIdx].connectedFlag != 0)
+		if (g_players[playerIdx].participationState != 0)
 			Player_ValidateCurrentTargets((int)playerIdx);
 	}
 }
@@ -2444,7 +2447,7 @@ void Player_UpdateParticipationState(void) {
 		PlayerData* player;
 
 		player = &g_players[playerIdx];
-		if (player->connectedFlag != 0) {
+		if (player->participationState != 0) {
 			if (player->awaitingNewCraft != 0) {
 				if (g_flightSimSideEffectsSuppressed == 0 && player->objectIndex != -1) {
 					ObjectRecord* object;
@@ -2462,7 +2465,7 @@ void Player_UpdateParticipationState(void) {
 					}
 				}
 			} else if (player->mapCameraState != 0 &&
-					   player->connectedFlag != PLAYER_DISCONNECTED_PENDING_DEPARTURE &&
+					   player->participationState != PLAYER_DISCONNECTED_PENDING_DEPARTURE &&
 					   g_flightSimSideEffectsSuppressed == 0 &&
 					   Player_HasAvailableOwnedCraft((int)playerIdx) == 0) {
 				Mission_ProcessFlightGroupWaveCompletion(player->boundFlightGroupIdx);
@@ -2477,12 +2480,12 @@ void Player_UpdateParticipationState(void) {
 	if (g_flightSimSideEffectsSuppressed == 0) {
 		for (playerIdx = 0; playerIdx < sizeof(g_playerAbortFlags) / sizeof(g_playerAbortFlags[0]);
 			 ++playerIdx) {
-			if (g_playerAbortFlags[playerIdx] != 0 && g_players[playerIdx].connectedFlag != 0) {
+			if (g_playerAbortFlags[playerIdx] != 0 && g_players[playerIdx].participationState != 0) {
 				if (g_players[playerIdx].objectIndex != -1)
 					Player_UnbindFromCurrentCraft((int)playerIdx, 0, 1);
 				if (g_localPlayer == (int)playerIdx)
 					g_flightMissionState.missionEndPending = 1;
-				g_players[playerIdx].connectedFlag = 0;
+				g_players[playerIdx].participationState = 0;
 				Flight_UpdateActivePlayerCount();
 				if (NetSession_GetHostDplayId() != g_players[playerIdx].network.directPlayId)
 					FlightNet_MarkPilotNetworkPlayerLeft((int)playerIdx);
@@ -2587,7 +2590,7 @@ void Player_HandleHyperspaceCommand(struct CraftData* craft, unsigned int player
 		if ((craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0) {
 			if (g_flightMissionState.provingGroundsModeActive != 0) {
 				g_flightMissionState.missionEndPending = 1;
-				g_players[playerIdx].connectedFlag = PLAYER_CONNECTED_PENDING_DEPARTURE;
+				g_players[playerIdx].participationState = PLAYER_CONNECTED_PENDING_DEPARTURE;
 			} else if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0) {
 				int16_t scanObjectIdx;
 				int16_t interdictorPresent;

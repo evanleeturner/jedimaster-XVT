@@ -22,7 +22,7 @@ static void XvtFlightNetwork_AnswerClockProbe(int senderDpid, const int* packet)
 	XvtFlightNetwork_SendPacket(senderDpid, (unsigned int*)&g_flightNetScratchPacket,
 								PACKET_CLOCK_PROBE_REPLY_SIZE);
 	targetLead = packet[2];
-	if (g_asyncFlag == 0 || g_flightNetSmallSessionPlayerThreshold > g_activeFlightPlayerCount) {
+	if (g_internetPlayEnabled == 0 || g_flightNetSmallSessionPlayerThreshold > g_activeFlightPlayerCount) {
 		targetLead >>= 1;
 	}
 	if (g_flightNetClockLeadTicks < targetLead) {
@@ -82,13 +82,13 @@ static int XvtFlightNetwork_Control(int senderDpid, int* packet) {
 			return 0;
 		}
 		case NET_PACKET_WORLD_CHECKSUM:
-			if (g_players[NetSession_FindPlayerSlotByDpid(senderDpid)].connectedFlag)
+			if (g_players[NetSession_FindPlayerSlotByDpid(senderDpid)].participationState)
 				XvtResync_DeferChecksum(senderDpid, packet);
 			return 0;
 		case NET_PACKET_SESSION_ABORT:
 			g_flightNetHostAbortReceived = 1;
 			g_flightMissionState.missionEndPending = 1;
-			g_players[g_localPlayer].connectedFlag = 0;
+			g_players[g_localPlayer].participationState = 0;
 			return 1;
 		case NET_PACKET_RESYNC_CHUNK_ACK: {
 			unsigned int chunkIndex;
@@ -116,7 +116,7 @@ static int XvtFlightNetwork_Control(int senderDpid, int* packet) {
 				return 0;
 			}
 			g_flightMissionState.missionEndPending = 1;
-			g_players[g_localPlayer].connectedFlag = 0;
+			g_players[g_localPlayer].participationState = 0;
 			g_playerAbortFlags[g_localPlayer] = 1;
 			FlightNet_MarkPilotNetworkPlayerLeft(g_localPlayer);
 			return 1;
@@ -132,7 +132,7 @@ static int XvtFlightNetwork_Control(int senderDpid, int* packet) {
 			if (g_flightNetPendingAckCount != 0) {
 				--g_flightNetPendingAckCount;
 				if (g_flightNetPendingAckCount == 0) {
-					g_flightNetNextWorldMessageTimestamp = 0;
+					g_flightNetWorldMessageTurnTimestamp = 0;
 					return 1;
 				}
 			}
@@ -146,7 +146,7 @@ static int XvtFlightNetwork_Control(int senderDpid, int* packet) {
 			} else {
 				int playerIndex = NetSession_FindPlayerSlotByDpid(senderDpid);
 
-				if (g_players[playerIndex].connectedFlag != 0 &&
+				if (g_players[playerIndex].participationState != 0 &&
 					g_flightNetPeerSilenceTicks[playerIndex] > 0) {
 					g_flightNetPeerSilenceTicks[playerIndex] = 0;
 				}
@@ -164,7 +164,7 @@ static int XvtFlightNetwork_Control(int senderDpid, int* packet) {
 }
 
 void XvtFlightNetwork_ProcessPackets(void) {
-	if (!XvtFlightNetwork_Cookie() || !g_players[g_localPlayer].connectedFlag)
+	if (!XvtFlightNetwork_Cookie() || !g_players[g_localPlayer].participationState)
 		return;
 	int currentTimestamp = g_inputTimestamp + (int)Time_ConsumeElapsedTicks();
 	while (XvtFlightNetwork_TakePacketBudget()) {

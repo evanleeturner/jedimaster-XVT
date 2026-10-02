@@ -133,7 +133,7 @@ int fsfx_LoadSfxList(char* fileNameBuffer, uint16_t firstSoundId) {
 	char* lineEnd;
 	uint16_t loadedCount = 0;
 
-	if (File_OpenGlobalStream(fileNameBuffer, "rb", 0, 0) == 0)
+	if (FeDiskIo_OpenGlobalStream(fileNameBuffer, "rb", 0, 0) == 0)
 		return 0;
 	stream = (XvtFile*)g_stream;
 	while (File_Gets(buffer, sizeof(buffer), stream) != NULL) {
@@ -443,17 +443,17 @@ unsigned int fsfx_ComputeSourceVolume(int objOrMissionPointRef, unsigned int sou
 	}
 	if (g_objectTable[objOrMissionPointRef].mobj != NULL) {
 		listener = &g_players[g_localPlayer];
-		deltaX = g_objectTable[objOrMissionPointRef].mobj->prevWorldX - listener->viewState.savedTargetX;
-		deltaY = g_objectTable[objOrMissionPointRef].mobj->prevWorldY - listener->viewState.savedTargetY;
+		deltaX = g_objectTable[objOrMissionPointRef].mobj->prevWorldX - listener->viewState.cameraWorldX;
+		deltaY = g_objectTable[objOrMissionPointRef].mobj->prevWorldY - listener->viewState.cameraWorldY;
 		worldZ = g_objectTable[objOrMissionPointRef].mobj->prevWorldZ;
 	} else {
 		Mission_ResolveObjectOrMissionPointWorldLoc(objOrMissionPointRef, 0);
 		listener = &g_players[g_localPlayer];
-		deltaX = g_worldLocX - listener->viewState.savedTargetX;
-		deltaY = worldlocy - listener->viewState.savedTargetY;
-		worldZ = worldlocz;
+		deltaX = g_worldLocX - listener->viewState.cameraWorldX;
+		deltaY = g_worldLocY - listener->viewState.cameraWorldY;
+		worldZ = g_worldLocZ;
 	}
-	distance = collide_roughdistance3d(deltaX, deltaY, worldZ - listener->viewState.savedTargetZ);
+	distance = collide_roughdistance3d(deltaX, deltaY, worldZ - listener->viewState.cameraWorldZ);
 	scaledDistance = distance >> 2;
 	if (scaledDistance >= minDistance)
 		return 0;
@@ -490,14 +490,14 @@ int fsfx_ComputeSourcePan(int objOrMissionPointRef, int* volume) {
 
 	sourceMobileObject = g_objectTable[objOrMissionPointRef].mobj;
 	if (sourceMobileObject != NULL) {
-		dx = sourceMobileObject->prevWorldX - g_players[g_localPlayer].viewState.savedTargetX;
-		dy = sourceMobileObject->prevWorldY - g_players[g_localPlayer].viewState.savedTargetY;
-		dz = sourceMobileObject->prevWorldZ - g_players[g_localPlayer].viewState.savedTargetZ;
+		dx = sourceMobileObject->prevWorldX - g_players[g_localPlayer].viewState.cameraWorldX;
+		dy = sourceMobileObject->prevWorldY - g_players[g_localPlayer].viewState.cameraWorldY;
+		dz = sourceMobileObject->prevWorldZ - g_players[g_localPlayer].viewState.cameraWorldZ;
 	} else {
 		Mission_ResolveObjectOrMissionPointWorldLoc(objOrMissionPointRef, 0);
-		dz = worldlocz - g_players[g_localPlayer].viewState.savedTargetZ;
-		dx = g_worldLocX - g_players[g_localPlayer].viewState.savedTargetX;
-		dy = worldlocy - g_players[g_localPlayer].viewState.savedTargetY;
+		dz = g_worldLocZ - g_players[g_localPlayer].viewState.cameraWorldZ;
+		dx = g_worldLocX - g_players[g_localPlayer].viewState.cameraWorldX;
+		dy = g_worldLocY - g_players[g_localPlayer].viewState.cameraWorldY;
 	}
 
 	angleY = (int16_t)Math_Dot3Q15Wrapped((int16_t)dx, (int16_t)dy, (int16_t)dz, g_camMatR0_X, g_camMatR0_Y,
@@ -727,7 +727,7 @@ void fsfx_UpdateChaffLoop(void) {
 		volume = 13 * interiorVolume;
 	volume /= 4;
 
-	if (craft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF && craft->chaffActiveTimer != 0) {
+	if (craft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF && craft->chaffActiveSeconds != 0) {
 		if (Sound_GetParam(19, 256) == 0)
 			Sound_QueueEffect(g_fsfxSfxNameTable[19], 1, 1, 125, volume, 64);
 	} else if (Sound_GetParam(19, 256) != 0) {

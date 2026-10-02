@@ -127,7 +127,7 @@ static void CheckReplayBuffered(void) {
 static void CheckResetReplay(void) {
 	/* ResetReplay resets the flight simulation, which forgets the prediction fallback (flight_sim.h). */
 	Clocks(XVT_FLIGHT_TIMING_NETWORK_125);
-	g_players[1].connectedFlag = 1;
+	g_players[1].participationState = 1;
 	FlightInputFrameRecord input;
 	memset(&input, 0, sizeof input);
 	input.axisX = 20;

@@ -36,7 +36,7 @@ uint8_t g_flightFontHasLowercase = 0;
 // GLOBAL: XVT 0x9A20AE
 uint8_t g_flightFontLineHeight = 0;
 // GLOBAL: XVT 0x9ED232
-uint8_t g_flightFontHalfHeight = 0;
+uint8_t g_flightFontDigitWidth = 0;
 // GLOBAL: XVT 0x9D7674
 uint8_t* g_flightFontGlyphTableSw = 0;
 // GLOBAL: XVT 0x9D8C02
@@ -69,7 +69,7 @@ uint8_t g_flightTextShadowEnabled = 0;
 // FUNCTION: XVT 0x40F050
 void FlightText_DrawNarrowGlyph8bpp(uint8_t ch) {
 	uint16_t glyphAdvance;
-	int lineHeight;
+	int glyphRowCount;
 	int glyphWidth;
 	uint8_t glyphHeight;
 	uint16_t wrapLineHeight;
@@ -80,7 +80,7 @@ void FlightText_DrawNarrowGlyph8bpp(uint8_t ch) {
 	uint8_t normalizedChar;
 	int drawX;
 	int pixelCount;
-	int directFramebuffer;
+	int addressEachRowSeparately;
 	uint8_t glyphBits;
 	uint8_t shadowBits;
 	uint8_t paletteIndex;
@@ -120,7 +120,7 @@ void FlightText_DrawNarrowGlyph8bpp(uint8_t ch) {
 	XvtCockpitMessages_RecordGlyph(normalizedChar, glyphAdvance, glyphHeight, 1);
 #endif
 	shadowBits = 0;
-	directFramebuffer = 0;
+	addressEachRowSeparately = 0;
 	line = g_flightCursorY;
 	if (line < g_flightClipTop)
 		line = g_flightClipTop;
@@ -140,18 +140,18 @@ void FlightText_DrawNarrowGlyph8bpp(uint8_t ch) {
 		if (clippedBottom > g_flightClipBottom)
 			clippedBottom = g_flightClipBottom;
 		if (lineOffset + g_surfacePitch * (clippedBottom - line) > 0xFFFF)
-			directFramebuffer = 1;
+			addressEachRowSeparately = 1;
 	}
 #endif
 	if (g_flightSwFramebufferBase != g_swFramebufferBase)
-		directFramebuffer = 1;
+		addressEachRowSeparately = 1;
 
-	if (directFramebuffer == 0) {
+	if (addressEachRowSeparately == 0) {
 		destination = g_flightSwFramebufferBase + lineOffset;
 		wrapLineHeight = glyphHeight;
 		line = g_flightCursorY;
-		lineHeight = wrapLineHeight;
-		if (g_flightCursorY + lineHeight > line) {
+		glyphRowCount = wrapLineHeight;
+		if (g_flightCursorY + glyphRowCount > line) {
 			do {
 				pixelCount = glyphWidth;
 				glyphBits = *rowData;
@@ -192,13 +192,13 @@ void FlightText_DrawNarrowGlyph8bpp(uint8_t ch) {
 				rowData += 2;
 				++line;
 				shadowBits >>= 1;
-			} while (lineHeight + g_flightCursorY > line);
+			} while (glyphRowCount + g_flightCursorY > line);
 		}
 	} else {
 		line = g_flightCursorY;
 		wrapLineHeight = glyphHeight;
-		lineHeight = wrapLineHeight;
-		if (g_flightCursorY + lineHeight > line) {
+		glyphRowCount = wrapLineHeight;
+		if (g_flightCursorY + glyphRowCount > line) {
 			do {
 				pixelCount = glyphWidth;
 				glyphBits = *rowData;
@@ -249,7 +249,7 @@ void FlightText_DrawNarrowGlyph8bpp(uint8_t ch) {
 				rowData += 2;
 				++line;
 				shadowBits >>= 1;
-			} while (lineHeight + g_flightCursorY > line);
+			} while (glyphRowCount + g_flightCursorY > line);
 		}
 	}
 
@@ -263,9 +263,9 @@ void FlightText_DrawNarrowGlyph8bpp(uint8_t ch) {
 }
 
 // FUNCTION: XVT 0x40F520
-void FlightText_DrawSoftwareGlyph8bpp(uint8_t ch) {
+void FlightText_DrawWideGlyph8bpp(uint8_t ch) {
 	uint16_t glyphAdvance;
-	int lineHeight;
+	int glyphRowCount;
 	int glyphWidth;
 	uint8_t glyphHeight;
 	uint16_t wrapLineHeight;
@@ -276,7 +276,7 @@ void FlightText_DrawSoftwareGlyph8bpp(uint8_t ch) {
 	uint8_t normalizedChar;
 	int drawX;
 	int pixelCount;
-	int directFramebuffer;
+	int addressEachRowSeparately;
 	uint32_t glyphBits;
 	uint32_t shadowBits;
 	uint8_t paletteIndex;
@@ -311,7 +311,7 @@ void FlightText_DrawSoftwareGlyph8bpp(uint8_t ch) {
 		g_flightCursorY += glyphHeight + 2;
 	}
 
-	directFramebuffer = 0;
+	addressEachRowSeparately = 0;
 #ifdef XVT_MODERN
 	XvtCockpitPages_RecordGlyph(normalizedChar, glyphAdvance, glyphHeight, 0);
 	XvtCockpitMessages_RecordGlyph(normalizedChar, glyphAdvance, glyphHeight, 0);
@@ -336,18 +336,18 @@ void FlightText_DrawSoftwareGlyph8bpp(uint8_t ch) {
 		if (clippedBottom > g_flightClipBottom)
 			clippedBottom = g_flightClipBottom;
 		if (lineOffset + g_surfacePitch * (clippedBottom - line) > 0xFFFF)
-			directFramebuffer = 1;
+			addressEachRowSeparately = 1;
 	}
 #endif
 	if (g_flightSwFramebufferBase != g_swFramebufferBase)
-		directFramebuffer = 1;
+		addressEachRowSeparately = 1;
 
-	if (directFramebuffer == 0) {
+	if (addressEachRowSeparately == 0) {
 		destination = g_flightSwFramebufferBase + lineOffset;
 		wrapLineHeight = glyphHeight;
 		line = g_flightCursorY;
-		lineHeight = wrapLineHeight;
-		if (g_flightCursorY + lineHeight > line) {
+		glyphRowCount = wrapLineHeight;
+		if (g_flightCursorY + glyphRowCount > line) {
 			do {
 				pixelCount = glyphWidth;
 #ifdef XVT_MODERN
@@ -396,13 +396,13 @@ void FlightText_DrawSoftwareGlyph8bpp(uint8_t ch) {
 				rowData += 8;
 				++line;
 				shadowBits >>= 1;
-			} while (lineHeight + g_flightCursorY > line);
+			} while (glyphRowCount + g_flightCursorY > line);
 		}
 	} else {
 		line = g_flightCursorY;
 		wrapLineHeight = glyphHeight;
-		lineHeight = wrapLineHeight;
-		if (g_flightCursorY + lineHeight > line) {
+		glyphRowCount = wrapLineHeight;
+		if (g_flightCursorY + glyphRowCount > line) {
 			do {
 				pixelCount = glyphWidth;
 #ifdef XVT_MODERN
@@ -461,7 +461,7 @@ void FlightText_DrawSoftwareGlyph8bpp(uint8_t ch) {
 				rowData += 8;
 				++line;
 				shadowBits >>= 1;
-			} while (lineHeight + g_flightCursorY > line);
+			} while (glyphRowCount + g_flightCursorY > line);
 		}
 	}
 
@@ -515,7 +515,7 @@ int16_t FlightText_GetWrapHeightForString(const char* str) {
 }
 
 // FUNCTION: XVT 0x4277F0
-void FlightText_DrawDecimalNumber(uint16_t value, unsigned int width, unsigned int minDigits) {
+void FlightText_DrawDecimalNumber(uint16_t value, unsigned int digitCount, unsigned int minDigits) {
 	uint16_t savedShadow;
 	uint16_t savedColor;
 	unsigned int digitIndex;
@@ -528,7 +528,7 @@ void FlightText_DrawDecimalNumber(uint16_t value, unsigned int width, unsigned i
 		savedColor = g_flightTextColorIndex;
 		g_flightTextShadowEnabled = 0;
 		FlightText_SetColor('@');
-		for (digitIndex = width; digitIndex != 0; --digitIndex) {
+		for (digitIndex = digitCount; digitIndex != 0; --digitIndex) {
 			g_flightDrawCharFn('0');
 		}
 		g_flightTextShadowEnabled = savedShadow;
@@ -537,7 +537,7 @@ void FlightText_DrawDecimalNumber(uint16_t value, unsigned int width, unsigned i
 	}
 
 	started = 0;
-	for (digitIndex = width; digitIndex != 0; --digitIndex) {
+	for (digitIndex = digitCount; digitIndex != 0; --digitIndex) {
 		divisor = g_flightTextDecimalDivisors[digitIndex];
 		digit = value / divisor;
 		divisor *= digit;
@@ -594,7 +594,7 @@ void FlightText_DrawNarrowGlyph(uint8_t ch) {
 	const uint8_t* rowData;
 	int16_t glyphAdvance;
 	int16_t wrapLineHeight;
-	int lineHeight;
+	int glyphRowCount;
 	int glyphWidth;
 	int line;
 	int drawX;
@@ -609,7 +609,7 @@ void FlightText_DrawNarrowGlyph(uint8_t ch) {
 
 	if (ch == '\n') {
 		if (g_flightClearLineBgEnabled != 0)
-			FlightText_ClearLineRemainder();
+			FlightText_ClearRemainingLineBackground();
 		g_flightCursorX = g_flightClipLeft;
 		g_flightCursorY += g_flightFontLineHeight;
 		return;
@@ -627,7 +627,7 @@ void FlightText_DrawNarrowGlyph(uint8_t ch) {
 	glyphWidth = glyphAdvance;
 	if (glyphWidth + g_flightCursorX >= g_flightClipRight && g_flightWordWrapEnabled != 0) {
 		if (g_flightClearLineBgEnabled != 0)
-			FlightText_ClearLineRemainder();
+			FlightText_ClearRemainingLineBackground();
 		g_flightCursorX = g_flightClipLeft;
 		g_flightCursorY += glyphHeight + 2;
 	}
@@ -639,8 +639,8 @@ void FlightText_DrawNarrowGlyph(uint8_t ch) {
 	shadowBits = 0;
 	line = g_flightCursorY;
 	wrapLineHeight = glyphHeight;
-	lineHeight = glyphHeight;
-	if (lineHeight + g_flightCursorY > line) {
+	glyphRowCount = glyphHeight;
+	if (glyphRowCount + g_flightCursorY > line) {
 		do {
 			pixelCount = glyphWidth;
 			glyphBits = *rowData;
@@ -699,20 +699,20 @@ void FlightText_DrawNarrowGlyph(uint8_t ch) {
 			shadowBits = *rowData >> 1;
 			rowData += 2;
 			++line;
-		} while (lineHeight + g_flightCursorY > line);
+		} while (glyphRowCount + g_flightCursorY > line);
 	}
 
 	g_flightCursorX += glyphAdvance;
 	if (g_flightClipRight <= g_flightCursorX && g_flightWordWrapEnabled != 0) {
 		if (g_flightClearLineBgEnabled != 0)
-			FlightText_ClearLineRemainder();
+			FlightText_ClearRemainingLineBackground();
 		g_flightCursorX = g_flightClipLeft;
 		g_flightCursorY += wrapLineHeight + 2;
 	}
 }
 
 // FUNCTION: XVT 0x44A270
-void FlightText_DrawSoftwareGlyph(uint8_t ch) {
+void FlightText_DrawWideGlyph(uint8_t ch) {
 	uint8_t normalizedChar;
 	uint8_t glyphHeight;
 	const uint8_t* glyphData;
@@ -724,7 +724,7 @@ void FlightText_DrawSoftwareGlyph(uint8_t ch) {
 	int16_t glyphAdvance;
 	int16_t wrapLineHeight;
 	int glyphWidth;
-	int lineHeight;
+	int glyphRowCount;
 	int line;
 	int drawX;
 	int pixelCount;
@@ -740,7 +740,7 @@ void FlightText_DrawSoftwareGlyph(uint8_t ch) {
 
 	if (ch == '\n') {
 		if (g_flightClearLineBgEnabled != 0)
-			FlightText_ClearLineRemainder();
+			FlightText_ClearRemainingLineBackground();
 		g_flightCursorX = g_flightClipLeft;
 		g_flightCursorY += g_flightFontLineHeight + 1;
 		return;
@@ -764,7 +764,7 @@ void FlightText_DrawSoftwareGlyph(uint8_t ch) {
 	glyphWidth = glyphAdvance;
 	if (glyphWidth + g_flightCursorX >= g_flightClipRight && g_flightWordWrapEnabled != 0) {
 		if (g_flightClearLineBgEnabled != 0)
-			FlightText_ClearLineRemainder();
+			FlightText_ClearRemainingLineBackground();
 		g_flightCursorX = g_flightClipLeft;
 		g_flightCursorY += glyphHeight + 2;
 	}
@@ -776,8 +776,8 @@ void FlightText_DrawSoftwareGlyph(uint8_t ch) {
 	shadowBits = 0;
 	wrapLineHeight = glyphHeight;
 	line = g_flightCursorY;
-	lineHeight = glyphHeight;
-	if (g_flightCursorY + lineHeight > g_flightCursorY) {
+	glyphRowCount = glyphHeight;
+	if (g_flightCursorY + glyphRowCount > g_flightCursorY) {
 		do {
 			pixelCount = glyphWidth;
 #ifdef XVT_MODERN
@@ -846,20 +846,20 @@ void FlightText_DrawSoftwareGlyph(uint8_t ch) {
 #endif
 			++line;
 			shadowBits >>= 1;
-		} while (lineHeight + g_flightCursorY > line);
+		} while (glyphRowCount + g_flightCursorY > line);
 	}
 
 	g_flightCursorX += glyphAdvance;
 	if (g_flightClipRight <= g_flightCursorX && g_flightWordWrapEnabled != 0) {
 		if (g_flightClearLineBgEnabled != 0)
-			FlightText_ClearLineRemainder();
+			FlightText_ClearRemainingLineBackground();
 		g_flightCursorX = g_flightClipLeft;
 		g_flightCursorY += wrapLineHeight + 2;
 	}
 }
 
 // FUNCTION: XVT 0x44AA50
-void FlightText_ClearLineRemainder(void) {
+void FlightText_ClearRemainingLineBackground(void) {
 
 	uint16_t clippedTop;
 	uint16_t clippedBottom;
@@ -961,14 +961,14 @@ void FlightText_SetFontTier(uint8_t tier) {
 				case FLIGHT_RESOLUTION_480X360:
 					g_flightFontLineHeight = 5;
 					g_flightFontHasLowercase = 0;
-					g_flightFontHalfHeight = 3;
+					g_flightFontDigitWidth = 3;
 					g_flightFontGlyphStrideSw = 42;
 					g_flightFontGlyphTableSw = g_flightFontMicroSw;
 					break;
 				case FLIGHT_RESOLUTION_640X480:
 					g_flightFontLineHeight = 8;
 					g_flightFontHasLowercase = 1;
-					g_flightFontHalfHeight = 4;
+					g_flightFontDigitWidth = 4;
 					g_flightFontGlyphStrideSw = 66;
 					g_flightFontGlyphTableSw = g_flightFontSmallSw;
 					break;
@@ -979,20 +979,20 @@ void FlightText_SetFontTier(uint8_t tier) {
 				case FLIGHT_RESOLUTION_320X240:
 					g_flightFontLineHeight = 5;
 					g_flightFontHasLowercase = 0;
-					g_flightFontHalfHeight = 3;
+					g_flightFontDigitWidth = 3;
 					g_flightFontGlyphStrideSw = 42;
 					g_flightFontGlyphTableSw = g_flightFontMicroSw;
 					break;
 				case FLIGHT_RESOLUTION_640X480:
 					g_flightFontLineHeight = 10;
 					g_flightFontHasLowercase = 1;
-					g_flightFontHalfHeight = 5;
+					g_flightFontDigitWidth = 5;
 					g_flightFontGlyphStrideSw = 82;
 					g_flightFontGlyphTableSw = g_flightFontMediumSw;
 					break;
 				case FLIGHT_RESOLUTION_480X360:
 					g_flightFontLineHeight = 8;
-					g_flightFontHalfHeight = 4;
+					g_flightFontDigitWidth = 4;
 					g_flightFontGlyphStrideSw = 66;
 					g_flightFontGlyphTableSw = g_flightFontSmallSw;
 					break;
@@ -1003,20 +1003,20 @@ void FlightText_SetFontTier(uint8_t tier) {
 				case FLIGHT_RESOLUTION_320X240:
 					g_flightFontLineHeight = 5;
 					g_flightFontHasLowercase = 0;
-					g_flightFontHalfHeight = 3;
+					g_flightFontDigitWidth = 3;
 					g_flightFontGlyphStrideSw = 42;
 					g_flightFontGlyphTableSw = g_flightFontMicroSw;
 					break;
 				case FLIGHT_RESOLUTION_640X480:
 					g_flightFontLineHeight = 10;
 					g_flightFontHasLowercase = 1;
-					g_flightFontHalfHeight = 5;
+					g_flightFontDigitWidth = 5;
 					g_flightFontGlyphStrideSw = 82;
 					g_flightFontGlyphTableSw = g_flightFontMediumSw;
 					break;
 				case FLIGHT_RESOLUTION_480X360:
 					g_flightFontLineHeight = 8;
-					g_flightFontHalfHeight = 4;
+					g_flightFontDigitWidth = 4;
 					g_flightFontGlyphStrideSw = 66;
 					g_flightFontGlyphTableSw = g_flightFontSmallSw;
 					break;
@@ -1162,12 +1162,12 @@ void FlightText_DrawString(const char* str) {
 
 // FUNCTION: XVT 0x4A9A50
 void FlightText_DrawStringCentered(const char* str) {
-	uint16_t width;
+	uint16_t halfWidth;
 	uint16_t candidateX;
 	int cursorY;
 
-	width = FlightText_MeasureStringWidth(str) >> 1;
-	candidateX = (uint16_t)(((int)g_flightClipRight + (int)g_flightClipLeft) / 2 - width);
+	halfWidth = FlightText_MeasureStringWidth(str) >> 1;
+	candidateX = (uint16_t)(((int)g_flightClipRight + (int)g_flightClipLeft) / 2 - halfWidth);
 	if (candidateX < (int)g_flightClipLeft) {
 		candidateX = g_flightClipLeft;
 	}

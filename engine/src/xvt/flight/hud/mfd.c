@@ -43,7 +43,7 @@ uint16_t g_mfdMessageLogRedraw = 0;
 // GLOBAL: XVT 0x622BB8
 unsigned int g_mfdMessageLogLastDrawTotalCount = 0;
 // GLOBAL: XVT 0x5569F0
-uint16_t g_mfdCommandCameraStateCache = 0;
+uint16_t g_mfdMapHelpCameraStateCache = 0;
 // GLOBAL: XVT 0x5569E0
 int16_t g_mfdMissionScoreboardFirstVisibleRow = 0;
 // GLOBAL: XVT 0x5569E4
@@ -61,7 +61,7 @@ uint8_t g_mfdGoalsCachedSecondaryStatus = 0;
 // GLOBAL: XVT 0x5507FC
 int g_mfdGoalsCurrentTotalLines = 0;
 // GLOBAL: XVT 0x550800
-int g_mfdGoalsCachedVisibleGoalCount = 0;
+int g_mfdGoalsCachedTotalGoalLines = 0;
 // GLOBAL: XVT 0x550804
 uint16_t g_mfdGoalsRedrawNeeded = 0;
 // GLOBAL: XVT 0x550808
@@ -94,7 +94,7 @@ uint16_t g_mfdGoalsConditionMaskBySectionType[4][3] = {
 	{ 1, 0, 1 },
 };
 // GLOBAL: XVT 0x523F80
-const char g_mfdCraftListStatusLetters[11] = "CJNRFCJNRF";
+const char g_mfdCraftListTeamColorCodes[11] = "CJNRFCJNRF";
 // GLOBAL: XVT 0xA0A790
 const char* g_strMapRoomText[20] = { 0 };
 // GLOBAL: XVT 0x523F90
@@ -172,7 +172,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 	};
 
 	int playerTeam;
-	int totalVisibleGoals;
+	int totalGoalLines;
 	int scrollTop;
 	int lineIndex;
 	int16_t sectionIdx;
@@ -207,7 +207,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 #ifdef XVT_MODERN
 	XvtCockpitPages_SetOrigin(MFD_PAGE_GOALS, left - 2, top - 2);
 #endif
-	totalVisibleGoals = 0;
+	totalGoalLines = 0;
 	playerTeam = (uint16_t)g_players[g_localPlayer].team;
 	for (sectionIdx = 0; sectionIdx < SECTION_COUNT; ++sectionIdx) {
 		g_mfdGoalsLineCounts[sectionIdx] = 0;
@@ -293,7 +293,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 			}
 			if (g_mfdGoalsLineCounts[sectionIdx] != 0)
 				++g_mfdGoalsLineCounts[sectionIdx];
-			totalVisibleGoals += g_mfdGoalsLineCounts[sectionIdx];
+			totalGoalLines += g_mfdGoalsLineCounts[sectionIdx];
 		}
 	}
 
@@ -335,7 +335,7 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 		(uint16_t)g_mfdPageStates[MFD_PAGE_GOALS]) {
 		scrollTop = 0;
 		g_mfdGoalsUnusedState = 0;
-		g_mfdGoalsCachedVisibleGoalCount = 0;
+		g_mfdGoalsCachedTotalGoalLines = 0;
 		g_mfdGoalsCurrentTotalLines = 0;
 		g_playerFlightTransientTimers[g_localPlayer].missionGoalsRefreshTimer = MISSION_GOALS_REFRESH_TICKS;
 		g_mfdGoalsRedrawNeeded = 1;
@@ -359,9 +359,9 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 					break;
 			}
 		}
-		if (totalVisibleGoals != g_mfdGoalsCachedVisibleGoalCount) {
+		if (totalGoalLines != g_mfdGoalsCachedTotalGoalLines) {
 			g_mfdGoalsRedrawNeeded = 1;
-			g_mfdGoalsCachedVisibleGoalCount = totalVisibleGoals;
+			g_mfdGoalsCachedTotalGoalLines = totalGoalLines;
 		}
 		for (sectionIdx = 0; sectionIdx < 8; ++sectionIdx) {
 			if (g_mfdGoalsCachedLineCounts[sectionIdx] != g_mfdGoalsLineCounts[sectionIdx]) {
@@ -826,7 +826,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 		int playerFgCountByTeam[TEAM_COUNT];
 		int ownedFgCountByTeam[TEAM_COUNT];
 		char text[80];
-		int teamMarkers[TEAM_COUNT];
+		int teamPlacements[TEAM_COUNT];
 	} scratch;
 
 	int16_t paneWidth;
@@ -851,7 +851,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 	paneWidth = 0;
 	needsRedraw = 0;
 	for (playerIdx = 0; playerIdx < PLAYER_COUNT; ++playerIdx) {
-		if (g_players[playerIdx].connectedFlag != 0) {
+		if (g_players[playerIdx].participationState != 0) {
 			int16_t nameWidth;
 
 			FlightText_SetScratch(NetSession_GetPlayerName(playerIdx));
@@ -883,7 +883,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 		int fgIdx;
 		int team;
 
-		memset(scratch.teamMarkers, 0, sizeof(scratch.teamMarkers));
+		memset(scratch.teamPlacements, 0, sizeof(scratch.teamPlacements));
 		memset(scratch.ownedFgCountByTeam, 0, sizeof(scratch.ownedFgCountByTeam));
 		memset(scratch.playerFgCountByTeam, 0, sizeof(scratch.playerFgCountByTeam));
 		for (fgIdx = 0; fgIdx < (int16_t)g_missionHeader.numFlightGroups; ++fgIdx) {
@@ -920,18 +920,18 @@ void Mfd_DrawMissionScoreboardPage(void) {
 
 				placement = 0;
 				score = g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][row] +
-						g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][row] +
+						g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][row] +
 						g_pilotData.meleeTournamentSequenceState.teamStandings[row].totalScore;
 				for (otherTeam = 0; otherTeam < scratch.participatingTeamCount; ++otherTeam) {
 					if (otherTeam != row &&
 						g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][otherTeam] +
-								g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][otherTeam] +
+								g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][otherTeam] +
 								g_pilotData.meleeTournamentSequenceState.teamStandings[otherTeam].totalScore >
 							score) {
 						++placement;
 					}
 				}
-				scratch.teamMarkers[row] = placement + 1;
+				scratch.teamPlacements[row] = placement + 1;
 			}
 		}
 	} else {
@@ -1133,9 +1133,9 @@ void Mfd_DrawMissionScoreboardPage(void) {
 					team = scratch.order[row];
 					if (team < TEAM_COUNT) {
 						nextTeam = scratch.order[row + 1];
-						if (g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][nextTeam] +
+						if (g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][nextTeam] +
 								g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][nextTeam] >
-							g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][team] +
+							g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][team] +
 								g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][team]) {
 							int16_t previousTeam;
 
@@ -1174,7 +1174,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 				} else {
 					FlightText_SetScratch(g_missionTeams[team].name);
 				}
-				marker = scratch.teamMarkers[team];
+				marker = scratch.teamPlacements[team];
 				if (marker != 0 && (marker <= 3 || team == (uint16_t)g_players[g_localPlayer].team)) {
 					FlightText_AppendScratchChar(' ');
 					FlightText_AppendScratchChar('(');
@@ -1197,7 +1197,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 				FlightText_DrawString(g_flightTextScratchBuffer);
 				g_flightDrawCharFn('\n');
 				FlightText_FormatScratchInt(
-					g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][team] +
+					g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][team] +
 					g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][team]);
 				strcpy(scratch.text, g_flightTextScratchBuffer);
 				strcat(scratch.text, "    ");
@@ -1220,7 +1220,8 @@ void Mfd_DrawMissionScoreboardPage(void) {
 
 		connectedCount = 0;
 		for (playerIdx = 0; playerIdx < PLAYER_COUNT; ++playerIdx) {
-			if (g_players[playerIdx].connectedFlag == 1 || g_players[playerIdx].connectedFlag == 2) {
+			if (g_players[playerIdx].participationState == 1 ||
+				g_players[playerIdx].participationState == 2) {
 				scratch.order[connectedCount++] = playerIdx;
 			}
 		}
@@ -1246,11 +1247,10 @@ void Mfd_DrawMissionScoreboardPage(void) {
 						nextPlayer = scratch.order[row + 1];
 						if (g_players[nextPlayer].missionStats.missionScore +
 								g_flightMissionState.runtime
-									.teamScores[TEAM_SCORE_BONUS_TENTHS]
-											   [(uint16_t)g_players[nextPlayer].team] >
+									.teamScores[TEAM_SCORE_BONUS][(uint16_t)g_players[nextPlayer].team] >
 							g_players[player].missionStats.missionScore +
 								g_flightMissionState.runtime
-									.teamScores[TEAM_SCORE_BONUS_TENTHS][(uint16_t)g_players[player].team]) {
+									.teamScores[TEAM_SCORE_BONUS][(uint16_t)g_players[player].team]) {
 							int16_t previousPlayer;
 
 							previousPlayer = scratch.order[row];
@@ -1293,7 +1293,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 				digits = (int16_t)FlightText_FormatScratchInt(
 					g_players[player].missionStats.missionScore +
 					g_flightMissionState.runtime
-						.teamScores[TEAM_SCORE_BONUS_TENTHS][(uint16_t)g_players[player].team]);
+						.teamScores[TEAM_SCORE_BONUS][(uint16_t)g_players[player].team]);
 				xOffset = 0;
 				if (digits < SCORE_DIGIT_COLUMNS) {
 					xOffset = (int16_t)(spaceWidth * (SCORE_DIGIT_COLUMNS - digits));
@@ -1330,7 +1330,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 }
 
 // FUNCTION: XVT 0x44CE40
-void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
+void Mfd_DrawCraftListPage(uint16_t showHostileCraft) {
 	enum {
 		MAX_FLIGHT_GROUPS = 48,
 		DEFAULT_SCREEN_WIDTH = 320,
@@ -1370,7 +1370,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 	int16_t paneRight;
 	int16_t paneBottom;
 	uint16_t rowY;
-	int halfCharacterWidth;
+	int characterWidth;
 	uint16_t needsRedraw;
 	uint16_t lastVisibleRow;
 	uint16_t lastTeam;
@@ -1382,8 +1382,8 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 	localPlayer = g_localPlayer;
 	craftRows[0] = g_players[localPlayer].boundFlightGroupIdx;
 	playerTeam = (uint16_t)g_players[localPlayer].team;
-	pageIndex = (uint16_t)(MFD_PAGE_FRIENDLY_CRAFT - showFlightGroupsPage);
-	layoutIndex = (uint16_t)(HUD_MFD_CRAFT_LIST_ELEMENT + showFlightGroupsPage);
+	pageIndex = (uint16_t)(MFD_PAGE_FRIENDLY_CRAFT - showHostileCraft);
+	layoutIndex = (uint16_t)(HUD_MFD_CRAFT_LIST_ELEMENT + showHostileCraft);
 	playerObjectIdx = g_players[localPlayer].objectIndex;
 	do {
 		if (playerObjectIdx != -1 &&
@@ -1404,64 +1404,65 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 
 			friendlyFlightGroups[0] = craftRows[0];
 			flightGroupCount = 1;
-		if (showFlightGroupsPage == 1) {
-			int objectIdx;
+			if (showHostileCraft == 1) {
+				int objectIdx;
 
-			rowCount = 0;
-			for (objectIdx = g_activeRegionObjectSlotStart; objectIdx < g_activeRegionCraftObjectSlotEnd;
-				 ++objectIdx) {
-				CraftData* craft;
-				uint16_t team;
+				rowCount = 0;
+				for (objectIdx = g_activeRegionObjectSlotStart; objectIdx < g_activeRegionCraftObjectSlotEnd;
+					 ++objectIdx) {
+					CraftData* craft;
+					uint16_t team;
 
-				if (g_objectTable[objectIdx].objectType != 0 && g_objectTable[objectIdx].mobj != NULL && g_objectTable[objectIdx].mobj->pCraft != NULL) {
-					team = g_objectTable[objectIdx].mobj->team;
-					if (g_objectTable[objectIdx].mobj->team != playerTeam &&
-						g_missionTeams[playerTeam].allies[team] == 0) {
-						craft = g_objectTable[objectIdx].mobj->pCraft;
-						if (craft->objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
-							craft->objectKind != CRAFT_OBJECT_KIND_EXPLODING) {
-							craftRows[rowCount++] = (uint16_t)(objectIdx | (team << 8));
+					if (g_objectTable[objectIdx].objectType != 0 && g_objectTable[objectIdx].mobj != NULL &&
+						g_objectTable[objectIdx].mobj->pCraft != NULL) {
+						team = g_objectTable[objectIdx].mobj->team;
+						if (g_objectTable[objectIdx].mobj->team != playerTeam &&
+							g_missionTeams[playerTeam].allies[team] == 0) {
+							craft = g_objectTable[objectIdx].mobj->pCraft;
+							if (craft->objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
+								craft->objectKind != CRAFT_OBJECT_KIND_EXPLODING) {
+								craftRows[rowCount++] = (uint16_t)(objectIdx | (team << 8));
+							}
 						}
 					}
 				}
-			}
-		} else {
-			for (flightGroupIdx = 0; flightGroupIdx < g_missionHeader.numFlightGroups; ++flightGroupIdx) {
-				int team;
-				int isHostile;
+			} else {
+				for (flightGroupIdx = 0; flightGroupIdx < g_missionHeader.numFlightGroups; ++flightGroupIdx) {
+					int team;
+					int isHostile;
 
-				team = g_missionFlightGroups[flightGroupIdx].fg.team;
-				isHostile = team == playerTeam ? 0 : g_missionTeams[playerTeam].allies[team] < 1;
-				if (!isHostile && flightGroupIdx != craftRows[0]) {
-					friendlyFlightGroups[flightGroupCount++] = (uint16_t)flightGroupIdx;
+					team = g_missionFlightGroups[flightGroupIdx].fg.team;
+					isHostile = team == playerTeam ? 0 : g_missionTeams[playerTeam].allies[team] < 1;
+					if (!isHostile && flightGroupIdx != craftRows[0]) {
+						friendlyFlightGroups[flightGroupCount++] = (uint16_t)flightGroupIdx;
+					}
 				}
-			}
-			rowCount = 0;
-			for (flightGroupIdx = 0; flightGroupIdx < flightGroupCount; ++flightGroupIdx) {
-				int friendlyFlightGroup;
-				int objectIdx;
+				rowCount = 0;
+				for (flightGroupIdx = 0; flightGroupIdx < flightGroupCount; ++flightGroupIdx) {
+					int friendlyFlightGroup;
+					int objectIdx;
 
-				friendlyFlightGroup = friendlyFlightGroups[flightGroupIdx];
-				for (objectIdx = g_activeRegionObjectSlotStart; objectIdx < g_activeRegionCraftObjectSlotEnd;
-					 ++objectIdx) {
-					MobileObject* mobileObject;
-					CraftData* craft;
+					friendlyFlightGroup = friendlyFlightGroups[flightGroupIdx];
+					for (objectIdx = g_activeRegionObjectSlotStart;
+						 objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
+						MobileObject* mobileObject;
+						CraftData* craft;
 
-					if (g_objectTable[objectIdx].flightGroupIdx == friendlyFlightGroup && g_objectTable[objectIdx].objectType != 0) {
-						mobileObject = g_objectTable[objectIdx].mobj;
-						if (mobileObject != NULL) {
-							craft = mobileObject->pCraft;
-							if (craft != NULL && craft->objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
-								craft->objectKind != CRAFT_OBJECT_KIND_EXPLODING) {
-								craftRows[rowCount++] =
-									(uint16_t)(objectIdx | ((uint16_t)mobileObject->team << 8));
+						if (g_objectTable[objectIdx].flightGroupIdx == friendlyFlightGroup &&
+							g_objectTable[objectIdx].objectType != 0) {
+							mobileObject = g_objectTable[objectIdx].mobj;
+							if (mobileObject != NULL) {
+								craft = mobileObject->pCraft;
+								if (craft != NULL && craft->objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
+									craft->objectKind != CRAFT_OBJECT_KIND_EXPLODING) {
+									craftRows[rowCount++] =
+										(uint16_t)(objectIdx | ((uint16_t)mobileObject->team << 8));
+								}
 							}
 						}
 					}
 				}
 			}
-		}
-
 		}
 		rowTotal = rowCount;
 		row = 0;
@@ -1497,7 +1498,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 		}
 
 		lineStep = (uint16_t)(g_flightFontLineHeight + 2);
-		if (showFlightGroupsPage == 1 && g_players[localPlayer].mapCameraState != 0) {
+		if (showHostileCraft == 1 && g_players[localPlayer].mapCameraState != 0) {
 			paneLeft = (int16_t)(g_mfdMapBlitSourceX + 2);
 			paneTop = (int16_t)(g_mfdMapBlitSourceY + 2);
 			paneRight = (int16_t)(g_mfdMapBlitSourceX + g_mfdMapBlitWidth - 2);
@@ -1537,7 +1538,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 				FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
 			}
 			if (g_players[g_localPlayer].mapCameraState != 0) {
-				if (showFlightGroupsPage == 1) {
+				if (showHostileCraft == 1) {
 					clearBottom = (int16_t)(g_mfdMapBlitHeight + g_mfdMapBlitSourceY - 2);
 				} else {
 					clearBottom = (int16_t)(g_mfdCraftListBlitHeight + g_mfdCraftListBlitSourceY - 2);
@@ -1577,13 +1578,13 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 			} else {
 				FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 			}
-			halfCharacterWidth = g_flightFontHalfHeight;
+			characterWidth = g_flightFontDigitWidth;
 			FlightText_SetCursor(paneLeft, paneTop);
 			FlightText_DrawString(g_strCockpitOverlayText[COCKPIT_OVERLAY_STR_CRAFT]);
 			{
 				int16_t healthHeaderX;
 
-				healthHeaderX = halfCharacterWidth;
+				healthHeaderX = characterWidth;
 				healthHeaderX = (int16_t)(healthHeaderX * CRAFT_NAME_COLUMN_WIDTH + paneLeft);
 				FlightText_SetScratch(g_strCmdThreatDisplayText[1]);
 				FlightText_AppendScratchString("/");
@@ -1594,14 +1595,14 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 			{
 				int16_t targetColumnX;
 
-				targetColumnX = (int16_t)(g_flightCursorX + halfCharacterWidth);
-				if (showFlightGroupsPage == 1) {
+				targetColumnX = (int16_t)(g_flightCursorX + characterWidth);
+				if (showHostileCraft == 1) {
 					FlightText_SetCursor(targetColumnX, paneTop);
 					FlightText_DrawString(g_strCockpitOverlayText[COCKPIT_OVERLAY_STR_TARGET]);
 					if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240) {
 						int16_t ordersColumnX;
 
-						ordersColumnX = halfCharacterWidth;
+						ordersColumnX = characterWidth;
 						ordersColumnX = (int16_t)(ordersColumnX * ORDERS_COLUMN_OFFSET + targetColumnX);
 						FlightText_SetCursor(ordersColumnX, paneTop);
 						FlightText_DrawString(g_strCockpitOverlayText[COCKPIT_OVERLAY_STR_ORDERS]);
@@ -1617,13 +1618,13 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 #endif
 			needsRedraw = 1;
 			rowY = (int16_t)(paneTop + lineStep);
-			g_mfdCraftListTopRowByMode[showFlightGroupsPage] = 0;
+			g_mfdCraftListTopRowByMode[showHostileCraft] = 0;
 			g_playerFlightTransientTimers[g_localPlayer].mfdCraftListRefreshTimer = REFRESH_TICKS;
 			FlightText_SetClipRect(paneLeft, rowY, paneRight, paneBottom);
 			g_mfdCraftListCachedRowCount = rowCount;
 		} else {
 			rowY = (int16_t)(paneTop + lineStep);
-			halfCharacterWidth = g_flightFontHalfHeight;
+			characterWidth = g_flightFontDigitWidth;
 			FlightText_SetClearLineBackground(1);
 			FlightText_SetColor(COLOR_HEALTHY);
 			FlightText_SetFontTier(0);
@@ -1641,7 +1642,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 				if (g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_FORWARD) {
 					FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 				}
-				if (showFlightGroupsPage == 1 && g_players[g_localPlayer].mapCameraState != 0) {
+				if (showHostileCraft == 1 && g_players[g_localPlayer].mapCameraState != 0) {
 					clearBottom = (int16_t)(g_mfdMapBlitHeight + g_mfdMapBlitSourceY - 2);
 				} else {
 					clearBottom = (int16_t)(g_mfdCraftListBlitHeight + g_mfdCraftListBlitSourceY - 2);
@@ -1723,15 +1724,15 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 			actionKey = g_currentActionKey;
 			switch (actionKey) {
 				case FLIGHT_KEY_MFD_SCROLL_UP:
-					if (g_mfdCraftListTopRowByMode[showFlightGroupsPage] != 0) {
-						--g_mfdCraftListTopRowByMode[showFlightGroupsPage];
+					if (g_mfdCraftListTopRowByMode[showHostileCraft] != 0) {
+						--g_mfdCraftListTopRowByMode[showHostileCraft];
 						needsRedraw = 1;
 					}
 					break;
 				case FLIGHT_KEY_MFD_SCROLL_DOWN:
 					if (rowCount > 1 && rowCount + (rowY - paneBottom) / lineStep >=
-											(uint16_t)g_mfdCraftListTopRowByMode[showFlightGroupsPage]) {
-						++g_mfdCraftListTopRowByMode[showFlightGroupsPage];
+											(uint16_t)g_mfdCraftListTopRowByMode[showHostileCraft]) {
+						++g_mfdCraftListTopRowByMode[showHostileCraft];
 						needsRedraw = 1;
 					}
 					break;
@@ -1742,18 +1743,17 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 			g_playerFlightTransientTimers[g_localPlayer].mfdCraftListRefreshTimer = REFRESH_TICKS;
 		}
 		lastVisibleRow =
-			(int16_t)(g_mfdCraftListTopRowByMode[showFlightGroupsPage] + (paneBottom - rowY) / lineStep);
+			(int16_t)(g_mfdCraftListTopRowByMode[showHostileCraft] + (paneBottom - rowY) / lineStep);
 		if (rowCount < (uint16_t)lastVisibleRow) {
-			if (g_mfdCraftListTopRowByMode[showFlightGroupsPage] != 0) {
-				--g_mfdCraftListTopRowByMode[showFlightGroupsPage];
+			if (g_mfdCraftListTopRowByMode[showHostileCraft] != 0) {
+				--g_mfdCraftListTopRowByMode[showHostileCraft];
 			}
 			lastVisibleRow =
-				(int16_t)(g_mfdCraftListTopRowByMode[showFlightGroupsPage] + (paneBottom - rowY) / lineStep);
+				(int16_t)(g_mfdCraftListTopRowByMode[showHostileCraft] + (paneBottom - rowY) / lineStep);
 		}
 
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordScroll(pageIndex, g_mfdCraftListTopRowByMode[showFlightGroupsPage], rowCount,
-									 -1);
+		XvtCockpitPages_RecordScroll(pageIndex, g_mfdCraftListTopRowByMode[showHostileCraft], rowCount, -1);
 #endif
 		lastTeam = UINT16_MAX;
 		if (needsRedraw != 0) {
@@ -1774,17 +1774,16 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 					const char* statusColor;
 
 					FlightText_SetColor(COLOR_NORMAL_TEXT);
-					if (row < (uint16_t)g_mfdCraftListTopRowByMode[showFlightGroupsPage] ||
+					if (row < (uint16_t)g_mfdCraftListTopRowByMode[showHostileCraft] ||
 						row > (uint16_t)lastVisibleRow) {
 						continue;
 					}
 					packedRow = *craftRow;
 					listedObjectIdx = (uint16_t)(packedRow & 0xFF);
 					team = (uint16_t)(packedRow >> 8);
-					statusColor = &g_mfdCraftListStatusLetters[team];
+					statusColor = &g_mfdCraftListTeamColorCodes[team];
 					FlightText_SetColor((uint8_t)*statusColor);
-					if (lastTeam != team &&
-						row == (uint16_t)g_mfdCraftListTopRowByMode[showFlightGroupsPage]) {
+					if (lastTeam != team && row == (uint16_t)g_mfdCraftListTopRowByMode[showHostileCraft]) {
 						lastTeam = team;
 						if (g_players[g_localPlayer].mapCameraState != 0) {
 							FlightSw_SetRenderTarget(NULL, DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, 0);
@@ -1805,7 +1804,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 						ObjectRecord* object;
 						MobileObject* mobileObject;
 
-						healthColumnX = (int16_t)(paneLeft + CRAFT_NAME_COLUMN_WIDTH * halfCharacterWidth);
+						healthColumnX = (int16_t)(paneLeft + CRAFT_NAME_COLUMN_WIDTH * characterWidth);
 						statusColumnBaseX = healthColumnX;
 						object = &g_objectTable[listedObjectIdx];
 						mobileObject = object->mobj;
@@ -1837,7 +1836,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 								} else {
 									FlightText_SetColor(COLOR_HEALTHY);
 								}
-								FlightText_SetCursor(healthColumnX + halfCharacterWidth, rowY);
+								FlightText_SetCursor(healthColumnX + characterWidth, rowY);
 								FlightText_DrawDecimalNumber(shieldPercent, HEALTH_DIGIT_WIDTH, 1);
 								FlightText_SetColor((uint8_t)*statusColor);
 								g_flightDrawCharFn('/');
@@ -1860,8 +1859,8 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 								int digitCount;
 
 								digitCount = (uint16_t)FlightText_FormatScratchInt(hullPercent);
-								FlightText_SetCursor(g_flightCursorX + (HEALTH_DIGIT_WIDTH - digitCount) *
-																		   halfCharacterWidth,
+								FlightText_SetCursor(g_flightCursorX +
+														 (HEALTH_DIGIT_WIDTH - digitCount) * characterWidth,
 													 rowY);
 								if (hullPercent <= HEALTH_CRITICAL_PERCENT) {
 									FlightText_SetColor(COLOR_DAMAGED);
@@ -1876,10 +1875,9 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 							{
 								int16_t targetColumnX;
 
-								targetColumnX = (int16_t)(g_flightCursorX + 2 * halfCharacterWidth);
+								targetColumnX = (int16_t)(g_flightCursorX + 2 * characterWidth);
 								statusColumnBaseX = targetColumnX;
-								if (g_players[g_localPlayer].mapCameraState == 0 ||
-									showFlightGroupsPage != 0 ||
+								if (g_players[g_localPlayer].mapCameraState == 0 || showHostileCraft != 0 ||
 									g_flightResolutionMode != FLIGHT_RESOLUTION_320X240) {
 									FlightText_SetCursor(targetColumnX, rowY);
 									if (g_objectTable[listedObjectIdx].playerOwnerIdx != -1) {
@@ -1908,7 +1906,7 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 											FlightText_SetScratch(g_strMeshComponentNames[32]);
 										}
 									}
-									if (showFlightGroupsPage != 0 ||
+									if (showHostileCraft != 0 ||
 										g_flightResolutionMode == FLIGHT_RESOLUTION_320X240 ||
 										g_players[g_localPlayer].mapCameraState != 0) {
 										FlightText_DrawString(g_flightTextScratchBuffer);
@@ -1918,12 +1916,11 @@ void Mfd_DrawCraftListPage(uint16_t showFlightGroupsPage) {
 								}
 							}
 						}
-						if (showFlightGroupsPage != 0 &&
-							g_flightResolutionMode != FLIGHT_RESOLUTION_320X240) {
+						if (showHostileCraft != 0 && g_flightResolutionMode != FLIGHT_RESOLUTION_320X240) {
 							int16_t statusColumnX;
 							unsigned int statusStringId;
 
-							statusColumnX = halfCharacterWidth;
+							statusColumnX = characterWidth;
 							statusColumnX =
 								(int16_t)(statusColumnX * STATUS_COLUMN_OFFSET + statusColumnBaseX);
 							FlightText_SetCursor(statusColumnX, rowY);
@@ -2120,7 +2117,7 @@ int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex) {
 }
 
 // FUNCTION: XVT 0x44E5A0
-void Mfd_DrawCommandMenuPage(void) {
+void Mfd_DrawMapHelpPage(void) {
 	enum {
 		MFD_BACKGROUND_COLOR = 0x34,
 		MFD_ACTIVE_BACKGROUND_COLOR = 0x46,
@@ -2156,18 +2153,18 @@ void Mfd_DrawCommandMenuPage(void) {
 	top = (int16_t)(g_mfdMapBlitSourceY + 2);
 	bottom = (int16_t)(g_mfdMapBlitSourceY + g_mfdMapBlitHeight - 2);
 #ifdef XVT_MODERN
-	XvtCockpitPages_SetOrigin(MFD_PAGE_COMMAND, left - 2, top - 2);
+	XvtCockpitPages_SetOrigin(MFD_PAGE_MAP_HELP, left - 2, top - 2);
 #endif
 	activePage = g_mfdActivePage;
 	if (activePage == MFD_PAGE_NONE) {
-		activePage = MFD_PAGE_COMMAND;
+		activePage = MFD_PAGE_MAP_HELP;
 	}
 	g_mfdActivePage = activePage;
 	do {
-		if (activePage == MFD_PAGE_COMMAND) {
+		if (activePage == MFD_PAGE_MAP_HELP) {
 			FlightText_SetBackgroundColor(MFD_ACTIVE_BACKGROUND_COLOR);
 		} else {
-			if (g_mfdSecondaryPage != MFD_PAGE_COMMAND) {
+			if (g_mfdSecondaryPage != MFD_PAGE_MAP_HELP) {
 				break;
 			}
 			FlightText_SetBackgroundColor(MFD_BACKGROUND_COLOR);
@@ -2175,26 +2172,26 @@ void Mfd_DrawCommandMenuPage(void) {
 		borderTop = (int16_t)(top - 2);
 		FlightText_SetClipRect(left - 2, borderTop, right + 2, bottom + 2);
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordBorder(MFD_PAGE_COMMAND);
+		XvtCockpitPages_RecordBorder(MFD_PAGE_MAP_HELP);
 #endif
 		g_flightFillRectClippedFn((uint16_t)(left - 2), (uint16_t)borderTop, (uint16_t)(right + 2),
 								  (uint16_t)(bottom + 2), 1);
 	} while (0);
 
 	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex + HUD_MFD_MAP_OR_COMMAND_ELEMENT] !=
-		g_mfdPageStates[MFD_PAGE_COMMAND]) {
+		g_mfdPageStates[MFD_PAGE_MAP_HELP]) {
 		FlightText_SetBackgroundColor(MFD_BACKGROUND_COLOR);
 		FlightText_SetClipRect(left - 2, top - 2, right + 2, bottom + 2);
 #ifdef XVT_MODERN
-		XvtCockpitPages_Clear(MFD_PAGE_COMMAND);
-		XvtCockpitPages_RecordBackground(MFD_PAGE_COMMAND);
+		XvtCockpitPages_Clear(MFD_PAGE_MAP_HELP);
+		XvtCockpitPages_RecordBackground(MFD_PAGE_MAP_HELP);
 #endif
 		g_flightFillClipRectFn();
-		if (g_mfdPageStates[MFD_PAGE_COMMAND] == MFD_PAGE_STATE_CLOSING) {
+		if (g_mfdPageStates[MFD_PAGE_MAP_HELP] == MFD_PAGE_STATE_CLOSING) {
 #ifdef XVT_MODERN
-			XvtCockpitPages_Clear(MFD_PAGE_COMMAND);
+			XvtCockpitPages_Clear(MFD_PAGE_MAP_HELP);
 #endif
-			if (g_mfdActivePage == MFD_PAGE_COMMAND) {
+			if (g_mfdActivePage == MFD_PAGE_MAP_HELP) {
 				g_mfdActivePage = g_mfdSecondaryPage;
 				g_mfdSecondaryPage = Mfd_FindSecondaryOpenPage();
 			}
@@ -2208,7 +2205,7 @@ void Mfd_DrawCommandMenuPage(void) {
 		lineStep = (int16_t)(g_flightFontLineHeight + 2);
 		FlightText_SetClipRect(left, top, right, bottom);
 		localPlayer = g_localPlayer;
-		g_mfdCommandCameraStateCache = g_players[localPlayer].mapCameraState;
+		g_mfdMapHelpCameraStateCache = g_players[localPlayer].mapCameraState;
 		textMode = 1;
 	} else {
 		lineStep = (int16_t)(g_flightFontLineHeight + 2);
@@ -2218,8 +2215,8 @@ void Mfd_DrawCommandMenuPage(void) {
 		FlightText_SetClipRect(left, top, right, bottom);
 		FlightText_SetBackgroundColor(MFD_BACKGROUND_COLOR);
 		localPlayer = g_localPlayer;
-		if (g_mfdCommandCameraStateCache != g_players[localPlayer].mapCameraState) {
-			g_mfdCommandCameraStateCache = g_players[localPlayer].mapCameraState;
+		if (g_mfdMapHelpCameraStateCache != g_players[localPlayer].mapCameraState) {
+			g_mfdMapHelpCameraStateCache = g_players[localPlayer].mapCameraState;
 			textMode = 1;
 		} else {
 			textMode = 0;
@@ -2227,7 +2224,7 @@ void Mfd_DrawCommandMenuPage(void) {
 	}
 
 	if (g_flightResolutionMode == FLIGHT_RESOLUTION_640X480 && g_players[localPlayer].mapCameraState != 0 &&
-		g_mfdActivePage == MFD_PAGE_COMMAND) {
+		g_mfdActivePage == MFD_PAGE_MAP_HELP) {
 		switch (g_currentActionKey) {
 			case 0xA8:
 				textMode = 3;
@@ -2266,13 +2263,13 @@ void Mfd_DrawCommandMenuPage(void) {
 
 #ifdef XVT_MODERN
 	if (textMode != 0) {
-		XvtCockpitPages_RecordMode(MFD_PAGE_COMMAND, textMode);
-		XvtCockpitPages_BeginSection(MFD_PAGE_COMMAND, XVT_COCKPIT_PAGE_BODY);
+		XvtCockpitPages_RecordMode(MFD_PAGE_MAP_HELP, textMode);
+		XvtCockpitPages_BeginSection(MFD_PAGE_MAP_HELP, XVT_COCKPIT_PAGE_BODY);
 	}
 #endif
 	if (textMode == 1) {
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordScroll(MFD_PAGE_COMMAND, 0, 9, -1);
+		XvtCockpitPages_RecordScroll(MFD_PAGE_MAP_HELP, 0, 9, -1);
 #endif
 		row = 0;
 		FlightText_SetWordWrap(0);
@@ -2317,7 +2314,7 @@ void Mfd_DrawCommandMenuPage(void) {
 		int creditIndex;
 
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordScroll(MFD_PAGE_COMMAND, firstCredit, lastCredit - firstCredit, -1);
+		XvtCockpitPages_RecordScroll(MFD_PAGE_MAP_HELP, firstCredit, lastCredit - firstCredit, -1);
 #endif
 		g_flightFillClipRectFn();
 		FlightText_SetColor(MFD_CREDIT_COLOR);
@@ -2330,7 +2327,7 @@ void Mfd_DrawCommandMenuPage(void) {
 		int creditIndex;
 
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordScroll(MFD_PAGE_COMMAND, firstCredit, 1 + lastCredit - firstCredit, -1);
+		XvtCockpitPages_RecordScroll(MFD_PAGE_MAP_HELP, firstCredit, 1 + lastCredit - firstCredit, -1);
 #endif
 		g_flightFillClipRectFn();
 		FlightText_SetColor(MFD_CREDIT_COLOR);
@@ -2372,14 +2369,14 @@ void Mfd_TogglePage(uint16_t page) {
 			g_mfdActivePage = page;
 		}
 		if (g_mfdPageStates[MFD_PAGE_FRIENDLY_CRAFT] != MFD_PAGE_STATE_CLOSED &&
-			g_mfdPageStates[MFD_PAGE_FLIGHT_GROUPS] != MFD_PAGE_STATE_CLOSED) {
+			g_mfdPageStates[MFD_PAGE_HOSTILE_CRAFT] != MFD_PAGE_STATE_CLOSED) {
 			if (page == MFD_PAGE_FRIENDLY_CRAFT) {
-				g_mfdPageStates[MFD_PAGE_FLIGHT_GROUPS] = MFD_PAGE_STATE_CLOSING;
+				g_mfdPageStates[MFD_PAGE_HOSTILE_CRAFT] = MFD_PAGE_STATE_CLOSING;
 			} else {
 				g_mfdPageStates[MFD_PAGE_FRIENDLY_CRAFT] = MFD_PAGE_STATE_CLOSING;
 			}
 			if (previousSecondaryPage != MFD_PAGE_FRIENDLY_CRAFT &&
-				previousSecondaryPage != MFD_PAGE_FLIGHT_GROUPS) {
+				previousSecondaryPage != MFD_PAGE_HOSTILE_CRAFT) {
 				g_mfdSecondaryPage = previousSecondaryPage;
 			}
 		}
@@ -2427,7 +2424,7 @@ int16_t Mfd_DrawMessageLogPage(void) {
 	int16_t lineHeight;
 	int16_t cursorY;
 	int16_t displayOffset;
-	int16_t visibleLines;
+	int16_t lastDisplayOffset;
 	int16_t maxDisplayOffset;
 	int16_t logRecordCount;
 	unsigned int pitch;
@@ -2476,7 +2473,7 @@ int16_t Mfd_DrawMessageLogPage(void) {
 #ifdef XVT_MODERN
 	XvtCockpitPages_SetOrigin(MFD_PAGE_MESSAGE_LOG,
 							  g_readyMessagePaneLeft -
-								  (g_flightPlayerCount >= 1 ? 2 * g_flightFontHalfHeight : 0),
+								  (g_flightPlayerCount >= 1 ? 2 * g_flightFontDigitWidth : 0),
 							  g_readyMessagePaneTop);
 #endif
 	FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
@@ -2532,14 +2529,14 @@ int16_t Mfd_DrawMessageLogPage(void) {
 		}
 	}
 
-	visibleLines = (int16_t)((bottom - top) / lineHeight + g_mfdMessageLogScrollOffset);
+	lastDisplayOffset = (int16_t)((bottom - top) / lineHeight + g_mfdMessageLogScrollOffset);
 	if (g_mfdMessageLogRedraw != 0) {
 #ifdef XVT_MODERN
 		XvtCockpitPages_RecordBackground(MFD_PAGE_MESSAGE_LOG);
 		XvtCockpitPages_BeginSection(MFD_PAGE_MESSAGE_LOG, XVT_COCKPIT_PAGE_BODY);
 #endif
 		g_flightFillClipRectFn();
-		for (displayOffset = 0; displayOffset <= visibleLines; ++displayOffset) {
+		for (displayOffset = 0; displayOffset <= lastDisplayOffset; ++displayOffset) {
 			if (displayOffset >= g_mfdMessageLogScrollOffset && displayOffset < 300) {
 				FlightText_SetCursor(left, cursorY);
 				recordIndex = Mfd_GetMessageLogRecordIndex(displayOffset);
@@ -2630,7 +2627,7 @@ int16_t Mfd_DrawMessageLogPage(void) {
 	}
 	FlightSw_SetRenderTarget(NULL, 320, 200, 0);
 	g_mfdMessageLogLastDrawTotalCount = g_messageLogTotalCount;
-	return visibleLines;
+	return lastDisplayOffset;
 }
 
 // FUNCTION: XVT 0x49F330

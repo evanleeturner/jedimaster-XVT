@@ -72,7 +72,7 @@ typedef enum MapRoomStringId {
 void FlightMap_RenderView(void);
 void FlightMap_UpdateCamera(int playerIdx);
 void FlightMap_BuildRenderList(void);
-void FlightMap_DrawObjectPass(int pass);
+void FlightMap_DrawObjectPass(int drawAboveGridPlane);
 void FlightMap_DrawOtherPlayerObjectBox(int objectIdx);
 void FlightMap_DrawObjectOverlay(int objectIdx);
 void FlightMap_DrawObjectIconAtViewPos(int objectIdx, int viewX, int viewY, int viewZ);

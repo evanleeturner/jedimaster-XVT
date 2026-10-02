@@ -293,7 +293,7 @@ int Config_OptionsDatapadUpdate(int frameCounter) {
 	FrontendButton_DisableOverlayText();
 	dismissRequested |= FrontendDialog_HasNetworkDismissPacket();
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_HOST) {
-		dismissRequested |= Net_PollForJoinRequestOrBacklog();
+		dismissRequested |= Net_PollForPlayerCreatedOrBacklog();
 	}
 	if (dismissRequested != 0) {
 		Config_Write();

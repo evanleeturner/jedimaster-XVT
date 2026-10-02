@@ -36,7 +36,7 @@ const char* g_strGoalPercentages[14] = { 0 };
 // GLOBAL: XVT 0xA68650
 const char* g_strGoalFamilyNames0To6[7] = { 0 };
 // GLOBAL: XVT 0xA68670
-const char* g_strGoalFamilyNames7To22[16] = { 0 };
+const char* g_strGoalGenusNames[16] = { 0 };
 // GLOBAL: XVT 0xA686B0
 const char* g_strGoalConjunctions[8] = { 0 };
 // GLOBAL: XVT 0xA686D4
@@ -45,7 +45,7 @@ const char* g_strGoalEscape[3] = { 0 };
 const char* g_strGoalSides[3] = { 0 };
 
 // GLOBAL: XVT 0xA607AC
-const char* g_strWarheadUnknown = 0;
+const char* g_strUnknown = 0;
 // GLOBAL: XVT 0xA607B0
 const char* g_strBuoyNames[16] = { 0 };
 // GLOBAL: XVT 0xA607F0
@@ -255,7 +255,7 @@ int16_t goals_outputgoal(uint16_t targetId, uint16_t condition, uint16_t targetT
 				break;
 
 			case GOAL_TARGET_GENUS:
-				FlightText_DrawString(g_strGoalFamilyNames7To22[g_genusConvert[targetId]]);
+				FlightText_DrawString(g_strGoalGenusNames[g_genusConvert[targetId]]);
 				FlightText_DrawString(": ");
 				break;
 
@@ -317,11 +317,11 @@ int16_t goals_outputgoal(uint16_t targetId, uint16_t condition, uint16_t targetT
 int16_t goals_DrawConditionText(unsigned int craftSpecies, uint16_t condition, uint16_t amountTextVariant,
 								int16_t conditionRowBase) {
 	const char* text;
-	int16_t result;
+	int16_t wrapHeight;
 	ModelIndex modelIndex;
 
 	text = NULL;
-	result = 0;
+	wrapHeight = 0;
 	if (g_goalConditionTextVariantCount[condition] == 1) {
 		amountTextVariant = 0;
 	}
@@ -341,18 +341,18 @@ int16_t goals_DrawConditionText(unsigned int craftSpecies, uint16_t condition, u
 				break;
 		}
 
-		result = FlightText_GetWrapHeightForString(text);
+		wrapHeight = FlightText_GetWrapHeightForString(text);
 		FlightText_DrawString(text);
-		return result;
+		return wrapHeight;
 	}
 
 	if ((uint16_t)craftSpecies >= CRAFT_SPECIES_COMM_SAT_1 &&
 		(uint16_t)craftSpecies <= CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
 		text = g_strGoalCondMasculine[condition][amountTextVariant];
-		result = FlightText_GetWrapHeightForString(text);
+		wrapHeight = FlightText_GetWrapHeightForString(text);
 		FlightText_DrawString(text);
 	}
-	return result;
+	return wrapHeight;
 }
 
 // FUNCTION: XVT 0x415BA0

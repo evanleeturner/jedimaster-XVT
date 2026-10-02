@@ -9,9 +9,9 @@
 extern "C" {
 #endif
 
-extern const int16_t g_aiCourseOrderLocalOffsetXByVar[28];
-extern const int16_t g_aiCourseOrderLocalOffsetYByVar[28];
-extern const int16_t g_aiCourseOrderLocalOffsetZByVar[28];
+extern const int16_t g_aiEscortStationOffsetXByVariable[28];
+extern const int16_t g_aiEscortStationOffsetYByVariable[28];
+extern const int16_t g_aiEscortStationOffsetZByVariable[28];
 extern const int16_t g_formPosX[34][6];
 extern const int16_t g_formPosY[34][6];
 extern const int16_t g_formPosZ[34][6];
@@ -95,13 +95,13 @@ void paiman_initavoidattackermaneuver(void);
 int16_t paiman_avoidattackermaneuver(void);
 void paiman_initdodgemaneuver(void);
 int16_t paiman_dodgemaneuver(void);
-void paiman_setflighttotarget(uint16_t pitchBias, int driveHeading);
+void paiman_setflighttotarget(uint16_t yawOffset, int steerPitch);
 void paiman_initcruiseandrunawaycontrols(void);
 void paiman_attacktarget(int16_t yawOffset);
 void paiman_calcplanelead(int targetObjIdx);
 void paiman_calcformation(void);
 void paiman_setturn(int turnStep);
-void paiman_setpower(int objIdx, int throttle);
+void paiman_setpower(int ignoredObjIdx, int throttle);
 void paiman_setspeed(int objIdx, unsigned int desiredSpeed);
 
 #ifdef __cplusplus

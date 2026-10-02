@@ -43,7 +43,7 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 		return;
 	}
 
-	File_OpenGlobalStream("strings.txt", "r", 1, 0);
+	FeDiskIo_OpenGlobalStream("strings.txt", "r", 1, 0);
 	stream = (XvtFile*)g_stream;
 	if (stream != NULL) {
 		File_RawSeek(stream, 0, SEEK_END);
@@ -59,7 +59,7 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 		File_RawSeek(stream, 0, SEEK_SET);
 		if (File_RawTell(stream) != 0) {
 			File_RawClose(stream);
-			File_OpenGlobalStream("strings.txt", "r", 1, 0);
+			FeDiskIo_OpenGlobalStream("strings.txt", "r", 1, 0);
 			stream = (XvtFile*)g_stream;
 		}
 		if (stream != NULL) {
@@ -315,8 +315,7 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex <
-					   (int)(sizeof(g_strGoalFamilyNames7To22) / sizeof(g_strGoalFamilyNames7To22[0]))) {
+				while (entryIndex < (int)(sizeof(g_strGoalGenusNames) / sizeof(g_strGoalGenusNames[0]))) {
 					if (File_Gets(line, sizeof(line), stream) == NULL) {
 						writePtr = NULL;
 						break;
@@ -330,7 +329,7 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalFamilyNames7To22[entryIndex] = writePtr;
+					g_strGoalGenusNames[entryIndex] = writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -551,7 +550,7 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 					}
 					if (entryIndex == (int)(sizeof(g_strWarheadNames) / sizeof(g_strWarheadNames[0]))) {
 						memcpy(writePtr, line, lineLength + 1);
-						g_strWarheadUnknown = writePtr;
+						g_strUnknown = writePtr;
 					} else {
 						memcpy(writePtr, line, lineLength + 1);
 						g_strWarheadNames[entryIndex] = writePtr;

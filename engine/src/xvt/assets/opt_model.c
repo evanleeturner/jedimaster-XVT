@@ -652,13 +652,13 @@ uint16_t OptModel_LoadHandle(const char* modelFilename) {
 	int compareResult;
 
 	strcpy(g_optModelLoadScratchBuffer, modelFilename);
-	File_OpenGlobalStream(g_optModelLoadScratchBuffer, g_fileModeReadBinary, 0, 0);
+	FeDiskIo_OpenGlobalStream(g_optModelLoadScratchBuffer, g_fileModeReadBinary, 0, 0);
 	if (g_stream == NULL) {
 		for (extensionIndex = 0; g_optModelLoadScratchBuffer[extensionIndex] != '.'; ++extensionIndex) {
 		}
 		g_optModelLoadScratchBuffer[extensionIndex] = '\0';
 		strcat(g_optModelLoadScratchBuffer, ".iv");
-		File_OpenGlobalStream(g_optModelLoadScratchBuffer, g_fileModeReadBinary, 1, 0);
+		FeDiskIo_OpenGlobalStream(g_optModelLoadScratchBuffer, g_fileModeReadBinary, 1, 0);
 		stream = (XvtFile*)g_stream;
 		if (stream == NULL) {
 			return 0;
@@ -1873,7 +1873,7 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 	SceneMesh meshState;
 	int rootIndex;
 
-	File_OpenGlobalStream(filename, g_fileModeReadBinary, 1, 0);
+	FeDiskIo_OpenGlobalStream(filename, g_fileModeReadBinary, 1, 0);
 	stream = g_stream;
 	if (stream == NULL)
 		return 0;
@@ -1918,7 +1918,7 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 		else
 			filename[strlen(filename) - 1] = '1';
 
-		File_OpenGlobalStream(filename, "wb", 0, 1);
+		FeDiskIo_OpenGlobalStream(filename, "wb", 0, 1);
 		stream = g_stream;
 		if (stream != NULL) {
 			if (!g_optSourceIsVersion0) {
@@ -1942,7 +1942,7 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 		if (!g_optSourceIsVersion0)
 			fileVersion = -2;
 		if (_access(filename, 2) == 0) {
-			File_OpenGlobalStream(filename, "wb", 0, 1);
+			FeDiskIo_OpenGlobalStream(filename, "wb", 0, 1);
 			stream = g_stream;
 			if (stream != NULL) {
 				File_RawWrite(&fileVersion, 1, sizeof(fileVersion), stream);
@@ -3500,7 +3500,7 @@ void OptModel_SaveHandleToFile(const char* filename, uint16_t handle) {
 	size_t serializedSize;
 	SceneMesh parentState;
 
-	File_OpenGlobalStream(filename, "wb", 0, 1);
+	FeDiskIo_OpenGlobalStream(filename, "wb", 0, 1);
 	stream = g_stream;
 	if (stream != NULL) {
 		model = Memory_LockHandle(handle);
@@ -5624,13 +5624,13 @@ int OptModel_GetExternalTextureSerializedSize(const char* sourceFileName) {
 		extension[0] = 't';
 		extension[1] = 'e';
 		extension[2] = 'x';
-		File_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
+		FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
 		textureStream = g_stream;
 		extension[0] = 'r';
 		extension[1] = 'g';
 		extension[2] = 'b';
 		if (textureStream == NULL) {
-			File_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
+			FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
 			textureStream = g_stream;
 			if (textureStream != NULL) {
 				File_RawRead(rgbHeader, 16, 1, textureStream);
@@ -5646,7 +5646,7 @@ int OptModel_GetExternalTextureSerializedSize(const char* sourceFileName) {
 		if (_strcmpi(extension, g_extTex) != 0) {
 			return 12376;
 		}
-		File_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
+		FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
 		textureStream = g_stream;
 		if (textureStream == NULL) {
 			return 12376;

@@ -175,7 +175,7 @@ int TechLibrary_Update(int frameCounter) {
 	FrontendButton_DisableOverlayText();
 	buttonPressed |= FrontendDialog_HasNetworkDismissPacket();
 	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_HOST) {
-		buttonPressed |= Net_PollForJoinRequestOrBacklog();
+		buttonPressed |= Net_PollForPlayerCreatedOrBacklog();
 	}
 	if (buttonPressed != 0) {
 		FrontImage_FreeResourceByName("backreview");

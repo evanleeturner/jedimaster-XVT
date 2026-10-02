@@ -71,10 +71,10 @@ static void World(void) {
 		g_playerAbortFlags[i] = 0;
 	}
 	g_players[0].objectIndex = 0;
-	g_players[0].connectedFlag = 1;
+	g_players[0].participationState = 1;
 	g_players[0].lockstepTimestamp = TICK;
 	g_players[1].objectIndex = 1;
-	g_players[1].connectedFlag = 1;
+	g_players[1].participationState = 1;
 	g_localPlayer = 0;
 	g_gameTime = TICK;
 	g_elapsedTicks = XVT_NETWORK_STEP_TICKS;

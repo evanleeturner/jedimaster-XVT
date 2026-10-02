@@ -336,7 +336,7 @@ static int CompileLoadedView(const XvtCockpitResources* resources, unsigned view
 	state->view.hud_state = (uint16_t)view;
 	state->view.resource_descriptor = (uint16_t)owner;
 	state->view.mirrored = enabled >= 0xc0;
-	state->view.instrument_base = view == HUD_VIEW_HUD_ONLY     ? HUD_MAP_INSTRUMENT_BASE_INDEX
+	state->view.instrument_base = view == HUD_VIEW_HUD_ONLY     ? HUD_ONLY_VIEW_INSTRUMENT_BASE_INDEX
 								  : view == HUD_VIEW_CRAFT_LIST ? HUD_CRAFT_LIST_INSTRUMENT_BASE_INDEX
 																: HUD_COCKPIT_INSTRUMENT_BASE_INDEX;
 	memcpy(state->palette_argb, resources->palette, sizeof state->palette_argb);

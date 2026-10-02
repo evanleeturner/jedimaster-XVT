@@ -51,10 +51,10 @@ void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry* quadRecord) {
 	modelType = frame >> 7;
 	g_billboardObjectOrTypeIndex = quadRecord->objectOrTypeIndex;
 	object = &g_objectTable[g_billboardObjectOrTypeIndex];
-	savedTargetY = g_players[g_localPlayer].viewState.savedTargetY;
-	g_camRelWorldX = object->world_x - g_players[g_localPlayer].viewState.savedTargetX;
+	savedTargetY = g_players[g_localPlayer].viewState.cameraWorldY;
+	g_camRelWorldX = object->world_x - g_players[g_localPlayer].viewState.cameraWorldX;
 	g_camRelWorldY = object->world_y - savedTargetY;
-	g_camRelWorldZ = object->world_z - g_players[g_localPlayer].viewState.savedTargetZ;
+	g_camRelWorldZ = object->world_z - g_players[g_localPlayer].viewState.cameraWorldZ;
 	g_viewSpaceDepth = quadRecord->depthZ;
 	screenSize = (uint16_t)SceneBillboard_ComputeProjectedSize(
 		quadRecord->depthZ, (uint16_t)g_modelTypeTable[modelType].maxBoundsExtent,

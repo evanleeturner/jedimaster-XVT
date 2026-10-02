@@ -275,7 +275,7 @@ static void XvtNetworkTask_FinishSession(int result) {
 		XvtNetworkDialogs_ShowFailure(XvtNetworkSession_GetStatus().error,
 									  g_network.action != XVT_NETWORK_CONNECT);
 	else if (g_network.action == XVT_NETWORK_CONNECT)
-		FrontendScreen_SetCallbacks(FrontendNet_AccessAllianceNetworkScreen, NULL);
+		FrontendScreen_SetCallbacks(FrontendNet_AwaitJoinAdmissionScreen, NULL);
 	else {
 		if (g_network.action == XVT_NETWORK_HOST)
 			FrontendDisplay_ClearOffscreenSurface();

@@ -102,7 +102,7 @@ void XvtFlightTiming_RestoreNetworkTick(int tick) {
 	g_timing.serial = (unsigned)tick / XVT_NETWORK_STEP_TICKS;
 	g_timing.phase = (unsigned)tick % XVT_REFERENCE_TICKS;
 	g_timing.active = g_timing.due = 0;
-	int timer = g_flightGlobalCountdownTimers.crewMeshRotationUpdateTimer;
+	int timer = g_flightGlobalCountdownTimers.specialBehaviorUpdateTimer;
 	int event = (tick - tick % XVT_REFERENCE_TICKS) - (XVT_COMPONENT_TIMER_TICKS - timer);
 	g_timing.animation_time = event > 0 ? event : 0;
 	g_timing.animation_serial = event > 0 ? (unsigned)event / XVT_COMPONENT_EVENT_TICKS + 1 : 0;

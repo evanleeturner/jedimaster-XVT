@@ -43,7 +43,7 @@ static int QueuePlayer(unsigned player, int tick) {
 		const InputFrame* frame = &g_inputHistory[player][i];
 		if (frame->timestamp > tick)
 			break;
-		if (frame->valid == XVT_INPUT_PREDICTED)
+		if (frame->unconfirmed == XVT_INPUT_PREDICTED)
 			continue;
 		/* Generic insertion may replace an unconsumed real record. Prediction
 		 * must leave both real and authoritative samples at this tick intact. */
@@ -70,7 +70,7 @@ static int QueuePlayer(unsigned player, int tick) {
 		return 0;
 	}
 	if (inserted) {
-		inserted->valid = XVT_INPUT_PREDICTED;
+		inserted->unconfirmed = XVT_INPUT_PREDICTED;
 		inserted->applied = 0;
 	}
 	return 1;
@@ -80,7 +80,7 @@ int XvtFlightPrediction_Queue(int tick) {
 	if (!XvtFlightWire_ValidTick((unsigned)tick))
 		return 0;
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player)
-		if (player != (unsigned)g_localPlayer && g_players[player].connectedFlag &&
+		if (player != (unsigned)g_localPlayer && g_players[player].participationState &&
 			!QueuePlayer(player, tick))
 			return 0;
 	return 1;

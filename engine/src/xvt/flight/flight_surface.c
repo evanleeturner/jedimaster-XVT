@@ -12,7 +12,7 @@
 // GLOBAL: XVT 0x527EAC
 int g_flightPageFlip = 1;
 // GLOBAL: XVT 0x527ED0
-int g_flightLockBackBufferForHudDraw = 1;
+int g_flightDrawToHudLayer = 1;
 // GLOBAL: XVT 0x66DDCC
 IDirectDrawSurface* g_flightOffscreenSurface = 0;
 // GLOBAL: XVT 0x9ED23B
@@ -71,7 +71,7 @@ void FlightSurface_Lock(void) {
 		displaySurfaceState = g_flightDisplaySurfacesActive;
 		displaySurfaceState |= (uint8_t)g_flightNetClockLeadTicks;
 		if (displaySurfaceState != 0) {
-			if (g_flightLockBackBufferForHudDraw != 0) {
+			if (g_flightDrawToHudLayer != 0) {
 				memset(&surfaceDesc, 0, sizeof(surfaceDesc));
 				surfaceDesc.dwSize = sizeof(surfaceDesc);
 				for (;;) {
@@ -163,7 +163,7 @@ void FlightSurface_Lock(void) {
 			g_surfacePixels = (uint8_t*)g_surfacePixels + verticalOffset;
 			FlightSurface_SetViewport480ByteSpan(480 * FlightDisplay_GetPrimarySurfacePitch());
 		}
-	} else if (g_flightLockBackBufferForHudDraw != 0) {
+	} else if (g_flightDrawToHudLayer != 0) {
 		FlightSurface_SetSoftwareFramebufferBase(g_flightHudStagingBuffer);
 		FlightSurface_SetViewport480ByteSpan(480 * FlightDisplay_GetPrimarySurfacePitch());
 		g_flightSwFramebufferBase = g_flightHudStagingBuffer;
@@ -199,7 +199,7 @@ void FlightSurface_Unlock(void) {
 	displaySurfaceState = g_flightDisplaySurfacesActive;
 	displaySurfaceState |= (uint8_t)g_flightNetClockLeadTicks;
 	if (displaySurfaceState != 0) {
-		if (g_flightLockBackBufferForHudDraw != 0) {
+		if (g_flightDrawToHudLayer != 0) {
 			g_flightOffscreenSurface->lpVtbl->Unlock(g_flightOffscreenSurface, g_surfacePixels);
 		} else {
 			g_flightBackBuffer->lpVtbl->Unlock(g_flightBackBuffer, g_surfacePixels);

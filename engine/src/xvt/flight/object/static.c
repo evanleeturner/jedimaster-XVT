@@ -12,7 +12,7 @@
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x446700
-uint16_t static_laserstaticcollide(uint16_t sourceObjIdx, uint16_t staticObjIdx) {
+uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx, uint16_t staticObjIdx) {
 	enum { MAX_DISTANCE = 0x20000, LARGE_MODEL_EXTENT = 1095 };
 
 	int sourceSourceObjIdx;
@@ -45,10 +45,10 @@ uint16_t static_laserstaticcollide(uint16_t sourceObjIdx, uint16_t staticObjIdx)
 	Mission_ResolveObjectOrMissionPointWorldLoc(staticObjIdx, 0);
 	g_collisionSweepStartX = g_worldLocX;
 	g_collisionSweepEndX = g_worldLocX;
-	g_collisionSweepStartY = worldlocy;
-	g_collisionSweepEndY = worldlocy;
-	g_collisionSweepStartZ = worldlocz;
-	g_collisionSweepEndZ = worldlocz;
+	g_collisionSweepStartY = g_worldLocY;
+	g_collisionSweepEndY = g_worldLocY;
+	g_collisionSweepStartZ = g_worldLocZ;
+	g_collisionSweepEndZ = g_worldLocZ;
 
 	hitRadius = g_modelTypeTable[staticObjectType].maxBoundsExtent;
 	dx = g_collisionProbeWorldX - g_worldLocX;
@@ -56,12 +56,12 @@ uint16_t static_laserstaticcollide(uint16_t sourceObjIdx, uint16_t staticObjIdx)
 		dx = -dx;
 	if (dx > MAX_DISTANCE)
 		return 0;
-	dy = g_collisionProbeWorldY - worldlocy;
+	dy = g_collisionProbeWorldY - g_worldLocY;
 	if (dy < 0)
 		dy = -dy;
 	if (dy > MAX_DISTANCE)
 		return 0;
-	dz = g_collisionProbeWorldZ - worldlocz;
+	dz = g_collisionProbeWorldZ - g_worldLocZ;
 	if (dz < 0)
 		dz = -dz;
 	if (dz > MAX_DISTANCE)
@@ -108,7 +108,7 @@ uint16_t static_laserstaticcollide(uint16_t sourceObjIdx, uint16_t staticObjIdx)
 }
 
 // FUNCTION: XVT 0x446960
-void static_laserhitstatic(uint16_t sourceObjIdx, int victimObjIdx) {
+void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx) {
 	enum {
 		EFFECT_TYPE_DEFAULT = 0x81,
 		EFFECT_TYPE_LASER_IMPACT = 0x83,
@@ -116,7 +116,7 @@ void static_laserhitstatic(uint16_t sourceObjIdx, int victimObjIdx) {
 		STATIC_LAUNCHER_OBJECT_TYPE = 77,
 		TEMPORARY_PROJECTILE_OBJECT_TYPE = PROJECTILE_OBJECT_TYPE_REBEL_LASER,
 		RANDOM_IMPACT_SOUND_COUNT = 4,
-		IMPACT_STATE = 5,
+		EXPLOSION_FAMILY = 5,
 		IMPACT_VARIANT = 2,
 	};
 
@@ -168,16 +168,16 @@ void static_laserhitstatic(uint16_t sourceObjIdx, int victimObjIdx) {
 	g_objectTable[sourceObjIdx].world_x = g_collisionSegmentStartWorldX + g_collisionHitOffsetX;
 	g_objectTable[sourceObjIdx].world_y = g_collisionSegmentStartWorldY + g_collisionHitOffsetY;
 	g_objectTable[sourceObjIdx].world_z = g_collisionSegmentStartWorldZ + g_collisionHitOffsetZ;
-	if (g_projectileDamageByObjectType
+	if (g_projectileTypeData
 			.warheadClass[g_objectTable[sourceObjIdx].objectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
 		effectType = EFFECT_TYPE_DEFAULT;
 	}
 	g_objectTable[sourceObjIdx].objectType = (uint8_t)effectType;
 	g_objectTable[sourceObjIdx].genusId = CRAFT_GENUS_EXPLOSION;
-	g_objectTable[sourceObjIdx].mobj->family = IMPACT_STATE;
+	g_objectTable[sourceObjIdx].mobj->family = EXPLOSION_FAMILY;
 	g_objectTable[sourceObjIdx].typeSpecificByte[0] = IMPACT_VARIANT;
 	g_objectTable[sourceObjIdx].mobj->speed = 0;
-	g_objectTable[sourceObjIdx].mobj->lightIntensityScale = 0;
+	g_objectTable[sourceObjIdx].mobj->effectSize = 0;
 	g_objectTable[sourceObjIdx].mobj->secondsAlive = 0;
 	g_objectTable[sourceObjIdx].mobj->lifetimeTimer = 0;
 	g_objectTable[sourceObjIdx].pitch = 0;

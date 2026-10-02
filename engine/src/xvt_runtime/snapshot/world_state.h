@@ -80,7 +80,7 @@ void XvtSnapshot_Restore(void);
  * pool entry as present. */
 size_t XvtSnapshot_CalculateSize(void);
 
-/* Checksums g_worldStateBuffer into g_worldChecksum and g_peerChecksumRegionLengths
+/* Checksums g_worldStateBuffer into g_worldChecksum and g_worldChecksumRegionLengths
  * (see XvtSnapshot_ChecksumImage). Both arguments are ignored; they keep the original
  * signature. On failure sets g_flightMissionState.missionEndPending to 1. */
 void XvtSnapshot_Checksum(int unusedArg0, int unusedArg1);

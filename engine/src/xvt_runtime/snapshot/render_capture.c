@@ -132,9 +132,9 @@ static void CaptureCamera(XvtSnapCamera* out, XvtSnapLighting* lighting, unsigne
 	const PlayerData* p = &g_players[g_localPlayer];
 	const PlayerViewState* v = &p->viewState;
 	memset(out, 0, sizeof *out);
-	out->world_pos[0] = v->savedTargetX;
-	out->world_pos[1] = v->savedTargetY;
-	out->world_pos[2] = v->savedTargetZ;
+	out->world_pos[0] = v->cameraWorldX;
+	out->world_pos[1] = v->cameraWorldY;
+	out->world_pos[2] = v->cameraWorldZ;
 	XvtRenderCamera_CopyRows(out->rows);
 	out->viewport = (XvtSnapRect) { g_flightVpX, g_flightVpY, g_flightVpWidth, g_flightVpHeight };
 	out->center_x = g_flightVpCenterX;
@@ -199,7 +199,7 @@ static void CaptureObject(unsigned slot) {
 		return;
 	out->has_mobile = 1;
 	out->state = m->family;
-	out->light_scale = m->lightIntensityScale;
+	out->light_scale = m->effectSize;
 	out->prev_world_pos[0] = m->prevWorldX;
 	out->prev_world_pos[1] = m->prevWorldY;
 	out->prev_world_pos[2] = m->prevWorldZ;
@@ -226,11 +226,11 @@ static void CaptureObject(unsigned slot) {
 	out->working_subsystems = c->workingSubsystems;
 	out->installed_subsystems = c->systemFlags;
 	out->throttle = c->throttleSpeed;
-	out->engine_output = c->engineOutputScale;
+	out->engine_output = c->engineOverdriveOff;
 	out->max_speed = c->aiFlight.maxSpeedCache;
 	out->laser_redirect = c->laserRechargeLevel;
 	out->shield_redirect = c->shieldRechargeLevel;
-	out->beam_level = c->beamLevel;
+	out->beam_level = c->beamRechargeLevel;
 	memcpy(out->component_state, c->componentState, sizeof out->component_state);
 	memcpy(out->component_hp, c->componentHp, sizeof out->component_hp);
 	memcpy(out->mesh_rotation, c->meshRotation, sizeof out->mesh_rotation);

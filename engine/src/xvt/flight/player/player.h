@@ -10,9 +10,9 @@ extern "C" {
 #endif
 
 struct PlayerViewState {
-	int savedTargetX;
-	int savedTargetY;
-	int savedTargetZ;
+	int cameraWorldX;
+	int cameraWorldY;
+	int cameraWorldZ;
 	uint16_t cameraFocusObjIdx;
 	uint16_t aimTargetIdx;
 	int16_t viewPitch;
@@ -121,7 +121,7 @@ struct PlayerData {
 	int16_t iff;
 	int16_t team;
 	uint16_t boundFlightGroupIdx;
-	uint8_t connectedFlag;
+	uint8_t participationState;
 	uint8_t awaitingNewCraft;
 	uint8_t boundCraftEngineGlowCount;
 	uint8_t mapCameraState;
@@ -132,7 +132,7 @@ struct PlayerData {
 	int16_t targetCycleStart;
 	int16_t targetPresetSlot[4];
 	uint8_t missileLockState;
-	uint8_t selectedWarhead;
+	uint8_t selectedWeaponBank;
 	uint8_t selectedWeaponMode;
 	int16_t selectedTargetComponent;
 	int16_t targetingState;
@@ -155,15 +155,15 @@ struct PlayerData {
 	int hardpointWorldX;
 	int hardpointWorldY;
 	int hardpointWorldZ;
-	int hardpointLocalX;
-	int hardpointLocalY;
-	int hardpointLocalZ;
+	int prevHardpointWorldX;
+	int prevHardpointWorldY;
+	int prevHardpointWorldZ;
 	PlayerMissionRuntimeStats missionStats;
 	uint16_t warheadsFired;
 	PerMissionKills perMissionKills;
 	char msgText[50];
 	uint8_t msgLength;
-	FlightChatRecipientMode msgTypeId;
+	FlightChatRecipientMode chatRecipientMode;
 	PlayerViewState viewState;
 	PlayerNetworkRuntimeTail network;
 	int lockstepTimestamp;
@@ -178,11 +178,11 @@ struct PlayerData {
 	int16_t savedSpeedRemainder;
 	int16_t savedRollImpulseRate;
 	uint16_t savedObjectSignature;
-	uint8_t savedRegion;
+	uint8_t savedAwaitingNewCraft;
 	int pendingActionTimer;
 	int beamFireCooldownTimer;
 	int field_5B5;
-	int impactDamageCooldownTime;
+	int nextEngineWashCheckTime;
 };
 
 struct PlayerFlightTransientTimers {

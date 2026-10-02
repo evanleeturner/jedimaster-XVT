@@ -48,7 +48,7 @@ void XvtNetworkDialogs_Return(int host) {
 	g_frontendMissionSessionMode =
 		host ? FRONTEND_MISSION_SESSION_NET_HOST : FRONTEND_MISSION_SESSION_NET_CLIENT;
 	g_frontendNetSelectedSessionIdx = -1;
-	g_frontendNetProbeResponseType = 0;
+	g_frontendNetProbeMissionElapsedSeconds = 0;
 	g_frontendNetReceivedMissionDescriptionId = -1;
 	memset(g_frontendNetSelectedGameName, 0, sizeof(g_frontendNetSelectedGameName));
 	if (g_briefingText)

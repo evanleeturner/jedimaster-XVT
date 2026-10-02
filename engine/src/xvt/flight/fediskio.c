@@ -82,9 +82,9 @@ uint16_t g_objectTableHandle = 0;
 // GLOBAL: XVT 0x9D7670
 uint16_t g_stringDataHandle = 0;
 // GLOBAL: XVT 0x612B94
-uint16_t g_visibleObjectsHandle = 0;
+uint16_t g_renderObjectListHandle = 0;
 // GLOBAL: XVT 0x612B98
-uint16_t g_flightLog1BufferHandle = 0;
+uint16_t g_flightScratchScreenBufferHandle = 0;
 // GLOBAL: XVT 0x612BA0
 uint8_t g_rgb565ToPaletteIndexLut[UINT16_MAX + 1u] = { 0 };
 // GLOBAL: XVT 0x622BA0
@@ -94,9 +94,9 @@ uint16_t g_flightOffscreenBufferHandle = 0;
 // GLOBAL: XVT 0x622BA8
 uint16_t g_flightMicroFontHandle = 0;
 // GLOBAL: XVT 0x622BAC
-uint16_t g_flightSmallFontHandle = 0;
+uint16_t g_flightMediumFontHandle = 0;
 // GLOBAL: XVT 0x527510
-const int g_pilotKillScoreBaseByAiLevel[7] = { 3, 4, 4, 8, 12, 14, 0 };
+const int g_flightGroupRatingBaseByAiLevel[7] = { 3, 4, 4, 8, 12, 14, 0 };
 // GLOBAL: XVT 0x52752C
 const int g_pilotRatingPromotionPointThresholds[25] = {
 	250,  500,  750,  1250, 1750, 2250, 2750, 3250, 3750, 4250,  4750,  5250,  5750,
@@ -109,7 +109,7 @@ const uint8_t g_placementAwardLevels[24] = {
 // GLOBAL: XVT 0x5275C4
 const int g_missionAwardWinThresholds[5] = { 50000, 40000, 30000, 20000, 10000 };
 // GLOBAL: XVT 0x5275E4
-const int g_missionAwardScoreMarginThresholds[3] = { 50000, 20000, 0 };
+const int g_missionAwardScoreThresholds[3] = { 50000, 20000, 0 };
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x498400
@@ -127,7 +127,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 						  sizeof(g_players[0].perMissionKills.killsFullOnAiRating[0]),
 		TEAM_KILL_STAT_FULL = 0,
 		TEAM_KILL_STAT_SHARED = 1,
-		TEAM_KILL_STAT_ASSIST = 3,
+		TEAM_KILL_STAT_LOSSES = 3,
 		TEAM_GOAL_PRIMARY = 0,
 		TEAM_GOAL_PREVENT = 1,
 		MISSION_STAT_TRAINING = 0,
@@ -155,7 +155,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 	int award;
 	int placement;
 	int statType;
-	int localPlayerIff;
+	int localPlayerTeam;
 	int score;
 	int margin;
 	int team0PlayerFgCount;
@@ -263,9 +263,9 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 		}
 
 		memset(&g_pilotData.objectStats, 0, sizeof(g_pilotData.objectStats));
-		localPlayerIff = (uint16_t)g_players[g_localPlayer].team;
+		localPlayerTeam = (uint16_t)g_players[g_localPlayer].team;
 		score = g_players[g_localPlayer].missionStats.missionScore +
-				g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][localPlayerIff];
+				g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][localPlayerTeam];
 		++g_pilotData.totalMissionsPlayedCount;
 		++g_pilotData.factionStatistics[g_pilotData.currentFactionId].totalMissionsPlayedCount;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.totalScorePerMT[statType] += score;
@@ -581,7 +581,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 				(g_pilotData.missionSequenceActive != 1 ||
 				 g_pilotData.meleeTournamentSequenceState.currentMissionIndex == 0)) {
 				groupAI = g_missionFlightGroups[fgIdx].fg.groupAI;
-				flightGroupRating = g_pilotKillScoreBaseByAiLevel[groupAI];
+				flightGroupRating = g_flightGroupRatingBaseByAiLevel[groupAI];
 				if (groupAI != 0) {
 					flightGroupRating += fgIdx & 3;
 				}
@@ -596,11 +596,11 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 			team->isMissionCompleted =
 				g_flightMissionState.runtime.teamGoalStatus[teamIdx][TEAM_GOAL_PRIMARY] == 1 &&
 				g_flightMissionState.runtime.teamGoalStatus[teamIdx][TEAM_GOAL_PREVENT] != 1;
-			team->missionScore = g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][teamIdx];
+			team->missionScore = g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][teamIdx];
 			team->missionTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds[teamIdx];
 			team->kills = g_flightMissionState.runtime.teamKillStats[TEAM_KILL_STAT_FULL][teamIdx];
 			team->killsShared = g_flightMissionState.runtime.teamKillStats[TEAM_KILL_STAT_SHARED][teamIdx];
-			team->killsAssist = g_flightMissionState.runtime.teamKillStats[TEAM_KILL_STAT_ASSIST][teamIdx];
+			team->killsAssist = g_flightMissionState.runtime.teamKillStats[TEAM_KILL_STAT_LOSSES][teamIdx];
 			if (statType == MISSION_STAT_MELEE) {
 				team->missionScore += g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][teamIdx];
 			} else {
@@ -630,7 +630,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					g_pilotData.networkPlayers[networkIdx].totalScore =
 						g_players[playerIdx].missionStats.missionScore +
 						g_flightMissionState.runtime
-							.teamScores[TEAM_SCORE_BONUS_TENTHS][(uint16_t)g_players[playerIdx].team];
+							.teamScores[TEAM_SCORE_BONUS][(uint16_t)g_players[playerIdx].team];
 					g_pilotData.networkPlayers[networkIdx].totalLosses =
 						g_players[playerIdx].perMissionKills.totalCraftLosses;
 					break;
@@ -651,11 +651,10 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 				g_flightMissionState.runtime
 						.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team][TEAM_GOAL_PREVENT] != 1) {
 				award = 1;
-				for (awardThresholdIdx = 0;
-					 awardThresholdIdx < sizeof(g_missionAwardScoreMarginThresholds) /
-											 sizeof(g_missionAwardScoreMarginThresholds[0]);
+				for (awardThresholdIdx = 0; awardThresholdIdx < sizeof(g_missionAwardScoreThresholds) /
+																	sizeof(g_missionAwardScoreThresholds[0]);
 					 ++awardThresholdIdx) {
-					if (score >= g_missionAwardScoreMarginThresholds[awardThresholdIdx]) {
+					if (score >= g_missionAwardScoreThresholds[awardThresholdIdx]) {
 						break;
 					}
 					++award;
@@ -688,14 +687,13 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 
 			betterTeamCount = 0;
 			margin = 0;
-			playerTeamScore =
-				g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][localPlayerIff] +
-				g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][localPlayerIff];
+			playerTeamScore = g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][localPlayerTeam] +
+							  g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][localPlayerTeam];
 			for (teamIdx = 0; teamIdx < TEAM_COUNT; ++teamIdx) {
 				int hasOpponent;
 				int opponentScore;
 
-				if (teamIdx == (unsigned int)localPlayerIff) {
+				if (teamIdx == (unsigned int)localPlayerTeam) {
 					continue;
 				}
 				hasOpponent = 0;
@@ -710,7 +708,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 				if (!hasOpponent) {
 					continue;
 				}
-				opponentScore = g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][teamIdx] +
+				opponentScore = g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][teamIdx] +
 								g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][teamIdx];
 				if (playerTeamScore < opponentScore) {
 					++betterTeamCount;
@@ -809,18 +807,18 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 			sprintf(g_missionDebugBuffer, "Player's team score: %d   Place: %d   Margin: %d   Award: %d\n",
 					playerTeamScore, placement, margin, award);
 		} else if (statType == MISSION_STAT_COMBAT) {
-			if (g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PRIMARY] == 2 ||
-				g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PREVENT] == 1) {
+			if (g_flightMissionState.runtime.teamGoalStatus[localPlayerTeam][TEAM_GOAL_PRIMARY] == 2 ||
+				g_flightMissionState.runtime.teamGoalStatus[localPlayerTeam][TEAM_GOAL_PREVENT] == 1) {
 				award = FAILED_AWARD;
 			} else if (connectedHumanCount == 1) {
-				if (g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PRIMARY] == 1 &&
-					g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PREVENT] != 1) {
+				if (g_flightMissionState.runtime.teamGoalStatus[localPlayerTeam][TEAM_GOAL_PRIMARY] == 1 &&
+					g_flightMissionState.runtime.teamGoalStatus[localPlayerTeam][TEAM_GOAL_PREVENT] != 1) {
 					award = 1;
 					for (awardThresholdIdx = 0;
-						 awardThresholdIdx < sizeof(g_missionAwardScoreMarginThresholds) /
-												 sizeof(g_missionAwardScoreMarginThresholds[0]);
+						 awardThresholdIdx <
+						 sizeof(g_missionAwardScoreThresholds) / sizeof(g_missionAwardScoreThresholds[0]);
 						 ++awardThresholdIdx) {
-						if (score >= g_missionAwardScoreMarginThresholds[awardThresholdIdx]) {
+						if (score >= g_missionAwardScoreThresholds[awardThresholdIdx]) {
 							break;
 						}
 						++award;
@@ -839,8 +837,8 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 				} else if (score <= 0) {
 					award = FAILED_AWARD;
 				}
-			} else if (g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PRIMARY] == 1 &&
-					   g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PREVENT] != 1) {
+			} else if (g_flightMissionState.runtime.teamGoalStatus[localPlayerTeam][TEAM_GOAL_PRIMARY] == 1 &&
+					   g_flightMissionState.runtime.teamGoalStatus[localPlayerTeam][TEAM_GOAL_PREVENT] != 1) {
 				award = 1;
 				for (awardThresholdIdx = 0; awardThresholdIdx <= 4; ++awardThresholdIdx) {
 					if (score >= g_missionAwardWinThresholds[awardThresholdIdx]) {
@@ -1668,15 +1666,14 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 
 				if (g_pilotData.meleeTournamentSequenceState.teamStandings[teamIdx]
 						.aiOpponentSourceTeamAndTypeFlag != -1) {
-					teamMissionScore =
-						g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][teamIdx] +
-						g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][teamIdx];
+					teamMissionScore = g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][teamIdx] +
+									   g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][teamIdx];
 					betterMissionTeamCount = 0;
 					for (networkIdx = 0; networkIdx < TEAM_COUNT; ++networkIdx) {
 						if (networkIdx != teamIdx &&
 							g_pilotData.meleeTournamentSequenceState.teamStandings[networkIdx]
 									.aiOpponentSourceTeamAndTypeFlag != -1 &&
-							g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][networkIdx] +
+							g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][networkIdx] +
 									g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][networkIdx] >
 								teamMissionScore) {
 							++betterMissionTeamCount;
@@ -2198,7 +2195,7 @@ uint16_t FeDiskIo_ReadAllBytesOrFatal(const char* fileName, void* dst) {
 	uint16_t byteIndex;
 	uint8_t buffer[512];
 
-	File_OpenGlobalStream(fileName, "rb", 1, 0);
+	FeDiskIo_OpenGlobalStream(fileName, "rb", 1, 0);
 	stream = g_stream;
 	if (stream == NULL) {
 		FeDiskIo_FatalError(FILE_ERROR_STR_FILE_MISSING);
@@ -2229,13 +2226,13 @@ void FeDiskIo_InitGlobalBuffers(void) {
 		STRING_DATA_BUFFER_BYTES = 32000,
 		TINY_FONT_BUFFER_BYTES = 34600,
 		MICRO_FONT_BUFFER_BYTES = 20600,
-		SMALL_FONT_BUFFER_BYTES = 34600,
+		MEDIUM_FONT_BUFFER_BYTES = 34600,
 		HUD_PANEL_SPRITE_BUFFER_BYTES = 120000,
 		FLIGHT_ICON_FRAME_POINTER_CAPACITY = 2010,
 		FLIGHT_ICON_FRAME_DATA_BYTES = 31060,
 		MESSAGE_LOG_BUFFER_BYTES = 32000,
 		RENDER_OBJECT_LIST_CAPACITY = 296,
-		FLIGHT_LOG_CLEAR_COLOR = 0x40,
+		SCRATCH_SCREEN_CLEAR_COLOR = 0x40,
 		FLIGHT_TEXT_LOADING_COLOR = 0xfa,
 		FLIGHT_TEXT_WARNING_COLOR = 0x36,
 		BASE_FLIGHT_SFX_FIRST_SOUND_ID = 4,
@@ -2276,8 +2273,8 @@ void FeDiskIo_InitGlobalBuffers(void) {
 	if (g_flightMicroFontHandle == 0) {
 		allocationFailed = 1;
 	}
-	g_flightSmallFontHandle = Memory_AllocHandle(SMALL_FONT_BUFFER_BYTES, 0);
-	if (g_flightSmallFontHandle == 0) {
+	g_flightMediumFontHandle = Memory_AllocHandle(MEDIUM_FONT_BUFFER_BYTES, 0);
+	if (g_flightMediumFontHandle == 0) {
 		allocationFailed = 1;
 	}
 	if (allocationFailed != 0) {
@@ -2287,9 +2284,9 @@ void FeDiskIo_InitGlobalBuffers(void) {
 #endif
 	}
 
-	g_flightLog1BufferHandle =
+	g_flightScratchScreenBufferHandle =
 		Memory_AllocHandle(g_screenHeight * (unsigned int)g_flightBytesPerPixel * g_screenWidth, 0);
-	if (g_flightLog1BufferHandle == 0) {
+	if (g_flightScratchScreenBufferHandle == 0) {
 		allocationFailed = 1;
 	}
 	g_flightAuxBufferHandle =
@@ -2315,16 +2312,16 @@ void FeDiskIo_InitGlobalBuffers(void) {
 	if (g_messageLogHandle == 0) {
 		allocationFailed = 1;
 	}
-	g_visibleObjectsHandle =
+	g_renderObjectListHandle =
 		Memory_AllocHandle(RENDER_OBJECT_LIST_CAPACITY * sizeof(g_renderObjectListEntries[0]), 0);
-	if (g_visibleObjectsHandle == 0) {
+	if (g_renderObjectListHandle == 0) {
 		allocationFailed = 1;
 	}
 
 	StringTable_LoadGameStrings(1);
 	g_flightFontSmallSw = Memory_LockHandle(g_flightTinyFontHandle);
 	g_flightFontMicroSw = Memory_LockHandle(g_flightMicroFontHandle);
-	g_flightFontMediumSw = Memory_LockHandle(g_flightSmallFontHandle);
+	g_flightFontMediumSw = Memory_LockHandle(g_flightMediumFontHandle);
 	switch (g_flightResolutionMode) {
 		case FLIGHT_RESOLUTION_320X240:
 			FeDiskIo_ReadAllBytesOrFatal("MICRO32.FNT", g_flightFontMicroSw);
@@ -2355,9 +2352,9 @@ void FeDiskIo_InitGlobalBuffers(void) {
 #endif
 	}
 
-	g_renderObjectListEntries = Memory_LockHandle(g_visibleObjectsHandle);
-	g_flightScratchScreenBuffer = Memory_LockHandle(g_flightLog1BufferHandle);
-	memset(g_flightScratchScreenBuffer, FLIGHT_LOG_CLEAR_COLOR,
+	g_renderObjectListEntries = Memory_LockHandle(g_renderObjectListHandle);
+	g_flightScratchScreenBuffer = Memory_LockHandle(g_flightScratchScreenBufferHandle);
+	memset(g_flightScratchScreenBuffer, SCRATCH_SCREEN_CLEAR_COLOR,
 		   g_screenHeight * (unsigned int)g_flightBytesPerPixel * g_screenWidth);
 	g_flightOffscreenBuffer = Memory_LockHandle(g_flightOffscreenBufferHandle);
 	FlightSw_SetRotatedSpriteDestBuffer(g_flightScratchScreenBuffer);
@@ -2496,11 +2493,11 @@ void FeDiskIo_UnlockGlobalBuffers(void) {
 		Memory_UnlockHandle(g_warheadGuidancePoolHandle);
 	}
 	Memory_UnlockHandle(g_stringDataHandle);
-	Memory_UnlockHandle(g_visibleObjectsHandle);
+	Memory_UnlockHandle(g_renderObjectListHandle);
 	Memory_UnlockHandle(g_flightTinyFontHandle);
 	Memory_UnlockHandle(g_flightMicroFontHandle);
-	Memory_UnlockHandle(g_flightSmallFontHandle);
-	Memory_UnlockHandle(g_flightLog1BufferHandle);
+	Memory_UnlockHandle(g_flightMediumFontHandle);
+	Memory_UnlockHandle(g_flightScratchScreenBufferHandle);
 	Memory_UnlockHandle(g_flightAuxBufferHandle);
 	Memory_UnlockHandle(g_flightOffscreenBufferHandle);
 }
@@ -2525,10 +2522,10 @@ void FeDiskIo_LockGlobalBuffers(void) {
 	}
 
 	StringTable_LoadGameStrings(0);
-	g_renderObjectListEntries = Memory_LockHandle(g_visibleObjectsHandle);
+	g_renderObjectListEntries = Memory_LockHandle(g_renderObjectListHandle);
 	g_flightFontSmallSw = Memory_LockHandle(g_flightTinyFontHandle);
 	g_flightFontMicroSw = Memory_LockHandle(g_flightMicroFontHandle);
-	g_flightFontMediumSw = Memory_LockHandle(g_flightSmallFontHandle);
+	g_flightFontMediumSw = Memory_LockHandle(g_flightMediumFontHandle);
 	if (g_flightFontTier == 1) {
 		g_flightFontGlyphTableSw = g_flightFontSmallSw;
 	} else if (g_flightFontTier == 2) {
@@ -2537,7 +2534,7 @@ void FeDiskIo_LockGlobalBuffers(void) {
 		g_flightFontGlyphTableSw = g_flightFontMediumSw;
 	}
 
-	g_flightScratchScreenBuffer = Memory_LockHandle(g_flightLog1BufferHandle);
+	g_flightScratchScreenBuffer = Memory_LockHandle(g_flightScratchScreenBufferHandle);
 	g_flightOffscreenBuffer = Memory_LockHandle(g_flightOffscreenBufferHandle);
 	FlightSw_SetRotatedSpriteDestBuffer(g_flightScratchScreenBuffer);
 	g_flightAuxBuffer = Memory_LockHandle(g_flightAuxBufferHandle);
@@ -2545,7 +2542,7 @@ void FeDiskIo_LockGlobalBuffers(void) {
 }
 
 // FUNCTION: XVT 0x49CDF0
-void FeDiskIo_FreeModelResources(void) {
+void FeDiskIo_FreeFlightResources(void) {
 	int cockpitResourceIndex;
 	int modelType;
 	int previousModelType;
@@ -2582,9 +2579,9 @@ void FeDiskIo_FreeModelResources(void) {
 #endif
 		Memory_FreeHandle(g_stringDataHandle);
 #ifdef XVT_MODERN
-	if (g_visibleObjectsHandle)
+	if (g_renderObjectListHandle)
 #endif
-		Memory_FreeHandle(g_visibleObjectsHandle);
+		Memory_FreeHandle(g_renderObjectListHandle);
 #ifdef XVT_MODERN
 	if (g_flightTinyFontHandle)
 #endif
@@ -2594,13 +2591,13 @@ void FeDiskIo_FreeModelResources(void) {
 #endif
 		Memory_FreeHandle(g_flightMicroFontHandle);
 #ifdef XVT_MODERN
-	if (g_flightSmallFontHandle)
+	if (g_flightMediumFontHandle)
 #endif
-		Memory_FreeHandle(g_flightSmallFontHandle);
+		Memory_FreeHandle(g_flightMediumFontHandle);
 #ifdef XVT_MODERN
-	if (g_flightLog1BufferHandle)
+	if (g_flightScratchScreenBufferHandle)
 #endif
-		Memory_FreeHandle(g_flightLog1BufferHandle);
+		Memory_FreeHandle(g_flightScratchScreenBufferHandle);
 #ifdef XVT_MODERN
 	if (g_flightAuxBufferHandle)
 #endif
@@ -2623,11 +2620,11 @@ void FeDiskIo_FreeModelResources(void) {
 		Memory_FreeHandle(g_messageLogHandle);
 #ifdef XVT_MODERN
 	g_stringDataHandle = 0;
-	g_visibleObjectsHandle = 0;
+	g_renderObjectListHandle = 0;
 	g_flightTinyFontHandle = 0;
 	g_flightMicroFontHandle = 0;
-	g_flightSmallFontHandle = 0;
-	g_flightLog1BufferHandle = 0;
+	g_flightMediumFontHandle = 0;
+	g_flightScratchScreenBufferHandle = 0;
 	g_flightAuxBufferHandle = 0;
 	g_flightOffscreenBufferHandle = 0;
 	g_hudPanelSpriteDataHandle = 0;
@@ -2711,7 +2708,7 @@ void FeDiskIo_LoadResources(void) {
 			strcat(listPath, "320");
 		}
 		strcat(listPath, ".LST");
-		File_OpenGlobalStream(listPath, "rb", 1, 0);
+		FeDiskIo_OpenGlobalStream(listPath, "rb", 1, 0);
 		listStream = (XvtFile*)g_stream;
 		listEntryIndex = 0;
 
@@ -2757,7 +2754,7 @@ void FeDiskIo_LoadResources(void) {
 				resourceHandle = OptModel_LoadHandle(resourceName);
 				Memory_LockHandle(resourceHandle);
 			} else if ((resourceAssetFlags & MODEL_ASSET_TEX_LEVEL) != 0) {
-				File_OpenGlobalStream(resourceName, "rb", 1, 0);
+				FeDiskIo_OpenGlobalStream(resourceName, "rb", 1, 0);
 				textureStream = (XvtFile*)g_stream;
 				FeDiskIo_ReadWithRetryPrompt(&resourceDataSize, sizeof(resourceDataSize), 1, textureStream);
 				FeDiskIo_ReadWithRetryPrompt(&paletteEntryCount, sizeof(paletteEntryCount), 1, textureStream);
@@ -2833,7 +2830,7 @@ unsigned int FeDiskIo_InitResources(void) {
 		PALETTE_BYTE_COUNT = sizeof(g_swPalette),
 	};
 
-	unsigned int result;
+	unsigned int backgroundColorIndex;
 
 	g_generateMissionPalette &= g_paletteGenerationEnabled;
 	if (g_flightBytesPerPixel == 1) {
@@ -2853,12 +2850,12 @@ unsigned int FeDiskIo_InitResources(void) {
 		g_currentMissionFile[extensionOffset + 1] = 'n';
 		g_currentMissionFile[extensionOffset + 2] = 'v';
 
-		if (File_OpenGlobalStream(g_currentMissionFile, "rb", 0, 0) == 0) {
+		if (FeDiskIo_OpenGlobalStream(g_currentMissionFile, "rb", 0, 0) == 0) {
 			strcpy(fallbackFileName, "newpal.inv");
-			if (File_OpenGlobalStream(fallbackFileName, "rb", 0, 0) == 0) {
+			if (FeDiskIo_OpenGlobalStream(fallbackFileName, "rb", 0, 0) == 0) {
 				Color_BuildRgb565ToPaletteIndexLut(g_activeRgb565ToPaletteIndexLut, GENERATED_PALETTE_START,
 												   PALETTE_COLOR_COUNT);
-				if (File_OpenGlobalStream(g_currentMissionFile, "wb", 0, 1) != 0) {
+				if (FeDiskIo_OpenGlobalStream(g_currentMissionFile, "wb", 0, 1) != 0) {
 					File_RawWrite(g_activeRgb565ToPaletteIndexLut, PALETTE_COLOR_COUNT, PALETTE_COLOR_COUNT,
 								  g_stream);
 					FeDiskIo_CloseGlobalStream(1);
@@ -2906,7 +2903,7 @@ unsigned int FeDiskIo_InitResources(void) {
 			g_currentMissionFile[extensionOffset] = 'p';
 			g_currentMissionFile[extensionOffset + 1] = 'a';
 			g_currentMissionFile[extensionOffset + 2] = 'l';
-			if (File_OpenGlobalStream(g_currentMissionFile, "wb", 0, 1) != 0) {
+			if (FeDiskIo_OpenGlobalStream(g_currentMissionFile, "wb", 0, 1) != 0) {
 				File_RawWrite(&g_swPalette[GENERATED_PALETTE_START],
 							  sizeof(g_swPalette[GENERATED_PALETTE_START]) * GENERATED_PALETTE_COLOR_COUNT, 1,
 							  g_stream);
@@ -2919,7 +2916,7 @@ unsigned int FeDiskIo_InitResources(void) {
 			g_currentMissionFile[extensionOffset] = 'i';
 			g_currentMissionFile[extensionOffset + 1] = 'n';
 			g_currentMissionFile[extensionOffset + 2] = 'v';
-			if (File_OpenGlobalStream(g_currentMissionFile, "wb", 0, 1) != 0) {
+			if (FeDiskIo_OpenGlobalStream(g_currentMissionFile, "wb", 0, 1) != 0) {
 				File_RawWrite(g_activeRgb565ToPaletteIndexLut, PALETTE_COLOR_COUNT, PALETTE_COLOR_COUNT,
 							  g_stream);
 				FeDiskIo_CloseGlobalStream(1);
@@ -2953,12 +2950,12 @@ unsigned int FeDiskIo_InitResources(void) {
 		targetRgb.r = 0;
 		targetRgb.g = 0;
 		targetRgb.b = 2;
-		result = Color_FindNearestRgbTripletIndex((const uint8_t*)&targetRgb, (const uint8_t*)g_swPalette, 0,
-												  PALETTE_COLOR_COUNT);
+		backgroundColorIndex = Color_FindNearestRgbTripletIndex(
+			(const uint8_t*)&targetRgb, (const uint8_t*)g_swPalette, 0, PALETTE_COLOR_COUNT);
 	}
-	g_flightTransparentColorIndex = (uint8_t)result;
-	g_flightBackgroundColorIndex = (uint8_t)result;
-	return result;
+	g_flightTransparentColorIndex = (uint8_t)backgroundColorIndex;
+	g_flightBackgroundColorIndex = (uint8_t)backgroundColorIndex;
+	return backgroundColorIndex;
 }
 
 // FUNCTION: XVT 0x49D860
@@ -3131,7 +3128,7 @@ void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType) {
 	weaponSlotCount = 0;
 	{
 		uint16_t groupIndex;
-		uint8_t targetType;
+		uint8_t wantedHardpointType;
 
 		for (groupIndex = 0; groupIndex < 2; ++groupIndex) {
 			slotStart = (uint8_t)weaponSlotCount;
@@ -3141,8 +3138,9 @@ void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType) {
 				g_modelDefs[modelDefIndex].laserGroupMountType[groupIndex] = 0;
 				continue;
 			}
-			targetType = (uint8_t)(g_modelDefs[modelDefIndex].laserGroupWeaponType[groupIndex] + 120);
-			currentMeshIndex = targetType;
+			wantedHardpointType =
+				(uint8_t)(g_modelDefs[modelDefIndex].laserGroupWeaponType[groupIndex] + 120);
+			currentMeshIndex = wantedHardpointType;
 			for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
 				uint16_t alternateSlot;
 
@@ -3207,8 +3205,8 @@ void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType) {
 				g_modelDefs[modelDefIndex].warheadLauncherType[groupIndex] = 0;
 				continue;
 			}
-			targetType = (uint8_t)(g_modelDefs[modelDefIndex].warheadLauncherType[groupIndex] + 120);
-			currentMeshIndex = targetType;
+			wantedHardpointType = (uint8_t)(g_modelDefs[modelDefIndex].warheadLauncherType[groupIndex] + 120);
+			currentMeshIndex = wantedHardpointType;
 			for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
 				hardpointCount = ModelMesh_CountHardpoints((uint8_t)objectType, meshIndex);
 				if (hardpointCount == 0) {
@@ -3489,7 +3487,7 @@ int FeDiskIo_ShowFatalErrorMessageAndWaitKey(const char* message) {
 #endif
 
 // FUNCTION: XVT 0x49E720
-int File_OpenGlobalStream(const char* fileName, const char* mode, int promptOnFail, int locationMode) {
+int FeDiskIo_OpenGlobalStream(const char* fileName, const char* mode, int promptOnFail, int locationMode) {
 #ifdef XVT_MODERN
 	(void)locationMode;
 	g_stream = File_Open(fileName, mode);

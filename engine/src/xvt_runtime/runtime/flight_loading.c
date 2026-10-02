@@ -13,7 +13,7 @@ enum {
 	MISSION_EXTENSION_SECOND = 1,
 	MISSION_EXTENSION_THIRD = 2,
 	NOISE_TABLE_VALUE_LIMIT = 124,
-	SOFTWARE_RENDER_MODE = 0,
+	NO_VIEWPORT_INSET = 0,
 	MUSIC_TRACK_FLIGHT = 2,
 	MUSIC_START_CHOICE_COUNT = 4,
 	MUSIC_VOLUME_LEVEL_COUNT = 9,
@@ -33,9 +33,9 @@ enum {
 void XvtFlightLoading_Reset(void) {
 	g_objectTableHandle = g_mobileObjectPoolHandle = g_mobileObjectCharDataHandle = 0;
 	g_craftDataPoolHandle = g_warheadGuidancePoolHandle = 0;
-	g_stringDataHandle = g_visibleObjectsHandle = 0;
-	g_flightTinyFontHandle = g_flightMicroFontHandle = g_flightSmallFontHandle = 0;
-	g_flightLog1BufferHandle = g_flightAuxBufferHandle = g_flightOffscreenBufferHandle = 0;
+	g_stringDataHandle = g_renderObjectListHandle = 0;
+	g_flightTinyFontHandle = g_flightMicroFontHandle = g_flightMediumFontHandle = 0;
+	g_flightScratchScreenBufferHandle = g_flightAuxBufferHandle = g_flightOffscreenBufferHandle = 0;
 	g_hudPanelSpriteDataHandle = g_flightIconFramesHandle = g_messageLogHandle = 0;
 	g_objectTable = NULL;
 	g_mobileObjectPoolBase = NULL;
@@ -60,7 +60,7 @@ static void XvtFlightLoading_MissionRules(void) {
 	g_flightMissionState.collisionsEnabled = g_gameConfig.collisions;
 	g_flightMissionState.craftJumpingEnabled = g_gameConfig.craftJumping;
 	g_flightMissionState.randomVariationEnabled = g_gameConfig.randomSetup;
-	g_flightMissionState.reserved18 = g_gameConfig.battleLengthIndex;
+	g_flightMissionState.battleLengthIndex = g_gameConfig.battleLengthIndex;
 	g_flightMissionState.locatePlayersEnabled = g_gameConfig.locatePlayers;
 	g_flightMissionState.playerFlightGroupWaveMode = g_gameConfig.craftWaves;
 	if (g_pilotData.numHumanPlayersLastMission > 1) {
@@ -83,7 +83,7 @@ void XvtFlightLoading_Globals(void) {
 	int16_t abortPlayerIndex, disconnectPlayerIndex, connectPlayerIndex;
 	XvtFlightLoading_Reset();
 	Flight_PumpWindowMessages();
-	g_pingIndicator = 0;
+	g_packetDropIndicator = 0;
 	g_lagIndicator = 0;
 	g_sw3dSkipOddScanlines = 0;
 	g_flightNetHostAbortReceived = 0;
@@ -96,10 +96,10 @@ void XvtFlightLoading_Globals(void) {
 	FlightLoading_ResetProgressState();
 	Time_ResetElapsedTicks();
 	g_flightDisplaySurfacesActive = 1;
-	g_flightLockBackBufferForHudDraw = 1;
-	if (g_flightViewportInsetX == SOFTWARE_RENDER_MODE && g_surfaceWidth == 320) {
+	g_flightDrawToHudLayer = 1;
+	if (g_flightViewportInsetX == NO_VIEWPORT_INSET && g_surfaceWidth == 320) {
 		g_flightResolutionMode = FLIGHT_RESOLUTION_320X240;
-	} else if (g_flightViewportInsetX == SOFTWARE_RENDER_MODE && g_surfaceWidth == 480) {
+	} else if (g_flightViewportInsetX == NO_VIEWPORT_INSET && g_surfaceWidth == 480) {
 		g_flightResolutionMode = FLIGHT_RESOLUTION_480X360;
 	} else {
 		g_flightResolutionMode = FLIGHT_RESOLUTION_640X480;
@@ -115,7 +115,7 @@ void XvtFlightLoading_Globals(void) {
 	memset(g_flightNetworkRuntimeScratch, 0, sizeof(g_flightNetworkRuntimeScratch));
 	memset(g_flightRuntimeScratch, 0, sizeof(g_flightRuntimeScratch));
 	memset(&g_currentInputFrame, 0, sizeof(g_currentInputFrame));
-	g_remotePlayerRenderSmoothingEnabled = g_asyncFlag;
+	g_remotePlayerRenderSmoothingEnabled = g_internetPlayEnabled;
 	g_flightMissionState.connectedPlayerCount = g_activeFlightPlayerCount;
 	g_flightMissionState.maxConnectedPlayerCountThisMission = g_activeFlightPlayerCount;
 
@@ -147,15 +147,15 @@ void XvtFlightLoading_Globals(void) {
 			g_playerConnected[resetPlayerIndex] = 1;
 			g_flightNetWorldChecksumPeerStatus[resetPlayerIndex] = 0;
 			g_players[resetPlayerIndex].lockstepTimestamp = 0;
-			g_players[resetPlayerIndex].impactDamageCooldownTime = 0;
+			g_players[resetPlayerIndex].nextEngineWashCheckTime = 0;
 			g_players[resetPlayerIndex].field_5B5 = 0;
 		}
 	}
 	for (disconnectPlayerIndex = 0; disconnectPlayerIndex < PLAYER_COUNT; ++disconnectPlayerIndex) {
-		g_players[disconnectPlayerIndex].connectedFlag = 0;
+		g_players[disconnectPlayerIndex].participationState = 0;
 	}
 	for (connectPlayerIndex = 0; connectPlayerIndex < g_activeFlightPlayerCount; ++connectPlayerIndex) {
-		g_players[connectPlayerIndex].connectedFlag = 1;
+		g_players[connectPlayerIndex].participationState = 1;
 	}
 
 	g_flightNetBufferWorldMessagesUntilChecksum = 0;
@@ -222,7 +222,7 @@ void XvtFlightLoading_Palette(void) {
 		g_currentMissionFile[missionExtensionOffset + MISSION_EXTENSION_FIRST] = 'p';
 		g_currentMissionFile[missionExtensionOffset + MISSION_EXTENSION_SECOND] = 'a';
 		g_currentMissionFile[missionExtensionOffset + MISSION_EXTENSION_THIRD] = 'l';
-		if (File_OpenGlobalStream(g_currentMissionFile, "rb", 0, 0) == 0) {
+		if (FeDiskIo_OpenGlobalStream(g_currentMissionFile, "rb", 0, 0) == 0) {
 			g_generateMissionPalette = 1;
 		} else {
 			g_generateMissionPalette = 0;

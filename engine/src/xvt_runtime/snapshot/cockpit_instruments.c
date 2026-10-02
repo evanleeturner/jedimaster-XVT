@@ -128,7 +128,7 @@ static void BuildBeamState(XvtCockpitState* state, const CraftData* craft) {
 	XvtCockpitSystems* systems = &state->systems;
 	if (!(systems->hud_features & XVT_COCKPIT_FEATURE_BEAM))
 		return;
-	int strength = (int16_t)craft->beamPresent;
+	int strength = (int16_t)craft->beamCharge;
 	int working = (craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) != 0;
 	if (strength < 0 || !working)
 		strength = 0;
@@ -157,7 +157,7 @@ static void BuildPowerState(XvtCockpitState* state, const CraftData* craft, int 
 	XvtCockpitSystems* systems = &state->systems;
 	unsigned features = systems->hud_features;
 	unsigned laser = (uint8_t)craft->laserRechargeLevel, shield = (uint8_t)craft->shieldRechargeLevel;
-	unsigned beam = (uint8_t)craft->beamLevel;
+	unsigned beam = (uint8_t)craft->beamRechargeLevel;
 	unsigned engine = 8 - laser;
 	int shields = (craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0;
 	int beam_system = (craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) != 0;
@@ -249,7 +249,7 @@ static void BuildLaserSlots(XvtCockpitState* state, const CraftData* craft, int 
 	if (count > XVT_HUD_WEAPON_SLOTS)
 		count = XVT_HUD_WEAPON_SLOTS;
 	state->weapons.slot_count = (uint8_t)count;
-	state->weapons.selected_bank = player->selectedWarhead;
+	state->weapons.selected_bank = player->selectedWeaponBank;
 	unsigned base = state->view.instrument_base;
 	int cannons = (craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0;
 	int charge_visible = state->view.hud_state == HUD_VIEW_FORWARD &&
@@ -278,7 +278,7 @@ static void BuildLaserSlots(XvtCockpitState* state, const CraftData* craft, int 
 
 		unsigned ready = 0, selected = 0;
 		if (charge > 0 && cannons) {
-			if (player->selectedWeaponMode == 0 && player->selectedWarhead == slot->bank) {
+			if (player->selectedWeaponMode == 0 && player->selectedWeaponBank == slot->bank) {
 				unsigned next = craft->laserState.nextSlot[slot->bank];
 				switch (craft->laserState.linkMode[slot->bank]) {
 					case 1:
@@ -326,7 +326,7 @@ static void BuildLauncher(XvtCockpitState* state, const CraftData* craft, unsign
 	unsigned selection = 0;
 	if (count && (craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_WARHEAD_LAUNCHER)) {
 		selection = 1;
-		if (player->selectedWeaponMode && player->selectedWarhead == bank) {
+		if (player->selectedWeaponMode && player->selectedWeaponBank == bank) {
 			unsigned flags = (uint8_t)craft->warheadLauncherFlags[bank];
 			selection = (flags & 127) == 3 ? 2 : ((display_slot & 1) == (flags >> 7)) + 1;
 		}
@@ -354,8 +354,8 @@ static void BuildWarheadState(XvtCockpitState* state, const ObjectRecord* object
 		BuildLauncher(state, craft, model->warheadLauncherLastSlot[bank], bank * 2 + 1, bank, compact);
 		state->weapons.warheads[bank].visible = 1;
 		state->weapons.warheads[bank].type = craft->warheadSlotTypeIds[bank];
-		state->weapons.warheads[bank].selected =
-			g_players[g_localPlayer].selectedWeaponMode && g_players[g_localPlayer].selectedWarhead == bank;
+		state->weapons.warheads[bank].selected = g_players[g_localPlayer].selectedWeaponMode &&
+												 g_players[g_localPlayer].selectedWeaponBank == bank;
 	}
 }
 
@@ -376,7 +376,7 @@ static void BuildCockpitWarnings(XvtCockpitState* state, const CraftData* craft,
 		systems->countermeasure_count.visible = g_hudElementLayouts[48].x + g_hudElementLayouts[48].y != 0;
 
 		systems->countermeasure_selected =
-			(XvtCockpitIndicator) { 1, (uint8_t)craft->chaffActiveTimer != 0, 0, XVT_COCKPIT_BEFORE_CRT };
+			(XvtCockpitIndicator) { 1, (uint8_t)craft->chaffActiveSeconds != 0, 0, XVT_COCKPIT_BEFORE_CRT };
 		systems->countermeasure_selected.visible = systems->countermeasure_count.visible;
 	}
 	if (compact) {

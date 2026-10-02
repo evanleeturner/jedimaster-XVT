@@ -301,7 +301,7 @@ void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex) {
 	uint16_t rangeKm;
 	uint8_t iff;
 	uint16_t numberOfCraft;
-	int highDistance;
+	int distanceHundredths;
 
 	flightGroupIdx = flightGroupIndex;
 	if (g_missionFlightGroups[flightGroupIdx].fg.arrivalMethod == 0) {
@@ -323,16 +323,16 @@ void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex) {
 
 	if (g_players[g_localPlayer].mapCameraState == 0) {
 		localPlayerObject = &g_objectTable[g_players[g_localPlayer].objectIndex];
-		trig2_ctop(g_worldLocX - localPlayerObject->world_x, worldlocy - localPlayerObject->world_y,
-				   worldlocz - localPlayerObject->world_z);
+		trig2_ctop(g_worldLocX - localPlayerObject->world_x, g_worldLocY - localPlayerObject->world_y,
+				   g_worldLocZ - localPlayerObject->world_z);
 	} else {
-		trig2_ctop(g_worldLocX - g_players[g_localPlayer].viewState.savedTargetX,
-				   worldlocy - g_players[g_localPlayer].viewState.savedTargetY,
-				   worldlocz - g_players[g_localPlayer].viewState.savedTargetZ);
+		trig2_ctop(g_worldLocX - g_players[g_localPlayer].viewState.cameraWorldX,
+				   g_worldLocY - g_players[g_localPlayer].viewState.cameraWorldY,
+				   g_worldLocZ - g_players[g_localPlayer].viewState.cameraWorldZ);
 	}
 	trig2_polardistance *= 161;
-	highDistance = (trig2_polardistance >> 16) & 0xFFFF;
-	rangeKm = (uint16_t)((highDistance + 50) / 100);
+	distanceHundredths = (trig2_polardistance >> 16) & 0xFFFF;
+	rangeKm = (uint16_t)((distanceHundredths + 50) / 100);
 	if (rangeKm == 0) {
 		rangeKm = 1;
 	}
@@ -390,8 +390,8 @@ void msg_emitCraftMessage(uint16_t objIdx, CraftData* craft, int16_t msgTemplate
 }
 
 // FUNCTION: XVT 0x451D00
-void msg_radioMessage(uint16_t senderObjIdx, uint8_t* craftDescriptor, uint16_t commandId,
-					  uint16_t responseIndex, int16_t multipleRecipients) {
+void msg_radioMessage(uint16_t senderObjIdx, uint8_t* senderCraft, uint16_t commandId, uint16_t responseIndex,
+					  int16_t multipleRecipients) {
 	int flightGroupIdx;
 	uint16_t craftNumber;
 
@@ -406,10 +406,9 @@ void msg_radioMessage(uint16_t senderObjIdx, uint8_t* craftDescriptor, uint16_t 
 		g_msgArgTable[1] = commandId;
 		msg_emitInFlightMessage(IFMSG_269_MESSAGE_ACKNOWLEDGED_FLIGHT_GROUP_ARG_ARG, g_localPlayer);
 	} else {
-		msg_addMessagePtr(0, &g_modelDefs[craftDescriptor[4]]);
+		msg_addMessagePtr(0, &g_modelDefs[senderCraft[4]]);
 		msg_addMessagePtr(1, &g_missionFlightGroups[flightGroupIdx]);
-		craftNumber =
-			(uint16_t)Hud_MissionFG_GetCraftNumberIfShown(flightGroupIdx, (CraftData*)craftDescriptor);
+		craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(flightGroupIdx, (CraftData*)senderCraft);
 		if (craftNumber != 0) {
 			g_msgArgTable[2] = craftNumber;
 			g_msgArgTable[3] = commandId;
@@ -611,7 +610,7 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 			g_msgArgTable[3] = IFMSG_345_TO_BE_BOARDED;
 		else
 			g_msgArgTable[3] = IFMSG_347_OTHERS_WILL_DISABLE_IT;
-		if (pai_OrderSlotMatchingObjectHasOrderClass(g_players[playerIdx].objectIndex, 19, targetObjIdx) ==
+		if (pai_SetupContextAndFindOrderPlanOnTarget(g_players[playerIdx].objectIndex, 19, targetObjIdx) ==
 			1) {
 			++g_msgArgTable[3];
 			actionable = 1;
@@ -622,7 +621,7 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 		g_msgArgTable[3] = IFMSG_345_TO_BE_BOARDED;
 	} else if (destroyFlag != 0) {
 		g_msgArgTable[3] = IFMSG_337_OTHERS_WILL_DESTROY_IT;
-		if (pai_OrderSlotMatchingObjectHasOrderClass(g_players[playerIdx].objectIndex, 69, targetObjIdx) ==
+		if (pai_SetupContextAndFindOrderPlanOnTarget(g_players[playerIdx].objectIndex, 69, targetObjIdx) ==
 			1) {
 			++g_msgArgTable[3];
 			actionable = 1;

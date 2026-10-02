@@ -40,9 +40,9 @@ int RenderList_ProjectObjectBoundsForCulling(int objectIdx, unsigned int boundsR
 	int cullRadius;
 
 	object = &g_objectTable[objectIdx];
-	savedTargetY = g_players[playerIdx].viewState.savedTargetY;
-	g_camRelWorldX = object->world_x - g_players[playerIdx].viewState.savedTargetX;
-	savedTargetZ = g_players[playerIdx].viewState.savedTargetZ;
+	savedTargetY = g_players[playerIdx].viewState.cameraWorldY;
+	g_camRelWorldX = object->world_x - g_players[playerIdx].viewState.cameraWorldX;
+	savedTargetZ = g_players[playerIdx].viewState.cameraWorldZ;
 	g_camRelWorldY = object->world_y - savedTargetY;
 	g_camRelWorldZ = object->world_z - savedTargetZ;
 	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);

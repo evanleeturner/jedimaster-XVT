@@ -48,10 +48,10 @@ static void World(void) {
 	g_testMobiles[SLOT].pCraft = &g_testCraft[0];
 	for (int i = 0; i < 8; ++i)
 		g_players[i].objectIndex = -1;
-	g_players[PLAYER].connectedFlag = 1;
+	g_players[PLAYER].participationState = 1;
 	g_players[PLAYER].objectIndex = SLOT;
 	g_players[PLAYER].boundObjectSignature = SIGNATURE;
-	g_players[PLAYER].msgTypeId = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+	g_players[PLAYER].chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
 	g_localPlayer = PLAYER;
 	g_flightPlayerCount = 1;
 
@@ -145,7 +145,7 @@ static void CheckThrottleEligible(void) {
 	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(0));
 
 	World();
-	g_players[PLAYER].connectedFlag = 0;
+	g_players[PLAYER].participationState = 0;
 	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
 	World();
 	g_flightMissionState.missionEndPending = 1;
@@ -163,7 +163,7 @@ static void CheckThrottleEligible(void) {
 	g_players[PLAYER].viewState.playerInputBlocked = 1;
 	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
 	World();
-	g_players[PLAYER].msgTypeId = FLIGHT_CHAT_RECIPIENT_TEAM;
+	g_players[PLAYER].chatRecipientMode = FLIGHT_CHAT_RECIPIENT_TEAM;
 	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
 
 	/* Their bound, live craft: another signature, an empty slot or no craft record will not do. */
@@ -218,7 +218,7 @@ static void CheckSampleThrottleSendsNothing(void) {
 
 	/* The local player is not eligible. */
 	World();
-	g_players[PLAYER].connectedFlag = 0;
+	g_players[PLAYER].participationState = 0;
 	memset(&record, 0, sizeof record);
 	record.flags = 0xFF;
 	XvtFlightControls_SampleThrottle(&record);
