@@ -30,7 +30,8 @@ enum { LEAVE_X = 120, LEAVE_Y = 460, JOIN_X = 40, JOIN_Y = 440 };
 
 static int Placeholder(int frame) { return frame; }
 
-static void Fresh(void) {
+static void Fresh(void)
+{
 	XvtDialog_Shutdown();
 	XvtNetworkTask_Shutdown();
 	XvtNetworkSession_Shutdown();
@@ -46,17 +47,20 @@ static void Fresh(void) {
 	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
 }
 
-static FrontendScreenUpdateFn TopScreen(void) {
+static FrontendScreenUpdateFn TopScreen(void)
+{
 	return g_frontState.screenStates[g_frontState.screenStackTop].updateFn;
 }
 
-static void Click(int x, int y) {
+static void Click(int x, int y)
+{
 	g_frontState.mouseX = x;
 	g_frontState.mouseY = y;
 	g_frontState.mouseLeftClickLatch = 1;
 }
 
-static void CheckDrawsWithNoRooms(void) {
+static void CheckDrawsWithNoRooms(void)
+{
 	Fresh();
 	*XvtNetworkTask_ScrollOffset() = 4;
 	Click(200, 120);
@@ -68,7 +72,8 @@ static void CheckDrawsWithNoRooms(void) {
 	XVT_ASSERT_INT_EQ(XvtNetworkBrowser_DrawMission(), 1);
 }
 
-static void CheckFirstFrame(void) {
+static void CheckFirstFrame(void)
+{
 	Fresh();
 	g_frontendSkipScreenEntrySetup = 1;
 	g_configConnectionTypeEditable = 1;
@@ -79,27 +84,32 @@ static void CheckFirstFrame(void) {
 	XVT_ASSERT_INT_EQ(g_frontendGameSessionInProgress, 0);
 
 	/* The browser was opened, and with no directory configured a confirm dialog is up. */
-	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(), AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
+	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 	XVT_ASSERT_TRUE(TopScreen() == Placeholder);
 }
 
-static void CheckLeave(void) {
+static void CheckLeave(void)
+{
 	Fresh();
 	Click(LEAVE_X, LEAVE_Y);
 	XVT_ASSERT_INT_EQ(XvtNetworkBrowser_Screen(1), 0);
 	XVT_ASSERT_TRUE(TopScreen() == Concourse_Update);
 }
 
-static void CheckDialogHidesButtons(void) {
+static void CheckDialogHidesButtons(void)
+{
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(Placeholder, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(Placeholder, NULL),
+			  XVT_DIALOG_PENDING);
 	Click(LEAVE_X, LEAVE_Y);
 	XVT_ASSERT_INT_EQ(XvtNetworkBrowser_Screen(1), 0);
 	XVT_ASSERT_TRUE(TopScreen() == Placeholder);
 }
 
-static void CheckJoinNeedsTheTask(void) {
+static void CheckJoinNeedsTheTask(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_CanJoin(), 0);
 	Click(JOIN_X, JOIN_Y);
@@ -108,7 +118,8 @@ static void CheckJoinNeedsTheTask(void) {
 	XVT_ASSERT_TRUE(TopScreen() == Placeholder);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckDrawsWithNoRooms();
 	CheckFirstFrame();
 	CheckLeave();

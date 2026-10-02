@@ -9,21 +9,25 @@
 extern "C" {
 #endif
 
-typedef void (*FlightBlitSpriteFn)(uint8_t* rleData, int x, int y, int endMarker, int mirror);
-typedef void (*FlightBlitSpriteFadedFn)(uint8_t* rleData, int x, int y, int endMarker, int8_t paletteShift,
-										int16_t fade);
+typedef void (*FlightBlitSpriteFn)(uint8_t *rleData, int x, int y,
+				   int endMarker, int mirror);
+typedef void (*FlightBlitSpriteFadedFn)(uint8_t *rleData, int x, int y,
+					int endMarker, int8_t paletteShift,
+					int16_t fade);
 typedef void (*FlightDrawCharFn)(uint8_t ch);
-typedef void (*FlightSetPaletteRangeFn)(RgbTriplet* palette, int16_t startIdx, uint16_t count);
-typedef void (*FlightPaletteFn)(RgbTriplet* palette);
+typedef void (*FlightSetPaletteRangeFn)(RgbTriplet *palette, int16_t startIdx,
+					uint16_t count);
+typedef void (*FlightPaletteFn)(RgbTriplet *palette);
 typedef int (*FlightComputePixelOffsetFn)(int x, int y);
-typedef void (*FlightFillRectClippedFn)(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2,
-										uint16_t borderThickness);
-typedef void (*FlightScreenRectFn)(void* buffer, int x, int y, int16_t width, int height);
-typedef void (*FlightDrawPointArrayFn)(uint16_t* points, int16_t count);
+typedef void (*FlightFillRectClippedFn)(uint16_t x1, uint16_t y1, uint16_t x2,
+					uint16_t y2, uint16_t borderThickness);
+typedef void (*FlightScreenRectFn)(void *buffer, int x, int y, int16_t width,
+				   int height);
+typedef void (*FlightDrawPointArrayFn)(uint16_t *points, int16_t count);
 typedef void (*FlightDrawPixelFn)(uint16_t x, uint16_t y, int8_t color);
 typedef void (*FlightDrawLineFn)(int x1, int y1, int x2, int y2, uint8_t color);
 
-extern IDirectDraw* g_flightDirectDraw;
+extern IDirectDraw *g_flightDirectDraw;
 extern int g_forcedLodLevel;
 extern float g_lodDistanceScale;
 extern int g_mipmappingEnabled;
@@ -42,12 +46,12 @@ extern int g_bilinearEnabled;
 extern int g_loadingModel;
 extern int g_surfaceWidth;
 extern int g_surfaceHeight;
-extern void* g_surfacePixels;
+extern void *g_surfacePixels;
 extern int g_displayModeWidth;
 extern int g_displayModeHeight;
 extern unsigned int g_screenWidth;
 extern unsigned int g_screenHeight;
-extern void* g_flightOffscreenBuffer;
+extern void *g_flightOffscreenBuffer;
 extern void (*g_flightFillClipRectFn)(void);
 extern int g_flightVpX;
 extern int g_flightVpY;
@@ -108,7 +112,7 @@ extern int g_fviewMoveX_Q15;
 extern int g_fviewMoveY_Q15;
 extern int g_fviewMoveZ_Q15;
 
-IDirectDraw* Renderer_GetDirectDraw(void);
+IDirectDraw *Renderer_GetDirectDraw(void);
 void Renderer_InitD3DDevice(void);
 
 #ifdef __cplusplus

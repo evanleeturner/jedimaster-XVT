@@ -15,13 +15,16 @@ extern uint16_t g_flightPalette16Bpp[256];
 extern RgbTriplet g_swPalette[256];
 extern uint8_t g_paletteDirtyFlags;
 
-void FlightPalette_BuildRgbRange(const RgbTriplet* srcRgb, RgbTriplet* dstRgb, int startIndex, int count);
+void FlightPalette_BuildRgbRange(const RgbTriplet *srcRgb, RgbTriplet *dstRgb,
+				 int startIndex, int count);
 void FlightPalette_ApplyToDisplay(void);
-void FlightPalette_SetRange(RgbTriplet* rgbTriples, int16_t startIdx, uint16_t count);
-void FlightPalette_GetFull(RgbTriplet* dstPalette);
-void FlightPalette_SetFull(RgbTriplet* rgbTriples);
+void FlightPalette_SetRange(RgbTriplet *rgbTriples, int16_t startIdx,
+			    uint16_t count);
+void FlightPalette_GetFull(RgbTriplet *dstPalette);
+void FlightPalette_SetFull(RgbTriplet *rgbTriples);
 void FlightPalette_ResetIf8Bit(void);
-int16_t FlightPalette_Build16BppRange(RgbTriplet* srcRgb, uint16_t* dst16, int startIndex, int count);
+int16_t FlightPalette_Build16BppRange(RgbTriplet *srcRgb, uint16_t *dst16,
+				      int startIndex, int count);
 
 #ifdef __cplusplus
 }

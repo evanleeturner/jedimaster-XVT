@@ -41,7 +41,7 @@ static const double g_modelPreviewQ16Scale = 0.0000152587890625;
 // GLOBAL: XVT 0x520EC0
 int16_t g_modelPreviewUpAxisAngle;
 // GLOBAL: XVT 0x520EC4
-OptimizedPolyObject* g_modelPreviewModelData = NULL;
+OptimizedPolyObject *g_modelPreviewModelData = NULL;
 /* Nothing sets this flag, and ModelPreview_LoadModel clears it through ModelPreview_FreeResources before
  * testing it, so every load resets the preview object, view and light. */
 // GLOBAL: XVT 0x520EC8
@@ -61,7 +61,7 @@ ObjectRecord g_modelPreviewObject;
 // GLOBAL: XVT 0x5561E0
 double g_modelPreviewScale = 0.0;
 // GLOBAL: XVT 0x556218
-MobileObject g_modelPreviewMobileObject = { 0 };
+MobileObject g_modelPreviewMobileObject = {0};
 // GLOBAL: XVT 0x555CC8
 char g_modelPreviewOptFileName[128];
 // GLOBAL: XVT 0x555CC0
@@ -89,7 +89,7 @@ static float g_modelPreviewBoundsMaxY = 0.0f;
 // GLOBAL: XVT 0x555D6C
 static float g_modelPreviewBoundsMinY = 0.0f;
 // GLOBAL: XVT 0x555D78
-CraftData g_modelPreviewCraftScratch = { 0 };
+CraftData g_modelPreviewCraftScratch = {0};
 // GLOBAL: XVT 0x555D70
 int16_t g_savedModelPreviewLightDirectionY;
 // GLOBAL: XVT 0x555D74
@@ -109,17 +109,20 @@ int g_worldLightDirectionY;
 // GLOBAL: XVT 0x9D1304
 int g_worldLightDirectionZ;
 // GLOBAL: XVT 0xA60710
-OptVector g_modelPreviewViewDelta = { 0.0f, 0.0f, 0.0f };
+OptVector g_modelPreviewViewDelta = {0.0f, 0.0f, 0.0f};
 // GLOBAL: XVT 0xA6071C
-float g_modelPreviewMatrix[9] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+float g_modelPreviewMatrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+				 0.0f, 0.0f, 0.0f, 0.0f};
 // GLOBAL: XVT 0xA60740
-OptVector g_modelPreviewNegViewDelta = { 0.0f, 0.0f, 0.0f };
+OptVector g_modelPreviewNegViewDelta = {0.0f, 0.0f, 0.0f};
 // GLOBAL: XVT 0xA6074C
-float g_modelPreviewObjectViewMatrix[9] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+float g_modelPreviewObjectViewMatrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+					   0.0f, 0.0f, 0.0f, 0.0f};
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x429E70
-int ModelPreview_LoadModel(const char* modelFileName) {
+int ModelPreview_LoadModel(const char *modelFileName)
+{
 	enum {
 		MODEL_PREVIEW_SLOT = 0,
 		FILE_NAME_CAPACITY = 256,
@@ -132,11 +135,11 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 	char fileName[FILE_NAME_CAPACITY];
 	char baseName[FILE_NAME_CAPACITY];
 #ifdef XVT_MODERN
-	char* extension;
+	char *extension;
 #else
 	int extensionIndex;
 #endif
-	XvtFile* stream;
+	XvtFile *stream;
 #ifndef XVT_MODERN
 	uint16_t importedHandle;
 	uint16_t packedHandle;
@@ -150,20 +153,24 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 	}
 
 #ifdef XVT_MODERN
-	if (!modelFileName || strlen(modelFileName) >= sizeof(baseName))
+	if (!modelFileName || strlen(modelFileName) >= sizeof(baseName)) {
 		return 0;
+	}
 	strcpy(baseName, modelFileName);
 	extension = strrchr(baseName, '.');
 	if (extension) {
-		if (strcasecmp(extension, ".opt") != 0)
+		if (strcasecmp(extension, ".opt") != 0) {
 			return 0;
+		}
 		*extension = '\0';
 	}
-	if (strlen(baseName) + sizeof(".opt") > sizeof(fileName))
+	if (strlen(baseName) + sizeof(".opt") > sizeof(fileName)) {
 		return 0;
+	}
 #else
 	strcpy(baseName, modelFileName);
-	for (extensionIndex = 0; baseName[extensionIndex] != '.'; ++extensionIndex) {
+	for (extensionIndex = 0; baseName[extensionIndex] != '.';
+	     ++extensionIndex) {
 	}
 	baseName[extensionIndex] = '\0';
 #endif
@@ -173,13 +180,16 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 	FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
 	stream = g_stream;
 #ifdef XVT_MODERN
-	if (!stream)
+	if (!stream) {
 		return 0;
+	}
 	File_Close(stream);
 	g_stream = NULL;
-	if (g_loadedModels[MODEL_PREVIEW_SLOT] != 0)
+	if (g_loadedModels[MODEL_PREVIEW_SLOT] != 0) {
 		Memory_FreeHandle(g_loadedModels[MODEL_PREVIEW_SLOT]);
-	g_loadedModels[MODEL_PREVIEW_SLOT] = OptModel_LoadFileToHandle(fileName);
+	}
+	g_loadedModels[MODEL_PREVIEW_SLOT] =
+		OptModel_LoadFileToHandle(fileName);
 #else
 	if (stream == NULL) {
 		strcpy(fileName, baseName);
@@ -192,7 +202,8 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 		if (File_Scanf(stream, "%256s", fileName) != 1) {
 			return 0;
 		}
-		if (_strnicmp(fileName, "#inventor", INVENTOR_SIGNATURE_LENGTH) != 0) {
+		if (_strnicmp(fileName, "#inventor",
+			      INVENTOR_SIGNATURE_LENGTH) != 0) {
 			return 0;
 		}
 		if (File_Scanf(stream, " %256s", fileName) != 1) {
@@ -201,24 +212,33 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 		if (File_Scanf(stream, " %256s", fileName) != 1) {
 			return 0;
 		}
-		if (_strnicmp(fileName, "ascii", INVENTOR_ASCII_LABEL_LENGTH) == 0) {
+		if (_strnicmp(fileName, "ascii", INVENTOR_ASCII_LABEL_LENGTH) ==
+		    0) {
 			if (g_loadedModels[MODEL_PREVIEW_SLOT] != 0) {
-				Memory_FreeHandle(g_loadedModels[MODEL_PREVIEW_SLOT]);
+				Memory_FreeHandle(
+					g_loadedModels[MODEL_PREVIEW_SLOT]);
 			}
-			importedHandle = OptModel_LoadInventorAsciiToHandle(stream);
+			importedHandle =
+				OptModel_LoadInventorAsciiToHandle(stream);
 		} else {
-			if (_strnicmp(fileName, "binary", INVENTOR_BINARY_LABEL_LENGTH) == 0) {
+			if (_strnicmp(fileName, "binary",
+				      INVENTOR_BINARY_LABEL_LENGTH) == 0) {
 				if (g_loadedModels[MODEL_PREVIEW_SLOT] != 0) {
-					Memory_FreeHandle(g_loadedModels[MODEL_PREVIEW_SLOT]);
+					Memory_FreeHandle(
+						g_loadedModels
+							[MODEL_PREVIEW_SLOT]);
 				}
-				importedHandle = OptModel_LoadInventorBinaryToHandle(stream);
+				importedHandle =
+					OptModel_LoadInventorBinaryToHandle(
+						stream);
 			} else {
 				File_RawClose(stream);
 				return 0;
 			}
 		}
 		File_RawClose(stream);
-		packedHandle = OptModel_ConvertImportedHandleToPacked(importedHandle);
+		packedHandle =
+			OptModel_ConvertImportedHandleToPacked(importedHandle);
 		strcpy(fileName, baseName);
 		strcat(fileName, ".opt");
 		OptModel_SaveHandleToFile(fileName, packedHandle);
@@ -228,43 +248,56 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 		if (g_loadedModels[MODEL_PREVIEW_SLOT] != 0) {
 			Memory_FreeHandle(g_loadedModels[MODEL_PREVIEW_SLOT]);
 		}
-		g_loadedModels[MODEL_PREVIEW_SLOT] = OptModel_LoadFileToHandle(fileName);
+		g_loadedModels[MODEL_PREVIEW_SLOT] =
+			OptModel_LoadFileToHandle(fileName);
 	}
 #endif
 
 #ifdef XVT_MODERN
-	if (!g_loadedModels[MODEL_PREVIEW_SLOT])
+	if (!g_loadedModels[MODEL_PREVIEW_SLOT]) {
 		return 0;
+	}
 #endif
 	strcpy(g_modelPreviewOptFileName, baseName);
 	strcat(g_modelPreviewOptFileName, ".opt");
 	if (g_mipmappingEnabled != 0) {
 		g_flightBytesPerPixel = 2;
-		g_loadedModels[MODEL_PREVIEW_SLOT] = OptModel_CreateRuntimeHandle(g_loadedModels[MODEL_PREVIEW_SLOT]);
+		g_loadedModels[MODEL_PREVIEW_SLOT] =
+			OptModel_CreateRuntimeHandle(
+				g_loadedModels[MODEL_PREVIEW_SLOT]);
 		g_flightBytesPerPixel = 2;
 	}
 #ifdef XVT_MODERN
-	if (!g_loadedModels[MODEL_PREVIEW_SLOT])
+	if (!g_loadedModels[MODEL_PREVIEW_SLOT]) {
 		return 0;
+	}
 #endif
 #ifdef XVT_MODERN
-	XvtRenderAssets_RegisterOpt(g_loadedModels[MODEL_PREVIEW_SLOT], g_modelPreviewOptFileName);
-	XvtRenderAssets_BindType(MODEL_PREVIEW_SLOT, g_loadedModels[MODEL_PREVIEW_SLOT]);
+	XvtRenderAssets_RegisterOpt(g_loadedModels[MODEL_PREVIEW_SLOT],
+				    g_modelPreviewOptFileName);
+	XvtRenderAssets_BindType(MODEL_PREVIEW_SLOT,
+				 g_loadedModels[MODEL_PREVIEW_SLOT]);
 #endif
-	g_modelPreviewModelData = (OptimizedPolyObject*)Memory_LockHandle(g_loadedModels[MODEL_PREVIEW_SLOT]);
+	g_modelPreviewModelData = (OptimizedPolyObject *)Memory_LockHandle(
+		g_loadedModels[MODEL_PREVIEW_SLOT]);
 	if (g_modelPreviewModelData->selfMarker != g_modelPreviewModelData) {
-		OptModel_AdjustOptimizedPolyObjectPointers(g_modelPreviewModelData);
+		OptModel_AdjustOptimizedPolyObjectPointers(
+			g_modelPreviewModelData);
 	}
 	/* The second argument is an axis, not a slot: MODEL_PREVIEW_SLOT passes 0, the largest extent. */
-	g_modelPreviewBoundsExtent =
-		ModelPreview_ComputeOptBoundsExtent(g_modelPreviewModelData, MODEL_PREVIEW_SLOT);
-	g_modelPreviewScale = g_modelPreviewTargetBoundsExtent / g_modelPreviewBoundsExtent;
-	ModelPreview_ScaleOptRootNodes(g_modelPreviewModelData, g_modelPreviewScale);
+	g_modelPreviewBoundsExtent = ModelPreview_ComputeOptBoundsExtent(
+		g_modelPreviewModelData, MODEL_PREVIEW_SLOT);
+	g_modelPreviewScale =
+		g_modelPreviewTargetBoundsExtent / g_modelPreviewBoundsExtent;
+	ModelPreview_ScaleOptRootNodes(g_modelPreviewModelData,
+				       g_modelPreviewScale);
 	g_transformLightDirectionToObjectSpace = 1;
 
 	if (g_modelPreviewSkipSceneReset == 0) {
-		memset(&g_modelPreviewMobileObject, 0, sizeof(g_modelPreviewMobileObject));
-		memset(&g_modelPreviewCraftScratch, 0, sizeof(g_modelPreviewCraftScratch));
+		memset(&g_modelPreviewMobileObject, 0,
+		       sizeof(g_modelPreviewMobileObject));
+		memset(&g_modelPreviewCraftScratch, 0,
+		       sizeof(g_modelPreviewCraftScratch));
 		g_modelPreviewObject.objectType = 0;
 		g_modelPreviewObject.world_x = 0;
 		g_modelPreviewObject.pitch = 0;
@@ -282,7 +315,8 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 }
 
 // FUNCTION: XVT 0x42A350
-void ModelPreview_FreeResources(void) {
+void ModelPreview_FreeResources(void)
+{
 	if (g_modelPreviewRenderResourcesInitialized != 0) {
 		RenderScene_FreeBuffers();
 		g_modelPreviewRenderResourcesInitialized = 0;
@@ -291,13 +325,15 @@ void ModelPreview_FreeResources(void) {
 }
 
 // FUNCTION: XVT 0x42A380
-int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
+int ModelPreview_RenderViewport(int x, int y, int width, int height, ...)
+{
 	enum {
 		MODEL_PREVIEW_SLOT = 0,
 		RENDER_SURFACE_MAX_WIDTH = 1024,
 		RENDER_SURFACE_MAX_HEIGHT = 768,
 		MODEL_PREVIEW_PROJECTION_SCALE = 512,
-		MODEL_PREVIEW_PROJECTION_HALF_SCALE = MODEL_PREVIEW_PROJECTION_SCALE / 2,
+		MODEL_PREVIEW_PROJECTION_HALF_SCALE =
+			MODEL_PREVIEW_PROJECTION_SCALE / 2,
 		MODEL_PREVIEW_PERSPECTIVE_SHIFT = 9,
 		SPAN_MASK_LONG_RUN_LENGTH = 255,
 		SPAN_MASK_LONG_RUN_THRESHOLD = SPAN_MASK_LONG_RUN_LENGTH + 1,
@@ -312,8 +348,8 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 	float objectRow2X;
 	float objectRow2Y;
 	float objectRow2Z;
-	uint8_t* auxBuffer;
-	uint8_t* maskCursor;
+	uint8_t *auxBuffer;
+	uint8_t *maskCursor;
 	unsigned int row;
 	unsigned int remainingWidth;
 	int savedLocalLightsEnabled;
@@ -357,45 +393,68 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 	g_projAspectY = 0;
 
 	FVIEW_BuildCameraOrient(g_players[g_localPlayer].viewState.viewRoll,
-							g_players[g_localPlayer].viewState.viewPitch,
-							g_players[g_localPlayer].viewState.viewYaw, 0, 0, 0, NULL);
-	FVIEW_SetObjectTransform(g_modelPreviewObject.roll, g_modelPreviewObject.pitch, g_modelPreviewObject.yaw,
-							 g_modelPreviewUpAxisAngle, NULL);
+				g_players[g_localPlayer].viewState.viewPitch,
+				g_players[g_localPlayer].viewState.viewYaw, 0,
+				0, 0, NULL);
+	FVIEW_SetObjectTransform(
+		g_modelPreviewObject.roll, g_modelPreviewObject.pitch,
+		g_modelPreviewObject.yaw, g_modelPreviewUpAxisAngle, NULL);
 
 	g_modelPreviewViewDelta.x =
-		(float)(g_modelPreviewObject.world_x - g_players[g_localPlayer].viewState.cameraWorldX);
+		(float)(g_modelPreviewObject.world_x -
+			g_players[g_localPlayer].viewState.cameraWorldX);
 	g_modelPreviewViewDelta.y =
-		(float)(g_modelPreviewObject.world_y - g_players[g_localPlayer].viewState.cameraWorldY);
+		(float)(g_modelPreviewObject.world_y -
+			g_players[g_localPlayer].viewState.cameraWorldY);
 	g_modelPreviewViewDelta.z =
-		(float)(g_modelPreviewObject.world_z - g_players[g_localPlayer].viewState.cameraWorldZ);
-	g_modelPreviewMatrix[0] = (float)g_camMatR0_X * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[1] = (float)g_camMatR1_X * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[2] = (float)g_camMatR2_X * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[3] = (float)g_camMatR0_Y * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[4] = (float)g_camMatR1_Y * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[5] = (float)g_camMatR2_Y * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[6] = (float)g_camMatR0_Z * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[7] = (float)g_camMatR1_Z * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[8] = (float)g_camMatR2_Z * g_modelPreviewMatrixQ15ToFloatScale;
+		(float)(g_modelPreviewObject.world_z -
+			g_players[g_localPlayer].viewState.cameraWorldZ);
+	g_modelPreviewMatrix[0] =
+		(float)g_camMatR0_X * g_modelPreviewMatrixQ15ToFloatScale;
+	g_modelPreviewMatrix[1] =
+		(float)g_camMatR1_X * g_modelPreviewMatrixQ15ToFloatScale;
+	g_modelPreviewMatrix[2] =
+		(float)g_camMatR2_X * g_modelPreviewMatrixQ15ToFloatScale;
+	g_modelPreviewMatrix[3] =
+		(float)g_camMatR0_Y * g_modelPreviewMatrixQ15ToFloatScale;
+	g_modelPreviewMatrix[4] =
+		(float)g_camMatR1_Y * g_modelPreviewMatrixQ15ToFloatScale;
+	g_modelPreviewMatrix[5] =
+		(float)g_camMatR2_Y * g_modelPreviewMatrixQ15ToFloatScale;
+	g_modelPreviewMatrix[6] =
+		(float)g_camMatR0_Z * g_modelPreviewMatrixQ15ToFloatScale;
+	g_modelPreviewMatrix[7] =
+		(float)g_camMatR1_Z * g_modelPreviewMatrixQ15ToFloatScale;
+	g_modelPreviewMatrix[8] =
+		(float)g_camMatR2_Z * g_modelPreviewMatrixQ15ToFloatScale;
 	Math3D_RotateVec3(&g_modelPreviewViewDelta.x, g_modelPreviewMatrix);
 
-	objectRow0X = (float)g_objViewMat_R0_X * g_modelPreviewMatrixQ15ToFloatScale;
+	objectRow0X =
+		(float)g_objViewMat_R0_X * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[0] = objectRow0X;
-	objectRow0Y = (float)g_objViewMat_R0_Y * g_modelPreviewMatrixQ15ToFloatScale;
+	objectRow0Y =
+		(float)g_objViewMat_R0_Y * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[1] = objectRow0Y;
-	objectRow0Z = (float)g_objViewMat_R0_Z * g_modelPreviewMatrixQ15ToFloatScale;
+	objectRow0Z =
+		(float)g_objViewMat_R0_Z * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[2] = objectRow0Z;
-	objectRow1X = (float)g_objViewMat_R1_X * g_modelPreviewMatrixQ15ToFloatScale;
+	objectRow1X =
+		(float)g_objViewMat_R1_X * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[3] = objectRow1X;
-	objectRow1Y = (float)g_objViewMat_R1_Y * g_modelPreviewMatrixQ15ToFloatScale;
+	objectRow1Y =
+		(float)g_objViewMat_R1_Y * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[4] = objectRow1Y;
-	objectRow1Z = (float)g_objViewMat_R1_Z * g_modelPreviewMatrixQ15ToFloatScale;
+	objectRow1Z =
+		(float)g_objViewMat_R1_Z * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[5] = objectRow1Z;
-	objectRow2X = (float)g_objViewMat_R2_X * g_modelPreviewMatrixQ15ToFloatScale;
+	objectRow2X =
+		(float)g_objViewMat_R2_X * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[6] = objectRow2X;
-	objectRow2Y = (float)g_objViewMat_R2_Y * g_modelPreviewMatrixQ15ToFloatScale;
+	objectRow2Y =
+		(float)g_objViewMat_R2_Y * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[7] = objectRow2Y;
-	objectRow2Z = (float)g_objViewMat_R2_Z * g_modelPreviewMatrixQ15ToFloatScale;
+	objectRow2Z =
+		(float)g_objViewMat_R2_Z * g_modelPreviewMatrixQ15ToFloatScale;
 	g_modelPreviewMatrix[8] = objectRow2Z;
 
 	g_modelPreviewNegViewDelta.x = -g_modelPreviewViewDelta.x;
@@ -410,21 +469,29 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 	g_modelPreviewObjectViewMatrix[6] = objectRow0Z;
 	g_modelPreviewObjectViewMatrix[7] = objectRow1Z;
 	g_modelPreviewObjectViewMatrix[8] = objectRow2Z;
-	Math3D_RotateVec3(&g_modelPreviewNegViewDelta.x, g_modelPreviewObjectViewMatrix);
+	Math3D_RotateVec3(&g_modelPreviewNegViewDelta.x,
+			  g_modelPreviewObjectViewMatrix);
 
 	if (g_modelPreviewRenderResourcesInitialized == 0) {
 		RenderScene_AllocateBuffers();
-		if (g_viewportSpanMaskOffset + g_flightVpHeight * ((g_flightVpWidth >> 7) + 2) >
-			(int)g_modelPreviewAuxBufferCapacityBytes) {
+		if (g_viewportSpanMaskOffset +
+			    g_flightVpHeight * ((g_flightVpWidth >> 7) + 2) >
+		    (int)g_modelPreviewAuxBufferCapacityBytes) {
 			if (g_modelPreviewAuxBufferHandle != 0) {
-				Memory_FreeHandle(g_modelPreviewAuxBufferHandle);
+				Memory_FreeHandle(
+					g_modelPreviewAuxBufferHandle);
 			}
 			g_modelPreviewAuxBufferHandle = Memory_AllocHandle(
-				g_viewportSpanMaskOffset + g_flightVpHeight * ((g_flightVpWidth >> 7) + 2), 0);
+				g_viewportSpanMaskOffset +
+					g_flightVpHeight *
+						((g_flightVpWidth >> 7) + 2),
+				0);
 			g_modelPreviewAuxBufferCapacityBytes =
-				g_viewportSpanMaskOffset + g_flightVpHeight * ((g_flightVpWidth >> 7) + 2);
+				g_viewportSpanMaskOffset +
+				g_flightVpHeight * ((g_flightVpWidth >> 7) + 2);
 		}
-		auxBuffer = (uint8_t*)Memory_LockHandle(g_modelPreviewAuxBufferHandle);
+		auxBuffer = (uint8_t *)Memory_LockHandle(
+			g_modelPreviewAuxBufferHandle);
 		g_flightAuxBuffer = auxBuffer;
 		maskCursor = &auxBuffer[g_viewportSpanMaskOffset];
 		for (row = 0; row < g_flightVpHeight; ++row) {
@@ -433,9 +500,11 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 			if (remainingWidth >= SPAN_MASK_LONG_RUN_THRESHOLD) {
 				*maskCursor++ = 0;
 				remainingWidth -= SPAN_MASK_LONG_RUN_LENGTH;
-				if (remainingWidth >= SPAN_MASK_LONG_RUN_THRESHOLD) {
+				if (remainingWidth >=
+				    SPAN_MASK_LONG_RUN_THRESHOLD) {
 					*maskCursor++ = 0;
-					remainingWidth -= SPAN_MASK_LONG_RUN_THRESHOLD;
+					remainingWidth -=
+						SPAN_MASK_LONG_RUN_THRESHOLD;
 				}
 			}
 			*maskCursor++ = (uint8_t)remainingWidth;
@@ -449,9 +518,10 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 	g_localLightsEnabled = 0;
 	RenderScene_Initialize(1);
 #ifdef XVT_MODERN
-	XvtRenderCapture_FrontendPreview(g_loadedModels[0], &g_modelPreviewViewDelta.x, g_modelPreviewMatrix,
-									 (float)g_modelPreviewScale, (uint16_t)g_nodeSwitchIndex, x, y, width,
-									 height);
+	XvtRenderCapture_FrontendPreview(
+		g_loadedModels[0], &g_modelPreviewViewDelta.x,
+		g_modelPreviewMatrix, (float)g_modelPreviewScale,
+		(uint16_t)g_nodeSwitchIndex, x, y, width, height);
 #endif
 	RenderScene_DrawObjectModel(&g_modelPreviewObject);
 	sw3d_DrawVisibleFacesToSurface();
@@ -461,8 +531,10 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 }
 
 // FUNCTION: XVT 0x42A920
-void ModelPreview_ScaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, double scale) {
-	OptNode* resolvedNode;
+void ModelPreview_ScaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
+				   double scale)
+{
+	OptNode *resolvedNode;
 	int childIndex;
 
 	resolvedNode = node;
@@ -470,84 +542,90 @@ void ModelPreview_ScaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, doub
 		return;
 	}
 	while (resolvedNode->nodeType == OPT_NODEREF) {
-		resolvedNode = OptModel_ResolveNodeRef(opt, (const char*)resolvedNode->payload);
+		resolvedNode = OptModel_ResolveNodeRef(
+			opt, (const char *)resolvedNode->payload);
 		if (resolvedNode == NULL) {
 			return;
 		}
 	}
 
 	switch (resolvedNode->nodeType) {
-		case OPT_FACEDATA: {
-			int count;
-			OptPackedFaceData* faceData;
-			OptVector* faceNormals;
-			FaceTextureGradients* gradients;
-			float* points;
+	case OPT_FACEDATA: {
+		int count;
+		OptPackedFaceData *faceData;
+		OptVector *faceNormals;
+		FaceTextureGradients *gradients;
+		float *points;
 
-			count = resolvedNode->payloadCount;
-			faceData = (OptPackedFaceData*)resolvedNode->payload;
-			faceNormals = (OptVector*)&faceData->records[count];
-			gradients = (FaceTextureGradients*)&faceNormals[count];
-			points = (float*)gradients;
-			if (count > 0) {
-				do {
-					points[0] = (float)(points[0] * scale);
-					points[1] = (float)(points[1] * scale);
-					points[2] = (float)(points[2] * scale);
-					points += 3;
-					points[0] = (float)(points[0] * scale);
-					points[1] = (float)(points[1] * scale);
-					points[2] = (float)(points[2] * scale);
-					points += 3;
-					--count;
-				} while (count != 0);
-			}
-			break;
+		count = resolvedNode->payloadCount;
+		faceData = (OptPackedFaceData *)resolvedNode->payload;
+		faceNormals = (OptVector *)&faceData->records[count];
+		gradients = (FaceTextureGradients *)&faceNormals[count];
+		points = (float *)gradients;
+		if (count > 0) {
+			do {
+				points[0] = (float)(points[0] * scale);
+				points[1] = (float)(points[1] * scale);
+				points[2] = (float)(points[2] * scale);
+				points += 3;
+				points[0] = (float)(points[0] * scale);
+				points[1] = (float)(points[1] * scale);
+				points[2] = (float)(points[2] * scale);
+				points += 3;
+				--count;
+			} while (count != 0);
 		}
-		case OPT_MESHVERTS: {
-			int count;
-			float* vertices;
+		break;
+	}
+	case OPT_MESHVERTS: {
+		int count;
+		float *vertices;
 
-			count = resolvedNode->payloadCount;
-			vertices = (float*)resolvedNode->payload;
-			if (count > 0) {
-				do {
-					vertices[0] = (float)(vertices[0] * scale);
-					vertices[1] = (float)(vertices[1] * scale);
-					vertices[2] = (float)(vertices[2] * scale);
-					vertices += 3;
-					--count;
-				} while (count != 0);
-			}
-			break;
+		count = resolvedNode->payloadCount;
+		vertices = (float *)resolvedNode->payload;
+		if (count > 0) {
+			do {
+				vertices[0] = (float)(vertices[0] * scale);
+				vertices[1] = (float)(vertices[1] * scale);
+				vertices[2] = (float)(vertices[2] * scale);
+				vertices += 3;
+				--count;
+			} while (count != 0);
 		}
-		case OPT_FACEGROUP: {
-			int count;
-			float* lodThresholds;
+		break;
+	}
+	case OPT_FACEGROUP: {
+		int count;
+		float *lodThresholds;
 
-			count = resolvedNode->childCount;
-			lodThresholds = (float*)resolvedNode->payload;
-			if (count > 0) {
-				do {
-					*lodThresholds = (float)(*lodThresholds / scale);
-					++lodThresholds;
-					--count;
-				} while (count != 0);
-			}
-			break;
+		count = resolvedNode->childCount;
+		lodThresholds = (float *)resolvedNode->payload;
+		if (count > 0) {
+			do {
+				*lodThresholds =
+					(float)(*lodThresholds / scale);
+				++lodThresholds;
+				--count;
+			} while (count != 0);
 		}
-		default:
-			break;
+		break;
+	}
+	default:
+		break;
 	}
 
-	for (childIndex = 0; childIndex < resolvedNode->childCount; ++childIndex) {
-		ModelPreview_ScaleOptNodeTree(resolvedNode->pChildren[childIndex], opt, scale);
+	for (childIndex = 0; childIndex < resolvedNode->childCount;
+	     ++childIndex) {
+		ModelPreview_ScaleOptNodeTree(
+			resolvedNode->pChildren[childIndex], opt, scale);
 	}
 }
 
 // FUNCTION: XVT 0x42AA60
-void ModelPreview_UnscaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, double scale) {
-	OptNode* resolvedNode;
+void ModelPreview_UnscaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
+				     double scale)
+{
+	OptNode *resolvedNode;
 	int childIndex;
 
 	resolvedNode = node;
@@ -555,112 +633,124 @@ void ModelPreview_UnscaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, do
 		return;
 	}
 	while (resolvedNode->nodeType == OPT_NODEREF) {
-		resolvedNode = OptModel_ResolveNodeRef(opt, (const char*)resolvedNode->payload);
+		resolvedNode = OptModel_ResolveNodeRef(
+			opt, (const char *)resolvedNode->payload);
 		if (resolvedNode == NULL) {
 			return;
 		}
 	}
 
 	switch (resolvedNode->nodeType) {
-		case OPT_FACEDATA: {
-			int count;
-			OptPackedFaceData* faceData;
-			OptVector* faceNormals;
-			FaceTextureGradients* gradients;
-			float* points;
+	case OPT_FACEDATA: {
+		int count;
+		OptPackedFaceData *faceData;
+		OptVector *faceNormals;
+		FaceTextureGradients *gradients;
+		float *points;
 
-			count = resolvedNode->payloadCount;
-			faceData = (OptPackedFaceData*)resolvedNode->payload;
-			faceNormals = (OptVector*)&faceData->records[count];
-			gradients = (FaceTextureGradients*)&faceNormals[count];
-			points = (float*)gradients;
-			if (count > 0) {
-				do {
-					points[0] = (float)(points[0] / scale);
-					points[1] = (float)(points[1] / scale);
-					points[2] = (float)(points[2] / scale);
-					points += 3;
-					points[0] = (float)(points[0] / scale);
-					points[1] = (float)(points[1] / scale);
-					points[2] = (float)(points[2] / scale);
-					points += 3;
-					--count;
-				} while (count != 0);
-			}
-			break;
+		count = resolvedNode->payloadCount;
+		faceData = (OptPackedFaceData *)resolvedNode->payload;
+		faceNormals = (OptVector *)&faceData->records[count];
+		gradients = (FaceTextureGradients *)&faceNormals[count];
+		points = (float *)gradients;
+		if (count > 0) {
+			do {
+				points[0] = (float)(points[0] / scale);
+				points[1] = (float)(points[1] / scale);
+				points[2] = (float)(points[2] / scale);
+				points += 3;
+				points[0] = (float)(points[0] / scale);
+				points[1] = (float)(points[1] / scale);
+				points[2] = (float)(points[2] / scale);
+				points += 3;
+				--count;
+			} while (count != 0);
 		}
-		case OPT_MESHVERTS: {
-			int count;
-			float* vertices;
+		break;
+	}
+	case OPT_MESHVERTS: {
+		int count;
+		float *vertices;
 
-			count = resolvedNode->payloadCount;
-			vertices = (float*)resolvedNode->payload;
-			if (count > 0) {
-				do {
-					vertices[0] = (float)(vertices[0] / scale);
-					vertices[1] = (float)(vertices[1] / scale);
-					vertices[2] = (float)(vertices[2] / scale);
-					vertices += 3;
-					--count;
-				} while (count != 0);
-			}
-			break;
+		count = resolvedNode->payloadCount;
+		vertices = (float *)resolvedNode->payload;
+		if (count > 0) {
+			do {
+				vertices[0] = (float)(vertices[0] / scale);
+				vertices[1] = (float)(vertices[1] / scale);
+				vertices[2] = (float)(vertices[2] / scale);
+				vertices += 3;
+				--count;
+			} while (count != 0);
 		}
-		case OPT_FACEGROUP: {
-			int count;
-			float* lodThresholds;
+		break;
+	}
+	case OPT_FACEGROUP: {
+		int count;
+		float *lodThresholds;
 
-			count = resolvedNode->childCount;
-			lodThresholds = (float*)resolvedNode->payload;
-			if (count > 0) {
-				do {
-					*lodThresholds = (float)(*lodThresholds * scale);
-					++lodThresholds;
-					--count;
-				} while (count != 0);
-			}
-			break;
+		count = resolvedNode->childCount;
+		lodThresholds = (float *)resolvedNode->payload;
+		if (count > 0) {
+			do {
+				*lodThresholds =
+					(float)(*lodThresholds * scale);
+				++lodThresholds;
+				--count;
+			} while (count != 0);
 		}
-		default:
-			break;
+		break;
+	}
+	default:
+		break;
 	}
 
-	for (childIndex = 0; childIndex < resolvedNode->childCount; ++childIndex) {
-		ModelPreview_UnscaleOptNodeTree(resolvedNode->pChildren[childIndex], opt, scale);
+	for (childIndex = 0; childIndex < resolvedNode->childCount;
+	     ++childIndex) {
+		ModelPreview_UnscaleOptNodeTree(
+			resolvedNode->pChildren[childIndex], opt, scale);
 	}
 }
 
 // FUNCTION: XVT 0x42AC50
-void ModelPreview_ScaleOptRootNodes(OptimizedPolyObject* opt, double scale) {
+void ModelPreview_ScaleOptRootNodes(OptimizedPolyObject *opt, double scale)
+{
 	int rootIndex;
 
 	for (rootIndex = 0; rootIndex < opt->rootNodeCount; ++rootIndex) {
-		ModelPreview_ScaleOptNodeTree(opt->rootNodes[rootIndex], opt, scale);
+		ModelPreview_ScaleOptNodeTree(opt->rootNodes[rootIndex], opt,
+					      scale);
 	}
 }
 
 // FUNCTION: XVT 0x42AC90
-void ModelPreview_UnscaleOptRootNodes(OptimizedPolyObject* opt, double scale) {
+void ModelPreview_UnscaleOptRootNodes(OptimizedPolyObject *opt, double scale)
+{
 	int rootIndex;
 
 	for (rootIndex = 0; rootIndex < opt->rootNodeCount; ++rootIndex) {
-		ModelPreview_UnscaleOptNodeTree(opt->rootNodes[rootIndex], opt, scale);
+		ModelPreview_UnscaleOptNodeTree(opt->rootNodes[rootIndex], opt,
+						scale);
 	}
 }
 
 // FUNCTION: XVT 0x42AD10
-void ModelPreview_AccumulateOptNodeBounds(OptNode* node, OptimizedPolyObject* object) {
-	OptNode* currentNode;
+void ModelPreview_AccumulateOptNodeBounds(OptNode *node,
+					  OptimizedPolyObject *object)
+{
+	OptNode *currentNode;
 	int vertexCount;
-	float* vertex;
+	float *vertex;
 	int childIndex;
 
 	currentNode = node;
 	if (currentNode != NULL) {
 		while (currentNode->nodeType == OPT_NODEREF) {
-			currentNode = OptModel_ResolveNodeRef(object, (const char*)currentNode->payload);
-			if (currentNode == NULL)
+			currentNode = OptModel_ResolveNodeRef(
+				object, (const char *)currentNode->payload);
+			if (currentNode == NULL) {
 				return;
+			}
 		}
 
 		if (currentNode->nodeType == OPT_MESHVERTS) {
@@ -668,18 +758,36 @@ void ModelPreview_AccumulateOptNodeBounds(OptNode* node, OptimizedPolyObject* ob
 			vertex = currentNode->payload;
 			if (vertexCount > 0) {
 				do {
-					if (vertex[0] > g_modelPreviewBoundsMaxX)
-						g_modelPreviewBoundsMaxX = vertex[0];
-					if (vertex[0] < g_modelPreviewBoundsMinX)
-						g_modelPreviewBoundsMinX = vertex[0];
-					if (vertex[1] > g_modelPreviewBoundsMaxY)
-						g_modelPreviewBoundsMaxY = vertex[1];
-					if (vertex[1] < g_modelPreviewBoundsMinY)
-						g_modelPreviewBoundsMinY = vertex[1];
-					if (vertex[2] > g_modelPreviewBoundsMaxZ)
-						g_modelPreviewBoundsMaxZ = vertex[2];
-					if (vertex[2] < g_modelPreviewBoundsMinZ)
-						g_modelPreviewBoundsMinZ = vertex[2];
+					if (vertex[0] >
+					    g_modelPreviewBoundsMaxX) {
+						g_modelPreviewBoundsMaxX =
+							vertex[0];
+					}
+					if (vertex[0] <
+					    g_modelPreviewBoundsMinX) {
+						g_modelPreviewBoundsMinX =
+							vertex[0];
+					}
+					if (vertex[1] >
+					    g_modelPreviewBoundsMaxY) {
+						g_modelPreviewBoundsMaxY =
+							vertex[1];
+					}
+					if (vertex[1] <
+					    g_modelPreviewBoundsMinY) {
+						g_modelPreviewBoundsMinY =
+							vertex[1];
+					}
+					if (vertex[2] >
+					    g_modelPreviewBoundsMaxZ) {
+						g_modelPreviewBoundsMaxZ =
+							vertex[2];
+					}
+					if (vertex[2] <
+					    g_modelPreviewBoundsMinZ) {
+						g_modelPreviewBoundsMinZ =
+							vertex[2];
+					}
 					vertex += 3;
 					--vertexCount;
 				} while (vertexCount != 0);
@@ -688,7 +796,8 @@ void ModelPreview_AccumulateOptNodeBounds(OptNode* node, OptimizedPolyObject* ob
 
 		childIndex = 0;
 		while (currentNode->childCount > childIndex) {
-			ModelPreview_AccumulateOptNodeBounds(currentNode->pChildren[childIndex], object);
+			ModelPreview_AccumulateOptNodeBounds(
+				currentNode->pChildren[childIndex], object);
 			++childIndex;
 		}
 	}
@@ -697,7 +806,9 @@ void ModelPreview_AccumulateOptNodeBounds(OptNode* node, OptimizedPolyObject* ob
 /* Returns the extent (max - min) of the object's vertices and the origin on one axis: axis 1 is X,
  * 2 is Y and 3 is Z, while axis 0 returns the largest of the three extents. */
 // FUNCTION: XVT 0x42AE30
-double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject* object, int axis) {
+double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject *object,
+					   int axis)
+{
 	int rootNodeIndex;
 	double result;
 
@@ -707,8 +818,10 @@ double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject* object, int axis
 	g_modelPreviewBoundsMinY = 0.0f;
 	g_modelPreviewBoundsMaxZ = 0.0f;
 	g_modelPreviewBoundsMinZ = 0.0f;
-	for (rootNodeIndex = 0; rootNodeIndex < object->rootNodeCount; ++rootNodeIndex) {
-		ModelPreview_AccumulateOptNodeBounds(object->rootNodes[rootNodeIndex], object);
+	for (rootNodeIndex = 0; rootNodeIndex < object->rootNodeCount;
+	     ++rootNodeIndex) {
+		ModelPreview_AccumulateOptNodeBounds(
+			object->rootNodes[rootNodeIndex], object);
 	}
 
 	/* From here the Max globals hold the extents (max - min), not the maxima. */
@@ -717,9 +830,11 @@ double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject* object, int axis
 	g_modelPreviewBoundsMaxZ -= g_modelPreviewBoundsMinZ;
 	if (axis == 0) {
 		if (g_modelPreviewBoundsMaxY >= g_modelPreviewBoundsMaxX ||
-			g_modelPreviewBoundsMaxZ >= g_modelPreviewBoundsMaxX) {
-			if (g_modelPreviewBoundsMaxY <= g_modelPreviewBoundsMaxX ||
-				g_modelPreviewBoundsMaxZ >= g_modelPreviewBoundsMaxY) {
+		    g_modelPreviewBoundsMaxZ >= g_modelPreviewBoundsMaxX) {
+			if (g_modelPreviewBoundsMaxY <=
+				    g_modelPreviewBoundsMaxX ||
+			    g_modelPreviewBoundsMaxZ >=
+				    g_modelPreviewBoundsMaxY) {
 				result = g_modelPreviewBoundsMaxZ;
 			} else {
 				result = g_modelPreviewBoundsMaxY;
@@ -728,19 +843,23 @@ double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject* object, int axis
 			result = g_modelPreviewBoundsMaxX;
 		}
 	} else {
-		if (axis == 1)
+		if (axis == 1) {
 			result = g_modelPreviewBoundsMaxX;
-		if (axis == 2)
+		}
+		if (axis == 2) {
 			result = g_modelPreviewBoundsMaxY;
-		if (axis == 3)
+		}
+		if (axis == 3) {
 			result = g_modelPreviewBoundsMaxZ;
+		}
 	}
 	return result;
 }
 
 // FUNCTION: XVT 0x42AF90
-int ModelPreview_ResetViewAndRenderState(void) {
-	PlayerData* player = &g_players[g_localPlayer];
+int ModelPreview_ResetViewAndRenderState(void)
+{
+	PlayerData *player = &g_players[g_localPlayer];
 
 	g_projOffsetY = 0;
 	player->viewState.cameraWorldX = 0;
@@ -760,7 +879,8 @@ int ModelPreview_ResetViewAndRenderState(void) {
 }
 
 // FUNCTION: XVT 0x42B010
-void ModelPreview_SetLightDirection(int x, int y, int z) {
+void ModelPreview_SetLightDirection(int x, int y, int z)
+{
 	double lightX;
 	double lightY;
 	double lightZ;
@@ -770,39 +890,53 @@ void ModelPreview_SetLightDirection(int x, int y, int z) {
 	lightX = x;
 	lightY = y;
 	lightZ = z;
-	invLength = g_modelPreviewInvLengthNumerator / sqrt(lightX * lightX + lightY * lightY + lightZ * lightZ);
+	invLength = g_modelPreviewInvLengthNumerator /
+		    sqrt(lightX * lightX + lightY * lightY + lightZ * lightZ);
 	lightX *= invLength;
 	lightY *= invLength;
 	lightZ *= invLength;
-	g_worldLightDirectionX = (int16_t)(int)(lightX * g_modelPreviewLightDirectionQ15Scale);
-	g_worldLightDirectionY = (int16_t)(int)(lightY * g_modelPreviewLightDirectionQ15Scale);
-	g_worldLightDirectionZ = (int16_t)(int)(lightZ * g_modelPreviewLightDirectionQ15Scale);
+	g_worldLightDirectionX =
+		(int16_t)(int)(lightX * g_modelPreviewLightDirectionQ15Scale);
+	g_worldLightDirectionY =
+		(int16_t)(int)(lightY * g_modelPreviewLightDirectionQ15Scale);
+	g_worldLightDirectionZ =
+		(int16_t)(int)(lightZ * g_modelPreviewLightDirectionQ15Scale);
 }
 
 // FUNCTION: XVT 0x42B090
-void ModelPreview_SetObjectEulerDegrees(float pitchDeg, float yawDeg, float rollDeg) {
+void ModelPreview_SetObjectEulerDegrees(float pitchDeg, float yawDeg,
+					float rollDeg)
+{
 	double angle;
 
 	angle = pitchDeg;
-	g_modelPreviewObject.pitch = (int16_t)(int)(angle * g_degreesToQ16AngleScale);
+	g_modelPreviewObject.pitch =
+		(int16_t)(int)(angle * g_degreesToQ16AngleScale);
 	angle = yawDeg;
-	g_modelPreviewObject.yaw = (int16_t)(int)(angle * g_degreesToQ16AngleScale);
+	g_modelPreviewObject.yaw =
+		(int16_t)(int)(angle * g_degreesToQ16AngleScale);
 	angle = rollDeg;
-	g_modelPreviewObject.roll = (int16_t)(int)(angle * g_degreesToQ16AngleScale);
+	g_modelPreviewObject.roll =
+		(int16_t)(int)(angle * g_degreesToQ16AngleScale);
 }
 
 // FUNCTION: XVT 0x42B0D0
-void ModelPreview_SetNodeSwitchIndex(int nodeSwitchIndex) { g_nodeSwitchIndex = nodeSwitchIndex; }
+void ModelPreview_SetNodeSwitchIndex(int nodeSwitchIndex)
+{
+	g_nodeSwitchIndex = nodeSwitchIndex;
+}
 
 // FUNCTION: XVT 0x42B0E0
-void ModelPreview_SetObjectWorldPosition(int x, int y, int z) {
+void ModelPreview_SetObjectWorldPosition(int x, int y, int z)
+{
 	g_modelPreviewObject.world_x = x;
 	g_modelPreviewObject.world_y = y;
 	g_modelPreviewObject.world_z = z;
 }
 
 // FUNCTION: XVT 0x42B100
-void ModelPreview_SaveState(void) {
+void ModelPreview_SaveState(void)
+{
 	strcpy(g_savedModelPreviewModelFileName, g_modelPreviewOptFileName);
 	g_savedModelPreviewWorldX = g_modelPreviewObject.world_x;
 	g_savedModelPreviewWorldY = g_modelPreviewObject.world_y;
@@ -818,7 +952,8 @@ void ModelPreview_SaveState(void) {
 }
 
 // FUNCTION: XVT 0x42B1B0
-void ModelPreview_RestoreState(void) {
+void ModelPreview_RestoreState(void)
+{
 	ModelPreview_LoadModel(g_savedModelPreviewModelFileName);
 	g_modelPreviewObject.world_x = g_savedModelPreviewWorldX;
 	g_modelPreviewObject.world_y = g_savedModelPreviewWorldY;
@@ -834,14 +969,17 @@ void ModelPreview_RestoreState(void) {
 }
 
 // FUNCTION: XVT 0x42B250
-void ModelPreview_SetObjectUpAxisAngleDegrees(float angleDeg) {
+void ModelPreview_SetObjectUpAxisAngleDegrees(float angleDeg)
+{
 	double angle = angleDeg;
 
-	g_modelPreviewUpAxisAngle = (int16_t)(int)(angle * g_degreesToQ16AngleScale);
+	g_modelPreviewUpAxisAngle =
+		(int16_t)(int)(angle * g_degreesToQ16AngleScale);
 }
 
 // FUNCTION: XVT 0x42B270
-int ModelPreview_GetDisplayedSizeMeters(void) {
+int ModelPreview_GetDisplayedSizeMeters(void)
+{
 	double displayedSize = g_modelPreviewBoundsExtent;
 
 	displayedSize *= g_modelPreviewMetersScale;

@@ -9,10 +9,12 @@ enum {
 	XVT_FLIGHT_PACKET_BYTES = 508,
 	XVT_WORLD_RECORDS = XVT_FLIGHT_PLAYERS * XVT_INPUT_HISTORY_CAPACITY,
 	XVT_WORLD_PART_RECORDS = 44,
-	XVT_WORLD_PARTS = (XVT_WORLD_RECORDS + XVT_WORLD_PART_RECORDS - 1) / XVT_WORLD_PART_RECORDS,
+	XVT_WORLD_PARTS = (XVT_WORLD_RECORDS + XVT_WORLD_PART_RECORDS - 1) /
+			  XVT_WORLD_PART_RECORDS,
 	XVT_INPUT_BATCH_RECORDS = 16,
 	XVT_INPUT_BATCHES_PER_ITERATION = 4,
-	XVT_INPUT_STAGED_RECORDS = XVT_INPUT_BATCH_RECORDS * XVT_INPUT_BATCHES_PER_ITERATION,
+	XVT_INPUT_STAGED_RECORDS =
+		XVT_INPUT_BATCH_RECORDS * XVT_INPUT_BATCHES_PER_ITERATION,
 	XVT_WORLD_PARTS_PER_ITERATION = 4,
 	XVT_NETWORK_PACKETS_PER_ITERATION = 64,
 	XVT_WORLD_LATE_INTERVALS = 5,
@@ -111,7 +113,8 @@ typedef struct XvtFlightClockProbeWire {
 
 typedef struct XvtFlightChecksumWire {
 	XvtWireU32 opcode, epoch;
-	XvtWireU32 checksums[XVT_WORLD_CHECKSUM_REGIONS], lengths[XVT_WORLD_CHECKSUM_REGIONS];
+	XvtWireU32 checksums[XVT_WORLD_CHECKSUM_REGIONS],
+		lengths[XVT_WORLD_CHECKSUM_REGIONS];
 } XvtFlightChecksumWire;
 
 typedef struct XvtFlightChecksumReportWire {
@@ -139,7 +142,11 @@ typedef struct XvtFlightChunkAckWire {
 	XvtWireU32 opcode, index;
 } XvtFlightChunkAckWire;
 
-typedef char XvtFlightInputWire_layout[(sizeof(XvtFlightInputWire) == 10) ? 1 : -1];
-typedef char XvtFlightWorldInputWire_layout[(sizeof(XvtFlightWorldInputWire) == 11) ? 1 : -1];
-typedef char XvtFlightWorldHeader_layout[(sizeof(XvtFlightWorldHeader) == 16) ? 1 : -1];
+typedef char
+	XvtFlightInputWire_layout[(sizeof(XvtFlightInputWire) == 10) ? 1 : -1];
+typedef char XvtFlightWorldInputWire_layout
+	[(sizeof(XvtFlightWorldInputWire) == 11) ? 1 : -1];
+typedef char XvtFlightWorldHeader_layout[(sizeof(XvtFlightWorldHeader) == 16)
+						 ? 1
+						 : -1];
 #endif

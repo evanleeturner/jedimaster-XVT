@@ -13,11 +13,12 @@
 #include <string.h>
 
 // GLOBAL: XVT 0xA60A40
-char* g_strFileErrorMessages[4] = { 0 };
+char *g_strFileErrorMessages[4] = {0};
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4248B0
-void StringTable_LoadGameStrings(int loadFromDisk) {
+void StringTable_LoadGameStrings(int loadFromDisk)
+{
 	enum {
 		STRING_LINE_CAPACITY = 1024,
 		DEFAULT_STRING_DATA_CAPACITY = 0x7D00,
@@ -28,11 +29,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 		GOAL_CONDITIONS_PER_ROW_BLOCK = 47,
 	};
 
-	XvtFile* stream;
+	XvtFile *stream;
 	int genderUsedByAnyCraft;
 	int entryIndex;
-	char* writePtr;
-	char** modelName;
+	char *writePtr;
+	char **modelName;
 	char line[STRING_LINE_CAPACITY];
 	size_t fileSize;
 	int lineLength;
@@ -44,7 +45,7 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 	}
 
 	FeDiskIo_OpenGlobalStream("strings.txt", "r", 1, 0);
-	stream = (XvtFile*)g_stream;
+	stream = (XvtFile *)g_stream;
 	if (stream != NULL) {
 		File_RawSeek(stream, 0, SEEK_END);
 		fileSize = (size_t)File_RawTell(stream);
@@ -52,38 +53,46 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 			Memory_FreeHandle(g_stringDataHandle);
 			g_stringDataHandle = Memory_AllocHandle(fileSize, 0);
 			if (g_stringDataHandle == 0) {
-				FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
+				FeDiskIo_FatalError(
+					FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 			}
 		}
-		writePtr = (char*)Memory_LockHandle(g_stringDataHandle);
+		writePtr = (char *)Memory_LockHandle(g_stringDataHandle);
 		File_RawSeek(stream, 0, SEEK_SET);
 		if (File_RawTell(stream) != 0) {
 			File_RawClose(stream);
 			FeDiskIo_OpenGlobalStream("strings.txt", "r", 1, 0);
-			stream = (XvtFile*)g_stream;
+			stream = (XvtFile *)g_stream;
 		}
 		if (stream != NULL) {
 			if (writePtr != NULL) {
 				for (entryIndex = 0;
-					 entryIndex < (int)(sizeof(g_strDamageSystemNames) / sizeof(g_strDamageSystemNames[0]));
-					 ++entryIndex) {
+				     entryIndex <
+				     (int)(sizeof(g_strDamageSystemNames) /
+					   sizeof(g_strDamageSystemNames[0]));
+				     ++entryIndex) {
 					int length;
 
-					length = StringTable_ReadNonCommentLine(stream, line);
+					length = StringTable_ReadNonCommentLine(
+						stream, line);
 					if (length == -1) {
 						writePtr = NULL;
 						break;
 					}
-					memcpy(writePtr, line, (size_t)length + 1);
-					g_strDamageSystemNames[entryIndex] = writePtr;
+					memcpy(writePtr, line,
+					       (size_t)length + 1);
+					g_strDamageSystemNames[entryIndex] =
+						writePtr;
 					writePtr += length + 1;
 				}
 			}
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < FILE_AND_DISK_IO_STRING_COUNT) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       FILE_AND_DISK_IO_STRING_COUNT) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -95,12 +104,19 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 					if (line[lineLength - 1] == '\n') {
 						line[--lineLength] = '\0';
 					}
-					if (entryIndex < FILE_ERROR_MESSAGE_COUNT) {
-						memcpy(writePtr, line, lineLength + 1);
-						g_strFileErrorMessages[entryIndex] = writePtr;
+					if (entryIndex <
+					    FILE_ERROR_MESSAGE_COUNT) {
+						memcpy(writePtr, line,
+						       lineLength + 1);
+						g_strFileErrorMessages
+							[entryIndex] = writePtr;
 					} else {
-						memcpy(writePtr, line, lineLength + 1);
-						g_strDiskIoMessages[entryIndex - FILE_ERROR_MESSAGE_COUNT] = writePtr;
+						memcpy(writePtr, line,
+						       lineLength + 1);
+						g_strDiskIoMessages
+							[entryIndex -
+							 FILE_ERROR_MESSAGE_COUNT] =
+								writePtr;
 					}
 					writePtr += lineLength + 1;
 					++entryIndex;
@@ -109,9 +125,12 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_provingGroundsStatusLabels) /
-										  sizeof(g_provingGroundsStatusLabels[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_provingGroundsStatusLabels) /
+					     sizeof(g_provingGroundsStatusLabels
+							    [0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -124,7 +143,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_provingGroundsStatusLabels[entryIndex] = writePtr;
+					g_provingGroundsStatusLabels
+						[entryIndex] = writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -133,7 +153,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 			if (writePtr != NULL) {
 				entryIndex = 0;
 				while (entryIndex < 1) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -153,24 +174,39 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 			}
 
 			if (writePtr != NULL) {
-				for (entryIndex = 0; entryIndex < GOAL_CONDITION_TEXT_ROW_COUNT; ++entryIndex) {
-					conditionIndex = entryIndex % GOAL_CONDITIONS_PER_ROW_BLOCK;
+				for (entryIndex = 0;
+				     entryIndex < GOAL_CONDITION_TEXT_ROW_COUNT;
+				     ++entryIndex) {
+					conditionIndex =
+						entryIndex %
+						GOAL_CONDITIONS_PER_ROW_BLOCK;
 					variantIndex = 0;
-					while (variantIndex < g_goalConditionTextVariantCount[conditionIndex]) {
-						if (File_Gets(line, sizeof(line), stream) == NULL) {
+					while (variantIndex <
+					       g_goalConditionTextVariantCount
+						       [conditionIndex]) {
+						if (File_Gets(line,
+							      sizeof(line),
+							      stream) == NULL) {
 							writePtr = NULL;
 							break;
 						}
 						line[sizeof(line) - 1] = '\0';
-						if (line[0] == '/' && line[1] == '/') {
+						if (line[0] == '/' &&
+						    line[1] == '/') {
 							continue;
 						}
 						lineLength = (int)strlen(line);
-						if (line[lineLength - 1] == '\n') {
-							line[--lineLength] = '\0';
+						if (line[lineLength - 1] ==
+						    '\n') {
+							line[--lineLength] =
+								'\0';
 						}
-						memcpy(writePtr, line, lineLength + 1);
-						g_strGoalCondMasculine[entryIndex][variantIndex] = writePtr;
+						memcpy(writePtr, line,
+						       lineLength + 1);
+						g_strGoalCondMasculine
+							[entryIndex]
+							[variantIndex] =
+								writePtr;
 						writePtr += lineLength + 1;
 						++variantIndex;
 					}
@@ -182,8 +218,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strGoalPercentages) / sizeof(g_strGoalPercentages[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strGoalPercentages) /
+					     sizeof(g_strGoalPercentages[0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -196,7 +235,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalPercentages[entryIndex] = writePtr;
+					g_strGoalPercentages[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -204,8 +244,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strGoalOperators) / sizeof(g_strGoalOperators[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strGoalOperators) /
+					     sizeof(g_strGoalOperators[0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -218,7 +261,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalOperators[entryIndex] = writePtr;
+					g_strGoalOperators[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -226,8 +270,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strGoalTitles) / sizeof(g_strGoalTitles[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strGoalTitles) /
+					     sizeof(g_strGoalTitles[0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -248,8 +295,12 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strGoalConjunctions) / sizeof(g_strGoalConjunctions[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strGoalConjunctions) /
+					     sizeof(g_strGoalConjunctions
+							    [0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -262,7 +313,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalConjunctions[entryIndex] = writePtr;
+					g_strGoalConjunctions[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -270,8 +322,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strGoalSides) / sizeof(g_strGoalSides[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strGoalSides) /
+					     sizeof(g_strGoalSides[0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -292,8 +347,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strGoalFamilyNames) / sizeof(g_strGoalFamilyNames[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strGoalFamilyNames) /
+					     sizeof(g_strGoalFamilyNames[0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -306,7 +364,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalFamilyNames[entryIndex] = writePtr;
+					g_strGoalFamilyNames[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -314,8 +373,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strGoalGenusNames) / sizeof(g_strGoalGenusNames[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strGoalGenusNames) /
+					     sizeof(g_strGoalGenusNames[0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -328,7 +390,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalGenusNames[entryIndex] = writePtr;
+					g_strGoalGenusNames[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -336,8 +399,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strMapRoomText) / sizeof(g_strMapRoomText[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strMapRoomText) /
+					     sizeof(g_strMapRoomText[0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -358,11 +424,15 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strInFlightMessages) / sizeof(g_strInFlightMessages[0]))) {
+				while (entryIndex <
+				       (int)(sizeof(g_strInFlightMessages) /
+					     sizeof(g_strInFlightMessages
+							    [0]))) {
 					int sourceIndex;
-					char* readPtr;
+					char *readPtr;
 
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -374,20 +444,26 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 					if (line[lineLength - 1] == '\n') {
 						line[--lineLength] = '\0';
 					}
-					g_strInFlightMessages[entryIndex] = writePtr;
+					g_strInFlightMessages[entryIndex] =
+						writePtr;
 					readPtr = line;
 					sourceIndex = 0;
 					while (lineLength > sourceIndex) {
 						if (*readPtr == '\\') {
 							if (readPtr[1] == '0') {
-								*writePtr++ = (char)(readPtr[2] - '0');
+								*writePtr++ =
+									(char)(readPtr[2] -
+									       '0');
 							} else {
-								*writePtr++ = (char)(readPtr[2] - '(');
+								*writePtr++ =
+									(char)(readPtr[2] -
+									       '(');
 							}
 							readPtr += 3;
 							sourceIndex += 3;
 						} else {
-							*writePtr++ = *readPtr++;
+							*writePtr++ =
+								*readPtr++;
 							++sourceIndex;
 						}
 					}
@@ -399,8 +475,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 			if (writePtr != NULL) {
 				entryIndex = 0;
 				while (entryIndex <
-					   (int)(sizeof(g_strCmdThreatDisplayText) / sizeof(g_strCmdThreatDisplayText[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				       (int)(sizeof(g_strCmdThreatDisplayText) /
+					     sizeof(g_strCmdThreatDisplayText
+							    [0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -413,29 +492,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strCmdThreatDisplayText[entryIndex] = writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
-				}
-			}
-
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strWaypointNames) / sizeof(g_strWaypointNames[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
-						writePtr = NULL;
-						break;
-					}
-					line[sizeof(line) - 1] = '\0';
-					if (line[0] == '/' && line[1] == '/') {
-						continue;
-					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
-					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strWaypointNames[entryIndex] = writePtr;
+					g_strCmdThreatDisplayText[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -444,8 +502,10 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 			if (writePtr != NULL) {
 				entryIndex = 0;
 				while (entryIndex <
-					   (int)(sizeof(g_strMeshComponentNames) / sizeof(g_strMeshComponentNames[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				       (int)(sizeof(g_strWaypointNames) /
+					     sizeof(g_strWaypointNames[0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -458,7 +518,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strMeshComponentNames[entryIndex] = writePtr;
+					g_strWaypointNames[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -467,8 +528,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 			if (writePtr != NULL) {
 				entryIndex = 0;
 				while (entryIndex <
-					   (int)(sizeof(g_strCockpitOverlayText) / sizeof(g_strCockpitOverlayText[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				       (int)(sizeof(g_strMeshComponentNames) /
+					     sizeof(g_strMeshComponentNames
+							    [0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -481,7 +545,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strCockpitOverlayText[entryIndex] = writePtr;
+					g_strMeshComponentNames[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -490,8 +555,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 			if (writePtr != NULL) {
 				entryIndex = 0;
 				while (entryIndex <
-					   (int)(sizeof(g_strThreatDisplayText) / sizeof(g_strThreatDisplayText[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				       (int)(sizeof(g_strCockpitOverlayText) /
+					     sizeof(g_strCockpitOverlayText
+							    [0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -504,7 +572,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strThreatDisplayText[entryIndex] = writePtr;
+					g_strCockpitOverlayText[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -512,8 +581,12 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strStatusStrings) / sizeof(g_strStatusStrings[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strThreatDisplayText) /
+					     sizeof(g_strThreatDisplayText
+							    [0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -526,7 +599,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strStatusStrings[entryIndex] = writePtr;
+					g_strThreatDisplayText[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -534,8 +608,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strWarheadNames) / sizeof(g_strWarheadNames[0])) + 1) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strStatusStrings) /
+					     sizeof(g_strStatusStrings[0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -547,12 +624,45 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 					if (line[lineLength - 1] == '\n') {
 						line[--lineLength] = '\0';
 					}
-					if (entryIndex == (int)(sizeof(g_strWarheadNames) / sizeof(g_strWarheadNames[0]))) {
-						memcpy(writePtr, line, lineLength + 1);
+					memcpy(writePtr, line, lineLength + 1);
+					g_strStatusStrings[entryIndex] =
+						writePtr;
+					writePtr += lineLength + 1;
+					++entryIndex;
+				}
+			}
+
+			if (writePtr != NULL) {
+				entryIndex = 0;
+				while (entryIndex <
+				       (int)(sizeof(g_strWarheadNames) /
+					     sizeof(g_strWarheadNames[0])) +
+					       1) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
+						writePtr = NULL;
+						break;
+					}
+					line[sizeof(line) - 1] = '\0';
+					if (line[0] == '/' && line[1] == '/') {
+						continue;
+					}
+					lineLength = (int)strlen(line);
+					if (line[lineLength - 1] == '\n') {
+						line[--lineLength] = '\0';
+					}
+					if (entryIndex ==
+					    (int)(sizeof(g_strWarheadNames) /
+						  sizeof(g_strWarheadNames
+								 [0]))) {
+						memcpy(writePtr, line,
+						       lineLength + 1);
 						g_strUnknown = writePtr;
 					} else {
-						memcpy(writePtr, line, lineLength + 1);
-						g_strWarheadNames[entryIndex] = writePtr;
+						memcpy(writePtr, line,
+						       lineLength + 1);
+						g_strWarheadNames[entryIndex] =
+							writePtr;
 					}
 					writePtr += lineLength + 1;
 					++entryIndex;
@@ -561,9 +671,12 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strSatMineProbeBuoyPilotNames) /
-										  sizeof(g_strSatMineProbeBuoyPilotNames[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strSatMineProbeBuoyPilotNames) /
+					     sizeof(g_strSatMineProbeBuoyPilotNames
+							    [0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -576,16 +689,20 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strSatMineProbeBuoyPilotNames[entryIndex] = writePtr;
+					g_strSatMineProbeBuoyPilotNames
+						[entryIndex] = writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
 			}
 
 			if (writePtr != NULL) {
-				for (entryIndex = 0; entryIndex < MODEL_STRING_COUNT;) {
-					modelName = &g_modelDefs[entryIndex].nameLong;
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				for (entryIndex = 0;
+				     entryIndex < MODEL_STRING_COUNT;) {
+					modelName = &g_modelDefs[entryIndex]
+							     .nameLong;
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -599,15 +716,20 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 					}
 					*modelName = writePtr;
 					if (line[0] == 'm') {
-						g_craftGender[entryIndex] = CRAFT_GENDER_MASCULINE;
+						g_craftGender[entryIndex] =
+							CRAFT_GENDER_MASCULINE;
 					} else if (line[0] == 'f') {
-						g_craftGender[entryIndex] = CRAFT_GENDER_FEMININE;
+						g_craftGender[entryIndex] =
+							CRAFT_GENDER_FEMININE;
 					} else if (line[0] == 'n') {
-						g_craftGender[entryIndex] = CRAFT_GENDER_NEUTERED;
+						g_craftGender[entryIndex] =
+							CRAFT_GENDER_NEUTERED;
 					} else {
-						FeDiskIo_FatalError(FILE_ERROR_STR_PRESS_KEY_TO_EXIT);
+						FeDiskIo_FatalError(
+							FILE_ERROR_STR_PRESS_KEY_TO_EXIT);
 					}
-					memcpy(writePtr, &line[2], lineLength - 1);
+					memcpy(writePtr, &line[2],
+					       lineLength - 1);
 					writePtr += lineLength - 1;
 					++entryIndex;
 				}
@@ -616,8 +738,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 			if (writePtr != NULL) {
 				entryIndex = 0;
 				while (entryIndex <
-					   (int)(sizeof(g_strSpeciesNamesPlural) / sizeof(g_strSpeciesNamesPlural[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				       (int)(sizeof(g_strSpeciesNamesPlural) /
+					     sizeof(g_strSpeciesNamesPlural
+							    [0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -630,7 +755,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strSpeciesNamesPlural[entryIndex] = writePtr;
+					g_strSpeciesNamesPlural[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -638,8 +764,11 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex < (int)(sizeof(g_strWingmanCommands) / sizeof(g_strWingmanCommands[0]))) {
-					if (File_Gets(line, sizeof(line), stream) == NULL) {
+				while (entryIndex <
+				       (int)(sizeof(g_strWingmanCommands) /
+					     sizeof(g_strWingmanCommands[0]))) {
+					if (File_Gets(line, sizeof(line),
+						      stream) == NULL) {
 						writePtr = NULL;
 						break;
 					}
@@ -652,7 +781,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strWingmanCommands[entryIndex] = writePtr;
+					g_strWingmanCommands[entryIndex] =
+						writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}
@@ -662,32 +792,55 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 				entryIndex = 0;
 				genderUsedByAnyCraft = 0;
 				while (entryIndex < MODEL_STRING_COUNT) {
-					if (g_craftGender[entryIndex] == CRAFT_GENDER_FEMININE) {
+					if (g_craftGender[entryIndex] ==
+					    CRAFT_GENDER_FEMININE) {
 						genderUsedByAnyCraft = 1;
 						break;
 					}
 					++entryIndex;
 				}
 				if (genderUsedByAnyCraft != 0) {
-					for (entryIndex = 0; entryIndex < GOAL_CONDITION_TEXT_ROW_COUNT; ++entryIndex) {
-						conditionIndex = entryIndex % GOAL_CONDITIONS_PER_ROW_BLOCK;
+					for (entryIndex = 0;
+					     entryIndex <
+					     GOAL_CONDITION_TEXT_ROW_COUNT;
+					     ++entryIndex) {
+						conditionIndex =
+							entryIndex %
+							GOAL_CONDITIONS_PER_ROW_BLOCK;
 						variantIndex = 0;
-						while (variantIndex < g_goalConditionTextVariantCount[conditionIndex]) {
-							if (File_Gets(line, sizeof(line), stream) == NULL) {
+						while (variantIndex <
+						       g_goalConditionTextVariantCount
+							       [conditionIndex]) {
+							if (File_Gets(
+								    line,
+								    sizeof(line),
+								    stream) ==
+							    NULL) {
 								writePtr = NULL;
 								break;
 							}
-							line[sizeof(line) - 1] = '\0';
-							if (line[0] == '/' && line[1] == '/') {
+							line[sizeof(line) - 1] =
+								'\0';
+							if (line[0] == '/' &&
+							    line[1] == '/') {
 								continue;
 							}
-							lineLength = (int)strlen(line);
-							if (line[lineLength - 1] == '\n') {
-								line[--lineLength] = '\0';
+							lineLength =
+								(int)strlen(
+									line);
+							if (line[lineLength -
+								 1] == '\n') {
+								line[--lineLength] =
+									'\0';
 							}
-							memcpy(writePtr, line, lineLength + 1);
-							g_strGoalCondFeminine[entryIndex][variantIndex] = writePtr;
-							writePtr += lineLength + 1;
+							memcpy(writePtr, line,
+							       lineLength + 1);
+							g_strGoalCondFeminine
+								[entryIndex]
+								[variantIndex] =
+									writePtr;
+							writePtr +=
+								lineLength + 1;
 							++variantIndex;
 						}
 						if (writePtr == NULL) {
@@ -701,32 +854,55 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 				entryIndex = 0;
 				genderUsedByAnyCraft = 0;
 				while (entryIndex < MODEL_STRING_COUNT) {
-					if (g_craftGender[entryIndex] == CRAFT_GENDER_NEUTERED) {
+					if (g_craftGender[entryIndex] ==
+					    CRAFT_GENDER_NEUTERED) {
 						genderUsedByAnyCraft = 1;
 						break;
 					}
 					++entryIndex;
 				}
 				if (genderUsedByAnyCraft != 0) {
-					for (entryIndex = 0; entryIndex < GOAL_CONDITION_TEXT_ROW_COUNT; ++entryIndex) {
-						conditionIndex = entryIndex % GOAL_CONDITIONS_PER_ROW_BLOCK;
+					for (entryIndex = 0;
+					     entryIndex <
+					     GOAL_CONDITION_TEXT_ROW_COUNT;
+					     ++entryIndex) {
+						conditionIndex =
+							entryIndex %
+							GOAL_CONDITIONS_PER_ROW_BLOCK;
 						variantIndex = 0;
-						while (variantIndex < g_goalConditionTextVariantCount[conditionIndex]) {
-							if (File_Gets(line, sizeof(line), stream) == NULL) {
+						while (variantIndex <
+						       g_goalConditionTextVariantCount
+							       [conditionIndex]) {
+							if (File_Gets(
+								    line,
+								    sizeof(line),
+								    stream) ==
+							    NULL) {
 								writePtr = NULL;
 								break;
 							}
-							line[sizeof(line) - 1] = '\0';
-							if (line[0] == '/' && line[1] == '/') {
+							line[sizeof(line) - 1] =
+								'\0';
+							if (line[0] == '/' &&
+							    line[1] == '/') {
 								continue;
 							}
-							lineLength = (int)strlen(line);
-							if (line[lineLength - 1] == '\n') {
-								line[--lineLength] = '\0';
+							lineLength =
+								(int)strlen(
+									line);
+							if (line[lineLength -
+								 1] == '\n') {
+								line[--lineLength] =
+									'\0';
 							}
-							memcpy(writePtr, line, lineLength + 1);
-							g_strGoalCondNeutered[entryIndex][variantIndex] = writePtr;
-							writePtr += lineLength + 1;
+							memcpy(writePtr, line,
+							       lineLength + 1);
+							g_strGoalCondNeutered
+								[entryIndex]
+								[variantIndex] =
+									writePtr;
+							writePtr +=
+								lineLength + 1;
 							++variantIndex;
 						}
 						if (writePtr == NULL) {
@@ -747,7 +923,8 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 }
 
 // FUNCTION: XVT 0x425A70
-int StringTable_ReadNonCommentLine(XvtFile* stream, char* buffer) {
+int StringTable_ReadNonCommentLine(XvtFile *stream, char *buffer)
+{
 	int lineLength;
 
 	do {

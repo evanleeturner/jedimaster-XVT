@@ -31,7 +31,9 @@ struct NetReliablePeerSlot {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetReliablePeerSlot[(sizeof(NetReliablePeerSlot) == 568) ? 1 : -1];
+typedef char xvt_size_NetReliablePeerSlot[(sizeof(NetReliablePeerSlot) == 568)
+						  ? 1
+						  : -1];
 
 #pragma pack(push, 1)
 
@@ -47,13 +49,15 @@ struct NetQueuedPacket {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetQueuedPacket[(sizeof(NetQueuedPacket) == 528) ? 1 : -1];
+typedef char
+	xvt_size_NetQueuedPacket[(sizeof(NetQueuedPacket) == 528) ? 1 : -1];
 
 /* Queued rename messages retain both NUL-terminated names after the ABI header.
  * The pointer fields in the copied header are not used by the recovered readers. */
 typedef struct NetPlayerNameMessage {
 	DPMSG_SETPLAYERORGROUPNAME header;
-	char names[sizeof(((NetQueuedPacket*)0)->payload) - sizeof(DPMSG_SETPLAYERORGROUPNAME)];
+	char names[sizeof(((NetQueuedPacket *)0)->payload) -
+		   sizeof(DPMSG_SETPLAYERORGROUPNAME)];
 } NetPlayerNameMessage;
 
 #pragma pack(push, 1)
@@ -65,7 +69,9 @@ struct NetPiggybackPayload {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetPiggybackPayload[(sizeof(NetPiggybackPayload) == 520) ? 1 : -1];
+typedef char xvt_size_NetPiggybackPayload[(sizeof(NetPiggybackPayload) == 520)
+						  ? 1
+						  : -1];
 
 extern int g_netRecvQueueReadIndex;
 extern int g_netRecvQueueWriteIndex;
@@ -74,8 +80,10 @@ extern NetQueuedPacket g_netSessionRecvQueue[1024];
 extern int g_netLastDeliveredRecvSequence;
 
 int NetReliable_GetLastDeliveredRecvSequence(void);
-int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence, int channelA, int channelB);
-int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA, int channelB, int peerSlot);
+int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence,
+					   int channelA, int channelB);
+int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA,
+				     int channelB, int peerSlot);
 int NetReliable_RemoveQueuedPacket(unsigned int queueIndex);
 unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId);
 void NetReliable_ResetRecvQueueState(void);

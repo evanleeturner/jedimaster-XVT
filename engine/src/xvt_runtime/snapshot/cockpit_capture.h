@@ -30,7 +30,8 @@ void XvtCockpit_LatchComposition(void);
 void XvtCockpit_LatchPages(void);
 /* Places launcher count 0 to 3 in pending at this rectangle, drawn after the CRT and keyed on the
  * bypass color, and shows the launcher. Other launchers are ignored. */
-void XvtCockpit_LatchLauncher(unsigned launcher, int x, int y, int width, int height);
+void XvtCockpit_LatchLauncher(unsigned launcher, int x, int y, int width,
+			      int height);
 /* Places the message log page in pending and latches it when open; it is widened when
  * g_flightPlayerCount is 1 or more. */
 void XvtCockpit_LatchMessages(void);
@@ -38,13 +39,13 @@ void XvtCockpit_LatchMessages(void);
 void XvtCockpit_BeginMessagePlacement(void);
 /* Latches a message pane, except the ready pane while the message log is open. For the ready
  * pane it also places the network ping and lag fields by the same offset. */
-void XvtCockpit_LatchMessage(XvtCockpitMessageId pane, int source_x, int source_y, int x, int y, int width,
-							 int height);
+void XvtCockpit_LatchMessage(XvtCockpitMessageId pane, int source_x,
+			     int source_y, int x, int y, int width, int height);
 /* Starts pending from the last presented frame, for an overlay drawn over it, and unseals. */
 void XvtCockpit_RetainPresentedFrame(void);
 /* With a composition selected, stores crt in pending, exports the pages into it and seals it;
  * otherwise does nothing. */
-void XvtCockpit_Seal(const XvtSnapPreview* crt);
+void XvtCockpit_Seal(const XvtSnapPreview *crt);
 /* Publishes pending as the presented frame when it is sealed or standalone_overlay is set;
  * otherwise does nothing. A standalone overlay without a valid layout first captures the cockpit
  * definition. Exports the messages into it, marks it valid when no composition was
@@ -52,19 +53,20 @@ void XvtCockpit_Seal(const XvtSnapPreview* crt);
  * from the last presented frame, and stamps a new presentation serial. */
 void XvtCockpit_Presented(int standalone_overlay);
 /* Copies the last presented frame into destination. */
-void XvtCockpit_Export(XvtCockpitState* destination);
+void XvtCockpit_Export(XvtCockpitState *destination);
 /* Fills destination with the cockpit definition, screen size, features and palettes, including
  * each loaded view's 64-color palette. Leaves it cleared and invalid while working is invalid or
  * the cockpit resources are not loaded; when panel 0 has no asset, the definition is captured and the
  * rest left cleared and invalid. */
-void XvtCockpit_ExportResources(XvtCockpitResources* destination);
+void XvtCockpit_ExportResources(XvtCockpitResources *destination);
 /* Records the resource generation the renderer has prepared. */
 void XvtCockpit_ResourcesPrepared(uint64_t generation);
 /* Returns 1 when working is valid and the renderer has prepared its resource generation. */
 int XvtCockpit_LoadingAssetsReady(void);
 /* Copies source into destination, but only the used rows and glyphs of the page and overlay
  * stores; the rest of destination's stores keeps its old contents. */
-void XvtCockpit_CopyState(XvtCockpitState* destination, const XvtCockpitState* source);
+void XvtCockpit_CopyState(XvtCockpitState *destination,
+			  const XvtCockpitState *source);
 #ifdef __cplusplus
 }
 #endif

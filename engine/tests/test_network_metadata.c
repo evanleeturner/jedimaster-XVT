@@ -16,7 +16,8 @@
 static XvtNetworkMetadata g_meta;
 
 /* No session name, no password, no players, no mission selected, the session roster in use. */
-static void ClearSession(void) {
+static void ClearSession(void)
+{
 	memset(&g_frontState, 0, sizeof g_frontState);
 	memset(&g_pilotData, 0, sizeof g_pilotData);
 	memset(&g_netSession, 0, sizeof g_netSession);
@@ -24,13 +25,16 @@ static void ClearSession(void) {
 	g_missionSetupRosterAuthoritative = 0;
 	g_gameConfig.requirePassword = 0;
 	g_pilotData.missionDirectoryId = 0;
-	for (int i = 0; i < 6; ++i)
+	for (int i = 0; i < 6; ++i) {
 		g_pilotData.missionDescriptionIds[i] = -1;
+	}
 }
 
 /* Adds a session player; rating_byte is the first byte of its playerName. */
-static void AddPlayer(DPID id, const char* name, int ready, int rating_byte) {
-	NetPlayerInfo* player = &g_frontState.netPlayers[g_frontState.netPlayerCount++];
+static void AddPlayer(DPID id, const char *name, int ready, int rating_byte)
+{
+	NetPlayerInfo *player =
+		&g_frontState.netPlayers[g_frontState.netPlayerCount++];
 	memset(player, 0, sizeof *player);
 	player->playerId = id;
 	player->readyFlag = ready;
@@ -38,7 +42,8 @@ static void AddPlayer(DPID id, const char* name, int ready, int rating_byte) {
 	player->playerInfo[0] = (char)rating_byte;
 }
 
-static void CheckToUtf8(void) {
+static void CheckToUtf8(void)
+{
 	char out[16];
 
 	/* ASCII passes through; the copy stops at size bytes or at a NUL. */
@@ -52,7 +57,8 @@ static void CheckToUtf8(void) {
 	XVT_ASSERT_INT_EQ(strcmp(out, "\xe2\x82\xac\xc3\xa9"), 0);
 
 	/* Control characters, DEL and the five undefined bytes become '?'. */
-	XvtNetworkMetadata_ToUtf8(out, sizeof out, "\x01\x1f\x7f\x81\x8d\x8f\x90\x9d", 8);
+	XvtNetworkMetadata_ToUtf8(out, sizeof out,
+				  "\x01\x1f\x7f\x81\x8d\x8f\x90\x9d", 8);
 	XVT_ASSERT_INT_EQ(strcmp(out, "????????"), 0);
 
 	/* A character that would not fit is not started; out stays terminated. */
@@ -69,22 +75,27 @@ static void CheckToUtf8(void) {
 	XVT_ASSERT_INT_EQ(out[0], 'x');
 }
 
-static void CheckFromUtf8(void) {
+static void CheckFromUtf8(void)
+{
 	char out[16];
 
 	XvtNetworkMetadata_FromUtf8(out, sizeof out, "Hello");
 	XVT_ASSERT_INT_EQ(strcmp(out, "Hello"), 0);
-	XvtNetworkMetadata_FromUtf8(out, sizeof out, "\xe2\x82\xac\xc3\xa9\xc2\xa0");
+	XvtNetworkMetadata_FromUtf8(out, sizeof out,
+				    "\xe2\x82\xac\xc3\xa9\xc2\xa0");
 	XVT_ASSERT_INT_EQ(strcmp(out, "\x80\xe9\xa0"), 0);
 
 	/* A character 1252 cannot hold, a control character (C0, DEL, C1), a surrogate, a code point past
 	 * U+10FFFF: one '?' each. */
-	XvtNetworkMetadata_FromUtf8(out, sizeof out, "\xc4\x80|\x01|\x7f|\xc2\x80|\xed\xa0\x80|\xf4\x90\x80\x80");
+	XvtNetworkMetadata_FromUtf8(
+		out, sizeof out,
+		"\xc4\x80|\x01|\x7f|\xc2\x80|\xed\xa0\x80|\xf4\x90\x80\x80");
 	XVT_ASSERT_INT_EQ(strcmp(out, "?|?|?|?|?|?"), 0);
 
 	/* Overlong forms of two, three and four bytes: '?' each, the 2-byte one through its invalid lead
 	 * byte 0xC0, which with its continuation byte gives one '?' per byte. */
-	XvtNetworkMetadata_FromUtf8(out, sizeof out, "\xe0\x80\x80|\xf0\x80\x80\x80|\xc0\x80");
+	XvtNetworkMetadata_FromUtf8(out, sizeof out,
+				    "\xe0\x80\x80|\xf0\x80\x80\x80|\xc0\x80");
 	XVT_ASSERT_INT_EQ(strcmp(out, "?|?|??"), 0);
 
 	/* Invalid lead bytes: one '?' per byte. */
@@ -93,8 +104,8 @@ static void CheckFromUtf8(void) {
 
 	/* A sequence cut short: one '?', then the byte that broke it is read again. */
 	XvtNetworkMetadata_FromUtf8(out, sizeof out,
-								"\xe2\x82"
-								"A");
+				    "\xe2\x82"
+				    "A");
 	XVT_ASSERT_INT_EQ(strcmp(out, "?A"), 0);
 	XvtNetworkMetadata_FromUtf8(out, sizeof out, "\xc3");
 	XVT_ASSERT_INT_EQ(strcmp(out, "?"), 0);
@@ -109,15 +120,18 @@ static void CheckFromUtf8(void) {
 	XVT_ASSERT_INT_EQ(out[0], 'x');
 }
 
-static void CheckRoundTrip(void) {
+static void CheckRoundTrip(void)
+{
 	/* Every printable Windows-1252 byte survives the trip to UTF-8 and back. */
 	char text[256];
 	char utf8[256 * 3 + 1];
 	char back[256];
 	size_t count = 0;
 	for (unsigned byte = 0x20; byte <= 0xff; ++byte) {
-		if (byte == 0x7f || byte == 0x81 || byte == 0x8d || byte == 0x8f || byte == 0x90 || byte == 0x9d)
+		if (byte == 0x7f || byte == 0x81 || byte == 0x8d ||
+		    byte == 0x8f || byte == 0x90 || byte == 0x9d) {
 			continue;
+		}
 		text[count++] = (char)byte;
 	}
 	text[count] = 0;
@@ -127,7 +141,8 @@ static void CheckRoundTrip(void) {
 	XVT_ASSERT_INT_EQ(memcmp(back, text, count), 0);
 }
 
-static void CheckBuildRoom(void) {
+static void CheckBuildRoom(void)
+{
 	ClearSession();
 	memset(&g_meta, 0xAB, sizeof g_meta);
 	XvtNetworkMetadata_Build(&g_meta, 1);
@@ -136,8 +151,9 @@ static void CheckBuildRoom(void) {
 	XVT_ASSERT_INT_EQ(g_meta.room.password_required, 0);
 	XVT_ASSERT_INT_EQ(g_meta.room.mission.present, 0);
 	XVT_ASSERT_INT_EQ(g_meta.room.players, 0);
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		XVT_ASSERT_INT_EQ(g_meta.players[i], 0);
+	}
 
 	/* The session name in Windows-1252, the password flag, and the selected mission. */
 	strcpy(g_frontState.netSessionName, "Caf\xe9");
@@ -158,7 +174,8 @@ static void CheckBuildRoom(void) {
 	g_gameConfig.requirePassword = 0;
 }
 
-static void CheckBuildSessionRoster(void) {
+static void CheckBuildSessionRoster(void)
+{
 	ClearSession();
 	AddPlayer(101, "Alpha", 1, 3);
 	AddPlayer(102, "Bravo", 0, 4);
@@ -177,7 +194,8 @@ static void CheckBuildSessionRoster(void) {
 	XVT_ASSERT_INT_EQ(g_meta.room.roster[0].rating, 2);
 	XVT_ASSERT_INT_EQ(strcmp(g_meta.room.roster[1].name, "No name"), 0);
 	XVT_ASSERT_INT_EQ(g_meta.room.roster[1].rating, 0);
-	XVT_ASSERT_INT_EQ(strcmp(g_meta.room.roster[2].name, "D\xc3\xa9lta"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_meta.room.roster[2].name, "D\xc3\xa9lta"),
+			  0);
 	XVT_ASSERT_INT_EQ(g_meta.room.roster[2].rating, 8);
 
 	/* Joinable when accepting and a slot is free. */
@@ -186,19 +204,23 @@ static void CheckBuildSessionRoster(void) {
 	XVT_ASSERT_INT_EQ(g_meta.room.joinable, 0);
 }
 
-static void CheckBuildAtMostEight(void) {
+static void CheckBuildAtMostEight(void)
+{
 	ClearSession();
-	for (DPID id = 1; id <= 10; ++id)
+	for (DPID id = 1; id <= 10; ++id) {
 		AddPlayer(200 + id, "Pilot", 1, 2);
+	}
 	XvtNetworkMetadata_Build(&g_meta, 1);
 	XVT_ASSERT_INT_EQ(g_meta.room.players, 8);
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		XVT_ASSERT_INT_EQ(g_meta.players[i], 201 + i);
+	}
 	/* No slot is free, so the room is not joinable even when accepting. */
 	XVT_ASSERT_INT_EQ(g_meta.room.joinable, 0);
 }
 
-static void CheckBuildAuthoritativeRoster(void) {
+static void CheckBuildAuthoritativeRoster(void)
+{
 	ClearSession();
 	AddPlayer(101, "Alpha", 1, 3);
 	AddPlayer(102, "Bravo", 1, 4);
@@ -221,7 +243,8 @@ static void CheckBuildAuthoritativeRoster(void) {
 	XVT_ASSERT_INT_EQ(g_meta.room.joinable, 0);
 }
 
-static void CheckFlight(void) {
+static void CheckFlight(void)
+{
 	ClearSession();
 	AddPlayer(101, "Alpha", 1, 3);
 	AddPlayer(102, "Bravo", 1, 4);
@@ -251,7 +274,8 @@ static void CheckFlight(void) {
 	}
 }
 
-int main(void) {
+int main(void)
+{
 	CheckToUtf8();
 	CheckFromUtf8();
 	CheckRoundTrip();

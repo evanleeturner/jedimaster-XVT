@@ -2,7 +2,8 @@
  * passes, the assertions have stopped reporting failures. */
 #include "test_assert.h"
 
-int main(void) {
+int main(void)
+{
 	XVT_ASSERT_INT_EQ(1, 2);
 	return 0;
 }

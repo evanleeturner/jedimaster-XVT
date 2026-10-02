@@ -24,8 +24,9 @@ enum {
 	XVT_CONTROL_BLOCKED = 4,
 	XVT_CONTROL_MAP = 8,
 	XVT_CONTROL_HYPERSPACE = 16,
-	XVT_CONTROL_MASK = XVT_CONTROL_ROLL | XVT_CONTROL_DISABLED | XVT_CONTROL_BLOCKED | XVT_CONTROL_MAP |
-					   XVT_CONTROL_HYPERSPACE
+	XVT_CONTROL_MASK = XVT_CONTROL_ROLL | XVT_CONTROL_DISABLED |
+			   XVT_CONTROL_BLOCKED | XVT_CONTROL_MAP |
+			   XVT_CONTROL_HYPERSPACE
 };
 
 typedef struct XvtStateHeader {
@@ -35,7 +36,8 @@ typedef struct XvtStateHeader {
 typedef struct XvtStateFooter {
 	XvtWireU32 magic;
 	XvtWireU16 schema, profile;
-	XvtWireU32 cookie, completed_tick, world_bytes, timing_bytes, timing_crc;
+	XvtWireU32 cookie, completed_tick, world_bytes, timing_bytes,
+		timing_crc;
 } XvtStateFooter;
 
 typedef struct XvtReferenceMotionWire {
@@ -49,7 +51,8 @@ typedef struct XvtIntegrationWire {
 	XvtWireU16 slot, signature;
 	uint8_t type, family;
 	XvtWireU16 carried_slot, target_slot, target_signature;
-	XvtWireU64 position_remainder[XVT_STATE_POSITION_AXES], remainder[XVT_STATE_INTEGRATION_CHANNELS];
+	XvtWireU64 position_remainder[XVT_STATE_POSITION_AXES],
+		remainder[XVT_STATE_INTEGRATION_CHANNELS];
 	int8_t direction[XVT_STATE_INTEGRATION_CHANNELS];
 } XvtIntegrationWire;
 
@@ -60,7 +63,8 @@ typedef struct XvtPlayerTimingWire {
 	int8_t direction[XVT_STATE_PLAYER_CHANNELS];
 	uint8_t lock_mode, lock_odd_tick, control_valid;
 	XvtWireU32 control_mode;
-	XvtWireU16 lock_signature, lock_target, lock_target_signature, lock_weapon;
+	XvtWireU16 lock_signature, lock_target, lock_target_signature,
+		lock_weapon;
 	XvtWireU64 lock_serial;
 	XvtWireU16 camera_focus, reserved_tail;
 } XvtPlayerTimingWire;
@@ -89,8 +93,14 @@ typedef struct XvtMembershipWire {
 
 typedef char XvtStateHeader_layout[(sizeof(XvtStateHeader) == 8) ? 1 : -1];
 typedef char XvtStateFooter_layout[(sizeof(XvtStateFooter) == 28) ? 1 : -1];
-typedef char XvtReferenceMotionWire_layout[(sizeof(XvtReferenceMotionWire) == 28) ? 1 : -1];
-typedef char XvtIntegrationWire_layout[(sizeof(XvtIntegrationWire) == 144) ? 1 : -1];
-typedef char XvtPlayerTimingWire_layout[(sizeof(XvtPlayerTimingWire) == 116) ? 1 : -1];
-typedef char XvtPairedMotionWire_layout[(sizeof(XvtPairedMotionWire) == 360) ? 1 : -1];
+typedef char XvtReferenceMotionWire_layout
+	[(sizeof(XvtReferenceMotionWire) == 28) ? 1 : -1];
+typedef char
+	XvtIntegrationWire_layout[(sizeof(XvtIntegrationWire) == 144) ? 1 : -1];
+typedef char XvtPlayerTimingWire_layout[(sizeof(XvtPlayerTimingWire) == 116)
+						? 1
+						: -1];
+typedef char XvtPairedMotionWire_layout[(sizeof(XvtPairedMotionWire) == 360)
+						? 1
+						: -1];
 #endif

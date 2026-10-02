@@ -8,7 +8,7 @@
  * nearest fighter; the first side button toggles the cockpit. */
 
 /* Stores options and resets; NULL is ignored. */
-void XvtMouseFlight_SetOptions(const XvtMouseOptions* options);
+void XvtMouseFlight_SetOptions(const XvtMouseOptions *options);
 /* Recenters the stick and drops pending motion, buttons, queued keys and the roll lock. */
 void XvtMouseFlight_Reset(void);
 /* Drops pending motion, queued keys and a pending tap; the stick keeps its deflection. */
@@ -23,12 +23,12 @@ void XvtMouseFlight_Pump(void);
  * when mouse flight is not allowed, and 0 while inactive. */
 int XvtMouseFlight_Sample(void);
 /* The last Sample's axes, -127 to 127; any pointer may be NULL. */
-void XvtMouseFlight_GetAxes(int* yaw, int* pitch, int* roll);
+void XvtMouseFlight_GetAxes(int *yaw, int *pitch, int *roll);
 /* 1 while the left button (fire) is held, else 0. */
 int XvtMouseFlight_ButtonsMask(void);
 /* The next queued key, or 0. While mouse flight is not allowed or a chat is open, empties the queue and
  * returns 0. A full queue of 15 keys drops the key with a warning. */
 uint16_t XvtMouseFlight_ReadKey(void);
 /* While mouse flight is allowed and active, writes the stick's yaw and pitch and returns 1; else 0. */
-int XvtMouseFlight_GetHudMarker(int* yaw, int* pitch);
+int XvtMouseFlight_GetHudMarker(int *yaw, int *pitch);
 #endif

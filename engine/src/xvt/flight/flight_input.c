@@ -14,7 +14,7 @@
 
 #ifndef XVT_MODERN
 struct FlightInputWin32Message {
-	void* window;
+	void *window;
 	uint32_t message;
 	uint32_t wParam;
 	int32_t lParam;
@@ -23,13 +23,17 @@ struct FlightInputWin32Message {
 	int32_t pointY;
 };
 
-__declspec(dllimport) int __stdcall PeekMessageA(struct FlightInputWin32Message* message, void* hWnd,
-												 unsigned int filterMin, unsigned int filterMax,
-												 unsigned int removeMessage);
-__declspec(dllimport) int __stdcall GetMessageA(struct FlightInputWin32Message* message, void* hWnd,
-												unsigned int filterMin, unsigned int filterMax);
-__declspec(dllimport) int __stdcall TranslateMessage(const struct FlightInputWin32Message* message);
-__declspec(dllimport) int32_t __stdcall DispatchMessageA(const struct FlightInputWin32Message* message);
+__declspec(dllimport) int __stdcall
+PeekMessageA(struct FlightInputWin32Message *message, void *hWnd,
+	     unsigned int filterMin, unsigned int filterMax,
+	     unsigned int removeMessage);
+__declspec(dllimport) int __stdcall
+GetMessageA(struct FlightInputWin32Message *message, void *hWnd,
+	    unsigned int filterMin, unsigned int filterMax);
+__declspec(dllimport) int __stdcall
+TranslateMessage(const struct FlightInputWin32Message *message);
+__declspec(dllimport) int32_t __stdcall
+DispatchMessageA(const struct FlightInputWin32Message *message);
 #endif
 
 // GLOBAL: XVT 0x527EB4
@@ -46,10 +50,11 @@ int g_heldJoystickButtons;
 // GLOBAL: XVT 0x5505F0
 int g_throttleSmoothed;
 // GLOBAL: XVT 0x51A878
-uint8_t g_throttleKeyTable[17] = { 0x5C, 0xDB, 0xDC, 0xDD, 0xDE, 0x5B, 0xDF, 0xE0, 0xE1,
-								   0xE2, 0xE3, 0x5D, 0xE4, 0xE5, 0xE6, 0xE7, 0x08 };
+uint8_t g_throttleKeyTable[17] = {0x5C, 0xDB, 0xDC, 0xDD, 0xDE, 0x5B,
+				  0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0x5D,
+				  0xE4, 0xE5, 0xE6, 0xE7, 0x08};
 // GLOBAL: XVT 0x9A7B70
-FlightInputFrameRecord g_replayInputs[8] = { { 0 } };
+FlightInputFrameRecord g_replayInputs[8] = {{0}};
 // GLOBAL: XVT 0xA00498
 int16_t g_ctrlAxisX;
 // GLOBAL: XVT 0xA004A0
@@ -87,7 +92,8 @@ int16_t g_scaledInputPitch;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x411540
-void FlightInput_LatchFlightControls(void) {
+void FlightInput_LatchFlightControls(void)
+{
 	int16_t pitch;
 	int16_t yaw;
 	uint16_t mouseButtons;
@@ -104,38 +110,47 @@ void FlightInput_LatchFlightControls(void) {
 		pitch = (int16_t)((uint16_t)g_flightMouseDeltaY << 6);
 		mouseButtons = g_mouseButtons;
 	}
-	*(uint16_t*)&g_scaledInputYaw = (uint16_t)yaw;
-	*(uint16_t*)&g_scaledInputPitch = (uint16_t)pitch;
-	*(int16_t*)&g_flightKeyMods = (int16_t)mouseButtons;
-	if ((uint16_t)(g_joystickAvailable | 1u) == 0)
+	*(uint16_t *)&g_scaledInputYaw = (uint16_t)yaw;
+	*(uint16_t *)&g_scaledInputPitch = (uint16_t)pitch;
+	*(int16_t *)&g_flightKeyMods = (int16_t)mouseButtons;
+	if ((uint16_t)(g_joystickAvailable | 1u) == 0) {
 		return;
-	if (yaw == 0)
+	}
+	if (yaw == 0) {
 		g_scaledInputYaw = (int16_t)(g_ctrlAxisX * 120);
-	*(uint16_t*)&g_scaledInputPitch = (uint16_t)pitch;
-	if (pitch == 0)
+	}
+	*(uint16_t *)&g_scaledInputPitch = (uint16_t)pitch;
+	if (pitch == 0) {
 		g_scaledInputPitch = (int16_t)(g_ctrlAxisY * 50);
-	*(int16_t*)&g_flightKeyMods = (int16_t)(g_keyMods | mouseButtons);
+	}
+	*(int16_t *)&g_flightKeyMods = (int16_t)(g_keyMods | mouseButtons);
 }
 
 // FUNCTION: XVT 0x4115F0
-void FlightInput_ApplyDeadzone(void) {
+void FlightInput_ApplyDeadzone(void)
+{
 	int16_t magnitude;
 
 	magnitude = g_scaledInputYaw;
-	if ((uint16_t)magnitude >= 0x8000u)
+	if ((uint16_t)magnitude >= 0x8000u) {
 		magnitude = -magnitude;
-	if (magnitude <= 64)
+	}
+	if (magnitude <= 64) {
 		g_scaledInputYaw = 0;
+	}
 
 	magnitude = g_scaledInputPitch;
-	if ((uint16_t)magnitude >= 0x8000u)
+	if ((uint16_t)magnitude >= 0x8000u) {
 		magnitude = -magnitude;
-	if (magnitude <= 24)
+	}
+	if (magnitude <= 24) {
 		g_scaledInputPitch = 0;
+	}
 }
 
 // FUNCTION: XVT 0x411630
-void FlightInput_ReadAndApplyFlightDeadzone(int playerIdxOrSentinel) {
+void FlightInput_ReadAndApplyFlightDeadzone(int playerIdxOrSentinel)
+{
 	int16_t magnitude;
 
 	FlightInput_Read(playerIdxOrSentinel);
@@ -158,7 +173,8 @@ void FlightInput_ReadAndApplyFlightDeadzone(int playerIdxOrSentinel) {
 }
 
 // FUNCTION: XVT 0x411680
-void FlightInput_WaitForActionKeyRelease(void) {
+void FlightInput_WaitForActionKeyRelease(void)
+{
 	FlightInput_ReadAndApplyFlightDeadzone(-2);
 	while (g_currentActionKey != 0) {
 		FlightInput_ReadAndApplyFlightDeadzone(-2);
@@ -166,7 +182,8 @@ void FlightInput_WaitForActionKeyRelease(void) {
 }
 
 // FUNCTION: XVT 0x4116B0
-void FlightInput_WaitForPress(void) {
+void FlightInput_WaitForPress(void)
+{
 	uint16_t key;
 	uint16_t keyMods;
 	uint16_t mouseButtons;
@@ -187,7 +204,8 @@ void FlightInput_WaitForPress(void) {
 }
 
 // FUNCTION: XVT 0x411710
-void FlightInput_ClearButtonsAndDebounce(void) {
+void FlightInput_ClearButtonsAndDebounce(void)
+{
 	uint16_t keyMods;
 	uint16_t mouseButtons;
 	uint32_t clearTicks;
@@ -213,7 +231,8 @@ void FlightInput_ClearButtonsAndDebounce(void) {
 }
 
 // FUNCTION: XVT 0x411780
-void FlightInput_ResetRuntimeState(void) {
+void FlightInput_ResetRuntimeState(void)
+{
 	g_joystickAvailable = 0;
 	g_flightMouseEnabled = 0;
 	g_mouseButtons = 0;
@@ -229,14 +248,16 @@ void FlightInput_ResetRuntimeState(void) {
 }
 
 // FUNCTION: XVT 0x4117D0
-void FlightInput_ClearAxesAndModifiers(void) {
+void FlightInput_ClearAxesAndModifiers(void)
+{
 	g_ctrlAxisY = 0;
 	g_ctrlAxisX = 0;
 	g_keyMods = 0;
 }
 
 // FUNCTION: XVT 0x4117F0
-void FlightInput_ResetControlState(void) {
+void FlightInput_ResetControlState(void)
+{
 #ifdef XVT_MODERN
 	XvtFlightControls_Reset();
 #endif
@@ -245,7 +266,8 @@ void FlightInput_ResetControlState(void) {
 }
 
 // FUNCTION: XVT 0x411810
-uint16_t FlightInput_Read(int playerIdxOrSentinel) {
+uint16_t FlightInput_Read(int playerIdxOrSentinel)
+{
 	int joystickButtons;
 	uint16_t key;
 	uint16_t mappedKey;
@@ -284,10 +306,12 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 		mouseY = 0;
 #endif
 		if (g_joystickAvailable != 0) {
-			joystickButtons = Joystick_PollScaledAxesIfActive(&axisX, &axisY, &throttleRaw, NULL);
+			joystickButtons = Joystick_PollScaledAxesIfActive(
+				&axisX, &axisY, &throttleRaw, NULL);
 		}
 		if (g_flightMouseEnabled != 0) {
-			mouseButtons = (uint16_t)Mouse_ReadPositionAndButtons(&mouseX, &mouseY);
+			mouseButtons = (uint16_t)Mouse_ReadPositionAndButtons(
+				&mouseX, &mouseY);
 			Mouse_ReadDelta(&mouseDeltaX, &mouseDeltaY);
 			if (mouseDeltaX <= -192) {
 				mouseDeltaX = -191;
@@ -316,34 +340,40 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 					mappedKey = buttonKey;
 					mappedKeyValue = mappedKey;
 					switch (mappedKeyValue) {
-						case 156:
-							fireButtonHeld = 1;
-							break;
-						case 157:
-							targetButtonHeld = 1;
-							break;
+					case 156:
+						fireButtonHeld = 1;
+						break;
+					case 157:
+						targetButtonHeld = 1;
+						break;
 					}
-					if ((g_heldJoystickButtons & buttonBit) == 0) {
+					if ((g_heldJoystickButtons &
+					     buttonBit) == 0) {
 						if (key == 0) {
 							key = mappedKey;
 						} else {
-							joystickButtons &= ~buttonBit;
+							joystickButtons &=
+								~buttonBit;
 						}
 					}
-				} else if ((g_heldJoystickButtons & buttonBit) != 0) {
+				} else if ((g_heldJoystickButtons &
+					    buttonBit) != 0) {
 					releasedKey = buttonKey;
 					if (releasedKey == 178) {
 						releasedKey = 178;
-					} else if (releasedKey >= 179 && releasedKey <= 187) {
+					} else if (releasedKey >= 179 &&
+						   releasedKey <= 187) {
 						releasedKey = 186;
 					} else {
 						releasedKey = 0;
 					}
 					if (releasedKey != 0) {
 						if (key == 0) {
-							key = (uint16_t)releasedKey;
+							key = (uint16_t)
+								releasedKey;
 						} else {
-							joystickButtons |= buttonBit;
+							joystickButtons |=
+								buttonBit;
 						}
 					}
 				}
@@ -361,7 +391,8 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 				g_throttleSmoothed = throttleRaw;
 			} else {
 				previousThrottle = g_throttleSmoothed;
-				g_throttleSmoothed += (throttleRaw - g_throttleSmoothed) / 4;
+				g_throttleSmoothed +=
+					(throttleRaw - g_throttleSmoothed) / 4;
 				previousThrottle = (previousThrottle + 8) / 16;
 				throttleBucket = (g_throttleSmoothed + 8) / 16;
 				if (throttleBucket != previousThrottle) {
@@ -371,7 +402,8 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 					if (throttleBucket > 16) {
 						throttleBucket = 16;
 					}
-					key = g_throttleKeyTable[16 - throttleBucket];
+					key = g_throttleKeyTable
+						[16 - throttleBucket];
 				}
 			}
 		}
@@ -405,7 +437,8 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 }
 
 // FUNCTION: XVT 0x4AA7F0
-int FlightInput_HasKeyReady(void) {
+int FlightInput_HasKeyReady(void)
+{
 #ifdef XVT_MODERN
 	return XvtInput_IsCaptured() ? 0 : DInput_SkipToPendingKeyPress();
 #else
@@ -414,7 +447,8 @@ int FlightInput_HasKeyReady(void) {
 	if (g_flightConfDirectInput != 0) {
 		return DInput_SkipToPendingKeyPress();
 	}
-	if (g_flightInputNonBlockingMsgPump == 0 || PeekMessageA(&message, 0, 0, 0, 0) != 0) {
+	if (g_flightInputNonBlockingMsgPump == 0 ||
+	    PeekMessageA(&message, 0, 0, 0, 0) != 0) {
 		if (GetMessageA(&message, 0, 0, 0) == 0) {
 			return g_keyReady;
 		}
@@ -426,7 +460,8 @@ int FlightInput_HasKeyReady(void) {
 }
 
 // FUNCTION: XVT 0x4AA870
-int FlightInput_GetNextKey(void) {
+int FlightInput_GetNextKey(void)
+{
 #ifdef XVT_MODERN
 	return XvtInput_IsCaptured() ? 0 : DInput_GetKey();
 #else
@@ -440,7 +475,8 @@ int FlightInput_GetNextKey(void) {
 			g_keyReady = 0;
 			return g_lastKeyCode;
 		}
-		if (g_flightInputNonBlockingMsgPump != 0 && PeekMessageA(&message, 0, 0, 0, 0) == 0) {
+		if (g_flightInputNonBlockingMsgPump != 0 &&
+		    PeekMessageA(&message, 0, 0, 0, 0) == 0) {
 			continue;
 		}
 		if (GetMessageA(&message, 0, 0, 0) == 0) {

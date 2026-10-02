@@ -50,7 +50,8 @@ struct XvtFlightGroup {
 	char specialCargo[20];
 	uint8_t specialCargoCraft;
 	uint8_t randomSpecialCargoCraft;
-	CraftSpecies craftType; ///< Primary CraftSpecies for this mission flight group.
+	CraftSpecies
+		craftType; ///< Primary CraftSpecies for this mission flight group.
 	uint8_t numberOfCraft;
 	uint8_t status1;
 	uint8_t warhead;
@@ -120,7 +121,8 @@ struct XvtFlightGroup {
 	uint8_t optionalBeams[6];
 	uint8_t optionalCountermeasures[4];
 	uint8_t optionalCraftCategory;
-	CraftSpecies optionalCraft[10]; ///< Alternative CraftSpecies values exposed by mission loadout selection.
+	CraftSpecies optionalCraft
+		[10]; ///< Alternative CraftSpecies values exposed by mission loadout selection.
 	uint8_t numberOfOptionalCraft[10];
 	uint8_t numberOfOptionalCraftWaves[10];
 	uint8_t reservedTail;
@@ -137,7 +139,9 @@ struct MissionFlightGroup {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_MissionFlightGroup[(sizeof(MissionFlightGroup) == 1382) ? 1 : -1];
+typedef char xvt_size_MissionFlightGroup[(sizeof(MissionFlightGroup) == 1382)
+						 ? 1
+						 : -1];
 
 extern MissionFlightGroup g_missionFlightGroups[48];
 extern GlobalGoal g_missionGlobalGoals[10][7];
@@ -155,8 +159,9 @@ extern int g_worldLocZ;
 
 struct Team {
 	char name[16];
-	uint8_t reserved10[8]; ///< Mission-file reserved bytes; loaded with the 0x1E5-byte team record and
-						   ///< otherwise unreferenced.
+	uint8_t reserved10
+		[8]; ///< Mission-file reserved bytes; loaded with the 0x1E5-byte team record and
+	///< otherwise unreferenced.
 	uint8_t allies[10];
 	char endOfMissionMessages[6][64];
 	uint8_t eomRawDelay[3];
@@ -200,7 +205,7 @@ struct MissionHeader {
 		missionType; ///< One-byte mission mode; XVT uses the shared legacy values through SKIRMISH (0..4).
 	uint8_t goalsUnimportant; ///< Nonzero suppresses normal mission-goal importance/failure handling.
 	uint8_t timeLimitMinutes; ///< Mission countdown duration in whole minutes; zero disables the
-							  ///< header-supplied limit.
+	///< header-supplied limit.
 	uint8_t reserved[61];
 };
 
@@ -224,15 +229,18 @@ extern MissionClock g_missionCountdownClock;
 #pragma pack(push, 1)
 
 struct MissionMessage {
-	char message[64]; ///< Message text passed directly to the in-flight message queue.
-	uint8_t
-		sentToTeam[10]; ///< Nonzero entry allows the corresponding player IFF/team to receive the message.
-	MissionTriggerPair triggerPairs[2]; ///< Two trigger pairs evaluated before the message becomes active.
-	char voice[16]; ///< Voice resource name stored by the mission file format; not consumed by XVT's runtime
-					///< message path.
-	uint8_t delay5s;                    ///< Raw per-message delay copied to the runtime countdown.
+	char message
+		[64]; ///< Message text passed directly to the in-flight message queue.
+	uint8_t sentToTeam
+		[10]; ///< Nonzero entry allows the corresponding player IFF/team to receive the message.
+	MissionTriggerPair triggerPairs
+		[2]; ///< Two trigger pairs evaluated before the message becomes active.
+	char voice
+		[16]; ///< Voice resource name stored by the mission file format; not consumed by XVT's runtime
+		      ///< message path.
+	uint8_t delay5s; ///< Raw per-message delay copied to the runtime countdown.
 	uint8_t triggerPair1OrTriggerPair2; ///< Value 1 combines the trigger-pair results with OR; other values
-										///< use AND.
+					    ///< use AND.
 };
 
 #pragma pack(pop)
@@ -395,7 +403,8 @@ struct EFGStruct {
 	char contents[2][12];
 	uint8_t special_craft;
 	uint8_t special_flag;
-	CraftSpecies species; ///< CraftSpecies stored in the legacy EFG mission record.
+	CraftSpecies
+		species; ///< CraftSpecies stored in the legacy EFG mission record.
 	uint8_t count;
 	uint8_t status;
 	uint8_t warhead;
@@ -485,7 +494,8 @@ struct XvtV10FlightGroupText {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_XvtV10FlightGroupText[(sizeof(XvtV10FlightGroupText) == 48) ? 1 : -1];
+typedef char xvt_size_XvtV10FlightGroupText
+	[(sizeof(XvtV10FlightGroupText) == 48) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -520,39 +530,58 @@ struct XvtV10MissionHeader {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_XvtV10MissionHeader[(sizeof(XvtV10MissionHeader) == 130) ? 1 : -1];
+typedef char xvt_size_XvtV10MissionHeader[(sizeof(XvtV10MissionHeader) == 130)
+						  ? 1
+						  : -1];
 
-uint16_t Mission_GetSpecialCargoInspectedCount(unsigned int flightGroupIdx, uint16_t specialCargoCraft);
+uint16_t Mission_GetSpecialCargoInspectedCount(unsigned int flightGroupIdx,
+					       uint16_t specialCargoCraft);
 void Mission_UpdateLogic(void);
-int Mission_EvaluateTriggerPair(const MissionTriggerPair* triggerPair, int16_t includeDepartedAsDestroyed);
-int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, uint16_t variable,
-								  int16_t amountType, int16_t includeDepartedAsDestroyed,
-								  uint16_t teamFilter);
-int16_t Mission_FlightGroupMatchesTriggerVariable(uint16_t flightGroupIdx, int16_t variableType,
-												  uint16_t variable);
-int16_t Mission_ObjectMatchesTriggerVariable(uint16_t objectIdx, uint16_t variableType, uint16_t variable);
-void Mission_RecordCraftOutcome(uint16_t objIdx, uint16_t flightGroupIdx, uint16_t outcomeId);
+int Mission_EvaluateTriggerPair(const MissionTriggerPair *triggerPair,
+				int16_t includeDepartedAsDestroyed);
+int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType,
+				  uint16_t variable, int16_t amountType,
+				  int16_t includeDepartedAsDestroyed,
+				  uint16_t teamFilter);
+int16_t Mission_FlightGroupMatchesTriggerVariable(uint16_t flightGroupIdx,
+						  int16_t variableType,
+						  uint16_t variable);
+int16_t Mission_ObjectMatchesTriggerVariable(uint16_t objectIdx,
+					     uint16_t variableType,
+					     uint16_t variable);
+void Mission_RecordCraftOutcome(uint16_t objIdx, uint16_t flightGroupIdx,
+				uint16_t outcomeId);
 int16_t Mission_CloseUnavailableFlightGroupAccounting(int flightGroupIdx);
-void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx, uint16_t victimObjIdx);
-void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx, int specialCargoFlag, int contributionTier,
-										  int playerIdx, int victimOwnerIdx, int victimRating);
-void Mission_CreditTeamKillContribution(uint16_t victimObjIdx, int specialCargoFlag, int contributionTier,
-										int teamIdx);
+void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx,
+						 uint16_t victimObjIdx);
+void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx,
+					  int specialCargoFlag,
+					  int contributionTier, int playerIdx,
+					  int victimOwnerIdx, int victimRating);
+void Mission_CreditTeamKillContribution(uint16_t victimObjIdx,
+					int specialCargoFlag,
+					int contributionTier, int teamIdx);
 void Mission_RecordProjectileHitStats(uint16_t projectileObjIdx);
-int Mission_RecordPlayerCraftLoss(unsigned int objIdx, int allowPendingDamageCredit);
-void Mission_RecordPlayerCraftLossAttribution(int attackerFlightGroupIdx, int victimObjIdx,
-											  int contributionTier);
-int Mission_ApplyFlightGroupGoalScore(int16_t eventCondition, uint16_t flightGroupIdx, int playerIdx,
-									  uint16_t goalScoreReductionLevel, int specialCargoFlag, int teamIdx);
-void Mission_ApplyTeamGoalScoreAllEnabledTeams(int16_t eventCondition, uint16_t flightGroupIdx,
-											   int specialCargoFlag);
-void Mission_ApplyTeamGoalScoreForTeam(int16_t eventCondition, uint16_t flightGroupIdx, int specialCargoFlag,
-									   uint8_t teamIdx);
+int Mission_RecordPlayerCraftLoss(unsigned int objIdx,
+				  int allowPendingDamageCredit);
+void Mission_RecordPlayerCraftLossAttribution(int attackerFlightGroupIdx,
+					      int victimObjIdx,
+					      int contributionTier);
+int Mission_ApplyFlightGroupGoalScore(int16_t eventCondition,
+				      uint16_t flightGroupIdx, int playerIdx,
+				      uint16_t goalScoreReductionLevel,
+				      int specialCargoFlag, int teamIdx);
+void Mission_ApplyTeamGoalScoreAllEnabledTeams(int16_t eventCondition,
+					       uint16_t flightGroupIdx,
+					       int specialCargoFlag);
+void Mission_ApplyTeamGoalScoreForTeam(int16_t eventCondition,
+				       uint16_t flightGroupIdx,
+				       int specialCargoFlag, uint8_t teamIdx);
 int Mission_ClockToSeconds(uint8_t hours, uint8_t minutes, uint8_t seconds);
 int Mission_ComputeKillScoreForObject(int victimObjIdx);
 int Mission_ComputeCraftPointValue(int objIdx);
 int Mission_GetElapsedClockSeconds(void);
-uint16_t Mission_Init(char* fileName);
+uint16_t Mission_Init(char *fileName);
 void Mission_InitFlightRuntimeState(void);
 int16_t Mission_StartFlightGroupArrival(uint16_t craftOrdinal);
 void Mission_UpdateFlightGroupArrivals(void);
@@ -562,11 +591,14 @@ int Mission_HasCapacityForCurrentFlightGroupWave(void);
 int16_t Mission_SpawnFlightGroupWaveCraft(uint16_t craftOrdinal);
 uint16_t Mission_InitFlightGroupObjectSlot(void);
 void Mission_SpawnFlightGroupStaticObjects(uint16_t craftOrdinal);
-uint16_t Mission_SpawnPreparedObject(uint16_t flightGroupIdx, int16_t genusId, uint8_t objectType);
-void Mission_ResolveObjectOrMissionPointWorldLoc(unsigned int objOrMissionPointRef, int flightGroupIdx);
-void Mission_ResolveFormationSlotWorldLoc(uint16_t flightGroupIdx, uint16_t formationSlotIdx,
-										  uint16_t basisObjIdx);
-int Mission_LoadFile(char* fileName);
+uint16_t Mission_SpawnPreparedObject(uint16_t flightGroupIdx, int16_t genusId,
+				     uint8_t objectType);
+void Mission_ResolveObjectOrMissionPointWorldLoc(
+	unsigned int objOrMissionPointRef, int flightGroupIdx);
+void Mission_ResolveFormationSlotWorldLoc(uint16_t flightGroupIdx,
+					  uint16_t formationSlotIdx,
+					  uint16_t basisObjIdx);
+int Mission_LoadFile(char *fileName);
 int Mission_SyncPilotNetworkPlayersToSessionSlots(void);
 void Mission_FreeOverrideStringHandles(void);
 

@@ -76,30 +76,30 @@ void XvtFlightNetwork_FlushWorld(void);
 void XvtFlightNetwork_SendWorld(void);
 /* Records each input of message as authoritative. Returns 0 at the first record that fails to
  * decode or record (a record failure requests recovery), else 1. */
-int XvtFlightNetwork_InsertWorld(const XvtFlightMessage* message);
+int XvtFlightNetwork_InsertWorld(const XvtFlightMessage *message);
 /* Consumes flight data packets and returns 1 for them; returns 0 for any other packet. An input
  * batch from a connected remote player, unless a resync holds input, replaces the player's
  * predicted frames with its records as real input, stopping at the first failure. A world message
  * part from the host is assembled; a complete message is queued pending, or for replay on a client
  * during a resync. A bad part, a mask outside the initial players or a full queue requests
  * recovery. Parts from other senders and remote-input packets are dropped. */
-int XvtFlightNetwork_Receive(int sender, const uint8_t* bytes, size_t size);
+int XvtFlightNetwork_Receive(int sender, const uint8_t *bytes, size_t size);
 
 enum { XVT_FLIGHT_NETWORK_PENDING = -1 };
 
 /* SendPacket and Broadcast for byte-packed wire records: copies packet to an aligned buffer first.
  * Returns 0 for a packet shorter than 4 bytes or longer than XVT_FLIGHT_PACKET_BYTES. */
-int XvtFlightNetwork_SendWire(int dpid, const void* packet, size_t size);
-int XvtFlightNetwork_BroadcastWire(const void* packet, size_t size);
+int XvtFlightNetwork_SendWire(int dpid, const void *packet, size_t size);
+int XvtFlightNetwork_BroadcastWire(const void *packet, size_t size);
 /* Sends packet (Broadcast: to every player); with a mission cookie, a control opcode is sent with
  * the cookie appended. Returns 0 when that would exceed XVT_FLIGHT_PACKET_BYTES, else the network
  * session's result. */
-int XvtFlightNetwork_SendPacket(int dpid, const unsigned* packet, int size);
-int XvtFlightNetwork_Broadcast(const unsigned* packet, int size);
+int XvtFlightNetwork_SendPacket(int dpid, const unsigned *packet, int size);
+int XvtFlightNetwork_Broadcast(const unsigned *packet, int size);
 /* Checks a received packet: for a control opcode, the appended cookie must match and is removed
  * from size. Returns 1 when the remaining size meets the opcode's minimum; 0 for a size under 4 or
  * over XVT_FLIGHT_PACKET_BYTES, or a missing or wrong cookie. */
-int XvtFlightNetwork_DecodeControl(const uint8_t* packet, int* size);
+int XvtFlightNetwork_DecodeControl(const uint8_t *packet, int *size);
 /* The current mission cookie; 0 before one is agreed. */
 uint32_t XvtFlightNetwork_Cookie(void);
 /* Forgets the mission cookie and the cookie counter. */

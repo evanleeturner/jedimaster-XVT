@@ -16,48 +16,59 @@
 #include "xvt_runtime/storage/storage.h"
 #include <stdio.h>
 
-static uint64_t XvtApplication_PresentationIntervalUs(void) {
+static uint64_t XvtApplication_PresentationIntervalUs(void)
+{
 	double rate = Aeron_PresentationRate();
 	/* Aeron normally supplies the display rate, including its 60 Hz fallback. */
-	if (!(rate >= 1.0 && rate <= 1000.0))
+	if (!(rate >= 1.0 && rate <= 1000.0)) {
 		rate = 60.0;
+	}
 	return (uint64_t)(1000000.0 / rate + 0.5);
 }
 
-static void XvtApplication_DiscoverControllers(const AeronInputSnapshot* input) {
+static void XvtApplication_DiscoverControllers(const AeronInputSnapshot *input)
+{
 	static char previous_error[512];
-	const XvtSettings* settings = XvtConfig_Settings();
-	if (!settings || XvtSettingsMenu_IsOpen())
+	const XvtSettings *settings = XvtConfig_Settings();
+	if (!settings || XvtSettingsMenu_IsOpen()) {
 		return;
+	}
 	XvtControllerOptions candidate = settings->controller;
-	char error[512] = { 0 };
-	bool ok = XvtControllerOptions_AddNewGamepads(&candidate, &XvtConfig_DefaultSettings()->gamepad_defaults,
-												  input, error, sizeof error);
+	char error[512] = {0};
+	bool ok = XvtControllerOptions_AddNewGamepads(
+		&candidate, &XvtConfig_DefaultSettings()->gamepad_defaults,
+		input, error, sizeof error);
 	if (!XvtControllerOptions_Equals(&candidate, &settings->controller)) {
 		char store_error[512];
-		if (XvtConfig_SetController(&candidate, store_error, sizeof store_error))
-			XvtControllerMapping_SetOptions(&XvtConfig_Settings()->controller);
-		else {
+		if (XvtConfig_SetController(&candidate, store_error,
+					    sizeof store_error)) {
+			XvtControllerMapping_SetOptions(
+				&XvtConfig_Settings()->controller);
+		} else {
 			snprintf(error, sizeof error, "%s", store_error);
 			ok = false;
 		}
 	}
-	if (!ok && strcmp(previous_error, error))
+	if (!ok && strcmp(previous_error, error)) {
 		XVT_LOG_WARN("input.discovery_failed error=\"%s\"", error);
+	}
 	snprintf(previous_error, sizeof previous_error, "%s", ok ? "" : error);
 }
 
-static int XvtApplication_FrameLoop(void) {
+static int XvtApplication_FrameLoop(void)
+{
 	while (!XvtPort_ServiceQuit()) {
 		int32_t delta_us = Aeron_BeginFrame();
 		uint64_t wake_delay_us;
 		uint64_t task_delay_us;
-		if (XvtPort_ServiceQuit())
+		if (XvtPort_ServiceQuit()) {
 			break;
-		const AeronInputSnapshot* input = Aeron_InputSnapshot();
+		}
+		const AeronInputSnapshot *input = Aeron_InputSnapshot();
 		XvtApplication_DiscoverControllers(input);
 		bool menu_opened = XvtSettingsMenu_BeginFrame(input);
-		int debug_key = XvtKeyboardMapping_FindShortcutPress(input, XVT_KEYBOARD_SHORTCUT_DEBUG);
+		int debug_key = XvtKeyboardMapping_FindShortcutPress(
+			input, XVT_KEYBOARD_SHORTCUT_DEBUG);
 		if (debug_key >= 0 && !XvtSettingsMenu_CapturesKeyboard()) {
 			Aeron_DebugUiToggle();
 			XvtInput_BlockKeyUntilReleased(debug_key);
@@ -65,45 +76,56 @@ static int XvtApplication_FrameLoop(void) {
 		XvtRemaster_BeginFrame(input);
 		XvtPort_Update(delta_us);
 		menu_opened |= XvtSettingsMenu_ConsumeRuntimeRequest();
-		if (XvtPort_ServiceQuit())
+		if (XvtPort_ServiceQuit()) {
 			break;
+		}
 		XvtRemaster_Frame(delta_us);
-		if (!menu_opened)
-			XvtSettingsMenu_Frame(input, (float)delta_us / 1000000.0f);
+		if (!menu_opened) {
+			XvtSettingsMenu_Frame(input,
+					      (float)delta_us / 1000000.0f);
+		}
 		if (!Aeron_Present()) {
 			Aeron_RequestFatalRendererError("frame presentation");
 			break;
 		}
 		wake_delay_us = XvtApplication_PresentationIntervalUs();
 		task_delay_us = XvtPort_NextWakeDelayUs();
-		if (task_delay_us < wake_delay_us)
+		if (task_delay_us < wake_delay_us) {
 			wake_delay_us = task_delay_us;
+		}
 		Aeron_WaitForNextFrame(wake_delay_us);
 	}
 	return XvtPort_GetExitCode();
 }
 
-int XvtApplication_Run(const XvtLaunchOptions* options) {
+int XvtApplication_Run(const XvtLaunchOptions *options)
+{
 	AeronConfig config;
-	XvtAppUi ui = { 0 };
+	XvtAppUi ui = {0};
 	int exit_code = 1;
-	char error[1024] = { 0 };
-	if (!XvtLogSink_Install(options))
+	char error[1024] = {0};
+	if (!XvtLogSink_Install(options)) {
 		return 2;
+	}
 	if (options->check_installation) {
 		char resource_root[XVT_PATH_CAPACITY];
-		if (!XvtHostConfig_ResolveResourceRoot(options, resource_root, sizeof(resource_root))) {
-			fprintf(stderr, "OpenXvT: cannot resolve application resources.\n");
+		if (!XvtHostConfig_ResolveResourceRoot(options, resource_root,
+						       sizeof(resource_root))) {
+			fprintf(stderr,
+				"OpenXvT: cannot resolve application resources.\n");
 			return 1;
 		}
-		AeronVfsConfig vfs_config = { .org_name = "TotallyOpen",
-									  .app_name = "OpenXvT",
-									  .resource_root = resource_root };
-		AeronVfs* vfs = AeronVfs_Create(&vfs_config);
+		AeronVfsConfig vfs_config = {.org_name = "TotallyOpen",
+					     .app_name = "OpenXvT",
+					     .resource_root = resource_root};
+		AeronVfs *vfs = AeronVfs_Create(&vfs_config);
 		XvtStorage_Bind(vfs);
-		int success = vfs && (XvtSetup_Run(options, NULL, error, sizeof(error)) == XVT_SETUP_SUCCESS);
-		if (!success)
+		int success = vfs && (XvtSetup_Run(options, NULL, error,
+						   sizeof(error)) ==
+				      XVT_SETUP_SUCCESS);
+		if (!success) {
 			fprintf(stderr, "OpenXvT: %s\n", error);
+		}
 		XvtConfig_Shutdown();
 		XvtStorage_Bind(NULL);
 		AeronVfs_Destroy(vfs);
@@ -117,12 +139,14 @@ int XvtApplication_Run(const XvtLaunchOptions* options) {
 		return 1;
 	}
 	XvtStorage_Bind(Aeron_GetVfs());
-	XvtSetupResult setup_result = XvtSetup_Run(options, &ui, error, sizeof error);
+	XvtSetupResult setup_result =
+		XvtSetup_Run(options, &ui, error, sizeof error);
 	if (setup_result != XVT_SETUP_SUCCESS) {
-		if (setup_result == XVT_SETUP_CANCELLED)
+		if (setup_result == XVT_SETUP_CANCELLED) {
 			exit_code = 0;
-		else
+		} else {
 			XVT_LOG_ERROR("setup.failed error=\"%s\"", error);
+		}
 		goto cleanup;
 	}
 	XvtRenderSnapshot_Init();
@@ -130,14 +154,17 @@ int XvtApplication_Run(const XvtLaunchOptions* options) {
 		XVT_LOG_ERROR("settings.init_failed error=\"%s\"", error);
 		goto cleanup;
 	}
-	if (!XvtRemaster_Init())
+	if (!XvtRemaster_Init()) {
 		goto cleanup;
-	AeronWinmmCdAudioDesc cd = { Aeron_GetVfs(), AERON_VFS_ROOT_ASSET, "BalanceOfPower/MUSIC" };
+	}
+	AeronWinmmCdAudioDesc cd = {Aeron_GetVfs(), AERON_VFS_ROOT_ASSET,
+				    "BalanceOfPower/MUSIC"};
 	if (!AeronWinmm_ConfigureCdAudio(&cd)) {
 		XVT_LOG_ERROR("setup.music_failed");
 		goto cleanup;
 	}
-	XvtPort_SetSkipIntro(options->skip_intro || XvtConfig_Settings()->skip_intro);
+	XvtPort_SetSkipIntro(options->skip_intro ||
+			     XvtConfig_Settings()->skip_intro);
 	if (XvtPort_Init()) {
 		XVT_LOG_INFO("app.ready");
 		exit_code = XvtApplication_FrameLoop();
@@ -149,8 +176,9 @@ cleanup:
 	XvtRemaster_Shutdown();
 	XvtRenderSnapshot_Shutdown();
 	XvtAppUi_Shutdown(&ui);
-	if (XvtPort_GetExitCode())
+	if (XvtPort_GetExitCode()) {
 		exit_code = XvtPort_GetExitCode();
+	}
 	AeronWinmm_Shutdown();
 	XvtConfig_Shutdown();
 	XvtStorage_Bind(NULL);

@@ -20,7 +20,8 @@ extern uint32_t g_musicCdTrackCount;
 extern struct MusicCdTrackCache g_musicCdTrackCache;
 
 int MusicCd_Initialize(void);
-int MusicCd_PlayTrackFromTime(int trackNumber, int startMinute, int startSecond);
+int MusicCd_PlayTrackFromTime(int trackNumber, int startMinute,
+			      int startSecond);
 int MusicCd_StopTrack(void);
 int MusicCd_CloseDevice(void);
 int MusicCd_IsPlaybackComplete(void);
@@ -28,7 +29,8 @@ uint32_t MusicCd_GetDeviceId(void);
 int MusicCd_MarkPlaybackComplete(void);
 int MusicCd_GetTrackLengthMs(int trackNumber);
 int MusicCd_SetAuxVolume(unsigned int volume0To65535);
-int MusicCd_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fadeDurationMs);
+int MusicCd_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume,
+			  int fadeDurationMs);
 
 #ifdef __cplusplus
 }

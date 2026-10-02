@@ -26,7 +26,8 @@ enum {
 static XvtControllerOptions g_options;
 static AeronInputSnapshot g_input;
 
-static XvtInputActionBinding Button(uint8_t index, XvtInputAction action) {
+static XvtInputActionBinding Button(uint8_t index, XvtInputAction action)
+{
 	XvtInputActionBinding binding;
 	memset(&binding, 0, sizeof binding);
 	binding.source.kind = AERON_CONTROLLER_DIGITAL_BUTTON;
@@ -38,30 +39,40 @@ static XvtInputActionBinding Button(uint8_t index, XvtInputAction action) {
 
 /* The gamepad model: yaw and pitch on the left stick with a 0.25 deadzone, roll unbound, the throttle on
  * the right trigger; fire, the target/roll modifier and next target on three buttons. */
-static void GamepadModel(XvtControllerModel* model) {
+static void GamepadModel(XvtControllerModel *model)
+{
 	memset(model, 0, sizeof *model);
 	memcpy(model->guid, kGamepadGuid, sizeof kGamepadGuid);
 	model->kind = AERON_CONTROLLER_KIND_GAMEPAD;
-	XvtControllerProfile* profile = &model->profile;
-	XvtControllerOptions_ClearProfile(profile, AERON_CONTROLLER_KIND_GAMEPAD);
-	profile->mapping.axes[XVT_INPUT_AXIS_YAW].source = AERON_GAMEPAD_AXIS_LEFTX;
+	XvtControllerProfile *profile = &model->profile;
+	XvtControllerOptions_ClearProfile(profile,
+					  AERON_CONTROLLER_KIND_GAMEPAD);
+	profile->mapping.axes[XVT_INPUT_AXIS_YAW].source =
+		AERON_GAMEPAD_AXIS_LEFTX;
 	profile->mapping.axes[XVT_INPUT_AXIS_YAW].deadzone = 0.25f;
-	profile->mapping.axes[XVT_INPUT_AXIS_PITCH].source = AERON_GAMEPAD_AXIS_LEFTY;
+	profile->mapping.axes[XVT_INPUT_AXIS_PITCH].source =
+		AERON_GAMEPAD_AXIS_LEFTY;
 	profile->mapping.axes[XVT_INPUT_AXIS_PITCH].deadzone = 0.25f;
-	profile->mapping.axes[XVT_INPUT_AXIS_THROTTLE].source = AERON_GAMEPAD_AXIS_RIGHT_TRIGGER;
-	profile->bindings[0] = Button(FIRE_BUTTON, XVT_INPUT_ACTION_FIRE_WEAPON);
-	profile->bindings[1] = Button(MODIFIER_BUTTON, XVT_INPUT_ACTION_TARGET_ROLL_MODIFIER);
-	profile->bindings[2] = Button(TARGET_BUTTON, XVT_INPUT_ACTION_TARGET_NEXT);
+	profile->mapping.axes[XVT_INPUT_AXIS_THROTTLE].source =
+		AERON_GAMEPAD_AXIS_RIGHT_TRIGGER;
+	profile->bindings[0] =
+		Button(FIRE_BUTTON, XVT_INPUT_ACTION_FIRE_WEAPON);
+	profile->bindings[1] =
+		Button(MODIFIER_BUTTON, XVT_INPUT_ACTION_TARGET_ROLL_MODIFIER);
+	profile->bindings[2] =
+		Button(TARGET_BUTTON, XVT_INPUT_ACTION_TARGET_NEXT);
 	profile->binding_count = 3;
 }
 
 /* The joystick model: roll on axis 0 and fire on button 0; no axis the gamepad model drives. */
-static void JoystickModel(XvtControllerModel* model) {
+static void JoystickModel(XvtControllerModel *model)
+{
 	memset(model, 0, sizeof *model);
 	memcpy(model->guid, kJoystickGuid, sizeof kJoystickGuid);
 	model->kind = AERON_CONTROLLER_KIND_JOYSTICK;
-	XvtControllerProfile* profile = &model->profile;
-	XvtControllerOptions_ClearProfile(profile, AERON_CONTROLLER_KIND_JOYSTICK);
+	XvtControllerProfile *profile = &model->profile;
+	XvtControllerOptions_ClearProfile(profile,
+					  AERON_CONTROLLER_KIND_JOYSTICK);
 	profile->mapping.axes[XVT_INPUT_AXIS_ROLL].source = 0;
 	profile->bindings[0] = Button(0, XVT_INPUT_ACTION_FIRE_WEAPON);
 	profile->binding_count = 1;
@@ -69,7 +80,8 @@ static void JoystickModel(XvtControllerModel* model) {
 
 /* Options holding the gamepad model alone, installed by a fresh Init; the window has focus and no
  * controller is connected. */
-static void Start(void) {
+static void Start(void)
+{
 	XvtInput_SetCaptured(false);
 	memset(&g_options, 0, sizeof g_options);
 	GamepadModel(&g_options.models[0]);
@@ -82,27 +94,31 @@ static void Start(void) {
 }
 
 /* Options holding both models. */
-static void BothModels(XvtControllerOptions* options) {
+static void BothModels(XvtControllerOptions *options)
+{
 	memset(options, 0, sizeof *options);
 	GamepadModel(&options->models[0]);
 	JoystickModel(&options->models[1]);
 	options->count = 2;
 }
 
-static AeronControllerSnapshot* Gamepad(int slot, uint32_t id) {
-	AeronControllerSnapshot* device = &g_input.controllers[slot];
+static AeronControllerSnapshot *Gamepad(int slot, uint32_t id)
+{
+	AeronControllerSnapshot *device = &g_input.controllers[slot];
 	memset(device, 0, sizeof *device);
 	device->connected = 1;
 	device->kind = AERON_CONTROLLER_KIND_GAMEPAD;
 	device->instance_id = id;
 	memcpy(device->guid, kGamepadGuid, sizeof kGamepadGuid);
 	device->gamepad_available_axes = (1u << AERON_GAMEPAD_AXIS_COUNT) - 1;
-	device->gamepad_available_buttons = (1u << AERON_GAMEPAD_BUTTON_COUNT) - 1;
+	device->gamepad_available_buttons =
+		(1u << AERON_GAMEPAD_BUTTON_COUNT) - 1;
 	return device;
 }
 
-static AeronControllerSnapshot* Joystick(int slot, uint32_t id) {
-	AeronControllerSnapshot* device = &g_input.controllers[slot];
+static AeronControllerSnapshot *Joystick(int slot, uint32_t id)
+{
+	AeronControllerSnapshot *device = &g_input.controllers[slot];
 	memset(device, 0, sizeof *device);
 	device->connected = 1;
 	device->kind = AERON_CONTROLLER_KIND_JOYSTICK;
@@ -114,37 +130,45 @@ static AeronControllerSnapshot* Joystick(int slot, uint32_t id) {
 	return device;
 }
 
-static void Hold(AeronControllerSnapshot* device, int button, bool down) {
-	if (down)
+static void Hold(AeronControllerSnapshot *device, int button, bool down)
+{
+	if (down) {
 		device->gamepad_buttons |= 1u << button;
-	else
+	} else {
 		device->gamepad_buttons &= ~(1u << button);
+	}
 }
 
 /* Samples the snapshot as the next input frame. */
-static void Frame(void) {
+static void Frame(void)
+{
 	++g_input.frame_id;
 	XvtControllerMapping_Update(&g_input);
 }
 
-static void CheckOptions(void) {
+static void CheckOptions(void)
+{
 	Start();
-	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(XvtControllerMapping_Options(), &g_options));
+	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(
+		XvtControllerMapping_Options(), &g_options));
 
 	/* SetOptions keeps the options; only ApplyPending installs them. */
 	XvtControllerOptions both;
 	BothModels(&both);
 	XvtControllerMapping_SetOptions(&both);
-	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(XvtControllerMapping_Options(), &g_options));
+	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(
+		XvtControllerMapping_Options(), &g_options));
 	XvtControllerMapping_ApplyPending();
-	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(XvtControllerMapping_Options(), &both));
+	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(
+		XvtControllerMapping_Options(), &both));
 
 	/* Invalid options are dropped. */
 	XvtControllerOptions invalid = g_options;
 	invalid.models[0].guid[0] = 'X';
 	XvtControllerMapping_SetOptions(&invalid);
 	XvtControllerMapping_ApplyPending();
-	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(XvtControllerMapping_Options(), &both));
+	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(
+		XvtControllerMapping_Options(), &both));
 
 	/* Init with invalid options leaves none installed; Shutdown clears them. */
 	XvtControllerMapping_Init(&invalid);
@@ -154,9 +178,10 @@ static void CheckOptions(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Options()->count, 0);
 }
 
-static void CheckAxes(void) {
+static void CheckAxes(void)
+{
 	Start();
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = HALF;
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTY] = HALF;
 	Frame();
@@ -165,13 +190,17 @@ static void CheckAxes(void) {
 
 	/* The same stick value gives pitch the opposite sign: a gamepad's Y points down. The menu sees only
 	 * the configured inversion. */
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_PITCH), -yaw);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_YAW), yaw);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_PITCH), yaw);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_PITCH),
+			  -yaw);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_YAW),
+			  yaw);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_PITCH),
+			  yaw);
 
 	/* Roll is unbound and the throttle is never an axis. */
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_ROLL), 0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_THROTTLE), 0);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_THROTTLE),
+			  0);
 
 	/* The ends of the stick stay within -127 to 127. */
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = INT16_MAX;
@@ -181,7 +210,8 @@ static void CheckAxes(void) {
 	XVT_ASSERT_TRUE(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW) <= 127);
 	XVT_ASSERT_TRUE(XvtControllerMapping_Axis(XVT_INPUT_AXIS_PITCH) > 0);
 	XVT_ASSERT_TRUE(XvtControllerMapping_Axis(XVT_INPUT_AXIS_PITCH) <= 127);
-	XVT_ASSERT_TRUE(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_PITCH) >= -127);
+	XVT_ASSERT_TRUE(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_PITCH) >=
+			-127);
 
 	/* Inside the deadzone the axis is 0. */
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = 6000;
@@ -192,20 +222,25 @@ static void CheckAxes(void) {
 
 	/* Configured inversion flips yaw for flight and menu alike, and cancels the gamepad's pitch flip. */
 	XvtControllerOptions inverted = g_options;
-	inverted.models[0].profile.mapping.axes[XVT_INPUT_AXIS_YAW].invert = true;
-	inverted.models[0].profile.mapping.axes[XVT_INPUT_AXIS_PITCH].invert = true;
+	inverted.models[0].profile.mapping.axes[XVT_INPUT_AXIS_YAW].invert =
+		true;
+	inverted.models[0].profile.mapping.axes[XVT_INPUT_AXIS_PITCH].invert =
+		true;
 	XvtControllerMapping_SetOptions(&inverted);
 	XvtControllerMapping_ApplyPending();
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = HALF;
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTY] = HALF;
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW), -yaw);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_YAW), -yaw);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_YAW),
+			  -yaw);
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_PITCH), yaw);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_PITCH), -yaw);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_PITCH),
+			  -yaw);
 }
 
-static void CheckJoystickPitchNotFlipped(void) {
+static void CheckJoystickPitchNotFlipped(void)
+{
 	Start();
 	XvtControllerOptions options;
 	memset(&options, 0, sizeof options);
@@ -213,19 +248,22 @@ static void CheckJoystickPitchNotFlipped(void) {
 	options.models[0].profile.mapping.axes[XVT_INPUT_AXIS_PITCH].source = 1;
 	options.count = 1;
 	XvtControllerMapping_Init(&options);
-	AeronControllerSnapshot* stick = Joystick(0, 5);
+	AeronControllerSnapshot *stick = Joystick(0, 5);
 	stick->raw_axes[0] = HALF;
 	stick->raw_axes[1] = HALF;
 	Frame();
 	int roll = XvtControllerMapping_Axis(XVT_INPUT_AXIS_ROLL);
 	XVT_ASSERT_TRUE(roll > 0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_PITCH), roll);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_PITCH), roll);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_PITCH),
+			  roll);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuAxis(XVT_INPUT_AXIS_PITCH),
+			  roll);
 }
 
-static void CheckSameFrameDoesNothing(void) {
+static void CheckSameFrameDoesNothing(void)
+{
 	Start();
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = HALF;
 	Frame();
 	int yaw = XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW);
@@ -236,9 +274,10 @@ static void CheckSameFrameDoesNothing(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW), -yaw);
 }
 
-static void CheckSuspendsAndResumes(void) {
+static void CheckSuspendsAndResumes(void)
+{
 	Start();
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = HALF;
 	Frame();
 	int yaw = XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW);
@@ -264,10 +303,11 @@ static void CheckSuspendsAndResumes(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW), yaw);
 }
 
-static void CheckBindingsArm(void) {
+static void CheckBindingsArm(void)
+{
 	Start();
 	/* A button held when the controller appears cannot fire until it is released. */
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	Hold(pad, FIRE_BUTTON, true);
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 0);
@@ -292,7 +332,7 @@ static void CheckBindingsArm(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 0);
 
 	/* Bindings are read from every matching controller. */
-	AeronControllerSnapshot* second = Gamepad(1, 9);
+	AeronControllerSnapshot *second = Gamepad(1, 9);
 	Frame();
 	Hold(second, FIRE_BUTTON, true);
 	Frame();
@@ -304,19 +344,21 @@ static void CheckBindingsArm(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 0);
 }
 
-static void CheckNoFlightKeyWithoutFlight(void) {
+static void CheckNoFlightKeyWithoutFlight(void)
+{
 	Start();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsActive(), 0);
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	Frame();
 	Hold(pad, TARGET_BUTTON, true);
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_ReadKey(), 0);
 }
 
-static void CheckReleaseCommands(void) {
+static void CheckReleaseCommands(void)
+{
 	Start();
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	Frame();
 	Hold(pad, FIRE_BUTTON, true);
 	Frame();
@@ -334,9 +376,10 @@ static void CheckReleaseCommands(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 1);
 }
 
-static void CheckSuspendDropsState(void) {
+static void CheckSuspendDropsState(void)
+{
 	Start();
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = HALF;
 	Frame();
 	Hold(pad, FIRE_BUTTON, true);
@@ -361,30 +404,38 @@ static void CheckSuspendDropsState(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 1);
 }
 
-static void CheckResolve(void) {
+static void CheckResolve(void)
+{
 	Start();
-	const XvtControllerModel* model = &g_options.models[0];
-	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 0) == NULL);
+	const XvtControllerModel *model = &g_options.models[0];
+	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 0) ==
+			NULL);
 	Gamepad(0, 9);
 	Gamepad(1, 4);
-	AeronControllerSnapshot* wrongKind = Gamepad(2, 2);
+	AeronControllerSnapshot *wrongKind = Gamepad(2, 2);
 	wrongKind->kind = AERON_CONTROLLER_KIND_JOYSTICK;
 	Gamepad(3, 1)->connected = 0;
 
-	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 0) == &g_input.controllers[1]);
-	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 9) == &g_input.controllers[0]);
-	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 2) == &g_input.controllers[1]);
-	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 1) == &g_input.controllers[1]);
+	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 0) ==
+			&g_input.controllers[1]);
+	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 9) ==
+			&g_input.controllers[0]);
+	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 2) ==
+			&g_input.controllers[1]);
+	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 1) ==
+			&g_input.controllers[1]);
 
 	XvtControllerModel other = *model;
 	memcpy(other.guid, kOtherGuid, sizeof kOtherGuid);
-	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(&other, &g_input, 0) == NULL);
+	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(&other, &g_input, 0) ==
+			NULL);
 }
 
-static void CheckAnalogController(void) {
+static void CheckAnalogController(void)
+{
 	Start();
-	AeronControllerSnapshot* high = Gamepad(0, 9);
-	AeronControllerSnapshot* low = Gamepad(1, 6);
+	AeronControllerSnapshot *high = Gamepad(0, 9);
+	AeronControllerSnapshot *low = Gamepad(1, 6);
 	high->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = -HALF;
 	low->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = HALF;
 	Frame();
@@ -393,7 +444,7 @@ static void CheckAnalogController(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_AnalogInstance(kOtherGuid), 0);
 
 	/* A new controller with a lower id does not take over from the one used last. */
-	AeronControllerSnapshot* lowest = Gamepad(2, 3);
+	AeronControllerSnapshot *lowest = Gamepad(2, 3);
 	lowest->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = -HALF;
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_AnalogInstance(kGamepadGuid), 6);
@@ -406,9 +457,10 @@ static void CheckAnalogController(void) {
 	XVT_ASSERT_TRUE(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW) < 0);
 }
 
-static void CheckApplyPendingReleasesChanged(void) {
+static void CheckApplyPendingReleasesChanged(void)
+{
 	Start();
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	Frame();
 	Hold(pad, FIRE_BUTTON, true);
 	Frame();
@@ -445,63 +497,89 @@ static void CheckApplyPendingReleasesChanged(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 0);
 }
 
-static void CheckThrottlePosition(void) {
+static void CheckThrottlePosition(void)
+{
 	const AeronControllerKind joystick = AERON_CONTROLLER_KIND_JOYSTICK;
 	const AeronControllerKind gamepad = AERON_CONTROLLER_KIND_GAMEPAD;
 
 	/* A full axis: its ends, and the 328 at each end that snap to it. */
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(INT16_MIN, joystick, 0, false), 0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(INT16_MAX, joystick, 0, false), UINT16_MAX);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(INT16_MIN + 328, joystick, 0, false), 0);
-	XVT_ASSERT_TRUE(XvtControllerMapping_ThrottlePosition(INT16_MIN + 329, joystick, 0, false) > 0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(INT16_MAX - 328, joystick, 0, false), UINT16_MAX);
-	XVT_ASSERT_TRUE(XvtControllerMapping_ThrottlePosition(INT16_MAX - 329, joystick, 0, false) < UINT16_MAX);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(
+				  INT16_MIN, joystick, 0, false),
+			  0);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(
+				  INT16_MAX, joystick, 0, false),
+			  UINT16_MAX);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(
+				  INT16_MIN + 328, joystick, 0, false),
+			  0);
+	XVT_ASSERT_TRUE(XvtControllerMapping_ThrottlePosition(
+				INT16_MIN + 329, joystick, 0, false) > 0);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(
+				  INT16_MAX - 328, joystick, 0, false),
+			  UINT16_MAX);
+	XVT_ASSERT_TRUE(
+		XvtControllerMapping_ThrottlePosition(INT16_MAX - 329, joystick,
+						      0, false) < UINT16_MAX);
 
 	/* A gamepad stick is a full axis too; a trigger spans 0 to 32767. */
 	XVT_ASSERT_INT_EQ(
-		XvtControllerMapping_ThrottlePosition(INT16_MIN, gamepad, AERON_GAMEPAD_AXIS_LEFTY, false), 0);
+		XvtControllerMapping_ThrottlePosition(
+			INT16_MIN, gamepad, AERON_GAMEPAD_AXIS_LEFTY, false),
+		0);
 	XVT_ASSERT_INT_EQ(
-		XvtControllerMapping_ThrottlePosition(0, gamepad, AERON_GAMEPAD_AXIS_LEFT_TRIGGER, false), 0);
-	XVT_ASSERT_INT_EQ(
-		XvtControllerMapping_ThrottlePosition(INT16_MAX, gamepad, AERON_GAMEPAD_AXIS_RIGHT_TRIGGER, false),
-		UINT16_MAX);
+		XvtControllerMapping_ThrottlePosition(
+			0, gamepad, AERON_GAMEPAD_AXIS_LEFT_TRIGGER, false),
+		0);
+	XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(
+				  INT16_MAX, gamepad,
+				  AERON_GAMEPAD_AXIS_RIGHT_TRIGGER, false),
+			  UINT16_MAX);
 
 	/* The travel between the ends rises with the input, and invert flips it. */
 	uint16_t previous = 0;
 	for (int raw = INT16_MIN; raw <= INT16_MAX; ++raw) {
-		uint16_t position = XvtControllerMapping_ThrottlePosition((int16_t)raw, joystick, 0, false);
+		uint16_t position = XvtControllerMapping_ThrottlePosition(
+			(int16_t)raw, joystick, 0, false);
 		XVT_ASSERT_TRUE(position >= previous);
-		XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition((int16_t)raw, joystick, 0, true),
-						  UINT16_MAX - position);
+		XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(
+					  (int16_t)raw, joystick, 0, true),
+				  UINT16_MAX - position);
 		previous = position;
 	}
 	previous = 0;
 	for (int raw = 0; raw <= INT16_MAX; ++raw) {
-		uint16_t position = XvtControllerMapping_ThrottlePosition((int16_t)raw, gamepad,
-																  AERON_GAMEPAD_AXIS_RIGHT_TRIGGER, false);
+		uint16_t position = XvtControllerMapping_ThrottlePosition(
+			(int16_t)raw, gamepad, AERON_GAMEPAD_AXIS_RIGHT_TRIGGER,
+			false);
 		XVT_ASSERT_TRUE(position >= previous);
-		XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition((int16_t)raw, gamepad,
-																AERON_GAMEPAD_AXIS_RIGHT_TRIGGER, true),
-						  UINT16_MAX - position);
+		XVT_ASSERT_INT_EQ(XvtControllerMapping_ThrottlePosition(
+					  (int16_t)raw, gamepad,
+					  AERON_GAMEPAD_AXIS_RIGHT_TRIGGER,
+					  true),
+				  UINT16_MAX - position);
 		previous = position;
 	}
 }
 
-static void CheckThrottleSample(void) {
+static void CheckThrottleSample(void)
+{
 	Start();
 	uint16_t position = 1;
 	uint32_t generation = 0, before = 0;
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_RIGHT_TRIGGER] = 16000;
 	Frame();
-	XVT_ASSERT_TRUE(XvtControllerMapping_ThrottleSample(&position, &before));
+	XVT_ASSERT_TRUE(
+		XvtControllerMapping_ThrottleSample(&position, &before));
 	XVT_ASSERT_INT_EQ(position,
-					  XvtControllerMapping_ThrottlePosition(16000, AERON_CONTROLLER_KIND_GAMEPAD,
-															AERON_GAMEPAD_AXIS_RIGHT_TRIGGER, false));
+			  XvtControllerMapping_ThrottlePosition(
+				  16000, AERON_CONTROLLER_KIND_GAMEPAD,
+				  AERON_GAMEPAD_AXIS_RIGHT_TRIGGER, false));
 
 	/* Nothing changed: the generation holds. */
 	Frame();
-	XVT_ASSERT_TRUE(XvtControllerMapping_ThrottleSample(&position, &generation));
+	XVT_ASSERT_TRUE(
+		XvtControllerMapping_ThrottleSample(&position, &generation));
 	XVT_ASSERT_INT_EQ(generation, before);
 
 	/* Suspending changes it. */
@@ -509,38 +587,46 @@ static void CheckThrottleSample(void) {
 	XvtControllerMapping_ThrottleSample(&position, &generation);
 	XVT_ASSERT_TRUE(generation != before);
 	Frame();
-	XVT_ASSERT_TRUE(XvtControllerMapping_ThrottleSample(&position, &before));
+	XVT_ASSERT_TRUE(
+		XvtControllerMapping_ThrottleSample(&position, &before));
 
 	/* Another controller for the throttle changes it. */
 	Gamepad(0, 8)->gamepad_axes[AERON_GAMEPAD_AXIS_RIGHT_TRIGGER] = 16000;
 	Frame();
-	XVT_ASSERT_TRUE(XvtControllerMapping_ThrottleSample(&position, &generation));
+	XVT_ASSERT_TRUE(
+		XvtControllerMapping_ThrottleSample(&position, &generation));
 	XVT_ASSERT_TRUE(generation != before);
 	before = generation;
 
 	/* A change of the throttle's binding changes it, and the new binding applies. */
 	XvtControllerOptions inverted = g_options;
-	inverted.models[0].profile.mapping.axes[XVT_INPUT_AXIS_THROTTLE].invert = true;
+	inverted.models[0]
+		.profile.mapping.axes[XVT_INPUT_AXIS_THROTTLE]
+		.invert = true;
 	XvtControllerMapping_SetOptions(&inverted);
 	XvtControllerMapping_ApplyPending();
 	Frame();
-	XVT_ASSERT_TRUE(XvtControllerMapping_ThrottleSample(&position, &generation));
+	XVT_ASSERT_TRUE(
+		XvtControllerMapping_ThrottleSample(&position, &generation));
 	XVT_ASSERT_TRUE(generation != before);
 	XVT_ASSERT_INT_EQ(position,
-					  XvtControllerMapping_ThrottlePosition(16000, AERON_CONTROLLER_KIND_GAMEPAD,
-															AERON_GAMEPAD_AXIS_RIGHT_TRIGGER, true));
+			  XvtControllerMapping_ThrottlePosition(
+				  16000, AERON_CONTROLLER_KIND_GAMEPAD,
+				  AERON_GAMEPAD_AXIS_RIGHT_TRIGGER, true));
 
 	/* No lever read this frame: false. */
 	g_input.controllers[0].connected = 0;
 	Frame();
-	XVT_ASSERT_TRUE(!XvtControllerMapping_ThrottleSample(&position, &generation));
+	XVT_ASSERT_TRUE(
+		!XvtControllerMapping_ThrottleSample(&position, &generation));
 }
 
-static void CheckPresent(void) {
+static void CheckPresent(void)
+{
 	Start();
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 0);
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	memcpy(pad->guid, kOtherGuid, sizeof kOtherGuid);
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 0);
@@ -549,10 +635,11 @@ static void CheckPresent(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 1);
 }
 
-static void CheckMenuButtons(void) {
+static void CheckMenuButtons(void)
+{
 	Start();
 	/* Held when the controller appeared: hidden until released. */
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	Hold(pad, AERON_GAMEPAD_BUTTON_SOUTH, true);
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuButtons(), 0);
@@ -577,7 +664,7 @@ static void CheckMenuButtons(void) {
 	BothModels(&both);
 	XvtControllerMapping_Init(&both);
 	memset(&g_input.controllers, 0, sizeof g_input.controllers);
-	AeronControllerSnapshot* stick = Joystick(0, 7);
+	AeronControllerSnapshot *stick = Joystick(0, 7);
 	Frame();
 	stick->raw_buttons = 1;
 	Frame();
@@ -587,9 +674,10 @@ static void CheckMenuButtons(void) {
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuButtons(), 2);
 }
 
-static void CheckMenuHat(void) {
+static void CheckMenuHat(void)
+{
 	Start();
-	AeronControllerSnapshot* pad = Gamepad(0, 5);
+	AeronControllerSnapshot *pad = Gamepad(0, 5);
 	Hold(pad, AERON_GAMEPAD_BUTTON_DPAD_UP, true);
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuHat(), 0);
@@ -599,15 +687,16 @@ static void CheckMenuHat(void) {
 	static const struct {
 		int button;
 		uint8_t direction;
-	} kPad[] = { { AERON_GAMEPAD_BUTTON_DPAD_UP, 1 },
-				 { AERON_GAMEPAD_BUTTON_DPAD_RIGHT, 2 },
-				 { AERON_GAMEPAD_BUTTON_DPAD_DOWN, 4 },
-				 { AERON_GAMEPAD_BUTTON_DPAD_LEFT, 8 } };
+	} kPad[] = {{AERON_GAMEPAD_BUTTON_DPAD_UP, 1},
+		    {AERON_GAMEPAD_BUTTON_DPAD_RIGHT, 2},
+		    {AERON_GAMEPAD_BUTTON_DPAD_DOWN, 4},
+		    {AERON_GAMEPAD_BUTTON_DPAD_LEFT, 8}};
 
 	for (size_t i = 0; i < sizeof kPad / sizeof kPad[0]; ++i) {
 		Hold(pad, kPad[i].button, true);
 		Frame();
-		XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuHat(), kPad[i].direction);
+		XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuHat(),
+				  kPad[i].direction);
 		Hold(pad, kPad[i].button, false);
 		Frame();
 		XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuHat(), 0);
@@ -618,20 +707,23 @@ static void CheckMenuHat(void) {
 	BothModels(&both);
 	XvtControllerMapping_Init(&both);
 	memset(&g_input.controllers, 0, sizeof g_input.controllers);
-	AeronControllerSnapshot* stick = Joystick(0, 7);
+	AeronControllerSnapshot *stick = Joystick(0, 7);
 	Frame();
-	static const uint8_t kHat[] = { AERON_CONTROLLER_HAT_UP, AERON_CONTROLLER_HAT_RIGHT,
-									AERON_CONTROLLER_HAT_DOWN, AERON_CONTROLLER_HAT_LEFT };
+	static const uint8_t kHat[] = {
+		AERON_CONTROLLER_HAT_UP, AERON_CONTROLLER_HAT_RIGHT,
+		AERON_CONTROLLER_HAT_DOWN, AERON_CONTROLLER_HAT_LEFT};
 	for (size_t i = 0; i < sizeof kHat / sizeof kHat[0]; ++i) {
 		stick->raw_hats[0] = kHat[i];
 		Frame();
-		XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuHat(), kPad[i].direction);
+		XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuHat(),
+				  kPad[i].direction);
 		stick->raw_hats[0] = AERON_CONTROLLER_HAT_CENTERED;
 		Frame();
 	}
 }
 
-int main(void) {
+int main(void)
+{
 	CheckOptions();
 	CheckAxes();
 	CheckJoystickPitchNotFlipped();

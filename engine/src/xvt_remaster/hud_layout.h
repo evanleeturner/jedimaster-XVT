@@ -103,17 +103,17 @@ typedef struct XvtHudLayoutCache {
  * view, each binding adding its part requests. Returns 0 for a NULL argument, a zero screen size, an
  * instrument base over 288, more laser slots than XVT_HUD_WEAPON_SLOTS, a panel binding out of range,
  * a request whose panel has no asset, or more than XVT_HUD_PART_CAPACITY requests. */
-int XvtHudLayout_Compile(const XvtCockpitState* state, XvtHudLayout* out);
+int XvtHudLayout_Compile(const XvtCockpitState *state, XvtHudLayout *out);
 /* Zero-initialize/reset the cache at world replacement. Pane placements refresh
  * independently; instrument values do not invalidate the compiled bindings. */
 /* Recompiles the cache's layout when the cache is invalid or the definition generation, the installed
  * features, or the view key (size, HUD state, instrument base, descriptor, mirroring, viewport,
  * offset, compact flag, laser slots) changed; otherwise refreshes only the anchors. Returns 0 for a
  * NULL argument or a failed compile, the cache unchanged. */
-int XvtHudLayout_Update(XvtHudLayoutCache* cache, const XvtCockpitState* state);
+int XvtHudLayout_Update(XvtHudLayoutCache *cache, const XvtCockpitState *state);
 /* The uniform fit of the layout's source size into width x height, centered: *scale is the smaller
  * size ratio, or 0 when a size is not positive; the offsets center the scaled source. */
-void XvtHudLayout_Fit(const XvtHudLayout* layout, int width, int height, float* scale, float* offset_x,
-					  float* offset_y);
+void XvtHudLayout_Fit(const XvtHudLayout *layout, int width, int height,
+		      float *scale, float *offset_x, float *offset_y);
 
 #endif

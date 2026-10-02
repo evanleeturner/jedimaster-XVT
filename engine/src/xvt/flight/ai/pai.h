@@ -139,10 +139,10 @@ typedef char xvt_size_PaiPlanRecord[(sizeof(PaiPlanRecord) == 85) ? 1 : -1];
 
 struct PaiContext {
 	uint16_t objectIndex;
-	CraftData* craft;
-	AiController* controller;
+	CraftData *craft;
+	AiController *controller;
 	uint16_t leaderObjectIndex;
-	CraftData* leaderOrSelfCraft;
+	CraftData *leaderOrSelfCraft;
 	uint16_t craftFlightGroupIndex;
 	uint16_t orderSlot;
 	int32_t craftPositionX;
@@ -150,7 +150,7 @@ struct PaiContext {
 	int32_t craftPositionZ;
 	uint16_t skillTier;
 	uint16_t initialManeuverId;
-	uint8_t* planCursor;
+	uint8_t *planCursor;
 	uint8_t requireUndisabledTarget;
 	uint8_t nullPlanId;
 	uint8_t targetSearchFlags;
@@ -169,13 +169,14 @@ extern uint8_t g_planOrderData[0x20000];
 extern int g_rotatedX;
 extern int g_rotatedY;
 extern int g_rotatedZ;
-extern uint8_t* g_planDataPtrs[256];
+extern uint8_t *g_planDataPtrs[256];
 extern int g_planCount;
-extern const char* const g_builtinPlanNameTable[76];
+extern const char *const g_builtinPlanNameTable[76];
 
 enum { PAI_PLAN_REPORT_MESSAGE_COUNT = 74 };
 
-extern const uint8_t g_planReportMessageIdByPlanId[PAI_PLAN_REPORT_MESSAGE_COUNT];
+extern const uint8_t
+	g_planReportMessageIdByPlanId[PAI_PLAN_REPORT_MESSAGE_COUNT];
 extern uint8_t g_builtinPlanIdByNameIndex[256];
 extern uint8_t g_orderLeaderBuiltinPlanNameIndex[40];
 extern const uint8_t g_orderFollowerBuiltinPlanNameIndex[40];
@@ -186,37 +187,47 @@ void pai_ProcessPlan(void);
 void pai_setupcraftcontext(uint16_t objectIdx);
 int pai_SkillValueToTier(uint16_t skillValue);
 uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx);
-int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx, int expandRange);
+int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx,
+				    int expandRange);
 int16_t pai_IsObjectWithinSkillRangeOfCraft(uint16_t objIdx);
 int16_t pai_OrderSlotCanBoardTarget(uint16_t orderSlot);
 int16_t pai_FindBoardingTargetFromOrder(uint16_t orderSlot);
-int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx, unsigned int maxRoughDistance);
+int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx,
+				   unsigned int maxRoughDistance);
 void pai_UpdateAimPointFromOrderTarget(void);
-void pai_SetFlightGroupFormation(unsigned int flightGroupIdx, unsigned int formationType,
-								 unsigned int formationSpacing);
-void pai_ObjectRefDirectionToObjectRef(unsigned int fromRef, unsigned int toRef);
+void pai_SetFlightGroupFormation(unsigned int flightGroupIdx,
+				 unsigned int formationType,
+				 unsigned int formationSpacing);
+void pai_ObjectRefDirectionToObjectRef(unsigned int fromRef,
+				       unsigned int toRef);
 void pai_ObjectRefUpdateRoughDistance(unsigned int fromRef, unsigned int toRef);
-void pai_calcrotatedpoint(ObjectRecord* obj, int16_t sideArg, int16_t upArg, int16_t fwdArg);
-void pai_RotateLocalVectorToWorldScratch(ObjectRecord* objRecord, int localSide, int localUp, int localFwd);
+void pai_calcrotatedpoint(ObjectRecord *obj, int16_t sideArg, int16_t upArg,
+			  int16_t fwdArg);
+void pai_RotateLocalVectorToWorldScratch(ObjectRecord *objRecord, int localSide,
+					 int localUp, int localFwd);
 void pai_CalcAnglesToAimPoint(void);
-int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, int16_t targetOrMode,
-									  uint16_t target2Type, uint16_t target2);
+int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1,
+				      int16_t targetOrMode,
+				      uint16_t target2Type, uint16_t target2);
 int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot);
-int16_t pai_IsBoardingPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot);
+int16_t pai_IsBoardingPlanCompleteForOrderSlot(uint16_t planId,
+					       uint16_t orderSlot);
 int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx);
-uint16_t pai_GetEffectiveSkillValue(CraftData* craft);
-int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx, int leaderPlanNameIndex, int targetObjIdx);
-int pai_FindPlanTableIndexByName(const char* planName);
+uint16_t pai_GetEffectiveSkillValue(CraftData *craft);
+int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx,
+					     int leaderPlanNameIndex,
+					     int targetObjIdx);
+int pai_FindPlanTableIndexByName(const char *planName);
 int pai_FindFreePlanTableIndex(void);
-int pai_FindTargetTokenIndex(const char* token);
-int pai_FindManeuverTokenIndex(const char* token);
-int pai_FindOrderTokenIndex(const char* token);
-int pai_ReadPlanTextToken(char* token, XvtFile* stream);
-int pai_CompilePlansFromText(const char* baseName);
-int pai_loadplans(char* baseName);
+int pai_FindTargetTokenIndex(const char *token);
+int pai_FindManeuverTokenIndex(const char *token);
+int pai_FindOrderTokenIndex(const char *token);
+int pai_ReadPlanTextToken(char *token, XvtFile *stream);
+int pai_CompilePlansFromText(const char *baseName);
+int pai_loadplans(char *baseName);
 void pai_cacheBuiltinPlanIds(void);
-uint8_t* pai_getplandataptrbyname(const char* planName);
-int pai_FindPlanIdByNameOrZero(const char* planName);
+uint8_t *pai_getplandataptrbyname(const char *planName);
+int pai_FindPlanIdByNameOrZero(const char *planName);
 
 #ifdef __cplusplus
 }

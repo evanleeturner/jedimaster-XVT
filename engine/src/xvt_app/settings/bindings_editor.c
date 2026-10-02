@@ -1,87 +1,132 @@
 #include "xvt_app/settings/bindings_editor.h"
 #include <stdio.h>
 
-void XvtBindingsEditor_Init(XvtBindingsEditor* editor) {
-	*editor = (XvtBindingsEditor) { .highlighted_action_row = SIZE_MAX, .highlighted_binding_row = SIZE_MAX };
+void XvtBindingsEditor_Init(XvtBindingsEditor *editor)
+{
+	*editor = (XvtBindingsEditor){.highlighted_action_row = SIZE_MAX,
+				      .highlighted_binding_row = SIZE_MAX};
 }
 
-void XvtBindingsEditor_Select(XvtBindingsEditor* editor, XvtInputAction action, bool open_modal) {
+void XvtBindingsEditor_Select(XvtBindingsEditor *editor, XvtInputAction action,
+			      bool open_modal)
+{
 	editor->selected_action = action;
 	editor->category = XvtInputActions_Category(action);
 	editor->highlighted_action_row = SIZE_MAX;
 	editor->highlighted_binding_row = SIZE_MAX;
-	if (open_modal)
+	if (open_modal) {
 		editor->binding_modal_open = 1;
+	}
 }
 
-void XvtBindingsEditor_CategorySelector(XvtBindingsEditor* editor, AeronUiContext* ui) {
-	static const char* const categories[] = { "Weapons", "Targets", "Throttle", "View",
-											  "Info",    "System",  "Comms" };
-	if (AeronUi_SegmentedSelector(ui, "Action Category", &editor->category, categories,
-								  XVT_INPUT_ACTION_CATEGORY_COUNT)) {
+void XvtBindingsEditor_CategorySelector(XvtBindingsEditor *editor,
+					AeronUiContext *ui)
+{
+	static const char *const categories[] = {
+		"Weapons", "Targets", "Throttle", "View",
+		"Info",	   "System",  "Comms"};
+	if (AeronUi_SegmentedSelector(ui, "Action Category", &editor->category,
+				      categories,
+				      XVT_INPUT_ACTION_CATEGORY_COUNT)) {
 		editor->highlighted_action_row = SIZE_MAX;
 		editor->selected_action = XVT_INPUT_ACTION_NONE;
 	}
 }
 
-void XvtBindingsEditor_Actions(XvtBindingsEditor* editor, AeronUiContext* ui, const AeronUiListItem* items,
-							   size_t count, float trailing_height) {
-	if (editor->highlighted_action_row == SIZE_MAX && editor->selected_action != XVT_INPUT_ACTION_NONE)
-		for (size_t i = 0; i < count; ++i)
+void XvtBindingsEditor_Actions(XvtBindingsEditor *editor, AeronUiContext *ui,
+			       const AeronUiListItem *items, size_t count,
+			       float trailing_height)
+{
+	if (editor->highlighted_action_row == SIZE_MAX &&
+	    editor->selected_action != XVT_INPUT_ACTION_NONE) {
+		for (size_t i = 0; i < count; ++i) {
 			if (items[i].id == (uint64_t)editor->selected_action) {
 				editor->highlighted_action_row = i;
 				break;
 			}
+		}
+	}
 	float height = AeronUi_AvailableHeight(ui) - trailing_height;
-	if (height < 180.0f)
+	if (height < 180.0f) {
 		height = 180.0f;
-	uint32_t result = AeronUi_ListBox(ui, "Actions", items, count, &editor->highlighted_action_row, height);
-	if ((result & AERON_UI_LIST_ACTIVATED) && editor->highlighted_action_row < count)
-		XvtBindingsEditor_Select(editor, (XvtInputAction)items[editor->highlighted_action_row].id, true);
+	}
+	uint32_t result =
+		AeronUi_ListBox(ui, "Actions", items, count,
+				&editor->highlighted_action_row, height);
+	if ((result & AERON_UI_LIST_ACTIVATED) &&
+	    editor->highlighted_action_row < count) {
+		XvtBindingsEditor_Select(
+			editor,
+			(XvtInputAction)items[editor->highlighted_action_row]
+				.id,
+			true);
+	}
 }
 
-bool XvtBindingsEditor_BeginDetail(XvtBindingsEditor* editor, AeronUiContext* ui) {
-	if (!editor->binding_modal_open || editor->selected_action == XVT_INPUT_ACTION_NONE)
+bool XvtBindingsEditor_BeginDetail(XvtBindingsEditor *editor,
+				   AeronUiContext *ui)
+{
+	if (!editor->binding_modal_open ||
+	    editor->selected_action == XVT_INPUT_ACTION_NONE) {
 		return false;
-	return AeronUi_BeginModal(ui, XvtInputActions_DisplayName(editor->selected_action),
-							  &editor->binding_modal_open,
-							  &(AeronUiWindowDesc) { .width_ref = 720.0f, .centered = 1 }) != 0;
+	}
+	return AeronUi_BeginModal(
+		       ui, XvtInputActions_DisplayName(editor->selected_action),
+		       &editor->binding_modal_open,
+		       &(AeronUiWindowDesc){.width_ref = 720.0f,
+					    .centered = 1}) != 0;
 }
 
-void XvtBindingsEditor_BindingList(XvtBindingsEditor* editor, AeronUiContext* ui,
-								   const AeronUiListItem* items, size_t count, const char* empty_text) {
+void XvtBindingsEditor_BindingList(XvtBindingsEditor *editor,
+				   AeronUiContext *ui,
+				   const AeronUiListItem *items, size_t count,
+				   const char *empty_text)
+{
 	AeronUi_Header(ui, "Current Bindings");
-	if (count)
-		AeronUi_ListBox(ui, "Bindings", items, count, &editor->highlighted_binding_row, 180.0f);
-	else {
+	if (count) {
+		AeronUi_ListBox(ui, "Bindings", items, count,
+				&editor->highlighted_binding_row, 180.0f);
+	} else {
 		editor->highlighted_binding_row = SIZE_MAX;
 		AeronUi_Help(ui, empty_text);
 	}
 }
 
-bool XvtBindingsEditor_RemoveButton(AeronUiContext* ui) { return AeronUi_Button(ui, "Remove Binding") != 0; }
+bool XvtBindingsEditor_RemoveButton(AeronUiContext *ui)
+{
+	return AeronUi_Button(ui, "Remove Binding") != 0;
+}
 
-void XvtBindingsEditor_EndDetail(XvtBindingsEditor* editor, AeronUiContext* ui) {
-	if (AeronUi_Button(ui, "Done"))
+void XvtBindingsEditor_EndDetail(XvtBindingsEditor *editor, AeronUiContext *ui)
+{
+	if (AeronUi_Button(ui, "Done")) {
 		editor->binding_modal_open = 0;
+	}
 	AeronUi_EndModal(ui);
 }
 
-bool XvtBindingsEditor_ConfirmReplace(AeronUiContext* ui, int* open, const char* source,
-									  XvtInputAction previous, XvtInputAction replacement) {
-	if (!AeronUi_BeginModal(ui, "CONTROL ALREADY BOUND", open, NULL))
+bool XvtBindingsEditor_ConfirmReplace(AeronUiContext *ui, int *open,
+				      const char *source,
+				      XvtInputAction previous,
+				      XvtInputAction replacement)
+{
+	if (!AeronUi_BeginModal(ui, "CONTROL ALREADY BOUND", open, NULL)) {
 		return false;
+	}
 	char text[512];
-	snprintf(text, sizeof text, "%s is assigned to %s. Replace it with %s?", source,
-			 XvtInputActions_DisplayName(previous), XvtInputActions_DisplayName(replacement));
+	snprintf(text, sizeof text, "%s is assigned to %s. Replace it with %s?",
+		 source, XvtInputActions_DisplayName(previous),
+		 XvtInputActions_DisplayName(replacement));
 	AeronUi_Error(ui, text);
 	AeronUi_BeginColumns(ui, 2, NULL);
 	bool replace = AeronUi_Button(ui, "Replace") != 0;
-	if (replace)
+	if (replace) {
 		*open = 0;
+	}
 	AeronUi_NextColumn(ui);
-	if (AeronUi_Button(ui, "Cancel"))
+	if (AeronUi_Button(ui, "Cancel")) {
 		*open = 0;
+	}
 	AeronUi_EndColumns(ui);
 	AeronUi_EndModal(ui);
 	return replace;

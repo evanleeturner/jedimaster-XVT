@@ -34,48 +34,59 @@ void XvtPort_SetSettingsOpen(int open) { g_settingsOpen = open != 0; }
 
 void XvtPort_RequestSettings(void) { g_settingsRequested = 1; }
 
-int XvtPort_ConsumeSettingsRequest(void) {
+int XvtPort_ConsumeSettingsRequest(void)
+{
 	int requested = g_settingsRequested;
 	g_settingsRequested = 0;
 	return requested;
 }
 
-int XvtPort_NetworkRequiresProgress(void) {
-	return AeronDplay_IsActive() || XvtNetworkTask_IsActive() || XvtNetworkTask_BrowserVisible() ||
-		   XvtFlightTask_ContinuesWithoutFocus();
+int XvtPort_NetworkRequiresProgress(void)
+{
+	return AeronDplay_IsActive() || XvtNetworkTask_IsActive() ||
+	       XvtNetworkTask_BrowserVisible() ||
+	       XvtFlightTask_ContinuesWithoutFocus();
 }
 
-void XvtPort_SetSkipIntro(int skip_intro) {
-	if (!g_xvtInitialized)
+void XvtPort_SetSkipIntro(int skip_intro)
+{
+	if (!g_xvtInitialized) {
 		g_skipIntro = skip_intro != 0;
+	}
 }
 
-static void XvtPort_CommitSnapshot(int movie_presented) {
-	const AeronInputSnapshot* input = Aeron_InputSnapshot();
+static void XvtPort_CommitSnapshot(int movie_presented)
+{
+	const AeronInputSnapshot *input = Aeron_InputSnapshot();
 	XvtSceneKind kind = XVT_SCENE_FRONTEND;
-	if (g_quitting)
+	if (g_quitting) {
 		kind = XVT_SCENE_NONE;
-	else if (movie_presented || XvtMovieTask_IsActive())
+	} else if (movie_presented || XvtMovieTask_IsActive()) {
 		kind = XVT_SCENE_MOVIE;
-	else if (XvtFlightTask_IsActive()) {
-		if (XvtDialog_IsActive())
+	} else if (XvtFlightTask_IsActive()) {
+		if (XvtDialog_IsActive()) {
 			kind = XVT_SCENE_FRONTEND_MODAL;
-		else
-			kind = XvtFlightTask_IsLoading() ? XVT_SCENE_LOADING : XVT_SCENE_FLIGHT;
+		} else {
+			kind = XvtFlightTask_IsLoading() ? XVT_SCENE_LOADING
+							 : XVT_SCENE_FLIGHT;
+		}
 	}
 	XvtRenderSnapshot_SetSceneKind(kind);
-	XvtRenderSnapshot_Commit(g_gameTime, input && input->has_focus, g_xvtPaused);
+	XvtRenderSnapshot_Commit(g_gameTime, input && input->has_focus,
+				 g_xvtPaused);
 }
 
-int XvtPort_Init(void) {
+int XvtPort_Init(void)
+{
 	int width;
 	int height;
-	if (g_xvtInitialized)
+	if (g_xvtInitialized) {
 		return 1;
+	}
 	g_xvtExitCode = 0;
 	g_quitting = 0;
-	if (!Aeron_GetLogicalSize(&width, &height) || width != XVT_CLASSIC_WIDTH ||
-		height != XVT_CLASSIC_HEIGHT) {
+	if (!Aeron_GetLogicalSize(&width, &height) ||
+	    width != XVT_CLASSIC_WIDTH || height != XVT_CLASSIC_HEIGHT) {
 		XVT_LOG_ERROR("port.host_invalid");
 		g_xvtExitCode = 1;
 		return 0;
@@ -104,10 +115,12 @@ int XvtPort_Init(void) {
 
 int XvtPort_IsInitialized(void) { return g_xvtInitialized; }
 
-void XvtPort_PausedFrame(void) {
+void XvtPort_PausedFrame(void)
+{
 	int movieActive;
-	if (!g_xvtInitialized)
+	if (!g_xvtInitialized) {
 		return;
+	}
 	XvtRenderSnapshot_BeginFrame();
 	if (!g_xvtPaused) {
 		g_xvtPaused = 1;
@@ -118,17 +131,20 @@ void XvtPort_PausedFrame(void) {
 	AeronCompat_Update(1);
 	XvtInput_Update(1);
 	movieActive = XvtMovieTask_IsActive();
-	if (movieActive)
+	if (movieActive) {
 		XvtMovieTask_PausedFrame();
+	}
 	XvtPresentation_EndFrame(movieActive);
 	XvtPort_CommitSnapshot(movieActive);
 }
 
-void XvtPort_Update(int32_t delta_us) {
-	const AeronInputSnapshot* input;
+void XvtPort_Update(int32_t delta_us)
+{
+	const AeronInputSnapshot *input;
 	int movieActive;
-	if (XvtPort_ServiceQuit())
+	if (XvtPort_ServiceQuit()) {
 		return;
+	}
 	XvtRenderSnapshot_BeginFrame();
 	input = Aeron_InputSnapshot();
 	XvtInput_UpdateMouseCapture(input);
@@ -141,8 +157,9 @@ void XvtPort_Update(int32_t delta_us) {
 	XvtNetworkTask_ServiceBrowser();
 	XvtMovieTask_ReapFinished();
 	if (!XvtPort_NetworkRequiresProgress() &&
-		(g_settingsOpen || ((!input || !input->has_focus) && !XvtMovieTask_ContinuesWithoutFocus() &&
-							!XvtCampaignTask_ContinuesWithoutFocus()))) {
+	    (g_settingsOpen || ((!input || !input->has_focus) &&
+				!XvtMovieTask_ContinuesWithoutFocus() &&
+				!XvtCampaignTask_ContinuesWithoutFocus()))) {
 		XvtNetworkSession_Service();
 		XvtPort_PausedFrame();
 		return;
@@ -153,26 +170,31 @@ void XvtPort_Update(int32_t delta_us) {
 		XVT_LOG_INFO("port.resumed");
 	}
 	/* Capture once per host frame; discard stale edges on startup and resume. */
-	AeronCompat_Update(g_xvtRebaseClock || XvtInput_IsCaptured() || !input || !input->has_focus);
-	if (XvtFlightTask_IsActive())
+	AeronCompat_Update(g_xvtRebaseClock || XvtInput_IsCaptured() ||
+			   !input || !input->has_focus);
+	if (XvtFlightTask_IsActive()) {
 		XvtInput_UpdateFlight(g_xvtRebaseClock);
-	else
+	} else {
 		XvtInput_Update(g_xvtRebaseClock || XvtDialog_HasResult());
-	if (g_xvtRebaseClock)
+	}
+	if (g_xvtRebaseClock) {
 		g_xvtRebaseClock = 0;
-	else
+	} else {
 		XvtTime_AdvanceHostClock(delta_us);
-	if (XvtFlightTask_IsActive())
+	}
+	if (XvtFlightTask_IsActive()) {
 		XvtCdTask_Update();
-	else
+	} else {
 		XvtFrontendTask_ServiceFrameSystems();
+	}
 	movieActive = XvtMovieTask_IsActive();
-	if (movieActive)
+	if (movieActive) {
 		XvtMovieTask_Update();
-	else if (XvtFlightTask_IsActive())
+	} else if (XvtFlightTask_IsActive()) {
 		XvtFlightTask_Update();
-	else
+	} else {
 		XvtFrontendTask_Update();
+	}
 	if (XvtFlightTask_IsComplete()) {
 		int result = XvtFlightTask_GetResult();
 		XvtFlightTask_Shutdown();
@@ -181,9 +203,10 @@ void XvtPort_Update(int32_t delta_us) {
 	}
 	if (XvtLaunchTask_HasPendingLaunch()) {
 		XvtNetworkSession_BeginFlight();
-		const char* command = XvtLaunchTask_BeginPendingLaunch();
-		if (!XvtFlightTask_Begin(command))
+		const char *command = XvtLaunchTask_BeginPendingLaunch();
+		if (!XvtFlightTask_Begin(command)) {
 			XvtLaunchTask_Complete(0);
+		}
 		g_xvtRebaseClock = 1;
 	}
 	XvtNetworkSession_Service();
@@ -191,10 +214,13 @@ void XvtPort_Update(int32_t delta_us) {
 	XvtPort_CommitSnapshot(movieActive);
 }
 
-int XvtPort_ServiceQuit(void) {
-	if (!g_xvtInitialized || Aeron_FatalErrorRequested())
+int XvtPort_ServiceQuit(void)
+{
+	if (!g_xvtInitialized || Aeron_FatalErrorRequested()) {
 		return 1;
-	if (!g_quitting && (Aeron_QuitRequested() || XvtFrontendTask_ShouldQuit())) {
+	}
+	if (!g_quitting &&
+	    (Aeron_QuitRequested() || XvtFrontendTask_ShouldQuit())) {
 		g_quitting = 1;
 		XvtNetworkTask_Shutdown();
 		Net_ShutdownDirectPlaySessionForQuit();
@@ -202,29 +228,38 @@ int XvtPort_ServiceQuit(void) {
 	return g_quitting && !AeronDplay_IsActive();
 }
 
-int XvtPort_GetExitCode(void) { return Aeron_FatalErrorRequested() ? 1 : g_xvtExitCode; }
+int XvtPort_GetExitCode(void)
+{
+	return Aeron_FatalErrorRequested() ? 1 : g_xvtExitCode;
+}
 
-uint64_t XvtPort_NextWakeDelayUs(void) {
+uint64_t XvtPort_NextWakeDelayUs(void)
+{
 	uint64_t task;
 	uint64_t delay;
-	if (g_quitting)
+	if (g_quitting) {
 		return AeronDplay_NextWakeDelayUs();
-	if (g_xvtPaused)
+	}
+	if (g_xvtPaused) {
 		return UINT64_MAX;
-	task = XvtMovieTask_IsActive()    ? XvtMovieTask_NextWakeDelayUs()
-		   : XvtFlightTask_IsActive() ? XvtFlightTask_NextWakeDelayUs()
-									  : XvtFrontendTask_NextWakeDelayUs();
+	}
+	task = XvtMovieTask_IsActive()	  ? XvtMovieTask_NextWakeDelayUs()
+	       : XvtFlightTask_IsActive() ? XvtFlightTask_NextWakeDelayUs()
+					  : XvtFrontendTask_NextWakeDelayUs();
 	delay = XvtCdTask_NextWakeDelayUs();
-	if (delay < task)
+	if (delay < task) {
 		task = delay;
+	}
 	delay = AeronDplay_NextWakeDelayUs();
 	return delay < task ? delay : task;
 }
 
-void XvtPort_Shutdown(void) {
+void XvtPort_Shutdown(void)
+{
 	XvtPresentation_RequireClassic();
-	if (!g_xvtInitialized)
+	if (!g_xvtInitialized) {
 		return;
+	}
 	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_SetSceneKind(XVT_SCENE_NONE);
 	XvtMovieTask_Shutdown();

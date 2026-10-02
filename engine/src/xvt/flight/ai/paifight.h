@@ -27,43 +27,58 @@ extern uint8_t g_paifightGunnerTargetCandidateSet[976];
 
 int16_t paifight_scanfortargetorder(void);
 int16_t paifight_FindAttackOrderTargetFromOrder(uint16_t orderSlot);
-int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t target1, int16_t targetOrMode,
-											  int16_t target2Type, uint16_t target2);
+int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type,
+					      uint16_t target1,
+					      int16_t targetOrMode,
+					      int16_t target2Type,
+					      uint16_t target2);
 int16_t paifight_TargetEscortLeaderFromOrder(uint16_t orderSlot);
-int16_t paifight_TargetNearestEscortLeader(int16_t target1Type, uint16_t target1, int16_t targetRelationOp,
-										   int16_t target2Type, uint16_t target2);
+int16_t paifight_TargetNearestEscortLeader(int16_t target1Type,
+					   uint16_t target1,
+					   int16_t targetRelationOp,
+					   int16_t target2Type,
+					   uint16_t target2);
 int16_t paifight_FindAttackerOfOrderTargetFromOrder(uint16_t orderSlot);
-int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type, uint16_t target1,
-													 int16_t targetOrMode, int16_t target2Type,
-													 uint16_t target2);
-int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx, uint16_t candidateCount);
+int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type,
+						     uint16_t target1,
+						     int16_t targetOrMode,
+						     int16_t target2Type,
+						     uint16_t target2);
+int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx,
+					 uint16_t candidateCount);
 int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot);
 int16_t paifight_SearchOrderSlotRemainingTargets(uint16_t orderSlot);
 int16_t paifight_CountRemainingOrderTargetsFromOrderSlot(uint16_t orderSlot);
-int16_t paifight_CountRemainingOrderTargets(int16_t target1Type, uint16_t target1, int16_t targetRelationOp,
-											int16_t target2Type, uint16_t target2);
+int16_t paifight_CountRemainingOrderTargets(int16_t target1Type,
+					    uint16_t target1,
+					    int16_t targetRelationOp,
+					    int16_t target2Type,
+					    uint16_t target2);
 int16_t paifight_escorttargetorder(void);
 int16_t paifight_fightershootorder(void);
 uint16_t paifight_SelectTargetComponentMesh(uint16_t targetObjIdx);
 int16_t paifight_missiledefenseorder(void);
 int16_t paifight_gunnerselfdefenseorder(void);
 int16_t paifight_gunneroffenseorder(void);
-int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint16_t target1,
-													   int16_t target1OrTarget2, int16_t target2Type,
-													   uint16_t target2, int candidateSetIdx);
-void paifight_BuildGunnerTargetCandidateSet(int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
-											int16_t target2Type, uint16_t target2, uint16_t candidateSetIdx);
-int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16_t target1,
-													 int16_t target1OrTarget2, int16_t target2Type,
-													 uint16_t target2, int16_t requireClearSweep);
+int16_t paifight_FindNearestGunnerTargetInCandidateSet(
+	int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
+	int16_t target2Type, uint16_t target2, int candidateSetIdx);
+void paifight_BuildGunnerTargetCandidateSet(
+	int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
+	int16_t target2Type, uint16_t target2, uint16_t candidateSetIdx);
+int16_t paifight_FindNearestMatchingTargetFromOrigin(
+	int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
+	int16_t target2Type, uint16_t target2, int16_t requireClearSweep);
 int16_t paifight_coverleaderorder(void);
 int16_t paifight_followleadatkorder(void);
 int16_t paifight_checkescortorder(void);
-int16_t paifight_searchforclosestingroup(int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
-										 int16_t target2Type, uint16_t target2);
+int16_t paifight_searchforclosestingroup(int16_t target1Type, uint16_t target1,
+					 int16_t target1OrTarget2,
+					 int16_t target2Type, uint16_t target2);
 int16_t paifight_OrderSlotHasFutureTargets(uint16_t orderSlot);
-int16_t paifight_HasFutureFgTargets(int16_t target1Type, uint16_t target1, int16_t targetRelationOp,
-									int16_t target2Type, uint16_t target2);
+int16_t paifight_HasFutureFgTargets(int16_t target1Type, uint16_t target1,
+				    int16_t targetRelationOp,
+				    int16_t target2Type, uint16_t target2);
 
 #ifdef __cplusplus
 }

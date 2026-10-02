@@ -26,7 +26,7 @@ int g_dirLightingEnabled = 1;
 // GLOBAL: XVT 0x5233C4
 int g_textureResolutionLevel = 1;
 // GLOBAL: XVT 0x66DDD4
-IDirectDraw* g_flightDirectDraw;
+IDirectDraw *g_flightDirectDraw;
 // GLOBAL: XVT 0x5233C8
 uint8_t g_flightTransparentColorIndex = 0xfb;
 // GLOBAL: XVT 0x9A7A30
@@ -46,7 +46,7 @@ int g_surfaceWidth = 640;
 // GLOBAL: XVT 0x5233E8
 int g_surfaceHeight = 480;
 // GLOBAL: XVT 0x527ECC
-void* g_surfacePixels = (void*)0xA0000;
+void *g_surfacePixels = (void *)0xA0000;
 // GLOBAL: XVT 0x66DDC4
 int g_displayModeWidth;
 // GLOBAL: XVT 0x66DDE0
@@ -54,7 +54,7 @@ int g_displayModeHeight;
 // GLOBAL: XVT 0x9A7BAC
 unsigned int g_screenWidth = 0;
 // GLOBAL: XVT 0x9A806C
-void* g_flightOffscreenBuffer = 0;
+void *g_flightOffscreenBuffer = 0;
 // GLOBAL: XVT 0x9A7B60
 int g_flightVpY = 0;
 // GLOBAL: XVT 0x9A1FE4
@@ -176,18 +176,20 @@ int g_fviewMoveX_Q15 = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4079D0
-IDirectDraw* Renderer_GetDirectDraw(void) { return g_flightDirectDraw; }
+IDirectDraw *Renderer_GetDirectDraw(void) { return g_flightDirectDraw; }
 
 // FUNCTION: XVT 0x408170
-void Renderer_InitD3DDevice(void) {
+void Renderer_InitD3DDevice(void)
+{
 	Std3DDeviceCaps deviceCaps;
 	DDSURFACEDESC zBufferDesc;
 	HRESULT result;
 	unsigned int deviceIndex;
 
 	g_renderTextureCacheCursor = -1;
-	std3D_InitRenderTargetDesc((unsigned int)g_displayModeWidth, (unsigned int)g_displayModeHeight,
-							   g_surfacePitch);
+	std3D_InitRenderTargetDesc((unsigned int)g_displayModeWidth,
+				   (unsigned int)g_displayModeHeight,
+				   g_surfacePitch);
 	std3D_SetRenderSurface(g_flightBackBuffer);
 	std3D_SetColorOverlayParams(0.0f, 0.0f, 0.0f, 0);
 	std3D_Startup();
@@ -198,18 +200,22 @@ void Renderer_InitD3DDevice(void) {
 	deviceCaps.bHasZBuffer = 1;
 	deviceCaps.colorModelFlags = 2;
 	deviceIndex = std3D_SelectBestDevice(&deviceCaps);
-	memcpy(&deviceCaps, &g_std3DDevices[deviceIndex].caps, sizeof(deviceCaps));
+	memcpy(&deviceCaps, &g_std3DDevices[deviceIndex].caps,
+	       sizeof(deviceCaps));
 
-	if (deviceCaps.bHasZBuffer != 0 && deviceCaps.bTexturePerspective != 0 && deviceCaps.bHardware != 0) {
+	if (deviceCaps.bHasZBuffer != 0 &&
+	    deviceCaps.bTexturePerspective != 0 && deviceCaps.bHardware != 0) {
 		std3D_CreateDevice(deviceIndex, 1);
 		memset(&zBufferDesc, 0, sizeof(zBufferDesc));
 		zBufferDesc.dwSize = sizeof(zBufferDesc);
 		zBufferDesc.dwFlags = DDSD_CAPS;
 		zBufferDesc.ddsCaps.dwCaps = DDSCAPS_ZBUFFER;
-		result = g_flightBackBuffer->lpVtbl->GetAttachedSurface(g_flightBackBuffer, &zBufferDesc.ddsCaps,
-																&g_std3DZBufferSurface);
+		result = g_flightBackBuffer->lpVtbl->GetAttachedSurface(
+			g_flightBackBuffer, &zBufferDesc.ddsCaps,
+			&g_std3DZBufferSurface);
 		if (result != 0) {
-			DebugPrintf("ERROR(%x)! Failed to get HW Zbuffer\n", result);
+			DebugPrintf("ERROR(%x)! Failed to get HW Zbuffer\n",
+				    result);
 			std3D_Close();
 			std3D_Shutdown();
 			g_useHardware3D = 0;
@@ -218,8 +224,10 @@ void Renderer_InitD3DDevice(void) {
 		}
 		Math_SetFpuSinglePrecisionMode();
 	} else {
-		DebugPrintf("Essential Hardware Feature NOT Supported: Z:%d Tex:%d HW:%d\n", deviceCaps.bHasZBuffer,
-					deviceCaps.bTexturePerspective, deviceCaps.bHardware);
+		DebugPrintf(
+			"Essential Hardware Feature NOT Supported: Z:%d Tex:%d HW:%d\n",
+			deviceCaps.bHasZBuffer, deviceCaps.bTexturePerspective,
+			deviceCaps.bHardware);
 		std3D_Shutdown();
 		g_useHardware3D = 0;
 		Math_SetFpuSinglePrecisionMode();

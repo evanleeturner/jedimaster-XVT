@@ -106,10 +106,12 @@ enum {
 	CRAFT_SPECIES_PLANET = 0x57,
 	CRAFT_SPECIES_OBSTACLE = 0x58,
 	CRAFT_SPECIES_COMPONENT = 0x59,
-	CRAFT_SPECIES_SHIP_YARD = 0x5A,   ///< Species 90: SHIPYARD.OPT and specdesc.txt record 90; fronttxt.txt
-									  ///< reverses the two yard labels.
-	CRAFT_SPECIES_REPAIR_YARD = 0x5B, ///< Species 91: REPAIRYD.OPT and specdesc.txt record 91; fronttxt.txt
-									  ///< reverses the two yard labels.
+	CRAFT_SPECIES_SHIP_YARD =
+		0x5A, ///< Species 90: SHIPYARD.OPT and specdesc.txt record 90; fronttxt.txt
+		      ///< reverses the two yard labels.
+	CRAFT_SPECIES_REPAIR_YARD =
+		0x5B, ///< Species 91: REPAIRYD.OPT and specdesc.txt record 91; fronttxt.txt
+		      ///< reverses the two yard labels.
 	CRAFT_SPECIES_MODIFIED_STRIKE_CRUISER = 0x5C,
 	CRAFT_SPECIES_UNUSED_93 = 0x5D,
 	CRAFT_SPECIES_UNUSED_94 = 0x5E,
@@ -139,17 +141,17 @@ enum {
 struct ObjectTypeInfo {
 	uint8_t recordFlags;
 	uint8_t assetFlags;
-	CraftFamily familyId; ///< Object family classification; values are CraftFamily.
-	uint8_t
-		genusId; ///< Byte storage of CraftGenus for this ObjectTypeId; distinct from mission CraftSpecies.
+	CraftFamily
+		familyId; ///< Object family classification; values are CraftFamily.
+	uint8_t genusId; ///< Byte storage of CraftGenus for this ObjectTypeId; distinct from mission CraftSpecies.
 	int maxBoundsExtent;
 	int halfBoundsExtent;
 	uint16_t resourceHandle;
-	int16_t* textureFrameSequence;
-	uint8_t* palette;
+	int16_t *textureFrameSequence;
+	uint8_t *palette;
 	uint8_t behaviorFlags;
 	uint8_t modelIndex; ///< Byte storage of optional ModelIndex into g_modelDefs[73]; 0xFF means
-						///< MODEL_INDEX_NONE.
+	///< MODEL_INDEX_NONE.
 	uint8_t textureGroup;
 	uint8_t resourceIndex;
 };
@@ -169,7 +171,7 @@ extern int16_t g_objectType128TextureFrameSequence[13];
 extern int16_t g_objectType129TextureFrameSequence[16];
 extern int16_t g_objectType130TextureFrameSequence[15];
 extern uint8_t g_objectTypePaletteRemaps[17][16];
-extern uint8_t* g_backdropPaletteRemapByFlightGroupStatus[17];
+extern uint8_t *g_backdropPaletteRemapByFlightGroupStatus[17];
 extern uint8_t g_objectType110Palette[16];
 extern uint8_t g_objectType111Palette[16];
 extern uint8_t g_objectType112Palette[16];
@@ -183,80 +185,120 @@ extern uint8_t g_craftTypeToObjectType[96];
 typedef uint16_t ModelIndex;
 
 enum {
-	MODEL_000_X_WING = 0x0,                   ///< strings.txt line 1874: m:X-wing
-	MODEL_001_Y_WING = 0x1,                   ///< strings.txt line 1875: m:Y-wing
-	MODEL_002_A_WING = 0x2,                   ///< strings.txt line 1876: m:A-wing
-	MODEL_003_B_WING = 0x3,                   ///< strings.txt line 1877: m:B-wing
-	MODEL_004_TIE_FIGHTER = 0x4,              ///< strings.txt line 1878: m:TIE Fighter
-	MODEL_005_TIE_INTERCEPTOR = 0x5,          ///< strings.txt line 1879: m:TIE Interceptor
-	MODEL_006_TIE_BOMBER = 0x6,               ///< strings.txt line 1880: m:TIE Bomber
-	MODEL_007_TIE_ADVANCED = 0x7,             ///< strings.txt line 1881: m:TIE Advanced
-	MODEL_008_TIE_DEFENDER = 0x8,             ///< strings.txt line 1882: m:TIE Defender
-	MODEL_009_EMPTY_NAME = 0x9,               ///< strings.txt line 1883: m:
-	MODEL_010_EMPTY_NAME = 0xA,               ///< strings.txt line 1884: m:
-	MODEL_011_MISSILE_BOAT = 0xB,             ///< strings.txt line 1885: m:Missile Boat
-	MODEL_012_T_WING = 0xC,                   ///< strings.txt line 1886: m:T-wing
-	MODEL_013_Z_95_HEADHUNTER = 0xD,          ///< strings.txt line 1887: m:Z-95 Headhunter
-	MODEL_014_R_41_STARCHASER = 0xE,          ///< strings.txt line 1888: m:R-41 Starchaser
-	MODEL_015_ASSAULT_GUNBOAT = 0xF,          ///< strings.txt line 1889: m:Assault Gunboat
-	MODEL_016_SHUTTLE = 0x10,                 ///< strings.txt line 1890: m:Shuttle
-	MODEL_017_ESCORT_SHUTTLE = 0x11,          ///< strings.txt line 1891: m:Escort Shuttle
-	MODEL_018_PATROL_CRAFT = 0x12,            ///< strings.txt line 1892: m:Patrol Craft
-	MODEL_019_SCOUT_CRAFT = 0x13,             ///< strings.txt line 1893: m:Scout Craft
-	MODEL_020_TRANSPORT = 0x14,               ///< strings.txt line 1894: m:Transport
-	MODEL_021_ASSAULT_TRANS = 0x15,           ///< strings.txt line 1895: m:Assault Trans
-	MODEL_022_ESCORT_TRANS = 0x16,            ///< strings.txt line 1896: m:Escort Trans
-	MODEL_023_TUG = 0x17,                     ///< strings.txt line 1897: m:Tug
-	MODEL_024_COMBAT_UTILITY_VEHICLE = 0x18,  ///< strings.txt line 1898: m:Combat Utility Vehicle
-	MODEL_025_CONTAINER_A = 0x19,             ///< strings.txt line 1899: m:Container A
-	MODEL_026_CONTAINER_B = 0x1A,             ///< strings.txt line 1900: m:Container B
-	MODEL_027_CONTAINER_C = 0x1B,             ///< strings.txt line 1901: m:Container C
-	MODEL_028_CONTAINER_D = 0x1C,             ///< strings.txt line 1902: m:Container D
-	MODEL_029_HEAVY_LIFTER = 0x1D,            ///< strings.txt line 1903: m:Heavy Lifter
-	MODEL_030_EMPTY_NAME = 0x1E,              ///< strings.txt line 1904: m:
-	MODEL_031_FREIGHTER = 0x1F,               ///< strings.txt line 1905: m:Freighter
-	MODEL_032_CARGO_FERRY = 0x20,             ///< strings.txt line 1906: m:Cargo Ferry
-	MODEL_033_MODULAR_CONVEYOR = 0x21,        ///< strings.txt line 1907: m:Modular Conveyor
-	MODEL_034_CONTAINER_TRANS = 0x22,         ///< strings.txt line 1908: m:Container Trans
-	MODEL_035_MEDIUM_TRANSPORT = 0x23,        ///< strings.txt line 1909: m:Medium Transport
-	MODEL_036_MUURIAN_TRANS = 0x24,           ///< strings.txt line 1910: m:Muurian Trans
-	MODEL_037_CORELLIAN_TRANS = 0x25,         ///< strings.txt line 1911: m:Corellian Trans
-	MODEL_038_EMPTY_NAME = 0x26,              ///< strings.txt line 1912: m:
-	MODEL_039_CORELLIAN_CORVETTE = 0x27,      ///< strings.txt line 1913: m:Corellian Corvette
-	MODEL_040_MOD_CORVETTE = 0x28,            ///< strings.txt line 1914: m:Mod. Corvette
-	MODEL_041_NEBULON_B_FRIGATE = 0x29,       ///< strings.txt line 1915: m:Nebulon B Frigate
-	MODEL_042_NEBULON_B_2_FRIGATE = 0x2A,     ///< strings.txt line 1916: m:Nebulon B-2 Frigate
-	MODEL_043_C_3_PASSENGER_LINER = 0x2B,     ///< strings.txt line 1917: m:C-3 Passenger Liner
-	MODEL_044_CARRACK_CRUISER = 0x2C,         ///< strings.txt line 1918: m:Carrack Cruiser
-	MODEL_045_STRIKE_CRUISER = 0x2D,          ///< strings.txt line 1919: m:Strike Cruiser
-	MODEL_046_ESCORT_CARRIER = 0x2E,          ///< strings.txt line 1920: m:Escort Carrier
-	MODEL_047_DREADNAUGHT = 0x2F,             ///< strings.txt line 1921: m:Dreadnaught
-	MODEL_048_CALAMARI_CRUISER = 0x30,        ///< strings.txt line 1922: m:Calamari Cruiser
-	MODEL_049_LT_CALAMARI_CRUISER = 0x31,     ///< strings.txt line 1923: m:Lt Calamari Cruiser
-	MODEL_050_INTERDICTOR = 0x32,             ///< strings.txt line 1924: m:Interdictor
-	MODEL_051_VICTORY_STAR_DESTROYER = 0x33,  ///< strings.txt line 1925: m:Victory Star Destroyer
-	MODEL_052_IMPERIAL_STAR_DESTROYER = 0x34, ///< strings.txt line 1926: m:Imperial Star Destroyer
-	MODEL_053_SUPERSTAR_DESTROYER = 0x35,     ///< strings.txt line 1927: m:Superstar Destroyer
-	MODEL_054_CONTAINER_E = 0x36,             ///< strings.txt line 1928: m:Container E
-	MODEL_055_CONTAINER_F = 0x37,             ///< strings.txt line 1929: m:Container F
-	MODEL_056_CONTAINER_G = 0x38,             ///< strings.txt line 1930: m:Container G
-	MODEL_057_CONTAINER_H = 0x39,             ///< strings.txt line 1931: m:Container H
-	MODEL_058_CONTAINER_I = 0x3A,             ///< strings.txt line 1932: m:Container I
-	MODEL_059_PLATFORM_XQ1 = 0x3B,            ///< strings.txt line 1933: m:Platform XQ1
-	MODEL_060_PLATFORM_XQ2 = 0x3C,            ///< strings.txt line 1934: m:Platform XQ2
-	MODEL_061_PLATFORM_XQ3 = 0x3D,            ///< strings.txt line 1935: m:Platform XQ3
-	MODEL_062_PLATFORM_XQ4 = 0x3E,            ///< strings.txt line 1936: m:Platform XQ4
-	MODEL_063_PLATFORM_XQ5 = 0x3F,            ///< strings.txt line 1937: m:Platform XQ5
-	MODEL_064_PLATFORM_XQ6 = 0x40,            ///< strings.txt line 1938: m:Platform XQ6
-	MODEL_065_R_D_FACILITY = 0x41,            ///< strings.txt line 1939: m:R+D Facility
-	MODEL_066_LASER_BATTERY = 0x42,           ///< strings.txt line 1940: m:Laser Battery
-	MODEL_067_WARHEAD_LAUNCHER = 0x43,        ///< strings.txt line 1941: m:Warhead Launcher
-	MODEL_068_X7_FACTORY = 0x44,              ///< strings.txt line 1942: m:X7 Factory
-	MODEL_069_SHIP_YARD = 0x45,               ///< strings.txt line 1943: m:Ship Yard
-	MODEL_070_REPAIR_YARD = 0x46,             ///< strings.txt line 1944: m:Repair Yard
-	MODEL_071_GUN_PLATFORM = 0x47,            ///< strings.txt line 1945: m:Gun Platform
-	MODEL_072_MOD_STRIKE_CRUISER = 0x48,      ///< strings.txt line 1946: m:Mod. Strike Cruiser
-	MODEL_INDEX_NONE = 0xFF,                  ///< XVT no-model sentinel returned by GetModelIndexFromType.
+	MODEL_000_X_WING = 0x0,	     ///< strings.txt line 1874: m:X-wing
+	MODEL_001_Y_WING = 0x1,	     ///< strings.txt line 1875: m:Y-wing
+	MODEL_002_A_WING = 0x2,	     ///< strings.txt line 1876: m:A-wing
+	MODEL_003_B_WING = 0x3,	     ///< strings.txt line 1877: m:B-wing
+	MODEL_004_TIE_FIGHTER = 0x4, ///< strings.txt line 1878: m:TIE Fighter
+	MODEL_005_TIE_INTERCEPTOR =
+		0x5, ///< strings.txt line 1879: m:TIE Interceptor
+	MODEL_006_TIE_BOMBER = 0x6,   ///< strings.txt line 1880: m:TIE Bomber
+	MODEL_007_TIE_ADVANCED = 0x7, ///< strings.txt line 1881: m:TIE Advanced
+	MODEL_008_TIE_DEFENDER = 0x8, ///< strings.txt line 1882: m:TIE Defender
+	MODEL_009_EMPTY_NAME = 0x9,   ///< strings.txt line 1883: m:
+	MODEL_010_EMPTY_NAME = 0xA,   ///< strings.txt line 1884: m:
+	MODEL_011_MISSILE_BOAT = 0xB, ///< strings.txt line 1885: m:Missile Boat
+	MODEL_012_T_WING = 0xC,	      ///< strings.txt line 1886: m:T-wing
+	MODEL_013_Z_95_HEADHUNTER =
+		0xD, ///< strings.txt line 1887: m:Z-95 Headhunter
+	MODEL_014_R_41_STARCHASER =
+		0xE, ///< strings.txt line 1888: m:R-41 Starchaser
+	MODEL_015_ASSAULT_GUNBOAT =
+		0xF,		  ///< strings.txt line 1889: m:Assault Gunboat
+	MODEL_016_SHUTTLE = 0x10, ///< strings.txt line 1890: m:Shuttle
+	MODEL_017_ESCORT_SHUTTLE =
+		0x11, ///< strings.txt line 1891: m:Escort Shuttle
+	MODEL_018_PATROL_CRAFT =
+		0x12,		      ///< strings.txt line 1892: m:Patrol Craft
+	MODEL_019_SCOUT_CRAFT = 0x13, ///< strings.txt line 1893: m:Scout Craft
+	MODEL_020_TRANSPORT = 0x14,   ///< strings.txt line 1894: m:Transport
+	MODEL_021_ASSAULT_TRANS =
+		0x15, ///< strings.txt line 1895: m:Assault Trans
+	MODEL_022_ESCORT_TRANS =
+		0x16,	      ///< strings.txt line 1896: m:Escort Trans
+	MODEL_023_TUG = 0x17, ///< strings.txt line 1897: m:Tug
+	MODEL_024_COMBAT_UTILITY_VEHICLE =
+		0x18, ///< strings.txt line 1898: m:Combat Utility Vehicle
+	MODEL_025_CONTAINER_A = 0x19, ///< strings.txt line 1899: m:Container A
+	MODEL_026_CONTAINER_B = 0x1A, ///< strings.txt line 1900: m:Container B
+	MODEL_027_CONTAINER_C = 0x1B, ///< strings.txt line 1901: m:Container C
+	MODEL_028_CONTAINER_D = 0x1C, ///< strings.txt line 1902: m:Container D
+	MODEL_029_HEAVY_LIFTER =
+		0x1D,		      ///< strings.txt line 1903: m:Heavy Lifter
+	MODEL_030_EMPTY_NAME = 0x1E,  ///< strings.txt line 1904: m:
+	MODEL_031_FREIGHTER = 0x1F,   ///< strings.txt line 1905: m:Freighter
+	MODEL_032_CARGO_FERRY = 0x20, ///< strings.txt line 1906: m:Cargo Ferry
+	MODEL_033_MODULAR_CONVEYOR =
+		0x21, ///< strings.txt line 1907: m:Modular Conveyor
+	MODEL_034_CONTAINER_TRANS =
+		0x22, ///< strings.txt line 1908: m:Container Trans
+	MODEL_035_MEDIUM_TRANSPORT =
+		0x23, ///< strings.txt line 1909: m:Medium Transport
+	MODEL_036_MUURIAN_TRANS =
+		0x24, ///< strings.txt line 1910: m:Muurian Trans
+	MODEL_037_CORELLIAN_TRANS =
+		0x25, ///< strings.txt line 1911: m:Corellian Trans
+	MODEL_038_EMPTY_NAME = 0x26, ///< strings.txt line 1912: m:
+	MODEL_039_CORELLIAN_CORVETTE =
+		0x27, ///< strings.txt line 1913: m:Corellian Corvette
+	MODEL_040_MOD_CORVETTE =
+		0x28, ///< strings.txt line 1914: m:Mod. Corvette
+	MODEL_041_NEBULON_B_FRIGATE =
+		0x29, ///< strings.txt line 1915: m:Nebulon B Frigate
+	MODEL_042_NEBULON_B_2_FRIGATE =
+		0x2A, ///< strings.txt line 1916: m:Nebulon B-2 Frigate
+	MODEL_043_C_3_PASSENGER_LINER =
+		0x2B, ///< strings.txt line 1917: m:C-3 Passenger Liner
+	MODEL_044_CARRACK_CRUISER =
+		0x2C, ///< strings.txt line 1918: m:Carrack Cruiser
+	MODEL_045_STRIKE_CRUISER =
+		0x2D, ///< strings.txt line 1919: m:Strike Cruiser
+	MODEL_046_ESCORT_CARRIER =
+		0x2E, ///< strings.txt line 1920: m:Escort Carrier
+	MODEL_047_DREADNAUGHT = 0x2F, ///< strings.txt line 1921: m:Dreadnaught
+	MODEL_048_CALAMARI_CRUISER =
+		0x30, ///< strings.txt line 1922: m:Calamari Cruiser
+	MODEL_049_LT_CALAMARI_CRUISER =
+		0x31, ///< strings.txt line 1923: m:Lt Calamari Cruiser
+	MODEL_050_INTERDICTOR = 0x32, ///< strings.txt line 1924: m:Interdictor
+	MODEL_051_VICTORY_STAR_DESTROYER =
+		0x33, ///< strings.txt line 1925: m:Victory Star Destroyer
+	MODEL_052_IMPERIAL_STAR_DESTROYER =
+		0x34, ///< strings.txt line 1926: m:Imperial Star Destroyer
+	MODEL_053_SUPERSTAR_DESTROYER =
+		0x35, ///< strings.txt line 1927: m:Superstar Destroyer
+	MODEL_054_CONTAINER_E = 0x36, ///< strings.txt line 1928: m:Container E
+	MODEL_055_CONTAINER_F = 0x37, ///< strings.txt line 1929: m:Container F
+	MODEL_056_CONTAINER_G = 0x38, ///< strings.txt line 1930: m:Container G
+	MODEL_057_CONTAINER_H = 0x39, ///< strings.txt line 1931: m:Container H
+	MODEL_058_CONTAINER_I = 0x3A, ///< strings.txt line 1932: m:Container I
+	MODEL_059_PLATFORM_XQ1 =
+		0x3B, ///< strings.txt line 1933: m:Platform XQ1
+	MODEL_060_PLATFORM_XQ2 =
+		0x3C, ///< strings.txt line 1934: m:Platform XQ2
+	MODEL_061_PLATFORM_XQ3 =
+		0x3D, ///< strings.txt line 1935: m:Platform XQ3
+	MODEL_062_PLATFORM_XQ4 =
+		0x3E, ///< strings.txt line 1936: m:Platform XQ4
+	MODEL_063_PLATFORM_XQ5 =
+		0x3F, ///< strings.txt line 1937: m:Platform XQ5
+	MODEL_064_PLATFORM_XQ6 =
+		0x40, ///< strings.txt line 1938: m:Platform XQ6
+	MODEL_065_R_D_FACILITY =
+		0x41, ///< strings.txt line 1939: m:R+D Facility
+	MODEL_066_LASER_BATTERY =
+		0x42, ///< strings.txt line 1940: m:Laser Battery
+	MODEL_067_WARHEAD_LAUNCHER =
+		0x43, ///< strings.txt line 1941: m:Warhead Launcher
+	MODEL_068_X7_FACTORY = 0x44,  ///< strings.txt line 1942: m:X7 Factory
+	MODEL_069_SHIP_YARD = 0x45,   ///< strings.txt line 1943: m:Ship Yard
+	MODEL_070_REPAIR_YARD = 0x46, ///< strings.txt line 1944: m:Repair Yard
+	MODEL_071_GUN_PLATFORM =
+		0x47, ///< strings.txt line 1945: m:Gun Platform
+	MODEL_072_MOD_STRIKE_CRUISER =
+		0x48, ///< strings.txt line 1946: m:Mod. Strike Cruiser
+	MODEL_INDEX_NONE =
+		0xFF, ///< XVT no-model sentinel returned by GetModelIndexFromType.
 };
 
 /* Stored as int8_t in the binary (IDB enum CraftGender). */

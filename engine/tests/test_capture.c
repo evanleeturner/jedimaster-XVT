@@ -30,11 +30,15 @@ static const int kD = AERON_KEY_A + 3;
 static const int kT = AERON_KEY_A + ('t' - 'a');
 
 /* Aeron's snapshot is the host's frame; the test writes it as the host would. */
-static AeronInputSnapshot* Host(void) { return (AeronInputSnapshot*)Aeron_InputSnapshot(); }
+static AeronInputSnapshot *Host(void)
+{
+	return (AeronInputSnapshot *)Aeron_InputSnapshot();
+}
 
 /* An empty frame with focus, numbered after the last one. */
-static void NewFrame(void) {
-	AeronInputSnapshot* host = Host();
+static void NewFrame(void)
+{
+	AeronInputSnapshot *host = Host();
 	uint64_t frame = host->frame_id;
 	memset(host, 0, sizeof *host);
 	host->frame_id = frame + 1;
@@ -42,26 +46,31 @@ static void NewFrame(void) {
 }
 
 /* The next frame with the same keys and buttons held, and nothing just pressed or released. */
-static void NextFrame(void) {
-	AeronInputSnapshot* host = Host();
+static void NextFrame(void)
+{
+	AeronInputSnapshot *host = Host();
 	++host->frame_id;
 	memset(host->key_released, 0, sizeof host->key_released);
 	host->mouse.released_buttons = 0;
 }
 
-static void Start(void) {
+static void Start(void)
+{
 	XvtInput_ResetCapture();
 	NewFrame();
 }
 
-static int SuppressedCount(void) {
+static int SuppressedCount(void)
+{
 	int count = 0;
-	for (int key = 0; key < AERON_KEY_COUNT; ++key)
+	for (int key = 0; key < AERON_KEY_COUNT; ++key) {
 		count += AeronCompat_IsKeySuppressed(key) != 0;
+	}
 	return count;
 }
 
-static void SetGameInput(void) {
+static void SetGameInput(void)
+{
 	g_actionKey = 0x41;
 	g_ctrlAxisX = 12;
 	g_ctrlAxisY = -12;
@@ -73,7 +82,8 @@ static void SetGameInput(void) {
 }
 
 /* A keyboard mapping that queues next target for T, enabled with no key held. */
-static void KeyboardMappingWithT(void) {
+static void KeyboardMappingWithT(void)
+{
 	static XvtKeyboardBindings profile;
 	memset(&profile, 0, sizeof profile);
 	profile.bindings[0].source.key = (uint16_t)kT;
@@ -83,7 +93,8 @@ static void KeyboardMappingWithT(void) {
 	XvtKeyboardMapping_Enable(true, Host());
 }
 
-static void PressT(void) {
+static void PressT(void)
+{
 	AeronKeyEvent event;
 	memset(&event, 0, sizeof event);
 	event.chord.key = (uint16_t)kT;
@@ -91,7 +102,8 @@ static void PressT(void) {
 	XvtKeyboardMapping_Event(&event, false);
 }
 
-static void CheckSuppressKey(void) {
+static void CheckSuppressKey(void)
+{
 	Start();
 	XVT_ASSERT_INT_EQ(SuppressedCount(), 0);
 	XvtInput_BlockKeyUntilReleased(kA);
@@ -118,7 +130,8 @@ static void CheckSuppressKey(void) {
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(kA), 0);
 }
 
-static void CheckBlockHeldKeys(void) {
+static void CheckBlockHeldKeys(void)
+{
 	Start();
 	Host()->key_down[kA] = 1;
 	XvtInput_BlockHeldKeys();
@@ -130,7 +143,8 @@ static void CheckBlockHeldKeys(void) {
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(kA), 0);
 }
 
-static void CheckCaptureClearsGameInput(void) {
+static void CheckCaptureClearsGameInput(void)
+{
 	Start();
 	SetGameInput();
 	XvtInput_SetCaptured(true);
@@ -161,13 +175,16 @@ static void CheckCaptureClearsGameInput(void) {
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(kD), 0);
 }
 
-static void CheckHandoverBlocksHeldInput(void) {
+static void CheckHandoverBlocksHeldInput(void)
+{
 	Start();
 	/* While captured the host owns the keyboard and mouse: the game sees no key and no button. */
 	XvtInput_BeginCaptureFrame(Host(), true);
-	for (int key = 1; key < AERON_KEY_COUNT; ++key)
-		if (AeronKey_Name((AeronKey)key)[0] != '\0')
+	for (int key = 1; key < AERON_KEY_COUNT; ++key) {
+		if (AeronKey_Name((AeronKey)key)[0] != '\0') {
 			XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(key), 1);
+		}
+	}
 	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS), 0);
 	XVT_ASSERT_INT_EQ(XvtInput_MouseMotionAllowed(), 0);
 
@@ -179,14 +196,16 @@ static void CheckHandoverBlocksHeldInput(void) {
 	XVT_ASSERT_INT_EQ(XvtInput_IsCaptured(), 0);
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(kC), 1);
 	XVT_ASSERT_INT_EQ(SuppressedCount(), 1);
-	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS), ALL_BUTTONS & ~AERON_MOUSE_BUTTON_LEFT);
+	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS),
+			  ALL_BUTTONS & ~AERON_MOUSE_BUTTON_LEFT);
 	XVT_ASSERT_INT_EQ(XvtInput_MouseMotionAllowed(), 0);
 
 	/* Still held next frame: still blocked, but motion counts again. */
 	NextFrame();
 	XvtInput_BeginCaptureFrame(Host(), false);
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(kC), 1);
-	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS), ALL_BUTTONS & ~AERON_MOUSE_BUTTON_LEFT);
+	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS),
+			  ALL_BUTTONS & ~AERON_MOUSE_BUTTON_LEFT);
 	XVT_ASSERT_INT_EQ(XvtInput_MouseMotionAllowed(), 1);
 
 	/* Just released: still blocked. Up a frame later: both reach the game again. */
@@ -197,14 +216,17 @@ static void CheckHandoverBlocksHeldInput(void) {
 	Host()->mouse.released_buttons = AERON_MOUSE_BUTTON_LEFT;
 	XvtInput_BeginCaptureFrame(Host(), false);
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(kC), 1);
-	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS), ALL_BUTTONS & ~AERON_MOUSE_BUTTON_LEFT);
+	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS),
+			  ALL_BUTTONS & ~AERON_MOUSE_BUTTON_LEFT);
 	NextFrame();
 	XvtInput_BeginCaptureFrame(Host(), false);
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(kC), 0);
-	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS), ALL_BUTTONS);
+	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS),
+			  ALL_BUTTONS);
 }
 
-static void CheckCaptureBlocksHeldInput(void) {
+static void CheckCaptureBlocksHeldInput(void)
+{
 	/* D and the right button, held through capture and its release, stay blocked from the game. */
 	Start();
 	Host()->key_down[kD] = 1;
@@ -212,10 +234,12 @@ static void CheckCaptureBlocksHeldInput(void) {
 	XvtInput_SetCaptured(true);
 	XvtInput_SetCaptured(false);
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(kD), 1);
-	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS), ALL_BUTTONS & ~AERON_MOUSE_BUTTON_RIGHT);
+	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS),
+			  ALL_BUTTONS & ~AERON_MOUSE_BUTTON_RIGHT);
 }
 
-static void CheckMouseMotionAllowed(void) {
+static void CheckMouseMotionAllowed(void)
+{
 	Start();
 	XVT_ASSERT_INT_EQ(XvtInput_MouseMotionAllowed(), 1);
 	Host()->has_focus = 0;
@@ -230,19 +254,23 @@ static void CheckMouseMotionAllowed(void) {
 	XVT_ASSERT_INT_EQ(XvtInput_MouseMotionAllowed(), 1);
 }
 
-static void CheckCaptureSuspendsControllers(void) {
+static void CheckCaptureSuspendsControllers(void)
+{
 	Start();
 	XvtControllerOptions options;
 	memset(&options, 0, sizeof options);
-	XvtControllerModel* model = &options.models[0];
-	memcpy(model->guid, "0123456789abcdef0123456789abcdea", sizeof model->guid);
+	XvtControllerModel *model = &options.models[0];
+	memcpy(model->guid, "0123456789abcdef0123456789abcdea",
+	       sizeof model->guid);
 	model->kind = AERON_CONTROLLER_KIND_GAMEPAD;
-	XvtControllerOptions_ClearProfile(&model->profile, AERON_CONTROLLER_KIND_GAMEPAD);
-	model->profile.mapping.axes[XVT_INPUT_AXIS_YAW].source = AERON_GAMEPAD_AXIS_LEFTX;
+	XvtControllerOptions_ClearProfile(&model->profile,
+					  AERON_CONTROLLER_KIND_GAMEPAD);
+	model->profile.mapping.axes[XVT_INPUT_AXIS_YAW].source =
+		AERON_GAMEPAD_AXIS_LEFTX;
 	options.count = 1;
 	XvtControllerMapping_Init(&options);
 
-	AeronControllerSnapshot* pad = &Host()->controllers[0];
+	AeronControllerSnapshot *pad = &Host()->controllers[0];
 	pad->connected = 1;
 	pad->kind = AERON_CONTROLLER_KIND_GAMEPAD;
 	pad->instance_id = 5;
@@ -257,7 +285,8 @@ static void CheckCaptureSuspendsControllers(void) {
 	XvtControllerMapping_Shutdown();
 }
 
-static void CheckRendererTab(void) {
+static void CheckRendererTab(void)
+{
 	Start();
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(AERON_KEY_TAB), 0);
 	XvtInput_SuppressRendererTab(true);
@@ -272,7 +301,8 @@ static void CheckRendererTab(void) {
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(AERON_KEY_TAB), 0);
 }
 
-static void CheckResetCapture(void) {
+static void CheckResetCapture(void)
+{
 	Start();
 	Host()->key_down[kA] = 1;
 	Host()->mouse.buttons = AERON_MOUSE_BUTTON_LEFT;
@@ -283,15 +313,18 @@ static void CheckResetCapture(void) {
 	XvtInput_ResetCapture();
 	XVT_ASSERT_INT_EQ(XvtInput_IsCaptured(), 0);
 	XVT_ASSERT_INT_EQ(SuppressedCount(), 0);
-	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS), ALL_BUTTONS);
+	XVT_ASSERT_INT_EQ(XvtInput_FilterMouseButtons(ALL_BUTTONS),
+			  ALL_BUTTONS);
 }
 
-static void PutChar(char c) {
+static void PutChar(char c)
+{
 	g_frontState.charRingBuffer[g_frontState.charWriteIdx] = c;
 	g_frontState.charWriteIdx = (g_frontState.charWriteIdx + 1) % 1024;
 }
 
-static void SetRawKeyboard(void) {
+static void SetRawKeyboard(void)
+{
 	Keyboard_FlushCharBuffer();
 	g_dinputShiftDown = g_dinputCtrlDown = g_dinputAltDown = 1;
 	g_keyReady = 1;
@@ -299,7 +332,8 @@ static void SetRawKeyboard(void) {
 	PutChar('x');
 }
 
-static void CheckFlushRawKeyboard(void) {
+static void CheckFlushRawKeyboard(void)
+{
 	Start();
 	XVT_ASSERT_TRUE(g_dinputKeyboardDevice == NULL);
 	SetRawKeyboard();
@@ -313,7 +347,8 @@ static void CheckFlushRawKeyboard(void) {
 	XVT_ASSERT_INT_EQ(Keyboard_PeekChar(), 0);
 }
 
-static void CheckFlushKeyboard(void) {
+static void CheckFlushKeyboard(void)
+{
 	Start();
 	KeyboardMappingWithT();
 	PressT();
@@ -332,7 +367,8 @@ static void CheckFlushKeyboard(void) {
 	XvtKeyboardMapping_Suspend();
 }
 
-static void CheckCaptureFlushesKeyboard(void) {
+static void CheckCaptureFlushesKeyboard(void)
+{
 	/* Taking capture flushes the keyboard. */
 	Start();
 	KeyboardMappingWithT();
@@ -353,12 +389,14 @@ static void CheckCaptureFlushesKeyboard(void) {
 	XvtKeyboardMapping_Suspend();
 }
 
-static void CheckMouseFlightNeedsFlight(void) {
+static void CheckMouseFlightNeedsFlight(void)
+{
 	Start();
 	XVT_ASSERT_INT_EQ(XvtInput_MouseFlightAllowed(), 0);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckSuppressKey();
 	CheckBlockHeldKeys();
 	CheckCaptureClearsGameInput();

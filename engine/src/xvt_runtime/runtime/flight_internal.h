@@ -83,7 +83,7 @@
  * session with them. Returns NetSession_InitGameSession's result, which the flight task reads as
  * XVT_FLIGHT_NETWORK_PENDING, nonzero success or 0 failure; returns 0 for a NULL command, fewer
  * than 7 arguments, or a main window that cannot be focused. */
-int XvtFlightEntry_Prepare(char* command);
+int XvtFlightEntry_Prepare(char *command);
 /* Applies the single- or multiplayer display and detail settings, opens the flight display, writes
  * the resolution, color depth and 3D hardware it got back into the config, starts DirectInput
  * (falling back to none) and the sound engine, and takes the mission file from the arguments.

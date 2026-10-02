@@ -30,7 +30,8 @@
 
 enum { HOST_DPID = 500, PEER_DPID = 101 };
 
-static void World(int host, XvtFlightTimingProfile profile) {
+static void World(int host, XvtFlightTimingProfile profile)
+{
 	memset(&g_netSession, 0, sizeof g_netSession);
 	g_netSession.localIsHost = host;
 	g_netSession.hostDplayId = HOST_DPID;
@@ -46,17 +47,20 @@ static void World(int host, XvtFlightTimingProfile profile) {
 }
 
 /* Defers a checksum report from sender, flagged as a state request or not. */
-static void Defer(int sender, int request) {
+static void Defer(int sender, int request)
+{
 	XvtFlightChecksumReportWire report;
 	memset(&report, 0, sizeof report);
 	XvtWire_Set32(report.checksum.opcode, NET_PACKET_WORLD_CHECKSUM);
-	XvtWire_Set32(report.request_state, request ? XVT_CHECKSUM_REQUEST_STATE : XVT_CHECKSUM_REPORT);
+	XvtWire_Set32(report.request_state, request ? XVT_CHECKSUM_REQUEST_STATE
+						    : XVT_CHECKSUM_REPORT);
 	int aligned[sizeof report / sizeof(int)];
 	memcpy(aligned, &report, sizeof report);
 	XvtResync_DeferChecksum(sender, aligned);
 }
 
-static void AssertIdle(void) {
+static void AssertIdle(void)
+{
 	XVT_ASSERT_INT_EQ(XvtResync_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtResync_HoldsInput(), 0);
 	XVT_ASSERT_INT_EQ(XvtResync_HasStateRequest(), 0);
@@ -64,7 +68,8 @@ static void AssertIdle(void) {
 	XVT_ASSERT_TRUE(XvtResync_NextWakeDelayUs() == UINT64_MAX);
 }
 
-static void CheckIdle(void) {
+static void CheckIdle(void)
+{
 	World(0, XVT_FLIGHT_TIMING_NETWORK_125);
 	AssertIdle();
 	World(1, XVT_FLIGHT_TIMING_NETWORK_125);
@@ -74,7 +79,8 @@ static void CheckIdle(void) {
 	XVT_ASSERT_INT_EQ(XvtResync_ReceiveFloor(), 400);
 }
 
-static void CheckDeferredChecksums(void) {
+static void CheckDeferredChecksums(void)
+{
 	World(1, XVT_FLIGHT_TIMING_NETWORK_125);
 	Defer(PEER_DPID, 0);
 	XVT_ASSERT_INT_EQ(XvtResync_HasStateRequest(), 0);
@@ -104,7 +110,8 @@ static void CheckDeferredChecksums(void) {
 	XVT_ASSERT_INT_EQ(XvtResync_HasStateRequest(), 1);
 }
 
-static void CheckRequestStateOutsideNetwork125(void) {
+static void CheckRequestStateOutsideNetwork125(void)
+{
 	World(0, XVT_FLIGHT_TIMING_NATIVE);
 	XvtResync_ServiceRecovery();
 	AssertIdle();
@@ -115,7 +122,8 @@ static void CheckRequestStateOutsideNetwork125(void) {
 	XVT_ASSERT_INT_EQ(g_flightMissionState.missionEndPending, 0);
 }
 
-static void CheckRequestStateHost(void) {
+static void CheckRequestStateHost(void)
+{
 	/* The host cannot receive an image: it ends the mission, and holds no input. */
 	World(1, XVT_FLIGHT_TIMING_NETWORK_125);
 	XvtResync_ServiceRecovery();
@@ -124,14 +132,16 @@ static void CheckRequestStateHost(void) {
 	XVT_ASSERT_INT_EQ(XvtResync_IsActive(), 0);
 }
 
-static void CheckRequestStateClient(void) {
+static void CheckRequestStateClient(void)
+{
 	/* A client's request is out: input is held, and the next wake is the peer-timeout deadline. */
 	World(0, XVT_FLIGHT_TIMING_NETWORK_125);
 	XvtResync_ServiceRecovery();
 	XVT_ASSERT_INT_EQ(XvtResync_HoldsInput(), 1);
 	XVT_ASSERT_INT_EQ(g_flightMissionState.missionEndPending, 0);
 	XVT_ASSERT_INT_EQ(XvtResync_ReceiveFloor(), g_serverTickTime);
-	uint64_t deadline = (uint64_t)XVT_PEER_TIMEOUT_TICKS * XVT_FLIGHT_TICK_US;
+	uint64_t deadline =
+		(uint64_t)XVT_PEER_TIMEOUT_TICKS * XVT_FLIGHT_TICK_US;
 	uint64_t wake = XvtResync_NextWakeDelayUs();
 	XVT_ASSERT_TRUE(wake > 0 && wake <= deadline);
 
@@ -151,7 +161,8 @@ static void CheckRequestStateClient(void) {
 	AssertIdle();
 }
 
-static void CheckReceivePacketLeavesOthers(void) {
+static void CheckReceivePacketLeavesOthers(void)
+{
 	uint8_t bytes[sizeof(XvtFlightChecksumReportWire)];
 	memset(bytes, 0, sizeof bytes);
 
@@ -166,13 +177,17 @@ static void CheckReceivePacketLeavesOthers(void) {
 	/* On the host with no send running, a peer's state request is left to the flight control handler. */
 	World(1, XVT_FLIGHT_TIMING_NETWORK_125);
 	XvtWire_Set32(bytes, NET_PACKET_WORLD_CHECKSUM);
-	XvtWire_Set32(bytes + offsetof(XvtFlightChecksumReportWire, request_state), XVT_CHECKSUM_REQUEST_STATE);
-	XVT_ASSERT_INT_EQ(XvtResync_ReceivePacket(PEER_DPID, bytes, sizeof bytes), 0);
+	XvtWire_Set32(
+		bytes + offsetof(XvtFlightChecksumReportWire, request_state),
+		XVT_CHECKSUM_REQUEST_STATE);
+	XVT_ASSERT_INT_EQ(
+		XvtResync_ReceivePacket(PEER_DPID, bytes, sizeof bytes), 0);
 	XVT_ASSERT_INT_EQ(XvtResync_HasStateRequest(), 0);
 	AssertIdle();
 }
 
-static void CheckBeginApply(void) {
+static void CheckBeginApply(void)
+{
 	/* The host waits in the apply phase: a transfer runs, the next wake is the retry interval, and the
 	 * host holds no input. */
 	World(1, XVT_FLIGHT_TIMING_NETWORK_125);
@@ -180,13 +195,15 @@ static void CheckBeginApply(void) {
 	XVT_ASSERT_INT_EQ(XvtResync_IsActive(), 1);
 	XVT_ASSERT_INT_EQ(XvtResync_HoldsInput(), 0);
 	XVT_ASSERT_INT_EQ(XvtResync_ReceiveFloor(), g_serverTickTime);
-	XVT_ASSERT_TRUE(XvtResync_NextWakeDelayUs() == XvtFlightTime_DelayForTicks(XVT_RESYNC_RETRY_TICKS));
+	XVT_ASSERT_TRUE(XvtResync_NextWakeDelayUs() ==
+			XvtFlightTime_DelayForTicks(XVT_RESYNC_RETRY_TICKS));
 	/* Reset drops it. */
 	XvtResync_Reset();
 	AssertIdle();
 }
 
-int main(void) {
+int main(void)
+{
 	CheckIdle();
 	CheckDeferredChecksums();
 	CheckRequestStateOutsideNetwork125();

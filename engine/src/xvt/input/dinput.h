@@ -13,7 +13,7 @@ extern const uint8_t g_dinputKeyCodeTable[256];
 extern const uint8_t g_dinputShiftKeyCodeTable[256];
 extern const uint8_t g_dinputCtrlKeyCodeTable[256];
 extern const uint8_t g_dinputAltKeyCodeTable[256];
-extern struct IDirectInputDeviceA* g_dinputKeyboardDevice;
+extern struct IDirectInputDeviceA *g_dinputKeyboardDevice;
 extern int g_dinputShiftDown, g_dinputCtrlDown, g_dinputAltDown;
 
 int DInput_Init(void);

@@ -7,15 +7,15 @@
 #include <string.h>
 
 // GLOBAL: XVT 0xA10514
-IDirectSound* g_directSound = 0;
+IDirectSound *g_directSound = 0;
 // GLOBAL: XVT 0xA10518
-IDirectSoundBuffer* g_soundPrimaryBuffer = 0;
+IDirectSoundBuffer *g_soundPrimaryBuffer = 0;
 // GLOBAL: XVT 0xA1051C
-SoundEffectDef g_soundDefs[1000] = { { 0 } };
+SoundEffectDef g_soundDefs[1000] = {{0}};
 // GLOBAL: XVT 0xA604CC
-ActiveSoundInstance g_activeSoundInstances[8] = { { 0 } };
+ActiveSoundInstance g_activeSoundInstances[8] = {{0}};
 // GLOBAL: XVT 0xA6052C
-SoundQueueEntry g_soundQueue[5] = { { 0 } };
+SoundQueueEntry g_soundQueue[5] = {{0}};
 // GLOBAL: XVT 0xA606D0
 int g_soundQueueCount = 0;
 // GLOBAL: XVT 0xA606D4
@@ -27,7 +27,8 @@ unsigned int g_nextSoundInstanceSeq = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x42CD50
-int Sound_Init_Sound_Engine(void* hwnd) {
+int Sound_Init_Sound_Engine(void *hwnd)
+{
 	int instanceIndex;
 	int effectIndex;
 	DSBUFFERDESC primaryBufferDesc;
@@ -50,10 +51,11 @@ int Sound_Init_Sound_Engine(void* hwnd) {
 		g_soundDefs[effectIndex].name[0] = '\0';
 	}
 
-	if (DirectSoundCreate(NULL, (void**)&g_directSound, NULL) != 0) {
+	if (DirectSoundCreate(NULL, (void **)&g_directSound, NULL) != 0) {
 		return 0;
 	}
-	if (g_directSound->lpVtbl->SetCooperativeLevel(g_directSound, hwnd, 2) != 0) {
+	if (g_directSound->lpVtbl->SetCooperativeLevel(g_directSound, hwnd,
+						       2) != 0) {
 		Sound_Shutdown_Sound_Engine();
 		return 0;
 	}
@@ -61,8 +63,8 @@ int Sound_Init_Sound_Engine(void* hwnd) {
 	memset(&primaryBufferDesc, 0, sizeof(primaryBufferDesc));
 	primaryBufferDesc.dwSize = 20;
 	primaryBufferDesc.dwFlags = DSBCAPS_PRIMARYBUFFER;
-	result = g_directSound->lpVtbl->CreateSoundBuffer(g_directSound, &primaryBufferDesc,
-													  &g_soundPrimaryBuffer, NULL);
+	result = g_directSound->lpVtbl->CreateSoundBuffer(
+		g_directSound, &primaryBufferDesc, &g_soundPrimaryBuffer, NULL);
 	if (result != 0) {
 		Sound_Shutdown_Sound_Engine();
 		return 0;
@@ -72,12 +74,14 @@ int Sound_Init_Sound_Engine(void* hwnd) {
 }
 
 // FUNCTION: XVT 0x42CE60
-int Sound_Shutdown_Sound_Engine(void) {
+int Sound_Shutdown_Sound_Engine(void)
+{
 	int effectIndex;
 	int instanceIndex;
 
-	if (g_directSound == NULL)
+	if (g_directSound == NULL) {
 		return 1;
+	}
 	Sound_UnloadAllEffects();
 	g_directSound->lpVtbl->Release(g_directSound);
 	g_directSound = NULL;
@@ -96,10 +100,15 @@ int Sound_Shutdown_Sound_Engine(void) {
 }
 
 // FUNCTION: XVT 0x42CEE0
-int Sound_LoadEffect(const char* fileName, const char* name) { return Sound_LoadEffectEx(fileName, name, 0); }
+int Sound_LoadEffect(const char *fileName, const char *name)
+{
+	return Sound_LoadEffectEx(fileName, name, 0);
+}
 
 // FUNCTION: XVT 0x42CF00
-int Sound_LoadEffectEx(const char* fileName, const char* name, int omitSoftwareAndFrequencyCaps) {
+int Sound_LoadEffectEx(const char *fileName, const char *name,
+		       int omitSoftwareAndFrequencyCaps)
+{
 	SoundEffectDef effect;
 
 	if (*fileName == '\0') {
@@ -117,7 +126,8 @@ int Sound_LoadEffectEx(const char* fileName, const char* name, int omitSoftwareA
 	if (Sound_FindLoadedEffectByName(name) != -1) {
 		return 0;
 	}
-	effect.buffer = DirectSound_LoadWaveBuffer(g_directSound, fileName, omitSoftwareAndFrequencyCaps);
+	effect.buffer = DirectSound_LoadWaveBuffer(
+		g_directSound, fileName, omitSoftwareAndFrequencyCaps);
 	if (effect.buffer != NULL) {
 		effect.buffer->lpVtbl->SetCurrentPosition(effect.buffer, 0);
 		strncpy(effect.name, name, sizeof(effect.name));
@@ -132,7 +142,8 @@ int Sound_LoadEffectEx(const char* fileName, const char* name, int omitSoftwareA
 }
 
 // FUNCTION: XVT 0x42D020
-void Sound_UnloadAllEffects(void) {
+void Sound_UnloadAllEffects(void)
+{
 	int effectIndex;
 
 	effectIndex = 0;
@@ -143,31 +154,40 @@ void Sound_UnloadAllEffects(void) {
 }
 
 // FUNCTION: XVT 0x42D040
-int Sound_UnloadEffectByName(const char* name) {
+int Sound_UnloadEffectByName(const char *name)
+{
 	int effectIndex;
 
-	if (*name == '\0')
+	if (*name == '\0') {
 		return 0;
+	}
 	effectIndex = Sound_FindLoadedEffectByName(name);
-	if (effectIndex == -1)
+	if (effectIndex == -1) {
 		return 0;
+	}
 	while (Sound_StopOldestInstance(g_soundDefs[effectIndex].name) == 1) {
 	}
-	g_soundDefs[effectIndex].buffer->lpVtbl->Release(g_soundDefs[effectIndex].buffer);
+	g_soundDefs[effectIndex].buffer->lpVtbl->Release(
+		g_soundDefs[effectIndex].buffer);
 	Sound_RemoveEffectDef(effectIndex);
 	return 1;
 }
 
 // FUNCTION: XVT 0x42D0D0
-void Sound_FlushQueuedEffects(void) {
+void Sound_FlushQueuedEffects(void)
+{
 	int queueIndex;
 
 	queueIndex = 0;
 	if (g_soundQueueCount > 0) {
 		do {
-			Sound_PlayEffectNow(g_soundQueue[queueIndex].name, g_soundQueue[queueIndex].allowRestartExisting,
-								g_soundQueue[queueIndex].loop, g_soundQueue[queueIndex].priority,
-								g_soundQueue[queueIndex].volume, g_soundQueue[queueIndex].pan);
+			Sound_PlayEffectNow(
+				g_soundQueue[queueIndex].name,
+				g_soundQueue[queueIndex].allowRestartExisting,
+				g_soundQueue[queueIndex].loop,
+				g_soundQueue[queueIndex].priority,
+				g_soundQueue[queueIndex].volume,
+				g_soundQueue[queueIndex].pan);
 			++queueIndex;
 		} while (queueIndex < g_soundQueueCount);
 	}
@@ -178,45 +198,51 @@ void Sound_FlushQueuedEffects(void) {
 #pragma function(memcpy)
 #endif
 // FUNCTION: XVT 0x42D120
-int Sound_QueueEffect(const char* soundName, int allowRestartExisting, int loop, int priority, int volume,
-					  int pan) {
+int Sound_QueueEffect(const char *soundName, int allowRestartExisting, int loop,
+		      int priority, int volume, int pan)
+{
 	int queueIndex;
 	int queuedPriority;
 	int queueCount;
-	const char* name;
-	IDirectSound* directSound;
-	SoundQueueEntry* queueEntry;
+	const char *name;
+	IDirectSound *directSound;
+	SoundQueueEntry *queueEntry;
 
 	name = soundName;
 	directSound = g_directSound;
-	if (directSound == NULL)
+	if (directSound == NULL) {
 		return 0;
-	if (*name == '\0')
+	}
+	if (*name == '\0') {
 		return 0;
-	if (Sound_FindLoadedEffectByName(name) == -1)
+	}
+	if (Sound_FindLoadedEffectByName(name) == -1) {
 		return 0;
+	}
 
 	queueIndex = 0;
 	if (g_soundQueueCount > queueIndex) {
 		queuedPriority = priority;
 		do {
-			if (g_soundQueue[queueIndex].priority < priority)
+			if (g_soundQueue[queueIndex].priority < priority) {
 				break;
+			}
 			++queueIndex;
 		} while (g_soundQueueCount > queueIndex);
 	} else {
 		queuedPriority = priority;
 	}
-	if (g_soundQueueCount == queueIndex && queueIndex == 4)
+	if (g_soundQueueCount == queueIndex && queueIndex == 4) {
 		return 0;
+	}
 
 	queueEntry = &g_soundQueue[queueIndex];
 #ifdef XVT_MODERN
 	memmove(&g_soundQueue[queueIndex + 1], queueEntry,
-			sizeof(SoundQueueEntry) * (g_soundQueueCount - queueIndex));
+		sizeof(SoundQueueEntry) * (g_soundQueueCount - queueIndex));
 #else
 	memcpy(&g_soundQueue[queueIndex + 1], queueEntry,
-		   sizeof(SoundQueueEntry) * (g_soundQueueCount - queueIndex));
+	       sizeof(SoundQueueEntry) * (g_soundQueueCount - queueIndex));
 #endif
 	strncpy(queueEntry->name, name, sizeof(queueEntry->name));
 	g_soundQueue[queueIndex].loop = loop;
@@ -226,14 +252,16 @@ int Sound_QueueEffect(const char* soundName, int allowRestartExisting, int loop,
 	g_soundQueue[queueIndex].pan = pan;
 	queueCount = g_soundQueueCount + 1;
 	g_soundQueueCount = queueCount;
-	if (queueCount > 4)
+	if (queueCount > 4) {
 		g_soundQueueCount = 4;
+	}
 	return 1;
 }
 
 // FUNCTION: XVT 0x42D230
-int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loop, int priority, int volume,
-						int pan) {
+int Sound_PlayEffectNow(const char *soundName, int allowRestartExisting,
+			int loop, int priority, int volume, int pan)
+{
 	int effectIndex;
 	int instanceIndex;
 	int scanIndex;
@@ -244,9 +272,9 @@ int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loo
 	uint32_t bufferStatus;
 	uint32_t playFlags;
 	HRESULT result;
-	ActiveSoundInstance* instance;
-	IDirectSoundBuffer* buffer;
-	IDirectSoundBuffer* duplicate;
+	ActiveSoundInstance *instance;
+	IDirectSoundBuffer *buffer;
+	IDirectSoundBuffer *duplicate;
 
 	if (g_directSound == NULL) {
 		return 0;
@@ -262,21 +290,28 @@ int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loo
 	if (g_activeSoundCount == 8) {
 		instanceIndex = 0;
 		do {
-			activeEffectIndex = g_activeSoundInstances[instanceIndex].effectIndex;
+			activeEffectIndex =
+				g_activeSoundInstances[instanceIndex]
+					.effectIndex;
 			if (activeEffectIndex != -1) {
-				buffer = g_activeSoundInstances[instanceIndex].buffer;
-				if (buffer->lpVtbl->GetStatus(buffer, &bufferStatus) != 0) {
+				buffer = g_activeSoundInstances[instanceIndex]
+						 .buffer;
+				if (buffer->lpVtbl->GetStatus(
+					    buffer, &bufferStatus) != 0) {
 					break;
 				}
-				if ((bufferStatus & (DSBSTATUS_PLAYING | DSBSTATUS_LOOPING)) == 0) {
+				if ((bufferStatus & (DSBSTATUS_PLAYING |
+						     DSBSTATUS_LOOPING)) == 0) {
 					break;
 				}
 			}
 			++instanceIndex;
 		} while (instanceIndex < 8);
 		if (instanceIndex < 8) {
-			g_activeSoundInstances[instanceIndex].buffer->lpVtbl->Release(
-				g_activeSoundInstances[instanceIndex].buffer);
+			g_activeSoundInstances[instanceIndex]
+				.buffer->lpVtbl->Release(
+					g_activeSoundInstances[instanceIndex]
+						.buffer);
 			g_activeSoundInstances[instanceIndex].effectIndex = -1;
 			g_activeSoundInstances[instanceIndex].buffer = NULL;
 			g_activeSoundCount = g_activeSoundCount - 1;
@@ -287,19 +322,29 @@ int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loo
 			instanceIndex = 8;
 			scanIndex = 0;
 			do {
-				activeEffectIndex = g_activeSoundInstances[scanIndex].effectIndex;
-				if (lowestPriority > g_soundDefs[activeEffectIndex].currentPriority) {
+				activeEffectIndex =
+					g_activeSoundInstances[scanIndex]
+						.effectIndex;
+				if (lowestPriority >
+				    g_soundDefs[activeEffectIndex]
+					    .currentPriority) {
 					instanceIndex = scanIndex;
-					lowestPriority = g_soundDefs[activeEffectIndex].currentPriority;
+					lowestPriority =
+						g_soundDefs[activeEffectIndex]
+							.currentPriority;
 				}
 				++scanIndex;
 			} while (scanIndex < 8);
 
 			if (instanceIndex != 8) {
-				instance = &g_activeSoundInstances[instanceIndex];
+				instance =
+					&g_activeSoundInstances[instanceIndex];
 				if (instance->effectIndex == effectIndex) {
-					instance->buffer->lpVtbl->SetCurrentPosition(instance->buffer, 0);
-					instance->sequence = g_nextSoundInstanceSeq++;
+					instance->buffer->lpVtbl
+						->SetCurrentPosition(
+							instance->buffer, 0);
+					instance->sequence =
+						g_nextSoundInstanceSeq++;
 					return 1;
 				}
 				buffer = instance->buffer;
@@ -312,11 +357,21 @@ int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loo
 				if (allowRestartExisting != 0) {
 					instanceIndex = 0;
 					do {
-						activeEffectIndex = g_activeSoundInstances[instanceIndex].effectIndex;
-						if (activeEffectIndex == effectIndex) {
-							instance = &g_activeSoundInstances[instanceIndex];
-							instance->buffer->lpVtbl->SetCurrentPosition(instance->buffer, 0);
-							instance->sequence = g_nextSoundInstanceSeq++;
+						activeEffectIndex =
+							g_activeSoundInstances
+								[instanceIndex]
+									.effectIndex;
+						if (activeEffectIndex ==
+						    effectIndex) {
+							instance =
+								&g_activeSoundInstances
+									[instanceIndex];
+							instance->buffer->lpVtbl
+								->SetCurrentPosition(
+									instance->buffer,
+									0);
+							instance->sequence =
+								g_nextSoundInstanceSeq++;
 							return 1;
 						}
 						++instanceIndex;
@@ -328,14 +383,16 @@ int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loo
 	} else {
 		instanceIndex = 0;
 		do {
-			if (g_activeSoundInstances[instanceIndex].effectIndex == -1) {
+			if (g_activeSoundInstances[instanceIndex].effectIndex ==
+			    -1) {
 				break;
 			}
 			++instanceIndex;
 		} while (instanceIndex < 8);
 	}
 
-	g_directSound->lpVtbl->DuplicateSoundBuffer(g_directSound, g_soundDefs[effectIndex].buffer, &duplicate);
+	g_directSound->lpVtbl->DuplicateSoundBuffer(
+		g_directSound, g_soundDefs[effectIndex].buffer, &duplicate);
 	if (duplicate == NULL) {
 		return 0;
 	}
@@ -346,7 +403,8 @@ int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loo
 	} else if (clampedVolume < 0) {
 		clampedVolume = 0;
 	}
-	duplicate->lpVtbl->SetVolume(duplicate, 400 * (5 * clampedVolume - 635) / 127);
+	duplicate->lpVtbl->SetVolume(duplicate,
+				     400 * (5 * clampedVolume - 635) / 127);
 	clampedPan = pan;
 	if (clampedPan > 127) {
 		clampedPan = 127;
@@ -358,14 +416,17 @@ int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loo
 	playFlags = loop == 1;
 	result = duplicate->lpVtbl->Play(duplicate, 0, 0, playFlags);
 	if (result == (HRESULT)0x88780096) {
-		result =
-			DirectSound_ReloadWaveBuffer(g_soundDefs[effectIndex].buffer, g_soundDefs[effectIndex].fileName);
+		result = DirectSound_ReloadWaveBuffer(
+			g_soundDefs[effectIndex].buffer,
+			g_soundDefs[effectIndex].fileName);
 		if (result == 1) {
 			duplicate->lpVtbl->SetCurrentPosition(duplicate, 0);
-			result = duplicate->lpVtbl->Play(duplicate, 0, 0, playFlags);
+			result = duplicate->lpVtbl->Play(duplicate, 0, 0,
+							 playFlags);
 			if (result == 0) {
 				buffer = duplicate;
-				instance = &g_activeSoundInstances[instanceIndex];
+				instance =
+					&g_activeSoundInstances[instanceIndex];
 				instance->effectIndex = effectIndex;
 				instance->buffer = buffer;
 				instance->sequence = g_nextSoundInstanceSeq++;
@@ -387,36 +448,47 @@ int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loo
 }
 
 // FUNCTION: XVT 0x42D600
-int Sound_StopOldestInstance(const char* name) {
+int Sound_StopOldestInstance(const char *name)
+{
 	int effectIndex;
 	int instanceIndex;
 	int oldestSequence;
 	int oldestIndex;
 	HRESULT stopResult;
-	IDirectSoundBuffer* buffer;
+	IDirectSoundBuffer *buffer;
 
-	if (g_directSound == NULL)
+	if (g_directSound == NULL) {
 		return 0;
-	if (*name == '\0')
+	}
+	if (*name == '\0') {
 		return 0;
+	}
 	effectIndex = Sound_FindLoadedEffectByName(name);
-	if (effectIndex == -1)
+	if (effectIndex == -1) {
 		return 0;
+	}
 	oldestSequence = (int)g_nextSoundInstanceSeq + 1;
 	oldestIndex = -1;
 	for (instanceIndex = 0; instanceIndex < 8; ++instanceIndex) {
-		if (g_activeSoundInstances[instanceIndex].effectIndex != effectIndex)
+		if (g_activeSoundInstances[instanceIndex].effectIndex !=
+		    effectIndex) {
 			continue;
-		if (oldestSequence <= (int)g_activeSoundInstances[instanceIndex].sequence)
+		}
+		if (oldestSequence <=
+		    (int)g_activeSoundInstances[instanceIndex].sequence) {
 			continue;
-		oldestSequence = (int)g_activeSoundInstances[instanceIndex].sequence;
+		}
+		oldestSequence =
+			(int)g_activeSoundInstances[instanceIndex].sequence;
 		oldestIndex = instanceIndex;
 	}
-	if (oldestIndex == -1)
+	if (oldestIndex == -1) {
 		return 0;
+	}
 	buffer = g_activeSoundInstances[oldestIndex].buffer;
-	if (buffer == NULL)
+	if (buffer == NULL) {
 		return 0;
+	}
 	stopResult = buffer->lpVtbl->Stop(buffer);
 	buffer->lpVtbl->Release(buffer);
 	g_activeSoundInstances[oldestIndex].buffer = NULL;
@@ -426,34 +498,44 @@ int Sound_StopOldestInstance(const char* name) {
 }
 
 // FUNCTION: XVT 0x42D6D0
-int Sound_StopAllInstances(void) {
+int Sound_StopAllInstances(void)
+{
 	int result;
 	int instanceIndex;
 
 	result = 1;
 	for (instanceIndex = 0; instanceIndex < 8; ++instanceIndex) {
-		if (g_activeSoundInstances[instanceIndex].effectIndex != -1)
-			result &=
-				Sound_StopOldestInstance(g_soundDefs[g_activeSoundInstances[instanceIndex].effectIndex].name);
+		if (g_activeSoundInstances[instanceIndex].effectIndex != -1) {
+			result &= Sound_StopOldestInstance(
+				g_soundDefs
+					[g_activeSoundInstances[instanceIndex]
+						 .effectIndex]
+						.name);
+		}
 	}
 	return result;
 }
 
 // FUNCTION: XVT 0x42D770
-int Sound_GetPrimaryBufferVolume(void) {
+int Sound_GetPrimaryBufferVolume(void)
+{
 	int32_t volumeMillibels;
 
-	if (g_directSound == 0)
+	if (g_directSound == 0) {
 		return 0;
-	if (g_soundPrimaryBuffer->lpVtbl->GetVolume(g_soundPrimaryBuffer, &volumeMillibels) != 0)
+	}
+	if (g_soundPrimaryBuffer->lpVtbl->GetVolume(g_soundPrimaryBuffer,
+						    &volumeMillibels) != 0) {
 		return 0;
+	}
 	/* From here volumeMillibels holds the game's volume scale: 127 at full volume, 0 at -20 dB. */
 	volumeMillibels = 127 * volumeMillibels / 2000 + 127;
 	return volumeMillibels;
 }
 
 // FUNCTION: XVT 0x42D7C0
-int Sound_SetLatestInstanceVolume(const char* name, int volume) {
+int Sound_SetLatestInstanceVolume(const char *name, int volume)
+{
 	int effectIndex;
 	int newestIndex;
 	int instanceIndex;
@@ -476,9 +558,12 @@ int Sound_SetLatestInstanceVolume(const char* name, int volume) {
 	instanceIndex = 0;
 	newestIndex = -1;
 	do {
-		if (g_activeSoundInstances[instanceIndex].effectIndex == effectIndex &&
-			(int)g_activeSoundInstances[instanceIndex].sequence > newestSequence) {
-			newestSequence = g_activeSoundInstances[instanceIndex].sequence;
+		if (g_activeSoundInstances[instanceIndex].effectIndex ==
+			    effectIndex &&
+		    (int)g_activeSoundInstances[instanceIndex].sequence >
+			    newestSequence) {
+			newestSequence =
+				g_activeSoundInstances[instanceIndex].sequence;
 			newestIndex = instanceIndex;
 		}
 		++instanceIndex;
@@ -498,47 +583,59 @@ int Sound_SetLatestInstanceVolume(const char* name, int volume) {
 	/* From here clampedVolume holds the DirectSound attenuation, in hundredths of a decibel (-2000 to 0). */
 	clampedVolume = 400 * (5 * clampedVolume - 635) / 127;
 	return g_activeSoundInstances[newestIndex].buffer->lpVtbl->SetVolume(
-			   g_activeSoundInstances[newestIndex].buffer, clampedVolume) == 0;
+		       g_activeSoundInstances[newestIndex].buffer,
+		       clampedVolume) == 0;
 }
 
 // FUNCTION: XVT 0x42D880
-int Sound_GetLatestInstanceVolume(const char* name) {
+int Sound_GetLatestInstanceVolume(const char *name)
+{
 	int effectIndex;
 	int newestIndex;
 	int instanceIndex;
 	int newestSequence;
 	int32_t volumeMillibels;
 
-	if (g_directSound == 0)
+	if (g_directSound == 0) {
 		return 0;
-	if (name[0] == '\0')
+	}
+	if (name[0] == '\0') {
 		return 0;
+	}
 	effectIndex = Sound_FindLoadedEffectByName(name);
-	if (effectIndex == -1)
+	if (effectIndex == -1) {
 		return 0;
+	}
 	newestSequence = -1;
 	instanceIndex = 0;
 	newestIndex = -1;
 	do {
-		if (g_activeSoundInstances[instanceIndex].effectIndex == effectIndex &&
-			(int)g_activeSoundInstances[instanceIndex].sequence > newestSequence) {
-			newestSequence = g_activeSoundInstances[instanceIndex].sequence;
+		if (g_activeSoundInstances[instanceIndex].effectIndex ==
+			    effectIndex &&
+		    (int)g_activeSoundInstances[instanceIndex].sequence >
+			    newestSequence) {
+			newestSequence =
+				g_activeSoundInstances[instanceIndex].sequence;
 			newestIndex = instanceIndex;
 		}
 		++instanceIndex;
 	} while (instanceIndex < 8);
-	if (newestIndex == -1)
+	if (newestIndex == -1) {
 		return 0;
+	}
 	if (g_activeSoundInstances[newestIndex].buffer->lpVtbl->GetVolume(
-			g_activeSoundInstances[newestIndex].buffer, &volumeMillibels) != 0)
+		    g_activeSoundInstances[newestIndex].buffer,
+		    &volumeMillibels) != 0) {
 		return 0;
+	}
 	/* From here volumeMillibels holds the game's volume scale: 127 at full volume, 0 at -20 dB. */
 	volumeMillibels = 127 * volumeMillibels / 2000 + 127;
 	return volumeMillibels;
 }
 
 // FUNCTION: XVT 0x42D940
-int Sound_SetLatestInstancePan(const char* name, int pan) {
+int Sound_SetLatestInstancePan(const char *name, int pan)
+{
 	int effectIndex;
 	int newestIndex;
 	int instanceIndex;
@@ -561,9 +658,12 @@ int Sound_SetLatestInstancePan(const char* name, int pan) {
 	instanceIndex = 0;
 	newestIndex = -1;
 	do {
-		if (g_activeSoundInstances[instanceIndex].effectIndex == effectIndex &&
-			(int)g_activeSoundInstances[instanceIndex].sequence > newestSequence) {
-			newestSequence = g_activeSoundInstances[instanceIndex].sequence;
+		if (g_activeSoundInstances[instanceIndex].effectIndex ==
+			    effectIndex &&
+		    (int)g_activeSoundInstances[instanceIndex].sequence >
+			    newestSequence) {
+			newestSequence =
+				g_activeSoundInstances[instanceIndex].sequence;
 			newestIndex = instanceIndex;
 		}
 		++instanceIndex;
@@ -584,47 +684,59 @@ int Sound_SetLatestInstancePan(const char* name, int pan) {
 	/* From here clampedPan holds the DirectSound pan, in hundredths of a decibel (0 is center). */
 	clampedPan = 400 * (5 * clampedPan - 315) / 63;
 	return g_activeSoundInstances[newestIndex].buffer->lpVtbl->SetPan(
-			   g_activeSoundInstances[newestIndex].buffer, clampedPan) == 0;
+		       g_activeSoundInstances[newestIndex].buffer,
+		       clampedPan) == 0;
 }
 
 // FUNCTION: XVT 0x42DA00
-int Sound_GetLatestInstancePan(const char* name) {
+int Sound_GetLatestInstancePan(const char *name)
+{
 	int effectIndex;
 	int newestSequence;
 	int instanceIndex;
 	int newestIndex;
 	int32_t panMillibels;
 
-	if (g_directSound == 0)
+	if (g_directSound == 0) {
 		return 0;
-	if (name[0] == '\0')
+	}
+	if (name[0] == '\0') {
 		return 0;
+	}
 	effectIndex = Sound_FindLoadedEffectByName(name);
-	if (effectIndex == -1)
+	if (effectIndex == -1) {
 		return 0;
+	}
 	newestSequence = -1;
 	instanceIndex = 0;
 	newestIndex = -1;
 	do {
-		if (g_activeSoundInstances[instanceIndex].effectIndex == effectIndex &&
-			(int)g_activeSoundInstances[instanceIndex].sequence > newestSequence) {
-			newestSequence = g_activeSoundInstances[instanceIndex].sequence;
+		if (g_activeSoundInstances[instanceIndex].effectIndex ==
+			    effectIndex &&
+		    (int)g_activeSoundInstances[instanceIndex].sequence >
+			    newestSequence) {
+			newestSequence =
+				g_activeSoundInstances[instanceIndex].sequence;
 			newestIndex = instanceIndex;
 		}
 		++instanceIndex;
 	} while (instanceIndex < 8);
-	if (newestIndex == -1)
+	if (newestIndex == -1) {
 		return 0;
-	if (g_activeSoundInstances[newestIndex].buffer->lpVtbl->GetPan(g_activeSoundInstances[newestIndex].buffer,
-																   &panMillibels) != 0)
+	}
+	if (g_activeSoundInstances[newestIndex].buffer->lpVtbl->GetPan(
+		    g_activeSoundInstances[newestIndex].buffer,
+		    &panMillibels) != 0) {
 		return 0;
+	}
 	/* From here panMillibels holds the game's pan: 0 full left, 63 centered, 126 full right. */
 	panMillibels = 63 * panMillibels / 10000 + 63;
 	return panMillibels;
 }
 
 // FUNCTION: XVT 0x42DAC0
-int Sound_SetLatestInstanceFrequency(const char* name, uint32_t frequency) {
+int Sound_SetLatestInstanceFrequency(const char *name, uint32_t frequency)
+{
 	int effectIndex;
 	int newestSequence;
 	int instanceIndex;
@@ -646,9 +758,12 @@ int Sound_SetLatestInstanceFrequency(const char* name, uint32_t frequency) {
 	instanceIndex = 0;
 	newestIndex = -1;
 	do {
-		if (g_activeSoundInstances[instanceIndex].effectIndex == effectIndex &&
-			(int)g_activeSoundInstances[instanceIndex].sequence > newestSequence) {
-			newestSequence = g_activeSoundInstances[instanceIndex].sequence;
+		if (g_activeSoundInstances[instanceIndex].effectIndex ==
+			    effectIndex &&
+		    (int)g_activeSoundInstances[instanceIndex].sequence >
+			    newestSequence) {
+			newestSequence =
+				g_activeSoundInstances[instanceIndex].sequence;
 			newestIndex = instanceIndex;
 		}
 		++instanceIndex;
@@ -659,11 +774,13 @@ int Sound_SetLatestInstanceFrequency(const char* name, uint32_t frequency) {
 	}
 
 	return g_activeSoundInstances[newestIndex].buffer->lpVtbl->SetFrequency(
-			   g_activeSoundInstances[newestIndex].buffer, frequency) == 0;
+		       g_activeSoundInstances[newestIndex].buffer, frequency) ==
+	       0;
 }
 
 // FUNCTION: XVT 0x42DB50
-int Sound_SetEffectCurrentPriority(const char* name, int priority) {
+int Sound_SetEffectCurrentPriority(const char *name, int priority)
+{
 	int effectIndex;
 	int clampedPriority;
 
@@ -684,7 +801,8 @@ int Sound_SetEffectCurrentPriority(const char* name, int priority) {
 }
 
 // FUNCTION: XVT 0x42DBA0
-int Sound_GetEffectCurrentPriority(const char* name) {
+int Sound_GetEffectCurrentPriority(const char *name)
+{
 	int effectIndex;
 
 	effectIndex = Sound_FindLoadedEffectByName(name);
@@ -696,7 +814,8 @@ int Sound_GetEffectCurrentPriority(const char* name) {
 }
 
 // FUNCTION: XVT 0x42DBD0
-int Sound_CountPlayingInstances(const char* name) {
+int Sound_CountPlayingInstances(const char *name)
+{
 	int effectIndex;
 	int playingCount;
 	int instanceIndex;
@@ -717,10 +836,15 @@ int Sound_CountPlayingInstances(const char* name) {
 	playingCount = 0;
 	instanceIndex = 0;
 	do {
-		if (g_activeSoundInstances[instanceIndex].effectIndex == effectIndex &&
-			g_activeSoundInstances[instanceIndex].buffer->lpVtbl->GetStatus(
-				g_activeSoundInstances[instanceIndex].buffer, &status) == 0 &&
-			((status & 1) != 0 || (status & 4) != 0)) {
+		if (g_activeSoundInstances[instanceIndex].effectIndex ==
+			    effectIndex &&
+		    g_activeSoundInstances[instanceIndex]
+				    .buffer->lpVtbl->GetStatus(
+					    g_activeSoundInstances
+						    [instanceIndex]
+							    .buffer,
+					    &status) == 0 &&
+		    ((status & 1) != 0 || (status & 4) != 0)) {
 			++playingCount;
 		}
 		++instanceIndex;
@@ -730,10 +854,11 @@ int Sound_CountPlayingInstances(const char* name) {
 }
 
 // FUNCTION: XVT 0x42DC60
-void Sound_InsertEffectDefSorted(const SoundEffectDef* effect) {
+void Sound_InsertEffectDefSorted(const SoundEffectDef *effect)
+{
 	int insertIndex;
-	SoundEffectDef* current;
-	const SoundEffectDef* sourceEffect;
+	SoundEffectDef *current;
+	const SoundEffectDef *sourceEffect;
 	int destinationIndex;
 	int remaining;
 	int instanceIndex;
@@ -743,8 +868,10 @@ void Sound_InsertEffectDefSorted(const SoundEffectDef* effect) {
 		current = g_soundDefs;
 		sourceEffect = effect;
 		do {
-			if (strncmp(sourceEffect->name, current->name, sizeof(sourceEffect->name)) < 0)
+			if (strncmp(sourceEffect->name, current->name,
+				    sizeof(sourceEffect->name)) < 0) {
 				break;
+			}
 			++current;
 			++insertIndex;
 		} while (g_soundCount > insertIndex);
@@ -755,7 +882,8 @@ void Sound_InsertEffectDefSorted(const SoundEffectDef* effect) {
 		destinationIndex = g_soundCount;
 		remaining = g_soundCount - insertIndex;
 		do {
-			g_soundDefs[destinationIndex] = g_soundDefs[destinationIndex - 1];
+			g_soundDefs[destinationIndex] =
+				g_soundDefs[destinationIndex - 1];
 			--destinationIndex;
 			--remaining;
 		} while (remaining != 0);
@@ -764,14 +892,17 @@ void Sound_InsertEffectDefSorted(const SoundEffectDef* effect) {
 	++g_soundCount;
 	instanceIndex = 0;
 	do {
-		if (insertIndex <= g_activeSoundInstances[instanceIndex].effectIndex)
+		if (insertIndex <=
+		    g_activeSoundInstances[instanceIndex].effectIndex) {
 			++g_activeSoundInstances[instanceIndex].effectIndex;
+		}
 		++instanceIndex;
 	} while (instanceIndex < 8);
 }
 
 // FUNCTION: XVT 0x42DD20
-void Sound_RemoveEffectDef(int effectIndex) {
+void Sound_RemoveEffectDef(int effectIndex)
+{
 	int currentIndex;
 
 	if (effectIndex < 0 || g_soundCount <= effectIndex) {
@@ -780,7 +911,7 @@ void Sound_RemoveEffectDef(int effectIndex) {
 
 	currentIndex = effectIndex;
 	if (g_soundCount - 1 > effectIndex) {
-		SoundEffectDef* currentEffect;
+		SoundEffectDef *currentEffect;
 
 		currentEffect = &g_soundDefs[effectIndex];
 		do {
@@ -795,25 +926,30 @@ void Sound_RemoveEffectDef(int effectIndex) {
 		int instanceIndex;
 
 		for (instanceIndex = 0; instanceIndex < 8; ++instanceIndex) {
-			if (g_activeSoundInstances[instanceIndex].effectIndex > effectIndex) {
-				--g_activeSoundInstances[instanceIndex].effectIndex;
+			if (g_activeSoundInstances[instanceIndex].effectIndex >
+			    effectIndex) {
+				--g_activeSoundInstances[instanceIndex]
+					  .effectIndex;
 			}
 		}
 	}
 }
 
 // FUNCTION: XVT 0x42DDA0
-int Sound_FindLoadedEffectByName(const char* name) {
+int Sound_FindLoadedEffectByName(const char *name)
+{
 	return Sound_FindEffectByName(g_soundDefs, g_soundCount - 1, name);
 }
 
 // FUNCTION: XVT 0x42DDC0
-int Sound_FindEffectByName(const SoundEffectDef* records, int lastIndex, const char* name) {
+int Sound_FindEffectByName(const SoundEffectDef *records, int lastIndex,
+			   const char *name)
+{
 	int searchLastIndex;
 	int middle;
 	int baseIndex;
 	int comparison;
-	const SoundEffectDef* middleEffect;
+	const SoundEffectDef *middleEffect;
 
 	baseIndex = 0;
 	searchLastIndex = lastIndex;
@@ -824,7 +960,8 @@ int Sound_FindEffectByName(const SoundEffectDef* records, int lastIndex, const c
 
 		middle = searchLastIndex >> 1;
 		middleEffect = &records[middle];
-		comparison = strncmp(middleEffect->name, name, sizeof(middleEffect->name));
+		comparison = strncmp(middleEffect->name, name,
+				     sizeof(middleEffect->name));
 		if (comparison == 0) {
 			return middle + baseIndex;
 		}
@@ -845,43 +982,52 @@ int Sound_FindEffectByName(const SoundEffectDef* records, int lastIndex, const c
 /* paramCode selects what to set: 0x500 the effect's priority, 0x600 the latest instance's volume,
  * 0x700 its pan and 0x777 its frequency. Any other code, or a sound id outside 4..837, returns 0. */
 // FUNCTION: XVT 0x4A9180
-int Sound_SetParam(int flightSoundId, int paramCode, int value) {
+int Sound_SetParam(int flightSoundId, int paramCode, int value)
+{
 	if (flightSoundId < 4 || flightSoundId > 837) {
 		return 0;
 	}
 	switch (paramCode) {
-		case 0x500:
-			return Sound_SetEffectCurrentPriority(g_fsfxSfxNameTable[flightSoundId], value);
-		case 0x600:
-			return Sound_SetLatestInstanceVolume(g_fsfxSfxNameTable[flightSoundId], value);
-		case 0x700:
-			return Sound_SetLatestInstancePan(g_fsfxSfxNameTable[flightSoundId], value);
-		case 0x777:
-			return Sound_SetLatestInstanceFrequency(g_fsfxSfxNameTable[flightSoundId], value);
-		default:
-			return 0;
+	case 0x500:
+		return Sound_SetEffectCurrentPriority(
+			g_fsfxSfxNameTable[flightSoundId], value);
+	case 0x600:
+		return Sound_SetLatestInstanceVolume(
+			g_fsfxSfxNameTable[flightSoundId], value);
+	case 0x700:
+		return Sound_SetLatestInstancePan(
+			g_fsfxSfxNameTable[flightSoundId], value);
+	case 0x777:
+		return Sound_SetLatestInstanceFrequency(
+			g_fsfxSfxNameTable[flightSoundId], value);
+	default:
+		return 0;
 	}
 }
 
 /* paramCode selects what to read: 0x100 the number of playing instances, 0x500 the effect's
  * priority. Any other code, or a sound id outside 4..837, returns 0. */
 // FUNCTION: XVT 0x4A9300
-int Sound_GetParam(int flightSoundId, int paramCode) {
+int Sound_GetParam(int flightSoundId, int paramCode)
+{
 	if (flightSoundId < 4 || flightSoundId > 837) {
 		return 0;
 	}
 	switch (paramCode) {
-		case 0x100:
-			return Sound_CountPlayingInstances(g_fsfxSfxNameTable[flightSoundId]);
-		case 0x500:
-			return Sound_GetEffectCurrentPriority(g_fsfxSfxNameTable[flightSoundId]);
-		default:
-			return 0;
+	case 0x100:
+		return Sound_CountPlayingInstances(
+			g_fsfxSfxNameTable[flightSoundId]);
+	case 0x500:
+		return Sound_GetEffectCurrentPriority(
+			g_fsfxSfxNameTable[flightSoundId]);
+	default:
+		return 0;
 	}
 }
 
 // FUNCTION: XVT 0x4A9370
-int Sound_UnusedFourArgStub(int arg1, int arg2, int arg3, int arg4) {
+int Sound_UnusedFourArgStub(int arg1, int arg2, int arg3, int arg4)
+{
 	(void)arg1;
 	(void)arg2;
 	(void)arg3;
@@ -891,9 +1037,11 @@ int Sound_UnusedFourArgStub(int arg1, int arg2, int arg3, int arg4) {
 }
 
 // FUNCTION: XVT 0x4A9380
-int Sound_StopOldestInstanceById(int flightSoundId) {
-	if (flightSoundId < 4 || flightSoundId > 837)
+int Sound_StopOldestInstanceById(int flightSoundId)
+{
+	if (flightSoundId < 4 || flightSoundId > 837) {
 		return 0;
+	}
 	return Sound_StopOldestInstance(g_fsfxSfxNameTable[flightSoundId]);
 }
 

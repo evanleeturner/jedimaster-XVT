@@ -18,14 +18,15 @@ void XvtRemasterView_Init(void);
  * before fading. Suppresses the renderer tab while the shortcut is held. Suppresses classic flight
  * rendering only when focused, fully modern, not waiting, with a ready flight world at the current
  * presentation size. */
-void XvtRemasterView_BeginFrame(const AeronInputSnapshot* input);
+void XvtRemasterView_BeginFrame(const AeronInputSnapshot *input);
 /* Whether the modern flight world must be prepared: always, except when the main flight target is
  * presented fully classic with no classic wait pending. */
-int XvtRemasterView_NeedsWorld(const XvtRenderSnapshot* snapshot);
+int XvtRemasterView_NeedsWorld(const XvtRenderSnapshot *snapshot);
 /* Whether the flight may present straight to the swapchain: a valid flight scene with a ready world of
  * this mission, fully modern, not waiting, classic suppressed, and the pipeline's direct mode enabled
  * for width x height. */
-int XvtRemasterView_TryEnableDirect(const XvtRenderSnapshot* snapshot, int width, int height);
+int XvtRemasterView_TryEnableDirect(const XvtRenderSnapshot *snapshot,
+				    int width, int height);
 /* Presents the frame. Records the world ready with its frame serial, mission and view size when
  * world_ready and the flight is valid; ends a classic wait once the classic frame serial moved. In a
  * movie scene, submits the movie overlay as a premultiplied sRGB layer when modern (suppressing the
@@ -38,8 +39,8 @@ int XvtRemasterView_TryEnableDirect(const XvtRenderSnapshot* snapshot, int width
  * else submits the output as a texture layer (the frontend in the classic rect as sRGB, the flight as
  * linear sRGB, loading as linear display) tinted by alpha, then the frontend cursor. A failed
  * submission requests a fatal renderer error. */
-void XvtRemasterView_Present(const XvtRenderSnapshot* snapshot, int32_t delta_us, int world_ready,
-							 int direct);
+void XvtRemasterView_Present(const XvtRenderSnapshot *snapshot,
+			     int32_t delta_us, int world_ready, int direct);
 /* Lifts classic suppression and the renderer-tab suppression and clears the flags. */
 void XvtRemasterView_Shutdown(void);
 #ifdef __cplusplus

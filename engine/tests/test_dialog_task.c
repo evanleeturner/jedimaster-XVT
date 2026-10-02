@@ -31,24 +31,28 @@ static int g_continuationContext;
 static int Parent(int frame) { return frame; }
 
 /* A dialog's update: counts its frames, and when told to, sets the dialog result and ends. */
-static int TestUpdate(int frame) {
+static int TestUpdate(int frame)
+{
 	++g_updateFrames;
 	g_updateLastFrame = frame;
-	if (g_updateEnds)
+	if (g_updateEnds) {
 		g_dialogResult = g_updateResult;
+	}
 	return g_updateEnds;
 }
 
 static int OtherUpdate(int frame) { return frame; }
 
-static int Continuation(int result, int context) {
+static int Continuation(int result, int context)
+{
 	++g_continuationCalls;
 	g_continuationResult = result;
 	g_continuationContext = context;
 	return 99;
 }
 
-static void Fresh(void) {
+static void Fresh(void)
+{
 	XvtDialog_Shutdown();
 	XvtTest_CloseDisplay();
 	memset(&g_frontState, 0, sizeof g_frontState);
@@ -62,19 +66,23 @@ static void Fresh(void) {
 	g_continuationCalls = g_continuationResult = g_continuationContext = 0;
 }
 
-static void QueueKeys(const char* keys) {
+static void QueueKeys(const char *keys)
+{
 	for (; *keys; ++keys) {
 		g_frontState.charRingBuffer[g_frontState.charWriteIdx] = *keys;
-		g_frontState.charWriteIdx = (g_frontState.charWriteIdx + 1) % 1024;
+		g_frontState.charWriteIdx =
+			(g_frontState.charWriteIdx + 1) % 1024;
 	}
 }
 
-static FrontendScreenUpdateFn TopScreen(void) {
+static FrontendScreenUpdateFn TopScreen(void)
+{
 	return g_frontState.screenStates[g_frontState.screenStackTop].updateFn;
 }
 
 /* Runs the open dialog's first frame, then ends it with Escape. */
-static void EscapeDialog(void) {
+static void EscapeDialog(void)
+{
 	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 	QueueKeys("\x1b");
@@ -82,7 +90,8 @@ static void EscapeDialog(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 }
 
-static void CheckNothingOpen(void) {
+static void CheckNothingOpen(void)
+{
 	Fresh();
 	int result = 123;
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
@@ -100,7 +109,8 @@ static void CheckNothingOpen(void) {
 	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, PARENT_FRAME);
 }
 
-static void CheckBeginSavesAndEndRestores(void) {
+static void CheckBeginSavesAndEndRestores(void)
+{
 	Fresh();
 	g_frontState.screenCallbacksDirty = 1;
 	g_frontState.offscreenRestoreEnabled = 1;
@@ -108,7 +118,8 @@ static void CheckBeginSavesAndEndRestores(void) {
 	g_frontState.mouseY = 200;
 	g_frontState.cursorVisible = 1;
 	FrontendButton_EnableOverlayText();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsTextPrompt(), 0);
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
@@ -161,17 +172,21 @@ static void CheckBeginSavesAndEndRestores(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_TakeResult(&result), 0);
 }
 
-static void CheckOverlayOffRestored(void) {
+static void CheckOverlayOffRestored(void)
+{
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	FrontendButton_EnableOverlayText();
 	EscapeDialog();
 	XVT_ASSERT_INT_EQ(FrontendButton_IsOverlayTextEnabled(), 0);
 }
 
-static void CheckEscape(void) {
+static void CheckEscape(void)
+{
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	/* Escape before the first frame does not end the dialog. */
 	QueueKeys("\x1b");
 	XvtDialog_Update();
@@ -190,11 +205,14 @@ static void CheckEscape(void) {
 	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, PARENT_FRAME);
 }
 
-static void CheckBeginRefusals(void) {
+static void CheckBeginRefusals(void)
+{
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	/* While a dialog is open another Begin does nothing. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(OtherUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(OtherUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	XvtDialog_Update();
 	XVT_ASSERT_TRUE(TopScreen() == TestUpdate);
 	QueueKeys("\x1b");
@@ -202,14 +220,18 @@ static void CheckBeginRefusals(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
 
 	/* While a result is untaken, Begin does nothing either. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(OtherUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(OtherUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
 }
 
-static void CheckConfirm(void) {
+static void CheckConfirm(void)
+{
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("one", NULL, "three", "Okay", NULL, 0), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(
+		XvtDialog_Confirm("one", NULL, "three", "Okay", NULL, 0),
+		XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine1OrEdit, "one"), 0);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine2, ""), 0);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine3, "three"), 0);
@@ -219,7 +241,8 @@ static void CheckConfirm(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_IsTextPrompt(), 0);
 
 	/* While it is open, Confirm returns -1 and copies nothing. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("other", "b", "c", "d", "e", 0), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("other", "b", "c", "d", "e", 0),
+			  XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine1OrEdit, "one"), 0);
 
 	XvtDialog_Update();
@@ -228,23 +251,29 @@ static void CheckConfirm(void) {
 	XvtDialog_Update();
 
 	/* The untaken result comes back first, and no dialog opens. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("two", NULL, NULL, NULL, NULL, 0), 0);
+	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("two", NULL, NULL, NULL, NULL, 0),
+			  0);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
 
 	/* With network set, the network abort dialog opens instead. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("net", NULL, NULL, NULL, "Cancel", 1), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(
+		XvtDialog_Confirm("net", NULL, NULL, NULL, "Cancel", 1),
+		XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogCancelLabel, "Cancel"), 0);
 	XvtDialog_Update();
-	XVT_ASSERT_TRUE(TopScreen() == FrontendDialog_NetworkAbortErrorCallback);
+	XVT_ASSERT_TRUE(TopScreen() ==
+			FrontendDialog_NetworkAbortErrorCallback);
 	QueueKeys("\x1b");
 	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 }
 
-static void CheckConfirmReturnsAnyResult(void) {
+static void CheckConfirmReturnsAnyResult(void)
+{
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	XvtDialog_Update();
 	g_updateEnds = 1;
 	g_updateResult = 4;
@@ -254,7 +283,8 @@ static void CheckConfirmReturnsAnyResult(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 }
 
-static void CheckPilotNameTyped(void) {
+static void CheckPilotNameTyped(void)
+{
 	Fresh();
 	char name[13];
 	XVT_ASSERT_INT_EQ(XvtDialog_PilotName(name), XVT_DIALOG_PENDING);
@@ -266,8 +296,9 @@ static void CheckPilotNameTyped(void) {
 
 	/* The prompt takes one typed character a frame, and Enter. */
 	QueueKeys("Luke\r");
-	for (int frame = 0; frame < 10 && XvtDialog_IsActive(); ++frame)
+	for (int frame = 0; frame < 10 && XvtDialog_IsActive(); ++frame) {
 		XvtDialog_Update();
+	}
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsTextPrompt(), 0);
 	memset(name, 'Z', sizeof name);
@@ -276,7 +307,8 @@ static void CheckPilotNameTyped(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
 }
 
-static void CheckPilotNameEscaped(void) {
+static void CheckPilotNameEscaped(void)
+{
 	Fresh();
 	char name[13];
 	XVT_ASSERT_INT_EQ(XvtDialog_PilotName(name), XVT_DIALOG_PENDING);
@@ -286,10 +318,13 @@ static void CheckPilotNameEscaped(void) {
 	XVT_ASSERT_INT_EQ(name[0], 0);
 }
 
-static void CheckPilotNameAfterConfirm(void) {
+static void CheckPilotNameAfterConfirm(void)
+{
 	Fresh();
 	char name[13];
-	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("ABCDEFGHIJKLMNOP", NULL, NULL, NULL, NULL, 0), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("ABCDEFGHIJKLMNOP", NULL, NULL,
+					    NULL, NULL, 0),
+			  XVT_DIALOG_PENDING);
 	EscapeDialog();
 	/* The confirm's first line, cut to 12 characters and terminated. */
 	memset(name, 'Z', sizeof name);
@@ -298,10 +333,12 @@ static void CheckPilotNameAfterConfirm(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 }
 
-static void CheckContinuation(void) {
+static void CheckContinuation(void)
+{
 	Fresh();
 	int frame_result = 0;
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(XvtDialog_ContinueWith(Continuation, 42), 0);
 	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(XvtDialog_ResumeContinuation(&frame_result), 0);
@@ -323,12 +360,14 @@ static void CheckContinuation(void) {
 	XVT_ASSERT_INT_EQ(g_continuationCalls, 1);
 }
 
-static void CheckShutdownBeforeFirstFrame(void) {
+static void CheckShutdownBeforeFirstFrame(void)
+{
 	Fresh();
 	g_frontState.screenCallbacksDirty = 1;
 	g_frontState.offscreenRestoreEnabled = 1;
 	g_frontState.cursorVisible = 1;
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	/* The dialog never ran a frame, but the parent's state changed meanwhile. */
 	g_frontState.frameCounter = 40;
 	g_frontState.screenCallbacksDirty = 0;
@@ -344,9 +383,11 @@ static void CheckShutdownBeforeFirstFrame(void) {
 	XVT_ASSERT_INT_EQ(g_updateFrames, 0);
 }
 
-static void CheckShutdown(void) {
+static void CheckShutdown(void)
+{
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	XvtDialog_ContinueWith(Continuation, 3);
 	XvtDialog_Update();
 	XVT_ASSERT_INT_EQ(g_frontState.screenStackTop, 1);
@@ -361,7 +402,8 @@ static void CheckShutdown(void) {
 
 	/* The continuation is forgotten too. */
 	int frame_result = 0;
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+			  XVT_DIALOG_PENDING);
 	EscapeDialog();
 	XVT_ASSERT_INT_EQ(XvtDialog_ResumeContinuation(&frame_result), 0);
 	XVT_ASSERT_INT_EQ(g_continuationCalls, 0);
@@ -372,7 +414,8 @@ static void CheckShutdown(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckNothingOpen();
 	CheckBeginSavesAndEndRestores();
 	CheckOverlayOffRestored();

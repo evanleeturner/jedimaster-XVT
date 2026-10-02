@@ -38,7 +38,8 @@ void XvtCockpitPages_EndSection(void);
 /* Captures a glyph at the live text cursor into the open section. Ignored with no capture, after
  * a failure, or outside the clip; running out of capacity or memory logs an error and fails the
  * capture. */
-void XvtCockpitPages_RecordGlyph(unsigned character, unsigned advance, unsigned height, int narrow);
+void XvtCockpitPages_RecordGlyph(unsigned character, unsigned advance,
+				 unsigned height, int narrow);
 /* Ends the current row and starts one with this key, at the live clip rectangle and text
  * background color. Ignored with no capture or after a failure; more than
  * XVT_HUD_ROWS_PER_SECTION rows logs an error and fails the capture. */
@@ -48,7 +49,8 @@ void XvtCockpitPages_RecordRow(uint32_t key, int selected);
 void XvtCockpitPages_RecordBackground(unsigned page);
 void XvtCockpitPages_RecordBorder(unsigned page);
 /* Records the first visible row, the total rows and the selected row of a working page. */
-void XvtCockpitPages_RecordScroll(unsigned page, int first_visible_row, int total_rows, int selected_row);
+void XvtCockpitPages_RecordScroll(unsigned page, int first_visible_row,
+				  int total_rows, int selected_row);
 /* Records the working page's display mode. */
 void XvtCockpitPages_RecordMode(unsigned page, unsigned mode);
 /* Copies a working page to its placed page and marks it latched this frame; the placed page's
@@ -59,7 +61,7 @@ void XvtCockpitPages_Latch(unsigned page);
  * each page that state already shows and that was latched this frame, packing its header and
  * then its body into the page store; other pages are hidden. Overflowing the store logs an error
  * and marks state invalid, leaving later pages unwritten. */
-void XvtCockpitPages_Export(XvtCockpitState* state);
+void XvtCockpitPages_Export(XvtCockpitState *state);
 #ifdef __cplusplus
 }
 #endif

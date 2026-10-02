@@ -59,7 +59,7 @@ int g_colorGray = 0;
 // GLOBAL: XVT 0xBB2810
 int g_colorNavy = 0;
 // GLOBAL: XVT 0xB69D20
-char g_frontendScratchBuffer[256] = { 0 };
+char g_frontendScratchBuffer[256] = {0};
 // GLOBAL: XVT 0xB69E24
 int g_colorPaleCyan = 0;
 // GLOBAL: XVT 0xB6A2A0
@@ -99,7 +99,7 @@ int g_colorAzure = 0;
 // GLOBAL: XVT 0xB69D14
 int g_colorOrange = 0;
 // GLOBAL: XVT 0xB6A270
-int g_pulseColorRamp[12] = { 0 };
+int g_pulseColorRamp[12] = {0};
 // GLOBAL: XVT 0x664F2C
 int g_pilotRecordPagesNeedRebuild = 0;
 // GLOBAL: XVT 0x664EC4
@@ -108,7 +108,8 @@ int g_cdAudioWarningPending = 0;
 int g_skipMovieChecks = 0;
 
 // FUNCTION: XVT 0x4BDB90
-int Frontend_LoadResources(void) {
+int Frontend_LoadResources(void)
+{
 	RECT cursorRect;
 
 	g_gameMainSkipIntroRelaunchGate = 1;
@@ -134,10 +135,11 @@ int Frontend_LoadResources(void) {
 		g_cursorBitmap = NULL;
 	}
 	g_cursorBitmap =
-		malloc(FRONTEND_CURSOR_BYTES_PER_PIXEL * (cursorRect.bottom + 1) * (cursorRect.right + 1));
+		malloc(FRONTEND_CURSOR_BYTES_PER_PIXEL *
+		       (cursorRect.bottom + 1) * (cursorRect.right + 1));
 	FrontendCursor_SetImageFromResourceName("cursor", g_cursorBitmap);
 #ifdef XVT_MODERN
-	sprintf(g_frontendScratchBuffer, "%p\n", (void*)&g_pilotData);
+	sprintf(g_frontendScratchBuffer, "%p\n", (void *)&g_pilotData);
 #else
 	sprintf(g_frontendScratchBuffer, "%x\n", &g_pilotData);
 #endif
@@ -190,7 +192,8 @@ int Frontend_LoadResources(void) {
 	g_cdAudioWarningPending = CDAudio_Initialize() == 0;
 	CDAudio_EnableLoopCurrentTrack();
 	if (g_gameConfig.datapadMusicEnabled != 0) {
-		CDAudio_SetAuxVolume(AUX_VOLUME_MAX * g_gameConfig.musicVolume / FRONTEND_MUSIC_VOLUME_STEPS);
+		CDAudio_SetAuxVolume(AUX_VOLUME_MAX * g_gameConfig.musicVolume /
+				     FRONTEND_MUSIC_VOLUME_STEPS);
 		CDAudio_PlayTrackFromTime(FRONTEND_DATAPAD_MUSIC_TRACK, 0, 0);
 	} else {
 		CDAudio_StopCurrentTrack();
@@ -199,7 +202,8 @@ int Frontend_LoadResources(void) {
 }
 
 // FUNCTION: XVT 0x4BF9B0
-int Frontend_HandleCommonScreenControls(int screenContext) {
+int Frontend_HandleCommonScreenControls(int screenContext)
+{
 	enum {
 		SCREEN_CONTEXT_MISSION = 1,
 		SCREEN_CONTEXT_CONFIG = 2,
@@ -225,21 +229,23 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 	int mouseY;
 	RECT rect;
 	RECT screenRect;
-	const char* tooltipText;
+	const char *tooltipText;
 
 	transitionNeedsSessionShutdown = 0;
 	FrontendCursor_GetPos(&mouseX, &mouseY);
 	FrontendDraw_RectAssign(&rect, 610, 445, 634, 469);
 	if (g_gameConfig.helpOn != 0) {
 		FrontImage_DrawSprite("helpdown", 610, 445);
-		actionTriggered = FrontendButton_HandleSpriteButton(&rect, NULL, NULL,
-															FrontendString_Get(FRONTSTR_704_HELP_TEXT_OFF),
-															BUTTON_FONT_SIZE, 0, 35, "buttonsound");
+		actionTriggered = FrontendButton_HandleSpriteButton(
+			&rect, NULL, NULL,
+			FrontendString_Get(FRONTSTR_704_HELP_TEXT_OFF),
+			BUTTON_FONT_SIZE, 0, 35, "buttonsound");
 	} else {
 		FrontImage_DrawSprite("helpup", 610, 445);
-		actionTriggered = FrontendButton_HandleSpriteButton(&rect, NULL, NULL,
-															FrontendString_Get(FRONTSTR_703_HELP_TEXT_ON),
-															BUTTON_FONT_SIZE, 0, 35, "buttonsound");
+		actionTriggered = FrontendButton_HandleSpriteButton(
+			&rect, NULL, NULL,
+			FrontendString_Get(FRONTSTR_703_HELP_TEXT_ON),
+			BUTTON_FONT_SIZE, 0, 35, "buttonsound");
 	}
 	if (actionTriggered != 0) {
 		g_gameConfig.helpOn ^= 1;
@@ -250,149 +256,245 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 
 	FrontendDraw_RectAssign(&rect, 586, 4, 633, 71);
 	FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_568_EXIT));
-	if (screenContext < SCREEN_CONTEXT_CONFIG || screenContext > SCREEN_CONTEXT_TECH_LIBRARY) {
+	if (screenContext < SCREEN_CONTEXT_CONFIG ||
+	    screenContext > SCREEN_CONTEXT_TECH_LIBRARY) {
 		if (screenContext != SCREEN_CONTEXT_DEBRIEF) {
 			actionTriggered = FrontendButton_HandleSpriteButton(
-				&rect, NULL, "exitdown", FrontendString_Get(FRONTSTR_006_EXIT_TO_WINDOWS), BUTTON_FONT_SIZE,
-				0, EXIT_HELD_SLOT, "buttonsound");
+				&rect, NULL, "exitdown",
+				FrontendString_Get(
+					FRONTSTR_006_EXIT_TO_WINDOWS),
+				BUTTON_FONT_SIZE, 0, EXIT_HELD_SLOT,
+				"buttonsound");
 		} else {
 			FrontImage_DrawSprite("configup", 0, 0);
 			actionTriggered = FrontendButton_HandleSpriteButton(
-				&rect, "exitup", "exitdown", FrontendString_Get(FRONTSTR_006_EXIT_TO_WINDOWS),
-				BUTTON_FONT_SIZE, 0, EXIT_HELD_SLOT, "buttonsound");
+				&rect, "exitup", "exitdown",
+				FrontendString_Get(
+					FRONTSTR_006_EXIT_TO_WINDOWS),
+				BUTTON_FONT_SIZE, 0, EXIT_HELD_SLOT,
+				"buttonsound");
 		}
 		if (Keyboard_PeekChar() == 27) {
 			actionTriggered = 1;
 			Keyboard_DiscardChar();
 		}
 #ifdef XVT_MODERN
-		actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 1, actionTriggered);
+		actionTriggered = XvtFrontendAction_Trigger(
+			XVT_ACTION_OWNER_COMMON, 1, actionTriggered);
 #endif
 		if (actionTriggered != 0) {
 			if (g_frontendGameSessionInProgress != 0) {
-				if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+				if (g_frontendMissionSessionMode !=
+				    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 					if (Net_IsHost() != 0) {
 						actionTriggered = FrontendDialog_ShowConfirmDialog(
-							FrontendString_Get(FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
-							FrontendString_Get(FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
-							FrontendString_Get(FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-							FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL));
+							FrontendString_Get(
+								FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
+							FrontendString_Get(
+								FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
+							FrontendString_Get(
+								FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+							FrontendString_Get(
+								FRONTSTR_523_OKAY),
+							FrontendString_Get(
+								FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-						if (XvtDialog_IsActive())
+						if (XvtDialog_IsActive()) {
 							return 0;
+						}
 #endif
 					} else {
 						actionTriggered = FrontendDialog_ShowConfirmDialog(
-							FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
-							FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-							FrontendString_Get(FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
-							FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL));
+							FrontendString_Get(
+								FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
+							FrontendString_Get(
+								FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+							FrontendString_Get(
+								FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
+							FrontendString_Get(
+								FRONTSTR_523_OKAY),
+							FrontendString_Get(
+								FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-						if (XvtDialog_IsActive())
+						if (XvtDialog_IsActive()) {
 							return 0;
+						}
 #endif
 					}
-				} else if (g_pilotData.missionSequenceActive == 1) {
-					if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_MELEES) {
+				} else if (g_pilotData.missionSequenceActive ==
+					   1) {
+					if (g_pilotData.missionDirectoryId ==
+					    MISSION_DIRECTORY_MELEES) {
 						actionTriggered = FrontendDialog_ShowConfirmDialog(
-							FrontendString_Get(FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
-							FrontendString_Get(FRONTSTR_679_ARE_YOU_SURE_YOU_WANT_TO),
-							FrontendString_Get(FRONTSTR_680_TERMINATE_THIS_TOURNAMENT),
-							FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL));
+							FrontendString_Get(
+								FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
+							FrontendString_Get(
+								FRONTSTR_679_ARE_YOU_SURE_YOU_WANT_TO),
+							FrontendString_Get(
+								FRONTSTR_680_TERMINATE_THIS_TOURNAMENT),
+							FrontendString_Get(
+								FRONTSTR_523_OKAY),
+							FrontendString_Get(
+								FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-						if (XvtDialog_IsActive())
+						if (XvtDialog_IsActive()) {
 							return 0;
+						}
 #endif
-					} else if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
+					} else if (
+						g_pilotData
+							.missionDirectoryId ==
+						MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
 						actionTriggered = FrontendDialog_ShowConfirmDialog(
-							FrontendString_Get(FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
-							FrontendString_Get(FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
-							FrontendString_Get(FRONTSTR_683_TERMINATE_THIS_BATTLE),
-							FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL));
+							FrontendString_Get(
+								FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
+							FrontendString_Get(
+								FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
+							FrontendString_Get(
+								FRONTSTR_683_TERMINATE_THIS_BATTLE),
+							FrontendString_Get(
+								FRONTSTR_523_OKAY),
+							FrontendString_Get(
+								FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-						if (XvtDialog_IsActive())
+						if (XvtDialog_IsActive()) {
 							return 0;
+						}
 #endif
 					} else {
 						actionTriggered = FrontendDialog_ShowConfirmDialog(
-							FrontendString_Get(FRONTSTR_779_YOU_ARE_CURRENTLY_PLAYING_A_CAMPAIGN),
-							FrontendString_Get(FRONTSTR_780_ARE_YOU_SURE_YOU_WANT_TO),
-							FrontendString_Get(FRONTSTR_781_TERMINATE_THIS_CAMPAIGN),
-							FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL));
+							FrontendString_Get(
+								FRONTSTR_779_YOU_ARE_CURRENTLY_PLAYING_A_CAMPAIGN),
+							FrontendString_Get(
+								FRONTSTR_780_ARE_YOU_SURE_YOU_WANT_TO),
+							FrontendString_Get(
+								FRONTSTR_781_TERMINATE_THIS_CAMPAIGN),
+							FrontendString_Get(
+								FRONTSTR_523_OKAY),
+							FrontendString_Get(
+								FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-						if (XvtDialog_IsActive())
+						if (XvtDialog_IsActive()) {
 							return 0;
+						}
 #endif
 					}
 				} else {
 					actionTriggered = FrontendDialog_ShowConfirmDialog(
-						FrontendString_Get(FRONTSTR_634_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-						FrontendString_Get(FRONTSTR_635_EMPTY_TRANSLATION_PLACEHOLDER),
-						FrontendString_Get(FRONTSTR_636_EMPTY_TRANSLATION_PLACEHOLDER),
-						FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL));
+						FrontendString_Get(
+							FRONTSTR_634_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+						FrontendString_Get(
+							FRONTSTR_635_EMPTY_TRANSLATION_PLACEHOLDER),
+						FrontendString_Get(
+							FRONTSTR_636_EMPTY_TRANSLATION_PLACEHOLDER),
+						FrontendString_Get(
+							FRONTSTR_523_OKAY),
+						FrontendString_Get(
+							FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-					if (XvtDialog_IsActive())
+					if (XvtDialog_IsActive()) {
 						return 0;
+					}
 #endif
 				}
 			} else {
 				actionTriggered = FrontendDialog_ShowConfirmDialog(
-					FrontendString_Get(FRONTSTR_634_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-					FrontendString_Get(FRONTSTR_635_EMPTY_TRANSLATION_PLACEHOLDER),
-					FrontendString_Get(FRONTSTR_636_EMPTY_TRANSLATION_PLACEHOLDER),
-					FrontendString_Get(FRONTSTR_523_OKAY), FrontendString_Get(FRONTSTR_019_CANCEL));
+					FrontendString_Get(
+						FRONTSTR_634_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+					FrontendString_Get(
+						FRONTSTR_635_EMPTY_TRANSLATION_PLACEHOLDER),
+					FrontendString_Get(
+						FRONTSTR_636_EMPTY_TRANSLATION_PLACEHOLDER),
+					FrontendString_Get(FRONTSTR_523_OKAY),
+					FrontendString_Get(
+						FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-				if (XvtDialog_IsActive())
+				if (XvtDialog_IsActive()) {
 					return 0;
+				}
 #endif
 			}
 			if (actionTriggered != 0) {
 				switch (screenContext) {
-					default:
-						Config_Write();
-						Net_ShutdownDirectPlaySessionForQuit();
-						FrontendButton_DisableOverlayText();
-						return 1;
-					case SCREEN_CONTEXT_MISSION:
-						if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+				default:
+					Config_Write();
+					Net_ShutdownDirectPlaySessionForQuit();
+					FrontendButton_DisableOverlayText();
+					return 1;
+				case SCREEN_CONTEXT_MISSION:
+					if (g_frontendMissionSessionMode !=
+					    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+						if (Net_IsHost() != 0) {
+							g_frontendNetPacketScratch
+								.packetType =
+								NET_PACKET_HOST_CANCELLED;
+							Net_SendPacketAndFlush(
+								0,
+								&g_frontendNetPacketScratch,
+								sizeof(int));
+						} else {
+							g_frontendNetPacketScratch
+								.packetType =
+								NET_PACKET_PLAYER_LEFT;
+							Net_SendPacketAndFlush(
+								Net_GetHostPlayerId(),
+								&g_frontendNetPacketScratch,
+								sizeof(int));
+						}
+					}
+					Config_Write();
+					Net_ShutdownDirectPlaySessionForQuit();
+					FrontendButton_DisableOverlayText();
+					return 1;
+				case SCREEN_CONTEXT_DEBRIEF:
+					if (g_pilotData.missionSequenceActive ==
+					    0) {
+						if (g_frontendMissionSessionMode !=
+						    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 							if (Net_IsHost() != 0) {
-								g_frontendNetPacketScratch.packetType = NET_PACKET_HOST_CANCELLED;
-								Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, sizeof(int));
+								g_frontendNetPacketScratch
+									.packetType =
+									NET_PACKET_SESSION_CANCELLED;
+								Net_SendPacketAndFlush(
+									0,
+									&g_frontendNetPacketScratch,
+									sizeof(int));
 							} else {
-								g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
-								Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch,
-													   sizeof(int));
+								g_frontendNetPacketScratch
+									.packetType =
+									NET_PACKET_PLAYER_LEFT;
+								Net_SendPacketAndFlush(
+									Net_GetHostPlayerId(),
+									&g_frontendNetPacketScratch,
+									sizeof(int));
 							}
 						}
-						Config_Write();
-						Net_ShutdownDirectPlaySessionForQuit();
-						FrontendButton_DisableOverlayText();
-						return 1;
-					case SCREEN_CONTEXT_DEBRIEF:
-						if (g_pilotData.missionSequenceActive == 0) {
-							if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-								if (Net_IsHost() != 0) {
-									g_frontendNetPacketScratch.packetType = NET_PACKET_SESSION_CANCELLED;
-									Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, sizeof(int));
-								} else {
-									g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
-									Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch,
-														   sizeof(int));
-								}
-							}
-						} else if (Net_IsHost() == 0 &&
-								   g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-							g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
-							Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch,
-												   sizeof(int));
-						} else if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-							g_frontendNetPacketScratch.packetType = NET_PACKET_HOST_CANCELLED;
-							Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, sizeof(int));
-						}
-						Config_Write();
-						Net_ShutdownDirectPlaySessionForQuit();
-						FrontendButton_DisableOverlayText();
-						return 1;
+					} else if (
+						Net_IsHost() == 0 &&
+						g_frontendMissionSessionMode !=
+							FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+						g_frontendNetPacketScratch
+							.packetType =
+							NET_PACKET_PLAYER_LEFT;
+						Net_SendPacketAndFlush(
+							Net_GetHostPlayerId(),
+							&g_frontendNetPacketScratch,
+							sizeof(int));
+					} else if (
+						g_frontendMissionSessionMode !=
+						FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+						g_frontendNetPacketScratch
+							.packetType =
+							NET_PACKET_HOST_CANCELLED;
+						Net_SendPacketAndFlush(
+							0,
+							&g_frontendNetPacketScratch,
+							sizeof(int));
+					}
+					Config_Write();
+					Net_ShutdownDirectPlaySessionForQuit();
+					FrontendButton_DisableOverlayText();
+					return 1;
 				}
 			}
 		}
@@ -400,15 +502,21 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 
 	FrontendDraw_RectAssign(&rect, 503, 4, 581, 56);
 	FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_567_CONFIG));
-	if (g_frontendMissionSessionMode == NEVER_STORED_SESSION_MODE || screenContext == SCREEN_CONTEXT_CONFIG) {
+	if (g_frontendMissionSessionMode == NEVER_STORED_SESSION_MODE ||
+	    screenContext == SCREEN_CONTEXT_CONFIG) {
 		FrontendButton_UsePressedOverlayStyle();
 		FrontendButton_DrawSpriteAndTooltip(
-			&rect, "configdown", FrontendString_Get(FRONTSTR_570_EXIT_CONFIGURATION), BUTTON_FONT_SIZE, 0);
+			&rect, "configdown",
+			FrontendString_Get(FRONTSTR_570_EXIT_CONFIGURATION),
+			BUTTON_FONT_SIZE, 0);
 		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY) != 0 &&
-			(FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0)) {
+		    (FrontendMouse_GetLeftClick() != 0 ||
+		     FrontendMouse_GetRightClick() != 0)) {
 			if (g_gameConfig.sfxDatapadEnabled != 0) {
-				FrontendSound_PlayUISound("buttonsound", 1, 0, UI_SOUND_PRIORITY,
-										  12 * g_gameConfig.sfxDatapadVolume, UI_SOUND_PAN_CENTER);
+				FrontendSound_PlayUISound(
+					"buttonsound", 1, 0, UI_SOUND_PRIORITY,
+					12 * g_gameConfig.sfxDatapadVolume,
+					UI_SOUND_PAN_CENTER);
 			}
 			Config_Write();
 			g_activeTextFieldId = 0;
@@ -418,140 +526,231 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 			FrontImage_FreeResourceByName("backconfig");
 			FrontendText_StopTextFade();
 			FrontendScrollbar_RestoreState();
-			if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_HOST) {
-				g_frontendNetPacketScratch.packetType = NET_PACKET_GAME_OPTIONS;
-				*(int*)&g_frontendNetPacketScratch.payload[0] = g_gameConfig.difficulty;
-				*(int*)&g_frontendNetPacketScratch.payload[4] = g_gameConfig.collisions;
-				*(int*)&g_frontendNetPacketScratch.payload[8] = g_gameConfig.craftJumping;
-				*(int*)&g_frontendNetPacketScratch.payload[12] = g_gameConfig.randomSetup;
-				*(int*)&g_frontendNetPacketScratch.payload[16] = g_gameConfig.battleLengthIndex;
-				*(int*)&g_frontendNetPacketScratch.payload[20] = g_gameConfig.requirePassword;
-				*(int*)&g_frontendNetPacketScratch.payload[24] = g_gameConfig.inProgressJoin;
-				*(int*)&g_frontendNetPacketScratch.payload[28] = g_gameConfig.craftSelection;
-				*(int*)&g_frontendNetPacketScratch.payload[32] = g_gameConfig.locatePlayers;
-				*(int*)&g_frontendNetPacketScratch.payload[36] = g_gameConfig.craftWaves;
-				*(int*)&g_frontendNetPacketScratch.payload[40] = g_gameConfig.missionTimeLimit;
-				*(int*)&g_frontendNetPacketScratch.payload[44] = g_gameConfig.lastTeamTimeLimitMinutes;
-				*(int*)&g_frontendNetPacketScratch.payload[48] = rand();
-				*(int*)&g_frontendNetPacketScratch.payload[52] = g_gameConfig.internetPlay;
-				*(int*)&g_frontendNetPacketScratch.payload[56] = g_gameConfig.aiOpponents;
-				*(int*)&g_frontendNetPacketScratch.payload[60] = g_gameConfig.serverUpdateRate;
-				*(int*)&g_frontendNetPacketScratch.payload[64] = (uint8_t)g_gameConfig.combatBalance;
-				*(int*)&g_frontendNetPacketScratch.payload[68] =
-					(uint8_t)g_gameConfig.continueBattleOrCampaign;
-				Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, CONFIG_PACKET_SIZE);
+			if (g_frontendMissionSessionMode ==
+			    FRONTEND_MISSION_SESSION_NET_HOST) {
+				g_frontendNetPacketScratch.packetType =
+					NET_PACKET_GAME_OPTIONS;
+				*(int *)&g_frontendNetPacketScratch.payload[0] =
+					g_gameConfig.difficulty;
+				*(int *)&g_frontendNetPacketScratch.payload[4] =
+					g_gameConfig.collisions;
+				*(int *)&g_frontendNetPacketScratch.payload[8] =
+					g_gameConfig.craftJumping;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[12] =
+					g_gameConfig.randomSetup;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[16] =
+					g_gameConfig.battleLengthIndex;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[20] =
+					g_gameConfig.requirePassword;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[24] =
+					g_gameConfig.inProgressJoin;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[28] =
+					g_gameConfig.craftSelection;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[32] =
+					g_gameConfig.locatePlayers;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[36] = g_gameConfig.craftWaves;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[40] =
+					g_gameConfig.missionTimeLimit;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[44] =
+					g_gameConfig.lastTeamTimeLimitMinutes;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[48] = rand();
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[52] =
+					g_gameConfig.internetPlay;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[56] =
+					g_gameConfig.aiOpponents;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[60] =
+					g_gameConfig.serverUpdateRate;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[64] =
+					(uint8_t)g_gameConfig.combatBalance;
+				*(int *)&g_frontendNetPacketScratch
+					 .payload[68] =
+					(uint8_t)g_gameConfig
+						.continueBattleOrCampaign;
+				Net_SendPacketAndFlush(
+					0, &g_frontendNetPacketScratch,
+					CONFIG_PACKET_SIZE);
 			}
 		}
-	} else if (screenContext < SCREEN_CONTEXT_TECH_LIBRARY || screenContext > SCREEN_CONTEXT_TECH_LIBRARY) {
-		if (FrontendButton_HandleSpriteButton(&rect, NULL, "configdown",
-											  FrontendString_Get(FRONTSTR_005_CONFIGURATION),
-											  BUTTON_FONT_SIZE, 0, CONFIG_HELD_SLOT, "buttonsound") != 0 &&
-			(screenContext >= 0 &&
-			 (screenContext <= SCREEN_CONTEXT_MISSION || screenContext == SCREEN_CONTEXT_DEBRIEF))) {
+	} else if (screenContext < SCREEN_CONTEXT_TECH_LIBRARY ||
+		   screenContext > SCREEN_CONTEXT_TECH_LIBRARY) {
+		if (FrontendButton_HandleSpriteButton(
+			    &rect, NULL, "configdown",
+			    FrontendString_Get(FRONTSTR_005_CONFIGURATION),
+			    BUTTON_FONT_SIZE, 0, CONFIG_HELD_SLOT,
+			    "buttonsound") != 0 &&
+		    (screenContext >= 0 &&
+		     (screenContext <= SCREEN_CONTEXT_MISSION ||
+		      screenContext == SCREEN_CONTEXT_DEBRIEF))) {
 			FrontendDraw_RectAssign(&screenRect, 0, 0, 640, 480);
-			FrontendScreen_QueuePush(Config_OptionsDatapadUpdate, &screenRect);
+			FrontendScreen_QueuePush(Config_OptionsDatapadUpdate,
+						 &screenRect);
 		}
 	}
 
 	if (screenContext < SCREEN_CONTEXT_CONFIG) {
 		FrontendDraw_RectAssign(&rect, 390, 4, 496, 43);
-		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_003_JOIN_GAME));
+		FrontendButton_SetOverlayText(
+			FrontendString_Get(FRONTSTR_003_JOIN_GAME));
 		switch (g_gameConfig.networkType) {
-			case NET_TRANSPORT_IPX:
-				if (g_gameConfig.internetPlay != 0) {
-					tooltipText = FrontendString_Get(FRONTSTR_727_JOIN_INTERNET_IPX_GAME);
-				} else {
-					tooltipText = FrontendString_Get(FRONTSTR_728_JOIN_LOCAL_IPX_GAME);
-				}
-				break;
-			case NET_TRANSPORT_TCPIP:
-				if (g_gameConfig.internetPlay != 0) {
-					tooltipText = FrontendString_Get(FRONTSTR_729_JOIN_INTERNET_TCP_IP_GAME);
-				} else {
-					tooltipText = FrontendString_Get(FRONTSTR_730_JOIN_LOCAL_TCP_IP_GAME);
-				}
-				break;
-			case NET_TRANSPORT_MODEM:
-				tooltipText = FrontendString_Get(FRONTSTR_731_JOIN_DIRECT_MODEM_GAME);
-				break;
-			case NET_TRANSPORT_SERIAL:
-				tooltipText = FrontendString_Get(FRONTSTR_732_JOIN_DIRECT_SERIAL_GAME);
-				break;
-			default:
-				tooltipText = FrontendString_Get(FRONTSTR_003_JOIN_GAME);
-				break;
+		case NET_TRANSPORT_IPX:
+			if (g_gameConfig.internetPlay != 0) {
+				tooltipText = FrontendString_Get(
+					FRONTSTR_727_JOIN_INTERNET_IPX_GAME);
+			} else {
+				tooltipText = FrontendString_Get(
+					FRONTSTR_728_JOIN_LOCAL_IPX_GAME);
+			}
+			break;
+		case NET_TRANSPORT_TCPIP:
+			if (g_gameConfig.internetPlay != 0) {
+				tooltipText = FrontendString_Get(
+					FRONTSTR_729_JOIN_INTERNET_TCP_IP_GAME);
+			} else {
+				tooltipText = FrontendString_Get(
+					FRONTSTR_730_JOIN_LOCAL_TCP_IP_GAME);
+			}
+			break;
+		case NET_TRANSPORT_MODEM:
+			tooltipText = FrontendString_Get(
+				FRONTSTR_731_JOIN_DIRECT_MODEM_GAME);
+			break;
+		case NET_TRANSPORT_SERIAL:
+			tooltipText = FrontendString_Get(
+				FRONTSTR_732_JOIN_DIRECT_SERIAL_GAME);
+			break;
+		default:
+			tooltipText =
+				FrontendString_Get(FRONTSTR_003_JOIN_GAME);
+			break;
 		}
 		strcpy(g_frontendScratchBuffer, tooltipText);
-		if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_CLIENT) {
+		if (g_frontendMissionSessionMode ==
+		    FRONTEND_MISSION_SESSION_NET_CLIENT) {
 			FrontendButton_UsePressedOverlayStyle();
-			FrontendButton_DrawSpriteAndTooltip(&rect, "joinindown", g_frontendScratchBuffer,
-												BUTTON_FONT_SIZE, 0);
+			FrontendButton_DrawSpriteAndTooltip(
+				&rect, "joinindown", g_frontendScratchBuffer,
+				BUTTON_FONT_SIZE, 0);
 		} else {
-			actionTriggered =
-				FrontendButton_HandleSpriteButton(&rect, NULL, "joinindown", g_frontendScratchBuffer,
-												  BUTTON_FONT_SIZE, 0, JOIN_HELD_SLOT, "buttonsound");
+			actionTriggered = FrontendButton_HandleSpriteButton(
+				&rect, NULL, "joinindown",
+				g_frontendScratchBuffer, BUTTON_FONT_SIZE, 0,
+				JOIN_HELD_SLOT, "buttonsound");
 #ifdef XVT_MODERN
-			actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 2, actionTriggered);
+			actionTriggered = XvtFrontendAction_Trigger(
+				XVT_ACTION_OWNER_COMMON, 2, actionTriggered);
 #endif
 			if (actionTriggered != 0) {
 				if (g_frontendGameSessionInProgress != 0) {
-					if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+					if (g_frontendMissionSessionMode !=
+					    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 						if (Net_IsHost() != 0) {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
-								FrontendString_Get(FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
-								FrontendString_Get(FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
+								FrontendString_Get(
+									FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
+								FrontendString_Get(
+									FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						} else {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
-								FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-								FrontendString_Get(FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
+								FrontendString_Get(
+									FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+								FrontendString_Get(
+									FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						}
-					} else if (g_pilotData.missionSequenceActive == 1) {
-						if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_MELEES) {
+					} else if (
+						g_pilotData
+							.missionSequenceActive ==
+						1) {
+						if (g_pilotData
+							    .missionDirectoryId ==
+						    MISSION_DIRECTORY_MELEES) {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
-								FrontendString_Get(FRONTSTR_679_ARE_YOU_SURE_YOU_WANT_TO),
-								FrontendString_Get(FRONTSTR_680_TERMINATE_THIS_TOURNAMENT),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
+								FrontendString_Get(
+									FRONTSTR_679_ARE_YOU_SURE_YOU_WANT_TO),
+								FrontendString_Get(
+									FRONTSTR_680_TERMINATE_THIS_TOURNAMENT),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
-						} else if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
+						} else if (
+							g_pilotData
+								.missionDirectoryId ==
+							MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
-								FrontendString_Get(FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
-								FrontendString_Get(FRONTSTR_683_TERMINATE_THIS_BATTLE),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
+								FrontendString_Get(
+									FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
+								FrontendString_Get(
+									FRONTSTR_683_TERMINATE_THIS_BATTLE),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						} else {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_779_YOU_ARE_CURRENTLY_PLAYING_A_CAMPAIGN),
-								FrontendString_Get(FRONTSTR_780_ARE_YOU_SURE_YOU_WANT_TO),
-								FrontendString_Get(FRONTSTR_781_TERMINATE_THIS_CAMPAIGN),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_779_YOU_ARE_CURRENTLY_PLAYING_A_CAMPAIGN),
+								FrontendString_Get(
+									FRONTSTR_780_ARE_YOU_SURE_YOU_WANT_TO),
+								FrontendString_Get(
+									FRONTSTR_781_TERMINATE_THIS_CAMPAIGN),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						}
 					}
@@ -559,26 +758,38 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 				if (actionTriggered != 0) {
 					if (g_pilotData.name[0] != '\0') {
 						g_missionSetupIsHost = 0;
-						g_missionSetupRosterAuthoritative = 0;
-						if (screenContext != SCREEN_CONTEXT_MISSION) {
+						g_missionSetupRosterAuthoritative =
+							0;
+						if (screenContext !=
+						    SCREEN_CONTEXT_MISSION) {
 							Net_ShutdownDirectPlaySession();
-							g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
-							FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen,
-														FrontendMissionList_FreeScreenResources);
+							g_frontendMissionSessionMode =
+								FRONTEND_MISSION_SESSION_NET_CLIENT;
+							FrontendScreen_SetCallbacks(
+								FrontendNet_JoinGameScreen,
+								FrontendMissionList_FreeScreenResources);
 						} else {
-							transitionNeedsSessionShutdown = 1;
-							g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
-							FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen,
-														FrontendMissionList_FreeScreenResources);
+							transitionNeedsSessionShutdown =
+								1;
+							g_frontendMissionSessionMode =
+								FRONTEND_MISSION_SESSION_NET_CLIENT;
+							FrontendScreen_SetCallbacks(
+								FrontendNet_JoinGameScreen,
+								FrontendMissionList_FreeScreenResources);
 						}
 					} else {
 						FrontendDialog_ShowConfirmDialog(
-							FrontendString_Get(FRONTSTR_524_YOU_MUST_SELECT_A_PILOT_FROM),
-							FrontendString_Get(FRONTSTR_525_THE_PILOT_ROSTER_OR_CREATE),
-							FrontendString_Get(FRONTSTR_526_A_NEW_ONE_BEFORE_CONTINUING), NULL, NULL);
+							FrontendString_Get(
+								FRONTSTR_524_YOU_MUST_SELECT_A_PILOT_FROM),
+							FrontendString_Get(
+								FRONTSTR_525_THE_PILOT_ROSTER_OR_CREATE),
+							FrontendString_Get(
+								FRONTSTR_526_A_NEW_ONE_BEFORE_CONTINUING),
+							NULL, NULL);
 #ifdef XVT_MODERN
-						if (XvtDialog_IsActive())
+						if (XvtDialog_IsActive()) {
 							return 0;
+						}
 #endif
 					}
 				}
@@ -587,129 +798,196 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 
 		if (g_hostCdAvailable != 0) {
 			FrontendDraw_RectAssign(&rect, 257, 4, 389, 42);
-			FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_004_HOST_GAME));
+			FrontendButton_SetOverlayText(
+				FrontendString_Get(FRONTSTR_004_HOST_GAME));
 			switch (g_gameConfig.networkType) {
-				case NET_TRANSPORT_IPX:
-					if (g_gameConfig.internetPlay != 0) {
-						tooltipText = FrontendString_Get(FRONTSTR_721_HOST_INTERNET_IPX_GAME);
-					} else {
-						tooltipText = FrontendString_Get(FRONTSTR_722_HOST_LOCAL_IPX_GAME);
-					}
-					break;
-				case NET_TRANSPORT_TCPIP:
-					if (g_gameConfig.internetPlay != 0) {
-						tooltipText = FrontendString_Get(FRONTSTR_723_HOST_INTERNET_TCP_IP_GAME);
-					} else {
-						tooltipText = FrontendString_Get(FRONTSTR_724_HOST_LOCAL_TCP_IP_GAME);
-					}
-					break;
-				case NET_TRANSPORT_MODEM:
-					tooltipText = FrontendString_Get(FRONTSTR_725_HOST_DIRECT_MODEM_GAME);
-					break;
-				case NET_TRANSPORT_SERIAL:
-					tooltipText = FrontendString_Get(FRONTSTR_726_HOST_DIRECT_SERIAL_GAME);
-					break;
-				default:
-					tooltipText = FrontendString_Get(FRONTSTR_004_HOST_GAME);
-					break;
+			case NET_TRANSPORT_IPX:
+				if (g_gameConfig.internetPlay != 0) {
+					tooltipText = FrontendString_Get(
+						FRONTSTR_721_HOST_INTERNET_IPX_GAME);
+				} else {
+					tooltipText = FrontendString_Get(
+						FRONTSTR_722_HOST_LOCAL_IPX_GAME);
+				}
+				break;
+			case NET_TRANSPORT_TCPIP:
+				if (g_gameConfig.internetPlay != 0) {
+					tooltipText = FrontendString_Get(
+						FRONTSTR_723_HOST_INTERNET_TCP_IP_GAME);
+				} else {
+					tooltipText = FrontendString_Get(
+						FRONTSTR_724_HOST_LOCAL_TCP_IP_GAME);
+				}
+				break;
+			case NET_TRANSPORT_MODEM:
+				tooltipText = FrontendString_Get(
+					FRONTSTR_725_HOST_DIRECT_MODEM_GAME);
+				break;
+			case NET_TRANSPORT_SERIAL:
+				tooltipText = FrontendString_Get(
+					FRONTSTR_726_HOST_DIRECT_SERIAL_GAME);
+				break;
+			default:
+				tooltipText = FrontendString_Get(
+					FRONTSTR_004_HOST_GAME);
+				break;
 			}
 			strcpy(g_frontendScratchBuffer, tooltipText);
-			if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_HOST) {
+			if (g_frontendMissionSessionMode ==
+			    FRONTEND_MISSION_SESSION_NET_HOST) {
 				FrontendButton_UsePressedOverlayStyle();
-				FrontendButton_DrawSpriteAndTooltip(&rect, "creategamedown", g_frontendScratchBuffer,
-													BUTTON_FONT_SIZE, 0);
+				FrontendButton_DrawSpriteAndTooltip(
+					&rect, "creategamedown",
+					g_frontendScratchBuffer,
+					BUTTON_FONT_SIZE, 0);
 			} else {
 				actionTriggered =
-					FrontendButton_HandleSpriteButton(&rect, NULL, "creategamedown", g_frontendScratchBuffer,
-													  BUTTON_FONT_SIZE, 0, HOST_HELD_SLOT, "buttonsound");
+					FrontendButton_HandleSpriteButton(
+						&rect, NULL, "creategamedown",
+						g_frontendScratchBuffer,
+						BUTTON_FONT_SIZE, 0,
+						HOST_HELD_SLOT, "buttonsound");
 #ifdef XVT_MODERN
-				actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 3, actionTriggered);
+				actionTriggered = XvtFrontendAction_Trigger(
+					XVT_ACTION_OWNER_COMMON, 3,
+					actionTriggered);
 #endif
 				if (actionTriggered != 0) {
-					if (g_frontendGameSessionInProgress != 0) {
-						if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+					if (g_frontendGameSessionInProgress !=
+					    0) {
+						if (g_frontendMissionSessionMode !=
+						    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 							if (Net_IsHost() != 0) {
 								actionTriggered = FrontendDialog_ShowConfirmDialog(
-									FrontendString_Get(FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
-									FrontendString_Get(FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
-									FrontendString_Get(FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-									FrontendString_Get(FRONTSTR_523_OKAY),
-									FrontendString_Get(FRONTSTR_019_CANCEL));
+									FrontendString_Get(
+										FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
+									FrontendString_Get(
+										FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
+									FrontendString_Get(
+										FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+									FrontendString_Get(
+										FRONTSTR_523_OKAY),
+									FrontendString_Get(
+										FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-								if (XvtDialog_IsActive())
+								if (XvtDialog_IsActive()) {
 									return 0;
+								}
 #endif
 							} else {
 								actionTriggered = FrontendDialog_ShowConfirmDialog(
-									FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
-									FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-									FrontendString_Get(FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
-									FrontendString_Get(FRONTSTR_523_OKAY),
-									FrontendString_Get(FRONTSTR_019_CANCEL));
+									FrontendString_Get(
+										FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
+									FrontendString_Get(
+										FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+									FrontendString_Get(
+										FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
+									FrontendString_Get(
+										FRONTSTR_523_OKAY),
+									FrontendString_Get(
+										FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-								if (XvtDialog_IsActive())
+								if (XvtDialog_IsActive()) {
 									return 0;
+								}
 #endif
 							}
-						} else if (g_pilotData.missionSequenceActive == 1) {
-							if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_MELEES) {
+						} else if (
+							g_pilotData
+								.missionSequenceActive ==
+							1) {
+							if (g_pilotData
+								    .missionDirectoryId ==
+							    MISSION_DIRECTORY_MELEES) {
 								actionTriggered = FrontendDialog_ShowConfirmDialog(
-									FrontendString_Get(FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
-									FrontendString_Get(FRONTSTR_679_ARE_YOU_SURE_YOU_WANT_TO),
-									FrontendString_Get(FRONTSTR_680_TERMINATE_THIS_TOURNAMENT),
-									FrontendString_Get(FRONTSTR_523_OKAY),
-									FrontendString_Get(FRONTSTR_019_CANCEL));
+									FrontendString_Get(
+										FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
+									FrontendString_Get(
+										FRONTSTR_679_ARE_YOU_SURE_YOU_WANT_TO),
+									FrontendString_Get(
+										FRONTSTR_680_TERMINATE_THIS_TOURNAMENT),
+									FrontendString_Get(
+										FRONTSTR_523_OKAY),
+									FrontendString_Get(
+										FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-								if (XvtDialog_IsActive())
+								if (XvtDialog_IsActive()) {
 									return 0;
+								}
 #endif
-							} else if (g_pilotData.missionDirectoryId ==
-									   MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
+							} else if (
+								g_pilotData
+									.missionDirectoryId ==
+								MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
 								actionTriggered = FrontendDialog_ShowConfirmDialog(
-									FrontendString_Get(FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
-									FrontendString_Get(FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
-									FrontendString_Get(FRONTSTR_683_TERMINATE_THIS_BATTLE),
-									FrontendString_Get(FRONTSTR_523_OKAY),
-									FrontendString_Get(FRONTSTR_019_CANCEL));
+									FrontendString_Get(
+										FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
+									FrontendString_Get(
+										FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
+									FrontendString_Get(
+										FRONTSTR_683_TERMINATE_THIS_BATTLE),
+									FrontendString_Get(
+										FRONTSTR_523_OKAY),
+									FrontendString_Get(
+										FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-								if (XvtDialog_IsActive())
+								if (XvtDialog_IsActive()) {
 									return 0;
+								}
 #endif
 							} else {
 								actionTriggered = FrontendDialog_ShowConfirmDialog(
-									FrontendString_Get(FRONTSTR_779_YOU_ARE_CURRENTLY_PLAYING_A_CAMPAIGN),
-									FrontendString_Get(FRONTSTR_780_ARE_YOU_SURE_YOU_WANT_TO),
-									FrontendString_Get(FRONTSTR_781_TERMINATE_THIS_CAMPAIGN),
-									FrontendString_Get(FRONTSTR_523_OKAY),
-									FrontendString_Get(FRONTSTR_019_CANCEL));
+									FrontendString_Get(
+										FRONTSTR_779_YOU_ARE_CURRENTLY_PLAYING_A_CAMPAIGN),
+									FrontendString_Get(
+										FRONTSTR_780_ARE_YOU_SURE_YOU_WANT_TO),
+									FrontendString_Get(
+										FRONTSTR_781_TERMINATE_THIS_CAMPAIGN),
+									FrontendString_Get(
+										FRONTSTR_523_OKAY),
+									FrontendString_Get(
+										FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-								if (XvtDialog_IsActive())
+								if (XvtDialog_IsActive()) {
 									return 0;
+								}
 #endif
 							}
 						}
 					}
 					if (actionTriggered != 0) {
-						if (g_pilotData.name[0] != '\0') {
-							if (screenContext != SCREEN_CONTEXT_MISSION) {
+						if (g_pilotData.name[0] !=
+						    '\0') {
+							if (screenContext !=
+							    SCREEN_CONTEXT_MISSION) {
 								Net_ShutdownDirectPlaySession();
-								g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_HOST;
-								FrontendScreen_SetCallbacks(FrontendNet_HostGameScreen,
-															FrontendNet_HostGameExit);
+								g_frontendMissionSessionMode =
+									FRONTEND_MISSION_SESSION_NET_HOST;
+								FrontendScreen_SetCallbacks(
+									FrontendNet_HostGameScreen,
+									FrontendNet_HostGameExit);
 							} else {
-								transitionNeedsSessionShutdown = 1;
-								g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_HOST;
-								FrontendScreen_SetCallbacks(FrontendNet_HostGameScreen,
-															FrontendNet_HostGameExit);
+								transitionNeedsSessionShutdown =
+									1;
+								g_frontendMissionSessionMode =
+									FRONTEND_MISSION_SESSION_NET_HOST;
+								FrontendScreen_SetCallbacks(
+									FrontendNet_HostGameScreen,
+									FrontendNet_HostGameExit);
 							}
 						} else {
 							FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_524_YOU_MUST_SELECT_A_PILOT_FROM),
-								FrontendString_Get(FRONTSTR_525_THE_PILOT_ROSTER_OR_CREATE),
-								FrontendString_Get(FRONTSTR_526_A_NEW_ONE_BEFORE_CONTINUING), NULL, NULL);
+								FrontendString_Get(
+									FRONTSTR_524_YOU_MUST_SELECT_A_PILOT_FROM),
+								FrontendString_Get(
+									FRONTSTR_525_THE_PILOT_ROSTER_OR_CREATE),
+								FrontendString_Get(
+									FRONTSTR_526_A_NEW_ONE_BEFORE_CONTINUING),
+								NULL, NULL);
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						}
 					}
@@ -717,67 +995,110 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 			}
 
 			FrontendDraw_RectAssign(&rect, 153, 4, 252, 43);
-			FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_002_FLY_SOLO));
-			if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+			FrontendButton_SetOverlayText(
+				FrontendString_Get(FRONTSTR_002_FLY_SOLO));
+			if (g_frontendMissionSessionMode ==
+			    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 				FrontendButton_UsePressedOverlayStyle();
 				FrontendButton_DrawSpriteAndTooltip(
-					&rect, "flysolodown", FrontendString_Get(FRONTSTR_002_FLY_SOLO), BUTTON_FONT_SIZE, 0);
+					&rect, "flysolodown",
+					FrontendString_Get(
+						FRONTSTR_002_FLY_SOLO),
+					BUTTON_FONT_SIZE, 0);
 			} else {
-				actionTriggered = FrontendButton_HandleSpriteButton(
-					&rect, "NULL", "flysolodown", FrontendString_Get(FRONTSTR_002_FLY_SOLO), BUTTON_FONT_SIZE,
-					0, SOLO_HELD_SLOT, "buttonsound");
+				actionTriggered =
+					FrontendButton_HandleSpriteButton(
+						&rect, "NULL", "flysolodown",
+						FrontendString_Get(
+							FRONTSTR_002_FLY_SOLO),
+						BUTTON_FONT_SIZE, 0,
+						SOLO_HELD_SLOT, "buttonsound");
 #ifdef XVT_MODERN
-				actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 4, actionTriggered);
+				actionTriggered = XvtFrontendAction_Trigger(
+					XVT_ACTION_OWNER_COMMON, 4,
+					actionTriggered);
 #endif
 				if (actionTriggered != 0) {
-					if (g_frontendGameSessionInProgress != 0 &&
-						g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+					if (g_frontendGameSessionInProgress !=
+						    0 &&
+					    g_frontendMissionSessionMode !=
+						    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 						if (Net_IsHost() != 0) {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
-								FrontendString_Get(FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
-								FrontendString_Get(FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
+								FrontendString_Get(
+									FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
+								FrontendString_Get(
+									FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						} else {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
-								FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-								FrontendString_Get(FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
+								FrontendString_Get(
+									FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+								FrontendString_Get(
+									FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						}
 					}
 					if (actionTriggered != 0) {
-						if (g_pilotData.name[0] != '\0') {
-							g_missionSetupIsHost = 0;
-							g_missionSetupRosterAuthoritative = 0;
-							if (screenContext != SCREEN_CONTEXT_MISSION) {
+						if (g_pilotData.name[0] !=
+						    '\0') {
+							g_missionSetupIsHost =
+								0;
+							g_missionSetupRosterAuthoritative =
+								0;
+							if (screenContext !=
+							    SCREEN_CONTEXT_MISSION) {
 								Net_ShutdownDirectPlaySession();
-								memset(g_mpRoster, 0, sizeof(g_mpRoster));
-								g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
-								FrontendScreen_SetCallbacks(MissionSetup_Update, MissionSetup_Exit);
+								memset(g_mpRoster,
+								       0,
+								       sizeof(g_mpRoster));
+								g_frontendMissionSessionMode =
+									FRONTEND_MISSION_SESSION_SINGLEPLAYER;
+								FrontendScreen_SetCallbacks(
+									MissionSetup_Update,
+									MissionSetup_Exit);
 							} else {
-								transitionNeedsSessionShutdown = 1;
-								g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
-								FrontendScreen_SetCallbacks(MissionSetup_Update, MissionSetup_Exit);
+								transitionNeedsSessionShutdown =
+									1;
+								g_frontendMissionSessionMode =
+									FRONTEND_MISSION_SESSION_SINGLEPLAYER;
+								FrontendScreen_SetCallbacks(
+									MissionSetup_Update,
+									MissionSetup_Exit);
 							}
 						} else {
 							FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_524_YOU_MUST_SELECT_A_PILOT_FROM),
-								FrontendString_Get(FRONTSTR_525_THE_PILOT_ROSTER_OR_CREATE),
-								FrontendString_Get(FRONTSTR_526_A_NEW_ONE_BEFORE_CONTINUING), NULL, NULL);
+								FrontendString_Get(
+									FRONTSTR_524_YOU_MUST_SELECT_A_PILOT_FROM),
+								FrontendString_Get(
+									FRONTSTR_525_THE_PILOT_ROSTER_OR_CREATE),
+								FrontendString_Get(
+									FRONTSTR_526_A_NEW_ONE_BEFORE_CONTINUING),
+								NULL, NULL);
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						}
 					}
@@ -790,14 +1111,18 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 	FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_566_CRAFT));
 	if (screenContext == SCREEN_CONTEXT_TECH_LIBRARY) {
 		FrontendButton_UsePressedOverlayStyle();
-		FrontendButton_DrawSpriteAndTooltip(&rect, "reviewcraftdown",
-											FrontendString_Get(FRONTSTR_571_EXIT_CRAFT_DATABASE),
-											BUTTON_FONT_SIZE, 0);
+		FrontendButton_DrawSpriteAndTooltip(
+			&rect, "reviewcraftdown",
+			FrontendString_Get(FRONTSTR_571_EXIT_CRAFT_DATABASE),
+			BUTTON_FONT_SIZE, 0);
 		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY) != 0 &&
-			(FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0)) {
+		    (FrontendMouse_GetLeftClick() != 0 ||
+		     FrontendMouse_GetRightClick() != 0)) {
 			if (g_gameConfig.sfxDatapadEnabled != 0) {
-				FrontendSound_PlayUISound("buttonsound", 1, 0, UI_SOUND_PRIORITY,
-										  12 * g_gameConfig.sfxDatapadVolume, UI_SOUND_PAN_CENTER);
+				FrontendSound_PlayUISound(
+					"buttonsound", 1, 0, UI_SOUND_PRIORITY,
+					12 * g_gameConfig.sfxDatapadVolume,
+					UI_SOUND_PAN_CENTER);
 			}
 			g_activeTextFieldId = 0;
 			Keyboard_FlushCharBuffer();
@@ -819,86 +1144,134 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 			FrontendText_StopTextFade();
 		}
 	} else if (screenContext < SCREEN_CONTEXT_CONFIG &&
-			   FrontendButton_HandleSpriteButton(&rect, NULL, "reviewcraftdown",
-												 FrontendString_Get(FRONTSTR_001_CRAFT_DATABASE),
-												 BUTTON_FONT_SIZE, 0, CRAFT_HELD_SLOT, "buttonsound") != 0) {
+		   FrontendButton_HandleSpriteButton(
+			   &rect, NULL, "reviewcraftdown",
+			   FrontendString_Get(FRONTSTR_001_CRAFT_DATABASE),
+			   BUTTON_FONT_SIZE, 0, CRAFT_HELD_SLOT,
+			   "buttonsound") != 0) {
 		FrontendDraw_RectAssign(&screenRect, 0, 0, 640, 480);
 		FrontendScreen_QueuePush(TechLibrary_Update, &screenRect);
 	}
 
 	if (screenContext < SCREEN_CONTEXT_CONFIG) {
 		FrontendDraw_RectAssign(&rect, 9, 4, 62, 71);
-		FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_565_PILOTS));
-		if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NONE) {
+		FrontendButton_SetOverlayText(
+			FrontendString_Get(FRONTSTR_565_PILOTS));
+		if (g_frontendMissionSessionMode ==
+		    FRONTEND_MISSION_SESSION_NONE) {
 			FrontendButton_UsePressedOverlayStyle();
 			FrontendButton_DrawSpriteAndTooltip(
-				&rect, "pilotregdown", FrontendString_Get(FRONTSTR_000_PILOT_RECORDS), BUTTON_FONT_SIZE, 0);
+				&rect, "pilotregdown",
+				FrontendString_Get(FRONTSTR_000_PILOT_RECORDS),
+				BUTTON_FONT_SIZE, 0);
 		} else {
 			actionTriggered = FrontendButton_HandleSpriteButton(
-				&rect, NULL, "pilotregdown", FrontendString_Get(FRONTSTR_000_PILOT_RECORDS), BUTTON_FONT_SIZE,
-				0, PILOT_HELD_SLOT, "buttonsound");
+				&rect, NULL, "pilotregdown",
+				FrontendString_Get(FRONTSTR_000_PILOT_RECORDS),
+				BUTTON_FONT_SIZE, 0, PILOT_HELD_SLOT,
+				"buttonsound");
 #ifdef XVT_MODERN
-			actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 5, actionTriggered);
+			actionTriggered = XvtFrontendAction_Trigger(
+				XVT_ACTION_OWNER_COMMON, 5, actionTriggered);
 #endif
 			if (actionTriggered != 0) {
 				if (g_frontendGameSessionInProgress != 0) {
-					if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+					if (g_frontendMissionSessionMode !=
+					    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 						if (Net_IsHost() != 0) {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
-								FrontendString_Get(FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
-								FrontendString_Get(FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
+								FrontendString_Get(
+									FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
+								FrontendString_Get(
+									FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						} else {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
-								FrontendString_Get(FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-								FrontendString_Get(FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
+								FrontendString_Get(
+									FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+								FrontendString_Get(
+									FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						}
-					} else if (g_pilotData.missionSequenceActive == 1) {
-						if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_MELEES) {
+					} else if (
+						g_pilotData
+							.missionSequenceActive ==
+						1) {
+						if (g_pilotData
+							    .missionDirectoryId ==
+						    MISSION_DIRECTORY_MELEES) {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
-								FrontendString_Get(FRONTSTR_679_ARE_YOU_SURE_YOU_WANT_TO),
-								FrontendString_Get(FRONTSTR_680_TERMINATE_THIS_TOURNAMENT),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
+								FrontendString_Get(
+									FRONTSTR_679_ARE_YOU_SURE_YOU_WANT_TO),
+								FrontendString_Get(
+									FRONTSTR_680_TERMINATE_THIS_TOURNAMENT),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
-						} else if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
+						} else if (
+							g_pilotData
+								.missionDirectoryId ==
+							MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
-								FrontendString_Get(FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
-								FrontendString_Get(FRONTSTR_683_TERMINATE_THIS_BATTLE),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
+								FrontendString_Get(
+									FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
+								FrontendString_Get(
+									FRONTSTR_683_TERMINATE_THIS_BATTLE),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						} else {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
-								FrontendString_Get(FRONTSTR_779_YOU_ARE_CURRENTLY_PLAYING_A_CAMPAIGN),
-								FrontendString_Get(FRONTSTR_780_ARE_YOU_SURE_YOU_WANT_TO),
-								FrontendString_Get(FRONTSTR_781_TERMINATE_THIS_CAMPAIGN),
-								FrontendString_Get(FRONTSTR_523_OKAY),
-								FrontendString_Get(FRONTSTR_019_CANCEL));
+								FrontendString_Get(
+									FRONTSTR_779_YOU_ARE_CURRENTLY_PLAYING_A_CAMPAIGN),
+								FrontendString_Get(
+									FRONTSTR_780_ARE_YOU_SURE_YOU_WANT_TO),
+								FrontendString_Get(
+									FRONTSTR_781_TERMINATE_THIS_CAMPAIGN),
+								FrontendString_Get(
+									FRONTSTR_523_OKAY),
+								FrontendString_Get(
+									FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
-							if (XvtDialog_IsActive())
+							if (XvtDialog_IsActive()) {
 								return 0;
+							}
 #endif
 						}
 					}
@@ -906,26 +1279,42 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 				if (actionTriggered != 0) {
 					g_missionSetupIsHost = 0;
 					g_missionSetupRosterAuthoritative = 0;
-					if (screenContext != SCREEN_CONTEXT_MISSION) {
+					if (screenContext !=
+					    SCREEN_CONTEXT_MISSION) {
 						Net_ShutdownDirectPlaySession();
-						g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
-						FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
+						g_frontendMissionSessionMode =
+							FRONTEND_MISSION_SESSION_NONE;
+						FrontendScreen_SetCallbacks(
+							Concourse_Update,
+							Concourse_Exit);
 					} else {
-						g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
-						transitionNeedsSessionShutdown = 1;
-						FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
+						g_frontendMissionSessionMode =
+							FRONTEND_MISSION_SESSION_NONE;
+						transitionNeedsSessionShutdown =
+							1;
+						FrontendScreen_SetCallbacks(
+							Concourse_Update,
+							Concourse_Exit);
 					}
 				}
 			}
 		}
 
-		if (screenContext == SCREEN_CONTEXT_MISSION && transitionNeedsSessionShutdown != 0) {
+		if (screenContext == SCREEN_CONTEXT_MISSION &&
+		    transitionNeedsSessionShutdown != 0) {
 			if (Net_IsHost() != 0) {
-				g_frontendNetPacketScratch.packetType = NET_PACKET_HOST_CANCELLED;
-				Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch, sizeof(int));
+				g_frontendNetPacketScratch.packetType =
+					NET_PACKET_HOST_CANCELLED;
+				Net_SendPacketAndFlush(
+					0, &g_frontendNetPacketScratch,
+					sizeof(int));
 			} else {
-				g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
-				Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch, sizeof(int));
+				g_frontendNetPacketScratch.packetType =
+					NET_PACKET_PLAYER_LEFT;
+				Net_SendPacketAndFlush(
+					Net_GetHostPlayerId(),
+					&g_frontendNetPacketScratch,
+					sizeof(int));
 			}
 			Net_ShutdownDirectPlaySession();
 			memset(g_mpRoster, 0, sizeof(g_mpRoster));
@@ -940,7 +1329,8 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 }
 
 // FUNCTION: XVT 0x4C9BF0
-int Frontend_FormatSecondsToClockString(unsigned int seconds) {
+int Frontend_FormatSecondsToClockString(unsigned int seconds)
+{
 	unsigned int hours;
 	unsigned int minutes;
 	unsigned int secondsRemainder;
@@ -949,16 +1339,19 @@ int Frontend_FormatSecondsToClockString(unsigned int seconds) {
 	minutes = seconds / 60u % 60u;
 	hours = seconds / 3600u;
 	if (hours == 0) {
-		return sprintf(g_frontendScratchBuffer, "%02d:%02d", minutes, secondsRemainder);
+		return sprintf(g_frontendScratchBuffer, "%02d:%02d", minutes,
+			       secondsRemainder);
 	}
-	return sprintf(g_frontendScratchBuffer, "%02d:%02d:%02d", hours, minutes, secondsRemainder);
+	return sprintf(g_frontendScratchBuffer, "%02d:%02d:%02d", hours,
+		       minutes, secondsRemainder);
 }
 
 // FUNCTION: XVT 0x4C9E30
-int ErrorText_LoadLine(int lineIndex, char* outText) {
-	XvtFile* stream;
+int ErrorText_LoadLine(int lineIndex, char *outText)
+{
+	XvtFile *stream;
 	int linesRemaining;
-	char* line;
+	char *line;
 	int i;
 	char value;
 #ifdef XVT_MODERN
@@ -985,7 +1378,7 @@ int ErrorText_LoadLine(int lineIndex, char* outText) {
 #ifdef XVT_MODERN
 		line = 0;
 #else
-		line = *(char**)buffer;
+		line = *(char **)buffer;
 #endif
 	}
 #ifdef XVT_MODERN
@@ -1009,16 +1402,18 @@ int ErrorText_LoadLine(int lineIndex, char* outText) {
 }
 
 // FUNCTION: XVT 0x4C9EE0
-int Frontend_CheckHostCdPresent(void) {
+int Frontend_CheckHostCdPresent(void)
+{
 #ifdef XVT_MODERN
 	char path[XVT_PATH_CAPACITY];
-	g_hostCdAvailable = XvtStorage_ResolveAsset("train/1ta01bf.tie", path, sizeof(path)) == 1;
+	g_hostCdAvailable = XvtStorage_ResolveAsset("train/1ta01bf.tie", path,
+						    sizeof(path)) == 1;
 	return g_hostCdAvailable;
 #else
 
 	char fileName[128] = "c\\train\\1TA01BF.TIE\0";
 	char cdDriveLetter;
-	XvtFile* stream;
+	XvtFile *stream;
 	int result;
 
 	cdDriveLetter = File_GetCdDriveLetter();
@@ -1040,20 +1435,23 @@ int Frontend_CheckHostCdPresent(void) {
 }
 
 // FUNCTION: XVT 0x4C9F60
-int Frontend_SavePersistentState(void) {
+int Frontend_SavePersistentState(void)
+{
 	Pilot_Save(0);
 	Config_Write();
 	return 1;
 }
 
 // FUNCTION: XVT 0x4D9B80
-int Frontend_IsScrollableControlFocused(int controlId) {
+int Frontend_IsScrollableControlFocused(int controlId)
+{
 	controlId -= g_scrollableControlIds[0];
 	return !controlId;
 }
 
 // FUNCTION: XVT 0x4D9BA0
-int Frontend_RegisterScrollableControl(int controlId) {
+int Frontend_RegisterScrollableControl(int controlId)
+{
 	int count;
 	unsigned int index;
 
@@ -1079,7 +1477,8 @@ int Frontend_RegisterScrollableControl(int controlId) {
 #pragma function(memcpy)
 #endif
 // FUNCTION: XVT 0x4D9BF0
-int Frontend_UnregisterScrollableControl(int controlId) {
+int Frontend_UnregisterScrollableControl(int controlId)
+{
 	int count;
 	unsigned int index;
 
@@ -1089,11 +1488,17 @@ int Frontend_UnregisterScrollableControl(int controlId) {
 		do {
 			if (g_scrollableControlIds[index] == controlId) {
 #ifdef XVT_MODERN
-				memmove(&g_scrollableControlIds[index], &g_scrollableControlIds[index + 1],
-						(size_t)(count - index - 1) * sizeof(g_scrollableControlIds[0]));
+				memmove(&g_scrollableControlIds[index],
+					&g_scrollableControlIds[index + 1],
+					(size_t)(count - index - 1) *
+						sizeof(g_scrollableControlIds
+							       [0]));
 #else
-				memcpy(&g_scrollableControlIds[index], &g_scrollableControlIds[index + 1],
-					   (size_t)(count - index - 1) * sizeof(g_scrollableControlIds[0]));
+				memcpy(&g_scrollableControlIds[index],
+				       &g_scrollableControlIds[index + 1],
+				       (size_t)(count - index - 1) *
+					       sizeof(g_scrollableControlIds
+							      [0]));
 #endif
 				--g_scrollableControlCount;
 				return 1;
@@ -1105,7 +1510,8 @@ int Frontend_UnregisterScrollableControl(int controlId) {
 }
 
 // FUNCTION: XVT 0x4D9C50
-int Frontend_CycleScrollableFocus(void) {
+int Frontend_CycleScrollableFocus(void)
+{
 	int firstControlId;
 
 	if (g_scrollableControlCount == 0) {
@@ -1116,10 +1522,12 @@ int Frontend_CycleScrollableFocus(void) {
 #ifdef XVT_MODERN
 	/* The source and destination overlap, so modern builds require memmove. */
 	memmove(g_scrollableControlIds, &g_scrollableControlIds[1],
-			(size_t)(g_scrollableControlCount - 1) * sizeof(g_scrollableControlIds[0]));
+		(size_t)(g_scrollableControlCount - 1) *
+			sizeof(g_scrollableControlIds[0]));
 #else
 	memcpy(g_scrollableControlIds, &g_scrollableControlIds[1],
-		   (size_t)(g_scrollableControlCount - 1) * sizeof(g_scrollableControlIds[0]));
+	       (size_t)(g_scrollableControlCount - 1) *
+		       sizeof(g_scrollableControlIds[0]));
 #endif
 	g_scrollableControlIds[g_scrollableControlCount - 1] = firstControlId;
 	return 1;
@@ -1129,7 +1537,8 @@ int Frontend_CycleScrollableFocus(void) {
 #endif
 
 // FUNCTION: XVT 0x4D9CA0
-int Frontend_ResetScrollableControls(void) {
+int Frontend_ResetScrollableControls(void)
+{
 	g_scrollableControlCount = 0;
 	return 1;
 }

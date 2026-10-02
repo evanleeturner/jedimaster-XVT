@@ -37,7 +37,8 @@ static CutsceneEntry g_table[1];
 
 static int Placeholder(int frame) { return frame; }
 
-static void Fresh(int session_mode) {
+static void Fresh(int session_mode)
+{
 	XvtCampaignTask_Reset();
 	XvtMovieTask_Shutdown();
 	XvtNetworkSession_Shutdown();
@@ -65,7 +66,8 @@ static void Fresh(int session_mode) {
 }
 
 /* A remote battle in progress, which a failed continuation clears. */
-static void RemoteBattle(void) {
+static void RemoteBattle(void)
+{
 	g_remoteBattleContinuationActive = 1;
 	g_remoteBattleSequenceContinuationChoice = 2;
 	g_remoteBattleLastCompletedMissionIndex = 3;
@@ -73,7 +75,8 @@ static void RemoteBattle(void) {
 	g_remoteBattleImperialVictoryCount = 5;
 }
 
-static void CheckRemoteBattleCleared(void) {
+static void CheckRemoteBattleCleared(void)
+{
 	XVT_ASSERT_INT_EQ(g_remoteBattleContinuationActive, 0);
 	XVT_ASSERT_INT_EQ(g_remoteBattleSequenceContinuationChoice, 0);
 	XVT_ASSERT_INT_EQ(g_remoteBattleLastCompletedMissionIndex, 0);
@@ -81,60 +84,72 @@ static void CheckRemoteBattleCleared(void) {
 	XVT_ASSERT_INT_EQ(g_remoteBattleImperialVictoryCount, 0);
 }
 
-static FrontendScreenUpdateFn TopScreen(void) {
+static FrontendScreenUpdateFn TopScreen(void)
+{
 	return g_frontState.screenStates[g_frontState.screenStackTop].updateFn;
 }
 
 static void AdvanceMs(int ms) { XvtTime_AdvanceHostClock(ms * 1000); }
 
-static void CheckWaitPacketLimit(void) {
+static void CheckWaitPacketLimit(void)
+{
 	int dummy = 0;
-	int* packet = &dummy;
+	int *packet = &dummy;
 	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_ContinuesWithoutFocus(), 0);
 
 	/* The wait starts with its first call, here 5 s after the clock's start. */
 	AdvanceMs(5000);
-	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
-					  XVT_CAMPAIGN_PENDING);
+	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(
+				  NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
+			  XVT_CAMPAIGN_PENDING);
 	XVT_ASSERT_TRUE(packet == NULL);
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_ContinuesWithoutFocus(), 1);
 
 	/* Exactly 30 s later it still waits; past that it gives up with 0. */
 	AdvanceMs(30000);
 	packet = &dummy;
-	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
-					  XVT_CAMPAIGN_PENDING);
+	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(
+				  NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
+			  XVT_CAMPAIGN_PENDING);
 	XVT_ASSERT_TRUE(packet == NULL);
 	AdvanceMs(1);
 	packet = &dummy;
-	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(NET_PACKET_CAMPAIGN_CONTINUATION, &packet), 0);
+	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(
+				  NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
+			  0);
 	XVT_ASSERT_TRUE(packet == NULL);
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_ContinuesWithoutFocus(), 0);
 
 	/* The next call starts a new wait. */
-	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(NET_PACKET_BATTLE_CONTINUATION, &packet),
-					  XVT_CAMPAIGN_PENDING);
+	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(
+				  NET_PACKET_BATTLE_CONTINUATION, &packet),
+			  XVT_CAMPAIGN_PENDING);
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_ContinuesWithoutFocus(), 1);
 }
 
-static void CheckResetForgetsWait(void) {
-	int* packet = NULL;
+static void CheckResetForgetsWait(void)
+{
+	int *packet = NULL;
 	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
-	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
-					  XVT_CAMPAIGN_PENDING);
+	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(
+				  NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
+			  XVT_CAMPAIGN_PENDING);
 	AdvanceMs(20000);
 	XvtCampaignTask_Reset();
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_ContinuesWithoutFocus(), 0);
 	/* A wait after Reset starts its own 30 s: 20 s on, the old limit is past but the new one is not. */
-	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
-					  XVT_CAMPAIGN_PENDING);
+	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(
+				  NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
+			  XVT_CAMPAIGN_PENDING);
 	AdvanceMs(20000);
-	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
-					  XVT_CAMPAIGN_PENDING);
+	XVT_ASSERT_INT_EQ(XvtCampaignTask_WaitPacket(
+				  NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
+			  XVT_CAMPAIGN_PENDING);
 }
 
-static void CheckTeamsReturnAtOnce(void) {
+static void CheckTeamsReturnAtOnce(void)
+{
 	/* No mission sequence. */
 	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
 	g_pilotData.missionDirectoryId = MISSION_DIRECTORY_TRAINING_EXERCISES;
@@ -148,7 +163,8 @@ static void CheckTeamsReturnAtOnce(void) {
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_EnterTeams(), 1);
 	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
 	g_pilotData.missionSequenceActive = 1;
-	g_missionSetupDebriefTransition = MISSION_SETUP_DEBRIEF_TRANSITION_ENTER_CURRENT_MISSION;
+	g_missionSetupDebriefTransition =
+		MISSION_SETUP_DEBRIEF_TRANSITION_ENTER_CURRENT_MISSION;
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_EnterTeams(), 1);
 
 	/* A sequence in a directory other than training or combat. */
@@ -160,7 +176,8 @@ static void CheckTeamsReturnAtOnce(void) {
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_ContinuesWithoutFocus(), 0);
 }
 
-static void CheckTeamsCampaignClient(void) {
+static void CheckTeamsCampaignClient(void)
+{
 	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
 	g_pilotData.missionSequenceActive = 1;
 	g_pilotData.missionDirectoryId = MISSION_DIRECTORY_TRAINING_EXERCISES;
@@ -180,12 +197,14 @@ static void CheckTeamsCampaignClient(void) {
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_EnterTeams(), 0);
 	CheckRemoteBattleCleared();
 	XVT_ASSERT_TRUE(TopScreen() == FrontendNet_JoinGameScreen);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state,
+			  XVT_NETWORK_SESSION_PENDING);
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_IsPending(), 0);
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_ContinuesWithoutFocus(), 0);
 }
 
-static void CheckTeamsBattleClient(void) {
+static void CheckTeamsBattleClient(void)
+{
 	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
 	g_pilotData.missionSequenceActive = 1;
 	g_pilotData.missionDirectoryId = MISSION_DIRECTORY_COMBAT_ENGAGEMENTS;
@@ -201,7 +220,8 @@ static void CheckTeamsBattleClient(void) {
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_IsPending(), 0);
 }
 
-static void CheckResetForgetsPrefix(void) {
+static void CheckResetForgetsPrefix(void)
+{
 	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
 	g_pilotData.missionSequenceActive = 1;
 	g_pilotData.missionDirectoryId = MISSION_DIRECTORY_COMBAT_ENGAGEMENTS;
@@ -216,7 +236,8 @@ static void CheckResetForgetsPrefix(void) {
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_EnterTeams(), XVT_CAMPAIGN_PENDING);
 }
 
-static void CheckDebriefOutsideTraining(void) {
+static void CheckDebriefOutsideTraining(void)
+{
 	Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
 	g_pilotData.missionDirectoryId = MISSION_DIRECTORY_MELEES;
 	g_pilotData.missionSequenceActive = 1;
@@ -231,20 +252,24 @@ static void CheckDebriefOutsideTraining(void) {
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_IsPending(), 0);
 }
 
-static void CheckDebriefTrainingSequence(void) {
+static void CheckDebriefTrainingSequence(void)
+{
 	/* An active training sequence gets its briefing text, whether or not the mission was completed. */
 	for (int completed = 0; completed < 2; ++completed) {
 		Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
-		g_pilotData.missionDirectoryId = MISSION_DIRECTORY_TRAINING_EXERCISES;
+		g_pilotData.missionDirectoryId =
+			MISSION_DIRECTORY_TRAINING_EXERCISES;
 		g_pilotData.missionSequenceActive = 1;
-		g_pilotData.campaignSequenceState.lastMissionCompleted = completed;
+		g_pilotData.campaignSequenceState.lastMissionCompleted =
+			completed;
 		XVT_ASSERT_INT_EQ(XvtCampaignTask_EnterDebrief(), 1);
 		XVT_ASSERT_TRUE(g_missionText != NULL);
 		XVT_ASSERT_TRUE(TopScreen() == Placeholder);
 	}
 }
 
-static void CheckDebriefNetworkLeaves(void) {
+static void CheckDebriefNetworkLeaves(void)
+{
 	/* A completed training mission in a network session with no cutscene table: the cutscene result is
 	 * 0, so the player leaves for the concourse. */
 	Fresh(FRONTEND_MISSION_SESSION_NET_HOST);
@@ -253,7 +278,8 @@ static void CheckDebriefNetworkLeaves(void) {
 	g_pilotData.campaignSequenceState.lastMissionCompleted = 1;
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_EnterDebrief(), 0);
 	XVT_ASSERT_TRUE(TopScreen() == Concourse_Update);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state,
+			  XVT_NETWORK_SESSION_PENDING);
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_IsPending(), 0);
 
 	/* An incomplete mission plays no cutscenes, so the network player stays. */
@@ -264,7 +290,8 @@ static void CheckDebriefNetworkLeaves(void) {
 	XVT_ASSERT_TRUE(TopScreen() == Placeholder);
 }
 
-static void CheckDebriefWaitsForCutscene(void) {
+static void CheckDebriefWaitsForCutscene(void)
+{
 	Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
 	g_pilotData.missionDirectoryId = MISSION_DIRECTORY_TRAINING_EXERCISES;
 	g_pilotData.missionSequenceActive = 1;
@@ -281,7 +308,7 @@ static void CheckDebriefWaitsForCutscene(void) {
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_EnterDebrief(), XVT_CAMPAIGN_PENDING);
 
 	/* The movie fails on the empty file; single-player, the debrief goes on and finishes. */
-	struct timespec pause = { 0, 1000000 };
+	struct timespec pause = {0, 1000000};
 	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
 		XvtMovieTask_Update();
 		nanosleep(&pause, NULL);
@@ -294,7 +321,8 @@ static void CheckDebriefWaitsForCutscene(void) {
 	g_cutsceneCount = 0;
 }
 
-int main(void) {
+int main(void)
+{
 	CheckWaitPacketLimit();
 	CheckResetForgetsWait();
 	CheckTeamsReturnAtOnce();

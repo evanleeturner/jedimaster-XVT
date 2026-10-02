@@ -9,12 +9,14 @@
 /* Reads the required input.controllers list, at most XVT_CONTROLLER_MODEL_CAP models with only the five
  * fields above; guids are stored in lower case. Each profile is read by ReadProfile, then the whole set
  * is validated. */
-bool XvtControllerConfig_Parse(const AeronConfigFile* document, XvtControllerOptions* out, char* error,
-							   size_t capacity);
+bool XvtControllerConfig_Parse(const AeronConfigFile *document,
+			       XvtControllerOptions *out, char *error,
+			       size_t capacity);
 /* Replaces input.controllers with options: every model with all four axes (throttle without a
  * deadzone) and its bindings grouped by action in a fixed order. It does not validate; callers do. */
-bool XvtControllerConfig_Write(AeronConfigFile* document, const XvtControllerOptions* options,
-							   AeronConfigError* error);
+bool XvtControllerConfig_Write(AeronConfigFile *document,
+			       const XvtControllerOptions *options,
+			       AeronConfigError *error);
 /* Reads the required mapping at path into *profile for a gamepad or joystick layout, after clearing it.
  * path.axes holds yaw, pitch, roll and throttle, each with source ("none" unbinds), invert and deadzone
  * from 0 to 1 (throttle's must be absent or 0); an axis left out keeps its cleared value. path.buttons
@@ -23,7 +25,8 @@ bool XvtControllerConfig_Write(AeronConfigFile* document, const XvtControllerOpt
  * or left} on a joystick. A source bound to two actions fails; one repeated for the same action is
  * ignored. Unknown fields fail, except a third key in an axis source, which is ignored unless it is
  * threshold; the profile is validated at the end. */
-bool XvtControllerConfig_ReadProfile(const AeronConfigFile* document, const char* path,
-									 AeronControllerKind kind, XvtControllerProfile* profile, char* error,
-									 size_t capacity);
+bool XvtControllerConfig_ReadProfile(const AeronConfigFile *document,
+				     const char *path, AeronControllerKind kind,
+				     XvtControllerProfile *profile, char *error,
+				     size_t capacity);
 #endif

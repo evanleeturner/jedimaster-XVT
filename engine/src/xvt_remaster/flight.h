@@ -53,10 +53,11 @@ typedef struct XvtPreparedFlight {
  * types, fuselage sequence, hyperspace, or the map in map mode), any temporal mode, an HDR or headroom
  * change, a pause change, or a change of the advance flag unless pause_keep_blur. Returns 0 with the
  * frame invalidated when a view or layout cannot be built. */
-int XvtRemasterFlight_Prepare(const XvtRenderSnapshot* current, const XvtRenderSnapshot* previous, int width,
-							  int height);
+int XvtRemasterFlight_Prepare(const XvtRenderSnapshot *current,
+			      const XvtRenderSnapshot *previous, int width,
+			      int height);
 /* The prepared frame, or NULL while invalid. */
-const XvtPreparedFlight* XvtRemasterFlight_Current(void);
+const XvtPreparedFlight *XvtRemasterFlight_Current(void);
 /* Marks the frame invalid; the next Prepare resets. */
 void XvtRemasterFlight_Invalidate(void);
 /* Marks the frame as needing a render, for a HUD or CRT change. */
@@ -75,11 +76,12 @@ void XvtRemasterFlight_RequestComposition(void);
  * component as variant 1 and draws the full model only at the checkpoint slots. The previous camera
  * serves motion only with camera blur or a temporal mode on. Then the effects, the HUD hook after
  * upscale, and the pipeline's finish. Returns 0 on any failure, the output invalid. */
-int XvtRemasterFlight_Render(AeronCommandBuffer* cmd, const XvtRenderSnapshot* current,
-							 const XvtRenderSnapshot* previous);
+int XvtRemasterFlight_Render(AeronCommandBuffer *cmd,
+			     const XvtRenderSnapshot *current,
+			     const XvtRenderSnapshot *previous);
 /* Borrowed tonemapped SDR/HDR presentation output for the composition driver. */
 /* The pipeline's output while the last Render succeeded, else NULL. */
-AeronTexture* XvtRemasterFlight_Output(void);
+AeronTexture *XvtRemasterFlight_Output(void);
 /* Shuts down the map, sky, glows and pipeline, destroys the scene and invalidates the frame. */
 void XvtRemasterFlight_Shutdown(void);
 /* Creates the flight scene at width x height and the current MSAA when it differs, preparing its GPU

@@ -15,7 +15,7 @@ extern "C" {
  * to 1 (0.5 when absent); paths are uppercased with forward slashes, and a duplicate model-texture pair
  * is refused. Returns false with error written for a NULL vfs or an unavailable or invalid database.
  * The verdict is latched: a later call repeats it without reloading. */
-bool XvtRemasterOptMesh_Init(AeronVfs* vfs, char* error, size_t capacity);
+bool XvtRemasterOptMesh_Init(AeronVfs *vfs, char *error, size_t capacity);
 /* Forgets the database, so the next Init loads it again. */
 void XvtRemasterOptMesh_Shutdown(void);
 /* Zeroes out, reads the OPT at resolved_path under the asset root (up to 64 MiB) and builds it with the
@@ -23,8 +23,10 @@ void XvtRemasterOptMesh_Shutdown(void);
  * the path (uppercased; a BALANCEOFPOWER/ prefix is also tried stripped). Returns false with error
  * written for a NULL or empty argument, a database not loaded or invalid, an unreadable file, or a
  * failed conversion, with the converter's message. */
-bool XvtRemasterOptMesh_Build(AeronVfs* vfs, const char* resolved_path, const XvtModelSettings* settings,
-							  AeronFlightModel* out, char* error, size_t capacity);
+bool XvtRemasterOptMesh_Build(AeronVfs *vfs, const char *resolved_path,
+			      const XvtModelSettings *settings,
+			      AeronFlightModel *out, char *error,
+			      size_t capacity);
 #ifdef __cplusplus
 }
 #endif

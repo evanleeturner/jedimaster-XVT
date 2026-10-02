@@ -13,97 +13,134 @@ static struct {
 	uint64_t serial, animation_serial, dropped, reported;
 } g_timing;
 
-void XvtFlightTiming_BeginSession(XvtFlightTimingProfile profile) {
+void XvtFlightTiming_BeginSession(XvtFlightTimingProfile profile)
+{
 	memset(&g_timing, 0, sizeof g_timing);
 	g_timing.profile = profile;
 	g_timing.unlocked = profile != XVT_FLIGHT_TIMING_NATIVE;
-	XVT_LOG_INFO("timing.profile mode=\"%s\"", profile == XVT_FLIGHT_TIMING_NETWORK_125 ? "network125"
-											   : g_timing.unlocked                      ? "unlocked"
-																						: "native");
+	XVT_LOG_INFO("timing.profile mode=\"%s\"",
+		     profile == XVT_FLIGHT_TIMING_NETWORK_125 ? "network125"
+		     : g_timing.unlocked		      ? "unlocked"
+							      : "native");
 }
 
 void XvtFlightTiming_EndSession(void) { memset(&g_timing, 0, sizeof g_timing); }
 
 int XvtFlightTiming_IsUnlocked(void) { return g_timing.unlocked; }
 
-unsigned XvtFlightTiming_StepTicks(void) {
+unsigned XvtFlightTiming_StepTicks(void)
+{
 	return XvtFlightTiming_IsNetwork125() ? XVT_NETWORK_STEP_TICKS
-		   : g_timing.unlocked            ? XVT_OFFLINE_STEP_TICKS
-										  : XVT_NATIVE_STEP_TICKS;
+	       : g_timing.unlocked	      ? XVT_OFFLINE_STEP_TICKS
+					      : XVT_NATIVE_STEP_TICKS;
 }
 
-void XvtFlightTiming_BeginAdvance(uint16_t elapsed) {
+void XvtFlightTiming_BeginAdvance(uint16_t elapsed)
+{
 	g_timing.active = elapsed != 0;
 	g_timing.due = 0;
-	if (!elapsed)
+	if (!elapsed) {
 		return;
+	}
 	++g_timing.serial;
-	if (!g_timing.unlocked)
+	if (!g_timing.unlocked) {
 		return;
+	}
 	unsigned total = g_timing.phase + elapsed;
 	g_timing.phase = total % XVT_REFERENCE_TICKS;
 	g_timing.due = total >= XVT_REFERENCE_TICKS;
-	if (g_timing.due)
+	if (g_timing.due) {
 		g_timing.dropped += total / XVT_REFERENCE_TICKS - 1;
+	}
 	/* Report sustained overload without logging every host frame. */
 	if (g_timing.dropped - g_timing.reported >= 256) {
-		XVT_LOG_WARN("timing.periods_dropped count=%llu", (unsigned long long)g_timing.dropped);
+		XVT_LOG_WARN("timing.periods_dropped count=%llu",
+			     (unsigned long long)g_timing.dropped);
 		g_timing.reported = g_timing.dropped;
 	}
 }
 
 void XvtFlightTiming_EndAdvance(void) { g_timing.active = g_timing.due = 0; }
 
-int XvtFlightTiming_ReferenceDue(void) { return !g_timing.unlocked || (g_timing.active && g_timing.due); }
+int XvtFlightTiming_ReferenceDue(void)
+{
+	return !g_timing.unlocked || (g_timing.active && g_timing.due);
+}
 
-uint16_t XvtFlightTiming_ReferenceElapsed(void) {
-	return !g_timing.unlocked ? g_elapsedTicks : XvtFlightTiming_ReferenceDue() ? XVT_REFERENCE_TICKS : 0;
+uint16_t XvtFlightTiming_ReferenceElapsed(void)
+{
+	return !g_timing.unlocked		? g_elapsedTicks
+	       : XvtFlightTiming_ReferenceDue() ? XVT_REFERENCE_TICKS
+						: 0;
 }
 
 uint64_t XvtFlightTiming_AdvanceSerial(void) { return g_timing.serial; }
 
-XvtFlightClock XvtFlightTiming_EnterReference(void) {
-	XvtFlightClock saved = { g_elapsedTicks, g_simStepsPerSecond };
+XvtFlightClock XvtFlightTiming_EnterReference(void)
+{
+	XvtFlightClock saved = {g_elapsedTicks, g_simStepsPerSecond};
 	if (g_timing.unlocked) {
 		g_elapsedTicks = XVT_REFERENCE_TICKS;
-		g_simStepsPerSecond = SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS;
+		g_simStepsPerSecond =
+			SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS;
 	}
 	return saved;
 }
 
-void XvtFlightTiming_RestoreClock(XvtFlightClock saved) {
+void XvtFlightTiming_RestoreClock(XvtFlightClock saved)
+{
 	g_elapsedTicks = saved.elapsed;
 	g_simStepsPerSecond = saved.steps_per_second;
 }
 
-void XvtFlightTiming_AnimationEvent(void) {
+void XvtFlightTiming_AnimationEvent(void)
+{
 	g_timing.animation_time = g_gameTime + g_elapsedTicks;
-	if (XvtFlightTiming_IsNetwork125())
-		g_timing.animation_serial = (unsigned)g_timing.animation_time / XVT_COMPONENT_EVENT_TICKS + 1;
-	else
+	if (XvtFlightTiming_IsNetwork125()) {
+		g_timing.animation_serial = (unsigned)g_timing.animation_time /
+						    XVT_COMPONENT_EVENT_TICKS +
+					    1;
+	} else {
 		++g_timing.animation_serial;
+	}
 }
 
-uint64_t XvtFlightTiming_AnimationSerial(void) { return g_timing.animation_serial; }
+uint64_t XvtFlightTiming_AnimationSerial(void)
+{
+	return g_timing.animation_serial;
+}
 
 int XvtFlightTiming_AnimationTime(void) { return g_timing.animation_time; }
 
-XvtFlightTimingProfile XvtFlightTiming_Profile(void) { return g_timing.profile; }
-
-int XvtFlightTiming_IsNetwork125(void) { return g_timing.profile == XVT_FLIGHT_TIMING_NETWORK_125; }
-
-int XvtFlightTiming_MaximumStepTicks(void) {
-	return XvtFlightTiming_IsNetwork125() ? XVT_NETWORK_STEP_TICKS : g_netUpdateIntervalTicks;
+XvtFlightTimingProfile XvtFlightTiming_Profile(void)
+{
+	return g_timing.profile;
 }
 
-void XvtFlightTiming_RestoreNetworkTick(int tick) {
-	if (!XvtFlightTiming_IsNetwork125() || tick < 0 || (tick % XVT_NETWORK_STEP_TICKS))
+int XvtFlightTiming_IsNetwork125(void)
+{
+	return g_timing.profile == XVT_FLIGHT_TIMING_NETWORK_125;
+}
+
+int XvtFlightTiming_MaximumStepTicks(void)
+{
+	return XvtFlightTiming_IsNetwork125() ? XVT_NETWORK_STEP_TICKS
+					      : g_netUpdateIntervalTicks;
+}
+
+void XvtFlightTiming_RestoreNetworkTick(int tick)
+{
+	if (!XvtFlightTiming_IsNetwork125() || tick < 0 ||
+	    (tick % XVT_NETWORK_STEP_TICKS)) {
 		return;
+	}
 	g_timing.serial = (unsigned)tick / XVT_NETWORK_STEP_TICKS;
 	g_timing.phase = (unsigned)tick % XVT_REFERENCE_TICKS;
 	g_timing.active = g_timing.due = 0;
 	int timer = g_flightGlobalCountdownTimers.specialBehaviorUpdateTimer;
-	int event = (tick - tick % XVT_REFERENCE_TICKS) - (XVT_COMPONENT_TIMER_TICKS - timer);
+	int event = (tick - tick % XVT_REFERENCE_TICKS) -
+		    (XVT_COMPONENT_TIMER_TICKS - timer);
 	g_timing.animation_time = event > 0 ? event : 0;
-	g_timing.animation_serial = event > 0 ? (unsigned)event / XVT_COMPONENT_EVENT_TICKS + 1 : 0;
+	g_timing.animation_serial =
+		event > 0 ? (unsigned)event / XVT_COMPONENT_EVENT_TICKS + 1 : 0;
 }

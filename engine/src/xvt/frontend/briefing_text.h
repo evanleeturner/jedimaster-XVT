@@ -8,10 +8,10 @@
 extern "C" {
 #endif
 
-extern char* g_briefingMapLabelTexts[32];
-extern char* g_briefingTextBlocks[32];
-extern char* g_briefingUnusedBuffers[20];
-extern char* g_missionText;
+extern char *g_briefingMapLabelTexts[32];
+extern char *g_briefingTextBlocks[32];
+extern char *g_briefingUnusedBuffers[20];
+extern char *g_missionText;
 
 int16_t BriefingText_FreeAllocatedBuffersExit(void);
 void BriefingText_FreeAllocatedBuffers(void);

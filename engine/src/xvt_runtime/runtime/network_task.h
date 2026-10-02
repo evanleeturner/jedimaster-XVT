@@ -35,23 +35,23 @@ void XvtNetworkTask_ServiceBrowser(void);
 /* 1 while the join screen is anywhere on the screen stack and no attempt runs. */
 int XvtNetworkTask_BrowserVisible(void);
 /* The latest directory snapshot. */
-const AeronDplayDirectorySnapshot* XvtNetworkTask_Snapshot(void);
+const AeronDplayDirectorySnapshot *XvtNetworkTask_Snapshot(void);
 /* The selected room in the snapshot, or NULL. */
-const AeronDplayDirectoryRoom* XvtNetworkTask_SelectedRoom(void);
+const AeronDplayDirectoryRoom *XvtNetworkTask_SelectedRoom(void);
 /* The selected room's index, or -1. */
 int XvtNetworkTask_SelectedIndex(void);
 /* The browser's list scroll offset, for the list draw to read and write. */
-int* XvtNetworkTask_ScrollOffset(void);
+int *XvtNetworkTask_ScrollOffset(void);
 /* The selected room's mission title and description, read from the mission files; the text is
  * "Description unavailable" when they cannot be read, and both are empty with no selection. */
-XvtNetworkPreview* XvtNetworkTask_Preview(void);
+XvtNetworkPreview *XvtNetworkTask_Preview(void);
 /* Seconds since the last successful refresh, 0 before one, at most 359999. */
 unsigned XvtNetworkTask_SnapshotAge(void);
 /* The last refresh error, cleared by the next successful refresh. */
 AeronDplayDirectoryError XvtNetworkTask_BrowserError(void);
 /* 1 when room uses this directory protocol and its game version is FRONTEND_NET_PROTOCOL_VERSION
  * in decimal. */
-int XvtNetworkTask_Compatible(const AeronDplayDirectoryRoom* room);
+int XvtNetworkTask_Compatible(const AeronDplayDirectoryRoom *room);
 /* 1 when no attempt runs, the browser has no error, the snapshot is available and the selected
  * room is compatible, joinable and not full. */
 int XvtNetworkTask_CanJoin(void);
@@ -64,7 +64,7 @@ void XvtNetworkTask_ToggleSelection(int index);
  * or the cancel button of the connecting screen drawn otherwise, cancels; otherwise the session is
  * ticked, and when it finishes, a failure shows the failure dialog, a join opens the await-admission
  * screen, and a host opens mission setup. */
-int XvtNetworkTask_Resume(int* result);
+int XvtNetworkTask_Resume(int *result);
 /* Cancels the attempt and returns to the host or join screen by the attempt's action; call only
  * during an attempt, since an idle task reads as a host. */
 void XvtNetworkTask_Cancel(void);

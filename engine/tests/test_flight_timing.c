@@ -12,7 +12,8 @@
 
 #include <stdint.h>
 
-static void Begin(XvtFlightTimingProfile profile) {
+static void Begin(XvtFlightTimingProfile profile)
+{
 	g_elapsedTicks = 0;
 	g_simStepsPerSecond = 0;
 	g_gameTime = 0;
@@ -21,7 +22,8 @@ static void Begin(XvtFlightTimingProfile profile) {
 	XvtFlightTiming_BeginSession(profile);
 }
 
-static void CheckProfiles(void) {
+static void CheckProfiles(void)
+{
 	Begin(XVT_FLIGHT_TIMING_NATIVE);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_Profile(), XVT_FLIGHT_TIMING_NATIVE);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 0);
@@ -29,13 +31,15 @@ static void CheckProfiles(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_StepTicks(), XVT_NATIVE_STEP_TICKS);
 
 	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_Profile(), XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	XVT_ASSERT_INT_EQ(XvtFlightTiming_Profile(),
+			  XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 1);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsNetwork125(), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_StepTicks(), XVT_OFFLINE_STEP_TICKS);
 
 	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_Profile(), XVT_FLIGHT_TIMING_NETWORK_125);
+	XVT_ASSERT_INT_EQ(XvtFlightTiming_Profile(),
+			  XVT_FLIGHT_TIMING_NETWORK_125);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 1);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsNetwork125(), 1);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_StepTicks(), XVT_NETWORK_STEP_TICKS);
@@ -48,10 +52,12 @@ static void CheckProfiles(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
 }
 
-static void CheckSimulationMaximum(void) {
+static void CheckSimulationMaximum(void)
+{
 	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
 	g_netUpdateIntervalTicks = 40;
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_MaximumStepTicks(), XVT_NETWORK_STEP_TICKS);
+	XVT_ASSERT_INT_EQ(XvtFlightTiming_MaximumStepTicks(),
+			  XVT_NETWORK_STEP_TICKS);
 	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_netUpdateIntervalTicks = 40;
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_MaximumStepTicks(), 40);
@@ -60,7 +66,8 @@ static void CheckSimulationMaximum(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_MaximumStepTicks(), 17);
 }
 
-static void CheckLockedAlwaysDue(void) {
+static void CheckLockedAlwaysDue(void)
+{
 	Begin(XVT_FLIGHT_TIMING_NATIVE);
 	g_elapsedTicks = 5;
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
@@ -75,7 +82,8 @@ static void CheckLockedAlwaysDue(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(), 9);
 }
 
-static void CheckUnlockedReferenceSteps(void) {
+static void CheckUnlockedReferenceSteps(void)
+{
 	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsedTicks = 3;
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
@@ -89,7 +97,8 @@ static void CheckUnlockedReferenceSteps(void) {
 	/* The next tick reaches the boundary: a reference step, which lasts until EndAdvance. */
 	XvtFlightTiming_BeginAdvance(1);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(), XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(),
+			  XVT_REFERENCE_TICKS);
 	XvtFlightTiming_EndAdvance();
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(), 0);
@@ -109,10 +118,12 @@ static void CheckUnlockedReferenceSteps(void) {
 	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
 	XvtFlightTiming_BeginAdvance(5 * XVT_REFERENCE_TICKS);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(), XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(),
+			  XVT_REFERENCE_TICKS);
 }
 
-static void CheckZeroStepOpensNone(void) {
+static void CheckZeroStepOpensNone(void)
+{
 	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtFlightTiming_BeginAdvance(XVT_REFERENCE_TICKS);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
@@ -123,7 +134,8 @@ static void CheckZeroStepOpensNone(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 1);
 }
 
-static void CheckAdvanceSerial(void) {
+static void CheckAdvanceSerial(void)
+{
 	Begin(XVT_FLIGHT_TIMING_NATIVE);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 0);
 	for (int i = 0; i < 5; ++i) {
@@ -141,7 +153,8 @@ static void CheckAdvanceSerial(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 0);
 }
 
-static void CheckEnterReference(void) {
+static void CheckEnterReference(void)
+{
 	/* Unlocked: the step globals describe one reference period until RestoreClock. */
 	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsedTicks = 3;
@@ -150,7 +163,8 @@ static void CheckEnterReference(void) {
 	XVT_ASSERT_INT_EQ(saved.elapsed, 3);
 	XVT_ASSERT_INT_EQ(saved.steps_per_second, 77);
 	XVT_ASSERT_INT_EQ(g_elapsedTicks, XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(g_simStepsPerSecond, SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(g_simStepsPerSecond,
+			  SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS);
 	XvtFlightTiming_RestoreClock(saved);
 	XVT_ASSERT_INT_EQ(g_elapsedTicks, 3);
 	XVT_ASSERT_INT_EQ(g_simStepsPerSecond, 77);
@@ -172,7 +186,8 @@ static void CheckEnterReference(void) {
 	XVT_ASSERT_INT_EQ(g_simStepsPerSecond, 21);
 }
 
-static void CheckAnimationEvent(void) {
+static void CheckAnimationEvent(void)
+{
 	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationTime(), 0);
@@ -192,29 +207,35 @@ static void CheckAnimationEvent(void) {
 	g_elapsedTicks = XVT_NETWORK_STEP_TICKS;
 	XvtFlightTiming_AnimationEvent();
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationTime(),
-					  3 * XVT_COMPONENT_EVENT_TICKS + 6 + XVT_NETWORK_STEP_TICKS);
+			  3 * XVT_COMPONENT_EVENT_TICKS + 6 +
+				  XVT_NETWORK_STEP_TICKS);
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 3 + 1);
 	XvtFlightTiming_AnimationEvent();
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 3 + 1);
 }
 
 /* Restores at tick, then reports whether a step of `step` ticks is a reference step. */
-static int DueAfterRestore(int tick, uint16_t step) {
+static int DueAfterRestore(int tick, uint16_t step)
+{
 	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
 	XvtFlightTiming_RestoreNetworkTick(tick);
 	XvtFlightTiming_BeginAdvance(step);
 	return XvtFlightTiming_ReferenceDue();
 }
 
-static void CheckRestoreNetworkTick(void) {
+static void CheckRestoreNetworkTick(void)
+{
 	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
 	XvtFlightTiming_RestoreNetworkTick(1000);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 1000 / XVT_NETWORK_STEP_TICKS);
+	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(),
+			  1000 / XVT_NETWORK_STEP_TICKS);
 
 	/* The reference phase becomes tick % XVT_REFERENCE_TICKS: from tick 1002 the boundary is 6 ticks on. */
 	const int tick = 1000 + XVT_NETWORK_STEP_TICKS;
-	const int to_boundary = XVT_REFERENCE_TICKS - tick % XVT_REFERENCE_TICKS;
-	XVT_ASSERT_INT_EQ(DueAfterRestore(tick, (uint16_t)(to_boundary - 1)), 0);
+	const int to_boundary =
+		XVT_REFERENCE_TICKS - tick % XVT_REFERENCE_TICKS;
+	XVT_ASSERT_INT_EQ(DueAfterRestore(tick, (uint16_t)(to_boundary - 1)),
+			  0);
 	XVT_ASSERT_INT_EQ(DueAfterRestore(tick, (uint16_t)to_boundary), 1);
 
 	/* It closes an open step. */
@@ -243,27 +264,35 @@ static void CheckRestoreNetworkTick(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 0);
 }
 
-static void CheckRestoredAnimation(void) {
+static void CheckRestoredAnimation(void)
+{
 	/* The rebuilt animation update uses AnimationEvent's network formula, and is all zero when its time is
 	 * not positive. The pairs cover early ticks, where it is not, and later ones, where it is. */
-	static const int ticks[] = { 0, 2, 8, 30, 64, 1000, 123456 };
-	static const uint16_t timers[] = { 0, 1, 28, 29, 200 };
+	static const int ticks[] = {0, 2, 8, 30, 64, 1000, 123456};
+	static const uint16_t timers[] = {0, 1, 28, 29, 200};
 	for (unsigned i = 0; i < sizeof ticks / sizeof ticks[0]; ++i) {
-		for (unsigned j = 0; j < sizeof timers / sizeof timers[0]; ++j) {
+		for (unsigned j = 0; j < sizeof timers / sizeof timers[0];
+		     ++j) {
 			Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-			g_flightGlobalCountdownTimers.specialBehaviorUpdateTimer = timers[j];
+			g_flightGlobalCountdownTimers
+				.specialBehaviorUpdateTimer = timers[j];
 			XvtFlightTiming_RestoreNetworkTick(ticks[i]);
 			int time = XvtFlightTiming_AnimationTime();
 			XVT_ASSERT_TRUE(time >= 0);
-			if (time > 0)
-				XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), time / XVT_COMPONENT_EVENT_TICKS + 1);
-			else
-				XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 0);
+			if (time > 0) {
+				XVT_ASSERT_INT_EQ(
+					XvtFlightTiming_AnimationSerial(),
+					time / XVT_COMPONENT_EVENT_TICKS + 1);
+			} else {
+				XVT_ASSERT_INT_EQ(
+					XvtFlightTiming_AnimationSerial(), 0);
+			}
 		}
 	}
 }
 
-static void CheckSessionClearsState(void) {
+static void CheckSessionClearsState(void)
+{
 	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_gameTime = 40;
 	g_elapsedTicks = 1;
@@ -286,7 +315,8 @@ static void CheckSessionClearsState(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationTime(), 0);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckProfiles();
 	CheckSimulationMaximum();
 	CheckLockedAlwaysDue();

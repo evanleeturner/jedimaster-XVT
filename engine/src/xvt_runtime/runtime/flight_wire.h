@@ -18,10 +18,10 @@ void XvtWire_Set16(XvtWireU16 bytes, uint16_t value);
 void XvtWire_Set32(XvtWireU32 bytes, uint32_t value);
 void XvtWire_Set64(XvtWireU64 bytes, uint64_t value);
 /* 1 when every one of size bytes is zero, including when size is 0. */
-int XvtWire_IsZero(const void* bytes, size_t size);
+int XvtWire_IsZero(const void *bytes, size_t size);
 /* CRC-32C (Castagnoli, reflected, initial and final XOR 0xFFFFFFFF) of size bytes; "123456789"
  * gives 0xE3069283. */
-uint32_t XvtFlightWire_Crc32c(const uint8_t* bytes, size_t size);
+uint32_t XvtFlightWire_Crc32c(const uint8_t *bytes, size_t size);
 #ifdef __cplusplus
 }
 #endif

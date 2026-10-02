@@ -23,7 +23,8 @@ enum MfdPageId {
 
 enum MfdPageState {
 	MFD_PAGE_STATE_CLOSING = -2,
-	MFD_PAGE_STATE_REOPENED = -1, ///< Open state produced when a display rebuild cancels a pending close.
+	MFD_PAGE_STATE_REOPENED =
+		-1, ///< Open state produced when a display rebuild cancels a pending close.
 	MFD_PAGE_STATE_CLOSED = 0,
 	MFD_PAGE_STATE_OPEN = 1,
 };
@@ -41,8 +42,8 @@ extern int16_t g_mfdMissionScoreboardLastWidth;
 extern uint16_t g_mfdCraftListCachedRowCount;
 extern int16_t g_mfdCraftListTopRowByMode[2];
 extern const char g_mfdCraftListTeamColorCodes[11];
-extern const char* g_strMapRoomText[20];
-extern const char* g_mfdDeveloperCreditsLines[47];
+extern const char *g_strMapRoomText[20];
+extern const char *g_mfdDeveloperCreditsLines[47];
 
 int16_t Mfd_DrawMissionGoalsPage(void);
 void Mfd_DrawMissionScoreboardPage(void);

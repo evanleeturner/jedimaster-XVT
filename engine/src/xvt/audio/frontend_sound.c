@@ -20,7 +20,8 @@ typedef struct FrontendSoundPcmFormat {
 } FrontendSoundPcmFormat;
 
 // FUNCTION: XVT 0x4DE190
-int FrontendSound_InitDirectSound(void* hwnd) {
+int FrontendSound_InitDirectSound(void *hwnd)
+{
 	int voiceIndex;
 	int bufferIndex;
 	FrontendSoundPcmFormat primaryFormat;
@@ -41,7 +42,8 @@ int FrontendSound_InitDirectSound(void* hwnd) {
 		g_frontState.frontendSoundBuffers[bufferIndex].buffer = NULL;
 		g_frontState.frontendSoundBuffers[bufferIndex].name[0] = '\0';
 	}
-	if (DirectSoundCreate(NULL, (void**)&g_frontState.frontendDirectSound, NULL) != 0) {
+	if (DirectSoundCreate(NULL, (void **)&g_frontState.frontendDirectSound,
+			      NULL) != 0) {
 		return 0;
 	}
 
@@ -55,11 +57,12 @@ int FrontendSound_InitDirectSound(void* hwnd) {
 	memset(&primaryBufferDesc, 0, sizeof(primaryBufferDesc));
 	primaryBufferDesc.dwSize = sizeof(primaryBufferDesc);
 	primaryBufferDesc.dwFlags = DSBCAPS_PRIMARYBUFFER;
-	primaryBufferDesc.lpwfxFormat = (WAVEFORMATEX*)&primaryFormat;
+	primaryBufferDesc.lpwfxFormat = (WAVEFORMATEX *)&primaryFormat;
 	g_frontState.frontendDirectSound->lpVtbl->CreateSoundBuffer(
-		g_frontState.frontendDirectSound, &primaryBufferDesc, &g_frontState.frontendPrimarySoundBuffer, NULL);
-	if (g_frontState.frontendDirectSound->lpVtbl->SetCooperativeLevel(g_frontState.frontendDirectSound, hwnd,
-																	  1) != 0) {
+		g_frontState.frontendDirectSound, &primaryBufferDesc,
+		&g_frontState.frontendPrimarySoundBuffer, NULL);
+	if (g_frontState.frontendDirectSound->lpVtbl->SetCooperativeLevel(
+		    g_frontState.frontendDirectSound, hwnd, 1) != 0) {
 		FrontendSound_ShutdownDirectSound();
 		return 0;
 	}
@@ -67,14 +70,17 @@ int FrontendSound_InitDirectSound(void* hwnd) {
 }
 
 // FUNCTION: XVT 0x4DE2E0
-int FrontendSound_ShutdownDirectSound(void) {
+int FrontendSound_ShutdownDirectSound(void)
+{
 	int bufferIndex;
 	int voiceIndex;
 
-	if (g_frontState.frontendDirectSound == NULL)
+	if (g_frontState.frontendDirectSound == NULL) {
 		return 1;
+	}
 
-	g_frontState.frontendDirectSound->lpVtbl->Release(g_frontState.frontendDirectSound);
+	g_frontState.frontendDirectSound->lpVtbl->Release(
+		g_frontState.frontendDirectSound);
 	g_frontState.frontendDirectSound = NULL;
 	for (bufferIndex = 0; bufferIndex < 128; ++bufferIndex) {
 		g_frontState.frontendSoundBuffers[bufferIndex].buffer = NULL;
@@ -91,13 +97,15 @@ int FrontendSound_ShutdownDirectSound(void) {
 }
 
 // FUNCTION: XVT 0x4DE370
-int FrontendSound_LoadSound(const char* fileName, const char* soundName) {
+int FrontendSound_LoadSound(const char *fileName, const char *soundName)
+{
 	return FrontendSound_LoadSoundFile(fileName, soundName, 0);
 }
 
 // FUNCTION: XVT 0x4DE390
-int FrontendSound_LoadSoundFile(const char* fileName, const char* soundName,
-								int omitSoftwareAndFrequencyCaps) {
+int FrontendSound_LoadSoundFile(const char *fileName, const char *soundName,
+				int omitSoftwareAndFrequencyCaps)
+{
 	FrontendSoundBufferRecord record;
 	int wasBackBufferLocked;
 
@@ -119,8 +127,9 @@ int FrontendSound_LoadSoundFile(const char* fileName, const char* soundName,
 
 	wasBackBufferLocked = g_frontState.backBufferLocked;
 	FrontendDisplay_UnlockBackBuffer();
-	record.buffer =
-		DirectSound_LoadWaveBuffer(g_frontState.frontendDirectSound, fileName, omitSoftwareAndFrequencyCaps);
+	record.buffer = DirectSound_LoadWaveBuffer(
+		g_frontState.frontendDirectSound, fileName,
+		omitSoftwareAndFrequencyCaps);
 	if (record.buffer != NULL) {
 		record.buffer->lpVtbl->SetCurrentPosition(record.buffer, 0);
 		strncpy(record.name, soundName, sizeof(record.name));
@@ -141,17 +150,20 @@ int FrontendSound_LoadSoundFile(const char* fileName, const char* soundName,
 }
 
 // FUNCTION: XVT 0x4DE4D0
-void FrontendSound_UnloadAllBuffers(void) {
+void FrontendSound_UnloadAllBuffers(void)
+{
 	int bufferIndex;
 
 	bufferIndex = 127;
 	do {
-		FrontendSound_UnloadBufferByName(g_frontState.frontendSoundBuffers[bufferIndex].name);
+		FrontendSound_UnloadBufferByName(
+			g_frontState.frontendSoundBuffers[bufferIndex].name);
 	} while (--bufferIndex >= 0);
 }
 
 // FUNCTION: XVT 0x4DE4F0
-int FrontendSound_UnloadBufferByName(const char* soundName) {
+int FrontendSound_UnloadBufferByName(const char *soundName)
+{
 	int bufferIndex;
 	int wasBackBufferLocked;
 
@@ -165,7 +177,9 @@ int FrontendSound_UnloadBufferByName(const char* soundName) {
 
 	wasBackBufferLocked = g_frontState.backBufferLocked;
 	FrontendDisplay_UnlockBackBuffer();
-	while (FrontendSound_StopOldestVoiceByName(g_frontState.frontendSoundBuffers[bufferIndex].name) == 1) {
+	while (FrontendSound_StopOldestVoiceByName(
+		       g_frontState.frontendSoundBuffers[bufferIndex].name) ==
+	       1) {
 	}
 	g_frontState.frontendSoundBuffers[bufferIndex].buffer->lpVtbl->Release(
 		g_frontState.frontendSoundBuffers[bufferIndex].buffer);
@@ -177,8 +191,10 @@ int FrontendSound_UnloadBufferByName(const char* soundName) {
 }
 
 // FUNCTION: XVT 0x4DE5A0
-int FrontendSound_PlayUISound(const char* soundName, int allowRestartExisting, int loop, int priority,
-							  int volume0To127, int pan0To127) {
+int FrontendSound_PlayUISound(const char *soundName, int allowRestartExisting,
+			      int loop, int priority, int volume0To127,
+			      int pan0To127)
+{
 	int bufferIndex;
 	int voiceIndex;
 	int scanIndex;
@@ -188,8 +204,8 @@ int FrontendSound_PlayUISound(const char* soundName, int allowRestartExisting, i
 	int currentBufferIndex;
 	int wasBackBufferLocked;
 	uint32_t status;
-	IDirectSoundBuffer* duplicateBuffer;
-	FrontendSoundVoice* voice;
+	IDirectSoundBuffer *duplicateBuffer;
+	FrontendSoundVoice *voice;
 	int clampedValue;
 	HRESULT playResult;
 	int result;
@@ -210,12 +226,20 @@ int FrontendSound_PlayUISound(const char* soundName, int allowRestartExisting, i
 	if (g_frontState.frontendActiveVoiceCount == 12) {
 		for (voiceIndex = 0; voiceIndex < 12; ++voiceIndex) {
 			voice = &g_frontState.frontendSoundVoices[voiceIndex];
-			if (voice->bufferIndex != -1 && (voice->buffer->lpVtbl->GetStatus(voice->buffer, &status) != 0 ||
-											 ((status & 1) == 0 && (status & 4) == 0))) {
-				g_frontState.frontendSoundVoices[voiceIndex].buffer->lpVtbl->Release(
-					g_frontState.frontendSoundVoices[voiceIndex].buffer);
-				g_frontState.frontendSoundVoices[voiceIndex].bufferIndex = -1;
-				g_frontState.frontendSoundVoices[voiceIndex].buffer = NULL;
+			if (voice->bufferIndex != -1 &&
+			    (voice->buffer->lpVtbl->GetStatus(voice->buffer,
+							      &status) != 0 ||
+			     ((status & 1) == 0 && (status & 4) == 0))) {
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.buffer->lpVtbl->Release(
+						g_frontState
+							.frontendSoundVoices
+								[voiceIndex]
+							.buffer);
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.bufferIndex = -1;
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.buffer = NULL;
 				--g_frontState.frontendActiveVoiceCount;
 				break;
 			}
@@ -225,41 +249,82 @@ int FrontendSound_PlayUISound(const char* soundName, int allowRestartExisting, i
 			candidatePriority = priority;
 			scanIndex = 0;
 			do {
-				currentBufferIndex = g_frontState.frontendSoundVoices[scanIndex].bufferIndex;
-				if (candidatePriority > g_frontState.frontendSoundBuffers[currentBufferIndex].priority) {
+				currentBufferIndex =
+					g_frontState
+						.frontendSoundVoices[scanIndex]
+						.bufferIndex;
+				if (candidatePriority >
+				    g_frontState
+					    .frontendSoundBuffers
+						    [currentBufferIndex]
+					    .priority) {
 					candidateVoiceIndex = scanIndex;
-					candidatePriority = g_frontState.frontendSoundBuffers[currentBufferIndex].priority;
+					candidatePriority =
+						g_frontState
+							.frontendSoundBuffers
+								[currentBufferIndex]
+							.priority;
 				}
 				++scanIndex;
 			} while (scanIndex < 12);
 
 			voiceIndex = candidateVoiceIndex;
 			if (candidateVoiceIndex != 12) {
-				g_frontState.frontendSoundVoices[voiceIndex].buffer->lpVtbl->Stop(
-					g_frontState.frontendSoundVoices[voiceIndex].buffer);
-				g_frontState.frontendSoundVoices[voiceIndex].buffer->lpVtbl->Release(
-					g_frontState.frontendSoundVoices[voiceIndex].buffer);
-				g_frontState.frontendSoundVoices[voiceIndex].bufferIndex = -1;
-				g_frontState.frontendSoundVoices[voiceIndex].buffer = NULL;
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.buffer->lpVtbl->Stop(
+						g_frontState
+							.frontendSoundVoices
+								[voiceIndex]
+							.buffer);
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.buffer->lpVtbl->Release(
+						g_frontState
+							.frontendSoundVoices
+								[voiceIndex]
+							.buffer);
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.bufferIndex = -1;
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.buffer = NULL;
 				--g_frontState.frontendActiveVoiceCount;
 			} else {
 				if (allowRestartExisting != 0) {
-					for (restartVoiceIndex = 0; restartVoiceIndex < 12; ++restartVoiceIndex) {
-						if (g_frontState.frontendSoundVoices[restartVoiceIndex].bufferIndex == bufferIndex) {
-							g_frontState.frontendSoundVoices[restartVoiceIndex]
-								.buffer->lpVtbl->SetCurrentPosition(
-									g_frontState.frontendSoundVoices[restartVoiceIndex].buffer, 0);
-							g_frontState.frontendSoundVoices[restartVoiceIndex].playSerial =
-								g_frontState.frontendSoundPlaySerial++;
-							if (wasBackBufferLocked != 0) {
-								g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+					for (restartVoiceIndex = 0;
+					     restartVoiceIndex < 12;
+					     ++restartVoiceIndex) {
+						if (g_frontState
+							    .frontendSoundVoices
+								    [restartVoiceIndex]
+							    .bufferIndex ==
+						    bufferIndex) {
+							g_frontState
+								.frontendSoundVoices
+									[restartVoiceIndex]
+								.buffer->lpVtbl
+								->SetCurrentPosition(
+									g_frontState
+										.frontendSoundVoices
+											[restartVoiceIndex]
+										.buffer,
+									0);
+							g_frontState
+								.frontendSoundVoices
+									[restartVoiceIndex]
+								.playSerial =
+								g_frontState
+									.frontendSoundPlaySerial++;
+							if (wasBackBufferLocked !=
+							    0) {
+								g_drawSurfacePtr =
+									FrontendDisplay_LockBackBuffer();
 							}
 							return 1;
 						}
 					}
 				}
 				if (wasBackBufferLocked != 0) {
-					g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+					g_drawSurfacePtr =
+						FrontendDisplay_LockBackBuffer();
 				}
 				return 0;
 			}
@@ -274,7 +339,8 @@ int FrontendSound_PlayUISound(const char* soundName, int allowRestartExisting, i
 	}
 
 	g_frontState.frontendDirectSound->lpVtbl->DuplicateSoundBuffer(
-		g_frontState.frontendDirectSound, g_frontState.frontendSoundBuffers[bufferIndex].buffer,
+		g_frontState.frontendDirectSound,
+		g_frontState.frontendSoundBuffers[bufferIndex].buffer,
 		&duplicateBuffer);
 	if (duplicateBuffer == NULL) {
 		if (wasBackBufferLocked != 0) {
@@ -290,7 +356,8 @@ int FrontendSound_PlayUISound(const char* soundName, int allowRestartExisting, i
 	} else if (clampedValue < 0) {
 		clampedValue = 0;
 	}
-	duplicateBuffer->lpVtbl->SetVolume(duplicateBuffer, 400 * (5 * clampedValue - 635) / 127);
+	duplicateBuffer->lpVtbl->SetVolume(
+		duplicateBuffer, 400 * (5 * clampedValue - 635) / 127);
 	clampedValue = pan0To127;
 	if (clampedValue > 127) {
 		clampedValue = 127;
@@ -298,19 +365,28 @@ int FrontendSound_PlayUISound(const char* soundName, int allowRestartExisting, i
 	if (clampedValue < 0) {
 		clampedValue = 0;
 	}
-	duplicateBuffer->lpVtbl->SetPan(duplicateBuffer, 400 * (5 * clampedValue - 315) / 63);
-	playResult = duplicateBuffer->lpVtbl->Play(duplicateBuffer, 0, 0, loop == 1);
+	duplicateBuffer->lpVtbl->SetPan(duplicateBuffer,
+					400 * (5 * clampedValue - 315) / 63);
+	playResult =
+		duplicateBuffer->lpVtbl->Play(duplicateBuffer, 0, 0, loop == 1);
 	result = playResult;
 	if (playResult == (HRESULT)0x88780096u) {
-		result = DirectSound_ReloadWaveBuffer(g_frontState.frontendSoundBuffers[bufferIndex].buffer,
-											  g_frontState.frontendSoundBuffers[bufferIndex].fileName);
+		result = DirectSound_ReloadWaveBuffer(
+			g_frontState.frontendSoundBuffers[bufferIndex].buffer,
+			g_frontState.frontendSoundBuffers[bufferIndex]
+				.fileName);
 		if (result == 1) {
-			duplicateBuffer->lpVtbl->SetCurrentPosition(duplicateBuffer, 0);
-			result = duplicateBuffer->lpVtbl->Play(duplicateBuffer, 0, 0, loop == 1);
+			duplicateBuffer->lpVtbl->SetCurrentPosition(
+				duplicateBuffer, 0);
+			result = duplicateBuffer->lpVtbl->Play(duplicateBuffer,
+							       0, 0, loop == 1);
 			if (result == 0) {
-				g_frontState.frontendSoundVoices[voiceIndex].bufferIndex = bufferIndex;
-				g_frontState.frontendSoundVoices[voiceIndex].buffer = duplicateBuffer;
-				g_frontState.frontendSoundVoices[voiceIndex].playSerial =
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.bufferIndex = bufferIndex;
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.buffer = duplicateBuffer;
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.playSerial =
 					g_frontState.frontendSoundPlaySerial++;
 				++g_frontState.frontendActiveVoiceCount;
 			} else {
@@ -318,9 +394,12 @@ int FrontendSound_PlayUISound(const char* soundName, int allowRestartExisting, i
 			}
 		}
 	} else if (playResult == 0) {
-		g_frontState.frontendSoundVoices[voiceIndex].bufferIndex = bufferIndex;
-		g_frontState.frontendSoundVoices[voiceIndex].buffer = duplicateBuffer;
-		g_frontState.frontendSoundVoices[voiceIndex].playSerial = g_frontState.frontendSoundPlaySerial++;
+		g_frontState.frontendSoundVoices[voiceIndex].bufferIndex =
+			bufferIndex;
+		g_frontState.frontendSoundVoices[voiceIndex].buffer =
+			duplicateBuffer;
+		g_frontState.frontendSoundVoices[voiceIndex].playSerial =
+			g_frontState.frontendSoundPlaySerial++;
 		++g_frontState.frontendActiveVoiceCount;
 		result = 1;
 	}
@@ -331,13 +410,14 @@ int FrontendSound_PlayUISound(const char* soundName, int allowRestartExisting, i
 }
 
 // FUNCTION: XVT 0x4DE9A0
-int FrontendSound_StopOldestVoiceByName(const char* name) {
+int FrontendSound_StopOldestVoiceByName(const char *name)
+{
 	int bufferIndex;
 	int oldestVoiceIndex;
 	int oldestSerial;
 	int voiceIndex;
-	FrontendSoundVoice* voice;
-	IDirectSoundBuffer* buffer;
+	FrontendSoundVoice *voice;
+	IDirectSoundBuffer *buffer;
 	int wasBackBufferLocked;
 	HRESULT stopResult;
 
@@ -357,7 +437,8 @@ int FrontendSound_StopOldestVoiceByName(const char* name) {
 	voiceIndex = 0;
 	voice = g_frontState.frontendSoundVoices;
 	do {
-		if (voice->bufferIndex == bufferIndex && voice->playSerial < oldestSerial) {
+		if (voice->bufferIndex == bufferIndex &&
+		    voice->playSerial < oldestSerial) {
 			oldestSerial = voice->playSerial;
 			oldestVoiceIndex = voiceIndex;
 		}
@@ -386,74 +467,90 @@ int FrontendSound_StopOldestVoiceByName(const char* name) {
 }
 
 // FUNCTION: XVT 0x4DEA90
-int FrontendSound_StopAllVoices(void) {
+int FrontendSound_StopAllVoices(void)
+{
 	int allStopped;
 	int voiceIndex;
 	int bufferIndex;
 
 	allStopped = 1;
 	for (voiceIndex = 0; voiceIndex < 12; ++voiceIndex) {
-		bufferIndex = g_frontState.frontendSoundVoices[voiceIndex].bufferIndex;
+		bufferIndex = g_frontState.frontendSoundVoices[voiceIndex]
+				      .bufferIndex;
 		if (bufferIndex != -1) {
-			allStopped &=
-				FrontendSound_StopOldestVoiceByName(g_frontState.frontendSoundBuffers[bufferIndex].name);
+			allStopped &= FrontendSound_StopOldestVoiceByName(
+				g_frontState.frontendSoundBuffers[bufferIndex]
+					.name);
 		}
 	}
 	return allStopped;
 }
 
 // FUNCTION: XVT 0x4DEAD0
-int FrontendSound_SetPrimaryVolume(int volume0To127) {
+int FrontendSound_SetPrimaryVolume(int volume0To127)
+{
 	HRESULT setResult;
 	int wasBackBufferLocked;
 	int clampedVolume;
 
-	if (g_frontState.frontendDirectSound == NULL)
+	if (g_frontState.frontendDirectSound == NULL) {
 		return 0;
+	}
 
 	wasBackBufferLocked = g_frontState.backBufferLocked;
 	setResult = 1;
 	FrontendDisplay_UnlockBackBuffer();
 	if (g_frontState.frontendPrimarySoundBuffer != NULL) {
 		clampedVolume = volume0To127;
-		if (clampedVolume > 127)
+		if (clampedVolume > 127) {
 			clampedVolume = 127;
-		else if (clampedVolume < 0)
+		} else if (clampedVolume < 0) {
 			clampedVolume = 0;
-		setResult = g_frontState.frontendPrimarySoundBuffer->lpVtbl->SetVolume(
-			g_frontState.frontendPrimarySoundBuffer, 400 * (5 * clampedVolume - 635) / 127);
+		}
+		setResult =
+			g_frontState.frontendPrimarySoundBuffer->lpVtbl
+				->SetVolume(
+					g_frontState.frontendPrimarySoundBuffer,
+					400 * (5 * clampedVolume - 635) / 127);
 	}
-	if (wasBackBufferLocked != 0)
+	if (wasBackBufferLocked != 0) {
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	}
 	return setResult == 0;
 }
 
 // FUNCTION: XVT 0x4DEB50
-int FrontendSound_GetPrimaryVolume(void) {
+int FrontendSound_GetPrimaryVolume(void)
+{
 	int wasBackBufferLocked;
 	int32_t directSoundVolume;
 
-	if (g_frontState.frontendDirectSound == NULL)
+	if (g_frontState.frontendDirectSound == NULL) {
 		return 0;
+	}
 
 	wasBackBufferLocked = g_frontState.backBufferLocked;
 	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.frontendPrimarySoundBuffer->lpVtbl->GetVolume(g_frontState.frontendPrimarySoundBuffer,
-																   &directSoundVolume) != 0)
+	if (g_frontState.frontendPrimarySoundBuffer->lpVtbl->GetVolume(
+		    g_frontState.frontendPrimarySoundBuffer,
+		    &directSoundVolume) != 0) {
 		return 0;
+	}
 
 	/* Convert the DirectSound attenuation back to the game's volume scale, where 127 is full volume. */
 	directSoundVolume = 127 * directSoundVolume / 2000 + 127;
-	if (wasBackBufferLocked != 0)
+	if (wasBackBufferLocked != 0) {
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	}
 	return directSoundVolume;
 }
 
 // FUNCTION: XVT 0x4DEBC0
-int FrontendSound_SetNewestVoiceVolumeByName(const char* name, int volume0To127) {
+int FrontendSound_SetNewestVoiceVolumeByName(const char *name, int volume0To127)
+{
 	int bufferIndex;
 	int newestSerial;
-	FrontendSoundVoice* voice;
+	FrontendSoundVoice *voice;
 	int voiceIndex;
 	int newestVoiceIndex;
 	int wasBackBufferLocked;
@@ -477,7 +574,8 @@ int FrontendSound_SetNewestVoiceVolumeByName(const char* name, int volume0To127)
 	newestVoiceIndex = -1;
 	voice = g_frontState.frontendSoundVoices;
 	do {
-		if (voice->bufferIndex == bufferIndex && newestSerial < voice->playSerial) {
+		if (voice->bufferIndex == bufferIndex &&
+		    newestSerial < voice->playSerial) {
 			newestSerial = voice->playSerial;
 			newestVoiceIndex = voiceIndex;
 		}
@@ -497,8 +595,13 @@ int FrontendSound_SetNewestVoiceVolumeByName(const char* name, int volume0To127)
 		clampedVolume = 0;
 	}
 	directSoundVolume = 400 * (5 * clampedVolume - 635) / 127;
-	setResult = g_frontState.frontendSoundVoices[newestVoiceIndex].buffer->lpVtbl->SetVolume(
-		g_frontState.frontendSoundVoices[newestVoiceIndex].buffer, directSoundVolume);
+	setResult =
+		g_frontState.frontendSoundVoices[newestVoiceIndex]
+			.buffer->lpVtbl->SetVolume(
+				g_frontState
+					.frontendSoundVoices[newestVoiceIndex]
+					.buffer,
+				directSoundVolume);
 	if (wasBackBufferLocked != 0) {
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
 	}
@@ -506,10 +609,11 @@ int FrontendSound_SetNewestVoiceVolumeByName(const char* name, int volume0To127)
 }
 
 // FUNCTION: XVT 0x4DECA0
-int FrontendSound_GetNewestVoiceVolumeByName(const char* name) {
+int FrontendSound_GetNewestVoiceVolumeByName(const char *name)
+{
 	int bufferIndex;
 	int newestSerial;
-	FrontendSoundVoice* voice;
+	FrontendSoundVoice *voice;
 	int voiceIndex;
 	int newestVoiceIndex;
 	int wasBackBufferLocked;
@@ -531,7 +635,8 @@ int FrontendSound_GetNewestVoiceVolumeByName(const char* name) {
 	newestVoiceIndex = -1;
 	voice = g_frontState.frontendSoundVoices;
 	do {
-		if (voice->bufferIndex == bufferIndex && newestSerial < voice->playSerial) {
+		if (voice->bufferIndex == bufferIndex &&
+		    newestSerial < voice->playSerial) {
 			newestSerial = voice->playSerial;
 			newestVoiceIndex = voiceIndex;
 		}
@@ -544,8 +649,11 @@ int FrontendSound_GetNewestVoiceVolumeByName(const char* name) {
 
 	wasBackBufferLocked = g_frontState.backBufferLocked;
 	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.frontendSoundVoices[newestVoiceIndex].buffer->lpVtbl->GetVolume(
-			g_frontState.frontendSoundVoices[newestVoiceIndex].buffer, &directSoundVolume) != 0) {
+	if (g_frontState.frontendSoundVoices[newestVoiceIndex]
+		    .buffer->lpVtbl->GetVolume(
+			    g_frontState.frontendSoundVoices[newestVoiceIndex]
+				    .buffer,
+			    &directSoundVolume) != 0) {
 		return 0;
 	}
 	/* Convert the DirectSound attenuation back to the game's volume scale, where 127 is full volume. */
@@ -557,7 +665,8 @@ int FrontendSound_GetNewestVoiceVolumeByName(const char* name) {
 }
 
 // FUNCTION: XVT 0x4DED80
-int FrontendSound_SetNewestVoicePanByName(const char* name, int pan0To127) {
+int FrontendSound_SetNewestVoicePanByName(const char *name, int pan0To127)
+{
 	int bufferIndex;
 	int newestSerial;
 	int voiceIndex;
@@ -582,9 +691,13 @@ int FrontendSound_SetNewestVoicePanByName(const char* name, int pan0To127) {
 	voiceIndex = 0;
 	newestVoiceIndex = -1;
 	do {
-		if (g_frontState.frontendSoundVoices[voiceIndex].bufferIndex == bufferIndex &&
-			g_frontState.frontendSoundVoices[voiceIndex].playSerial > newestSerial) {
-			newestSerial = g_frontState.frontendSoundVoices[voiceIndex].playSerial;
+		if (g_frontState.frontendSoundVoices[voiceIndex].bufferIndex ==
+			    bufferIndex &&
+		    g_frontState.frontendSoundVoices[voiceIndex].playSerial >
+			    newestSerial) {
+			newestSerial =
+				g_frontState.frontendSoundVoices[voiceIndex]
+					.playSerial;
 			newestVoiceIndex = voiceIndex;
 		}
 		voiceIndex++;
@@ -603,8 +716,13 @@ int FrontendSound_SetNewestVoicePanByName(const char* name, int pan0To127) {
 		clampedPan = 0;
 	}
 	directSoundPan = 400 * (5 * clampedPan - 315) / 63;
-	setResult = g_frontState.frontendSoundVoices[newestVoiceIndex].buffer->lpVtbl->SetPan(
-		g_frontState.frontendSoundVoices[newestVoiceIndex].buffer, directSoundPan);
+	setResult =
+		g_frontState.frontendSoundVoices[newestVoiceIndex]
+			.buffer->lpVtbl->SetPan(
+				g_frontState
+					.frontendSoundVoices[newestVoiceIndex]
+					.buffer,
+				directSoundPan);
 	if (wasBackBufferLocked != 0) {
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
 	}
@@ -612,12 +730,13 @@ int FrontendSound_SetNewestVoicePanByName(const char* name, int pan0To127) {
 }
 
 // FUNCTION: XVT 0x4DEE60
-int FrontendSound_GetNewestVoicePanByName(const char* name) {
+int FrontendSound_GetNewestVoicePanByName(const char *name)
+{
 	int bufferIndex;
 	int newestSerial;
 	int voiceIndex;
 	int newestVoiceIndex;
-	FrontendSoundVoice* voice;
+	FrontendSoundVoice *voice;
 	int wasBackBufferLocked;
 	int32_t directSoundPan;
 
@@ -637,7 +756,8 @@ int FrontendSound_GetNewestVoicePanByName(const char* name) {
 	newestVoiceIndex = -1;
 	voice = g_frontState.frontendSoundVoices;
 	do {
-		if (voice->bufferIndex == bufferIndex && voice->playSerial > newestSerial) {
+		if (voice->bufferIndex == bufferIndex &&
+		    voice->playSerial > newestSerial) {
 			newestSerial = voice->playSerial;
 			newestVoiceIndex = voiceIndex;
 		}
@@ -650,8 +770,11 @@ int FrontendSound_GetNewestVoicePanByName(const char* name) {
 
 	wasBackBufferLocked = g_frontState.backBufferLocked;
 	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.frontendSoundVoices[newestVoiceIndex].buffer->lpVtbl->GetPan(
-			g_frontState.frontendSoundVoices[newestVoiceIndex].buffer, &directSoundPan) != 0) {
+	if (g_frontState.frontendSoundVoices[newestVoiceIndex]
+		    .buffer->lpVtbl->GetPan(
+			    g_frontState.frontendSoundVoices[newestVoiceIndex]
+				    .buffer,
+			    &directSoundPan) != 0) {
 		if (wasBackBufferLocked != 0) {
 			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
 		}
@@ -666,7 +789,8 @@ int FrontendSound_GetNewestVoicePanByName(const char* name) {
 }
 
 // FUNCTION: XVT 0x4DEF50
-int FrontendSound_SetBufferPriorityByName(const char* name, int priority0To255) {
+int FrontendSound_SetBufferPriorityByName(const char *name, int priority0To255)
+{
 	int bufferIndex;
 	int clampedPriority;
 
@@ -682,12 +806,14 @@ int FrontendSound_SetBufferPriorityByName(const char* name, int priority0To255) 
 	if (clampedPriority < 0) {
 		clampedPriority = 0;
 	}
-	g_frontState.frontendSoundBuffers[bufferIndex].priority = clampedPriority;
+	g_frontState.frontendSoundBuffers[bufferIndex].priority =
+		clampedPriority;
 	return 1;
 }
 
 // FUNCTION: XVT 0x4DEFA0
-int FrontendSound_GetBufferPriorityByName(const char* name) {
+int FrontendSound_GetBufferPriorityByName(const char *name)
+{
 	int bufferIndex;
 
 	bufferIndex = FrontendSound_FindBufferByName(name);
@@ -699,114 +825,149 @@ int FrontendSound_GetBufferPriorityByName(const char* name) {
 }
 
 // FUNCTION: XVT 0x4DEFD0
-int FrontendSound_GetPlayingCount(const char* name) {
+int FrontendSound_GetPlayingCount(const char *name)
+{
 	int bufferIndex;
 	int voiceIndex;
 	int wasBackBufferLocked;
 	int playingCount;
 	uint32_t status;
 
-	if (g_frontState.frontendDirectSound == NULL)
+	if (g_frontState.frontendDirectSound == NULL) {
 		return 0;
-	if (name[0] == '\0')
+	}
+	if (name[0] == '\0') {
 		return 0;
+	}
 
 	bufferIndex = FrontendSound_FindBufferByName(name);
-	if (bufferIndex == -1)
+	if (bufferIndex == -1) {
 		return 0;
+	}
 
 	voiceIndex = 0;
 	wasBackBufferLocked = g_frontState.backBufferLocked;
 	playingCount = 0;
 	FrontendDisplay_UnlockBackBuffer();
 	do {
-		if (g_frontState.frontendSoundVoices[voiceIndex].bufferIndex == bufferIndex &&
-			g_frontState.frontendSoundVoices[voiceIndex].buffer->lpVtbl->GetStatus(
-				g_frontState.frontendSoundVoices[voiceIndex].buffer, &status) == 0 &&
-			((status & 1) != 0 || (status & 4) != 0)) {
+		if (g_frontState.frontendSoundVoices[voiceIndex].bufferIndex ==
+			    bufferIndex &&
+		    g_frontState.frontendSoundVoices[voiceIndex]
+				    .buffer->lpVtbl->GetStatus(
+					    g_frontState
+						    .frontendSoundVoices
+							    [voiceIndex]
+						    .buffer,
+					    &status) == 0 &&
+		    ((status & 1) != 0 || (status & 4) != 0)) {
 			++playingCount;
 		}
 		++voiceIndex;
 	} while (voiceIndex < 12);
 
-	if (wasBackBufferLocked != 0)
+	if (wasBackBufferLocked != 0) {
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	}
 	return playingCount;
 }
 
 // FUNCTION: XVT 0x4DF070
-void FrontendSound_InsertSortedBuffer(const FrontendSoundBufferRecord* record) {
+void FrontendSound_InsertSortedBuffer(const FrontendSoundBufferRecord *record)
+{
 	int insertionIndex;
 	int shiftIndex;
 	int remaining;
 	int voiceIndex;
 	int bufferIndex;
-	FrontendSoundBufferRecord* destination;
+	FrontendSoundBufferRecord *destination;
 
 	insertionIndex = 0;
 	if (g_frontState.frontendSoundBufferCount > 0) {
 		do {
-			if (strncmp(record->name, g_frontState.frontendSoundBuffers[insertionIndex].name, 64) < 0)
+			if (strncmp(record->name,
+				    g_frontState
+					    .frontendSoundBuffers
+						    [insertionIndex]
+					    .name,
+				    64) < 0) {
 				break;
+			}
 			++insertionIndex;
-		} while (g_frontState.frontendSoundBufferCount > insertionIndex);
+		} while (g_frontState.frontendSoundBufferCount >
+			 insertionIndex);
 	}
 	if (g_frontState.frontendSoundBufferCount > insertionIndex) {
 		shiftIndex = g_frontState.frontendSoundBufferCount;
-		remaining = g_frontState.frontendSoundBufferCount - insertionIndex;
+		remaining =
+			g_frontState.frontendSoundBufferCount - insertionIndex;
 		do {
-			destination = &g_frontState.frontendSoundBuffers[shiftIndex];
+			destination =
+				&g_frontState.frontendSoundBuffers[shiftIndex];
 			--shiftIndex;
-			memcpy(destination, &g_frontState.frontendSoundBuffers[shiftIndex],
-				   sizeof(FrontendSoundBufferRecord));
+			memcpy(destination,
+			       &g_frontState.frontendSoundBuffers[shiftIndex],
+			       sizeof(FrontendSoundBufferRecord));
 			--remaining;
 		} while (remaining != 0);
 	}
-	memcpy(&g_frontState.frontendSoundBuffers[insertionIndex], record, sizeof(FrontendSoundBufferRecord));
+	memcpy(&g_frontState.frontendSoundBuffers[insertionIndex], record,
+	       sizeof(FrontendSoundBufferRecord));
 	++g_frontState.frontendSoundBufferCount;
 	voiceIndex = 0;
 	do {
-		bufferIndex = g_frontState.frontendSoundVoices[voiceIndex].bufferIndex;
-		if (insertionIndex <= bufferIndex)
-			g_frontState.frontendSoundVoices[voiceIndex].bufferIndex = bufferIndex + 1;
+		bufferIndex = g_frontState.frontendSoundVoices[voiceIndex]
+				      .bufferIndex;
+		if (insertionIndex <= bufferIndex) {
+			g_frontState.frontendSoundVoices[voiceIndex]
+				.bufferIndex = bufferIndex + 1;
+		}
 		++voiceIndex;
 	} while (voiceIndex < 12);
 }
 
 // FUNCTION: XVT 0x4DF130
-void FrontendSound_RemoveBufferRecord(int bufferIndex) {
+void FrontendSound_RemoveBufferRecord(int bufferIndex)
+{
 	int index;
 
-	if (bufferIndex < 0 || bufferIndex >= g_frontState.frontendSoundBufferCount) {
+	if (bufferIndex < 0 ||
+	    bufferIndex >= g_frontState.frontendSoundBufferCount) {
 		return;
 	}
 
-	for (index = bufferIndex; index < g_frontState.frontendSoundBufferCount - 1; ++index) {
-		g_frontState.frontendSoundBuffers[index] = g_frontState.frontendSoundBuffers[index + 1];
+	for (index = bufferIndex;
+	     index < g_frontState.frontendSoundBufferCount - 1; ++index) {
+		g_frontState.frontendSoundBuffers[index] =
+			g_frontState.frontendSoundBuffers[index + 1];
 	}
 
 	--g_frontState.frontendSoundBufferCount;
 	for (index = 0; index < 12; ++index) {
-		if (g_frontState.frontendSoundVoices[index].bufferIndex > bufferIndex) {
+		if (g_frontState.frontendSoundVoices[index].bufferIndex >
+		    bufferIndex) {
 			--g_frontState.frontendSoundVoices[index].bufferIndex;
 		}
 	}
 }
 
 // FUNCTION: XVT 0x4DF1B0
-int FrontendSound_FindBufferByName(const char* name) {
-	return FrontendSound_BinarySearchBufferByName(g_frontState.frontendSoundBuffers,
-												  g_frontState.frontendSoundBufferCount - 1, name);
+int FrontendSound_FindBufferByName(const char *name)
+{
+	return FrontendSound_BinarySearchBufferByName(
+		g_frontState.frontendSoundBuffers,
+		g_frontState.frontendSoundBufferCount - 1, name);
 }
 
 // FUNCTION: XVT 0x4DF1D0
-int FrontendSound_BinarySearchBufferByName(const FrontendSoundBufferRecord* records, int lastIndex,
-										   const char* name) {
+int FrontendSound_BinarySearchBufferByName(
+	const FrontendSoundBufferRecord *records, int lastIndex,
+	const char *name)
+{
 	int baseIndex;
 	int searchLastIndex;
 	int middle;
 	int comparison;
-	const FrontendSoundBufferRecord* middleRecord;
+	const FrontendSoundBufferRecord *middleRecord;
 
 	baseIndex = 0;
 	searchLastIndex = lastIndex;
@@ -816,7 +977,8 @@ int FrontendSound_BinarySearchBufferByName(const FrontendSoundBufferRecord* reco
 		}
 		middle = searchLastIndex >> 1;
 		middleRecord = &records[middle];
-		comparison = strncmp(middleRecord->name, name, sizeof(middleRecord->name));
+		comparison = strncmp(middleRecord->name, name,
+				     sizeof(middleRecord->name));
 		if (comparison == 0) {
 			return middle + baseIndex;
 		}
@@ -834,8 +996,9 @@ int FrontendSound_BinarySearchBufferByName(const FrontendSoundBufferRecord* reco
 }
 
 // FUNCTION: XVT 0x4DF700
-int FrontendSound_LoadList(const char* fileName) {
-	XvtFile* stream;
+int FrontendSound_LoadList(const char *fileName)
+{
+	XvtFile *stream;
 	int fieldCount;
 	char soundFileName[256];
 	char soundName[256];
@@ -850,9 +1013,11 @@ int FrontendSound_LoadList(const char* fileName) {
 	}
 	while (1) {
 #ifdef XVT_MODERN
-		fieldCount = File_Scanf(stream, "%255s %255s\n", soundFileName, soundName);
+		fieldCount = File_Scanf(stream, "%255s %255s\n", soundFileName,
+					soundName);
 #else
-		fieldCount = File_Scanf(stream, "%s %s\n", soundFileName, soundName);
+		fieldCount =
+			File_Scanf(stream, "%s %s\n", soundFileName, soundName);
 #endif
 		if (fieldCount == EOF) {
 			File_Close(stream);
@@ -867,8 +1032,9 @@ int FrontendSound_LoadList(const char* fileName) {
 }
 
 // FUNCTION: XVT 0x4DF7C0
-int FrontendSound_UnloadList(char* fileName) {
-	XvtFile* stream;
+int FrontendSound_UnloadList(char *fileName)
+{
+	XvtFile *stream;
 	int fieldCount;
 	char ignoredFileName[256];
 	char soundName[256];
@@ -883,9 +1049,11 @@ int FrontendSound_UnloadList(char* fileName) {
 	}
 	while (1) {
 #ifdef XVT_MODERN
-		fieldCount = File_Scanf(stream, "%255s %255s\n", ignoredFileName, soundName);
+		fieldCount = File_Scanf(stream, "%255s %255s\n",
+					ignoredFileName, soundName);
 #else
-		fieldCount = File_Scanf(stream, "%s %s\n", ignoredFileName, soundName);
+		fieldCount = File_Scanf(stream, "%s %s\n", ignoredFileName,
+					soundName);
 #endif
 		if (fieldCount == EOF) {
 			File_Close(stream);

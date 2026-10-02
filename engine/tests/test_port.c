@@ -23,7 +23,8 @@
 
 static int Placeholder(int frame) { return frame; }
 
-static void Fresh(void) {
+static void Fresh(void)
+{
 	XvtPort_Shutdown();
 	XvtNetworkTask_Shutdown();
 	XvtNetworkSession_Shutdown();
@@ -32,11 +33,13 @@ static void Fresh(void) {
 	g_frontState.screenStates[0].updateFn = Placeholder;
 }
 
-static void CheckInitRefusesSize(void) {
-	const int sizes[][2] = { { 800, 600 }, { 640, 400 }, { 852, 480 } };
+static void CheckInitRefusesSize(void)
+{
+	const int sizes[][2] = {{800, 600}, {640, 400}, {852, 480}};
 	for (unsigned i = 0; i < sizeof sizes / sizeof sizes[0]; ++i) {
 		Fresh();
-		XVT_ASSERT_INT_EQ(Aeron_SetLogicalSize(sizes[i][0], sizes[i][1]), 1);
+		XVT_ASSERT_INT_EQ(
+			Aeron_SetLogicalSize(sizes[i][0], sizes[i][1]), 1);
 		XVT_ASSERT_INT_EQ(XvtPort_Init(), 0);
 		XVT_ASSERT_INT_EQ(XvtPort_GetExitCode(), 1);
 		XVT_ASSERT_INT_EQ(XvtPort_IsInitialized(), 0);
@@ -44,7 +47,8 @@ static void CheckInitRefusesSize(void) {
 	}
 }
 
-static void CheckBeforeInit(void) {
+static void CheckBeforeInit(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtPort_IsInitialized(), 0);
 	XVT_ASSERT_INT_EQ(XvtPort_ServiceQuit(), 1);
@@ -61,7 +65,8 @@ static void CheckBeforeInit(void) {
 	XVT_ASSERT_INT_EQ(XvtPort_IsInitialized(), 0);
 }
 
-static void CheckSettingsLatch(void) {
+static void CheckSettingsLatch(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtPort_ConsumeSettingsRequest(), 0);
 	XvtPort_RequestSettings();
@@ -70,7 +75,8 @@ static void CheckSettingsLatch(void) {
 	XVT_ASSERT_INT_EQ(XvtPort_ConsumeSettingsRequest(), 0);
 }
 
-static void CheckNetworkRequiresProgress(void) {
+static void CheckNetworkRequiresProgress(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtPort_NetworkRequiresProgress(), 0);
 
@@ -88,7 +94,8 @@ static void CheckNetworkRequiresProgress(void) {
 	XVT_ASSERT_INT_EQ(XvtPort_NetworkRequiresProgress(), 0);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckInitRefusesSize();
 	CheckBeforeInit();
 	CheckSettingsLatch();

@@ -10,7 +10,8 @@
 
 /* Opens, or replaces, a directory picker titled "SELECT XvT INSTALLATION" that accepts only a folder
  * ResolveInstallation accepts, starting at path when it is nonempty. Returns the picker's result. */
-int XvtSetupUi_OpenPicker(AeronUiFilePicker* picker, const char* path, char* error, size_t capacity);
+int XvtSetupUi_OpenPicker(AeronUiFilePicker *picker, const char *path,
+			  char *error, size_t capacity);
 /* A NULL path shows configuration recovery; otherwise Continue saves the
  * validated installation. Cancellation never saves the selection. */
 /* With a path, creates a picker (failure: "Cannot create installation picker.", ERROR) and first validates a
@@ -23,6 +24,7 @@ int XvtSetupUi_OpenPicker(AeronUiFilePicker* picker, const char* path, char* err
  * unconsumed cancel press end it CANCELLED. Each frame then waits about 16.7 ms. After the loop, a fatal host
  * error is ERROR ("Setup interrupted by a fatal host error.") and a quit request is CANCELLED. The picker is
  * destroyed; SUCCESS clears error. */
-XvtSetupResult XvtSetupUi_Run(XvtAppUi* ui, char* path, size_t path_capacity, char* error, size_t capacity);
+XvtSetupResult XvtSetupUi_Run(XvtAppUi *ui, char *path, size_t path_capacity,
+			      char *error, size_t capacity);
 
 #endif

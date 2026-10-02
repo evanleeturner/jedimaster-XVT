@@ -9,7 +9,7 @@
 
 /* Starts a flight for command, copied up to 1023 characters, and resets the flight simulation.
  * Returns 1; returns 0 and does nothing when a flight is active or command is NULL. */
-int XvtFlightTask_Begin(const char* command);
+int XvtFlightTask_Begin(const char *command);
 /* Advances the flight by one phase step; call only while the task is active, since a lost network
  * session sends any phase before cleanup, idle included, to cleanup with a result of 0. Does not
  * advance while a resync is active. A failed step goes to cleanup. Cleanup releases the mission

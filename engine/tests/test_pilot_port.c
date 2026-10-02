@@ -15,12 +15,14 @@
 
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 static char g_user[XVT_TEST_PATH_CAPACITY];
-static AeronVfs* g_vfs;
+static AeronVfs *g_vfs;
 
 /* Unbinds and destroys the case's VFS and removes its folder. */
-static void EndRoots(void) {
-	if (!g_vfs)
+static void EndRoots(void)
+{
+	if (!g_vfs) {
 		return;
+	}
 	XvtStorage_Bind(NULL);
 	AeronVfs_Destroy(g_vfs);
 	g_vfs = NULL;
@@ -28,12 +30,13 @@ static void EndRoots(void) {
 }
 
 /* Starts a case: an empty USER root in a fresh folder, bound to storage. */
-static void FreshRoots(void) {
+static void FreshRoots(void)
+{
 	EndRoots();
 	XvtTest_MakeFolder(g_folder);
 	XvtTest_MakeSubfolder(g_folder, "user");
 	XvtTest_Join(g_user, g_folder, "user");
-	AeronVfsConfig config = { 0 };
+	AeronVfsConfig config = {0};
 	config.asset_root = g_user;
 	config.resource_root = g_user;
 	config.user_root = g_user;
@@ -43,7 +46,8 @@ static void FreshRoots(void) {
 	XvtStorage_Bind(g_vfs);
 }
 
-static void CheckRemovesFile(void) {
+static void CheckRemovesFile(void)
+{
 	FreshRoots();
 	XvtTest_WriteText(g_user, "ace.plt", "x");
 	XVT_ASSERT_INT_EQ(Pilot_RemoveFileModern("ace.plt"), 1);
@@ -56,14 +60,16 @@ static void CheckRemovesFile(void) {
 	EndRoots();
 }
 
-static void CheckProvenAbsent(void) {
+static void CheckProvenAbsent(void)
+{
 	FreshRoots();
 	XVT_ASSERT_INT_EQ(Pilot_RemoveFileModern("none.plt"), 1);
 	XVT_ASSERT_INT_EQ(Pilot_RemoveFileModern("nofolder/none.pl2"), 1);
 	EndRoots();
 }
 
-static void CheckPresenceUnknown(void) {
+static void CheckPresenceUnknown(void)
+{
 	FreshRoots();
 	/* A rejected name, and a name that is a folder, are not known to be gone: 0, and the folder stays. */
 	XVT_ASSERT_INT_EQ(Pilot_RemoveFileModern("../ace.plt"), 0);
@@ -91,7 +97,8 @@ static void CheckPresenceUnknown(void) {
 	EndRoots();
 }
 
-int main(void) {
+int main(void)
+{
 	CheckRemovesFile();
 	CheckProvenAbsent();
 	CheckPresenceUnknown();

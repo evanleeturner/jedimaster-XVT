@@ -18,31 +18,37 @@
 #include <stdio.h>
 
 // FUNCTION: XVT 0x4F0860
-int FrontendBootstrap_ExitIntroAndLoadCredits(int frameCounter) {
+int FrontendBootstrap_ExitIntroAndLoadCredits(int frameCounter)
+{
 	(void)frameCounter;
 	Credits_LoadScreenResources();
 	return 0;
 }
 
 // FUNCTION: XVT 0x4F0870
-int FrontendBootstrap_PlayOpeningAndEnterCredits(int frameCounter) {
+int FrontendBootstrap_PlayOpeningAndEnterCredits(int frameCounter)
+{
 	(void)frameCounter;
 	FrontendDisplay_UnlockBackBuffer();
 #ifdef XVT_MODERN
-	if (Movie_Play("Opening", 0) == XVT_MOVIE_PENDING)
+	if (Movie_Play("Opening", 0) == XVT_MOVIE_PENDING) {
 		return 0;
+	}
 #else
 	Movie_Play("Opening", 0);
 #endif
 	FrontendDisplay_ClearBackBuffer();
-	FrontendScreen_SetCallbacks(Credits_UpdateScreen,
-								(FrontendScreenExitFn)FrontendBootstrap_ExitCreditsAndLoadFrontend);
+	FrontendScreen_SetCallbacks(
+		Credits_UpdateScreen,
+		(FrontendScreenExitFn)
+			FrontendBootstrap_ExitCreditsAndLoadFrontend);
 	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
 	return 0;
 }
 
 // FUNCTION: XVT 0x4F08B0
-int FrontendBootstrap_InitMode(void) {
+int FrontendBootstrap_InitMode(void)
+{
 	FrontendDisplay_DisableEscapeClose();
 	FrontendDisplay_SetSurfaceClearColor(0);
 	FrontendCursor_Hide();
@@ -57,7 +63,8 @@ int FrontendBootstrap_InitMode(void) {
 }
 
 // FUNCTION: XVT 0x4FB5E0
-int FrontendBootstrap_ExitCreditsAndLoadFrontend(int frameCounter) {
+int FrontendBootstrap_ExitCreditsAndLoadFrontend(int frameCounter)
+{
 	(void)frameCounter;
 
 	if (g_frontendCreditsFile != NULL) {

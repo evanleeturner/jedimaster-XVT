@@ -17,12 +17,14 @@ static char g_folder[XVT_TEST_PATH_CAPACITY];
 static char g_asset[XVT_TEST_PATH_CAPACITY];
 static char g_user[XVT_TEST_PATH_CAPACITY];
 static char g_temp[XVT_TEST_PATH_CAPACITY];
-static AeronVfs* g_vfs;
+static AeronVfs *g_vfs;
 
 /* Unbinds and destroys the case's VFS and removes its folder. */
-static void EndRoots(void) {
-	if (!g_vfs)
+static void EndRoots(void)
+{
+	if (!g_vfs) {
 		return;
+	}
 	XvtStorage_Bind(NULL);
 	AeronVfs_Destroy(g_vfs);
 	g_vfs = NULL;
@@ -30,7 +32,8 @@ static void EndRoots(void) {
 }
 
 /* Starts a case: empty ASSET, USER and TEMP roots in a fresh folder, bound to storage. */
-static void FreshRoots(void) {
+static void FreshRoots(void)
+{
 	EndRoots();
 	XvtTest_MakeFolder(g_folder);
 	XvtTest_MakeSubfolder(g_folder, "asset");
@@ -39,7 +42,7 @@ static void FreshRoots(void) {
 	XvtTest_Join(g_asset, g_folder, "asset");
 	XvtTest_Join(g_user, g_folder, "user");
 	XvtTest_Join(g_temp, g_folder, "temp");
-	AeronVfsConfig config = { 0 };
+	AeronVfsConfig config = {0};
 	config.asset_root = g_asset;
 	config.resource_root = g_asset;
 	config.user_root = g_user;
@@ -50,25 +53,29 @@ static void FreshRoots(void) {
 }
 
 /* Returns 1 when the file that Open gives path in mode holds exactly text. */
-static int OpensText(const char* path, const char* mode, const char* text) {
+static int OpensText(const char *path, const char *mode, const char *text)
+{
 	char buffer[64];
 	size_t got = 0;
-	AeronFile* file = XvtStorage_Open(path, mode);
-	if (!file)
+	AeronFile *file = XvtStorage_Open(path, mode);
+	if (!file) {
 		return 0;
+	}
 	AeronVfs_Read(file, buffer, sizeof buffer, &got);
 	AeronVfs_Close(file);
 	return got == strlen(text) && memcmp(buffer, text, got) == 0;
 }
 
 /* Opens path with Open in mode, which must succeed, and closes it. */
-static void OpenAndClose(const char* path, const char* mode) {
-	AeronFile* file = XvtStorage_Open(path, mode);
+static void OpenAndClose(const char *path, const char *mode)
+{
+	AeronFile *file = XvtStorage_Open(path, mode);
 	XVT_ASSERT_TRUE(file != NULL);
 	XVT_ASSERT_TRUE(AeronVfs_Close(file));
 }
 
-static void CheckBind(void) {
+static void CheckBind(void)
+{
 	FreshRoots();
 	XVT_ASSERT_TRUE(XvtStorage_Vfs() == g_vfs);
 	XvtTest_WriteText(g_asset, "a.dat", "a");
@@ -84,14 +91,17 @@ static void CheckBind(void) {
 	XVT_ASSERT_TRUE(XvtStorage_Vfs() == NULL);
 	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_ASSET, "a.dat"), -1);
 	XVT_ASSERT_TRUE(XvtStorage_Open("a.dat", "rb") == NULL);
-	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_ASSET, "a.dat", "rb") == NULL);
+	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_ASSET, "a.dat",
+					    "rb") == NULL);
 	XvtStorage_Bind(g_vfs);
 	EndRoots();
 }
 
-static void CheckNormalize(void) {
+static void CheckNormalize(void)
+{
 	char out[64];
-	XVT_ASSERT_INT_EQ(XvtStorage_Normalize("a\\b/./c//d/", out, sizeof out), 1);
+	XVT_ASSERT_INT_EQ(XvtStorage_Normalize("a\\b/./c//d/", out, sizeof out),
+			  1);
 	XVT_ASSERT_INT_EQ(strcmp(out, "a/b/c/d"), 0);
 	XVT_ASSERT_INT_EQ(XvtStorage_Normalize("./x", out, sizeof out), 1);
 	XVT_ASSERT_INT_EQ(strcmp(out, "x"), 0);
@@ -115,26 +125,36 @@ static void CheckNormalize(void) {
 	XVT_ASSERT_INT_EQ(XvtStorage_Normalize("abc\\de", out, 6), 0);
 }
 
-static void CheckProbe(void) {
+static void CheckProbe(void)
+{
 	FreshRoots();
 	XvtTest_MakeSubfolder(g_user, "pilots");
 	XvtTest_MakeSubfolder(g_user, "pilots/sub");
 	XvtTest_WriteText(g_user, "pilots/Ace.PLT", "p");
 	XvtTest_WriteText(g_user, "flat.txt", "f");
 
-	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "pilots/Ace.PLT"), 1);
-	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "pilots\\Ace.PLT"), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_Probe(AERON_VFS_ROOT_USER, "pilots/Ace.PLT"), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_Probe(AERON_VFS_ROOT_USER, "pilots\\Ace.PLT"), 1);
 
 	/* Proven absent: the parent lists no such name, or an ancestor is proven missing. */
-	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "pilots/none.plt"), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_Probe(AERON_VFS_ROOT_USER, "pilots/none.plt"), 0);
 	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "top.plt"), 0);
-	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "missing/deeper/x.plt"), 0);
-	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_ASSET, "pilots/Ace.PLT"), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_Probe(AERON_VFS_ROOT_USER, "missing/deeper/x.plt"),
+		0);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_Probe(AERON_VFS_ROOT_ASSET, "pilots/Ace.PLT"), 0);
 
 	/* Not proven either way: a folder, a rejected path, a parent that is a file. */
-	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "pilots/sub"), -1);
-	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "../x.plt"), -1);
-	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "flat.txt/x"), -1);
+	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "pilots/sub"),
+			  -1);
+	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "../x.plt"),
+			  -1);
+	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "flat.txt/x"),
+			  -1);
 
 	/* A name the parent lists in other letter case: where the file system tells case apart, the exact
 	 * lookup misses it and the answer is -1; where it does not, the lookup finds the file. */
@@ -142,11 +162,14 @@ static void CheckProbe(void) {
 	struct stat info;
 	XvtTest_Join(other, g_user, "pilots/ace.plt");
 	int caseBlind = stat(other, &info) == 0;
-	XVT_ASSERT_INT_EQ(XvtStorage_Probe(AERON_VFS_ROOT_USER, "pilots/ace.plt"), caseBlind ? 1 : -1);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_Probe(AERON_VFS_ROOT_USER, "pilots/ace.plt"),
+		caseBlind ? 1 : -1);
 	EndRoots();
 }
 
-static void CheckResolveAsset(void) {
+static void CheckResolveAsset(void)
+{
 	FreshRoots();
 	char resolved[XVT_PATH_CAPACITY];
 	XvtTest_MakeSubfolder(g_asset, "BalanceOfPower");
@@ -155,19 +178,32 @@ static void CheckResolveAsset(void) {
 	XvtTest_WriteText(g_asset, "plain.dat", "plain");
 	XvtTest_WriteText(g_user, "user.dat", "user");
 
-	XVT_ASSERT_INT_EQ(XvtStorage_ResolveAsset("both.dat", resolved, sizeof resolved), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_ResolveAsset("both.dat", resolved, sizeof resolved),
+		1);
 	XVT_ASSERT_INT_EQ(strcmp(resolved, "BalanceOfPower/both.dat"), 0);
-	XVT_ASSERT_INT_EQ(XvtStorage_ResolveAsset("plain.dat", resolved, sizeof resolved), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_ResolveAsset("plain.dat", resolved, sizeof resolved),
+		1);
 	XVT_ASSERT_INT_EQ(strcmp(resolved, "plain.dat"), 0);
 
-	XVT_ASSERT_INT_EQ(XvtStorage_ResolveAsset("none.dat", resolved, sizeof resolved), 0);
-	XVT_ASSERT_INT_EQ(XvtStorage_ResolveAsset("user.dat", resolved, sizeof resolved), 0);
-	XVT_ASSERT_INT_EQ(XvtStorage_ResolveAsset("../none.dat", resolved, sizeof resolved), -1);
-	XVT_ASSERT_INT_EQ(XvtStorage_ResolveAsset("plain.dat/inner", resolved, sizeof resolved), -1);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_ResolveAsset("none.dat", resolved, sizeof resolved),
+		0);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_ResolveAsset("user.dat", resolved, sizeof resolved),
+		0);
+	XVT_ASSERT_INT_EQ(XvtStorage_ResolveAsset("../none.dat", resolved,
+						  sizeof resolved),
+			  -1);
+	XVT_ASSERT_INT_EQ(XvtStorage_ResolveAsset("plain.dat/inner", resolved,
+						  sizeof resolved),
+			  -1);
 	EndRoots();
 }
 
-static void CheckOpenTemp(void) {
+static void CheckOpenTemp(void)
+{
 	FreshRoots();
 	/* .tmp and .tmt, in any letter case, go to TEMP for writes and reads alike. */
 	OpenAndClose("work.tmp", "wb");
@@ -182,10 +218,12 @@ static void CheckOpenTemp(void) {
 	EndRoots();
 }
 
-static void CheckOpenCache(void) {
+static void CheckOpenCache(void)
+{
 	FreshRoots();
 	/* Every cache extension, in any letter case, writes to USER under cache/, which is created. */
-	static const char* const names[] = { "a.pal", "b.act", "c.inv", "d.bin", "e.plo", "F.PAL" };
+	static const char *const names[] = {"a.pal", "b.act", "c.inv",
+					    "d.bin", "e.plo", "F.PAL"};
 	for (size_t i = 0; i < sizeof names / sizeof names[0]; ++i) {
 		char placed[64];
 		snprintf(placed, sizeof placed, "cache/%s", names[i]);
@@ -204,7 +242,8 @@ static void CheckOpenCache(void) {
 	EndRoots();
 }
 
-static void CheckOpenUser(void) {
+static void CheckOpenUser(void)
+{
 	FreshRoots();
 	/* .plt and .pl2 reads come from USER, never ASSET. */
 	XvtTest_WriteText(g_user, "p.plt", "user");
@@ -223,7 +262,8 @@ static void CheckOpenUser(void) {
 	EndRoots();
 }
 
-static void CheckOpenAsset(void) {
+static void CheckOpenAsset(void)
+{
 	FreshRoots();
 	/* Any other read: ASSET's BalanceOfPower/<path> first, then <path>; USER is not read. */
 	XvtTest_MakeSubfolder(g_asset, "BalanceOfPower");
@@ -245,23 +285,29 @@ static void CheckOpenAsset(void) {
 	EndRoots();
 }
 
-static void CheckOpenRoot(void) {
+static void CheckOpenRoot(void)
+{
 	FreshRoots();
 	/* A mode that writes is refused outside USER and TEMP, and creates nothing. */
-	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_ASSET, "w.dat", "wb") == NULL);
-	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_ASSET, "w.dat", "ab") == NULL);
+	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_ASSET, "w.dat",
+					    "wb") == NULL);
+	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_ASSET, "w.dat",
+					    "ab") == NULL);
 	XVT_ASSERT_INT_EQ(XvtTest_Kind(g_asset, "w.dat"), 0);
 	XvtTest_WriteText(g_asset, "w.dat", "asset");
-	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_ASSET, "w.dat", "r+b") == NULL);
+	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_ASSET, "w.dat",
+					    "r+b") == NULL);
 
 	/* A write creates missing parent folders. */
-	AeronFile* file = XvtStorage_OpenRoot(AERON_VFS_ROOT_TEMP, "a/b/c.dat", "wb");
+	AeronFile *file =
+		XvtStorage_OpenRoot(AERON_VFS_ROOT_TEMP, "a/b/c.dat", "wb");
 	XVT_ASSERT_TRUE(file != NULL);
 	XVT_ASSERT_TRUE(AeronVfs_Close(file));
 	XVT_ASSERT_INT_EQ(XvtTest_Kind(g_temp, "a/b/c.dat"), 1);
 
 	/* A read refuses a folder. */
-	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_TEMP, "a/b", "rb") == NULL);
+	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_TEMP, "a/b", "rb") ==
+			NULL);
 
 	/* "a+" opens for appending only: what it writes goes to the end, and it reads nothing. */
 	XvtTest_WriteText(g_user, "log.txt", "abc");
@@ -277,13 +323,17 @@ static void CheckOpenRoot(void) {
 	XVT_ASSERT_TRUE(XvtTest_FileIs(g_user, "log.txt", "abcdef"));
 
 	/* Refusals: a bad mode, a rejected path. */
-	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, "log.txt", "z") == NULL);
-	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, "log.txt", NULL) == NULL);
-	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, "../log.txt", "rb") == NULL);
+	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, "log.txt",
+					    "z") == NULL);
+	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, "log.txt",
+					    NULL) == NULL);
+	XVT_ASSERT_TRUE(XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, "../log.txt",
+					    "rb") == NULL);
 	EndRoots();
 }
 
-static void CheckWriteAtomic(void) {
+static void CheckWriteAtomic(void)
+{
 	FreshRoots();
 	XVT_ASSERT_INT_EQ(XvtStorage_WriteAtomic("state.dat", "first", 5), 1);
 	XVT_ASSERT_TRUE(XvtTest_FileIs(g_user, "state.dat", "first"));
@@ -303,7 +353,8 @@ static void CheckWriteAtomic(void) {
 	EndRoots();
 }
 
-static void CheckRemove(void) {
+static void CheckRemove(void)
+{
 	FreshRoots();
 	XvtTest_WriteText(g_user, "old.sav", "x");
 	XVT_ASSERT_INT_EQ(XvtStorage_Remove("old.sav"), 0);
@@ -336,7 +387,8 @@ static void CheckRemove(void) {
 	EndRoots();
 }
 
-static void CheckRename(void) {
+static void CheckRename(void)
+{
 	FreshRoots();
 	XvtTest_WriteText(g_user, "a.sav", "a");
 	XVT_ASSERT_INT_EQ(XvtStorage_Rename("a.sav", "b.sav"), 0);
@@ -366,22 +418,29 @@ typedef struct GlobSeen {
 	char names[8][32];
 } GlobSeen;
 
-static int Collect(void* context, const AeronVfsEntry* entry) {
-	GlobSeen* seen = context;
-	if (seen->count < 8)
-		snprintf(seen->names[seen->count], sizeof seen->names[0], "%s", entry->name);
+static int Collect(void *context, const AeronVfsEntry *entry)
+{
+	GlobSeen *seen = context;
+	if (seen->count < 8) {
+		snprintf(seen->names[seen->count], sizeof seen->names[0], "%s",
+			 entry->name);
+	}
 	++seen->count;
 	return seen->stopAfter == 0 || seen->count < seen->stopAfter;
 }
 
-static int Saw(const GlobSeen* seen, const char* name) {
-	for (int i = 0; i < seen->count && i < 8; ++i)
-		if (!strcmp(seen->names[i], name))
+static int Saw(const GlobSeen *seen, const char *name)
+{
+	for (int i = 0; i < seen->count && i < 8; ++i) {
+		if (!strcmp(seen->names[i], name)) {
 			return 1;
+		}
+	}
 	return 0;
 }
 
-static void CheckGlob(void) {
+static void CheckGlob(void)
+{
 	FreshRoots();
 	XvtTest_MakeSubfolder(g_user, "pilots");
 	XvtTest_MakeSubfolder(g_user, "pilots/dir.plt");
@@ -393,52 +452,61 @@ static void CheckGlob(void) {
 	XvtTest_WriteText(g_asset, "pilots/carl.plt", "x");
 
 	/* Files only, in the named folder of the named root, matched in any letter case. */
-	GlobSeen seen = { 0 };
-	XVT_ASSERT_TRUE(XvtStorage_Glob(AERON_VFS_ROOT_USER, "pilots/*.plt", Collect, &seen) != 0);
+	GlobSeen seen = {0};
+	XVT_ASSERT_TRUE(XvtStorage_Glob(AERON_VFS_ROOT_USER, "pilots/*.plt",
+					Collect, &seen) != 0);
 	XVT_ASSERT_INT_EQ(seen.count, 2);
 	XVT_ASSERT_TRUE(Saw(&seen, "Ace.PLT"));
 	XVT_ASSERT_TRUE(Saw(&seen, "bob.plt"));
 
 	/* A wildcard with no folder part lists the root itself. */
 	memset(&seen, 0, sizeof seen);
-	XVT_ASSERT_TRUE(XvtStorage_Glob(AERON_VFS_ROOT_USER, "*.PLT", Collect, &seen) != 0);
+	XVT_ASSERT_TRUE(XvtStorage_Glob(AERON_VFS_ROOT_USER, "*.PLT", Collect,
+					&seen) != 0);
 	XVT_ASSERT_INT_EQ(seen.count, 1);
 	XVT_ASSERT_TRUE(Saw(&seen, "top.plt"));
 
 	/* A callback that returns 0 stops the listing, and Glob returns 0. */
 	memset(&seen, 0, sizeof seen);
 	seen.stopAfter = 1;
-	XVT_ASSERT_INT_EQ(XvtStorage_Glob(AERON_VFS_ROOT_USER, "pilots/*.plt", Collect, &seen), 0);
+	XVT_ASSERT_INT_EQ(XvtStorage_Glob(AERON_VFS_ROOT_USER, "pilots/*.plt",
+					  Collect, &seen),
+			  0);
 	XVT_ASSERT_INT_EQ(seen.count, 1);
 
 	/* A rejected wildcard lists nothing. */
 	memset(&seen, 0, sizeof seen);
-	XVT_ASSERT_INT_EQ(XvtStorage_Glob(AERON_VFS_ROOT_USER, "../user/*.plt", Collect, &seen), 0);
+	XVT_ASSERT_INT_EQ(XvtStorage_Glob(AERON_VFS_ROOT_USER, "../user/*.plt",
+					  Collect, &seen),
+			  0);
 	XVT_ASSERT_INT_EQ(seen.count, 0);
 	EndRoots();
 }
 
 /* Opens path with Open in mode, remembers it as the global stream, and returns it. */
-static AeronFile* OpenGlobal(const char* path, const char* mode) {
-	AeronFile* file = XvtStorage_Open(path, mode);
+static AeronFile *OpenGlobal(const char *path, const char *mode)
+{
+	AeronFile *file = XvtStorage_Open(path, mode);
 	XVT_ASSERT_TRUE(file != NULL);
 	XvtStorage_CaptureGlobalStream();
 	return file;
 }
 
 /* Sets the stream's error flag by reading from a stream open only for writing. */
-static void FailRead(AeronFile* file) {
+static void FailRead(AeronFile *file)
+{
 	char byte;
 	AeronVfs_Read(file, &byte, 1, NULL);
 	XVT_ASSERT_TRUE(AeronVfs_HasError(file));
 }
 
-static void CheckGlobalStream(void) {
+static void CheckGlobalStream(void)
+{
 	FreshRoots();
 	XVT_ASSERT_INT_EQ(XvtStorage_CloseGlobalStream(NULL, 1), 0);
 
 	/* A clean stream closes with 0 and keeps its file. */
-	AeronFile* file = OpenGlobal("clean.sav", "wb");
+	AeronFile *file = OpenGlobal("clean.sav", "wb");
 	XVT_ASSERT_TRUE(AeronVfs_Write(file, "ok", 2, NULL));
 	XVT_ASSERT_INT_EQ(XvtStorage_CloseGlobalStream(file, 1), 0);
 	XVT_ASSERT_TRUE(XvtTest_FileIs(g_user, "clean.sav", "ok"));
@@ -469,7 +537,8 @@ static void CheckGlobalStream(void) {
 	EndRoots();
 }
 
-static void CheckLastPath(void) {
+static void CheckLastPath(void)
+{
 	FreshRoots();
 	XVT_ASSERT_INT_EQ(strcmp(XvtStorage_LastPath(), ""), 0);
 
@@ -494,7 +563,8 @@ static void CheckLastPath(void) {
 	XVT_ASSERT_INT_EQ(strcmp(XvtStorage_LastPath(), "../up.dat"), 0);
 
 	/* OpenRoot and ResolveAsset: the last place they try. */
-	AeronFile* file = XvtStorage_OpenRoot(AERON_VFS_ROOT_TEMP, "x\\y.dat", "wb");
+	AeronFile *file =
+		XvtStorage_OpenRoot(AERON_VFS_ROOT_TEMP, "x\\y.dat", "wb");
 	XVT_ASSERT_TRUE(file != NULL);
 	AeronVfs_Close(file);
 	XVT_ASSERT_INT_EQ(strcmp(XvtStorage_LastPath(), "x/y.dat"), 0);
@@ -502,13 +572,16 @@ static void CheckLastPath(void) {
 	char resolved[XVT_PATH_CAPACITY];
 	XvtTest_MakeSubfolder(g_asset, "BalanceOfPower");
 	XvtTest_WriteText(g_asset, "BalanceOfPower/r.dat", "r");
-	XVT_ASSERT_INT_EQ(XvtStorage_ResolveAsset("r.dat", resolved, sizeof resolved), 1);
-	XVT_ASSERT_INT_EQ(strcmp(XvtStorage_LastPath(), "BalanceOfPower/r.dat"), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtStorage_ResolveAsset("r.dat", resolved, sizeof resolved), 1);
+	XVT_ASSERT_INT_EQ(strcmp(XvtStorage_LastPath(), "BalanceOfPower/r.dat"),
+			  0);
 	XVT_ASSERT_INT_EQ(XvtStorage_LastRoot(), AERON_VFS_ROOT_ASSET);
 	EndRoots();
 }
 
-int main(void) {
+int main(void)
+{
 	CheckBind();
 	CheckNormalize();
 	CheckProbe();

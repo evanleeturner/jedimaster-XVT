@@ -31,22 +31,24 @@ typedef intptr_t XvtLogFileHandle;
  * returns 0, out holding "", when a date or time field is out of range (year 0 to 9999, month 1 to 12,
  * day 1 to 31, hour 0 to 23, minute and second 0 to 59) or capacity is under XVT_LOG_FILE_NAME_CAPACITY.
  * Capacity 0 writes nothing. */
-int XvtLogFile_FormatName(char* out, size_t capacity, int year, int month, int day, int hour, int minute,
-						  int second, uint32_t run_id);
+int XvtLogFile_FormatName(char *out, size_t capacity, int year, int month,
+			  int day, int hour, int minute, int second,
+			  uint32_t run_id);
 /* Returns 1 when name has exactly the shape XvtLogFile_FormatName writes (digits where it writes digits,
  * lowercase hex for the run id), 0 for anything else, NULL included. Only such files are ever removed. */
-int XvtLogFile_IsRunName(const char* name);
+int XvtLogFile_IsRunName(const char *name);
 /* Reorders names so the run names (XvtLogFile_IsRunName) come first, oldest first, and the other names
  * after them in no particular order. Returns how many run names, counted from the front, to remove so that
  * keep remain once this run's new file is made: the number of run names less (keep - 1), or 0 when that is
  * not positive. keep 0 counts as 1. */
-size_t XvtLogFile_SelectExpired(const char** names, size_t count, size_t keep);
+size_t XvtLogFile_SelectExpired(const char **names, size_t count, size_t keep);
 
 /* How the newest run in a log ended, judged from the log's last lines. */
 typedef enum XvtLogFileEnding {
-	XVT_LOG_FILE_ENDING_NONE = 0, /* no run in the text: no header and no log line */
-	XVT_LOG_FILE_ENDING_STOPPED,  /* an app.stop line: the run ended the normal way */
-	XVT_LOG_FILE_ENDING_CRASHED,  /* a crash note (crash_note.h) */
+	XVT_LOG_FILE_ENDING_NONE =
+		0, /* no run in the text: no header and no log line */
+	XVT_LOG_FILE_ENDING_STOPPED, /* an app.stop line: the run ended the normal way */
+	XVT_LOG_FILE_ENDING_CRASHED, /* a crash note (crash_note.h) */
 	XVT_LOG_FILE_ENDING_CUT /* neither: killed, hung and ended from outside, lost power, or still running */
 } XvtLogFileEnding;
 
@@ -58,17 +60,19 @@ typedef enum XvtLogFileEnding {
  * CRASHED, even after an app.stop line; otherwise an app.stop line means STOPPED; otherwise a header or any
  * counted line means CUT, and nothing means NONE. Writes the event of the last counted line into last_event,
  * "" when there is none, cut to capacity (0 writes nothing). */
-XvtLogFileEnding XvtLogFile_ReadEnding(const char* tail, size_t length, char* last_event, size_t capacity);
+XvtLogFileEnding XvtLogFile_ReadEnding(const char *tail, size_t length,
+				       char *last_event, size_t capacity);
 
 /* Opens path, UTF-8, for appending, and creates it when missing: readable and writable by the owner only
  * on POSIX systems, closed in child processes. The folder must exist. Returns the handle, or
  * XVT_LOG_FILE_NONE with the system's reason written into error (cut to error_capacity; NULL or capacity
  * 0 writes none). */
-XvtLogFileHandle XvtLogFile_Open(const char* path, char* error, size_t error_capacity);
+XvtLogFileHandle XvtLogFile_Open(const char *path, char *error,
+				 size_t error_capacity);
 /* Writes length bytes of data at the end of file, retrying a short or interrupted write until every byte
  * is written or the system refuses. Allocates nothing and takes no lock, so a crash handler may call it.
  * Returns 1 when every byte was written, 0 otherwise or for XVT_LOG_FILE_NONE. */
-int XvtLogFile_Write(XvtLogFileHandle file, const char* data, size_t length);
+int XvtLogFile_Write(XvtLogFileHandle file, const char *data, size_t length);
 /* Closes file; XVT_LOG_FILE_NONE is ignored. The program keeps its run log open until it exits, so a
  * line written late in shutdown still lands; tests close what they open. */
 void XvtLogFile_Close(XvtLogFileHandle file);

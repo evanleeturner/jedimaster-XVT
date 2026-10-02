@@ -8,31 +8,40 @@
 // GLOBAL: XVT 0x9A7B5C
 static int g_renderObjectListCount;
 // GLOBAL: XVT 0x9A8C1C
-RenderObjectListEntry* g_renderListHead;
+RenderObjectListEntry *g_renderListHead;
 // GLOBAL: XVT 0x9EC5F8
-RenderObjectListEntry* g_renderObjectListEntries = 0;
+RenderObjectListEntry *g_renderObjectListEntries = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4362A0
-void RenderList_QueueObject(int objectIdx, int sortDepth) {
+void RenderList_QueueObject(int objectIdx, int sortDepth)
+{
 	if (g_renderObjectListCount < 296) {
-		g_renderObjectListEntries[g_renderObjectListCount].sortDepth = sortDepth;
-		g_renderObjectListEntries[g_renderObjectListCount].objectIdx = objectIdx;
-		g_renderObjectListEntries[g_renderObjectListCount].next = g_renderListHead;
-		g_renderListHead = &g_renderObjectListEntries[g_renderObjectListCount];
+		g_renderObjectListEntries[g_renderObjectListCount].sortDepth =
+			sortDepth;
+		g_renderObjectListEntries[g_renderObjectListCount].objectIdx =
+			objectIdx;
+		g_renderObjectListEntries[g_renderObjectListCount].next =
+			g_renderListHead;
+		g_renderListHead =
+			&g_renderObjectListEntries[g_renderObjectListCount];
 		++g_renderObjectListCount;
 	}
 }
 
 // FUNCTION: XVT 0x436310
-void RenderList_Reset(void) {
+void RenderList_Reset(void)
+{
 	g_renderObjectListCount = 0;
 	g_renderListHead = 0;
 }
 
 // FUNCTION: XVT 0x436470
-int RenderList_ProjectObjectBoundsForCulling(int objectIdx, unsigned int boundsRadius, int playerIdx) {
-	ObjectRecord* object;
+int RenderList_ProjectObjectBoundsForCulling(int objectIdx,
+					     unsigned int boundsRadius,
+					     int playerIdx)
+{
+	ObjectRecord *object;
 	int cameraWorldY;
 	int cameraWorldZ;
 	int absViewCoord;
@@ -41,11 +50,13 @@ int RenderList_ProjectObjectBoundsForCulling(int objectIdx, unsigned int boundsR
 
 	object = &g_objectTable[objectIdx];
 	cameraWorldY = g_players[playerIdx].viewState.cameraWorldY;
-	g_camRelWorldX = object->world_x - g_players[playerIdx].viewState.cameraWorldX;
+	g_camRelWorldX =
+		object->world_x - g_players[playerIdx].viewState.cameraWorldX;
 	cameraWorldZ = g_players[playerIdx].viewState.cameraWorldZ;
 	g_camRelWorldY = object->world_y - cameraWorldY;
 	g_camRelWorldZ = object->world_z - cameraWorldZ;
-	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(
+		g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 	cullRadius = (int)boundsRadius;
 	farZ = (int)((unsigned int)g_viewSpaceDepth + (unsigned int)cullRadius);
 	if (farZ < 0) {
@@ -55,31 +66,36 @@ int RenderList_ProjectObjectBoundsForCulling(int objectIdx, unsigned int boundsR
 		cullRadius = farZ >> 4;
 	}
 
-	g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY,
+					      g_camRelWorldZ);
 	absViewCoord = g_viewSpaceX;
 	if (absViewCoord < 0) {
 		absViewCoord = (int)(0U - (unsigned int)absViewCoord);
 	}
-	absViewCoord = (int)((unsigned int)absViewCoord - (unsigned int)cullRadius);
+	absViewCoord =
+		(int)((unsigned int)absViewCoord - (unsigned int)cullRadius);
 	if (farZ < absViewCoord) {
 		return 0;
 	}
 
-	g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY,
+					      g_camRelWorldZ);
 	absViewCoord = g_viewSpaceY;
 	if (absViewCoord < 0) {
 		absViewCoord = (int)(0U - (unsigned int)absViewCoord);
 	}
-	absViewCoord = (int)((unsigned int)absViewCoord - (unsigned int)cullRadius);
+	absViewCoord =
+		(int)((unsigned int)absViewCoord - (unsigned int)cullRadius);
 	return farZ >= absViewCoord;
 }
 
 // FUNCTION: XVT 0x436580
-void RenderList_SortDepthDescending(void) {
-	RenderObjectListEntry* left;
-	RenderObjectListEntry* right;
-	RenderObjectListEntry* previous;
-	RenderObjectListEntry* leftTail;
+void RenderList_SortDepthDescending(void)
+{
+	RenderObjectListEntry *left;
+	RenderObjectListEntry *right;
+	RenderObjectListEntry *previous;
+	RenderObjectListEntry *leftTail;
 	int runLength;
 	int leftRunCount;
 	int rightDepth;
@@ -141,7 +157,8 @@ void RenderList_SortDepthDescending(void) {
 				}
 
 				if (leftTail == previous) {
-					while (rightRunCount < runLength && right != 0) {
+					while (rightRunCount < runLength &&
+					       right != 0) {
 						leftTail = right;
 						++rightRunCount;
 						right = right->next;
@@ -161,17 +178,19 @@ void RenderList_SortDepthDescending(void) {
 }
 
 // FUNCTION: XVT 0x436680
-void RenderList_SortDepthAscending(void) {
+void RenderList_SortDepthAscending(void)
+{
 	int runLength;
-	RenderObjectListEntry* leftTail;
-	RenderObjectListEntry* right;
-	RenderObjectListEntry* previous;
-	RenderObjectListEntry* left;
+	RenderObjectListEntry *leftTail;
+	RenderObjectListEntry *right;
+	RenderObjectListEntry *previous;
+	RenderObjectListEntry *left;
 	int leftRunCount;
 	int rightRunCount;
 	int processedCount;
 
-	for (runLength = 1; runLength < g_renderObjectListCount; runLength *= 2) {
+	for (runLength = 1; runLength < g_renderObjectListCount;
+	     runLength *= 2) {
 		right = g_renderListHead;
 		previous = 0;
 		left = g_renderListHead;
@@ -218,7 +237,8 @@ void RenderList_SortDepthAscending(void) {
 			}
 
 			if (leftTail == previous) {
-				while (rightRunCount < runLength && right != 0) {
+				while (rightRunCount < runLength &&
+				       right != 0) {
 					leftTail = right;
 					++rightRunCount;
 					right = right->next;

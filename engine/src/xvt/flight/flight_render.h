@@ -11,7 +11,8 @@ extern "C" {
 void FlightRender_TransitionHookStub(void);
 void FlightRender_InvokeTransitionHook(int transitionFlags);
 void FlightRender_ResetPalette(int transitionFlags);
-void FlightRender_ConfigureCallbacksForResolution(uint8_t initialGraphicsDetailPreset);
+void FlightRender_ConfigureCallbacksForResolution(
+	uint8_t initialGraphicsDetailPreset);
 void FlightRender_InstallCallbacks(int pixelMode);
 void FlightRender_SetPixelModeStub(int pixelMode);
 

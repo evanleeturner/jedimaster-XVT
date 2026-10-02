@@ -4,35 +4,39 @@
 #include <stdio.h>
 #include <string.h>
 
-int XvtLaunchOptions_Parse(int argc, char* argv[], XvtLaunchOptions* options) {
+int XvtLaunchOptions_Parse(int argc, char *argv[], XvtLaunchOptions *options)
+{
 	memset(options, 0, sizeof(*options));
 	for (int index = 1; index < argc; ++index) {
-		const char* argument = argv[index];
-		const char* equals = strchr(argument, '=');
-		size_t length = equals ? (size_t)(equals - argument) : strlen(argument);
-		const char** destination = NULL;
+		const char *argument = argv[index];
+		const char *equals = strchr(argument, '=');
+		size_t length =
+			equals ? (size_t)(equals - argument) : strlen(argument);
+		const char **destination = NULL;
 
 		struct {
-			const char* name;
-			const char** value;
-		} value_options[] = { { "--resource-root", &options->resource_root },
-							  { "--game-data", &options->game_data },
-							  { "--import-config", &options->import_config },
-							  { "--import-pilot", &options->import_pilot },
-							  { "--pilot-name", &options->pilot_name },
-							  { "--log-level", &options->log_level },
-							  { "--log-file", &options->log_file } };
+			const char *name;
+			const char **value;
+		} value_options[] = {
+			{"--resource-root", &options->resource_root},
+			{"--game-data", &options->game_data},
+			{"--import-config", &options->import_config},
+			{"--import-pilot", &options->import_pilot},
+			{"--pilot-name", &options->pilot_name},
+			{"--log-level", &options->log_level},
+			{"--log-file", &options->log_file}};
 
 		struct {
-			const char* name;
-			int* value;
-		} flags[] = { { "--help", &options->show_help },
-					  { "-h", &options->show_help },
-					  { "--setup", &options->setup },
-					  { "--skip-intro", &options->skip_intro },
-					  { "--save-config", &options->save_config },
-					  { "--reset-config", &options->reset_config },
-					  { "--check-installation", &options->check_installation } };
+			const char *name;
+			int *value;
+		} flags[] = {
+			{"--help", &options->show_help},
+			{"-h", &options->show_help},
+			{"--setup", &options->setup},
+			{"--skip-intro", &options->skip_intro},
+			{"--save-config", &options->save_config},
+			{"--reset-config", &options->reset_config},
+			{"--check-installation", &options->check_installation}};
 
 		int handled = 0;
 		for (size_t i = 0; i < sizeof(flags) / sizeof(flags[0]); ++i) {
@@ -42,36 +46,48 @@ int XvtLaunchOptions_Parse(int argc, char* argv[], XvtLaunchOptions* options) {
 				break;
 			}
 		}
-		if (handled)
+		if (handled) {
 			continue;
-		for (size_t i = 0; i < sizeof(value_options) / sizeof(value_options[0]); ++i) {
+		}
+		for (size_t i = 0;
+		     i < sizeof(value_options) / sizeof(value_options[0]);
+		     ++i) {
 			if (strlen(value_options[i].name) == length &&
-				!strncmp(argument, value_options[i].name, length)) {
+			    !strncmp(argument, value_options[i].name, length)) {
 				destination = value_options[i].value;
 				break;
 			}
 		}
 		if (!destination) {
-			fprintf(stderr, "OpenXvT: unknown argument: %s\n", argument);
+			fprintf(stderr, "OpenXvT: unknown argument: %s\n",
+				argument);
 			return 0;
 		}
-		const char* value = equals ? equals + 1 : ++index < argc ? argv[index] : NULL;
+		const char *value = equals	     ? equals + 1
+				    : ++index < argc ? argv[index]
+						     : NULL;
 		if (*destination || !value || !value[0] || value[0] == '-') {
-			fprintf(stderr, "OpenXvT: %.*s requires one nonempty argument\n", (int)length, argument);
+			fprintf(stderr,
+				"OpenXvT: %.*s requires one nonempty argument\n",
+				(int)length, argument);
 			return 0;
 		}
 		*destination = value;
 	}
 	if ((options->pilot_name && !options->import_pilot) ||
-		(options->setup && (options->check_installation || options->game_data))) {
-		fprintf(stderr, "OpenXvT: --pilot-name requires --import-pilot; --setup cannot be combined with "
-						"--game-data or --check-installation.\n");
+	    (options->setup &&
+	     (options->check_installation || options->game_data))) {
+		fprintf(stderr,
+			"OpenXvT: --pilot-name requires --import-pilot; --setup cannot be combined with "
+			"--game-data or --check-installation.\n");
 		return 0;
 	}
 	return 1;
 }
 
-void XvtHostConfig_FillAeronConfig(const XvtLaunchOptions* options, AeronConfig* config) {
+void XvtHostConfig_FillAeronConfig(const XvtLaunchOptions *options,
+				   AeronConfig *config)
+{
 	memset(config, 0, sizeof(*config));
 	config->org_name = "TotallyOpen";
 	config->app_name = "OpenXvT";
@@ -88,12 +104,15 @@ void XvtHostConfig_FillAeronConfig(const XvtLaunchOptions* options, AeronConfig*
 	config->clear_color_rgba[3] = 1.0f;
 }
 
-int XvtHostConfig_ResolveResourceRoot(const XvtLaunchOptions* options, char* out, size_t capacity) {
+int XvtHostConfig_ResolveResourceRoot(const XvtLaunchOptions *options,
+				      char *out, size_t capacity)
+{
 	AeronConfig config;
 	XvtHostConfig_FillAeronConfig(options, &config);
 	if (config.resource_root && config.resource_root[0]) {
-		if (strlen(config.resource_root) >= capacity)
+		if (strlen(config.resource_root) >= capacity) {
 			return 0;
+		}
 		strcpy(out, config.resource_root);
 		return 1;
 	}

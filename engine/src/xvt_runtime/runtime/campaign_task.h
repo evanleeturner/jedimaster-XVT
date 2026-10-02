@@ -32,7 +32,7 @@ int XvtCampaignTask_EnterDebrief(void);
  * first call of a wait starts a 30-second host-clock limit, checked after each packet read, so a
  * packet read after the limit still wins; past it, logs a warning and returns 0. packet is set to
  * NULL unless 1 is returned. */
-int XvtCampaignTask_WaitPacket(int packet_type, int** packet);
+int XvtCampaignTask_WaitPacket(int packet_type, int **packet);
 /* 1 after a prefix returned pending, until it finishes or Reset. */
 int XvtCampaignTask_IsPending(void);
 /* 1 while WaitPacket is waiting, so the port keeps running without window focus. */

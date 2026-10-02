@@ -30,9 +30,11 @@ extern int g_joyAxisCenterY;
 extern int g_joystickActive;
 extern int g_joyDeviceIndex;
 
-void Joystick_PollScaledAxes(int deviceIndex, int* pAxisX, int* pAxisY, int* pAxisZ, int* pButtons);
+void Joystick_PollScaledAxes(int deviceIndex, int *pAxisX, int *pAxisY,
+			     int *pAxisZ, int *pButtons);
 int16_t Joystick_InitializeBackendStub(void);
-int Joystick_PollScaledAxesIfActive(int* pAxisX, int* pAxisY, int* pAxisZ, int* pAxisR);
+int Joystick_PollScaledAxesIfActive(int *pAxisX, int *pAxisY, int *pAxisZ,
+				    int *pAxisR);
 
 #ifdef __cplusplus
 }

@@ -9,10 +9,10 @@
 extern "C" {
 #endif
 
-extern void* g_swFramebufferBase;
+extern void *g_swFramebufferBase;
 extern int g_flightPageFlip;
 extern int g_flightDrawToHudLayer;
-extern IDirectDrawSurface* g_flightOffscreenSurface;
+extern IDirectDrawSurface *g_flightOffscreenSurface;
 extern uint8_t g_flightDisplaySurfacesActive;
 extern int32_t g_flightNetClockLeadTicks;
 extern uint8_t g_flightSurfaceAlreadyLocked;
@@ -23,8 +23,8 @@ int FlightSurface_GetLockCount(void);
 void FlightSurface_Lock(void);
 void FlightSurface_Unlock(void);
 int FlightSurface_SetViewport480ByteSpan(int byteSpan);
-void* FlightSurface_SetSoftwareFramebufferBase(void* framebufferBase);
-void* FlightSurface_GetSoftwareFramebufferBase(void);
+void *FlightSurface_SetSoftwareFramebufferBase(void *framebufferBase);
+void *FlightSurface_GetSoftwareFramebufferBase(void);
 
 #ifdef __cplusplus
 }

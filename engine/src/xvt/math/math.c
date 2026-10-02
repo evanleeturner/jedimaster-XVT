@@ -6,7 +6,8 @@
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x408110
-void Math_SetFpuSinglePrecisionMode(void) {
+void Math_SetFpuSinglePrecisionMode(void)
+{
 #ifdef XVT_MODERN
 	// PORT: supported 64-bit hosts use SSE arithmetic rather than x87 precision control.
 #else
@@ -20,7 +21,8 @@ void Math_SetFpuSinglePrecisionMode(void) {
 }
 
 // FUNCTION: XVT 0x408140
-void Math_SetFpuExtendedPrecisionMode(void) {
+void Math_SetFpuExtendedPrecisionMode(void)
+{
 #ifdef XVT_MODERN
 	// PORT: supported 64-bit hosts use SSE arithmetic rather than x87 precision control.
 #else
@@ -34,7 +36,8 @@ void Math_SetFpuExtendedPrecisionMode(void) {
 }
 
 // FUNCTION: XVT 0x425BE0
-uint16_t Math_DivU16WithFractionQ16(uint16_t dividend, uint16_t divisor) {
+uint16_t Math_DivU16WithFractionQ16(uint16_t dividend, uint16_t divisor)
+{
 	(void)dividend;
 	(void)divisor;
 

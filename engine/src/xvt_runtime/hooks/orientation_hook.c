@@ -15,9 +15,13 @@
 #define XVT_ORIENTATION_RAD_TO_BAM (32767.0f / XVT_ORIENTATION_PI)
 #define XVT_ORIENTATION_GIMBAL_EPSILON 1.0e-5f
 
-static float XvtOrientation_WrapRadians(float angle) { return atan2f(sinf(angle), cosf(angle)); }
+static float XvtOrientation_WrapRadians(float angle)
+{
+	return atan2f(sinf(angle), cosf(angle));
+}
 
-static int16_t XvtOrientation_RoundAngle(float angle) {
+static int16_t XvtOrientation_RoundAngle(float angle)
+{
 	int value = (int)roundf(angle);
 
 	if (value > 32767) {
@@ -29,24 +33,33 @@ static int16_t XvtOrientation_RoundAngle(float angle) {
 	return (int16_t)value;
 }
 
-static void XvtOrientation_ToRadians(XvtOrientationAngles angles, float* pitch, float* yaw, float* roll) {
-	*yaw = XvtOrientation_WrapRadians(-(float)(int16_t)angles.yaw * XVT_ORIENTATION_BAM_TO_RAD);
+static void XvtOrientation_ToRadians(XvtOrientationAngles angles, float *pitch,
+				     float *yaw, float *roll)
+{
+	*yaw = XvtOrientation_WrapRadians(-(float)(int16_t)angles.yaw *
+					  XVT_ORIENTATION_BAM_TO_RAD);
 	*pitch = XvtOrientation_WrapRadians(-XVT_ORIENTATION_HALF_PI -
-										(float)(int16_t)angles.pitch * XVT_ORIENTATION_BAM_TO_RAD);
-	*roll = XvtOrientation_WrapRadians(-(float)(int16_t)angles.roll * XVT_ORIENTATION_BAM_TO_RAD);
+					    (float)(int16_t)angles.pitch *
+						    XVT_ORIENTATION_BAM_TO_RAD);
+	*roll = XvtOrientation_WrapRadians(-(float)(int16_t)angles.roll *
+					   XVT_ORIENTATION_BAM_TO_RAD);
 }
 
-static XvtOrientationAngles XvtOrientation_FromRadians(float pitch, float yaw, float roll) {
+static XvtOrientationAngles XvtOrientation_FromRadians(float pitch, float yaw,
+						       float roll)
+{
 	XvtOrientationAngles result;
 	int16_t yawBinaryAngle;
 	int16_t pitchBinaryAngle;
 	int16_t rollBinaryAngle;
 
-	yawBinaryAngle = XvtOrientation_RoundAngle(XvtOrientation_WrapRadians(-yaw) * XVT_ORIENTATION_RAD_TO_BAM);
+	yawBinaryAngle = XvtOrientation_RoundAngle(
+		XvtOrientation_WrapRadians(-yaw) * XVT_ORIENTATION_RAD_TO_BAM);
 	pitchBinaryAngle = XvtOrientation_RoundAngle(
-		XvtOrientation_WrapRadians(-XVT_ORIENTATION_HALF_PI - pitch) * XVT_ORIENTATION_RAD_TO_BAM);
-	rollBinaryAngle =
-		XvtOrientation_RoundAngle(XvtOrientation_WrapRadians(-roll) * XVT_ORIENTATION_RAD_TO_BAM);
+		XvtOrientation_WrapRadians(-XVT_ORIENTATION_HALF_PI - pitch) *
+		XVT_ORIENTATION_RAD_TO_BAM);
+	rollBinaryAngle = XvtOrientation_RoundAngle(
+		XvtOrientation_WrapRadians(-roll) * XVT_ORIENTATION_RAD_TO_BAM);
 
 	/* As in OpenXWA, select the equivalent Euler representation offset by
 	 * half a turn in yaw and roll. */
@@ -60,7 +73,9 @@ static XvtOrientationAngles XvtOrientation_FromRadians(float pitch, float yaw, f
  * Column-major 3x3 matrix. Each column is a current body axis in world space.
  * This layout is the portable equivalent of the DirectXMath hook's m.r axes.
  */
-static void XvtOrientation_RotateLocal(float matrix[3][3], int axisColumn, float angle) {
+static void XvtOrientation_RotateLocal(float matrix[3][3], int axisColumn,
+				       float angle)
+{
 	float axisX;
 	float axisY;
 	float axisZ;
@@ -95,15 +110,18 @@ static void XvtOrientation_RotateLocal(float matrix[3][3], int axisColumn, float
 
 	for (column = 0; column < 3; ++column) {
 		for (row = 0; row < 3; ++row) {
-			rotated[column][row] = rotation[row][0] * matrix[column][0] +
-								   rotation[row][1] * matrix[column][1] +
-								   rotation[row][2] * matrix[column][2];
+			rotated[column][row] =
+				rotation[row][0] * matrix[column][0] +
+				rotation[row][1] * matrix[column][1] +
+				rotation[row][2] * matrix[column][2];
 		}
 	}
 	memcpy(matrix, rotated, sizeof(rotated));
 }
 
-static void XvtOrientation_MatrixToQuaternion(const float matrix[3][3], float quaternion[4]) {
+static void XvtOrientation_MatrixToQuaternion(const float matrix[3][3],
+					      float quaternion[4])
+{
 	float m00 = matrix[0][0];
 	float m01 = matrix[1][0];
 	float m02 = matrix[2][0];
@@ -143,8 +161,10 @@ static void XvtOrientation_MatrixToQuaternion(const float matrix[3][3], float qu
 	}
 }
 
-static void XvtOrientation_QuaternionToEuler(const float quaternion[4], float* pitch, float* yaw,
-											 float* roll) {
+static void XvtOrientation_QuaternionToEuler(const float quaternion[4],
+					     float *pitch, float *yaw,
+					     float *roll)
+{
 	float x = quaternion[0];
 	float y = quaternion[1];
 	float z = quaternion[2];
@@ -179,14 +199,18 @@ static void XvtOrientation_QuaternionToEuler(const float quaternion[4], float* p
 	*roll = XvtOrientation_WrapRadians(*roll);
 }
 
-XvtOrientationAngles XvtOrientation_ApplyPitchYaw(XvtOrientationAngles current, int pitchDeltaQ16,
-												  int negYawDeltaQ16) {
-	if (XvtFlightTiming_IsNetwork125())
-		return XvtOrientation_ApplyPitchYawFixed(current, pitchDeltaQ16, negYawDeltaQ16);
+XvtOrientationAngles XvtOrientation_ApplyPitchYaw(XvtOrientationAngles current,
+						  int pitchDeltaQ16,
+						  int negYawDeltaQ16)
+{
+	if (XvtFlightTiming_IsNetwork125()) {
+		return XvtOrientation_ApplyPitchYawFixed(current, pitchDeltaQ16,
+							 negYawDeltaQ16);
+	}
 	float matrix[3][3] = {
-		{ 1.0f, 0.0f, 0.0f },
-		{ 0.0f, 1.0f, 0.0f },
-		{ 0.0f, 0.0f, 1.0f },
+		{1.0f, 0.0f, 0.0f},
+		{0.0f, 1.0f, 0.0f},
+		{0.0f, 0.0f, 1.0f},
 	};
 	float quaternion[4];
 	float pitch;
@@ -198,8 +222,10 @@ XvtOrientationAngles XvtOrientation_ApplyPitchYaw(XvtOrientationAngles current, 
 	XvtOrientation_RotateLocal(matrix, 0, pitch);
 	XvtOrientation_RotateLocal(matrix, 2, roll);
 
-	XvtOrientation_RotateLocal(matrix, 1, -(float)negYawDeltaQ16 * XVT_ORIENTATION_BAM_TO_RAD);
-	XvtOrientation_RotateLocal(matrix, 0, (float)pitchDeltaQ16 * XVT_ORIENTATION_BAM_TO_RAD);
+	XvtOrientation_RotateLocal(
+		matrix, 1, -(float)negYawDeltaQ16 * XVT_ORIENTATION_BAM_TO_RAD);
+	XvtOrientation_RotateLocal(
+		matrix, 0, (float)pitchDeltaQ16 * XVT_ORIENTATION_BAM_TO_RAD);
 
 	XvtOrientation_MatrixToQuaternion(matrix, quaternion);
 	XvtOrientation_QuaternionToEuler(quaternion, &pitch, &yaw, &roll);

@@ -33,7 +33,8 @@
 static ObjectRecord g_testObjects[2];
 static uint8_t g_testWorld[16], g_testWorldCopy[16];
 
-static void World(void) {
+static void World(void)
+{
 	XvtFlightTask_Shutdown();
 	XvtNetworkSession_Shutdown();
 	memset(&g_netSession, 0, sizeof g_netSession);
@@ -47,8 +48,9 @@ static void World(void) {
 	memset(g_players, 0, sizeof g_players);
 	memset(g_inputHistory, 0, sizeof g_inputHistory);
 	memset(g_inputFrameCount, 0, sizeof g_inputFrameCount);
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		g_players[i].objectIndex = -1;
+	}
 	g_localPlayer = 0;
 	memset(g_testObjects, 0, sizeof g_testObjects);
 	g_objectTable = g_testObjects;
@@ -56,7 +58,8 @@ static void World(void) {
 	g_regionStaticObjectSlotCount = 1;
 }
 
-static void AssertIdle(void) {
+static void AssertIdle(void)
+{
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsLoading(), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsComplete(), 0);
@@ -64,7 +67,8 @@ static void AssertIdle(void) {
 	XVT_ASSERT_TRUE(XvtFlightTask_NextWakeDelayUs() == UINT64_MAX);
 }
 
-static void CheckBegin(void) {
+static void CheckBegin(void)
+{
 	World();
 	AssertIdle();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_Begin(NULL), 0);
@@ -91,7 +95,8 @@ static void CheckBegin(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsActive(), 1);
 }
 
-static void CheckBeginResetsSimulation(void) {
+static void CheckBeginResetsSimulation(void)
+{
 	/* Begin resets the flight simulation, which forgets the prediction fallback (flight_sim.h). */
 	World();
 	g_players[1].participationState = 1;
@@ -109,7 +114,8 @@ static void CheckBeginResetsSimulation(void) {
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 1);
 }
 
-static void CheckContinuesWithoutFocus(void) {
+static void CheckContinuesWithoutFocus(void)
+{
 	World();
 	g_activeFlightPlayerCount = 2;
 	XVT_ASSERT_INT_EQ(XvtFlightTask_ContinuesWithoutFocus(), 0);
@@ -119,18 +125,21 @@ static void CheckContinuesWithoutFocus(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTask_ContinuesWithoutFocus(), 0);
 }
 
-static void CheckWakeDuringResync(void) {
+static void CheckWakeDuringResync(void)
+{
 	/* While a resync is active the task wakes when the resync does. The apply phase is a running send. */
 	World();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_Begin("mission"), 1);
 	g_netSession.localIsHost = 1;
 	XvtResync_BeginApply(101, 4096);
 	XVT_ASSERT_INT_EQ(XvtResync_IsActive(), 1);
-	XVT_ASSERT_TRUE(XvtFlightTask_NextWakeDelayUs() == XvtResync_NextWakeDelayUs());
+	XVT_ASSERT_TRUE(XvtFlightTask_NextWakeDelayUs() ==
+			XvtResync_NextWakeDelayUs());
 	XVT_ASSERT_TRUE(XvtFlightTask_NextWakeDelayUs() != UINT64_MAX);
 }
 
-static void CheckShutdown(void) {
+static void CheckShutdown(void)
+{
 	/* An active flight is released: the task is idle with a result of 0, the resync and the flight
 	 * network state are reset. */
 	World();
@@ -158,7 +167,8 @@ static void CheckShutdown(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTask_Begin("mission"), 1);
 }
 
-static void CheckLostSession(void) {
+static void CheckLostSession(void)
+{
 	World();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_Begin("mission"), 1);
 	/* State the release tears down: a timing session with its integration table, world buffers, a
@@ -166,7 +176,8 @@ static void CheckLostSession(void) {
 	XvtFlightTiming_BeginSession(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Init(2), 1);
 	g_testObjects[0].objectType = 1;
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PUSH_X, 3, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PUSH_X, 3, 1, 4), 0);
 	g_worldStateBuffer = g_testWorld;
 	g_worldStateDupBuffer = g_testWorldCopy;
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Push(XVT_QUEUE_PENDING, "p", 1), 1);
@@ -182,7 +193,8 @@ static void CheckLostSession(void) {
 	XVT_ASSERT_TRUE(g_worldStateDupBuffer == NULL);
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 0);
 	/* Without the integration table, Rate returns the plain truncated result (flight_integration.h). */
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PUSH_X, 1, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PUSH_X, 1, 1, 4), 0);
 	XvtFlightTask_Update();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsComplete(), 1);
 	XVT_ASSERT_INT_EQ(XvtFlightTask_IsActive(), 0);
@@ -205,7 +217,8 @@ static void CheckLostSession(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightTask_GetResult(), 0);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckBegin();
 	CheckBeginResetsSimulation();
 	CheckContinuesWithoutFocus();

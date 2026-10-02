@@ -14,7 +14,7 @@ int g_flightPageFlip = 1;
 // GLOBAL: XVT 0x527ED0
 int g_flightDrawToHudLayer = 1;
 // GLOBAL: XVT 0x66DDCC
-IDirectDrawSurface* g_flightOffscreenSurface = 0;
+IDirectDrawSurface *g_flightOffscreenSurface = 0;
 // GLOBAL: XVT 0x9ED23B
 uint8_t g_flightDisplaySurfacesActive = 0;
 // GLOBAL: XVT 0x9ED23C
@@ -25,18 +25,21 @@ uint8_t g_flightSurfaceAlreadyLocked = 0;
 // GLOBAL: XVT 0x527F78
 int g_surfaceLockCount = 0;
 // GLOBAL: XVT 0x5280E8
-void* g_swFramebufferBase = (void*)0xA0000;
+void *g_swFramebufferBase = (void *)0xA0000;
 // GLOBAL: XVT 0x5280EC
 static int g_flightSurfaceViewport480ByteSpan;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x49CAE0
-void FlightSurface_ClearToBlack(void) {
+void FlightSurface_ClearToBlack(void)
+{
 	if (g_flightBytesPerPixel == 1) {
-		memset(g_flightOffscreenBuffer, g_flightTransparentColorIndex, g_screenWidth * g_screenHeight);
+		memset(g_flightOffscreenBuffer, g_flightTransparentColorIndex,
+		       g_screenWidth * g_screenHeight);
 	} else {
-		FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth, g_screenHeight,
-								 g_screenWidth * g_flightBytesPerPixel);
+		FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth,
+					 g_screenHeight,
+					 g_screenWidth * g_flightBytesPerPixel);
 		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
 		FlightText_SetClipRect(0, 0, g_screenWidth, g_screenHeight);
 		g_flightFillClipRectFn();
@@ -48,7 +51,8 @@ void FlightSurface_ClearToBlack(void) {
 int FlightSurface_GetLockCount(void) { return g_surfaceLockCount; }
 
 // FUNCTION: XVT 0x4ABA50
-void FlightSurface_Lock(void) {
+void FlightSurface_Lock(void)
+{
 	DDSURFACEDESC surfaceDesc;
 	HRESULT lockResult;
 	uint8_t displaySurfaceState;
@@ -56,7 +60,8 @@ void FlightSurface_Lock(void) {
 	unsigned int verticalOffset;
 
 	if (g_flightRenderToFrontend == 1) {
-		g_flightSwFramebufferBase = FrontendDisplay_GetDrawSurfaceForFlight();
+		g_flightSwFramebufferBase =
+			FrontendDisplay_GetDrawSurfaceForFlight();
 		g_surfacePixels = g_flightSwFramebufferBase;
 		g_surfacePitch = FrontendDisplay_GetFrontendOrFlightDrawPitch();
 		return;
@@ -75,61 +80,98 @@ void FlightSurface_Lock(void) {
 				memset(&surfaceDesc, 0, sizeof(surfaceDesc));
 				surfaceDesc.dwSize = sizeof(surfaceDesc);
 				for (;;) {
-					lockResult = g_flightOffscreenSurface->lpVtbl->Lock(g_flightOffscreenSurface, NULL,
-																		&surfaceDesc, 0, NULL);
+					lockResult =
+						g_flightOffscreenSurface->lpVtbl
+							->Lock(g_flightOffscreenSurface,
+							       NULL,
+							       &surfaceDesc, 0,
+							       NULL);
 					if (lockResult == DX_DD_OK) {
 						break;
 					}
-					if (lockResult != DX_DDERR_WASSTILLDRAWING) {
+					if (lockResult !=
+					    DX_DDERR_WASSTILLDRAWING) {
 						return;
 					}
 				}
 
-				FlightSurface_SetSoftwareFramebufferBase(surfaceDesc.lpSurface);
-				g_flightSwFramebufferBase = surfaceDesc.lpSurface;
+				FlightSurface_SetSoftwareFramebufferBase(
+					surfaceDesc.lpSurface);
+				g_flightSwFramebufferBase =
+					surfaceDesc.lpSurface;
 				g_surfacePixels = surfaceDesc.lpSurface;
 				memset(&surfaceDesc, 0, sizeof(surfaceDesc));
 				surfaceDesc.dwSize = sizeof(surfaceDesc);
-				g_flightOffscreenSurface->lpVtbl->GetSurfaceDesc(g_flightOffscreenSurface, &surfaceDesc);
+				g_flightOffscreenSurface->lpVtbl
+					->GetSurfaceDesc(
+						g_flightOffscreenSurface,
+						&surfaceDesc);
 				g_flightPrimaryPitch[0] = surfaceDesc.lPitch;
-				FlightSurface_SetViewport480ByteSpan(480 * FlightDisplay_GetPrimarySurfacePitch());
+				FlightSurface_SetViewport480ByteSpan(
+					480 *
+					FlightDisplay_GetPrimarySurfacePitch());
 				if (g_surfacePitch != g_flightPrimaryPitch[0]) {
-					g_surfacePitch = g_flightPrimaryPitch[0];
-					FlightSw_SetRenderTarget(g_flightSwFramebufferBase, g_flightPrimaryPitch[0], 480, -1);
+					g_surfacePitch =
+						g_flightPrimaryPitch[0];
+					FlightSw_SetRenderTarget(
+						g_flightSwFramebufferBase,
+						g_flightPrimaryPitch[0], 480,
+						-1);
 				}
 			} else {
 				memset(&surfaceDesc, 0, sizeof(surfaceDesc));
 				surfaceDesc.dwSize = sizeof(surfaceDesc);
 				for (;;) {
 					lockResult =
-						g_flightBackBuffer->lpVtbl->Lock(g_flightBackBuffer, NULL, &surfaceDesc, 0, NULL);
+						g_flightBackBuffer->lpVtbl->Lock(
+							g_flightBackBuffer,
+							NULL, &surfaceDesc, 0,
+							NULL);
 					if (lockResult == DX_DD_OK) {
 						break;
 					}
-					if (lockResult != DX_DDERR_WASSTILLDRAWING) {
+					if (lockResult !=
+					    DX_DDERR_WASSTILLDRAWING) {
 						return;
 					}
 				}
 
-				FlightSurface_SetSoftwareFramebufferBase(surfaceDesc.lpSurface);
-				g_flightSwFramebufferBase = surfaceDesc.lpSurface;
+				FlightSurface_SetSoftwareFramebufferBase(
+					surfaceDesc.lpSurface);
+				g_flightSwFramebufferBase =
+					surfaceDesc.lpSurface;
 				g_surfacePixels = surfaceDesc.lpSurface;
 				memset(&surfaceDesc, 0, sizeof(surfaceDesc));
 				surfaceDesc.dwSize = sizeof(surfaceDesc);
-				g_flightBackBuffer->lpVtbl->GetSurfaceDesc(g_flightBackBuffer, &surfaceDesc);
+				g_flightBackBuffer->lpVtbl->GetSurfaceDesc(
+					g_flightBackBuffer, &surfaceDesc);
 				g_flightPrimaryPitch[0] = surfaceDesc.lPitch;
 				horizontalOffset =
-					g_flightBytesPerPixel * ((unsigned int)(g_displayModeWidth - g_surfaceWidth) >> 1);
+					g_flightBytesPerPixel *
+					((unsigned int)(g_displayModeWidth -
+							g_surfaceWidth) >>
+					 1);
 				verticalOffset =
-					surfaceDesc.lPitch * ((unsigned int)(g_displayModeHeight - g_surfaceHeight) >> 1);
+					surfaceDesc.lPitch *
+					((unsigned int)(g_displayModeHeight -
+							g_surfaceHeight) >>
+					 1);
 				g_flightSwFramebufferBase += horizontalOffset;
 				g_flightSwFramebufferBase += verticalOffset;
-				g_surfacePixels = (uint8_t*)g_surfacePixels + horizontalOffset;
-				g_surfacePixels = (uint8_t*)g_surfacePixels + verticalOffset;
-				FlightSurface_SetViewport480ByteSpan(480 * FlightDisplay_GetPrimarySurfacePitch());
+				g_surfacePixels = (uint8_t *)g_surfacePixels +
+						  horizontalOffset;
+				g_surfacePixels = (uint8_t *)g_surfacePixels +
+						  verticalOffset;
+				FlightSurface_SetViewport480ByteSpan(
+					480 *
+					FlightDisplay_GetPrimarySurfacePitch());
 				if (g_surfacePitch != g_flightPrimaryPitch[0]) {
-					g_surfacePitch = g_flightPrimaryPitch[0];
-					FlightSw_SetRenderTarget(g_flightSwFramebufferBase, g_flightPrimaryPitch[0], 480, -1);
+					g_surfacePitch =
+						g_flightPrimaryPitch[0];
+					FlightSw_SetRenderTarget(
+						g_flightSwFramebufferBase,
+						g_flightPrimaryPitch[0], 480,
+						-1);
 				}
 			}
 		} else {
@@ -137,7 +179,9 @@ void FlightSurface_Lock(void) {
 			surfaceDesc.dwSize = sizeof(surfaceDesc);
 			for (;;) {
 				lockResult =
-					g_flightPrimarySurface->lpVtbl->Lock(g_flightPrimarySurface, NULL, &surfaceDesc, 0, NULL);
+					g_flightPrimarySurface->lpVtbl->Lock(
+						g_flightPrimarySurface, NULL,
+						&surfaceDesc, 0, NULL);
 				if (lockResult == DX_DD_OK) {
 					break;
 				}
@@ -146,38 +190,52 @@ void FlightSurface_Lock(void) {
 				}
 			}
 
-			FlightSurface_SetSoftwareFramebufferBase(surfaceDesc.lpSurface);
+			FlightSurface_SetSoftwareFramebufferBase(
+				surfaceDesc.lpSurface);
 			g_flightSwFramebufferBase = surfaceDesc.lpSurface;
 			g_surfacePixels = surfaceDesc.lpSurface;
 			memset(&surfaceDesc, 0, sizeof(surfaceDesc));
 			surfaceDesc.dwSize = sizeof(surfaceDesc);
-			g_flightPrimarySurface->lpVtbl->GetSurfaceDesc(g_flightPrimarySurface, &surfaceDesc);
+			g_flightPrimarySurface->lpVtbl->GetSurfaceDesc(
+				g_flightPrimarySurface, &surfaceDesc);
 			g_flightPrimaryPitch[0] = surfaceDesc.lPitch;
-			horizontalOffset =
-				g_flightBytesPerPixel * ((unsigned int)(g_displayModeWidth - g_surfaceWidth) >> 1);
-			verticalOffset =
-				surfaceDesc.lPitch * ((unsigned int)(g_displayModeHeight - g_surfaceHeight) >> 1);
+			horizontalOffset = g_flightBytesPerPixel *
+					   ((unsigned int)(g_displayModeWidth -
+							   g_surfaceWidth) >>
+					    1);
+			verticalOffset = surfaceDesc.lPitch *
+					 ((unsigned int)(g_displayModeHeight -
+							 g_surfaceHeight) >>
+					  1);
 			g_flightSwFramebufferBase += horizontalOffset;
 			g_flightSwFramebufferBase += verticalOffset;
-			g_surfacePixels = (uint8_t*)g_surfacePixels + horizontalOffset;
-			g_surfacePixels = (uint8_t*)g_surfacePixels + verticalOffset;
-			FlightSurface_SetViewport480ByteSpan(480 * FlightDisplay_GetPrimarySurfacePitch());
+			g_surfacePixels =
+				(uint8_t *)g_surfacePixels + horizontalOffset;
+			g_surfacePixels =
+				(uint8_t *)g_surfacePixels + verticalOffset;
+			FlightSurface_SetViewport480ByteSpan(
+				480 * FlightDisplay_GetPrimarySurfacePitch());
 		}
 	} else if (g_flightDrawToHudLayer != 0) {
-		FlightSurface_SetSoftwareFramebufferBase(g_flightHudStagingBuffer);
-		FlightSurface_SetViewport480ByteSpan(480 * FlightDisplay_GetPrimarySurfacePitch());
+		FlightSurface_SetSoftwareFramebufferBase(
+			g_flightHudStagingBuffer);
+		FlightSurface_SetViewport480ByteSpan(
+			480 * FlightDisplay_GetPrimarySurfacePitch());
 		g_flightSwFramebufferBase = g_flightHudStagingBuffer;
 		g_surfacePixels = g_flightHudStagingBuffer;
 	} else {
-		FlightSurface_SetSoftwareFramebufferBase(g_flightSoftwareFramebuffer);
-		FlightSurface_SetViewport480ByteSpan(480 * FlightDisplay_GetPrimarySurfacePitch());
+		FlightSurface_SetSoftwareFramebufferBase(
+			g_flightSoftwareFramebuffer);
+		FlightSurface_SetViewport480ByteSpan(
+			480 * FlightDisplay_GetPrimarySurfacePitch());
 		g_flightSwFramebufferBase = g_flightSoftwareFramebuffer;
 		g_surfacePixels = g_flightSoftwareFramebuffer;
 	}
 }
 
 // FUNCTION: XVT 0x4ABE50
-void FlightSurface_Unlock(void) {
+void FlightSurface_Unlock(void)
+{
 	uint8_t displaySurfaceState;
 
 	if (g_flightRenderToFrontend == 1) {
@@ -200,24 +258,32 @@ void FlightSurface_Unlock(void) {
 	displaySurfaceState |= (uint8_t)g_flightNetClockLeadTicks;
 	if (displaySurfaceState != 0) {
 		if (g_flightDrawToHudLayer != 0) {
-			g_flightOffscreenSurface->lpVtbl->Unlock(g_flightOffscreenSurface, g_surfacePixels);
+			g_flightOffscreenSurface->lpVtbl->Unlock(
+				g_flightOffscreenSurface, g_surfacePixels);
 		} else {
-			g_flightBackBuffer->lpVtbl->Unlock(g_flightBackBuffer, g_surfacePixels);
+			g_flightBackBuffer->lpVtbl->Unlock(g_flightBackBuffer,
+							   g_surfacePixels);
 		}
 	} else {
-		g_flightPrimarySurface->lpVtbl->Unlock(g_flightPrimarySurface, g_surfacePixels);
+		g_flightPrimarySurface->lpVtbl->Unlock(g_flightPrimarySurface,
+						       g_surfacePixels);
 	}
 }
 
 // FUNCTION: XVT 0x4AC780
-int FlightSurface_SetViewport480ByteSpan(int byteSpan) {
+int FlightSurface_SetViewport480ByteSpan(int byteSpan)
+{
 	return g_flightSurfaceViewport480ByteSpan = byteSpan;
 }
 
 // FUNCTION: XVT 0x4AC790
-void* FlightSurface_SetSoftwareFramebufferBase(void* framebufferBase) {
+void *FlightSurface_SetSoftwareFramebufferBase(void *framebufferBase)
+{
 	return g_swFramebufferBase = framebufferBase;
 }
 
 // FUNCTION: XVT 0x4AC7A0
-void* FlightSurface_GetSoftwareFramebufferBase(void) { return g_swFramebufferBase; }
+void *FlightSurface_GetSoftwareFramebufferBase(void)
+{
+	return g_swFramebufferBase;
+}

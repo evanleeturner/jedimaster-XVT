@@ -15,22 +15,28 @@ typedef enum FrontendNavigationSlotState {
 	FRONTEND_NAVIGATION_SLOT_SELECTED = 2,
 } FrontendNavigationSlotState;
 
-extern const char* g_buttonOverlayText;
+extern const char *g_buttonOverlayText;
 
-int FrontendButton_HandleTextButton(RECT* rect, const char* text, int fontSize, int unusedColor,
-									int heldStateSlot, const char* clickSoundName);
-int FrontendButton_HandleSpriteButton(RECT* rect, const char* normalSprite, const char* pressedSprite,
-									  const char* tooltipText, int fontSize, int unusedColor,
-									  int heldStateSlot, const char* pressSoundName);
-int FrontendButton_DrawTextButtonState(RECT* rect, const char* text, int fontSize, int unusedColor,
-									   char isPressed);
-void FrontendButton_DrawSpriteAndTooltip(RECT* rect, const char* spriteName, const char* tooltipText,
-										 int fontSize, int unusedColor);
-void FrontendButton_DrawEightSlotNavigationState(const FrontendNavigationSlotState* slotStates);
-int FrontendButton_DrawOverlayText(RECT* rect, const char* str);
+int FrontendButton_HandleTextButton(RECT *rect, const char *text, int fontSize,
+				    int unusedColor, int heldStateSlot,
+				    const char *clickSoundName);
+int FrontendButton_HandleSpriteButton(RECT *rect, const char *normalSprite,
+				      const char *pressedSprite,
+				      const char *tooltipText, int fontSize,
+				      int unusedColor, int heldStateSlot,
+				      const char *pressSoundName);
+int FrontendButton_DrawTextButtonState(RECT *rect, const char *text,
+				       int fontSize, int unusedColor,
+				       char isPressed);
+void FrontendButton_DrawSpriteAndTooltip(RECT *rect, const char *spriteName,
+					 const char *tooltipText, int fontSize,
+					 int unusedColor);
+void FrontendButton_DrawEightSlotNavigationState(
+	const FrontendNavigationSlotState *slotStates);
+int FrontendButton_DrawOverlayText(RECT *rect, const char *str);
 void FrontendButton_EnableOverlayText(void);
 void FrontendButton_DisableOverlayText(void);
-const char* FrontendButton_SetOverlayText(const char* text);
+const char *FrontendButton_SetOverlayText(const char *text);
 void FrontendButton_UsePressedOverlayStyle(void);
 int FrontendButton_IsOverlayTextEnabled(void);
 

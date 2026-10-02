@@ -21,11 +21,12 @@ struct ModelTextureDefaultTexture {
 	ModelTextureDefaultTextureData data;
 };
 
-void ModelTexture_FilterHardwarePalette(uint16_t* palette);
+void ModelTexture_FilterHardwarePalette(uint16_t *palette);
 int ModelTexture_IsHardwareFormat555(void);
-void ModelTexture_BuildPalettedShadeTable(uint8_t* dst, const uint8_t* rgb24, int width, int height);
+void ModelTexture_BuildPalettedShadeTable(uint8_t *dst, const uint8_t *rgb24,
+					  int width, int height);
 #ifndef XVT_MODERN
-size_t ModelTexture_LoadRgbOrTexFile(uint8_t* dst, const char* fileName);
+size_t ModelTexture_LoadRgbOrTexFile(uint8_t *dst, const char *fileName);
 #endif
 
 #ifdef __cplusplus

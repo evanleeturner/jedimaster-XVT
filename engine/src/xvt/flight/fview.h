@@ -8,14 +8,18 @@
 extern "C" {
 #endif
 
-void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch, int16_t viewYaw, int16_t viewUpAxisAngle,
-							 int16_t hudAimX, int16_t hudAimY, ObjectRecord* objRecord);
-int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw, int16_t upAxisAngle,
-							 ObjectRecord* objRecord);
-void FVIEW_calcrotatemove(int16_t pitch, int16_t yaw, ObjectRecord* objRecord);
-void FVIEW_calcrotateorient(int16_t roll, int16_t upAxisAngle, ObjectRecord* objRecord);
+void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch,
+			     int16_t viewYaw, int16_t viewUpAxisAngle,
+			     int16_t hudAimX, int16_t hudAimY,
+			     ObjectRecord *objRecord);
+int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw,
+			     int16_t upAxisAngle, ObjectRecord *objRecord);
+void FVIEW_calcrotatemove(int16_t pitch, int16_t yaw, ObjectRecord *objRecord);
+void FVIEW_calcrotateorient(int16_t roll, int16_t upAxisAngle,
+			    ObjectRecord *objRecord);
 int FVIEW_ComputeObjectViewMatrix(void);
-void FVIEW_transformaxes(int axisX_Q15, int axisY_Q15, int axisZ_Q15, int16_t angleQ16);
+void FVIEW_transformaxes(int axisX_Q15, int axisY_Q15, int axisZ_Q15,
+			 int16_t angleQ16);
 
 extern int g_fviewForwardX_Q15;
 extern int g_fviewForwardY_Q15;

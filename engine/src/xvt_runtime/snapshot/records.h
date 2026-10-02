@@ -398,12 +398,19 @@ typedef struct XvtSnapshotFlightMissionState {
 } XvtSnapshotFlightMissionState;
 
 #pragma pack(pop)
-typedef char xvt_snapshot_size_FlightMissionState[(sizeof(XvtSnapshotFlightMissionState) == 3376) ? 1 : -1];
-typedef char xvt_snapshot_size_ObjectRecord[(sizeof(XvtSnapshotObjectRecord) == 35) ? 1 : -1];
-typedef char xvt_snapshot_size_MobileObject[(sizeof(XvtSnapshotMobileObject) == 177) ? 1 : -1];
-typedef char xvt_snapshot_size_CraftData[(sizeof(XvtSnapshotCraftData) == 1122) ? 1 : -1];
-typedef char xvt_snapshot_size_MobileObjectCharData[(sizeof(XvtSnapshotMobileObjectCharData) == 76) ? 1 : -1];
-typedef char xvt_snapshot_size_PlayerData[(sizeof(XvtSnapshotPlayerData) == 1469) ? 1 : -1];
+typedef char xvt_snapshot_size_FlightMissionState
+	[(sizeof(XvtSnapshotFlightMissionState) == 3376) ? 1 : -1];
+typedef char xvt_snapshot_size_ObjectRecord
+	[(sizeof(XvtSnapshotObjectRecord) == 35) ? 1 : -1];
+typedef char xvt_snapshot_size_MobileObject
+	[(sizeof(XvtSnapshotMobileObject) == 177) ? 1 : -1];
+typedef char xvt_snapshot_size_CraftData[(sizeof(XvtSnapshotCraftData) == 1122)
+						 ? 1
+						 : -1];
+typedef char xvt_snapshot_size_MobileObjectCharData
+	[(sizeof(XvtSnapshotMobileObjectCharData) == 76) ? 1 : -1];
+typedef char xvt_snapshot_size_PlayerData
+	[(sizeof(XvtSnapshotPlayerData) == 1469) ? 1 : -1];
 
 /* Encode fills every byte of record: the listed fields are copied as they are, and each link
  * to a live object or pool entry becomes its byte offset in the matching record array plus 1
@@ -414,22 +421,32 @@ typedef char xvt_snapshot_size_PlayerData[(sizeof(XvtSnapshotPlayerData) == 1469
  * Links: object record -> mobile pool; mobile record -> guidance, craft and character pools;
  * craft record -> 16 turret objects and one AI object in g_objectTable. Character, player and
  * mission-state records carry no links. */
-void XvtSnapshot_EncodeObjectRecord(XvtSnapshotObjectRecord* record, const ObjectRecord* live);
-void XvtSnapshot_DecodeObjectRecord(ObjectRecord* live, const XvtSnapshotObjectRecord* record);
-void XvtSnapshot_EncodeMobileObject(XvtSnapshotMobileObject* record, const MobileObject* live);
-void XvtSnapshot_DecodeMobileObject(MobileObject* live, const XvtSnapshotMobileObject* record);
-void XvtSnapshot_EncodeCraftData(XvtSnapshotCraftData* record, const CraftData* live);
-void XvtSnapshot_DecodeCraftData(CraftData* live, const XvtSnapshotCraftData* record);
-void XvtSnapshot_EncodeMobileObjectCharData(XvtSnapshotMobileObjectCharData* record,
-											const MobileObjectCharData* live);
-void XvtSnapshot_DecodeMobileObjectCharData(MobileObjectCharData* live,
-											const XvtSnapshotMobileObjectCharData* record);
-void XvtSnapshot_EncodePlayerData(XvtSnapshotPlayerData* record, const PlayerData* live);
-void XvtSnapshot_DecodePlayerData(PlayerData* live, const XvtSnapshotPlayerData* record);
+void XvtSnapshot_EncodeObjectRecord(XvtSnapshotObjectRecord *record,
+				    const ObjectRecord *live);
+void XvtSnapshot_DecodeObjectRecord(ObjectRecord *live,
+				    const XvtSnapshotObjectRecord *record);
+void XvtSnapshot_EncodeMobileObject(XvtSnapshotMobileObject *record,
+				    const MobileObject *live);
+void XvtSnapshot_DecodeMobileObject(MobileObject *live,
+				    const XvtSnapshotMobileObject *record);
+void XvtSnapshot_EncodeCraftData(XvtSnapshotCraftData *record,
+				 const CraftData *live);
+void XvtSnapshot_DecodeCraftData(CraftData *live,
+				 const XvtSnapshotCraftData *record);
+void XvtSnapshot_EncodeMobileObjectCharData(
+	XvtSnapshotMobileObjectCharData *record,
+	const MobileObjectCharData *live);
+void XvtSnapshot_DecodeMobileObjectCharData(
+	MobileObjectCharData *live,
+	const XvtSnapshotMobileObjectCharData *record);
+void XvtSnapshot_EncodePlayerData(XvtSnapshotPlayerData *record,
+				  const PlayerData *live);
+void XvtSnapshot_DecodePlayerData(PlayerData *live,
+				  const XvtSnapshotPlayerData *record);
 
-void XvtSnapshot_EncodeFlightMissionState(XvtSnapshotFlightMissionState* record,
-										  const FlightMissionState* live);
-void XvtSnapshot_DecodeFlightMissionState(FlightMissionState* live,
-										  const XvtSnapshotFlightMissionState* record);
+void XvtSnapshot_EncodeFlightMissionState(XvtSnapshotFlightMissionState *record,
+					  const FlightMissionState *live);
+void XvtSnapshot_DecodeFlightMissionState(
+	FlightMissionState *live, const XvtSnapshotFlightMissionState *record);
 
 #endif

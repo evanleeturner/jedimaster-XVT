@@ -25,36 +25,41 @@
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 
 typedef struct Bytes {
-	uint8_t* data;
+	uint8_t *data;
 	size_t size;
 	size_t capacity;
 } Bytes;
 
 /* Appends size bytes of data, or of zeros when data is NULL. */
-static void Put(Bytes* bytes, const void* data, size_t size) {
+static void Put(Bytes *bytes, const void *data, size_t size)
+{
 	if (bytes->size + size > bytes->capacity) {
 		bytes->capacity = (bytes->size + size) * 2;
 		bytes->data = realloc(bytes->data, bytes->capacity);
 		XVT_ASSERT_TRUE(bytes->data != NULL);
 	}
-	if (data)
+	if (data) {
 		memcpy(bytes->data + bytes->size, data, size);
-	else
+	} else {
 		memset(bytes->data + bytes->size, 0, size);
+	}
 	bytes->size += size;
 }
 
 /* Appends a 16-bit little-endian word, as every multibyte field in a mission file is stored. */
-static void PutWord(Bytes* bytes, unsigned value) {
-	uint8_t word[2] = { (uint8_t)value, (uint8_t)(value >> 8) };
+static void PutWord(Bytes *bytes, unsigned value)
+{
+	uint8_t word[2] = {(uint8_t)value, (uint8_t)(value >> 8)};
 	Put(bytes, word, sizeof word);
 }
 
 /* Copies text into a fixed field of size bytes, which the caller has zeroed; no terminator when it fills
  * the field. */
-static void SetText(char* field, size_t size, const char* text) {
-	if (text)
+static void SetText(char *field, size_t size, const char *text)
+{
+	if (text) {
 		memcpy(field, text, strlen(text) < size ? strlen(text) : size);
+	}
 }
 
 /* What a test mission holds. Every byte the fields do not name is zero. */
@@ -65,24 +70,26 @@ typedef struct Mission {
 	unsigned messageIndex[65];
 	unsigned team0Goals;
 	int team0Record;
-	const char* groupName;
+	const char *groupName;
 	unsigned arrivalCondition;
-	const char* messageText;
-	const char* goalName;
-	const char* teamName;
-	const char* briefingLabel;
-	const char* overrideText;
+	const char *messageText;
+	const char *goalName;
+	const char *teamName;
+	const char *briefingLabel;
+	const char *overrideText;
 } Mission;
 
 /* A small mission that names something in every part the tool prints. */
-static Mission Plain(void) {
+static Mission Plain(void)
+{
 	Mission mission;
 	memset(&mission, 0, sizeof mission);
 	mission.version = 14;
 	mission.groups = 1;
 	mission.messages = 1;
-	for (unsigned i = 0; i < 65; ++i)
+	for (unsigned i = 0; i < 65; ++i) {
 		mission.messageIndex[i] = i;
+	}
 	mission.team0Goals = 1;
 	mission.team0Record = 1;
 	mission.groupName = "Red";
@@ -95,7 +102,8 @@ static Mission Plain(void) {
 }
 
 /* An empty mission: no flight groups, messages, goals, teams or text. */
-static Mission Empty(void) {
+static Mission Empty(void)
+{
 	Mission mission;
 	memset(&mission, 0, sizeof mission);
 	mission.version = 14;
@@ -103,23 +111,30 @@ static Mission Empty(void) {
 }
 
 /* Writes the mission's bytes into out, in the order the tool reads them. */
-static void Build(const Mission* mission, Bytes* out) {
+static void Build(const Mission *mission, Bytes *out)
+{
 	out->size = 0;
 	PutWord(out, mission->version);
 
-	uint8_t header[sizeof(MissionHeader)] = { 0 };
-	header[offsetof(MissionHeader, numFlightGroups)] = (uint8_t)mission->groups;
-	header[offsetof(MissionHeader, numFlightGroups) + 1] = (uint8_t)(mission->groups >> 8);
-	header[offsetof(MissionHeader, numMessages)] = (uint8_t)mission->messages;
-	header[offsetof(MissionHeader, numMessages) + 1] = (uint8_t)(mission->messages >> 8);
+	uint8_t header[sizeof(MissionHeader)] = {0};
+	header[offsetof(MissionHeader, numFlightGroups)] =
+		(uint8_t)mission->groups;
+	header[offsetof(MissionHeader, numFlightGroups) + 1] =
+		(uint8_t)(mission->groups >> 8);
+	header[offsetof(MissionHeader, numMessages)] =
+		(uint8_t)mission->messages;
+	header[offsetof(MissionHeader, numMessages) + 1] =
+		(uint8_t)(mission->messages >> 8);
 	Put(out, header, sizeof header);
 
 	for (unsigned i = 0; i < mission->groups; ++i) {
 		XvtFlightGroup group;
 		memset(&group, 0, sizeof group);
 		if (i == 0) {
-			SetText(group.name, sizeof group.name, mission->groupName);
-			group.arrivalTriggers[0].triggers[0].condition = (uint8_t)mission->arrivalCondition;
+			SetText(group.name, sizeof group.name,
+				mission->groupName);
+			group.arrivalTriggers[0].triggers[0].condition =
+				(uint8_t)mission->arrivalCondition;
 		}
 		Put(out, &group, sizeof group);
 	}
@@ -127,8 +142,10 @@ static void Build(const Mission* mission, Bytes* out) {
 	for (unsigned i = 0; i < mission->messages; ++i) {
 		MissionMessage message;
 		memset(&message, 0, sizeof message);
-		if (i == 0)
-			SetText(message.message, sizeof message.message, mission->messageText);
+		if (i == 0) {
+			SetText(message.message, sizeof message.message,
+				mission->messageText);
+		}
 		PutWord(out, mission->messageIndex[i]);
 		Put(out, &message, sizeof message);
 	}
@@ -139,8 +156,10 @@ static void Build(const Mission* mission, Bytes* out) {
 		for (unsigned j = 0; j < count; ++j) {
 			GlobalGoal goal;
 			memset(&goal, 0, sizeof goal);
-			if (j == 0)
-				SetText(goal.name, sizeof goal.name, mission->goalName);
+			if (j == 0) {
+				SetText(goal.name, sizeof goal.name,
+					mission->goalName);
+			}
 			Put(out, &goal, sizeof goal);
 		}
 	}
@@ -151,7 +170,8 @@ static void Build(const Mission* mission, Bytes* out) {
 		if (present) {
 			Team record;
 			memset(&record, 0, sizeof record);
-			SetText(record.name, sizeof record.name, mission->teamName);
+			SetText(record.name, sizeof record.name,
+				mission->teamName);
 			Put(out, &record, sizeof record);
 		}
 	}
@@ -160,10 +180,13 @@ static void Build(const Mission* mission, Bytes* out) {
 	for (unsigned briefing = 0; briefing < 8; ++briefing) {
 		Put(out, NULL, 820);
 		for (unsigned j = 0; j < 64; ++j) {
-			const char* text = briefing == 0 && j == 0 ? mission->briefingLabel : NULL;
+			const char *text = briefing == 0 && j == 0
+						   ? mission->briefingLabel
+						   : NULL;
 			PutWord(out, text ? (unsigned)strlen(text) : 0);
-			if (text)
+			if (text) {
 				Put(out, text, strlen(text));
+			}
 		}
 	}
 
@@ -171,9 +194,11 @@ static void Build(const Mission* mission, Bytes* out) {
 	for (unsigned i = 0; i < mission->groups + 10; ++i) {
 		unsigned slots = i < mission->groups ? 8 : 28;
 		for (unsigned j = 0; j < slots * 3; ++j) {
-			char state[64] = { 0 };
-			if (i == 0 && j == 0)
-				SetText(state, sizeof state, mission->overrideText);
+			char state[64] = {0};
+			if (i == 0 && j == 0) {
+				SetText(state, sizeof state,
+					mission->overrideText);
+			}
 			Put(out, state, sizeof state);
 		}
 	}
@@ -181,14 +206,15 @@ static void Build(const Mission* mission, Bytes* out) {
 
 typedef struct Run {
 	int status;
-	char* out;
+	char *out;
 	size_t outSize;
-	char* err;
+	char *err;
 } Run;
 
 /* Runs the tool with count arguments, its stdout and stderr in files in the folder, or its stdout on
  * /dev/full when toFull is set. Returns its exit status (-1 when it did not exit) and what it wrote. */
-static Run RunTool(int count, const char* const* args, int toFull) {
+static Run RunTool(int count, const char *const *args, int toFull)
+{
 	char outPath[XVT_TEST_PATH_CAPACITY], errPath[XVT_TEST_PATH_CAPACITY];
 	XvtTest_Join(outPath, g_folder, "stdout.txt");
 	XvtTest_Join(errPath, g_folder, "stderr.txt");
@@ -197,43 +223,53 @@ static Run RunTool(int count, const char* const* args, int toFull) {
 	pid_t child = fork();
 	XVT_ASSERT_TRUE(child >= 0);
 	if (child == 0) {
-		int out = open(toFull ? "/dev/full" : outPath, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+		int out = open(toFull ? "/dev/full" : outPath,
+			       O_WRONLY | O_CREAT | O_TRUNC, 0600);
 		int err = open(errPath, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-		if (out < 0 || err < 0 || dup2(out, 1) < 0 || dup2(err, 2) < 0)
+		if (out < 0 || err < 0 || dup2(out, 1) < 0 ||
+		    dup2(err, 2) < 0) {
 			_exit(126);
-		char* argv[4] = { MISSION_DUMP_TOOL, NULL, NULL, NULL };
-		for (int i = 0; i < count && i < 2; ++i)
-			argv[i + 1] = (char*)args[i];
+		}
+		char *argv[4] = {MISSION_DUMP_TOOL, NULL, NULL, NULL};
+		for (int i = 0; i < count && i < 2; ++i) {
+			argv[i + 1] = (char *)args[i];
+		}
 		execv(MISSION_DUMP_TOOL, argv);
 		_exit(127);
 	}
 	int status;
 	XVT_ASSERT_INT_EQ(waitpid(child, &status, 0), child);
-	Run run = { 0 };
+	Run run = {0};
 	run.status = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
-	if (!toFull)
-		run.out = XvtTest_ReadFile(g_folder, "stdout.txt", &run.outSize);
+	if (!toFull) {
+		run.out =
+			XvtTest_ReadFile(g_folder, "stdout.txt", &run.outSize);
+	}
 	run.err = XvtTest_ReadFile(g_folder, "stderr.txt", NULL);
 	return run;
 }
 
-static void FreeRun(Run* run) {
+static void FreeRun(Run *run)
+{
 	free(run->out);
 	free(run->err);
 }
 
 /* Writes bytes as the file name and runs the tool on it. */
-static Run DumpBytes(const char* name, const uint8_t* data, size_t size, int toFull) {
+static Run DumpBytes(const char *name, const uint8_t *data, size_t size,
+		     int toFull)
+{
 	char path[XVT_TEST_PATH_CAPACITY];
 	XvtTest_WriteFile(g_folder, name, data, size);
 	XvtTest_Join(path, g_folder, name);
-	const char* args[1] = { path };
+	const char *args[1] = {path};
 	return RunTool(1, args, toFull);
 }
 
 /* Builds the mission, writes it and runs the tool on it. */
-static Run Dump(const Mission* mission) {
-	Bytes bytes = { 0 };
+static Run Dump(const Mission *mission)
+{
+	Bytes bytes = {0};
 	Build(mission, &bytes);
 	Run run = DumpBytes("mission.tie", bytes.data, bytes.size, 0);
 	free(bytes.data);
@@ -242,7 +278,8 @@ static Run Dump(const Mission* mission) {
 
 /* Runs the tool on the mission and returns its exit status. A status of 1 with nothing on stderr comes
  * back as -2, so a refusal without a message fails a check that expects 1. */
-static int Outcome(const Mission* mission) {
+static int Outcome(const Mission *mission)
+{
 	Run run = Dump(mission);
 	int status = run.status == 1 && run.err[0] == 0 ? -2 : run.status;
 	FreeRun(&run);
@@ -250,37 +287,42 @@ static int Outcome(const Mission* mission) {
 }
 
 /* The last line of text, without its newline, copied into line. */
-static void LastLine(const char* text, char* line, size_t capacity) {
+static void LastLine(const char *text, char *line, size_t capacity)
+{
 	size_t length = strlen(text);
-	while (length > 0 && text[length - 1] == '\n')
+	while (length > 0 && text[length - 1] == '\n') {
 		--length;
+	}
 	size_t start = length;
-	while (start > 0 && text[start - 1] != '\n')
+	while (start > 0 && text[start - 1] != '\n') {
 		--start;
+	}
 	XVT_ASSERT_TRUE(length - start < capacity);
 	memcpy(line, text + start, length - start);
 	line[length - start] = 0;
 }
 
-static void CheckArguments(void) {
+static void CheckArguments(void)
+{
 	Run run = RunTool(0, NULL, 0);
 	XVT_ASSERT_INT_EQ(run.status, 2);
 	FreeRun(&run);
-	const char* two[2] = { "a.tie", "b.tie" };
+	const char *two[2] = {"a.tie", "b.tie"};
 	run = RunTool(2, two, 0);
 	XVT_ASSERT_INT_EQ(run.status, 2);
 	FreeRun(&run);
 
 	char missing[XVT_TEST_PATH_CAPACITY];
 	XvtTest_Join(missing, g_folder, "missing.tie");
-	const char* one[1] = { missing };
+	const char *one[1] = {missing};
 	run = RunTool(1, one, 0);
 	XVT_ASSERT_INT_EQ(run.status, 1);
 	XVT_ASSERT_TRUE(run.err[0] != 0);
 	FreeRun(&run);
 }
 
-static void CheckPrintsEveryPart(void) {
+static void CheckPrintsEveryPart(void)
+{
 	Mission mission = Plain();
 	Run run = Dump(&mission);
 	XVT_ASSERT_INT_EQ(run.status, 0);
@@ -303,9 +345,10 @@ static void CheckPrintsEveryPart(void) {
 	FreeRun(&run);
 }
 
-static void CheckVersions(void) {
+static void CheckVersions(void)
+{
 	Mission mission = Plain();
-	static const unsigned accepted[] = { 12, 13, 14 };
+	static const unsigned accepted[] = {12, 13, 14};
 	for (size_t i = 0; i < sizeof accepted / sizeof accepted[0]; ++i) {
 		mission.version = accepted[i];
 		XVT_ASSERT_INT_EQ(Outcome(&mission), 0);
@@ -316,7 +359,8 @@ static void CheckVersions(void) {
 	XVT_ASSERT_INT_EQ(Outcome(&mission), 1);
 }
 
-static void CheckCounts(void) {
+static void CheckCounts(void)
+{
 	Mission mission = Plain();
 	mission.groups = 48;
 	XVT_ASSERT_INT_EQ(Outcome(&mission), 0);
@@ -326,14 +370,16 @@ static void CheckCounts(void) {
 	/* 64 messages, written in reverse index order, are accepted; 65 are refused. */
 	mission = Plain();
 	mission.messages = 64;
-	for (unsigned i = 0; i < 64; ++i)
+	for (unsigned i = 0; i < 64; ++i) {
 		mission.messageIndex[i] = 63 - i;
+	}
 	XVT_ASSERT_INT_EQ(Outcome(&mission), 0);
 	mission.messages = 65;
 	XVT_ASSERT_INT_EQ(Outcome(&mission), 1);
 }
 
-static void CheckMessageIndices(void) {
+static void CheckMessageIndices(void)
+{
 	Mission mission = Plain();
 	mission.messages = 2;
 	mission.messageIndex[0] = 3;
@@ -346,7 +392,8 @@ static void CheckMessageIndices(void) {
 	XVT_ASSERT_INT_EQ(Outcome(&mission), 0);
 }
 
-static void CheckGlobalGoals(void) {
+static void CheckGlobalGoals(void)
+{
 	Mission mission = Plain();
 	mission.team0Goals = 7;
 	XVT_ASSERT_INT_EQ(Outcome(&mission), 0);
@@ -354,11 +401,17 @@ static void CheckGlobalGoals(void) {
 	XVT_ASSERT_INT_EQ(Outcome(&mission), 1);
 }
 
-static void CheckShortReads(void) {
+static void CheckShortReads(void)
+{
 	Mission mission = Plain();
-	Bytes bytes = { 0 };
+	Bytes bytes = {0};
 	Build(&mission, &bytes);
-	const size_t cuts[] = { 0, 1, 2 + 10, 2 + sizeof(MissionHeader) + 100, bytes.size / 2, bytes.size - 1 };
+	const size_t cuts[] = {0,
+			       1,
+			       2 + 10,
+			       2 + sizeof(MissionHeader) + 100,
+			       bytes.size / 2,
+			       bytes.size - 1};
 	for (size_t i = 0; i < sizeof cuts / sizeof cuts[0]; ++i) {
 		Run run = DumpBytes("short.tie", bytes.data, cuts[i], 0);
 		XVT_ASSERT_INT_EQ(run.status, 1);
@@ -368,7 +421,8 @@ static void CheckShortReads(void) {
 	free(bytes.data);
 }
 
-static void CheckUnknownNames(void) {
+static void CheckUnknownNames(void)
+{
 	/* A trigger condition past the end of the condition table prints as "Unknown". */
 	Mission mission = Plain();
 	mission.arrivalCondition = 200;
@@ -378,7 +432,8 @@ static void CheckUnknownNames(void) {
 	FreeRun(&run);
 }
 
-static void CheckQuoting(void) {
+static void CheckQuoting(void)
+{
 	/* A quote, a backslash and a newline print as C escapes; an escape character never prints raw. */
 	Mission mission = Plain();
 	mission.groupName = "A\"B\\C\n\x1b";
@@ -389,9 +444,10 @@ static void CheckQuoting(void) {
 	FreeRun(&run);
 }
 
-static void CheckConsumedOffset(void) {
+static void CheckConsumedOffset(void)
+{
 	Mission mission = Plain();
-	Bytes bytes = { 0 };
+	Bytes bytes = {0};
 	Build(&mission, &bytes);
 	Run run = DumpBytes("mission.tie", bytes.data, bytes.size, 0);
 	XVT_ASSERT_INT_EQ(run.status, 0);
@@ -403,7 +459,8 @@ static void CheckConsumedOffset(void) {
 	char decimal[32], hex[32];
 	snprintf(decimal, sizeof decimal, "%zu", bytes.size);
 	snprintf(hex, sizeof hex, "%zx", bytes.size);
-	XVT_ASSERT_TRUE(strstr(last, decimal) != NULL || strstr(last, hex) != NULL);
+	XVT_ASSERT_TRUE(strstr(last, decimal) != NULL ||
+			strstr(last, hex) != NULL);
 
 	/* Bytes after the consumed part do not change it. */
 	Put(&bytes, "trailing editor data", 20);
@@ -424,12 +481,14 @@ static void CheckConsumedOffset(void) {
 	free(bytes.data);
 }
 
-static void CheckFlushFailure(void) {
+static void CheckFlushFailure(void)
+{
 	/* Output that cannot be written fails the run, where the system has a device that refuses writes. */
-	if (access("/dev/full", W_OK) != 0)
+	if (access("/dev/full", W_OK) != 0) {
 		return;
+	}
 	Mission mission = Empty();
-	Bytes bytes = { 0 };
+	Bytes bytes = {0};
 	Build(&mission, &bytes);
 	Run run = DumpBytes("empty.tie", bytes.data, bytes.size, 0);
 	XVT_ASSERT_INT_EQ(run.status, 0);
@@ -441,15 +500,18 @@ static void CheckFlushFailure(void) {
 }
 
 /* Adds option to the sanitizer options variable name, which the tool inherits. */
-static void AddOption(const char* name, const char* option) {
-	const char* old = getenv(name);
+static void AddOption(const char *name, const char *option)
+{
+	const char *old = getenv(name);
 	char value[1024];
-	int length = snprintf(value, sizeof value, "%s%s%s", old ? old : "", old && old[0] ? ":" : "", option);
+	int length = snprintf(value, sizeof value, "%s%s%s", old ? old : "",
+			      old && old[0] ? ":" : "", option);
 	XVT_ASSERT_TRUE(length > 0 && (size_t)length < sizeof value);
 	XVT_ASSERT_INT_EQ(setenv(name, value, 1), 0);
 }
 
-int main(void) {
+int main(void)
+{
 	AddOption("ASAN_OPTIONS", "exitcode=86");
 	AddOption("UBSAN_OPTIONS", "exitcode=86");
 	XvtTest_MakeFolder(g_folder);

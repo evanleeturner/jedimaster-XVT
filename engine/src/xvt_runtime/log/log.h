@@ -38,23 +38,27 @@ extern "C" {
 extern AeronLogLevel g_xvtLogLevel;
 
 /* Returns 1 when a line at level would be written, 0 when the macros skip it. */
-static inline int XvtLog_Enabled(AeronLogLevel level) { return level >= g_xvtLogLevel; }
+static inline int XvtLog_Enabled(AeronLogLevel level)
+{
+	return level >= g_xvtLogLevel;
+}
 
 /* Formats fmt with its arguments and hands the text to Aeron at level, under XVT_LOG_CATEGORY. The macros
  * below are its intended callers and do the level check; this function does not. */
 #if defined(_MSC_VER)
-void XvtLog_Write(AeronLogLevel level, const char* fmt, ...);
+void XvtLog_Write(AeronLogLevel level, const char *fmt, ...);
 #else
-__attribute__((format(printf, 2, 3))) void XvtLog_Write(AeronLogLevel level, const char* fmt, ...);
+__attribute__((format(printf, 2, 3))) void XvtLog_Write(AeronLogLevel level,
+							const char *fmt, ...);
 #endif
 
 /* Writes a line at level when the level is on. The first variable argument is the format string: the
  * event id, then the fields. Any further arguments are the fields' values, evaluated only when the line
  * is written. */
-#define XVT_LOG_AT(level, ...)                                                                               \
-	do {                                                                                                     \
-		if (XvtLog_Enabled(level))                                                                           \
-			XvtLog_Write((level), __VA_ARGS__);                                                              \
+#define XVT_LOG_AT(level, ...)                                                 \
+	do {                                                                   \
+		if (XvtLog_Enabled(level))                                     \
+			XvtLog_Write((level), __VA_ARGS__);                    \
 	} while (0)
 
 #define XVT_LOG_DEBUG(...) XVT_LOG_AT(AERON_LOG_DEBUG, __VA_ARGS__)
@@ -70,21 +74,23 @@ void XvtLog_SetLevel(AeronLogLevel level);
 AeronLogLevel XvtLog_Level(void);
 /* Reads a level name, in any letter case: "debug", "info", "warn" or "error". Writes the level to out and
  * returns 1; returns 0, out untouched, for NULL or any other text. */
-int XvtLog_ParseLevel(const char* name, AeronLogLevel* out);
+int XvtLog_ParseLevel(const char *name, AeronLogLevel *out);
 /* Splits a message Aeron formatted into an event and its fields. "xvt: <event> <fields>" (a line from
  * these macros) gives the event word and the text after it; "<category>: <text>" (a line from Aeron, the
  * category holding no space) gives the category and the text. Writes event, its length and fields and
  * returns 1. Returns 0 for any other message, NULL included: event NULL, length 0, fields the whole
  * message ("" for NULL). */
-int XvtLog_SplitMessage(const char* message, const char** event, size_t* event_length, const char** fields);
+int XvtLog_SplitMessage(const char *message, const char **event,
+			size_t *event_length, const char **fields);
 /* Writes one log line into out: the time of day as HH:MM:SS.mmm from ms_of_day (wrapped at 24 hours), a
  * space, the level letter, a space, the event (event_length bytes), then a space and the fields when
  * fields is nonempty, then a newline and a terminator. A newline, carriage return or tab inside the text
  * is written as a space, so one event is one line. A line that does not fit is cut so the newline and
  * terminator still fit. Capacity 0 writes nothing; capacity 1 writes only the terminator. Returns the
  * number of bytes written before the terminator. */
-size_t XvtLog_FormatLine(char* out, size_t capacity, uint32_t ms_of_day, char level, const char* event,
-						 size_t event_length, const char* fields);
+size_t XvtLog_FormatLine(char *out, size_t capacity, uint32_t ms_of_day,
+			 char level, const char *event, size_t event_length,
+			 const char *fields);
 /* Copies text into out with the home folder written as "~", since on most systems the home folder's
  * name is the user's name. home is the folder's path, home_length bytes, with no trailing separator. A
  * copy of it is replaced where it starts the text or follows a space, a quote or '=', and ends where the
@@ -93,12 +99,14 @@ size_t XvtLog_FormatLine(char* out, size_t capacity, uint32_t ms_of_day, char le
  * in other letter case stays whole too. A NULL home or a home_length under 2 replaces nothing; a NULL
  * text copies as "". The copy is cut to fit capacity with its terminator; capacity 0 writes nothing.
  * Returns the number of bytes written before the terminator. */
-size_t XvtLog_ShortenHome(char* out, size_t capacity, const char* text, const char* home, size_t home_length);
+size_t XvtLog_ShortenHome(char *out, size_t capacity, const char *text,
+			  const char *home, size_t home_length);
 /* Writes count values into out as eight-digit lowercase hex words joined by commas, "0000002a,ffffffff",
  * for a field that carries a table; the call site quotes it. Writes only whole words: the first word that
  * would not fit with the terminator ends the list. capacity 0 writes nothing; count 0 writes "". Returns
  * the number of bytes written before the terminator. */
-size_t XvtLog_FormatHexList(char* out, size_t capacity, const unsigned* values, size_t count);
+size_t XvtLog_FormatHexList(char *out, size_t capacity, const unsigned *values,
+			    size_t count);
 
 #ifdef __cplusplus
 }

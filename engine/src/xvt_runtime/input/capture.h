@@ -9,7 +9,7 @@
 
 /* Once per frame: unblocks keys and buttons that are up and were not just released, sets capture, and
  * while captured flushes the keyboard again. */
-void XvtInput_BeginCaptureFrame(const AeronInputSnapshot* input, bool capture);
+void XvtInput_BeginCaptureFrame(const AeronInputSnapshot *input, bool capture);
 /* On a change only: blocks every key and button now held, ignores this frame's mouse motion, flushes
  * the keyboard, and clears the game's action key, axes, modifiers, mouse buttons and deltas, flight
  * controls and mouse flight state. Capturing also leaves relative mouse mode and suspends the
@@ -40,7 +40,7 @@ void XvtInput_BlockKeyUntilReleased(int key);
  * release with Ctrl+Alt+M, and recaptures on a click inside the window; switches relative mouse mode to
  * match MouseFlightAllowed, logging and releasing when capture fails; shows the host cursor as needed;
  * then pumps mouse flight. */
-void XvtInput_UpdateMouseCapture(const AeronInputSnapshot* input);
+void XvtInput_UpdateMouseCapture(const AeronInputSnapshot *input);
 /* true when mouse flight is enabled, a flight runs loaded and unpaused, no dialog or debug UI shows,
  * mouse motion is allowed, and the mouse was neither released by the chord nor failed to capture. */
 bool XvtInput_MouseFlightAllowed(void);

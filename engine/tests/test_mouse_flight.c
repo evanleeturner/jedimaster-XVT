@@ -12,10 +12,14 @@
 
 #include <string.h>
 
-static AeronInputSnapshot* Host(void) { return (AeronInputSnapshot*)Aeron_InputSnapshot(); }
+static AeronInputSnapshot *Host(void)
+{
+	return (AeronInputSnapshot *)Aeron_InputSnapshot();
+}
 
 /* Mouse flight switched on in the module's options, with the host showing motion and every button. */
-static void Start(void) {
+static void Start(void)
+{
 	XvtInput_ResetCapture();
 	XvtMouseFlight_Reset();
 	XvtMouseOptions options;
@@ -23,7 +27,7 @@ static void Start(void) {
 	options.mouse_flight_enabled = true;
 	options.mouse_sensitivity = XVT_MOUSE_SENSITIVITY_MIN;
 	XvtMouseFlight_SetOptions(&options);
-	AeronInputSnapshot* host = Host();
+	AeronInputSnapshot *host = Host();
 	++host->frame_id;
 	host->has_focus = 1;
 	host->mouse.relative_x = 40.0f;
@@ -32,7 +36,8 @@ static void Start(void) {
 	host->mouse.pressed_buttons = 0x1F;
 }
 
-static void CheckNothingWhileNotAllowed(void) {
+static void CheckNothingWhileNotAllowed(void)
+{
 	Start();
 	XVT_ASSERT_INT_EQ(XvtInput_MouseFlightAllowed(), 0);
 	XvtMouseFlight_Pump();
@@ -43,7 +48,8 @@ static void CheckNothingWhileNotAllowed(void) {
 	XVT_ASSERT_INT_EQ(XvtMouseFlight_GetHudMarker(NULL, NULL), 0);
 }
 
-static void CheckCenteredAxes(void) {
+static void CheckCenteredAxes(void)
+{
 	Start();
 	XvtMouseFlight_Pump();
 	XvtMouseFlight_Sample();
@@ -67,7 +73,8 @@ static void CheckCenteredAxes(void) {
 	XVT_ASSERT_INT_EQ(roll, 0);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckNothingWhileNotAllowed();
 	CheckCenteredAxes();
 	XvtMouseFlight_Reset();

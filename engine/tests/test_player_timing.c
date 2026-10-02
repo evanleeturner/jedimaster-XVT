@@ -30,7 +30,8 @@ static ObjectRecord g_testObjects[kSlots];
 static MobileObject g_testMobiles[kSlots];
 static CraftData g_testCraft;
 
-static void FreshWorld(XvtFlightTimingProfile profile) {
+static void FreshWorld(XvtFlightTimingProfile profile)
+{
 	memset(g_testObjects, 0, sizeof g_testObjects);
 	memset(g_testMobiles, 0, sizeof g_testMobiles);
 	memset(&g_testCraft, 0, sizeof g_testCraft);
@@ -69,26 +70,32 @@ static void FreshWorld(XvtFlightTimingProfile profile) {
 	XvtPlayerTiming_Reset();
 }
 
-static void Seed(unsigned player, unsigned channel) {
+static void Seed(unsigned player, unsigned channel)
+{
 	XvtPlayerTiming_Clear(player, channel);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(player, channel, 3, 1, 4), 0);
 }
 
-static int Probe(unsigned player, unsigned channel) {
+static int Probe(unsigned player, unsigned channel)
+{
 	return XvtPlayerTiming_Scale(player, channel, 1, 1, 4);
 }
 
 /* Opens the next simulation step of `ticks` ticks. */
-static void Step(uint16_t ticks) {
+static void Step(uint16_t ticks)
+{
 	XvtFlightTiming_EndAdvance();
 	XvtFlightTiming_BeginAdvance(ticks);
 }
 
-static void CheckScale(void) {
+static void CheckScale(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	/* Truncated toward zero. */
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_YAW, -7, 1, 4), -1);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_PITCH, 7, 1, 4), 1);
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_YAW, -7, 1, 4),
+			  -1);
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_PITCH, 7, 1, 4),
+			  1);
 
 	/* Ten short steps add up to one long one. */
 	int sum = 0, negative = 0;
@@ -96,31 +103,50 @@ static void CheckScale(void) {
 		sum += XvtPlayerTiming_Scale(0, XVT_PLAYER_ROLL, 7, 1, 4);
 		negative += XvtPlayerTiming_Scale(1, XVT_PLAYER_ROLL, -7, 1, 4);
 	}
-	XVT_ASSERT_INT_EQ(sum, XvtPlayerTiming_Scale(0, XVT_PLAYER_ZOOM, 7, 10, 4));
+	XVT_ASSERT_INT_EQ(sum,
+			  XvtPlayerTiming_Scale(0, XVT_PLAYER_ZOOM, 7, 10, 4));
 	XVT_ASSERT_INT_EQ(sum, 70 / 4);
 	XVT_ASSERT_INT_EQ(negative, -70 / 4);
 
 	/* A new sign drops the carry; zero is a sign of its own. */
 	Seed(0, XVT_PLAYER_DISTANCE);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_DISTANCE, -1, 1, 4), 0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_DISTANCE, -3, 1, 4), -1);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_Scale(0, XVT_PLAYER_DISTANCE, -1, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_Scale(0, XVT_PLAYER_DISTANCE, -3, 1, 4), -1);
 	Seed(0, XVT_PLAYER_SLEW_YAW);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_SLEW_YAW, 0, 1, 4), 0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_SLEW_YAW, 1, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_Scale(0, XVT_PLAYER_SLEW_YAW, 0, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_Scale(0, XVT_PLAYER_SLEW_YAW, 1, 1, 4), 0);
 
 	/* Clamped to int; 0 for a zero divisor or a channel past the enum. */
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_CAMERA_YAW, INT_MAX, 4, 1), INT_MAX);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_CAMERA_YAW, INT_MIN, 4, 1), INT_MIN);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_CAMERA_PITCH, 1000, 1, 0), 0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_CHANNELS, 1000, 1, 1), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_Scale(0, XVT_PLAYER_CAMERA_YAW, INT_MAX, 4, 1),
+		INT_MAX);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_Scale(0, XVT_PLAYER_CAMERA_YAW, INT_MIN, 4, 1),
+		INT_MIN);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_Scale(0, XVT_PLAYER_CAMERA_PITCH, 1000, 1, 0),
+		0);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_Scale(0, XVT_PLAYER_CHANNELS, 1000, 1, 1), 0);
 
 	/* A player out of range gets the plain result with no carry. */
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(XVT_FLIGHT_PLAYERS, XVT_PLAYER_YAW, 3, 1, 4), 0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(XVT_FLIGHT_PLAYERS, XVT_PLAYER_YAW, 3, 1, 4), 0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(XVT_FLIGHT_PLAYERS, XVT_PLAYER_YAW, 7, 3, 4), 5);
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(XVT_FLIGHT_PLAYERS,
+						XVT_PLAYER_YAW, 3, 1, 4),
+			  0);
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(XVT_FLIGHT_PLAYERS,
+						XVT_PLAYER_YAW, 3, 1, 4),
+			  0);
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(XVT_FLIGHT_PLAYERS,
+						XVT_PLAYER_YAW, 7, 3, 4),
+			  5);
 }
 
-static void CheckClearAndReset(void) {
+static void CheckClearAndReset(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	Seed(0, XVT_PLAYER_YAW);
 	Seed(0, XVT_PLAYER_PITCH);
@@ -137,7 +163,8 @@ static void CheckClearAndReset(void) {
 	XVT_ASSERT_INT_EQ(Probe(5, XVT_PLAYER_YAW), 0);
 }
 
-static void CheckEntryFollowsObject(void) {
+static void CheckEntryFollowsObject(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	/* The object in the main region changes signature: the entry is cleared. */
 	Seed(0, XVT_PLAYER_YAW);
@@ -158,18 +185,22 @@ static void CheckEntryFollowsObject(void) {
 	XVT_ASSERT_INT_EQ(Probe(3, XVT_PLAYER_YAW), 1);
 }
 
-static void CheckResetControls(void) {
-	static const unsigned camera[] = { XVT_PLAYER_CAMERA_YAW, XVT_PLAYER_CAMERA_PITCH, XVT_PLAYER_DISTANCE,
-									   XVT_PLAYER_ZOOM };
+static void CheckResetControls(void)
+{
+	static const unsigned camera[] = {XVT_PLAYER_CAMERA_YAW,
+					  XVT_PLAYER_CAMERA_PITCH,
+					  XVT_PLAYER_DISTANCE, XVT_PLAYER_ZOOM};
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	for (unsigned i = 0; i < 4; ++i)
+	for (unsigned i = 0; i < 4; ++i) {
 		Seed(0, camera[i]);
+	}
 	Seed(0, XVT_PLAYER_YAW);
 	Seed(0, XVT_PLAYER_SLEW_YAW);
 	Seed(1, XVT_PLAYER_CAMERA_YAW);
 	XvtPlayerTiming_ResetControls();
-	for (unsigned i = 0; i < 4; ++i)
+	for (unsigned i = 0; i < 4; ++i) {
 		XVT_ASSERT_INT_EQ(Probe(0, camera[i]), 0);
+	}
 	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 1);
 	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_SLEW_YAW), 1);
 	/* Only the local player's. */
@@ -189,17 +220,22 @@ static void CheckResetControls(void) {
 
 /* Seeds player 0's yaw, pitch, roll and slew channels, calls BeginControls, and checks whether the carry
  * survived on each. */
-static void ExpectControlsKeep(int kept) {
-	static const unsigned flight[] = { XVT_PLAYER_YAW, XVT_PLAYER_PITCH, XVT_PLAYER_ROLL, XVT_PLAYER_SLEW_YAW,
-									   XVT_PLAYER_SLEW_PITCH };
-	for (unsigned i = 0; i < 5; ++i)
+static void ExpectControlsKeep(int kept)
+{
+	static const unsigned flight[] = {XVT_PLAYER_YAW, XVT_PLAYER_PITCH,
+					  XVT_PLAYER_ROLL, XVT_PLAYER_SLEW_YAW,
+					  XVT_PLAYER_SLEW_PITCH};
+	for (unsigned i = 0; i < 5; ++i) {
 		Seed(0, flight[i]);
+	}
 	XvtPlayerTiming_BeginControls(0);
-	for (unsigned i = 0; i < 5; ++i)
+	for (unsigned i = 0; i < 5; ++i) {
 		XVT_ASSERT_INT_EQ(Probe(0, flight[i]), kept);
+	}
 }
 
-static void CheckBeginControlsMode(void) {
+static void CheckBeginControlsMode(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	/* The first call clears; the same mode again keeps; another player is not touched. */
 	Seed(1, XVT_PLAYER_YAW);
@@ -246,55 +282,68 @@ static void CheckBeginControlsMode(void) {
 	ExpectControlsKeep(1);
 }
 
-static void CheckBeginControlsCamera(void) {
-	static const unsigned camera[] = { XVT_PLAYER_CAMERA_YAW, XVT_PLAYER_CAMERA_PITCH, XVT_PLAYER_DISTANCE,
-									   XVT_PLAYER_ZOOM };
+static void CheckBeginControlsCamera(void)
+{
+	static const unsigned camera[] = {XVT_PLAYER_CAMERA_YAW,
+					  XVT_PLAYER_CAMERA_PITCH,
+					  XVT_PLAYER_DISTANCE, XVT_PLAYER_ZOOM};
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtPlayerTiming_BeginControls(0);
 
 	/* A new camera focus clears the camera channels and keeps the others. */
-	for (unsigned i = 0; i < 4; ++i)
+	for (unsigned i = 0; i < 4; ++i) {
 		Seed(0, camera[i]);
+	}
 	Seed(0, XVT_PLAYER_YAW);
 	g_players[0].viewState.cameraFocusObjIdx = 3;
 	XvtPlayerTiming_BeginControls(0);
-	for (unsigned i = 0; i < 4; ++i)
+	for (unsigned i = 0; i < 4; ++i) {
 		XVT_ASSERT_INT_EQ(Probe(0, camera[i]), 0);
+	}
 	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 1);
 
 	/* The same focus keeps them, and so does a change of mode. */
-	for (unsigned i = 0; i < 4; ++i)
+	for (unsigned i = 0; i < 4; ++i) {
 		Seed(0, camera[i]);
+	}
 	XvtPlayerTiming_BeginControls(0);
 	g_flightKeyMods = XVT_ROLL_MODIFIER;
 	XvtPlayerTiming_BeginControls(0);
-	for (unsigned i = 0; i < 4; ++i)
+	for (unsigned i = 0; i < 4; ++i) {
 		XVT_ASSERT_INT_EQ(Probe(0, camera[i]), 1);
+	}
 }
 
-static void CheckSlew(void) {
+static void CheckSlew(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	/* Under 8: all of it, and the carry is dropped. */
 	Seed(0, XVT_PLAYER_SLEW_YAW);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, 5), 5);
 	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_SLEW_YAW), 0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_PITCH, -7), -7);
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_PITCH, -7),
+			  -7);
 
 	/* Otherwise 4 * max(1, |difference| / 29) per 8 ticks, with the difference's sign. */
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsedTicks = 8;
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, 100), 4 * (100 / 29));
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(1, XVT_PLAYER_SLEW_YAW, -100), -4 * (100 / 29));
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(1, XVT_PLAYER_SLEW_PITCH, 20), 4);
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, 100),
+			  4 * (100 / 29));
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(1, XVT_PLAYER_SLEW_YAW, -100),
+			  -4 * (100 / 29));
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(1, XVT_PLAYER_SLEW_PITCH, 20),
+			  4);
 	g_elapsedTicks = 16;
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_CAMERA_YAW, 1000), 2 * 4 * (1000 / 29));
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_CAMERA_YAW, 1000),
+			  2 * 4 * (1000 / 29));
 
 	/* One tick at a time it is carried: eight one-tick steps move what one eight-tick step does. */
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsedTicks = 1;
 	int sum = 0;
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		sum += XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_PITCH, 100);
+	}
 	XVT_ASSERT_INT_EQ(sum, 4 * (100 / 29));
 
 	/* A step that would reach the difference returns all of it and drops the carry: 3 ticks of 4 per 8
@@ -304,35 +353,47 @@ static void CheckSlew(void) {
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, 10), 1);
 	g_elapsedTicks = 64;
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, 10), 10);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_SLEW_YAW, 4, 1, 8), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_Scale(0, XVT_PLAYER_SLEW_YAW, 4, 1, 8), 0);
 }
 
 /* Known failure slew_int_min: the header promises a step for any difference, and INT_MIN's magnitude
  * is 2^31, so with 8 ticks the step is -4 * (2^31 / 29). The code takes abs(INT_MIN), which is undefined
  * behavior, and the sanitizer stops the program there. */
-static void CheckSlewMostNegative(void) {
+static void CheckSlewMostNegative(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsedTicks = 8;
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, INT_MIN), -4 * ((INT64_C(1) << 31) / 29));
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, INT_MIN),
+			  -4 * ((INT64_C(1) << 31) / 29));
 }
 
-static void CheckLockHalfLocked(void) {
+static void CheckLockHalfLocked(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_NATIVE);
 	g_elapsedTicks = 7;
 	for (int i = 0; i < 3; ++i) {
 		Step(7);
-		XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_NONE), 3);
-		XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 3);
-		XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(XVT_FLIGHT_PLAYERS, XVT_LOCK_HALF_TARGET_LOSS), 3);
+		XVT_ASSERT_INT_EQ(
+			XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_NONE), 3);
+		XVT_ASSERT_INT_EQ(
+			XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 3);
+		XVT_ASSERT_INT_EQ(
+			XvtPlayerTiming_LockHalf(XVT_FLIGHT_PLAYERS,
+						 XVT_LOCK_HALF_TARGET_LOSS),
+			3);
 	}
 }
 
-static void CheckLockHalfUnlocked(void) {
+static void CheckLockHalfUnlocked(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsedTicks = 3;
 	Step(3);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_NONE), 0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(XVT_FLIGHT_PLAYERS, XVT_LOCK_HALF_CHAFF), 0);
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(XVT_FLIGHT_PLAYERS,
+						   XVT_LOCK_HALF_CHAFF),
+			  0);
 
 	/* Consecutive steps carry the odd tick: four steps of 3 ticks give 12 / 2. */
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
@@ -343,18 +404,22 @@ static void CheckLockHalfUnlocked(void) {
 		sum += XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF);
 	}
 	XVT_ASSERT_INT_EQ(sum, 12 / 2);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(XVT_FLIGHT_PLAYERS, XVT_LOCK_HALF_CHAFF), 0);
+	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(XVT_FLIGHT_PLAYERS,
+						   XVT_LOCK_HALF_CHAFF),
+			  0);
 }
 
 /* Starts a fresh unlocked world in which player 0's lock timing carries an odd tick out of this step. */
-static void OddTickCarried(void) {
+static void OddTickCarried(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsedTicks = 3;
 	Step(3);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
 }
 
-static void CheckLockHalfCarryDropped(void) {
+static void CheckLockHalfCarryDropped(void)
+{
 	/* Kept: the next step with everything the same returns (3 + 1) / 2. */
 	OddTickCarried();
 	Step(3);
@@ -371,7 +436,8 @@ static void CheckLockHalfCarryDropped(void) {
 	/* ...another mode, ... */
 	OddTickCarried();
 	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_TARGET_LOSS), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_TARGET_LOSS), 1);
 	/* ...another target, ... */
 	OddTickCarried();
 	g_players[0].currentTargetObjectIdx = 3;
@@ -395,19 +461,25 @@ static void CheckLockHalfCarryDropped(void) {
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
 }
 
-static void ExpectPosition(const int32_t position[3], int32_t x, int32_t y, int32_t z) {
+static void ExpectPosition(const int32_t position[3], int32_t x, int32_t y,
+			   int32_t z)
+{
 	XVT_ASSERT_INT_EQ(position[0], x);
 	XVT_ASSERT_INT_EQ(position[1], y);
 	XVT_ASSERT_INT_EQ(position[2], z);
 }
 
-static void MoveObject(unsigned slot, int dx) { g_testObjects[slot].world_x += dx; }
+static void MoveObject(unsigned slot, int dx)
+{
+	g_testObjects[slot].world_x += dx;
+}
 
-static void CheckRecordRecovery(void) {
+static void CheckRecordRecovery(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtPlayerTiming_BeginWorld();
 	MoveObject(0, 50);
-	int32_t position[3] = { 1, 2, 3 };
+	int32_t position[3] = {1, 2, 3};
 
 	/* Outside a reference step nothing is written. */
 	Step(1);
@@ -428,7 +500,9 @@ static void CheckRecordRecovery(void) {
 	ExpectPosition(position, 75, 0, 0);
 
 	/* A player out of range. */
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(XVT_FLIGHT_PLAYERS, position), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtPlayerTiming_RecordRecovery(XVT_FLIGHT_PLAYERS, position),
+		0);
 
 	/* Locked flights: every step is a reference step. */
 	FreshWorld(XVT_FLIGHT_TIMING_NATIVE);
@@ -441,7 +515,8 @@ static void CheckRecordRecovery(void) {
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(1, position), 1);
 }
 
-static void CheckBeginWorld(void) {
+static void CheckBeginWorld(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	Seed(0, XVT_PLAYER_YAW);
 	Seed(2, XVT_PLAYER_YAW);
@@ -455,12 +530,14 @@ static void CheckBeginWorld(void) {
 	int32_t position[3];
 	Step(XVT_REFERENCE_TICKS);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(2, position), 1);
-	ExpectPosition(position, -7 - kMainSlots, -8 - kMainSlots, -9 - kMainSlots);
+	ExpectPosition(position, -7 - kMainSlots, -8 - kMainSlots,
+		       -9 - kMainSlots);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(1, position), 1);
 	ExpectPosition(position, 1000, -100, 10);
 }
 
-static void CheckRecover(void) {
+static void CheckRecover(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtPlayerTiming_BeginWorld();
 	XvtPlayerTiming_BeginControls(0);
@@ -469,7 +546,8 @@ static void CheckRecover(void) {
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
 	Seed(0, XVT_PLAYER_YAW);
 	Seed(0, XVT_PLAYER_ZOOM);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 3, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 3, 1, 4), 0);
 	XvtReferenceMotionWire motion;
 	XvtReferenceMotion_Encode(0, &motion);
 	XVT_ASSERT_INT_EQ(motion.type, 1);
@@ -479,7 +557,8 @@ static void CheckRecover(void) {
 	/* Channels, the object's step remainders and its reference motion are gone. */
 	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 0);
 	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_ZOOM), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 1, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 1, 1, 4), 0);
 	XvtReferenceMotion_Encode(0, &motion);
 	XVT_ASSERT_INT_EQ(motion.type, 0);
 
@@ -499,11 +578,14 @@ static void CheckRecover(void) {
 	ExpectPosition(position, 40, 0, 0);
 }
 
-static int RecordsEqual(const XvtPlayerTimingWire* a, const XvtPlayerTimingWire* b) {
+static int RecordsEqual(const XvtPlayerTimingWire *a,
+			const XvtPlayerTimingWire *b)
+{
 	return memcmp(a, b, sizeof *a) == 0;
 }
 
-static XvtPlayerTimingWire EmptyRecord(unsigned player) {
+static XvtPlayerTimingWire EmptyRecord(unsigned player)
+{
 	XvtPlayerTimingWire record;
 	memset(&record, 0, sizeof record);
 	record.player = (uint8_t)player;
@@ -511,13 +593,16 @@ static XvtPlayerTimingWire EmptyRecord(unsigned player) {
 }
 
 /* A well-formed record for player 0 in slot 0. */
-static XvtPlayerTimingWire GoodRecord(void) {
+static XvtPlayerTimingWire GoodRecord(void)
+{
 	XvtPlayerTimingWire record = EmptyRecord(0);
 	record.valid = 1;
 	XvtWire_Set16(record.slot, 0);
 	XvtWire_Set16(record.signature, 0x200);
 	for (unsigned i = 0; i < XVT_STATE_PLAYER_CHANNELS; ++i) {
-		XvtWire_Set64(record.remainder[i], (uint64_t)(int64_t)(i % 2 ? -(int)(10 * i) : (int)(10 * i)));
+		XvtWire_Set64(record.remainder[i],
+			      (uint64_t)(int64_t)(i % 2 ? -(int)(10 * i)
+							: (int)(10 * i)));
 		record.direction[i] = (int8_t)((int)(i % 3) - 1);
 	}
 	record.lock_mode = XVT_LOCK_HALF_CHAFF;
@@ -533,7 +618,8 @@ static XvtPlayerTimingWire GoodRecord(void) {
 	return record;
 }
 
-static void CheckEncodeDecode(void) {
+static void CheckEncodeDecode(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	const XvtPlayerTimingWire good = GoodRecord();
 	XvtPlayerTimingWire out;
@@ -565,7 +651,8 @@ static void CheckEncodeDecode(void) {
 	XVT_ASSERT_INT_EQ(out.valid, 0);
 }
 
-static void CheckRecoveryNotShared(void) {
+static void CheckRecoveryNotShared(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtPlayerTiming_BeginWorld();
 	Seed(0, XVT_PLAYER_YAW);
@@ -588,7 +675,8 @@ static void CheckRecoveryNotShared(void) {
 	ExpectPosition(position, 30, 0, 0);
 }
 
-static void CheckEncodeEmpty(void) {
+static void CheckEncodeEmpty(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	const XvtPlayerTimingWire good = GoodRecord();
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&good, 1), 1);
@@ -621,7 +709,8 @@ static void CheckEncodeEmpty(void) {
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &good));
 }
 
-static void ExpectRefused(const XvtPlayerTimingWire* record) {
+static void ExpectRefused(const XvtPlayerTimingWire *record)
+{
 	XvtPlayerTimingWire before, after;
 	XvtPlayerTiming_Encode(0, &before);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(record, 1), 0);
@@ -629,7 +718,8 @@ static void ExpectRefused(const XvtPlayerTimingWire* record) {
 	XVT_ASSERT_TRUE(RecordsEqual(&before, &after));
 }
 
-static void CheckDecodeRefusals(void) {
+static void CheckDecodeRefusals(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtPlayerTiming_BeginControls(0);
 	Seed(0, XVT_PLAYER_YAW);
@@ -680,13 +770,15 @@ static void CheckDecodeRefusals(void) {
 	XvtWire_Set64(bad.remainder[0], SIMULATION_TICKS_PER_SECOND);
 	ExpectRefused(&bad);
 	bad = good;
-	XvtWire_Set64(bad.remainder[8], (uint64_t)-(int64_t)SIMULATION_TICKS_PER_SECOND);
+	XvtWire_Set64(bad.remainder[8],
+		      (uint64_t)-(int64_t)SIMULATION_TICKS_PER_SECOND);
 	ExpectRefused(&bad);
 
 	/* One short of the bounds is accepted, and so is the empty record. */
 	bad = good;
 	XvtWire_Set64(bad.remainder[0], SIMULATION_TICKS_PER_SECOND - 1);
-	XvtWire_Set64(bad.remainder[8], (uint64_t)(1 - (int64_t)SIMULATION_TICKS_PER_SECOND));
+	XvtWire_Set64(bad.remainder[8],
+		      (uint64_t)(1 - (int64_t)SIMULATION_TICKS_PER_SECOND));
 	XvtWire_Set16(bad.slot, kMainSlots - 1);
 	bad.lock_mode = XVT_LOCK_HALF_TARGET_LOSS;
 	XvtWire_Set32(bad.control_mode, XVT_CONTROL_MASK);
@@ -695,7 +787,8 @@ static void CheckDecodeRefusals(void) {
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&bad, 0), 1);
 }
 
-static void CheckResetShared(void) {
+static void CheckResetShared(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtPlayerTiming_BeginWorld();
 	XvtPlayerTiming_BeginControls(0);
@@ -719,11 +812,13 @@ static void CheckResetShared(void) {
 	ExpectPosition(position, 60, 0, 0);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
 	/* "known-failure <check>" runs one check the code is known to fail; an unknown name runs nothing. */
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
-		if (strcmp(argv[2], "slew_int_min") == 0)
+		if (strcmp(argv[2], "slew_int_min") == 0) {
 			CheckSlewMostNegative();
+		}
 		return 0;
 	}
 	CheckScale();

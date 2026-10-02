@@ -19,7 +19,8 @@ uint32_t g_flightLoadingProgressLastDrawMs;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x449110
-void FlightLoading_ResetProgressState(void) {
+void FlightLoading_ResetProgressState(void)
+{
 #ifdef XVT_MODERN
 	XvtCockpitMessages_ClearProgress();
 #endif
@@ -28,7 +29,8 @@ void FlightLoading_ResetProgressState(void) {
 }
 
 // FUNCTION: XVT 0x449130
-void FlightLoading_PulseAndDrawProgressScreen(void) {
+void FlightLoading_PulseAndDrawProgressScreen(void)
+{
 	/* Advance the progress pulse and redraw the loading bar when due. */
 	uint32_t now;
 	uint32_t stepPhase;
@@ -55,7 +57,8 @@ void FlightLoading_PulseAndDrawProgressScreen(void) {
 
 	now = timeGetTime();
 	stepPhase = g_flightLoadingProgressStep & 0x3fu;
-	if (stepPhase != 63u && (int32_t)(now - g_flightLoadingProgressLastDrawMs) < 200) {
+	if (stepPhase != 63u &&
+	    (int32_t)(now - g_flightLoadingProgressLastDrawMs) < 200) {
 		++g_flightLoadingProgressStep;
 		return;
 	}
@@ -64,8 +67,9 @@ void FlightLoading_PulseAndDrawProgressScreen(void) {
 	XvtRenderCapture_BeginOverlay();
 #endif
 	g_flightLoadingProgressLastDrawMs = now;
-	if (stepPhase == 63u)
+	if (stepPhase == 63u) {
 		FlightNet_BroadcastStillLoadingPulse();
+	}
 
 	savedCursorX = g_flightCursorX;
 	savedCursorY = g_flightCursorY;
@@ -96,22 +100,28 @@ void FlightLoading_PulseAndDrawProgressScreen(void) {
 	++g_flightLoadingProgressStep;
 	barWidth = (g_screenWidth * barStep) >> 8;
 
-	FlightText_SetClipRect((int16_t)barLeft - 2, (int16_t)barTop - 2, (int16_t)(g_screenWidth - barLeft + 2),
-						   (int16_t)(barTop + lineHeight + 2));
-	g_flightTextBgColor = (uint8_t)(g_flightLoadingProgressStep / 128u + 48u);
+	FlightText_SetClipRect((int16_t)barLeft - 2, (int16_t)barTop - 2,
+			       (int16_t)(g_screenWidth - barLeft + 2),
+			       (int16_t)(barTop + lineHeight + 2));
+	g_flightTextBgColor =
+		(uint8_t)(g_flightLoadingProgressStep / 128u + 48u);
 	g_flightFillClipRectFn();
-	FlightText_SetClipRect((int16_t)barLeft - 1, (int16_t)barTop - 1, (int16_t)(g_screenWidth - barLeft + 1),
-						   (int16_t)(barTop + lineHeight + 1));
+	FlightText_SetClipRect((int16_t)barLeft - 1, (int16_t)barTop - 1,
+			       (int16_t)(g_screenWidth - barLeft + 1),
+			       (int16_t)(barTop + lineHeight + 1));
 	g_flightTextBgColor = 0;
 	g_flightFillClipRectFn();
-	FlightText_SetClipRect((int16_t)barLeft, (int16_t)barTop, (int16_t)(barLeft + barWidth),
-						   (int16_t)(barTop + lineHeight));
-	g_flightTextBgColor = (uint8_t)(g_flightLoadingProgressStep / 128u + 48u);
+	FlightText_SetClipRect((int16_t)barLeft, (int16_t)barTop,
+			       (int16_t)(barLeft + barWidth),
+			       (int16_t)(barTop + lineHeight));
+	g_flightTextBgColor =
+		(uint8_t)(g_flightLoadingProgressStep / 128u + 48u);
 	g_flightFillClipRectFn();
 
 #ifdef XVT_MODERN
-	XvtCockpitMessages_RecordProgress(barStep, barLeft, barTop, g_screenWidth - 2 * barLeft, lineHeight,
-									  barWidth);
+	XvtCockpitMessages_RecordProgress(barStep, barLeft, barTop,
+					  g_screenWidth - 2 * barLeft,
+					  lineHeight, barWidth);
 #endif
 	FlightSurface_Unlock();
 	FlightDisplay_BlitRenderSurface();
@@ -141,19 +151,23 @@ void FlightLoading_PulseAndDrawProgressScreen(void) {
 }
 
 // FUNCTION: XVT 0x4493C0
-void FlightLoading_DrawProgressToCompletion(void) {
-	while ((g_flightLoadingProgressStep & 0x7fu) != 0x7fu)
+void FlightLoading_DrawProgressToCompletion(void)
+{
+	while ((g_flightLoadingProgressStep & 0x7fu) != 0x7fu) {
 		FlightLoading_PulseAndDrawProgressScreen();
+	}
 	FlightLoading_PulseAndDrawProgressScreen();
 }
 
 // FUNCTION: XVT 0x4493E0
-int PilotData_HasNetworkPlayerDpid(int dpid) {
+int PilotData_HasNetworkPlayerDpid(int dpid)
+{
 	int playerIndex;
 
 	for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
 		if (g_pilotData.networkPlayers[playerIndex].directPlayId != 0 &&
-			g_pilotData.networkPlayers[playerIndex].directPlayId == dpid) {
+		    g_pilotData.networkPlayers[playerIndex].directPlayId ==
+			    dpid) {
 			return 1;
 		}
 	}

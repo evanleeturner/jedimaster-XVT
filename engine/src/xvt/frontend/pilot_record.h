@@ -48,7 +48,9 @@ struct PilotNetworkPlayer {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotNetworkPlayer[(sizeof(PilotNetworkPlayer) == 88) ? 1 : -1];
+typedef char xvt_size_PilotNetworkPlayer[(sizeof(PilotNetworkPlayer) == 88)
+						 ? 1
+						 : -1];
 
 #pragma pack(push, 1)
 
@@ -100,7 +102,8 @@ struct PilotMultiplayerMission {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotMultiplayerMission[(sizeof(PilotMultiplayerMission) == 48) ? 1 : -1];
+typedef char xvt_size_PilotMultiplayerMission
+	[(sizeof(PilotMultiplayerMission) == 48) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -137,7 +140,8 @@ struct PilotMultiplayerTournament {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotMultiplayerTournament[(sizeof(PilotMultiplayerTournament) == 44) ? 1 : -1];
+typedef char xvt_size_PilotMultiplayerTournament
+	[(sizeof(PilotMultiplayerTournament) == 44) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -172,7 +176,8 @@ struct PilotMultiplayerBattle {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotMultiplayerBattle[(sizeof(PilotMultiplayerBattle) == 40) ? 1 : -1];
+typedef char xvt_size_PilotMultiplayerBattle
+	[(sizeof(PilotMultiplayerBattle) == 40) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -205,39 +210,68 @@ struct PilotCampaignMission {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotCampaignMission[(sizeof(PilotCampaignMission) == 32) ? 1 : -1];
+typedef char xvt_size_PilotCampaignMission[(sizeof(PilotCampaignMission) == 32)
+						   ? 1
+						   : -1];
 
 #pragma pack(push, 1)
 
 /* Accumulated combat statistics indexed by the game's three mission types. */
 struct PilotStats {
-	int totalScorePerMT[3];                  ///< Accumulated score by mission type (3).
-	int standaloneMissionsPlayedPerMT[3];    ///< Standalone missions played by mission type (3).
-	int sequenceMissionsPlayedPerMT[3];      ///< Sequence missions played by mission type (3).
-	int totalKillsPerMT[3];                  ///< Full kills by mission type (3).
-	int totalFriendliesKilledPerMT[3];       ///< Friendly kills by mission type (3).
-	int killsPerCraftPerMT[3][100];          ///< Full kills by mission type and craft type (100).
-	int killsSharedPerCraftPerMT[3][100];    ///< Shared kills by mission type and craft type (100).
-	int killsAssistsPerCraftPerMT[3][100];   ///< Kill assists by mission type and craft type (100).
-	int killsFullOnPlayerRatingPerMT[3][25]; ///< Full kills by mission type and victim player rating (25).
-	int killsSharedOnPlayerRatingPerMT[3]
-									  [25]; ///< Shared kills by mission type and victim player rating (25).
-	int killsAssistOnPlayerRatingPerMT[3]
-									  [25]; ///< Kill assists by mission type and victim player rating (25).
-	int killsFullOnAIRatingPerMT[3][6];     ///< Full kills by mission type and victim AI rating (6).
-	int killsSharedOnAIRatingPerMT[3][6];   ///< Shared kills by mission type and victim AI rating (6).
-	int killsAssistOnAIRatingPerMT[3][6];   ///< Kill assists by mission type and victim AI rating (6).
-	int numSpecialInspectedPerMT[3];        ///< Special-object inspections by mission type (3).
-	int energyHitsPerMT[3];                 ///< Combined laser and ion hits by mission type (3).
-	int energyFiredPerMT[3];                ///< Combined laser and ion shots fired by mission type (3).
-	int warheadsHitsPerMT[3];               ///< Warhead hits by mission type (3).
-	int warheadsFiredPerMT[3];              ///< Warheads fired by mission type (3).
-	int totalCraftLossesPerMT[3];           ///< Total craft losses by mission type (3).
-	int lossesByCollisionsPerMT[3];         ///< Collision losses by mission type (3).
-	int lossesByStarshipsPerMT[3];          ///< Losses to starships by mission type (3).
-	int lossesByMinesPerMT[3];              ///< Losses to mines by mission type (3).
-	int killedByPlayerRatingPerMT[3][25];   ///< Deaths by mission type and opposing player rating (25).
-	int killedByAIRatingPerMT[3][6];        ///< Deaths by mission type and opposing AI rating (6).
+	int totalScorePerMT[3]; ///< Accumulated score by mission type (3).
+	int standaloneMissionsPlayedPerMT
+		[3]; ///< Standalone missions played by mission type (3).
+	int sequenceMissionsPlayedPerMT
+		[3]; ///< Sequence missions played by mission type (3).
+	int totalKillsPerMT[3]; ///< Full kills by mission type (3).
+	int totalFriendliesKilledPerMT
+		[3]; ///< Friendly kills by mission type (3).
+	int killsPerCraftPerMT
+		[3][100]; ///< Full kills by mission type and craft type (100).
+	int killsSharedPerCraftPerMT
+		[3]
+		[100]; ///< Shared kills by mission type and craft type (100).
+	int killsAssistsPerCraftPerMT
+		[3]
+		[100]; ///< Kill assists by mission type and craft type (100).
+	int killsFullOnPlayerRatingPerMT
+		[3]
+		[25]; ///< Full kills by mission type and victim player rating (25).
+	int killsSharedOnPlayerRatingPerMT
+		[3]
+		[25]; ///< Shared kills by mission type and victim player rating (25).
+	int killsAssistOnPlayerRatingPerMT
+		[3]
+		[25]; ///< Kill assists by mission type and victim player rating (25).
+	int killsFullOnAIRatingPerMT
+		[3]
+		[6]; ///< Full kills by mission type and victim AI rating (6).
+	int killsSharedOnAIRatingPerMT
+		[3]
+		[6]; ///< Shared kills by mission type and victim AI rating (6).
+	int killsAssistOnAIRatingPerMT
+		[3]
+		[6]; ///< Kill assists by mission type and victim AI rating (6).
+	int numSpecialInspectedPerMT
+		[3]; ///< Special-object inspections by mission type (3).
+	int energyHitsPerMT
+		[3]; ///< Combined laser and ion hits by mission type (3).
+	int energyFiredPerMT
+		[3]; ///< Combined laser and ion shots fired by mission type (3).
+	int warheadsHitsPerMT[3];  ///< Warhead hits by mission type (3).
+	int warheadsFiredPerMT[3]; ///< Warheads fired by mission type (3).
+	int totalCraftLossesPerMT
+		[3]; ///< Total craft losses by mission type (3).
+	int lossesByCollisionsPerMT
+		[3]; ///< Collision losses by mission type (3).
+	int lossesByStarshipsPerMT
+		[3];		   ///< Losses to starships by mission type (3).
+	int lossesByMinesPerMT[3]; ///< Losses to mines by mission type (3).
+	int killedByPlayerRatingPerMT
+		[3]
+		[25]; ///< Deaths by mission type and opposing player rating (25).
+	int killedByAIRatingPerMT
+		[3][6]; ///< Deaths by mission type and opposing AI rating (6).
 };
 
 #pragma pack(pop)
@@ -251,17 +285,21 @@ struct PilotFaction {
 	MissionDirectoryId missionDirectoryId;
 	int missionDescriptionIds[6];
 	uint8_t field24[32];
-	int missionSequenceActive;        ///< Persisted active-sequence flag mirrored to
-									  ///< PilotData.missionSequenceActive.
+	int missionSequenceActive; ///< Persisted active-sequence flag mirrored to
+				   ///< PilotData.missionSequenceActive.
 	int missionSequenceDescriptionId; ///< Persisted sequence descriptor ID mirrored to
-									  ///< PilotData.missionSequenceDescriptionId.
-	int meleePlaques[6];              ///< Melee plaque counts by award level 1-6.
-	int tournamentTrophies[6];        ///< Tournament trophy counts by award level 1-6.
-	int missionEvaluations[6];        ///< Mission evaluation counts by award level 1-6.
-	int battleMedallions[6];          ///< Battle medallion counts by award level 1-6.
-	int missionAwards[4]; ///< Current mission award levels: melee, tournament, evaluation, battle.
+	///< PilotData.missionSequenceDescriptionId.
+	int meleePlaques[6]; ///< Melee plaque counts by award level 1-6.
+	int tournamentTrophies
+		[6]; ///< Tournament trophy counts by award level 1-6.
+	int missionEvaluations
+		[6]; ///< Mission evaluation counts by award level 1-6.
+	int battleMedallions
+		[6]; ///< Battle medallion counts by award level 1-6.
+	int missionAwards
+		[4]; ///< Current mission award levels: melee, tournament, evaluation, battle.
 	uint8_t fieldBC[16];
-	int totalScore;   ///< Overall score for this faction.
+	int totalScore;	  ///< Overall score for this faction.
 	PilotStats stats; ///< Accumulated combat statistics for this faction.
 	/* Pilot_LoadXvtRecord and Pilot_WriteXvtRecord copy the base-game record's history blocks from and to
 	 * 4 bytes before each array below: the first block from here, each later one from the last field of the
@@ -269,26 +307,43 @@ struct PilotFaction {
 	 * the end of the entry before it, and mpBattles[24].field24 is not copied. No code reads these words
 	 * by name. */
 	uint8_t field1558[4];
-	PilotMission spTrainingMissions[100];            ///< Single-player training history (100 records).
-	PilotMission spMeleeMissions[250];               ///< Single-player melee history (250 records).
-	PilotMission spCombatMissions[250];              ///< Single-player combat history (250 records).
-	PilotMultiplayerMission mpTrainingMissions[100]; ///< Multiplayer training history (100 records).
-	PilotMultiplayerMission mpMeleeMissions[250];    ///< Multiplayer melee history (250 records).
-	PilotMultiplayerMission mpCombatMissions[250];   ///< Multiplayer combat history (250 records).
-	PilotTournament spTournaments[25];               ///< Single-player tournament history (25 records).
-	PilotMultiplayerTournament mpTournaments[25];    ///< Multiplayer tournament history (25 records).
-	PilotBattle spBattles[25];                       ///< Single-player battle history (25 records).
-	PilotMultiplayerBattle mpBattles[25];            ///< Multiplayer battle history (25 records).
-	PilotCampaign spCampaigns[25];                   ///< Single-player campaign history (25 records).
-	PilotCampaign mpCampaigns[25];                   ///< Multiplayer campaign history (25 records).
-	uint8_t fieldF0E4[24]; ///< Unresolved bytes between multiplayer campaign history and the CD movie-check
-						   ///< counter.
-	uint32_t cdMovieCheckCounter;                ///< Concourse CD movie-check retry counter.
-	PilotCampaignMission spCampaignMissions[99]; ///< Single-player campaign mission history indexed by
-												 ///< one-based mission ID 1-99.
-	uint8_t fieldFD60[32]; ///< Unresolved bytes preceding multiplayer campaign mission history.
-	PilotCampaignMission mpCampaignMissions[99]; ///< Multiplayer campaign mission history indexed by
-												 ///< one-based mission ID 1-99.
+	PilotMission spTrainingMissions
+		[100]; ///< Single-player training history (100 records).
+	PilotMission spMeleeMissions
+		[250]; ///< Single-player melee history (250 records).
+	PilotMission spCombatMissions
+		[250]; ///< Single-player combat history (250 records).
+	PilotMultiplayerMission mpTrainingMissions
+		[100]; ///< Multiplayer training history (100 records).
+	PilotMultiplayerMission mpMeleeMissions
+		[250]; ///< Multiplayer melee history (250 records).
+	PilotMultiplayerMission mpCombatMissions
+		[250]; ///< Multiplayer combat history (250 records).
+	PilotTournament spTournaments
+		[25]; ///< Single-player tournament history (25 records).
+	PilotMultiplayerTournament mpTournaments
+		[25]; ///< Multiplayer tournament history (25 records).
+	PilotBattle
+		spBattles[25]; ///< Single-player battle history (25 records).
+	PilotMultiplayerBattle
+		mpBattles[25]; ///< Multiplayer battle history (25 records).
+	PilotCampaign spCampaigns
+		[25]; ///< Single-player campaign history (25 records).
+	PilotCampaign
+		mpCampaigns[25]; ///< Multiplayer campaign history (25 records).
+	uint8_t fieldF0E4
+		[24]; ///< Unresolved bytes between multiplayer campaign history and the CD movie-check
+	///< counter.
+	uint32_t
+		cdMovieCheckCounter; ///< Concourse CD movie-check retry counter.
+	PilotCampaignMission spCampaignMissions
+		[99]; ///< Single-player campaign mission history indexed by
+		      ///< one-based mission ID 1-99.
+	uint8_t fieldFD60
+		[32]; ///< Unresolved bytes preceding multiplayer campaign mission history.
+	PilotCampaignMission mpCampaignMissions
+		[99]; ///< Multiplayer campaign mission history indexed by
+		      ///< one-based mission ID 1-99.
 };
 
 #pragma pack(pop)
@@ -304,12 +359,14 @@ struct PilotData {
 	int isHost;
 	unsigned int numHumanPlayersLastMission;
 	int sessionMode;
-	uint8_t xvtRecordPayload[672]; ///< Opaque 672-byte payload round-tripped by the XvT-compatible
-								   ///< pilot-record reader and writer.
+	uint8_t xvtRecordPayload
+		[672]; ///< Opaque 672-byte payload round-tripped by the XvT-compatible
+		       ///< pilot-record reader and writer.
 	int team;
 	MissionDirectoryId missionDirectoryId;
-	int32_t missionDescriptionIds[6]; ///< Selected mission or sequence descriptor ID for each of the six
-									  ///< MissionDirectoryId values.
+	int32_t missionDescriptionIds
+		[6]; ///< Selected mission or sequence descriptor ID for each of the six
+		     ///< MissionDirectoryId values.
 	char multiplayerGameName[32];
 	char multiplayerHostName[32];
 	int missionSequenceActive;
@@ -336,20 +393,26 @@ struct PilotData {
 	int killsFullFromFlightGroup[48];
 	int killsSharedFromFlightGroup[48];
 	int flightGroupRating[48];
-	PilotStats lastMissionStats;          ///< Statistics of the most recent mission, shown on the debriefing.
-	PilotNetworkPlayer networkPlayers[8]; ///< Persisted network-player results (8).
-	PilotTeam teams[10];                  ///< Persisted team results (10).
-	int currentFactionId;                 ///< Selected faction-statistics record.
-	PilotFaction factionStatistics[4];    ///< Per-faction pilot records (4 records, 0x109E0 bytes each).
-	CampaignSequenceState campaignSequenceState; ///< Runtime state for an active campaign sequence.
-	BattleContinuation
-		spBattleContinuations[25]; ///< Saved single-player battle continuation slots indexed by battle ID.
-	BattleContinuation
-		mpBattleContinuations[25]; ///< Saved multiplayer battle continuation slots indexed by battle ID.
-	CampaignContinuation spCampaignContinuations[25]; ///< Saved single-player campaign continuation slots
-													  ///< indexed by campaign ID.
-	CampaignContinuation mpCampaignContinuations[25]; ///< Saved multiplayer campaign continuation slots;
-													  ///< client state uses the ID+12 partition.
+	PilotStats
+		lastMissionStats; ///< Statistics of the most recent mission, shown on the debriefing.
+	PilotNetworkPlayer
+		networkPlayers[8]; ///< Persisted network-player results (8).
+	PilotTeam teams[10];	   ///< Persisted team results (10).
+	int currentFactionId;	   ///< Selected faction-statistics record.
+	PilotFaction factionStatistics
+		[4]; ///< Per-faction pilot records (4 records, 0x109E0 bytes each).
+	CampaignSequenceState
+		campaignSequenceState; ///< Runtime state for an active campaign sequence.
+	BattleContinuation spBattleContinuations
+		[25]; ///< Saved single-player battle continuation slots indexed by battle ID.
+	BattleContinuation mpBattleContinuations
+		[25]; ///< Saved multiplayer battle continuation slots indexed by battle ID.
+	CampaignContinuation spCampaignContinuations
+		[25]; ///< Saved single-player campaign continuation slots
+		      ///< indexed by campaign ID.
+	CampaignContinuation mpCampaignContinuations
+		[25]; ///< Saved multiplayer campaign continuation slots;
+		      ///< client state uses the ID+12 partition.
 };
 
 #pragma pack(pop)
@@ -357,7 +420,7 @@ typedef char xvt_size_PilotData[(sizeof(PilotData) == 296238) ? 1 : -1];
 
 extern PilotData g_pilotData;
 extern unsigned int g_campaignAwardSpriteCount;
-extern CampaignAwardSpriteEntry* g_campaignAwardSprites;
+extern CampaignAwardSpriteEntry *g_campaignAwardSprites;
 extern int g_pilotStatsAssists[3];
 extern int g_pilotStatsPlayerKills[3];
 extern int g_pilotStatsLossesToNonPlayers[3];
@@ -387,8 +450,8 @@ extern int g_pilotStatsLossesToPlayers[3];
 extern int g_pilotMpCampaignHistoryRowCount;
 
 int PilotRecord_UpdatePilotSelectionPanel(int frameCounter);
-int PilotRecord_DrawPilotList(const RECT* bounds, int firstVisibleIndex);
-int PilotRecord_RebuildPilotList(int* selectedIndex);
+int PilotRecord_DrawPilotList(const RECT *bounds, int firstVisibleIndex);
+int PilotRecord_RebuildPilotList(int *selectedIndex);
 int PilotRecord_DrawPilotStatisticsPage(void);
 int PilotRecord_DrawMissionAchievementsPage(void);
 int PilotRecord_DrawCutsceneViewerPage(void);
@@ -397,7 +460,7 @@ int PilotRecord_DrawPilotAwardsPage(void);
 int PilotRecord_DrawPilotRatingPage(void);
 int PilotRecord_UpdateNavigationControls(void);
 int PilotRecord_RedrawBackground(void);
-int PilotRecord_LoadCampaignAwardSpriteTable(const char* fileName);
+int PilotRecord_LoadCampaignAwardSpriteTable(const char *fileName);
 
 #ifdef __cplusplus
 }

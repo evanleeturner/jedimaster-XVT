@@ -26,7 +26,7 @@ enum {
 };
 
 extern int g_craftDataPoolCapacity;
-extern CraftData* g_craftDataPoolBase;
+extern CraftData *g_craftDataPoolBase;
 
 /* Stored as uint8_t in the binary (IDB enum ShieldDistributionMode). */
 typedef uint8_t ShieldDistributionMode;
@@ -187,14 +187,15 @@ struct CraftData {
 	uint16_t effectiveAiObjectSignature;
 	TurretTargetState turretTargetStates[16];
 	uint8_t field_3F2[44];
-	struct ObjectRecord* turretObjectLinks[16];
-	struct ObjectRecord* effectiveAiObjectLink;
+	struct ObjectRecord *turretObjectLinks[16];
+	struct ObjectRecord *effectiveAiObjectLink;
 };
 
 struct CraftTechStats {
 	int craftType; ///< CraftSpecies selected by the Tech Library. specdesc.txt uses craftType-1;
-				   ///< BuildCraftTechStats also uses this value directly as the parallel object/model slot.
-	CraftGenus genusId; ///< CraftGenus copied from g_objectTypeTable[craftType].
+	///< BuildCraftTechStats also uses this value directly as the parallel object/model slot.
+	CraftGenus
+		genusId; ///< CraftGenus copied from g_objectTypeTable[craftType].
 	int speedRating;
 	int accelerationRating;
 	int maneuverRating;
@@ -206,22 +207,25 @@ struct CraftTechStats {
 	int sizeRating;
 };
 
-extern CraftData* g_curCraft;
+extern CraftData *g_curCraft;
 
-void Craft_AdjustCurrentShieldEnergy(unsigned int unusedObjectIdx, uint16_t shieldIndex, int16_t delta);
+void Craft_AdjustCurrentShieldEnergy(unsigned int unusedObjectIdx,
+				     uint16_t shieldIndex, int16_t delta);
 int Craft_GetObjectMaxShield(uint16_t objIdx);
 ModelIndex GetModelIndexFromType(ObjectTypeId objectType);
-int BuildCraftTechStats(CraftTechStats* stats);
-void Craft_ClearTurretObjectLinks(CraftData* craft);
-void Craft_FreeLinkedObjects(CraftData* craft);
+int BuildCraftTechStats(CraftTechStats *stats);
+void Craft_ClearTurretObjectLinks(CraftData *craft);
+void Craft_FreeLinkedObjects(CraftData *craft);
 void Craft_DetachDamageableComponent(uint16_t objectIndex, int16_t detachAll);
 WarheadKindIndex ObjectType_GetWarheadKindIndex(uint16_t objectType);
 int Craft_IsSelectableDamageComponentMesh(int objectType, int meshIndex);
-int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned int damageAmount,
-						  uint16_t sourceObjIdx);
-void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx, int16_t forceMainExplosion);
-int Craft_SpawnExplosionObjectAtMesh(ObjectRecord* objRecord, uint16_t meshIndex, int effectSize,
-									 uint16_t useRandomVertex);
+int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex,
+			  unsigned int damageAmount, uint16_t sourceObjIdx);
+void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx,
+					 int16_t forceMainExplosion);
+int Craft_SpawnExplosionObjectAtMesh(ObjectRecord *objRecord,
+				     uint16_t meshIndex, int effectSize,
+				     uint16_t useRandomVertex);
 
 #ifdef __cplusplus
 }

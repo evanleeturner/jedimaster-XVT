@@ -15,25 +15,31 @@
 
 /* An allocation that cannot be met must come back as NULL, so Init's refusal can be seen; by default
  * AddressSanitizer stops the program instead. */
-const char* __asan_default_options(void) { return "allocator_may_return_null=1"; }
+const char *__asan_default_options(void)
+{
+	return "allocator_may_return_null=1";
+}
 
 enum { kSlots = 5 };
 
 static ObjectRecord g_testObjects[kSlots];
 
-static void Place(unsigned slot, int x, int y, int z) {
+static void Place(unsigned slot, int x, int y, int z)
+{
 	g_testObjects[slot].world_x = x;
 	g_testObjects[slot].world_y = y;
 	g_testObjects[slot].world_z = z;
 }
 
-static void Move(unsigned slot, int dx, int dy, int dz) {
+static void Move(unsigned slot, int dx, int dy, int dz)
+{
 	g_testObjects[slot].world_x += dx;
 	g_testObjects[slot].world_y += dy;
 	g_testObjects[slot].world_z += dz;
 }
 
-static void FreshWorld(XvtFlightTimingProfile profile) {
+static void FreshWorld(XvtFlightTimingProfile profile)
+{
 	memset(g_testObjects, 0, sizeof g_testObjects);
 	g_testObjects[0].objectType = 1;
 	g_testObjects[0].objectSignature = 0x100;
@@ -53,15 +59,17 @@ static void FreshWorld(XvtFlightTimingProfile profile) {
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Init(kSlots), 1);
 }
 
-static void ExpectDisplacement(unsigned slot, int32_t x, int32_t y, int32_t z) {
-	int32_t delta[3] = { 7, 7, 7 };
+static void ExpectDisplacement(unsigned slot, int32_t x, int32_t y, int32_t z)
+{
+	int32_t delta[3] = {7, 7, 7};
 	XvtReferenceMotion_Displacement(slot, delta);
 	XVT_ASSERT_INT_EQ(delta[0], x);
 	XVT_ASSERT_INT_EQ(delta[1], y);
 	XVT_ASSERT_INT_EQ(delta[2], z);
 }
 
-static void CheckInitSamples(void) {
+static void CheckInitSamples(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	/* Over exactly one reference period, the displacement is the movement itself. */
 	Move(0, 8, -16, 24);
@@ -72,7 +80,8 @@ static void CheckInitSamples(void) {
 	ExpectDisplacement(1, 0, 0, 0);
 }
 
-static void CheckDisplacementScale(void) {
+static void CheckDisplacementScale(void)
+{
 	/* The change times 8 over the ticks between: twice the period halves it, half the period doubles it. */
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	Move(0, 40, 80, -120);
@@ -93,7 +102,8 @@ static void CheckDisplacementScale(void) {
 	ExpectDisplacement(1000, 0, 0, 0);
 }
 
-static void CheckClamp(void) {
+static void CheckClamp(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	Place(0, -2000000000, 2000000000, 0);
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Init(kSlots), 1);
@@ -102,19 +112,23 @@ static void CheckClamp(void) {
 	ExpectDisplacement(0, INT32_MAX, INT32_MIN, 0);
 }
 
-static void CheckAxis(void) {
+static void CheckAxis(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	Move(0, 16, -32, 48);
 	g_gameTime = 116;
 	int32_t delta[3];
 	XvtReferenceMotion_Displacement(0, delta);
-	for (unsigned axis = 0; axis < 3; ++axis)
-		XVT_ASSERT_INT_EQ(XvtReferenceMotion_AxisDisplacement(0, axis), delta[axis]);
+	for (unsigned axis = 0; axis < 3; ++axis) {
+		XVT_ASSERT_INT_EQ(XvtReferenceMotion_AxisDisplacement(0, axis),
+				  delta[axis]);
+	}
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_AxisDisplacement(0, 3), 0);
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_AxisDisplacement(0, 1000), 0);
 }
 
-static void CheckCommitted(void) {
+static void CheckCommitted(void)
+{
 	/* Unlocked: the committed time stands for the current time. */
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	Move(0, 8, 0, 0);
@@ -130,7 +144,8 @@ static void CheckCommitted(void) {
 	ExpectDisplacement(0, 8, 0, 0);
 }
 
-static void CheckCommitBoundary(void) {
+static void CheckCommitBoundary(void)
+{
 	/* In a reference step, the boundary takes a new sample at game time: later movement is measured from
 	 * it, so 8 more over 8 more ticks is a displacement of 8, not (16 + 8) * 8 / 16. */
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
@@ -173,7 +188,8 @@ static void CheckCommitBoundary(void) {
 	ExpectDisplacement(0, 16, 0, 0);
 }
 
-static void CheckObjectChangeClears(void) {
+static void CheckObjectChangeClears(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	Move(0, 8, 0, 0);
 	Move(2, 8, 0, 0);
@@ -191,18 +207,22 @@ static void CheckObjectChangeClears(void) {
 	ExpectDisplacement(2, 0, 0, 0);
 }
 
-static int RecordsEqual(const XvtReferenceMotionWire* a, const XvtReferenceMotionWire* b) {
+static int RecordsEqual(const XvtReferenceMotionWire *a,
+			const XvtReferenceMotionWire *b)
+{
 	return memcmp(a, b, sizeof *a) == 0;
 }
 
-static XvtReferenceMotionWire EmptyRecord(unsigned slot) {
+static XvtReferenceMotionWire EmptyRecord(unsigned slot)
+{
 	XvtReferenceMotionWire record;
 	memset(&record, 0, sizeof record);
 	XvtWire_Set16(record.slot, (uint16_t)slot);
 	return record;
 }
 
-static void CheckEncodeDecode(void) {
+static void CheckEncodeDecode(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtReferenceMotion_Committed(0, 104);
 	Move(0, 8, 8, 8);
@@ -237,7 +257,8 @@ static void CheckEncodeDecode(void) {
 	ExpectDisplacement(0, 0, 0, 0);
 }
 
-static void CheckEncodeEmpty(void) {
+static void CheckEncodeEmpty(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtReferenceMotionWire out, empty;
 
@@ -259,7 +280,8 @@ static void CheckEncodeEmpty(void) {
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
 }
 
-static void ExpectRefused(const XvtReferenceMotionWire* record) {
+static void ExpectRefused(const XvtReferenceMotionWire *record)
+{
 	XvtReferenceMotionWire before, after;
 	XvtReferenceMotion_Encode(0, &before);
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(record, 1), 0);
@@ -267,7 +289,8 @@ static void ExpectRefused(const XvtReferenceMotionWire* record) {
 	XVT_ASSERT_TRUE(RecordsEqual(&before, &after));
 }
 
-static void CheckDecodeRefusals(void) {
+static void CheckDecodeRefusals(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtReferenceMotionWire good, bad;
 	XvtReferenceMotion_Encode(0, &good);
@@ -300,7 +323,8 @@ static void CheckDecodeRefusals(void) {
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(&good, 0), 1);
 }
 
-static void CheckReset(void) {
+static void CheckReset(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	Move(0, 8, 0, 0);
 	Move(2, 8, 0, 0);
@@ -311,7 +335,8 @@ static void CheckReset(void) {
 	ExpectDisplacement(2, 8, 0, 0);
 }
 
-static void CheckResetShared(void) {
+static void CheckResetShared(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	Move(0, 8, 0, 0);
 	Move(2, 8, 0, 0);
@@ -330,7 +355,8 @@ static void CheckResetShared(void) {
 	XvtReferenceMotion_ResetShared();
 }
 
-static void CheckNoTable(void) {
+static void CheckNoTable(void)
+{
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	Move(0, 8, 0, 0);
 	g_gameTime = 108;
@@ -343,7 +369,8 @@ static void CheckNoTable(void) {
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(&empty, 0), 0);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckInitSamples();
 	CheckDisplacementScale();
 	CheckClamp();

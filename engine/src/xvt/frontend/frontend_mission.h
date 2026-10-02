@@ -25,12 +25,13 @@ struct FrontendMissionHeader {
 		missionType; ///< One-byte mission mode; XVT uses the shared legacy values through SKIRMISH (0..4).
 	uint8_t goalsUnimportant; ///< Nonzero suppresses normal mission-goal importance/failure handling.
 	uint8_t timeLimitMinutes; ///< Mission countdown duration in whole minutes; zero disables the
-							  ///< header-supplied limit.
+	///< header-supplied limit.
 	uint8_t reserved[61];
 };
 
 #pragma pack(pop)
-typedef char xvt_size_FrontendMissionHeader[(sizeof(FrontendMissionHeader) == 158) ? 1 : -1];
+typedef char xvt_size_FrontendMissionHeader
+	[(sizeof(FrontendMissionHeader) == 158) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -47,7 +48,8 @@ struct FrontendMission {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_FrontendMission[(sizeof(FrontendMission) == 81396) ? 1 : -1];
+typedef char
+	xvt_size_FrontendMission[(sizeof(FrontendMission) == 81396) ? 1 : -1];
 
 typedef enum FrontendMissionSessionMode {
 	FRONTEND_MISSION_SESSION_NONE = 0x0,
@@ -62,7 +64,8 @@ extern FrontendMissionSessionMode g_frontendMissionSessionMode;
 int FrontendMission_LoadForBriefing(void);
 void FrontendMission_InitForBriefing(void);
 void FrontendMission_LoadCurrentWithBriefing(void);
-void FrontendMission_LoadFile(const char* fileName, FrontendMission* outMission);
+void FrontendMission_LoadFile(const char *fileName,
+			      FrontendMission *outMission);
 void FrontendMission_LoadCurrent(void);
 void FrontendMission_InitPlayerState(void);
 

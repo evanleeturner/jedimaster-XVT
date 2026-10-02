@@ -11,15 +11,17 @@ extern "C" {
 struct RenderObjectListEntry {
 	int sortDepth;
 	int objectIdx;
-	struct RenderObjectListEntry* next;
+	struct RenderObjectListEntry *next;
 };
 
-extern RenderObjectListEntry* g_renderListHead;
-extern RenderObjectListEntry* g_renderObjectListEntries;
+extern RenderObjectListEntry *g_renderListHead;
+extern RenderObjectListEntry *g_renderObjectListEntries;
 
 void RenderList_QueueObject(int objectIdx, int sortDepth);
 void RenderList_Reset(void);
-int RenderList_ProjectObjectBoundsForCulling(int objectIdx, unsigned int boundsRadius, int playerIdx);
+int RenderList_ProjectObjectBoundsForCulling(int objectIdx,
+					     unsigned int boundsRadius,
+					     int playerIdx);
 void RenderList_SortDepthDescending(void);
 void RenderList_SortDepthAscending(void);
 

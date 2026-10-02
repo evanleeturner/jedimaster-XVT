@@ -18,13 +18,14 @@
 // GLOBAL: XVT 0xB69E34
 int g_cutsceneCount = 0;
 // GLOBAL: XVT 0xB6A248
-CutsceneEntry* g_cutsceneTable = NULL;
+CutsceneEntry *g_cutsceneTable = NULL;
 
 // FUNCTION: XVT 0x4DF250
-int Cutscene_LoadTable(char* fileName) {
-	XvtFile* stream;
+int Cutscene_LoadTable(char *fileName)
+{
+	XvtFile *stream;
 	unsigned int declaredCount;
-	char* line;
+	char *line;
 	size_t allocationSize;
 
 	if (g_cutsceneTable != NULL) {
@@ -43,7 +44,7 @@ int Cutscene_LoadTable(char* fileName) {
 
 	declaredCount = (unsigned int)atoi(g_frontendScratchBuffer);
 	allocationSize = sizeof(CutsceneEntry) * declaredCount;
-	g_cutsceneTable = (CutsceneEntry*)malloc(allocationSize);
+	g_cutsceneTable = (CutsceneEntry *)malloc(allocationSize);
 	if (g_cutsceneTable == NULL) {
 		return 0;
 	}
@@ -59,25 +60,33 @@ int Cutscene_LoadTable(char* fileName) {
 			}
 		} while (line[0] == '/' && line[1] == '/');
 
-		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) - 1] == '\n') {
-			g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) - 1] = '\0';
+		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) -
+					    1] == '\n') {
+			g_frontendScratchBuffer
+				[strlen(g_frontendScratchBuffer) - 1] = '\0';
 		}
-		memcpy(g_cutsceneTable[g_cutsceneCount].movieName, g_frontendScratchBuffer,
-			   sizeof(g_cutsceneTable[g_cutsceneCount].movieName));
+		memcpy(g_cutsceneTable[g_cutsceneCount].movieName,
+		       g_frontendScratchBuffer,
+		       sizeof(g_cutsceneTable[g_cutsceneCount].movieName));
 
 		do {
 			line = File_Gets(g_frontendScratchBuffer, 255, stream);
 			if (line == NULL) {
-				g_cutsceneTable[g_cutsceneCount].movieName[0] = '\0';
+				g_cutsceneTable[g_cutsceneCount].movieName[0] =
+					'\0';
 				File_Close(stream);
 				return 1;
 			}
 		} while (line[0] == '/' && line[1] == '/');
 
-		if (sscanf(g_frontendScratchBuffer, "%d %d %d", &g_cutsceneTable[g_cutsceneCount].campaignId,
-				   &g_cutsceneTable[g_cutsceneCount].playAfterDebriefing,
-				   &g_cutsceneTable[g_cutsceneCount].campaignMissionId) != 3) {
-			memset(&g_cutsceneTable[g_cutsceneCount], 0, sizeof(CutsceneEntry));
+		if (sscanf(g_frontendScratchBuffer, "%d %d %d",
+			   &g_cutsceneTable[g_cutsceneCount].campaignId,
+			   &g_cutsceneTable[g_cutsceneCount]
+				    .playAfterDebriefing,
+			   &g_cutsceneTable[g_cutsceneCount]
+				    .campaignMissionId) != 3) {
+			memset(&g_cutsceneTable[g_cutsceneCount], 0,
+			       sizeof(CutsceneEntry));
 			File_Close(stream);
 			return 1;
 		}
@@ -90,11 +99,15 @@ int Cutscene_LoadTable(char* fileName) {
 			}
 		} while (line[0] == '/' && line[1] == '/');
 
-		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) - 1] == '\n') {
-			g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) - 1] = '\0';
+		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) -
+					    1] == '\n') {
+			g_frontendScratchBuffer
+				[strlen(g_frontendScratchBuffer) - 1] = '\0';
 		}
-		memcpy(g_cutsceneTable[g_cutsceneCount].thumbnailSprite, g_frontendScratchBuffer,
-			   sizeof(g_cutsceneTable[g_cutsceneCount].thumbnailSprite));
+		memcpy(g_cutsceneTable[g_cutsceneCount].thumbnailSprite,
+		       g_frontendScratchBuffer,
+		       sizeof(g_cutsceneTable[g_cutsceneCount]
+				      .thumbnailSprite));
 
 		do {
 			line = File_Gets(g_frontendScratchBuffer, 255, stream);
@@ -104,11 +117,14 @@ int Cutscene_LoadTable(char* fileName) {
 			}
 		} while (line[0] == '/' && line[1] == '/');
 
-		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) - 1] == '\n') {
-			g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) - 1] = '\0';
+		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) -
+					    1] == '\n') {
+			g_frontendScratchBuffer
+				[strlen(g_frontendScratchBuffer) - 1] = '\0';
 		}
-		memcpy(g_cutsceneTable[g_cutsceneCount].description, g_frontendScratchBuffer,
-			   sizeof(g_cutsceneTable[g_cutsceneCount].description));
+		memcpy(g_cutsceneTable[g_cutsceneCount].description,
+		       g_frontendScratchBuffer,
+		       sizeof(g_cutsceneTable[g_cutsceneCount].description));
 		++g_cutsceneCount;
 	}
 
@@ -117,7 +133,8 @@ int Cutscene_LoadTable(char* fileName) {
 }
 
 // FUNCTION: XVT 0x4DF5F0
-int Cutscene_PlayForCurrentMissionPhase(int phase) {
+int Cutscene_PlayForCurrentMissionPhase(int phase)
+{
 #ifdef XVT_MODERN
 	return XvtCutsceneTask_Play(phase);
 #else
@@ -129,26 +146,34 @@ int Cutscene_PlayForCurrentMissionPhase(int phase) {
 	unsigned int entryIndex;
 	int playResult;
 
-	if (g_pilotData.missionDirectoryId != MISSION_DIRECTORY_TRAINING_EXERCISES ||
-		g_pilotData.missionSequenceActive != MISSION_SEQUENCE_ACTIVE ||
-		g_pilotData.missionDirectoryId == MISSION_DIRECTORY_CAMPAIGNS)
+	if (g_pilotData.missionDirectoryId !=
+		    MISSION_DIRECTORY_TRAINING_EXERCISES ||
+	    g_pilotData.missionSequenceActive != MISSION_SEQUENCE_ACTIVE ||
+	    g_pilotData.missionDirectoryId == MISSION_DIRECTORY_CAMPAIGNS) {
 		return 0;
-	if (g_cutsceneTable == NULL)
+	}
+	if (g_cutsceneTable == NULL) {
 		return 0;
+	}
 
-	for (entryIndex = 0; entryIndex < (unsigned int)g_cutsceneCount; ++entryIndex) {
+	for (entryIndex = 0; entryIndex < (unsigned int)g_cutsceneCount;
+	     ++entryIndex) {
 		if (g_cutsceneTable[entryIndex].campaignId ==
-				g_pilotData.missionDescriptionIds[MISSION_DIRECTORY_CAMPAIGNS] &&
-			g_cutsceneTable[entryIndex].playAfterDebriefing == phase &&
-			g_cutsceneTable[entryIndex].campaignMissionId ==
-				g_pilotData.missionDescriptionIds[MISSION_DIRECTORY_TRAINING_EXERCISES]) {
+			    g_pilotData.missionDescriptionIds
+				    [MISSION_DIRECTORY_CAMPAIGNS] &&
+		    g_cutsceneTable[entryIndex].playAfterDebriefing == phase &&
+		    g_cutsceneTable[entryIndex].campaignMissionId ==
+			    g_pilotData.missionDescriptionIds
+				    [MISSION_DIRECTORY_TRAINING_EXERCISES]) {
 			CDAudio_SuspendPlayback();
 			FrontendDisplay_DisableOffscreenRestore();
 			FrontendDisplay_UnlockBackBuffer();
 			FrontendDisplay_ClearBackBuffer();
 			FrontendDisplay_PresentFrame();
 			FrontendDisplay_ClearBackBuffer();
-			playResult = Movie_Play(g_cutsceneTable[entryIndex].movieName, SYNCHRONIZE_MULTIPLAYER);
+			playResult = Movie_Play(
+				g_cutsceneTable[entryIndex].movieName,
+				SYNCHRONIZE_MULTIPLAYER);
 			FrontendDisplay_ClearBackBuffer();
 			FrontendDisplay_PresentFrame();
 			FrontendDisplay_ClearBackBuffer();
@@ -156,8 +181,9 @@ int Cutscene_PlayForCurrentMissionPhase(int phase) {
 			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
 			FrontendDisplay_EnableOffscreenRestore();
 			CDAudio_RequestResumePlayback();
-			if (playResult != 0)
+			if (playResult != 0) {
 				return 0;
+			}
 		}
 	}
 	return 1;

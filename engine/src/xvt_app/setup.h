@@ -31,7 +31,8 @@ typedef enum XvtSetupResult {
  * save is due (--save-config, a reset, a recovery, or an import after the dialog), stores game_data and
  * writes the user file (failure: ERROR). With a UI, applies the fullscreen setting (failure: ERROR). Logs the
  * validated installation; SUCCESS. */
-XvtSetupResult XvtSetup_Run(const XvtLaunchOptions* options, XvtAppUi* ui, char* error, size_t capacity);
+XvtSetupResult XvtSetup_Run(const XvtLaunchOptions *options, XvtAppUi *ui,
+			    char *error, size_t capacity);
 /* Resolves an XvT root or its BalanceOfPower child; output changes only on success.
  * Input and output may share a buffer. */
 /* Fails for a NULL or empty path, one of 1024 or more characters, or a NULL or zero-capacity resolved
@@ -45,10 +46,11 @@ XvtSetupResult XvtSetup_Run(const XvtLaunchOptions* options, XvtAppUi* ui, char*
  * that fails and the last path part is "balanceofpower" in any letter case, the parent is probed
  * instead and its error stands. The messages name the offending file or folder. A path that passes but
  * does not fit resolved fails with "Game-data directory is too long.". */
-int XvtSetup_ResolveInstallation(const char* path, char* resolved, size_t resolved_capacity, char* error,
-								 size_t capacity);
+int XvtSetup_ResolveInstallation(const char *path, char *resolved,
+				 size_t resolved_capacity, char *error,
+				 size_t capacity);
 /* The path Run last mounted, even when Run then failed; empty before any. Static storage. */
-const char* XvtSetup_Installation(void);
+const char *XvtSetup_Installation(void);
 #ifdef __cplusplus
 }
 #endif

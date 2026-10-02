@@ -20,7 +20,7 @@ typedef struct FrontendGlobalState FrontendGlobalState;
 
 struct FrontendGlobalState {
 	FrontImageRleRowBuffer rleRowBuffer;
-	FrontImageResourceRecord* resourceTable;
+	FrontImageResourceRecord *resourceTable;
 	int resourceCount;
 	int mouseX;
 	int mouseY;
@@ -29,8 +29,8 @@ struct FrontendGlobalState {
 	uint8_t cursorVisible;
 	uint8_t cursorDefaultMask[100];
 	uint8_t cursorDefaultSaveBuf[200];
-	uint8_t* cursorMaskPixels;
-	uint8_t* cursorSaveBuf;
+	uint8_t *cursorMaskPixels;
+	uint8_t *cursorSaveBuf;
 	int cursorWidth;
 	int cursorHeight;
 	int cursorPrevDrawWidth;
@@ -78,28 +78,28 @@ struct FrontendGlobalState {
 	uint8_t pixelFormat555;
 	uint8_t offscreenRestoreEnabled;
 	uint8_t secondaryDirectDrawActive;
-	void* hWnd;
+	void *hWnd;
 	int frontendDisplayWndProcMode;
-	IDirectDraw* directDraw;
-	IDirectDrawSurface* offscreenSurface;
-	IDirectDrawSurface* primarySurface;
-	IDirectDrawSurface* backBufferSurface;
+	IDirectDraw *directDraw;
+	IDirectDrawSurface *offscreenSurface;
+	IDirectDrawSurface *primarySurface;
+	IDirectDrawSurface *backBufferSurface;
 	int appActive;
 	uint8_t unknownDisplayState_E42[0x40];
 	int32_t clipMinX;
 	int32_t clipMaxX;
 	int32_t clipMinY;
 	int32_t clipMaxY;
-	void* offscreenBackupBuffer;
+	void *offscreenBackupBuffer;
 	int restoreOffscreenOverlayAfterActivate;
-	IDirectDrawPalette* ddPalette;
+	IDirectDrawPalette *ddPalette;
 	FrontendPaletteEntry displayPalette[256];
 	uint8_t paletteNeedsSet;
 	int textColorCodes[6];
-	IDirectSound* frontendDirectSound;
-	IDirectSoundBuffer* frontendPrimarySoundBuffer;
-	FrontendSoundBufferRecord* frontendSoundBuffers;
-	FrontendSoundVoice* frontendSoundVoices;
+	IDirectSound *frontendDirectSound;
+	IDirectSoundBuffer *frontendPrimarySoundBuffer;
+	FrontendSoundBufferRecord *frontendSoundBuffers;
+	FrontendSoundVoice *frontendSoundVoices;
 	int frontendSoundBufferCount;
 	int frontendActiveVoiceCount;
 	int frontendSoundPlaySerial;
@@ -116,7 +116,7 @@ struct FrontendGlobalState {
 	int cdAudioSavedAuxVolume;
 	CDAudioTrackCache cdAudioTrackCache;
 	BitmapFont fontSlots[10];
-	BitmapFont* fontBySize[256];
+	BitmapFont *fontBySize[256];
 	int textFadeFramesLeft;
 	int textFadeFrameCount;
 	TextFadeColorCache textFadeColorCache;
@@ -128,9 +128,9 @@ struct FrontendGlobalState {
 	FrontendScreenState screenStates[10];
 	int frameIntervalMs;
 	int frameCounter;
-	IDirectPlay* netTempDirectPlay;
-	IDirectPlay2A* netDirectPlay;
-	IDirectPlayLobbyA* netDirectPlayLobby;
+	IDirectPlay *netTempDirectPlay;
+	IDirectPlay2A *netDirectPlay;
+	IDirectPlayLobbyA *netDirectPlayLobby;
 	uint8_t unknownNetState_27ECD[4];
 	GUID netAppGuid;
 	GUID netJoinedSessionGuid;
@@ -159,10 +159,10 @@ struct FrontendGlobalState {
 	NetReliablePeerSlot netRuntimeReliablePeerSlots[40];
 	uint8_t unknownNetState_C2B51[0x238];
 	uint32_t netReliablePeerSlotCount;
-	NetQueuedPacket* netExportRecvQueuePtr;
+	NetQueuedPacket *netExportRecvQueuePtr;
 	int netExportRecvQueueHighWater;
-	unsigned int* uiStringOffsets;
-	char* uiStringData;
+	unsigned int *uiStringOffsets;
+	char *uiStringData;
 	unsigned int uiStringCount;
 	unsigned int uiStringCapacity;
 	char installDriveLetter;
@@ -171,8 +171,9 @@ struct FrontendGlobalState {
 	char baseGameInstallPath[256];
 };
 
-typedef char
-	xvt_size_FrontendGlobalState[(sizeof(void*) != 4 || sizeof(FrontendGlobalState) == 0xC2FA7) ? 1 : -1];
+typedef char xvt_size_FrontendGlobalState
+	[(sizeof(void *) != 4 || sizeof(FrontendGlobalState) == 0xC2FA7) ? 1
+									 : -1];
 
 extern FrontendGlobalState g_frontState;
 

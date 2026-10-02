@@ -19,7 +19,7 @@ enum { XVT_MOVIE_PENDING = -1 };
  * falls back to Flyby1a. Returns -1 once playing; returns 2 without playing for an empty or
  * over-long name, a movie that cannot be found or opened, or while a movie is active, its result
  * untaken, or its player not yet reaped. */
-int XvtMovieTask_Begin(const char* name, int synchronize);
+int XvtMovieTask_Begin(const char *name, int synchronize);
 /* Advances the active movie one host frame and draws it with its subtitles. A key or click skips
  * it, or in a network session goes to the multiplayer skip handler. Completes when playback ends,
  * fails or the frame proves larger than 640x480, or in a network session when every player has
@@ -35,7 +35,7 @@ int XvtMovieTask_IsActive(void);
 /* 1 while a synchronized movie plays. */
 int XvtMovieTask_ContinuesWithoutFocus(void);
 /* Stores the completed movie's result and returns 1, once it has been reaped; otherwise 0. */
-int XvtMovieTask_TakeResult(int* result);
+int XvtMovieTask_TakeResult(int *result);
 /* Stops the active movie's playback; it counts as finished. A synchronized movie then waits for
  * the other players. */
 void XvtMovieTask_Stop(void);

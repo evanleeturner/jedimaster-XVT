@@ -10,12 +10,15 @@
 #include <string.h>
 
 #ifndef XVT_MODERN
-__declspec(dllimport) int __stdcall RegCreateKeyA(uintptr_t key, const char* subKey, void** result);
-__declspec(dllimport) int __stdcall RegOpenKeyExA(uintptr_t key, const char* subKey, unsigned int options,
-												  unsigned int access, void** result);
-__declspec(dllimport) int __stdcall RegQueryValueExA(void* key, const char* valueName, unsigned int* reserved,
-													 unsigned int* type, void* data, unsigned int* dataSize);
-__declspec(dllimport) int __stdcall RegCloseKey(void* key);
+__declspec(dllimport) int __stdcall
+RegCreateKeyA(uintptr_t key, const char *subKey, void **result);
+__declspec(dllimport) int __stdcall
+RegOpenKeyExA(uintptr_t key, const char *subKey, unsigned int options,
+	      unsigned int access, void **result);
+__declspec(dllimport) int __stdcall
+RegQueryValueExA(void *key, const char *valueName, unsigned int *reserved,
+		 unsigned int *type, void *data, unsigned int *dataSize);
+__declspec(dllimport) int __stdcall RegCloseKey(void *key);
 #endif
 
 #ifndef XVT_MODERN
@@ -26,12 +29,13 @@ static int16_t g_openFileCount;
 const char g_fileModeReadBinary[3] = "rb";
 
 // FUNCTION: XVT 0x4CC4A0
-XvtFile* File_Open(const char* fileName, const char* mode) {
+XvtFile *File_Open(const char *fileName, const char *mode)
+{
 #ifdef XVT_MODERN
 	return XvtStorage_Open(fileName, mode);
 #else
 
-	XvtFile* stream;
+	XvtFile *stream;
 	char path[256];
 
 	stream = File_RawOpen(fileName, mode);
@@ -43,12 +47,16 @@ XvtFile* File_Open(const char* fileName, const char* mode) {
 		File_ChangeToInstallPath();
 		if (stream != NULL) {
 			++g_openFileCount;
-		} else if (*mode != 'w' && *mode != 'a' && g_frontState.cdDriveLetter != 0) {
+		} else if (*mode != 'w' && *mode != 'a' &&
+			   g_frontState.cdDriveLetter != 0) {
 			CDAudio_SuspendPlayback();
-			sprintf(path, "%c:\\BalanceOfPower\\%s", (uint8_t)g_frontState.cdDriveLetter, fileName);
+			sprintf(path, "%c:\\BalanceOfPower\\%s",
+				(uint8_t)g_frontState.cdDriveLetter, fileName);
 			stream = File_RawOpen(path, mode);
 			if (stream == NULL) {
-				sprintf(path, "%c\\%s", (uint8_t)g_frontState.cdDriveLetter, fileName);
+				sprintf(path, "%c\\%s",
+					(uint8_t)g_frontState.cdDriveLetter,
+					fileName);
 				stream = File_RawOpen(path, mode);
 			}
 			if (stream != NULL) {
@@ -63,7 +71,8 @@ XvtFile* File_Open(const char* fileName, const char* mode) {
 }
 
 // FUNCTION: XVT 0x4CC590
-int16_t File_Close(XvtFile* stream) {
+int16_t File_Close(XvtFile *stream)
+{
 #ifdef XVT_MODERN
 	return (int16_t)XvtFile_Close(stream);
 #else
@@ -80,10 +89,14 @@ int16_t File_Close(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x4CC5C0
-int File_Seek(XvtFile* stream, int offset, int16_t origin) { return File_RawSeek(stream, offset, origin); }
+int File_Seek(XvtFile *stream, int offset, int16_t origin)
+{
+	return File_RawSeek(stream, offset, origin);
+}
 
 // FUNCTION: XVT 0x4CC5E0
-int File_Tell(XvtFile* stream) {
+int File_Tell(XvtFile *stream)
+{
 #ifdef XVT_MODERN
 	int64_t value = AeronVfs_Tell(stream);
 	return value < 0 || value > INT_MAX ? -1 : (int)value;
@@ -93,7 +106,8 @@ int File_Tell(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x4CC5F0
-int File_GetSize(XvtFile* stream) {
+int File_GetSize(XvtFile *stream)
+{
 #ifdef XVT_MODERN
 	int64_t value = AeronVfs_GetSize(stream);
 	return value < 0 || value > INT_MAX ? -1 : (int)value;
@@ -112,58 +126,70 @@ int File_GetSize(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x4CC630
-int16_t File_ReadByte(XvtFile* stream, uint8_t* value) {
+int16_t File_ReadByte(XvtFile *stream, uint8_t *value)
+{
 	return !((int16_t)(File_RawRead(value, 1, 1, stream) != 1));
 }
 
 // FUNCTION: XVT 0x4CC660
-int16_t File_ReadWord(XvtFile* stream, uint16_t* value) {
+int16_t File_ReadWord(XvtFile *stream, uint16_t *value)
+{
 	return !((int16_t)(File_RawRead(value, 1, 2, stream) != 2));
 }
 
 // FUNCTION: XVT 0x4CC690
-int16_t File_ReadDword(XvtFile* stream, unsigned int* value) {
+int16_t File_ReadDword(XvtFile *stream, unsigned int *value)
+{
 	return !((int16_t)(File_RawRead(value, 1, 4, stream) != 4));
 }
 
 // FUNCTION: XVT 0x4CC6C0
-int16_t File_ReadBytes(XvtFile* stream, void* buffer, size_t count) {
+int16_t File_ReadBytes(XvtFile *stream, void *buffer, size_t count)
+{
 	return !((int16_t)(File_RawRead(buffer, 1, count, stream) != count));
 }
 
 // FUNCTION: XVT 0x4CC700
-int16_t File_WriteByte(XvtFile* stream, char value) {
+int16_t File_WriteByte(XvtFile *stream, char value)
+{
 	return !((int16_t)(File_RawWrite(&value, 1, 1, stream) != 1));
 }
 
 // FUNCTION: XVT 0x4CC730
-int16_t File_WriteWord(XvtFile* stream, int value) {
+int16_t File_WriteWord(XvtFile *stream, int value)
+{
 	return !((int16_t)(File_RawWrite(&value, 1, 2, stream) != 2));
 }
 
 // FUNCTION: XVT 0x4CC760
-int16_t File_WriteDword(XvtFile* stream, int value) {
+int16_t File_WriteDword(XvtFile *stream, int value)
+{
 	return !((int16_t)(File_RawWrite(&value, 1, 4, stream) != 4));
 }
 
 // FUNCTION: XVT 0x4CC790
-int16_t File_WriteBytes(XvtFile* stream, const void* buffer, size_t count) {
+int16_t File_WriteBytes(XvtFile *stream, const void *buffer, size_t count)
+{
 	return !((int16_t)(File_RawWrite(buffer, 1, count, stream) != count));
 }
 
 // FUNCTION: XVT 0x4CC930
-int File_CheckRequiredCdMovieAssetsPresent(void) {
+int File_CheckRequiredCdMovieAssetsPresent(void)
+{
 #ifdef XVT_MODERN
 	char path[XVT_PATH_CAPACITY];
-	return XvtStorage_ResolveAsset("wave/PBC/Pb1los07.wav", path, sizeof(path)) == 1 &&
-		   XvtStorage_ResolveAsset("movies/imp1snd.smk", path, sizeof(path)) == 1;
+	return XvtStorage_ResolveAsset("wave/PBC/Pb1los07.wav", path,
+				       sizeof(path)) == 1 &&
+	       XvtStorage_ResolveAsset("movies/imp1snd.smk", path,
+				       sizeof(path)) == 1;
 #else
 
 	char fileName[80];
-	XvtFile* stream;
+	XvtFile *stream;
 
-	if (g_frontState.cdDriveLetter == 0)
+	if (g_frontState.cdDriveLetter == 0) {
 		return 0;
+	}
 	CDAudio_SuspendPlayback();
 	strcpy(fileName, "c:\\wave\\PBC\\Pb1los07.wav");
 	fileName[0] = g_frontState.cdDriveLetter;
@@ -188,48 +214,56 @@ int File_CheckRequiredCdMovieAssetsPresent(void) {
 }
 
 // FUNCTION: XVT 0x4CC9F0
-int File_CheckGameCdPresent(int skipMovieChecks) {
+int File_CheckGameCdPresent(int skipMovieChecks)
+{
 #ifdef XVT_MODERN
 	char path[XVT_PATH_CAPACITY];
 	(void)skipMovieChecks;
-	return XvtStorage_ResolveAsset("wave/PBC/Pb1los07.wav", path, sizeof(path)) == 1 &&
-		   XvtStorage_ResolveAsset("ivfiles/cal.opt", path, sizeof(path)) == 1;
+	return XvtStorage_ResolveAsset("wave/PBC/Pb1los07.wav", path,
+				       sizeof(path)) == 1 &&
+	       XvtStorage_ResolveAsset("ivfiles/cal.opt", path, sizeof(path)) ==
+		       1;
 #else
 
-	XvtFile* stream;
+	XvtFile *stream;
 	char fileName[80];
 
-	if (g_frontState.cdDriveLetter == 0)
+	if (g_frontState.cdDriveLetter == 0) {
 		return 0;
+	}
 	if (!skipMovieChecks) {
 		strcpy(fileName, "c:\\");
 		fileName[0] = g_frontState.cdDriveLetter;
 		strcat(fileName, "\\amovie\\a.wrk");
 		stream = File_RawOpen(fileName, "rb");
-		if (stream == NULL)
+		if (stream == NULL) {
 			return 0;
+		}
 		File_RawClose(stream);
 
 		strcpy(fileName, "b:\\bmovie\\a.wrk");
 		fileName[0] = g_frontState.cdDriveLetter;
 		stream = File_RawOpen(fileName, "rb");
-		if (stream == NULL)
+		if (stream == NULL) {
 			return 0;
+		}
 		File_RawClose(stream);
 	}
 
 	strcpy(fileName, "c:\\wave\\PBC\\Pb1los07.wav");
 	fileName[0] = g_frontState.cdDriveLetter;
 	stream = File_RawOpen(fileName, "rb");
-	if (stream == NULL)
+	if (stream == NULL) {
 		return 0;
+	}
 	File_RawClose(stream);
 
 	strcpy(fileName, "c:\\ivfiles\\cal.opt");
 	fileName[0] = g_frontState.cdDriveLetter;
 	stream = File_RawOpen(fileName, "rb");
-	if (stream == NULL)
+	if (stream == NULL) {
 		return 0;
+	}
 	File_RawClose(stream);
 
 	return 1;
@@ -241,22 +275,27 @@ int File_CheckGameCdPresent(int skipMovieChecks) {
 char File_GetCdDriveLetter(void) { return g_frontState.cdDriveLetter; }
 
 // FUNCTION: XVT 0x4CCBA0
-char File_GetInstallDriveLetter(void) { return g_frontState.installDriveLetter; }
+char File_GetInstallDriveLetter(void)
+{
+	return g_frontState.installDriveLetter;
+}
 
 // FUNCTION: XVT 0x4CCBB0
-const char* File_GetInstallPath(void) { return g_frontState.installPath; }
+const char *File_GetInstallPath(void) { return g_frontState.installPath; }
 
 /* The original's CD drive search is not reconstructed: this ignores relativeCdFilePath and always
  * returns '.', which File_DetectGameAndCdPaths, outside XVT_MODERN, stores as the CD drive letter. */
 // FUNCTION: XVT 0x4CCBC0
-int File_FindCdDriveLetter(const char* relativeCdFilePath) {
+int File_FindCdDriveLetter(const char *relativeCdFilePath)
+{
 	(void)relativeCdFilePath;
 
 	return '.';
 }
 
 // FUNCTION: XVT 0x4CCCC0
-void File_DetectGameAndCdPaths(const char* requiredCdFilePath) {
+void File_DetectGameAndCdPaths(const char *requiredCdFilePath)
+{
 #ifdef XVT_MODERN
 	(void)requiredCdFilePath;
 	g_frontState.cdDriveLetter = 0;
@@ -265,59 +304,77 @@ void File_DetectGameAndCdPaths(const char* requiredCdFilePath) {
 	g_frontState.baseGameInstallPath[0] = 0;
 #else
 
-	void* registryKey;
+	void *registryKey;
 	unsigned int dataSize;
 	char versionSubKey[256];
 	uint8_t installPathFirstCharacter;
 
 	if (requiredCdFilePath != NULL) {
-		g_frontState.cdDriveLetter = File_FindCdDriveLetter(requiredCdFilePath);
+		g_frontState.cdDriveLetter =
+			File_FindCdDriveLetter(requiredCdFilePath);
 	}
 
-	sprintf(versionSubKey, "SOFTWARE\\LucasArts Entertainment Company\\X-Wing vs. TIE Fighter\\%d.%d", 2, 0);
+	sprintf(versionSubKey,
+		"SOFTWARE\\LucasArts Entertainment Company\\X-Wing vs. TIE Fighter\\%d.%d",
+		2, 0);
 	RegCreateKeyA(0x80000002u, versionSubKey, &registryKey);
 	RegCloseKey(registryKey);
-	if (RegOpenKeyExA(0x80000002u, "SOFTWARE\\LucasArts Entertainment Company\\X-Wing vs. TIE Fighter\\2.0",
-					  0, 0x20019u, &registryKey) != 0) {
+	if (RegOpenKeyExA(
+		    0x80000002u,
+		    "SOFTWARE\\LucasArts Entertainment Company\\X-Wing vs. TIE Fighter\\2.0",
+		    0, 0x20019u, &registryKey) != 0) {
 		g_frontState.installDriveLetter = _getdrive() + 'a' - 1;
-		_getcwd(g_frontState.installPath, sizeof(g_frontState.installPath));
+		_getcwd(g_frontState.installPath,
+			sizeof(g_frontState.installPath));
 		_chdir("..");
-		_getcwd(g_frontState.baseGameInstallPath, sizeof(g_frontState.baseGameInstallPath));
+		_getcwd(g_frontState.baseGameInstallPath,
+			sizeof(g_frontState.baseGameInstallPath));
 		_chdir(g_frontState.installPath);
 		return;
 	}
 
 	dataSize = sizeof(g_frontState.installPath);
-	if (RegQueryValueExA(registryKey, "Install Path", NULL, NULL, g_frontState.installPath, &dataSize) != 0) {
+	if (RegQueryValueExA(registryKey, "Install Path", NULL, NULL,
+			     g_frontState.installPath, &dataSize) != 0) {
 		g_frontState.installDriveLetter = _getdrive() + 'a' - 1;
-		_getcwd(g_frontState.installPath, sizeof(g_frontState.installPath));
+		_getcwd(g_frontState.installPath,
+			sizeof(g_frontState.installPath));
 		_chdir("..");
-		_getcwd(g_frontState.baseGameInstallPath, sizeof(g_frontState.baseGameInstallPath));
+		_getcwd(g_frontState.baseGameInstallPath,
+			sizeof(g_frontState.baseGameInstallPath));
 		_chdir(g_frontState.installPath);
 		RegCloseKey(registryKey);
 		return;
 	}
 
 	installPathFirstCharacter = g_frontState.installPath[0];
-	if (g_frontState.installPath[strlen(g_frontState.installPath) - 1] == '\\') {
-		g_frontState.installPath[strlen(g_frontState.installPath) - 1] = '\0';
+	if (g_frontState.installPath[strlen(g_frontState.installPath) - 1] ==
+	    '\\') {
+		g_frontState.installPath[strlen(g_frontState.installPath) - 1] =
+			'\0';
 	}
-	g_frontState.installDriveLetter = (char)tolower(installPathFirstCharacter);
+	g_frontState.installDriveLetter =
+		(char)tolower(installPathFirstCharacter);
 	RegCloseKey(registryKey);
 	_chdir(g_frontState.installPath);
-	if (RegOpenKeyExA(0x80000002u, "SOFTWARE\\LucasArts Entertainment Company\\X-Wing vs. TIE Fighter\\1.0",
-					  0, 0x20019u, &registryKey) != 0) {
+	if (RegOpenKeyExA(
+		    0x80000002u,
+		    "SOFTWARE\\LucasArts Entertainment Company\\X-Wing vs. TIE Fighter\\1.0",
+		    0, 0x20019u, &registryKey) != 0) {
 		_chdir("..");
-		_getcwd(g_frontState.baseGameInstallPath, sizeof(g_frontState.baseGameInstallPath));
+		_getcwd(g_frontState.baseGameInstallPath,
+			sizeof(g_frontState.baseGameInstallPath));
 		_chdir(g_frontState.installPath);
 		return;
 	}
 
 	dataSize = sizeof(g_frontState.baseGameInstallPath);
-	if (RegQueryValueExA(registryKey, "Install Path", NULL, NULL, g_frontState.baseGameInstallPath,
-						 &dataSize) != 0) {
+	if (RegQueryValueExA(registryKey, "Install Path", NULL, NULL,
+			     g_frontState.baseGameInstallPath,
+			     &dataSize) != 0) {
 		_chdir("..");
-		_getcwd(g_frontState.baseGameInstallPath, sizeof(g_frontState.baseGameInstallPath));
+		_getcwd(g_frontState.baseGameInstallPath,
+			sizeof(g_frontState.baseGameInstallPath));
 		_chdir(g_frontState.installPath);
 		RegCloseKey(registryKey);
 		return;
@@ -328,10 +385,14 @@ void File_DetectGameAndCdPaths(const char* requiredCdFilePath) {
 }
 
 // FUNCTION: XVT 0x4CCF40
-const char* File_GetBaseGameInstallPath(void) { return g_frontState.baseGameInstallPath; }
+const char *File_GetBaseGameInstallPath(void)
+{
+	return g_frontState.baseGameInstallPath;
+}
 
 // FUNCTION: XVT 0x4CCF50
-int File_ChangeToBaseGameInstallPath(void) {
+int File_ChangeToBaseGameInstallPath(void)
+{
 #ifndef XVT_MODERN
 	_chdir(g_frontState.baseGameInstallPath);
 #endif
@@ -339,7 +400,8 @@ int File_ChangeToBaseGameInstallPath(void) {
 }
 
 // FUNCTION: XVT 0x4CCF70
-int File_ChangeToInstallPath(void) {
+int File_ChangeToInstallPath(void)
+{
 #ifndef XVT_MODERN
 	_chdir(g_frontState.installPath);
 #endif

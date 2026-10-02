@@ -195,7 +195,9 @@ struct InputFrame {
 	FlightInputFrameRecord input;
 };
 #ifdef XVT_MODERN
-typedef char XvtFlightInputRecordSize[(sizeof(FlightInputFrameRecord) == 8) ? 1 : -1];
+typedef char XvtFlightInputRecordSize[(sizeof(FlightInputFrameRecord) == 8)
+					      ? 1
+					      : -1];
 #endif
 
 extern int16_t g_scaledInputYaw;

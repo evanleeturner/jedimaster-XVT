@@ -26,38 +26,40 @@ uint16_t g_messageLogWrapped = 0;
 // GLOBAL: XVT 0xA07BE0
 uint16_t g_msgArgTable[4];
 // GLOBAL: XVT 0x9EC4D0
-char g_flightSecondaryObjectNameBuffer[256] = { 0 };
+char g_flightSecondaryObjectNameBuffer[256] = {0};
 // GLOBAL: XVT 0xA08120
-static const void* g_msgPtrs[4];
+static const void *g_msgPtrs[4];
 // GLOBAL: XVT 0x9993FC
-HudInFlightMessageRecord* g_messageLogRecords = NULL;
+HudInFlightMessageRecord *g_messageLogRecords = NULL;
 // GLOBAL: XVT 0xA08292
 uint16_t g_msgSenderIff = 0;
 // GLOBAL: XVT 0x5240B8
-const uint8_t g_targetDescDesignationUsesRelationText[24] = { 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1,
-															  1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0 };
+const uint8_t g_targetDescDesignationUsesRelationText[24] = {
+	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0};
 // GLOBAL: XVT 0x9D7684
 uint16_t g_pendingHudMessageVoiceSfxId = 0;
 // GLOBAL: XVT 0x9A1840
-const char* g_strInFlightMessages[417] = { 0 };
+const char *g_strInFlightMessages[417] = {0};
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x450550
-void msg_writeMessageLogFile(void) {
+void msg_writeMessageLogFile(void)
+{
 	char fileName[16];
 	int logIndex;
-	XvtFile* stream;
+	XvtFile *stream;
 	int messageIndex;
 	int recordOffset;
-	HudInFlightMessageRecord* record;
+	HudInFlightMessageRecord *record;
 	int prefix;
-	char* text;
+	char *text;
 
 	logIndex = 0;
 	do {
 		sprintf(fileName, "msglog%ld.txt", (long)logIndex);
 #ifdef XVT_MODERN
-		stream = XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, fileName, "r");
+		stream =
+			XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, fileName, "r");
 #else
 		stream = File_RawOpen(fileName, "r");
 #endif
@@ -66,8 +68,9 @@ void msg_writeMessageLogFile(void) {
 			break;
 		}
 		if (logIndex == 99) {
-			if (stream != NULL)
+			if (stream != NULL) {
 				File_RawClose(stream);
+			}
 			stream = File_RawOpen(fileName, "a");
 			break;
 		}
@@ -79,29 +82,39 @@ void msg_writeMessageLogFile(void) {
 		if (g_messageLogWriteIndex > (uint16_t)messageIndex) {
 			recordOffset = 0;
 			do {
-				record = (HudInFlightMessageRecord*)((uint8_t*)g_messageLogRecords + recordOffset);
+				record =
+					(HudInFlightMessageRecord
+						 *)((uint8_t *)
+							    g_messageLogRecords +
+						    recordOffset);
 				prefix = record->text[0];
 				text = record->text;
 				if (prefix < 9) {
 					++text;
-					if (prefix == 1 && *text >= '0' && *text <= '3')
+					if (prefix == 1 && *text >= '0' &&
+					    *text <= '3') {
 						++text;
+					}
 				}
 				recordOffset += sizeof(*record);
 				++messageIndex;
-				File_Printf(stream, "%s\t%ld:%ld:%ld\n", text, (long)record->clockHour,
-							(long)record->clockMinute, (long)record->clockSecond);
-			} while ((uint16_t)g_messageLogWriteIndex > messageIndex);
+				File_Printf(stream, "%s\t%ld:%ld:%ld\n", text,
+					    (long)record->clockHour,
+					    (long)record->clockMinute,
+					    (long)record->clockSecond);
+			} while ((uint16_t)g_messageLogWriteIndex >
+				 messageIndex);
 		}
 		File_RawClose(stream);
 	}
 }
 
 // FUNCTION: XVT 0x450650
-void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
+void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx)
+{
 	HudInFlightMessageRecord message;
-	const uint8_t* templateCursor;
-	const char* argumentText;
+	const uint8_t *templateCursor;
+	const char *argumentText;
 	uint16_t textLength;
 	uint16_t argumentIndex;
 	uint16_t argumentValue;
@@ -115,18 +128,21 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
 	uint8_t newQueueCount;
 	int digitStarted;
 
-	if (g_flightSimSideEffectsSuppressed != 0 || playerIdx != g_localPlayer) {
+	if (g_flightSimSideEffectsSuppressed != 0 ||
+	    playerIdx != g_localPlayer) {
 		return;
 	}
 
 	message.stateOrMessageId = (uint16_t)messageId;
 	if (g_flightMissionState.missionTimeLimitMinutes != 0) {
-		message.clockSubsecondTicks = (uint16_t)g_missionCountdownClock.subsecondTicks;
+		message.clockSubsecondTicks =
+			(uint16_t)g_missionCountdownClock.subsecondTicks;
 		message.clockSecond = g_missionCountdownClock.seconds;
 		message.clockMinute = g_missionCountdownClock.minutes;
 		message.clockHour = g_missionCountdownClock.hours;
 	} else {
-		message.clockSubsecondTicks = (uint16_t)g_missionElapsedClock.subsecondTicks;
+		message.clockSubsecondTicks =
+			(uint16_t)g_missionElapsedClock.subsecondTicks;
 		message.clockSecond = g_missionElapsedClock.seconds;
 		message.clockMinute = g_missionElapsedClock.minutes;
 		message.clockHour = g_missionElapsedClock.hours;
@@ -134,7 +150,8 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
 	message.ageSeconds = 0;
 	message.showCount = 0;
 	message.senderIff = g_msgSenderIff;
-	if (messageId == IFMSG_207_CODE_01_ARGUMENT || messageId == IFMSG_196_CODE_02_ARGUMENT) {
+	if (messageId == IFMSG_207_CODE_01_ARGUMENT ||
+	    messageId == IFMSG_196_CODE_02_ARGUMENT) {
 		message.voiceSfxId = g_pendingHudMessageVoiceSfxId;
 	} else {
 		message.voiceSfxId = 0;
@@ -142,12 +159,14 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
 
 	textLength = 0;
 	argumentIndex = 0;
-	templateCursor = (const uint8_t*)g_strInFlightMessages[messageId];
+	templateCursor = (const uint8_t *)g_strInFlightMessages[messageId];
 	paneType = *templateCursor;
 #ifdef XVT_MODERN
 	if (messageId == IFMSG_001_MISSION_PAUSED_PRESS_ANY_KEY_TO_CONTINUE) {
 		message.text[textLength++] = (char)paneType;
-		templateCursor = (const uint8_t*)"Mission paused. Press your pause key or button to continue.";
+		templateCursor =
+			(const uint8_t
+				 *)"Mission paused. Press your pause key or button to continue.";
 	}
 #endif
 	while (*templateCursor != '\0' && textLength < sizeof(message.text)) {
@@ -155,11 +174,14 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
 			++templateCursor;
 			argumentValue = g_msgArgTable[argumentIndex++];
 			if (argumentValue < 0x8000) {
-				argumentText = g_strInFlightMessages[argumentValue];
+				argumentText =
+					g_strInFlightMessages[argumentValue];
 			} else {
-				argumentText = (const char*)g_msgPtrs[argumentValue & 0x7FFF];
+				argumentText = (const char *)
+					g_msgPtrs[argumentValue & 0x7FFF];
 			}
-			while (*argumentText != '\0' && textLength < sizeof(message.text)) {
+			while (*argumentText != '\0' &&
+			       textLength < sizeof(message.text)) {
 				message.text[textLength++] = *argumentText++;
 			}
 		} else if (*templateCursor == '&') {
@@ -167,11 +189,14 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
 			templateCursor += 2;
 			digitStarted = 0;
 			remainder = g_msgArgTable[argumentIndex++];
-			while (digitCount != 0 && textLength < sizeof(message.text)) {
-				divisor = g_flightTextDecimalDivisors[digitCount];
+			while (digitCount != 0 &&
+			       textLength < sizeof(message.text)) {
+				divisor =
+					g_flightTextDecimalDivisors[digitCount];
 				digitValue = remainder / divisor;
 				remainder %= divisor;
-				if (digitStarted != 0 || digitCount <= 1 || digitValue != 0) {
+				if (digitStarted != 0 || digitCount <= 1 ||
+				    digitValue != 0) {
 					digitStarted = 1;
 					if (digitValue > 9) {
 						digitValue = 9;
@@ -181,7 +206,8 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
 					outputChar = ' ';
 				}
 				if (outputChar != ' ') {
-					message.text[textLength++] = (char)outputChar;
+					message.text[textLength++] =
+						(char)outputChar;
 				}
 				--digitCount;
 			}
@@ -197,7 +223,8 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
 
 	message.paneType = paneType < 9 ? paneType : 6;
 	normalizedPaneType = message.paneType;
-	if (g_replayViewMode == 0 && (normalizedPaneType == 2 || normalizedPaneType == 1)) {
+	if (g_replayViewMode == 0 &&
+	    (normalizedPaneType == 2 || normalizedPaneType == 1)) {
 		++g_messageLogTotalCount;
 		if (++g_messageLogWriteIndex == 300) {
 			if (g_radioMessageBackupEnabled != 0) {
@@ -206,16 +233,21 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
 			g_messageLogWriteIndex = 0;
 			g_messageLogWrapped = 1;
 		}
-		g_messageLogRecords = (HudInFlightMessageRecord*)Memory_LockHandle(g_messageLogHandle);
+		g_messageLogRecords =
+			(HudInFlightMessageRecord *)Memory_LockHandle(
+				g_messageLogHandle);
 		Memory_UnlockHandle(g_messageLogHandle);
 		g_messageLogRecords[g_messageLogWriteIndex] = message;
 	}
 
-	if (normalizedPaneType == 3 || normalizedPaneType == 4 || normalizedPaneType == 7) {
+	if (normalizedPaneType == 3 || normalizedPaneType == 4 ||
+	    normalizedPaneType == 7) {
 		if ((g_systemMessageDisplayEnabled != 0 ||
-			 messageId == IFMSG_400_SYSTEM_MESSAGE_DISPLAYING_TURNED_OFF) &&
-			(g_systemMessagePane.stateOrMessageId == UINT16_MAX || g_systemMessagePane.paneType != 4 ||
-			 normalizedPaneType == 7)) {
+		     messageId ==
+			     IFMSG_400_SYSTEM_MESSAGE_DISPLAYING_TURNED_OFF) &&
+		    (g_systemMessagePane.stateOrMessageId == UINT16_MAX ||
+		     g_systemMessagePane.paneType != 4 ||
+		     normalizedPaneType == 7)) {
 			g_systemMessagePane = message;
 			Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
 		}
@@ -233,71 +265,74 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
 	}
 
 	switch (g_readyMessagePaneQueue[0].paneType) {
-		case 1:
-			if (normalizedPaneType != 2 && normalizedPaneType != 1) {
-				Hud_ShiftReadyMessageQueueForReplacement();
-				g_readyMessagePaneQueue[0] = message;
-				Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
-				break;
-			}
-			g_readyMessagePaneQueue[g_readyMessageQueueCount + 1] = message;
+	case 1:
+		if (normalizedPaneType != 2 && normalizedPaneType != 1) {
+			Hud_ShiftReadyMessageQueueForReplacement();
+			g_readyMessagePaneQueue[0] = message;
+			Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+			break;
+		}
+		g_readyMessagePaneQueue[g_readyMessageQueueCount + 1] = message;
+		newQueueCount = g_readyMessageQueueCount + 1;
+		g_readyMessageQueueCount = newQueueCount;
+		if (newQueueCount >= 10) {
+			g_readyMessageQueueCount = newQueueCount - 1;
+		}
+		break;
+
+	case 2:
+	case 5:
+		if (normalizedPaneType == 2) {
+			g_readyMessagePaneQueue[g_readyMessageQueueCount + 1] =
+				message;
 			newQueueCount = g_readyMessageQueueCount + 1;
 			g_readyMessageQueueCount = newQueueCount;
 			if (newQueueCount >= 10) {
 				g_readyMessageQueueCount = newQueueCount - 1;
 			}
-			break;
-
-		case 2:
-		case 5:
-			if (normalizedPaneType == 2) {
-				g_readyMessagePaneQueue[g_readyMessageQueueCount + 1] = message;
-				newQueueCount = g_readyMessageQueueCount + 1;
-				g_readyMessageQueueCount = newQueueCount;
-				if (newQueueCount >= 10) {
-					g_readyMessageQueueCount = newQueueCount - 1;
-				}
-			} else {
-				Hud_ShiftReadyMessageQueueForReplacement();
-				g_readyMessagePaneQueue[0] = message;
-				Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
-			}
-			break;
-
-		case 3:
-		case 6:
-		case 7:
-		case 8:
+		} else {
+			Hud_ShiftReadyMessageQueueForReplacement();
 			g_readyMessagePaneQueue[0] = message;
 			Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
-			break;
+		}
+		break;
 
-		case 4:
-			if (normalizedPaneType == 2 || normalizedPaneType == 1) {
-				g_readyMessagePaneQueue[g_readyMessageQueueCount + 1] = message;
-				newQueueCount = g_readyMessageQueueCount + 1;
-				g_readyMessageQueueCount = newQueueCount;
-				if (newQueueCount >= 10) {
-					g_readyMessageQueueCount = newQueueCount - 1;
-				}
-			} else {
-				g_readyMessagePaneQueue[0] = message;
-				Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+	case 3:
+	case 6:
+	case 7:
+	case 8:
+		g_readyMessagePaneQueue[0] = message;
+		Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+		break;
+
+	case 4:
+		if (normalizedPaneType == 2 || normalizedPaneType == 1) {
+			g_readyMessagePaneQueue[g_readyMessageQueueCount + 1] =
+				message;
+			newQueueCount = g_readyMessageQueueCount + 1;
+			g_readyMessageQueueCount = newQueueCount;
+			if (newQueueCount >= 10) {
+				g_readyMessageQueueCount = newQueueCount - 1;
 			}
-			break;
+		} else {
+			g_readyMessagePaneQueue[0] = message;
+			Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+		}
+		break;
 
-		default:
-			break;
+	default:
+		break;
 	}
 }
 
 // FUNCTION: XVT 0x451940
-void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex) {
+void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex)
+{
 	int flightGroupIdx;
 	uint16_t objectIndex;
-	ObjectRecord* object;
-	CraftData* craft;
-	ObjectRecord* localPlayerObject;
+	ObjectRecord *object;
+	CraftData *craft;
+	ObjectRecord *localPlayerObject;
 	uint16_t rangeKm;
 	uint8_t iff;
 	uint16_t numberOfCraft;
@@ -305,15 +340,19 @@ void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex) {
 
 	flightGroupIdx = flightGroupIndex;
 	if (g_missionFlightGroups[flightGroupIdx].fg.arrivalMethod == 0) {
-		Mission_ResolveObjectOrMissionPointWorldLoc(0x8000, flightGroupIndex);
+		Mission_ResolveObjectOrMissionPointWorldLoc(0x8000,
+							    flightGroupIndex);
 	} else {
 		objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 		while (objectIndex < g_activeRegionCraftObjectSlotEnd) {
 			object = &g_objectTable[objectIndex];
 			if (object->objectType != 0) {
 				craft = object->mobj->pCraft;
-				if (object->flightGroupIdx == flightGroupIndex && craft->leader_obj_idx == UINT8_MAX) {
-					Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, flightGroupIndex);
+				if (object->flightGroupIdx ==
+					    flightGroupIndex &&
+				    craft->leader_obj_idx == UINT8_MAX) {
+					Mission_ResolveObjectOrMissionPointWorldLoc(
+						objectIndex, flightGroupIndex);
 					break;
 				}
 			}
@@ -322,13 +361,19 @@ void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex) {
 	}
 
 	if (g_players[g_localPlayer].mapCameraState == 0) {
-		localPlayerObject = &g_objectTable[g_players[g_localPlayer].objectIndex];
-		trig2_ctop(g_worldLocX - localPlayerObject->world_x, g_worldLocY - localPlayerObject->world_y,
-				   g_worldLocZ - localPlayerObject->world_z);
+		localPlayerObject =
+			&g_objectTable[g_players[g_localPlayer].objectIndex];
+		trig2_ctop(g_worldLocX - localPlayerObject->world_x,
+			   g_worldLocY - localPlayerObject->world_y,
+			   g_worldLocZ - localPlayerObject->world_z);
 	} else {
-		trig2_ctop(g_worldLocX - g_players[g_localPlayer].viewState.cameraWorldX,
-				   g_worldLocY - g_players[g_localPlayer].viewState.cameraWorldY,
-				   g_worldLocZ - g_players[g_localPlayer].viewState.cameraWorldZ);
+		trig2_ctop(
+			g_worldLocX -
+				g_players[g_localPlayer].viewState.cameraWorldX,
+			g_worldLocY -
+				g_players[g_localPlayer].viewState.cameraWorldY,
+			g_worldLocZ - g_players[g_localPlayer]
+					      .viewState.cameraWorldZ);
 	}
 	trig2_polardistance *= 161;
 	distanceHundredths = (trig2_polardistance >> 16) & 0xFFFF;
@@ -344,32 +389,43 @@ void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex) {
 		msg_addMessagePtr(1, g_modelDefs[modelIndex].nameLong);
 		g_msgArgTable[2] = rangeKm;
 		if (numberOfCraft == 1) {
-			msg_emitInFlightMessage(IFMSG_114_NEW_CRAFT_ALERT_ARG_ARG_AT_ARG_KM, g_localPlayer);
+			msg_emitInFlightMessage(
+				IFMSG_114_NEW_CRAFT_ALERT_ARG_ARG_AT_ARG_KM,
+				g_localPlayer);
 		} else {
-			msg_emitInFlightMessage(IFMSG_115_NEW_CRAFT_ALERT_ARG_ARG_S_AT_ARG_KM, g_localPlayer);
+			msg_emitInFlightMessage(
+				IFMSG_115_NEW_CRAFT_ALERT_ARG_ARG_S_AT_ARG_KM,
+				g_localPlayer);
 		}
 	} else if (numberOfCraft == 1) {
 		msg_addMessagePtr(0, g_modelDefs[modelIndex].nameLong);
 		msg_addMessagePtr(1, &g_missionFlightGroups[flightGroupIdx]);
 		g_msgArgTable[2] = rangeKm;
-		msg_emitInFlightMessage(IFMSG_235_ARG_ARG_ENTERING_AREA_AT_ARG_KM, g_localPlayer);
+		msg_emitInFlightMessage(
+			IFMSG_235_ARG_ARG_ENTERING_AREA_AT_ARG_KM,
+			g_localPlayer);
 	} else {
 		msg_addMessagePtr(1, g_modelDefs[modelIndex].nameLong);
 		msg_addMessagePtr(2, &g_missionFlightGroups[flightGroupIdx]);
 		g_msgArgTable[3] = rangeKm;
-		msg_emitInFlightMessage(IFMSG_236_ARG_ARG_S_FROM_FG_ARG_ENTERING_AREA_AT_ARG_KM, g_localPlayer);
+		msg_emitInFlightMessage(
+			IFMSG_236_ARG_ARG_S_FROM_FG_ARG_ENTERING_AREA_AT_ARG_KM,
+			g_localPlayer);
 	}
 }
 
 // FUNCTION: XVT 0x451BF0
-void msg_addMessagePtr(uint16_t slot, const void* value) {
+void msg_addMessagePtr(uint16_t slot, const void *value)
+{
 	g_msgArgTable[slot] = slot + 0x8000;
 	g_msgPtrs[slot] = value;
 }
 
 // FUNCTION: XVT 0x451C20
-void msg_emitCraftMessage(uint16_t objIdx, CraftData* craft, int16_t msgTemplateId) {
-	ObjectRecord* object;
+void msg_emitCraftMessage(uint16_t objIdx, CraftData *craft,
+			  int16_t msgTemplateId)
+{
+	ObjectRecord *object;
 	int flightGroupIdx;
 	uint16_t craftNumber;
 
@@ -378,51 +434,66 @@ void msg_emitCraftMessage(uint16_t objIdx, CraftData* craft, int16_t msgTemplate
 	g_msgSenderIff = (uint8_t)object->mobj->iff;
 	msg_addMessagePtr(0, &g_modelDefs[craft->modelIndex]);
 	msg_addMessagePtr(1, &g_missionFlightGroups[flightGroupIdx]);
-	craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(flightGroupIdx, craft);
+	craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
+		flightGroupIdx, craft);
 	if (craftNumber != 0) {
 		g_msgArgTable[2] = craftNumber;
 		g_msgArgTable[3] = (uint16_t)msgTemplateId;
-		msg_emitInFlightMessage(IFMSG_133_CRAFT_EVENT_WITH_NUMBER, g_localPlayer);
+		msg_emitInFlightMessage(IFMSG_133_CRAFT_EVENT_WITH_NUMBER,
+					g_localPlayer);
 	} else {
 		g_msgArgTable[2] = (uint16_t)msgTemplateId;
-		msg_emitInFlightMessage(IFMSG_134_CRAFT_EVENT_WITHOUT_NUMBER, g_localPlayer);
+		msg_emitInFlightMessage(IFMSG_134_CRAFT_EVENT_WITHOUT_NUMBER,
+					g_localPlayer);
 	}
 }
 
 // FUNCTION: XVT 0x451D00
-void msg_radioMessage(uint16_t senderObjIdx, uint8_t* senderCraft, uint16_t commandId, uint16_t responseIndex,
-					  int16_t multipleRecipients) {
+void msg_radioMessage(uint16_t senderObjIdx, uint8_t *senderCraft,
+		      uint16_t commandId, uint16_t responseIndex,
+		      int16_t multipleRecipients)
+{
 	int flightGroupIdx;
 	uint16_t craftNumber;
 
 	flightGroupIdx = g_objectTable[senderObjIdx].flightGroupIdx;
 	g_msgSenderIff = g_missionFlightGroups[flightGroupIdx].fg.iff;
 	if (g_players[g_localPlayer].iff != g_msgSenderIff ||
-		g_missionFlightGroups[flightGroupIdx].fg.team != g_players[g_localPlayer].team) {
+	    g_missionFlightGroups[flightGroupIdx].fg.team !=
+		    g_players[g_localPlayer].team) {
 		return;
 	}
 	if (multipleRecipients != 0) {
 		msg_addMessagePtr(0, &g_missionFlightGroups[flightGroupIdx]);
 		g_msgArgTable[1] = commandId;
-		msg_emitInFlightMessage(IFMSG_269_MESSAGE_ACKNOWLEDGED_FLIGHT_GROUP_ARG_ARG, g_localPlayer);
+		msg_emitInFlightMessage(
+			IFMSG_269_MESSAGE_ACKNOWLEDGED_FLIGHT_GROUP_ARG_ARG,
+			g_localPlayer);
 	} else {
 		msg_addMessagePtr(0, &g_modelDefs[senderCraft[4]]);
 		msg_addMessagePtr(1, &g_missionFlightGroups[flightGroupIdx]);
-		craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(flightGroupIdx, (CraftData*)senderCraft);
+		craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
+			flightGroupIdx, (CraftData *)senderCraft);
 		if (craftNumber != 0) {
 			g_msgArgTable[2] = craftNumber;
 			g_msgArgTable[3] = commandId;
-			msg_emitInFlightMessage(IFMSG_147_ROGER_CRAFT_WITH_NUMBER, g_localPlayer);
+			msg_emitInFlightMessage(
+				IFMSG_147_ROGER_CRAFT_WITH_NUMBER,
+				g_localPlayer);
 		} else {
 			g_msgArgTable[2] = commandId;
-			msg_emitInFlightMessage(IFMSG_148_ROGER_CRAFT_WITHOUT_NUMBER, g_localPlayer);
+			msg_emitInFlightMessage(
+				IFMSG_148_ROGER_CRAFT_WITHOUT_NUMBER,
+				g_localPlayer);
 		}
 	}
-	fsfx_SpeakWingmanEvent(g_localPlayer, senderObjIdx, 1, responseIndex, senderObjIdx, UINT16_MAX);
+	fsfx_SpeakWingmanEvent(g_localPlayer, senderObjIdx, 1, responseIndex,
+			       senderObjIdx, UINT16_MAX);
 }
 
 // FUNCTION: XVT 0x451E70
-void msg_reportmessage(uint16_t objIdx, CraftData* craft, int16_t msgTemplateId) {
+void msg_reportmessage(uint16_t objIdx, CraftData *craft, int16_t msgTemplateId)
+{
 	int flightGroupIdx;
 	uint16_t craftNumber;
 
@@ -430,23 +501,27 @@ void msg_reportmessage(uint16_t objIdx, CraftData* craft, int16_t msgTemplateId)
 	g_msgSenderIff = g_missionFlightGroups[flightGroupIdx].fg.iff;
 	msg_addMessagePtr(0, &g_modelDefs[craft->modelIndex]);
 	msg_addMessagePtr(1, &g_missionFlightGroups[flightGroupIdx]);
-	craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(flightGroupIdx, craft);
+	craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
+		flightGroupIdx, craft);
 	if (craftNumber != 0) {
 		g_msgArgTable[2] = craftNumber;
 		g_msgArgTable[3] = (uint16_t)msgTemplateId;
-		msg_emitInFlightMessage(IFMSG_157_CRAFT_REPORT_WITH_NUMBER, g_localPlayer);
+		msg_emitInFlightMessage(IFMSG_157_CRAFT_REPORT_WITH_NUMBER,
+					g_localPlayer);
 	} else {
 		g_msgArgTable[2] = (uint16_t)msgTemplateId;
-		msg_emitInFlightMessage(IFMSG_158_CRAFT_REPORT_WITHOUT_NUMBER, g_localPlayer);
+		msg_emitInFlightMessage(IFMSG_158_CRAFT_REPORT_WITHOUT_NUMBER,
+					g_localPlayer);
 	}
 }
 
 // FUNCTION: XVT 0x451F50
-int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHudMessage,
-							   int returnActionableOnly) {
+int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
+			       int emitHudMessage, int returnActionableOnly)
+{
 	int flightGroupIdx;
 	int team;
-	CraftData* craft;
+	CraftData *craft;
 	int inspectFlag;
 	int disableFlag;
 	int captureFlag;
@@ -459,40 +534,63 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 
 	g_msgArgTable[3] = IFMSG_331_BLANK;
 	actionable = 0;
-	if ((int)g_projectileObjectSlotStart <= targetObjIdx && (int)g_projectileObjectSlotEnd > targetObjIdx)
+	if ((int)g_projectileObjectSlotStart <= targetObjIdx &&
+	    (int)g_projectileObjectSlotEnd > targetObjIdx) {
 		return 0;
-	if (g_activeRegionCraftObjectSlotEnd > targetObjIdx)
+	}
+	if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
 		craft = g_objectTable[targetObjIdx].mobj->pCraft;
-	else
+	} else {
 		craft = NULL;
+	}
 	flightGroupIdx = g_objectTable[targetObjIdx].flightGroupIdx;
 	team = g_missionFlightGroups[flightGroupIdx].fg.team;
-	designation = g_flightMissionState.runtime
-					  .teamFgDesignationCode[(uint16_t)g_players[playerIdx].team][flightGroupIdx];
+	designation =
+		g_flightMissionState.runtime.teamFgDesignationCode
+			[(uint16_t)g_players[playerIdx].team][flightGroupIdx];
 	if (designation == 0) {
 		if (craft == NULL) {
-			if (g_objectTable[targetObjIdx].genusId == CRAFT_GENUS_MINE) {
-				designation = IFMSG_326_MINE - IFMSG_309_TARGET_DESCRIPTION;
-			} else if (g_objectTable[targetObjIdx].objectType >= CRAFT_SPECIES_COMM_SAT_1 &&
-					   g_objectTable[targetObjIdx].objectType <= CRAFT_SPECIES_SAT_5) {
-				designation = IFMSG_327_SATELLITE - IFMSG_309_TARGET_DESCRIPTION;
-			} else if (g_objectTable[targetObjIdx].objectType >= CRAFT_SPECIES_PROBE &&
-					   g_objectTable[targetObjIdx].objectType <= CRAFT_SPECIES_PROBE_3) {
-				designation = IFMSG_328_PROBE - IFMSG_309_TARGET_DESCRIPTION;
-			} else if (g_objectTable[targetObjIdx].objectType >= CRAFT_SPECIES_NAV_BUOY_TYPE_1 &&
-					   g_objectTable[targetObjIdx].objectType <= CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
-				designation = IFMSG_329_NAV_BUOY - IFMSG_309_TARGET_DESCRIPTION;
+			if (g_objectTable[targetObjIdx].genusId ==
+			    CRAFT_GENUS_MINE) {
+				designation = IFMSG_326_MINE -
+					      IFMSG_309_TARGET_DESCRIPTION;
+			} else if (g_objectTable[targetObjIdx].objectType >=
+					   CRAFT_SPECIES_COMM_SAT_1 &&
+				   g_objectTable[targetObjIdx].objectType <=
+					   CRAFT_SPECIES_SAT_5) {
+				designation = IFMSG_327_SATELLITE -
+					      IFMSG_309_TARGET_DESCRIPTION;
+			} else if (g_objectTable[targetObjIdx].objectType >=
+					   CRAFT_SPECIES_PROBE &&
+				   g_objectTable[targetObjIdx].objectType <=
+					   CRAFT_SPECIES_PROBE_3) {
+				designation = IFMSG_328_PROBE -
+					      IFMSG_309_TARGET_DESCRIPTION;
+			} else if (g_objectTable[targetObjIdx].objectType >=
+					   CRAFT_SPECIES_NAV_BUOY_TYPE_1 &&
+				   g_objectTable[targetObjIdx].objectType <=
+					   CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
+				designation = IFMSG_329_NAV_BUOY -
+					      IFMSG_309_TARGET_DESCRIPTION;
 			}
 		} else {
-			if (g_players[playerIdx].boundFlightGroupIdx == flightGroupIdx)
-				designation = IFMSG_323_YOUR_WINGMAN - IFMSG_309_TARGET_DESCRIPTION;
-			else if (team == (uint16_t)g_players[playerIdx].team)
-				designation = IFMSG_322_FRIENDLY_CRAFT - IFMSG_309_TARGET_DESCRIPTION;
-			else if (g_objectTable[targetObjIdx].genusId == CRAFT_GENUS_FREIGHTER &&
-					 craft->aiFlight.maxSpeedCache == 0)
-				designation = IFMSG_325_CARGO - IFMSG_309_TARGET_DESCRIPTION;
-			else
-				designation = IFMSG_324_CRAFT - IFMSG_309_TARGET_DESCRIPTION;
+			if (g_players[playerIdx].boundFlightGroupIdx ==
+			    flightGroupIdx) {
+				designation = IFMSG_323_YOUR_WINGMAN -
+					      IFMSG_309_TARGET_DESCRIPTION;
+			} else if (team ==
+				   (uint16_t)g_players[playerIdx].team) {
+				designation = IFMSG_322_FRIENDLY_CRAFT -
+					      IFMSG_309_TARGET_DESCRIPTION;
+			} else if (g_objectTable[targetObjIdx].genusId ==
+					   CRAFT_GENUS_FREIGHTER &&
+				   craft->aiFlight.maxSpeedCache == 0) {
+				designation = IFMSG_325_CARGO -
+					      IFMSG_309_TARGET_DESCRIPTION;
+			} else {
+				designation = IFMSG_324_CRAFT -
+					      IFMSG_309_TARGET_DESCRIPTION;
+			}
 		}
 	}
 	msg_formatObjectName(targetObjIdx, 2, g_flightTextScratchBuffer);
@@ -500,18 +598,30 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 	g_msgArgTable[1] = IFMSG_331_BLANK;
 	if (designation != 0) {
 		if (g_targetDescDesignationUsesRelationText[designation] != 0) {
-			if (team == (uint16_t)g_players[playerIdx].team)
+			if (team == (uint16_t)g_players[playerIdx].team) {
 				g_msgArgTable[1] = IFMSG_334_OUR;
-			else {
-				int currentTeam = g_missionFlightGroups[g_objectTable[targetObjIdx].flightGroupIdx].fg.team;
-				int isEnemy = (uint16_t)g_players[playerIdx].team != currentTeam &&
-							  g_missionTeams[(uint16_t)g_players[playerIdx].team].allies[currentTeam] < 1;
+			} else {
+				int currentTeam =
+					g_missionFlightGroups
+						[g_objectTable[targetObjIdx]
+							 .flightGroupIdx]
+							.fg.team;
+				int isEnemy =
+					(uint16_t)g_players[playerIdx].team !=
+						currentTeam &&
+					g_missionTeams[(uint16_t)g_players
+							       [playerIdx]
+								       .team]
+							.allies[currentTeam] <
+						1;
 				g_msgArgTable[1] = IFMSG_333_FRIENDLY;
-				if (isEnemy)
+				if (isEnemy) {
 					g_msgArgTable[1] = IFMSG_332_ENEMY;
+				}
 			}
 		}
-		g_msgArgTable[2] = (uint16_t)(designation + IFMSG_309_TARGET_DESCRIPTION);
+		g_msgArgTable[2] =
+			(uint16_t)(designation + IFMSG_309_TARGET_DESCRIPTION);
 	} else {
 		g_msgArgTable[2] = IFMSG_331_BLANK;
 	}
@@ -523,95 +633,139 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 	boardedFlag = 0;
 	specialCargoRelevant = 0;
 	for (goalIndex = 0; goalIndex < 8; ++goalIndex) {
-		FlightGroupGoal* goal = &g_missionFlightGroups[flightGroupIdx].fg.goals[goalIndex];
+		FlightGroupGoal *goal = &g_missionFlightGroups[flightGroupIdx]
+						 .fg.goals[goalIndex];
 		int eventCondition;
 		int playerTeam = (uint16_t)g_players[playerIdx].team;
-		if (goal->enabledTeams[playerTeam] == 0 || goal->goalKind != 0 ||
-			g_missionFgStats[flightGroupIdx].goalState[8 * playerTeam + goalIndex] != 4)
+		if (goal->enabledTeams[playerTeam] == 0 ||
+		    goal->goalKind != 0 ||
+		    g_missionFgStats[flightGroupIdx]
+				    .goalState[8 * playerTeam + goalIndex] !=
+			    4) {
 			continue;
+		}
 		if (goal->amount == GOAL_AMT_ALL_SPECIAL_CARGO) {
-			if (g_missionFgStats[flightGroupIdx].specialCargoOutcome[FLIGHT_GROUP_OUTCOME_INSPECTED] == 0)
+			if (g_missionFgStats[flightGroupIdx].specialCargoOutcome
+				    [FLIGHT_GROUP_OUTCOME_INSPECTED] == 0) {
 				inspectFlag = 1;
+			}
 			specialCargoRelevant = 1;
 		}
 		eventCondition = goal->eventCondition;
 		if (eventCondition == 2) {
 			destroyFlag = 1;
 		} else if (eventCondition != 3) {
-			if (eventCondition == 8)
+			if (eventCondition == 8) {
 				disableFlag = 1;
-			else if (eventCondition == 5)
+			} else if (eventCondition == 5) {
 				inspectFlag = 1;
-			else if (eventCondition == 4 || eventCondition == 44)
+			} else if (eventCondition == 4 ||
+				   eventCondition == 44) {
 				captureFlag = 1;
-			else if (eventCondition == 6)
+			} else if (eventCondition == 6) {
 				boardedFlag = 1;
+			}
 		}
 	}
 	{
 		unsigned int pairOffset;
-		for (pairOffset = 0; pairOffset < 2 * sizeof(MissionTriggerPair);
-			 pairOffset += sizeof(MissionTriggerPair)) {
+		for (pairOffset = 0;
+		     pairOffset < 2 * sizeof(MissionTriggerPair);
+		     pairOffset += sizeof(MissionTriggerPair)) {
 			unsigned int triggerOffset;
-			for (triggerOffset = 0; triggerOffset < 2 * sizeof(MissionTrigger);
-				 triggerOffset += sizeof(MissionTrigger)) {
+			for (triggerOffset = 0;
+			     triggerOffset < 2 * sizeof(MissionTrigger);
+			     triggerOffset += sizeof(MissionTrigger)) {
 				unsigned int triggerByteIndex =
 					pairOffset + triggerOffset +
-					sizeof(g_missionGlobalGoals[0]) * (uint16_t)g_players[playerIdx].team;
-				const uint8_t* globalGoalBytes = (const uint8_t*)g_missionGlobalGoals;
-				int eventCondition = globalGoalBytes[triggerByteIndex + offsetof(MissionTrigger, condition)];
+					sizeof(g_missionGlobalGoals[0]) *
+						(uint16_t)g_players[playerIdx]
+							.team;
+				const uint8_t *globalGoalBytes =
+					(const uint8_t *)g_missionGlobalGoals;
+				int eventCondition =
+					globalGoalBytes[triggerByteIndex +
+							offsetof(MissionTrigger,
+								 condition)];
 				if (eventCondition != 10 &&
-					Mission_FlightGroupMatchesTriggerVariable(
-						flightGroupIdx,
-						globalGoalBytes[triggerByteIndex + offsetof(MissionTrigger, variableType)],
-						globalGoalBytes[triggerByteIndex + offsetof(MissionTrigger, variable)]) != 0) {
+				    Mission_FlightGroupMatchesTriggerVariable(
+					    flightGroupIdx,
+					    globalGoalBytes
+						    [triggerByteIndex +
+						     offsetof(MissionTrigger,
+							      variableType)],
+					    globalGoalBytes
+						    [triggerByteIndex +
+						     offsetof(MissionTrigger,
+							      variable)]) !=
+					    0) {
 					if (eventCondition == 2) {
 						destroyFlag = 1;
 					} else if (eventCondition != 3) {
-						if (eventCondition == 8)
+						if (eventCondition == 8) {
 							disableFlag = 1;
-						else if (eventCondition == 5)
+						} else if (eventCondition ==
+							   5) {
 							inspectFlag = 1;
-						else if (eventCondition == 4 || eventCondition == 44)
+						} else if (eventCondition ==
+								   4 ||
+							   eventCondition ==
+								   44) {
 							captureFlag = 1;
-						else if (eventCondition == 6)
+						} else if (eventCondition ==
+							   6) {
 							boardedFlag = 1;
+						}
 					}
 				}
 			}
 		}
 	}
 	if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
-		if (inspectFlag != 0 && craft->identifiedOrderByTeam[(uint16_t)g_players[playerIdx].team] != 0)
+		if (inspectFlag != 0 &&
+		    craft->identifiedOrderByTeam[(uint16_t)g_players[playerIdx]
+							 .team] != 0) {
 			inspectFlag = 0;
+		}
 		if (captureFlag != 0 || boardedFlag != 0) {
-			if (g_objectTable[targetObjIdx].mobj->speed != 0)
+			if (g_objectTable[targetObjIdx].mobj->speed != 0) {
 				disableFlag = 1;
+			}
 			if (specialCargoRelevant != 0 &&
-				g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->craftOrdinal) {
+			    g_missionFlightGroups[flightGroupIdx]
+					    .fg.specialCargoCraft !=
+				    craft->craftOrdinal) {
 				captureFlag = 0;
 				boardedFlag = 0;
 			}
 		}
 		if (disableFlag != 0 && specialCargoRelevant != 0 &&
-			g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->craftOrdinal)
+		    g_missionFlightGroups[flightGroupIdx]
+				    .fg.specialCargoCraft !=
+			    craft->craftOrdinal) {
 			disableFlag = 0;
+		}
 		if (destroyFlag != 0 && specialCargoRelevant != 0 &&
-			g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->craftOrdinal)
+		    g_missionFlightGroups[flightGroupIdx]
+				    .fg.specialCargoCraft !=
+			    craft->craftOrdinal) {
 			destroyFlag = 0;
+		}
 	}
 	if (inspectFlag != 0) {
 		g_msgArgTable[3] = IFMSG_344_INSPECT_IT;
 		actionable = 1;
 	} else if (disableFlag != 0) {
-		if (captureFlag != 0)
+		if (captureFlag != 0) {
 			g_msgArgTable[3] = IFMSG_341_TO_BE_CAPTURED;
-		else if (boardedFlag != 0)
+		} else if (boardedFlag != 0) {
 			g_msgArgTable[3] = IFMSG_345_TO_BE_BOARDED;
-		else
+		} else {
 			g_msgArgTable[3] = IFMSG_347_OTHERS_WILL_DISABLE_IT;
-		if (pai_SetupContextAndFindOrderPlanOnTarget(g_players[playerIdx].objectIndex, 19, targetObjIdx) ==
-			1) {
+		}
+		if (pai_SetupContextAndFindOrderPlanOnTarget(
+			    g_players[playerIdx].objectIndex, 19,
+			    targetObjIdx) == 1) {
 			++g_msgArgTable[3];
 			actionable = 1;
 		}
@@ -621,32 +775,37 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 		g_msgArgTable[3] = IFMSG_345_TO_BE_BOARDED;
 	} else if (destroyFlag != 0) {
 		g_msgArgTable[3] = IFMSG_337_OTHERS_WILL_DESTROY_IT;
-		if (pai_SetupContextAndFindOrderPlanOnTarget(g_players[playerIdx].objectIndex, 69, targetObjIdx) ==
-			1) {
+		if (pai_SetupContextAndFindOrderPlanOnTarget(
+			    g_players[playerIdx].objectIndex, 69,
+			    targetObjIdx) == 1) {
 			++g_msgArgTable[3];
 			actionable = 1;
 		}
 	}
 	if (emitHudMessage != 0 && playerIdx == g_localPlayer) {
-		msg_emitInFlightMessage(IFMSG_309_TARGET_DESCRIPTION, playerIdx);
-		g_playerFlightTransientTimers[g_localPlayer].targetDescriptionRefreshTimer = 1180;
+		msg_emitInFlightMessage(IFMSG_309_TARGET_DESCRIPTION,
+					playerIdx);
+		g_playerFlightTransientTimers[g_localPlayer]
+			.targetDescriptionRefreshTimer = 1180;
 		g_targetDescriptionMessageId = g_msgArgTable[3];
 	}
-	if (returnActionableOnly != 0)
+	if (returnActionableOnly != 0) {
 		return actionable;
+	}
 	return g_msgArgTable[3];
 }
 
 // FUNCTION: XVT 0x4525A0
-void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char* outName) {
+void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char *outName)
+{
 	int16_t namePartCount;
 	int objectIndex;
-	ObjectRecord* object;
-	MobileObject* mobileObject;
+	ObjectRecord *object;
+	MobileObject *mobileObject;
 	uint16_t objectType;
-	CraftData* craft;
+	CraftData *craft;
 	uint16_t flightGroupIdx;
-	MissionFlightGroup* flightGroup;
+	MissionFlightGroup *flightGroup;
 	uint16_t craftNumber;
 
 	namePartCount = 0;
@@ -660,10 +819,14 @@ void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char* outName) {
 			craft = mobileObject->pCraft;
 			flightGroupIdx = object->flightGroupIdx;
 			if (nameMode == 1) {
-				msg_AppendString(g_modelDefs[craft->modelIndex].nameLong, outName);
+				msg_AppendString(
+					g_modelDefs[craft->modelIndex].nameLong,
+					outName);
 				namePartCount = 1;
 			} else if (nameMode == 0) {
-				msg_AppendString(g_modelDefs[craft->modelIndex].name, outName);
+				msg_AppendString(
+					g_modelDefs[craft->modelIndex].name,
+					outName);
 				namePartCount = 1;
 			}
 
@@ -677,13 +840,18 @@ void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char* outName) {
 				msg_AppendString(flightGroup->fg.name, outName);
 			}
 
-			craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(flightGroupIdx, craft);
+			craftNumber =
+				(uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
+					flightGroupIdx, craft);
 			if (craftNumber != 0) {
-				if (namePartCount != 0)
+				if (namePartCount != 0) {
 					msg_AppendChar(' ', outName);
+				}
 				if (craftNumber >= 10) {
-					msg_AppendChar(craftNumber / 10 + '0', outName);
-					msg_AppendChar(craftNumber % 10 + '0', outName);
+					msg_AppendChar(craftNumber / 10 + '0',
+						       outName);
+					msg_AppendChar(craftNumber % 10 + '0',
+						       outName);
 					return;
 				}
 				msg_AppendChar(craftNumber + '0', outName);
@@ -692,28 +860,44 @@ void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char* outName) {
 		}
 
 		if (objectType >= 0x8f && objectType <= 0x9b) {
-			msg_AppendString(g_strWarheadNames[objectType - 0x8f], outName);
-		} else if (objectType >= CRAFT_SPECIES_COMM_SAT_1 && objectType <= CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
-			msg_AppendString(g_strSatMineProbeBuoyPilotNames[objectType - CRAFT_SPECIES_COMM_SAT_1], outName);
+			msg_AppendString(g_strWarheadNames[objectType - 0x8f],
+					 outName);
+		} else if (objectType >= CRAFT_SPECIES_COMM_SAT_1 &&
+			   objectType <= CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
+			msg_AppendString(
+				g_strSatMineProbeBuoyPilotNames
+					[objectType - CRAFT_SPECIES_COMM_SAT_1],
+				outName);
 		}
 		return;
 	}
 
 	if (nameMode != 1 && nameMode != 0) {
-		msg_AppendString(g_missionFlightGroups[object->flightGroupIdx].fg.name, outName);
+		msg_AppendString(
+			g_missionFlightGroups[object->flightGroupIdx].fg.name,
+			outName);
 		return;
 	}
 
-	msg_AppendString(g_strSatMineProbeBuoyPilotNames[object->objectType - CRAFT_SPECIES_COMM_SAT_1], outName);
-	flightGroup = &g_missionFlightGroups[g_objectTable[objectIndex].flightGroupIdx];
+	msg_AppendString(
+		g_strSatMineProbeBuoyPilotNames[object->objectType -
+						CRAFT_SPECIES_COMM_SAT_1],
+		outName);
+	flightGroup = &g_missionFlightGroups[g_objectTable[objectIndex]
+						     .flightGroupIdx];
 	if (flightGroup->fg.name[0] != '\0') {
 		msg_AppendChar(' ', outName);
-		msg_AppendString(g_missionFlightGroups[g_objectTable[objectIndex].flightGroupIdx].fg.name, outName);
+		msg_AppendString(
+			g_missionFlightGroups[g_objectTable[objectIndex]
+						      .flightGroupIdx]
+				.fg.name,
+			outName);
 	}
 }
 
 // FUNCTION: XVT 0x452830
-void msg_AppendString(const char* source, char* destination) {
+void msg_AppendString(const char *source, char *destination)
+{
 	while (*destination != '\0') {
 		destination++;
 	}
@@ -724,22 +908,28 @@ void msg_AppendString(const char* source, char* destination) {
 }
 
 // FUNCTION: XVT 0x452860
-void msg_AppendChar(char ch, char* destination) {
-	while (*destination != '\0')
+void msg_AppendChar(char ch, char *destination)
+{
+	while (*destination != '\0') {
 		++destination;
+	}
 	*destination = ch;
 	destination[1] = '\0';
 }
 
 // FUNCTION: XVT 0x452880
-void msg_emitLocalPlayerCraftMessage(InFlightMessageId messageId) {
+void msg_emitLocalPlayerCraftMessage(InFlightMessageId messageId)
+{
 	int objectIndex;
 
 	objectIndex = (int)g_players[g_localPlayer].objectIndex;
 	g_msgSenderIff = (uint8_t)g_objectTable[objectIndex].mobj->iff;
-	msg_addMessagePtr(0, &g_modelDefs[g_objectTable[objectIndex].mobj->pCraft->modelIndex]);
-	msg_addMessagePtr(1, &g_missionFlightGroups[g_objectTable[objectIndex].flightGroupIdx]);
+	msg_addMessagePtr(0, &g_modelDefs[g_objectTable[objectIndex]
+						  .mobj->pCraft->modelIndex]);
+	msg_addMessagePtr(1, &g_missionFlightGroups[g_objectTable[objectIndex]
+							    .flightGroupIdx]);
 	g_msgArgTable[2] = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
-		g_objectTable[objectIndex].flightGroupIdx, g_objectTable[objectIndex].mobj->pCraft);
+		g_objectTable[objectIndex].flightGroupIdx,
+		g_objectTable[objectIndex].mobj->pCraft);
 	msg_emitInFlightMessage(messageId, g_localPlayer);
 }

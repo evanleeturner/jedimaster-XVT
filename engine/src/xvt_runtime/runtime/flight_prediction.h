@@ -12,7 +12,8 @@ void XvtFlightPrediction_Reset(void);
  * now; Queue uses them only while the player stays bound to that object. Ignored for an
  * out-of-range player or NULL input. */
 /* Only successfully replayed authoritative controls establish the fallback. */
-void XvtFlightPrediction_Confirm(unsigned player, int tick, const FlightInputFrameRecord* input);
+void XvtFlightPrediction_Confirm(unsigned player, int tick,
+				 const FlightInputFrameRecord *input);
 /* For each connected player other than the local one, inserts a predicted frame at tick, unless
  * a real or authoritative frame is already there. The source is the newest non-predicted history
  * frame before tick, or the confirmed controls when they are newer and still bound; with neither,

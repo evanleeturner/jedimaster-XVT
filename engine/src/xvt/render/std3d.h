@@ -29,12 +29,12 @@ struct Std3DRenderTri {
 	int v1;
 	int v2;
 	Std3DRenderStateFlags flags;
-	Std3DTexCacheNode* texture;
+	Std3DTexCacheNode *texture;
 };
 
 struct Std3DTexCacheNode {
-	IDirect3DTexture* pCachedTexture;
-	IDirectDrawSurface* pCachedSurface;
+	IDirect3DTexture *pCachedTexture;
+	IDirectDrawSurface *pCachedSurface;
 	DDSURFACEDESC ddsd;
 	unsigned int texHandle;
 	int bCached;
@@ -43,8 +43,8 @@ struct Std3DTexCacheNode {
 	unsigned int height;
 	unsigned int texelCount;
 	unsigned int cacheBatchTag;
-	struct Std3DTexCacheNode* pPrev;
-	struct Std3DTexCacheNode* pNext;
+	struct Std3DTexCacheNode *pPrev;
+	struct Std3DTexCacheNode *pNext;
 };
 
 struct Std3DDeviceCaps {
@@ -108,7 +108,8 @@ struct Std3DRasterInfo {
 	unsigned int tileFactor;
 	unsigned int rowPitch;
 	unsigned int unk10;
-	StdColorMode colorMode; ///< Start of the flattened ColorInfo copied verbatim from Std3DTexFmt.
+	StdColorMode
+		colorMode; ///< Start of the flattened ColorInfo copied verbatim from Std3DTexFmt.
 	unsigned int bpp;
 	int redBPP;
 	int greenBPP;
@@ -128,14 +129,15 @@ struct Std3DVBuffer {
 	int storageType;
 	int lockCount;
 	int inVideoMemory; ///< Nonzero when the DirectDraw-backed record resides in video memory; zero for
-					   ///< malloc-backed buffers.
+	///< malloc-backed buffers.
 	Std3DRasterInfo raster;
 	int unk58;
-	void* pixels;
+	void *pixels;
 	unsigned int transparentColor;
-	IDirectDrawSurface* ddSurface;
-	uint8_t reserved68[112]; ///< Reserved in ordinary software buffers. In the static z-buffer overlay, this
-							 ///< tail is unused04 at +0x68 followed by DDSURFACEDESC at +0x6C.
+	IDirectDrawSurface *ddSurface;
+	uint8_t reserved68
+		[112]; ///< Reserved in ordinary software buffers. In the static z-buffer overlay, this
+	///< tail is unused04 at +0x68 followed by DDSURFACEDESC at +0x6C.
 };
 
 struct Std3DTexFmt {
@@ -153,7 +155,7 @@ struct Std3DRenderTargetDesc {
 };
 
 struct Std3DSurfaceState {
-	IDirectDrawSurface* surface;
+	IDirectDrawSurface *surface;
 	int unused04; ///< Unused slot between the DirectDraw surface pointer and DDSURFACEDESC.
 	DDSURFACEDESC ddsd;
 };
@@ -167,7 +169,7 @@ struct Std3DViewportRect {
 
 struct Std3DErrorStringEntry {
 	int code;
-	const char* message;
+	const char *message;
 };
 
 struct Std3DZBufferTarget {
@@ -176,29 +178,29 @@ struct Std3DZBufferTarget {
 	int bVideoMemory;
 	Std3DRasterInfo raster;
 	int unk58;
-	void* pixels;
+	void *pixels;
 };
 
 extern unsigned int g_std3DExecBufMaxVerts;
 extern unsigned int g_std3DNumDevices;
 extern unsigned int g_std3DCurDeviceIdx;
 extern Std3DDevice g_std3DDevices[4];
-extern Std3DDevice* g_pStd3DCurDevice;
+extern Std3DDevice *g_pStd3DCurDevice;
 extern unsigned int g_std3DTextureBatchTag;
 extern int g_texCacheCount;
-extern Std3DTexCacheNode* g_pTexCacheHead;
-extern Std3DTexCacheNode* g_pTexCacheTail;
+extern Std3DTexCacheNode *g_pTexCacheHead;
+extern Std3DTexCacheNode *g_pTexCacheTail;
 extern int g_d3dBufVertCount;
-extern uint8_t* g_d3dWritePtr;
+extern uint8_t *g_d3dWritePtr;
 
 struct Std3DZBufferSurfaceBlock {
-	IDirectDrawSurface* surface;
+	IDirectDrawSurface *surface;
 	int unused04;
 	DDSURFACEDESC desc;
 };
 
 extern unsigned int g_std3DRenderOptionFlags;
-extern Std3DTexFmt* g_pFmtOpaqueTexture;
+extern Std3DTexFmt *g_pFmtOpaqueTexture;
 extern float g_std3DColorOverlayRed;
 extern float g_std3DColorOverlayGreen;
 extern float g_std3DColorOverlayBlue;
@@ -209,62 +211,82 @@ extern int g_std3DMinTextureHeight;
 extern int g_std3DMaxTextureWidth;
 extern int g_std3DMaxTextureHeight;
 
-void std3D_CopyPaletteToScratch16(const uint16_t* palette, int colorCount);
-void std3D_ConvertPaletteTo1555(const uint16_t* palette, int colorCount);
+void std3D_CopyPaletteToScratch16(const uint16_t *palette, int colorCount);
+void std3D_ConvertPaletteTo1555(const uint16_t *palette, int colorCount);
 int std3D_Startup(void);
-Std3DRenderTargetDesc* std3D_InitRenderTargetDesc(unsigned int width, unsigned int height, int pitchBytes);
+Std3DRenderTargetDesc *std3D_InitRenderTargetDesc(unsigned int width,
+						  unsigned int height,
+						  int pitchBytes);
 void std3D_Shutdown(void);
 int std3D_CreateDevice(unsigned int deviceIdx, int bUseZBuffer);
-struct IDirectDrawSurface* std3D_SetRenderSurface(struct IDirectDrawSurface* surface);
-int std3D_SetColorOverlayParams(float red, float green, float blue, int enabled);
+struct IDirectDrawSurface *
+std3D_SetRenderSurface(struct IDirectDrawSurface *surface);
+int std3D_SetColorOverlayParams(float red, float green, float blue,
+				int enabled);
 int std3D_Log2Floor(int n);
-const char* std3D_LookupErrorString(int errorCode, const Std3DErrorStringEntry* entries, int entryCount);
-void std3D_BuildColormap16(uint8_t* pRGB888, uint16_t* pOut, ColorInfo* pFmt, uint8_t defaultAlpha,
-						   int colorKey);
-void std3D_BuildColormapOpaque(uint8_t* pRGB888, uint16_t* pOut, ColorInfo* pFmt);
-void std3D_BuildColormapColorKey(uint8_t* pRGB888, uint16_t* pOut, ColorInfo* pFmt);
-void std3D_BuildColormapAlpha(uint8_t* pRGB888, uint16_t* pOut, ColorInfo* pFmt, uint8_t alpha);
-Std3DVBuffer* std3D_AllocVBuffer(const Std3DRasterInfo* raster, ...);
-void std3D_FreeVBuffer(Std3DVBuffer* vbuffer);
-void std3D_LockVBuffer(Std3DVBuffer* vbuffer);
-void std3D_UnlockVBuffer(Std3DVBuffer* vbuffer);
+const char *std3D_LookupErrorString(int errorCode,
+				    const Std3DErrorStringEntry *entries,
+				    int entryCount);
+void std3D_BuildColormap16(uint8_t *pRGB888, uint16_t *pOut, ColorInfo *pFmt,
+			   uint8_t defaultAlpha, int colorKey);
+void std3D_BuildColormapOpaque(uint8_t *pRGB888, uint16_t *pOut,
+			       ColorInfo *pFmt);
+void std3D_BuildColormapColorKey(uint8_t *pRGB888, uint16_t *pOut,
+				 ColorInfo *pFmt);
+void std3D_BuildColormapAlpha(uint8_t *pRGB888, uint16_t *pOut, ColorInfo *pFmt,
+			      uint8_t alpha);
+Std3DVBuffer *std3D_AllocVBuffer(const Std3DRasterInfo *raster, ...);
+void std3D_FreeVBuffer(Std3DVBuffer *vbuffer);
+void std3D_LockVBuffer(Std3DVBuffer *vbuffer);
+void std3D_UnlockVBuffer(Std3DVBuffer *vbuffer);
 void std3D_Close(void);
-void std3D_BlitVBuffer(Std3DVBuffer* destination, Std3DVBuffer* source, int destinationX, int destinationY,
-					   int sourceX, int sourceY);
+void std3D_BlitVBuffer(Std3DVBuffer *destination, Std3DVBuffer *source,
+		       int destinationX, int destinationY, int sourceX,
+		       int sourceY);
 unsigned int std3D_GetCapFlags(void);
-void std3D_FillVBuffer(Std3DVBuffer* vbuffer, unsigned int packedColor, int fillMode);
+void std3D_FillVBuffer(Std3DVBuffer *vbuffer, unsigned int packedColor,
+		       int fillMode);
 void std3D_SetCapFlags(unsigned int capFlags);
-int std3D_SetFogColor8(unsigned int red8, unsigned int green8, unsigned int blue8);
+int std3D_SetFogColor8(unsigned int red8, unsigned int green8,
+		       unsigned int blue8);
 int std3D_SetFogTableRangeBits(unsigned int startBits, unsigned int endBits);
-int std3D_SetTextureSizeCaps(int minWidth, int minHeight, int maxWidth, int maxHeight);
+int std3D_SetTextureSizeCaps(int minWidth, int minHeight, int maxWidth,
+			     int maxHeight);
 void std3D_StartScene(void);
 void std3D_EndScene(void);
 int std3D_LockExecuteBuffer(void);
-int std3D_AddVertices(const D3DTLVERTEX* vertices, int count);
+int std3D_AddVertices(const D3DTLVERTEX *vertices, int count);
 int std3D_BeginInstructions(void);
-int std3D_AddTriangles(const Std3DRenderTri* triangles, unsigned int count);
+int std3D_AddTriangles(const Std3DRenderTri *triangles, unsigned int count);
 int std3D_ExecuteBuffer(void);
 void std3D_SetRenderState(Std3DRenderStateFlags flags);
-int std3D_SetPaletteConversionSource(const void* paletteRgb888, uint8_t alpha);
-void std3D_ClampTextureDimensions(int srcWidth, int srcHeight, int* outWidth, int* outHeight);
-int std3D_AddToTextureCache(Std3DVBuffer* source, Std3DTexCacheNode* node, int colorKeyed, int translucent);
+int std3D_SetPaletteConversionSource(const void *paletteRgb888, uint8_t alpha);
+void std3D_ClampTextureDimensions(int srcWidth, int srcHeight, int *outWidth,
+				  int *outHeight);
+int std3D_AddToTextureCache(Std3DVBuffer *source, Std3DTexCacheNode *node,
+			    int colorKeyed, int translucent);
 void std3D_FlushTextureCache(void);
-void std3D_CacheListAppend(Std3DTexCacheNode* node);
-void std3D_CacheListRemove(Std3DTexCacheNode* node);
-int std3D_QueryTextureVidMem(unsigned int* totalBytes, unsigned int* freeBytes);
-void std3D_CacheTextureSurface(Std3DTexCacheNode* node);
+void std3D_CacheListAppend(Std3DTexCacheNode *node);
+void std3D_CacheListRemove(Std3DTexCacheNode *node);
+int std3D_QueryTextureVidMem(unsigned int *totalBytes, unsigned int *freeBytes);
+void std3D_CacheTextureSurface(Std3DTexCacheNode *node);
 int std3D_ClearZBuffer(void);
-int std3D_SelectBestDevice(Std3DDeviceCaps* requiredCaps);
-int std3D_FindClosestFormat(const ColorInfo* match, Std3DTexFmt* formats, unsigned int count);
+int std3D_SelectBestDevice(Std3DDeviceCaps *requiredCaps);
+int std3D_FindClosestFormat(const ColorInfo *match, Std3DTexFmt *formats,
+			    unsigned int count);
 void std3D_DrawColorOverlay(void);
-int std3D_BuildViewportQuad(const Std3DViewportRect* rect);
+int std3D_BuildViewportQuad(const Std3DViewportRect *rect);
 int std3D_SetInitialRenderState(void);
 int std3D_CreateViewport(int width, int height);
 int std3D_CreateZBuffer(int width, int height);
-HRESULT AERON_DXAPI std3D_EnumDevicesCallback(DxGuid* guid, char* deviceDescription, char* deviceName,
-											  D3DDEVICEDESC* hardwareDesc, D3DDEVICEDESC* softwareDesc,
-											  void* context);
-int AERON_DXAPI std3D_EnumTextureFormats(DDSURFACEDESC* surfaceDesc, void* context);
+HRESULT AERON_DXAPI std3D_EnumDevicesCallback(DxGuid *guid,
+					      char *deviceDescription,
+					      char *deviceName,
+					      D3DDEVICEDESC *hardwareDesc,
+					      D3DDEVICEDESC *softwareDesc,
+					      void *context);
+int AERON_DXAPI std3D_EnumTextureFormats(DDSURFACEDESC *surfaceDesc,
+					 void *context);
 int std3D_PackRenderBitDepths(int ddbdFlags);
 int std3D_PackZCmpCaps(unsigned int d3dpcmpcaps);
 unsigned int std3D_MapZCmpFunc(unsigned int capsMask);

@@ -43,7 +43,7 @@ int XvtInput_ConsumeKeyboardReacquire(void);
 int XvtInput_RendererShortcutAllowed(void);
 /* Host-frame frontend coordinates, including game-requested pointer warps. */
 /* The frontend's mouse position, as the game last saw it. */
-void XvtInput_FrontendCursorPosition(int* x, int* y);
+void XvtInput_FrontendCursorPosition(int *x, int *y);
 
 #ifdef __cplusplus
 }

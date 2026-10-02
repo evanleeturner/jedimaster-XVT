@@ -26,7 +26,7 @@ extern int16_t g_flightSwRotSpriteEdgeCursorY;
 extern int g_flightResolutionMode;
 extern unsigned int g_vesaPageSizeBytes;
 extern unsigned int g_vesaGrainsPerPage;
-extern uint8_t* g_flightSwFramebufferBase;
+extern uint8_t *g_flightSwFramebufferBase;
 extern int g_flightViewportInsetX;
 extern int g_starfieldGridDimension;
 extern int g_starfieldColors8Initialized;
@@ -96,7 +96,7 @@ struct FlightSwRotSpriteCoeffState {
 	uint16_t secondaryStepByte;
 	uint16_t runLengthCount;
 	uint16_t runLengths[1600];
-	void* destLinePtr;
+	void *destLinePtr;
 	int spanOffsets[1600];
 	int destPitchDelta;
 };
@@ -133,7 +133,7 @@ struct FlightSwRotSpriteSpanRun {
 
 extern FlightSwRotSpriteSpanRun g_flightSwRotSpriteSpanRuns[512];
 extern FlightSwRotSpriteScaleState g_flightSwRotSpriteScaleState;
-extern uint8_t* g_flightSwRotSpriteDestLinePtr;
+extern uint8_t *g_flightSwRotSpriteDestLinePtr;
 extern int16_t g_flightSwRotSpriteSkipSecondaryScaleStep;
 extern uint16_t g_flightSwRotSpriteSecondaryScaleAccum;
 extern int16_t g_flightSwRotSpriteClipMinX;
@@ -142,7 +142,7 @@ extern int16_t g_flightSwRotSpritePrimaryEdgeX;
 extern int16_t g_flightSwRotSpritePrimaryEdgeY;
 extern int16_t g_flightSwRotSpriteViewportMaxY;
 extern int16_t g_flightSwRotSpriteClipMaxX;
-extern FlightSwRotSpriteCoeffState* g_flightSwRotSpriteCoeffs;
+extern FlightSwRotSpriteCoeffState *g_flightSwRotSpriteCoeffs;
 extern int g_flightSwRotSpriteSpanRunCountdown;
 
 /* SpritePayload describes the same 44-byte image header as TexLevelImageHeader, under different field
@@ -162,25 +162,32 @@ typedef struct SpritePayload {
 } SpritePayload;
 
 void FlightSw_InitFramebuffer(void);
-void FlightSw_SetRenderTarget(void* surface, int width, unsigned int height, int pitchBytes);
+void FlightSw_SetRenderTarget(void *surface, int width, unsigned int height,
+			      int pitchBytes);
 int FlightSw_GetLineOffset(int line);
 int FlightSw_GetLinePitch(void);
 int FlightSw_ComputePixelOffset8bpp(int x, int y);
-void FlightSw_BlitSpriteRle8bpp(uint8_t* rleData, int x, int y, int transparentColorIndex, int mirror);
-void FlightSw_BlitSpriteRleFaded8bpp(uint8_t* rleData, int x, int y, int transparentColorIndex,
-									 int8_t paletteShift, int16_t fadeAmount);
-void FlightSw_BlitSpriteRleImpl8bpp(uint8_t* rleData, int x, int y, int transparentColorIndex, int mirror,
-									char isFaded, int16_t fadeAmount);
-void FlightSw_BlitMapIconRle(uint8_t* rleData, int x, int y, int transparentIndex, int mirror);
+void FlightSw_BlitSpriteRle8bpp(uint8_t *rleData, int x, int y,
+				int transparentColorIndex, int mirror);
+void FlightSw_BlitSpriteRleFaded8bpp(uint8_t *rleData, int x, int y,
+				     int transparentColorIndex,
+				     int8_t paletteShift, int16_t fadeAmount);
+void FlightSw_BlitSpriteRleImpl8bpp(uint8_t *rleData, int x, int y,
+				    int transparentColorIndex, int mirror,
+				    char isFaded, int16_t fadeAmount);
+void FlightSw_BlitMapIconRle(uint8_t *rleData, int x, int y,
+			     int transparentIndex, int mirror);
 void FlightSw_DrawPixel8bpp(uint16_t x, uint16_t y, int8_t colorIndex);
 void FlightSw_FillClipRect8bpp(void);
 void FlightSw_FillRectOrBorder8bpp(uint16_t borderThickness);
-void FlightSw_FillRectClipped8bpp(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2,
-								  uint16_t borderThickness);
-void FlightSw_SaveScreenRect8bpp(uint8_t* buffer, int x, int y, int16_t width, int height);
-void FlightSw_RestoreScreenRect8bpp(uint8_t* buffer, int x, int y, int16_t width, int height);
-void FlightSw_DrawPointArray8bpp(uint16_t* points, int16_t count);
-void FlightSw_ErasePointArray8bpp(uint16_t* points, int16_t count);
+void FlightSw_FillRectClipped8bpp(uint16_t x1, uint16_t y1, uint16_t x2,
+				  uint16_t y2, uint16_t borderThickness);
+void FlightSw_SaveScreenRect8bpp(uint8_t *buffer, int x, int y, int16_t width,
+				 int height);
+void FlightSw_RestoreScreenRect8bpp(uint8_t *buffer, int x, int y,
+				    int16_t width, int height);
+void FlightSw_DrawPointArray8bpp(uint16_t *points, int16_t count);
+void FlightSw_ErasePointArray8bpp(uint16_t *points, int16_t count);
 void FlightSw_DrawRadarTargetMarker8bpp(void);
 void FlightSw_RestoreRadarTargetMarker8bpp(void);
 uint8_t FlightSw_DrawCrossMarker8bpp(uint16_t x, uint16_t y, uint8_t color);
@@ -189,25 +196,33 @@ void FlightStarfield_Render(void);
 void RtsVga2_SetCurrentPage(uint8_t window, uint16_t page);
 void FlightScreenshot_Capture(void);
 void FlightSw_DrawLine8bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx);
-void FlightSw_DrawRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun* runs, uint8_t* destBase,
-									 const int* spanOffsets);
-void FlightSw_DrawClippedRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun* runs, uint8_t* destBase,
-											const int* spanOffsets);
-void FlightSw_DrawRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun* runs, uint8_t* destBase,
-									  const int* spanOffsets);
-void FlightSw_DrawClippedRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun* runs, uint8_t* destBase,
-											 const int* spanOffsets);
-void FlightSw_DrawRotatedSpriteQuad(int16_t screenX, int16_t screenY, uint16_t screenSize,
-									SpritePayload* sprite);
-void FlightSw_ClipAndBlitPreparedRotatedSprite(int* cornerCoords);
-void FlightSw_PrepareSpriteRotationTables(int16_t rotationAngle, int bytesPerPixel);
-int FlightSw_LoadSpritePaletteTables(SpritePayload* sprite);
+void FlightSw_DrawRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun *runs,
+				     uint8_t *destBase, const int *spanOffsets);
+void FlightSw_DrawClippedRotSpriteSpanRuns8(
+	const FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
+	const int *spanOffsets);
+void FlightSw_DrawRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun *runs,
+				      uint8_t *destBase,
+				      const int *spanOffsets);
+void FlightSw_DrawClippedRotSpriteSpanRuns16(
+	const FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
+	const int *spanOffsets);
+void FlightSw_DrawRotatedSpriteQuad(int16_t screenX, int16_t screenY,
+				    uint16_t screenSize, SpritePayload *sprite);
+void FlightSw_ClipAndBlitPreparedRotatedSprite(int *cornerCoords);
+void FlightSw_PrepareSpriteRotationTables(int16_t rotationAngle,
+					  int bytesPerPixel);
+int FlightSw_LoadSpritePaletteTables(SpritePayload *sprite);
 uint16_t FlightSw_LookupScaledTangent(uint16_t angle, int16_t scalePercent);
-void FlightSw_PrepareRotatedSpriteScaleState(uint16_t screenSize, FlightSwRotSpriteCoeffState* rotationCoeffs,
-											 FlightSwRotSpriteScaleState* scaleState);
-void FlightSw_RotateSpritePoint(uint16_t* rotationCoeffs, FlightSwRotSpriteScaleState* scaleState);
-void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle, uint16_t* outCoeffs);
-void FlightSw_RasterizePreparedRotatedSprite(uint8_t* spriteData, int packingMode);
+void FlightSw_PrepareRotatedSpriteScaleState(
+	uint16_t screenSize, FlightSwRotSpriteCoeffState *rotationCoeffs,
+	FlightSwRotSpriteScaleState *scaleState);
+void FlightSw_RotateSpritePoint(uint16_t *rotationCoeffs,
+				FlightSwRotSpriteScaleState *scaleState);
+void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle,
+					uint16_t *outCoeffs);
+void FlightSw_RasterizePreparedRotatedSprite(uint8_t *spriteData,
+					     int packingMode);
 void FlightSw_AdvanceRotSpriteSecondaryScale(void);
 int FlightSw_InitRotSpriteForCurrentOctant(void);
 int FlightSw_StepRotSpriteForCurrentOctant(void);
@@ -227,50 +242,65 @@ int FlightSw_InitRotSpriteOctant6(void);
 int FlightSw_StepRotSpriteOctant6(void);
 int FlightSw_InitRotSpriteOctant7(void);
 int FlightSw_StepRotSpriteOctant7(void);
-uint8_t* FlightSw_SetRotatedSpriteDestBuffer(uint8_t* bufferAddress);
-unsigned int SetFlightViewport(unsigned int requestedWidth, unsigned int requestedHeight, int arg3,
-							   unsigned int requestedBaseOffset);
-void FlightSw_CopyLegacy8BitViewportToFramebuffer(const uint8_t* srcPixels);
-unsigned int PushFlightViewport(uint16_t width, uint16_t height, int16_t arg3, unsigned int baseOffset);
+uint8_t *FlightSw_SetRotatedSpriteDestBuffer(uint8_t *bufferAddress);
+unsigned int SetFlightViewport(unsigned int requestedWidth,
+			       unsigned int requestedHeight, int arg3,
+			       unsigned int requestedBaseOffset);
+void FlightSw_CopyLegacy8BitViewportToFramebuffer(const uint8_t *srcPixels);
+unsigned int PushFlightViewport(uint16_t width, uint16_t height, int16_t arg3,
+				unsigned int baseOffset);
 int PopFlightViewport(void);
-void FlightSw_BlitRectToFlightSurface(uint8_t* sourceBase, uint16_t transparentColorIndex, uint16_t sourceX,
-									  uint16_t sourceY, uint16_t destinationX, uint16_t destinationY,
-									  uint16_t widthPixels, uint16_t heightPixels, uint16_t sourcePitch);
-void FlightSw_CopyFramebufferRectToBuffer(uint8_t* dstPixels, uint16_t srcX, uint16_t srcY, uint16_t dstX,
-										  uint16_t dstY, uint16_t widthPixels, uint16_t heightPixels,
-										  uint16_t dstPitchBytes);
-void FlightSw_DrawHorizontalColorSpan(int xStart, int xEnd, int y, uint8_t colorIndex);
-void FlightSw_CopyViewportSpanMaskRle(const uint8_t* encodedMask, uint16_t width, uint16_t height,
-									  int16_t mirrorHorizontal);
-extern uint8_t* g_flightAuxBuffer;
+void FlightSw_BlitRectToFlightSurface(
+	uint8_t *sourceBase, uint16_t transparentColorIndex, uint16_t sourceX,
+	uint16_t sourceY, uint16_t destinationX, uint16_t destinationY,
+	uint16_t widthPixels, uint16_t heightPixels, uint16_t sourcePitch);
+void FlightSw_CopyFramebufferRectToBuffer(uint8_t *dstPixels, uint16_t srcX,
+					  uint16_t srcY, uint16_t dstX,
+					  uint16_t dstY, uint16_t widthPixels,
+					  uint16_t heightPixels,
+					  uint16_t dstPitchBytes);
+void FlightSw_DrawHorizontalColorSpan(int xStart, int xEnd, int y,
+				      uint8_t colorIndex);
+void FlightSw_CopyViewportSpanMaskRle(const uint8_t *encodedMask,
+				      uint16_t width, uint16_t height,
+				      int16_t mirrorHorizontal);
+extern uint8_t *g_flightAuxBuffer;
 extern uint16_t g_viewportSpanMaskOffset;
 extern int g_flightSwRotSpriteCoeffCacheValid;
 
 void FlightSw_BuildFullViewportSpanMaskRle(uint16_t width, unsigned int height);
 int32_t FlightSw_ComputePixelOffset(int x, int y);
-void FlightSw_BlitSpriteRle16bpp(uint8_t* rleData, int x, int y, int transparentColorIndex, int mirror);
-void FlightSw_BlitSpriteRleFaded16bpp(uint8_t* rleData, int x, int y, int transparentColorIndex,
-									  int8_t paletteShift, int16_t fadeAmount);
-void FlightSw_BlitSpriteRleImpl16bpp(uint8_t* rleData, int16_t x, int16_t y, int transparentColorIndex,
-									 int mirror, char isFaded, int16_t fadeAmount);
-void FlightSw_BlitMapIconRle16bpp(uint8_t* rleData, int x, int y, int transparentIndex, int mirror);
+void FlightSw_BlitSpriteRle16bpp(uint8_t *rleData, int x, int y,
+				 int transparentColorIndex, int mirror);
+void FlightSw_BlitSpriteRleFaded16bpp(uint8_t *rleData, int x, int y,
+				      int transparentColorIndex,
+				      int8_t paletteShift, int16_t fadeAmount);
+void FlightSw_BlitSpriteRleImpl16bpp(uint8_t *rleData, int16_t x, int16_t y,
+				     int transparentColorIndex, int mirror,
+				     char isFaded, int16_t fadeAmount);
+void FlightSw_BlitMapIconRle16bpp(uint8_t *rleData, int x, int y,
+				  int transparentIndex, int mirror);
 void FlightSw_DrawPixel16bpp(uint16_t x, uint16_t y, int8_t colorIndex);
 void FlightSw_FillClipRect16bpp(void);
 void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness);
-void FlightSw_FillRectClipped16bpp(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2,
-								   uint16_t borderThickness);
-void FlightSw_SaveScreenRect16bpp(uint16_t* buffer, int x, int y, int16_t width, int height);
-void FlightSw_RestoreScreenRect16bpp(uint16_t* buffer, int x, int y, int16_t width, int height);
-void FlightSw_DrawPointArray16bpp(uint16_t* points, int16_t count);
-void FlightSw_ErasePointArray16bpp(uint16_t* points, int16_t count);
+void FlightSw_FillRectClipped16bpp(uint16_t x1, uint16_t y1, uint16_t x2,
+				   uint16_t y2, uint16_t borderThickness);
+void FlightSw_SaveScreenRect16bpp(uint16_t *buffer, int x, int y, int16_t width,
+				  int height);
+void FlightSw_RestoreScreenRect16bpp(uint16_t *buffer, int x, int y,
+				     int16_t width, int height);
+void FlightSw_DrawPointArray16bpp(uint16_t *points, int16_t count);
+void FlightSw_ErasePointArray16bpp(uint16_t *points, int16_t count);
 void FlightSw_DrawRadarTargetMarker16bpp(void);
 void FlightSw_RestoreRadarTargetMarker16bpp(void);
-uint16_t FlightSw_DrawCrossMarker16bpp(uint16_t x, uint16_t y, uint8_t colorIndex);
+uint16_t FlightSw_DrawCrossMarker16bpp(uint16_t x, uint16_t y,
+				       uint8_t colorIndex);
 uint16_t FlightSw_RestoreCrossMarker16bpp(uint16_t x, uint16_t y);
 void FlightSw_DrawLine16bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx);
 int16_t FlightSw_LookupSpriteSineQ15(int16_t angle);
-void FlightSw_BlitPreparedRotatedSpriteSpans(uint8_t* pDst, int rowSkipBytes, int startX, int startY,
-											 int endX, int endY);
+void FlightSw_BlitPreparedRotatedSpriteSpans(uint8_t *pDst, int rowSkipBytes,
+					     int startX, int startY, int endX,
+					     int endY);
 
 #ifdef __cplusplus
 }

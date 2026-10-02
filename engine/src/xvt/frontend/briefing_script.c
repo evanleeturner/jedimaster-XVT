@@ -9,7 +9,8 @@
 
 // GLOBAL: XVT 0x52CF10
 const int16_t g_briefingScriptOpcodeArgCounts[35] = {
-	0, 0, 1, 0, 1, 1, 2, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 1, 0, 1, 1, 2, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+	4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
 // GLOBAL: XVT 0x6691E6
@@ -19,9 +20,9 @@ int g_briefingLastNarratedTextBlockIdx = 0;
 // GLOBAL: XVT 0x66921C
 int g_briefingTextPageNumber = 0;
 // GLOBAL: XVT 0x6696DA
-int16_t g_briefingTextSlotActive[2] = { 0 };
+int16_t g_briefingTextSlotActive[2] = {0};
 // GLOBAL: XVT 0x6696DE
-int16_t g_briefingTextSlotBlockIdx[2] = { 0 };
+int16_t g_briefingTextSlotBlockIdx[2] = {0};
 // GLOBAL: XVT 0x6696E2
 int16_t g_briefingTextSlotsChanged = 0;
 // GLOBAL: XVT 0x669778
@@ -31,7 +32,8 @@ int16_t g_briefingScriptPauseMarkerReached = 0;
 struct FrontendBriefingScript g_briefingScript;
 
 // FUNCTION: XVT 0x4F6950
-void BriefingScript_AdvanceOrResetAtEnd(int frameCounter) {
+void BriefingScript_AdvanceOrResetAtEnd(int frameCounter)
+{
 	(void)frameCounter;
 
 	if (g_briefingPlaybackActive != 0) {
@@ -41,7 +43,8 @@ void BriefingScript_AdvanceOrResetAtEnd(int frameCounter) {
 }
 
 // FUNCTION: XVT 0x4F7340
-int16_t BriefingScript_InitDefaultScript(void) {
+int16_t BriefingScript_InitDefaultScript(void)
+{
 	g_briefingScript.durationFrames = 200;
 	g_briefingScript.headerWord06 = 2;
 	g_briefingScript.words[0] = 9999;
@@ -53,7 +56,8 @@ int16_t BriefingScript_InitDefaultScript(void) {
 }
 
 // FUNCTION: XVT 0x4F7380
-int16_t BriefingScript_ResetState(void) {
+int16_t BriefingScript_ResetState(void)
+{
 	int16_t index;
 
 	g_briefingMapCenter.x = 0;
@@ -79,7 +83,9 @@ int16_t BriefingScript_ResetState(void) {
 }
 
 // FUNCTION: XVT 0x4F7420
-int16_t BriefingScript_AdvanceUntilTime(int16_t targetTime, int16_t initializeState) {
+int16_t BriefingScript_AdvanceUntilTime(int16_t targetTime,
+					int16_t initializeState)
+{
 	if (g_briefingScript.currentFrame - targetTime != 1) {
 		if (targetTime < g_briefingScript.currentFrame) {
 			BriefingScript_ResetState();
@@ -93,7 +99,8 @@ int16_t BriefingScript_AdvanceUntilTime(int16_t targetTime, int16_t initializeSt
 }
 
 // FUNCTION: XVT 0x4F7480
-int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
+int16_t BriefingScript_AdvanceToNextVisibleLine(void)
+{
 	int16_t textSlotActive;
 	int16_t visibleTextFrames;
 	int16_t opcode;
@@ -113,7 +120,8 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 		if (opcode == 34) {
 			break;
 		}
-		opcode = g_briefingScript.words[g_briefingScript.cursorWordIndex + 1];
+		opcode = g_briefingScript
+				 .words[g_briefingScript.cursorWordIndex + 1];
 		if (g_briefingTextSlotsChanged != 0) {
 			visibleTextFrames = 0;
 			textSlotActive = 0;
@@ -126,8 +134,9 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 		if (textSlotActive != 0) {
 			++visibleTextFrames;
 		}
-		if ((g_briefingScriptPauseMarkerReached != 0 || visibleTextFrames == 1) &&
-			startTime <= g_briefingScript.currentFrame) {
+		if ((g_briefingScriptPauseMarkerReached != 0 ||
+		     visibleTextFrames == 1) &&
+		    startTime <= g_briefingScript.currentFrame) {
 			done = 1;
 		} else {
 			BriefingScript_AdvanceFrame(1);
@@ -138,8 +147,11 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 		targetTime = g_briefingScript.currentFrame;
 		targetOpcode = 0;
 	} else {
-		targetTime = g_briefingScript.words[g_briefingScript.cursorWordIndex];
-		targetOpcode = g_briefingScript.words[g_briefingScript.cursorWordIndex + 1];
+		targetTime = g_briefingScript
+				     .words[g_briefingScript.cursorWordIndex];
+		targetOpcode =
+			g_briefingScript
+				.words[g_briefingScript.cursorWordIndex + 1];
 	}
 	if (targetOpcode == 34) {
 		g_briefingLastNarratedTextBlockIdx = 0;
@@ -150,7 +162,8 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void) {
 }
 
 // FUNCTION: XVT 0x4F7590
-int16_t BriefingScript_AdvanceFrame(int16_t applyInstantly) {
+int16_t BriefingScript_AdvanceFrame(int16_t applyInstantly)
+{
 	int16_t cursorWordIndex;
 	int16_t savedCursorWordIndex;
 	int16_t eventTime;
@@ -178,116 +191,170 @@ int16_t BriefingScript_AdvanceFrame(int16_t applyInstantly) {
 			eventTime = g_briefingScript.words[cursorWordIndex++];
 			opcode = g_briefingScript.words[cursorWordIndex++];
 			argumentCount = g_briefingScriptOpcodeArgCounts[opcode];
-			for (argumentIndex = 0; argumentIndex < argumentCount; ++argumentIndex) {
-				args[argumentIndex] = g_briefingScript.words[cursorWordIndex++];
+			for (argumentIndex = 0; argumentIndex < argumentCount;
+			     ++argumentIndex) {
+				args[argumentIndex] =
+					g_briefingScript
+						.words[cursorWordIndex++];
 			}
 
 			if (eventTime == g_briefingScript.currentFrame) {
 				switch (opcode) {
-					case 1:
-						g_briefingScriptPauseMarkerReached = 1;
-						break;
-					case 3:
-						for (slotIndex = 0; slotIndex < 2; ++slotIndex) {
-							g_briefingTextSlotActive[slotIndex] = 0;
+				case 1:
+					g_briefingScriptPauseMarkerReached = 1;
+					break;
+				case 3:
+					for (slotIndex = 0; slotIndex < 2;
+					     ++slotIndex) {
+						g_briefingTextSlotActive
+							[slotIndex] = 0;
+					}
+					g_briefingTextSlotsChanged = 1;
+					break;
+				case 4:
+				case 5:
+					slotIndex = opcode - 4;
+					g_briefingTextSlotActive[slotIndex] = 1;
+					g_briefingTextSlotBlockIdx[slotIndex] =
+						args[0];
+					break;
+				case 6:
+					if (eventTime == 0 ||
+					    applyInstantly != 0) {
+						g_briefingMapTargetCenter.x =
+							args[0];
+						g_briefingMapCenter.x = args[0];
+						g_briefingMapTargetCenter.y =
+							args[1];
+						g_briefingMapCenter.y = args[1];
+					} else {
+						g_briefingMapTargetCenter.x =
+							args[0];
+						g_briefingMapTargetCenter.y =
+							args[1];
+					}
+					g_briefingMapCenterDirty = 1;
+					break;
+				case 7:
+					if (eventTime == 0 ||
+					    applyInstantly != 0) {
+						g_briefingMapTargetScale.x =
+							args[0];
+						g_briefingMapScale.x = args[0];
+						g_briefingMapTargetScale.y =
+							args[1];
+						g_briefingMapScale.y = args[1];
+					} else {
+						g_briefingMapTargetScale.x =
+							args[0];
+						g_briefingMapTargetScale.y =
+							args[1];
+					}
+					g_briefingMapScaleDirty = 1;
+					break;
+				case 8:
+					for (slotIndex = 0; slotIndex < 8;
+					     ++slotIndex) {
+						g_briefingMapFgMarkerActive
+							[slotIndex] = 0;
+					}
+					g_briefingMapFgMarkersChanged = 1;
+					break;
+				case 9:
+				case 10:
+				case 11:
+				case 12:
+				case 13:
+				case 14:
+				case 15:
+				case 16:
+					if (applyInstantly == 0) {
+						iff = g_frontendMission
+							      .flightGroups
+								      [args[0]]
+							      .iff;
+						if (iff > 2) {
+							iff = 2;
 						}
-						g_briefingTextSlotsChanged = 1;
-						break;
-					case 4:
-					case 5:
-						slotIndex = opcode - 4;
-						g_briefingTextSlotActive[slotIndex] = 1;
-						g_briefingTextSlotBlockIdx[slotIndex] = args[0];
-						break;
-					case 6:
-						if (eventTime == 0 || applyInstantly != 0) {
-							g_briefingMapTargetCenter.x = args[0];
-							g_briefingMapCenter.x = args[0];
-							g_briefingMapTargetCenter.y = args[1];
-							g_briefingMapCenter.y = args[1];
-						} else {
-							g_briefingMapTargetCenter.x = args[0];
-							g_briefingMapTargetCenter.y = args[1];
-						}
-						g_briefingMapCenterDirty = 1;
-						break;
-					case 7:
-						if (eventTime == 0 || applyInstantly != 0) {
-							g_briefingMapTargetScale.x = args[0];
-							g_briefingMapScale.x = args[0];
-							g_briefingMapTargetScale.y = args[1];
-							g_briefingMapScale.y = args[1];
-						} else {
-							g_briefingMapTargetScale.x = args[0];
-							g_briefingMapTargetScale.y = args[1];
-						}
-						g_briefingMapScaleDirty = 1;
-						break;
-					case 8:
-						for (slotIndex = 0; slotIndex < 8; ++slotIndex) {
-							g_briefingMapFgMarkerActive[slotIndex] = 0;
-						}
-						g_briefingMapFgMarkersChanged = 1;
-						break;
-					case 9:
-					case 10:
-					case 11:
-					case 12:
-					case 13:
-					case 14:
-					case 15:
-					case 16:
-						if (applyInstantly == 0) {
-							iff = g_frontendMission.flightGroups[args[0]].iff;
-							if (iff > 2) {
-								iff = 2;
+						if (iff == 1) {
+							if (g_gameConfig
+								    .sfxDatapadEnabled !=
+							    0) {
+								FrontendSound_PlayUISound(
+									"sfxTarget2",
+									1, 0,
+									127,
+									12 * g_gameConfig
+											.sfxDatapadVolume,
+									63);
 							}
-							if (iff == 1) {
-								if (g_gameConfig.sfxDatapadEnabled != 0) {
-									FrontendSound_PlayUISound("sfxTarget2", 1, 0, 127,
-															  12 * g_gameConfig.sfxDatapadVolume, 63);
-								}
-							} else if (g_gameConfig.sfxDatapadEnabled != 0) {
-								FrontendSound_PlayUISound("sfxTarget1", 1, 0, 127,
-														  12 * g_gameConfig.sfxDatapadVolume, 63);
-							}
+						} else if (
+							g_gameConfig
+								.sfxDatapadEnabled !=
+							0) {
+							FrontendSound_PlayUISound(
+								"sfxTarget1", 1,
+								0, 127,
+								12 * g_gameConfig
+										.sfxDatapadVolume,
+								63);
 						}
-						slotIndex = opcode - 9;
-						g_briefingMapFgMarkerActive[slotIndex] = 1;
-						g_briefingMapFgMarkerAge[slotIndex] = applyInstantly == 0 ? 0 : 80;
-						g_briefingMapFgMarkerFlightGroupIdx[slotIndex] = args[0];
-						break;
-					case 17:
-						for (slotIndex = 0; slotIndex < 8; ++slotIndex) {
-							g_briefingMapLabelActive[slotIndex] = 0;
+					}
+					slotIndex = opcode - 9;
+					g_briefingMapFgMarkerActive[slotIndex] =
+						1;
+					g_briefingMapFgMarkerAge[slotIndex] =
+						applyInstantly == 0 ? 0 : 80;
+					g_briefingMapFgMarkerFlightGroupIdx
+						[slotIndex] = args[0];
+					break;
+				case 17:
+					for (slotIndex = 0; slotIndex < 8;
+					     ++slotIndex) {
+						g_briefingMapLabelActive
+							[slotIndex] = 0;
+					}
+					g_briefingMapLabelsChanged = 1;
+					break;
+				case 18:
+				case 19:
+				case 20:
+				case 21:
+				case 22:
+				case 23:
+				case 24:
+				case 25:
+					if (applyInstantly == 0) {
+						strcpy(labelText,
+						       g_briefingMapLabelTexts
+							       [args[0]]);
+						if ((uint16_t)strlen(
+							    labelText) != 0 &&
+						    g_gameConfig.sfxDatapadEnabled !=
+							    0) {
+							FrontendSound_PlayUISound(
+								"sfxText", 1, 0,
+								127,
+								12 * g_gameConfig
+										.sfxDatapadVolume,
+								63);
 						}
-						g_briefingMapLabelsChanged = 1;
-						break;
-					case 18:
-					case 19:
-					case 20:
-					case 21:
-					case 22:
-					case 23:
-					case 24:
-					case 25:
-						if (applyInstantly == 0) {
-							strcpy(labelText, g_briefingMapLabelTexts[args[0]]);
-							if ((uint16_t)strlen(labelText) != 0 && g_gameConfig.sfxDatapadEnabled != 0) {
-								FrontendSound_PlayUISound("sfxText", 1, 0, 127,
-														  12 * g_gameConfig.sfxDatapadVolume, 63);
-							}
-						}
-						slotIndex = opcode - 18;
-						g_briefingMapLabelActive[slotIndex] = 1;
-						g_briefingMapLabelAge[slotIndex] = applyInstantly == 0 ? 0 : 80;
-						g_briefingMapLabelTextIdx[slotIndex] = args[0];
-						g_briefingMapLabelX[slotIndex] = args[1];
-						g_briefingMapLabelY[slotIndex] = args[2];
-						g_briefingMapLabelStyle[slotIndex] = args[3];
-						break;
-					default:
-						break;
+					}
+					slotIndex = opcode - 18;
+					g_briefingMapLabelActive[slotIndex] = 1;
+					g_briefingMapLabelAge[slotIndex] =
+						applyInstantly == 0 ? 0 : 80;
+					g_briefingMapLabelTextIdx[slotIndex] =
+						args[0];
+					g_briefingMapLabelX[slotIndex] =
+						args[1];
+					g_briefingMapLabelY[slotIndex] =
+						args[2];
+					g_briefingMapLabelStyle[slotIndex] =
+						args[3];
+					break;
+				default:
+					break;
 				}
 			}
 		} while (eventTime <= g_briefingScript.currentFrame);

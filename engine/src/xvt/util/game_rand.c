@@ -11,7 +11,8 @@ uint16_t g_gameRand2FeedbackState = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x425CB0
-int16_t GameRand(void) {
+int16_t GameRand(void)
+{
 	int16_t result;
 	int16_t iterations;
 	int carryOut;
@@ -22,9 +23,15 @@ int16_t GameRand(void) {
 	iterations = 16;
 	do {
 		high = (uint8_t)(g_gameRandFeedbackState >> 8);
-		carryOut = (((uint16_t)(high ^ (uint16_t)((uint8_t)g_gameRandFeedbackState * 2))) & 0x80) != 0;
+		carryOut =
+			(((uint16_t)(high ^
+				     (uint16_t)((uint8_t)
+							g_gameRandFeedbackState *
+						2))) &
+			 0x80) != 0;
 		seedSign = (high & 0x80) != 0;
-		g_gameRandFeedbackState = (int16_t)(2 * g_gameRandFeedbackState + carryOut);
+		g_gameRandFeedbackState =
+			(int16_t)(2 * g_gameRandFeedbackState + carryOut);
 		result = (int16_t)(2 * result + seedSign);
 	} while (--iterations != 0);
 
@@ -33,7 +40,8 @@ int16_t GameRand(void) {
 }
 
 // FUNCTION: XVT 0x425D10
-uint16_t GameRand2(void) {
+uint16_t GameRand2(void)
+{
 	uint16_t result;
 	int16_t iterations;
 	unsigned char carryOut;
@@ -44,10 +52,12 @@ uint16_t GameRand2(void) {
 	do {
 		uint16_t feedback;
 
-		feedback = (uint8_t)(g_gameRand2FeedbackState >> 8) ^ ((uint8_t)g_gameRand2FeedbackState * 2);
+		feedback = (uint8_t)(g_gameRand2FeedbackState >> 8) ^
+			   ((uint8_t)g_gameRand2FeedbackState * 2);
 		carryOut = (feedback & 0x80) != 0;
 		seedSign = (g_gameRand2FeedbackState & 0x8000) != 0;
-		g_gameRand2FeedbackState = (uint16_t)(2 * g_gameRand2FeedbackState + carryOut);
+		g_gameRand2FeedbackState =
+			(uint16_t)(2 * g_gameRand2FeedbackState + carryOut);
 		result = (uint16_t)(2 * result + seedSign);
 	} while (--iterations != 0);
 	g_gameRand2ValueState = result;
@@ -55,7 +65,8 @@ uint16_t GameRand2(void) {
 }
 
 // FUNCTION: XVT 0x459B10
-uint16_t GameRandRange(uint16_t modulus) {
+uint16_t GameRandRange(uint16_t modulus)
+{
 	uint16_t value;
 
 	if (modulus == 0) {

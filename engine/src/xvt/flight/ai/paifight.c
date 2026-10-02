@@ -19,7 +19,7 @@
 // GLOBAL: XVT 0x9A1FDC
 uint8_t g_aiEscortCandidateFgIdx = 0;
 // GLOBAL: XVT 0x99F930
-uint8_t g_paifightGunnerTargetCandidateSet[976] = { 0 };
+uint8_t g_paifightGunnerTargetCandidateSet[976] = {0};
 // GLOBAL: XVT 0xA08144
 int g_paifightSearchOriginX = 0;
 // GLOBAL: XVT 0xA08140
@@ -29,50 +29,70 @@ int g_paifightSearchOriginZ = 0;
 // GLOBAL: XVT 0xA8F750
 int g_gunnerCollisionProbeCount = 0;
 // GLOBAL: XVT 0x524290
-const unsigned int g_aiFighterShootMaxRangeBySkill[3] = { 0x6000, 0x8000, 0xA000 };
+const unsigned int g_aiFighterShootMaxRangeBySkill[3] = {0x6000, 0x8000,
+							 0xA000};
 // GLOBAL: XVT 0x52429C
-const uint8_t g_aiFighterShootBurstLengthBySkill[4] = { 3, 4, 5, 0 };
+const uint8_t g_aiFighterShootBurstLengthBySkill[4] = {3, 4, 5, 0};
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x45C370
-int16_t paifight_scanfortargetorder(void) {
+int16_t paifight_scanfortargetorder(void)
+{
 	enum { TARGET_SEARCH_ALL_REQUIREMENTS = 7 };
 
 	uint16_t candidateTargetIdx;
 	int16_t targetObject;
-	PaiPlanRecord* plan;
+	PaiPlanRecord *plan;
 
-	if (g_paiContext.controller->maneuverMode == g_paiContext.initialManeuverId) {
-		candidateTargetIdx = g_paiContext.controller->candidateTargetIdx;
-		if (candidateTargetIdx != UINT16_MAX && candidateTargetIdx != AI_TARGET_ABORT) {
+	if (g_paiContext.controller->maneuverMode ==
+	    g_paiContext.initialManeuverId) {
+		candidateTargetIdx =
+			g_paiContext.controller->candidateTargetIdx;
+		if (candidateTargetIdx != UINT16_MAX &&
+		    candidateTargetIdx != AI_TARGET_ABORT) {
 			int validTarget;
 
-			validTarget = pai_IsObjectTargetable(candidateTargetIdx);
+			validTarget =
+				pai_IsObjectTargetable(candidateTargetIdx);
 			if (validTarget != 0) {
-				g_paiContext.controller->targetObjIdx = candidateTargetIdx;
-				g_paiContext.controller->targetSignature = g_objectTable[candidateTargetIdx].objectSignature;
+				g_paiContext.controller->targetObjIdx =
+					candidateTargetIdx;
+				g_paiContext.controller->targetSignature =
+					g_objectTable[candidateTargetIdx]
+						.objectSignature;
 				g_paiContext.controller->hasLiveTarget = 1;
 				return 1;
 			}
-			g_paiContext.controller->candidateTargetIdx = UINT16_MAX;
+			g_paiContext.controller->candidateTargetIdx =
+				UINT16_MAX;
 		}
 
 		plan = &g_planTable[g_paiContext.controller->currentPlanId];
-		if (strcmp(plan->name, "disableldr1pln") == 0)
+		if (strcmp(plan->name, "disableldr1pln") == 0) {
 			g_paiContext.requireUndisabledTarget = 1;
-		else
+		} else {
 			g_paiContext.requireUndisabledTarget = 0;
+		}
 		g_paiContext.targetSearchFlags = TARGET_SEARCH_ALL_REQUIREMENTS;
-		if (strcmp(plan->name, "capfreeldr1pln") == 0 || strcmp(plan->name, "disableldr1pln") == 0 ||
-			strcmp(plan->name, "kamikaze1pln") == 0)
-			targetObject = paifight_FindAttackOrderTargetFromOrder(g_paiContext.orderSlot);
-		else if (strcmp(plan->name, "capescortersldr1pln") == 0)
-			targetObject = paifight_TargetEscortLeaderFromOrder(g_paiContext.orderSlot);
-		else
-			targetObject = paifight_FindAttackerOfOrderTargetFromOrder(g_paiContext.orderSlot);
+		if (strcmp(plan->name, "capfreeldr1pln") == 0 ||
+		    strcmp(plan->name, "disableldr1pln") == 0 ||
+		    strcmp(plan->name, "kamikaze1pln") == 0) {
+			targetObject = paifight_FindAttackOrderTargetFromOrder(
+				g_paiContext.orderSlot);
+		} else if (strcmp(plan->name, "capescortersldr1pln") == 0) {
+			targetObject = paifight_TargetEscortLeaderFromOrder(
+				g_paiContext.orderSlot);
+		} else {
+			targetObject =
+				paifight_FindAttackerOfOrderTargetFromOrder(
+					g_paiContext.orderSlot);
+		}
 		if (targetObject != -1) {
-			g_paiContext.controller->targetObjIdx = (uint16_t)targetObject;
-			g_paiContext.controller->targetSignature = g_objectTable[(uint16_t)targetObject].objectSignature;
+			g_paiContext.controller->targetObjIdx =
+				(uint16_t)targetObject;
+			g_paiContext.controller->targetSignature =
+				g_objectTable[(uint16_t)targetObject]
+					.objectSignature;
 			g_paiContext.controller->hasLiveTarget = 1;
 			return 1;
 		}
@@ -81,30 +101,48 @@ int16_t paifight_scanfortargetorder(void) {
 }
 
 // FUNCTION: XVT 0x45C630
-int16_t paifight_FindAttackOrderTargetFromOrder(uint16_t orderSlot) {
+int16_t paifight_FindAttackOrderTargetFromOrder(uint16_t orderSlot)
+{
 	int orderIndex;
 	int16_t result;
 
 	orderIndex = orderSlot;
 	result = paifight_FindNearestAttackOrderTarget(
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2);
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target1Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target1,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target1OrTarget2,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target2Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target2);
 	if (result == -1) {
 		result = paifight_FindNearestAttackOrderTarget(
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[0],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[0],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target3OrTarget4,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
+				.fg.orders[orderIndex]
+				.target3OrTarget4,
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[1],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[1]);
 	}
@@ -112,8 +150,12 @@ int16_t paifight_FindAttackOrderTargetFromOrder(uint16_t orderSlot) {
 }
 
 // FUNCTION: XVT 0x45C720
-int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t target1, int16_t targetOrMode,
-											  int16_t target2Type, uint16_t target2) {
+int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type,
+					      uint16_t target1,
+					      int16_t targetOrMode,
+					      int16_t target2Type,
+					      uint16_t target2)
+{
 	enum {
 		TARGET_RELATION_OR = 1,
 		TARGETABLE_STATIC_MODEL_FLAG = 2,
@@ -128,43 +170,59 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 	int16_t trigger2Matches;
 	uint16_t bestObject;
 	unsigned int bestScore;
-	MobileObject* mobileObject;
-	CraftData* craft;
+	MobileObject *mobileObject;
+	CraftData *craft;
 	int validTarget;
 
 	{
 		uint16_t objectIndex;
 
 		for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-			 objectIndex < (int)g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
+		     objectIndex < (int)g_activeRegionCraftObjectSlotEnd;
+		     ++objectIndex) {
 			int objectArrayIndex;
 
 			objectArrayIndex = objectIndex;
 			if (g_objectTable[objectArrayIndex].objectType == 0 ||
-				g_objectTable[objectArrayIndex].flightGroupIdx == g_paiContext.craftFlightGroupIndex)
+			    g_objectTable[objectArrayIndex].flightGroupIdx ==
+				    g_paiContext.craftFlightGroupIndex) {
 				continue;
-			trigger1Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
-			trigger2Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
-			if (targetOrMode == TARGET_RELATION_OR)
+			}
+			trigger1Matches = Mission_ObjectMatchesTriggerVariable(
+				objectIndex, target1Type, target1);
+			trigger2Matches = Mission_ObjectMatchesTriggerVariable(
+				objectIndex, target2Type, target2);
+			if (targetOrMode == TARGET_RELATION_OR) {
 				trigger1Matches |= trigger2Matches;
-			else
+			} else {
 				trigger1Matches &= trigger2Matches;
-			if (trigger1Matches == 0 || g_curCraft->playerCommandAvoidTargetObjIdx == objectIndex)
+			}
+			if (trigger1Matches == 0 ||
+			    g_curCraft->playerCommandAvoidTargetObjIdx ==
+				    objectIndex) {
 				continue;
+			}
 
 			validTarget = pai_IsObjectTargetable(objectIndex);
-			if (validTarget == 0)
+			if (validTarget == 0) {
 				continue;
+			}
 			mobileObject = g_objectTable[objectArrayIndex].mobj;
 			craft = mobileObject->pCraft;
 			if ((g_paiContext.requireUndisabledTarget == 0 ||
-				 (craft->workingSubsystems != 0 &&
-				  (g_paiContext.requireUndisabledTarget == 0 || craft->capturedByFlightGroup == 0 ||
-				   g_objectTable[g_paiContext.objectIndex].mobj->team !=
-					   g_objectTable[objectArrayIndex].mobj->team))) &&
-				((g_paiContext.targetSearchFlags & TARGET_SEARCH_REQUIRE_ORDER_RANGE) == 0 ||
-				 pai_IsObjectWithinSkillRangeOfCraft(objectIndex)))
+			     (craft->workingSubsystems != 0 &&
+			      (g_paiContext.requireUndisabledTarget == 0 ||
+			       craft->capturedByFlightGroup == 0 ||
+			       g_objectTable[g_paiContext.objectIndex]
+					       .mobj->team !=
+				       g_objectTable[objectArrayIndex]
+					       .mobj->team))) &&
+			    ((g_paiContext.targetSearchFlags &
+			      TARGET_SEARCH_REQUIRE_ORDER_RANGE) == 0 ||
+			     pai_IsObjectWithinSkillRangeOfCraft(
+				     objectIndex))) {
 				++candidateCount;
+			}
 		}
 	}
 
@@ -172,34 +230,48 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 		uint16_t objectIndex;
 
 		for (objectIndex = (uint16_t)g_regionMainObjectSlotEnd;
-			 objectIndex < g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd; ++objectIndex) {
+		     objectIndex <
+		     g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd;
+		     ++objectIndex) {
 			int objectArrayIndex;
 			uint16_t objectType;
 
 			objectArrayIndex = objectIndex;
 			objectType = g_objectTable[objectArrayIndex].objectType;
 			if (objectType == 0 ||
-				(g_objectTypeTable[objectType].behaviorFlags & TARGETABLE_STATIC_MODEL_FLAG) == 0)
+			    (g_objectTypeTable[objectType].behaviorFlags &
+			     TARGETABLE_STATIC_MODEL_FLAG) == 0) {
 				continue;
-			trigger1Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
-			trigger2Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
-			if (targetOrMode == TARGET_RELATION_OR)
+			}
+			trigger1Matches = Mission_ObjectMatchesTriggerVariable(
+				objectIndex, target1Type, target1);
+			trigger2Matches = Mission_ObjectMatchesTriggerVariable(
+				objectIndex, target2Type, target2);
+			if (targetOrMode == TARGET_RELATION_OR) {
 				trigger1Matches |= trigger2Matches;
-			else
+			} else {
 				trigger1Matches &= trigger2Matches;
-			if (trigger1Matches == 0 || g_curCraft->playerCommandAvoidTargetObjIdx == objectIndex)
+			}
+			if (trigger1Matches == 0 ||
+			    g_curCraft->playerCommandAvoidTargetObjIdx ==
+				    objectIndex) {
 				continue;
+			}
 
 			validTarget = pai_IsObjectTargetable(objectIndex);
 			if (validTarget != 0 &&
-				((g_paiContext.targetSearchFlags & TARGET_SEARCH_REQUIRE_ORDER_RANGE) == 0 ||
-				 pai_IsObjectWithinSkillRangeOfCraft(objectIndex)))
+			    ((g_paiContext.targetSearchFlags &
+			      TARGET_SEARCH_REQUIRE_ORDER_RANGE) == 0 ||
+			     pai_IsObjectWithinSkillRangeOfCraft(
+				     objectIndex))) {
 				++candidateCount;
+			}
 		}
 	}
 
-	if (candidateCount == 0)
+	if (candidateCount == 0) {
 		return -1;
+	}
 	bestScore = UINT_MAX;
 	bestObject = UINT16_MAX;
 
@@ -207,47 +279,79 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 		uint16_t objectIndex;
 
 		for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-			 objectIndex < (int)g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
+		     objectIndex < (int)g_activeRegionCraftObjectSlotEnd;
+		     ++objectIndex) {
 			int objectArrayIndex;
 
 			objectArrayIndex = objectIndex;
 			if (g_objectTable[objectArrayIndex].objectType == 0 ||
-				g_objectTable[objectArrayIndex].flightGroupIdx == g_paiContext.craftFlightGroupIndex)
+			    g_objectTable[objectArrayIndex].flightGroupIdx ==
+				    g_paiContext.craftFlightGroupIndex) {
 				continue;
-			trigger1Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
-			trigger2Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
-			if (targetOrMode == TARGET_RELATION_OR)
+			}
+			trigger1Matches = Mission_ObjectMatchesTriggerVariable(
+				objectIndex, target1Type, target1);
+			trigger2Matches = Mission_ObjectMatchesTriggerVariable(
+				objectIndex, target2Type, target2);
+			if (targetOrMode == TARGET_RELATION_OR) {
 				trigger1Matches |= trigger2Matches;
-			else
+			} else {
 				trigger1Matches &= trigger2Matches;
-			if (trigger1Matches == 0 || g_curCraft->playerCommandAvoidTargetObjIdx == objectIndex)
+			}
+			if (trigger1Matches == 0 ||
+			    g_curCraft->playerCommandAvoidTargetObjIdx ==
+				    objectIndex) {
 				continue;
+			}
 
 			validTarget = pai_IsObjectTargetable(objectIndex);
-			if (validTarget == 0)
+			if (validTarget == 0) {
 				continue;
+			}
 			mobileObject = g_objectTable[objectArrayIndex].mobj;
 			craft = mobileObject->pCraft;
 			if ((g_paiContext.requireUndisabledTarget == 0 ||
-				 (craft->workingSubsystems != 0 &&
-				  (g_paiContext.requireUndisabledTarget == 0 || craft->capturedByFlightGroup == 0 ||
-				   g_objectTable[g_paiContext.objectIndex].mobj->team !=
-					   g_objectTable[objectArrayIndex].mobj->team))) &&
-				((g_paiContext.targetSearchFlags & TARGET_SEARCH_REQUIRE_ORDER_RANGE) == 0 ||
-				 pai_IsObjectWithinSkillRangeOfCraft(objectIndex)) &&
-				((g_paiContext.targetSearchFlags & TARGET_SEARCH_REQUIRE_CAPACITY) == 0 ||
-				 paifight_TargetHasAttackCapacity(objectIndex, (uint16_t)candidateCount))) {
-				if ((g_paiContext.targetSearchFlags & TARGET_SEARCH_USE_ORIGIN) != 0) {
+			     (craft->workingSubsystems != 0 &&
+			      (g_paiContext.requireUndisabledTarget == 0 ||
+			       craft->capturedByFlightGroup == 0 ||
+			       g_objectTable[g_paiContext.objectIndex]
+					       .mobj->team !=
+				       g_objectTable[objectArrayIndex]
+					       .mobj->team))) &&
+			    ((g_paiContext.targetSearchFlags &
+			      TARGET_SEARCH_REQUIRE_ORDER_RANGE) == 0 ||
+			     pai_IsObjectWithinSkillRangeOfCraft(
+				     objectIndex)) &&
+			    ((g_paiContext.targetSearchFlags &
+			      TARGET_SEARCH_REQUIRE_CAPACITY) == 0 ||
+			     paifight_TargetHasAttackCapacity(
+				     objectIndex, (uint16_t)candidateCount))) {
+				if ((g_paiContext.targetSearchFlags &
+				     TARGET_SEARCH_USE_ORIGIN) != 0) {
 					g_lastRoughDistance = collide_roughdistance3d(
-						g_objectTable[objectArrayIndex].world_x - g_paiContext.targetSearchOriginX,
-						g_objectTable[objectArrayIndex].world_y - g_paiContext.targetSearchOriginY,
-						g_objectTable[objectArrayIndex].world_z - g_paiContext.targetSearchOriginZ);
+						g_objectTable[objectArrayIndex]
+								.world_x -
+							g_paiContext
+								.targetSearchOriginX,
+						g_objectTable[objectArrayIndex]
+								.world_y -
+							g_paiContext
+								.targetSearchOriginY,
+						g_objectTable[objectArrayIndex]
+								.world_z -
+							g_paiContext
+								.targetSearchOriginZ);
 				} else {
-					pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIndex);
+					pai_ObjectRefUpdateRoughDistance(
+						g_paiContext.objectIndex,
+						objectIndex);
 				}
-				if ((g_lastRoughDistance <= ACTIVE_DECOY_IGNORE_RANGE ||
-					 Object_HasActiveDecoyBeam(objectIndex) != 1) &&
-					bestScore > (unsigned int)g_lastRoughDistance) {
+				if ((g_lastRoughDistance <=
+					     ACTIVE_DECOY_IGNORE_RANGE ||
+				     Object_HasActiveDecoyBeam(objectIndex) !=
+					     1) &&
+				    bestScore >
+					    (unsigned int)g_lastRoughDistance) {
 					bestScore = g_lastRoughDistance;
 					bestObject = objectIndex;
 				}
@@ -259,32 +363,48 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 		uint16_t objectIndex;
 
 		for (objectIndex = (uint16_t)g_regionMainObjectSlotEnd;
-			 objectIndex < g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd; ++objectIndex) {
+		     objectIndex <
+		     g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd;
+		     ++objectIndex) {
 			int objectArrayIndex;
 			uint16_t objectType;
 
 			objectArrayIndex = objectIndex;
 			objectType = g_objectTable[objectArrayIndex].objectType;
 			if (objectType == 0 ||
-				(g_objectTypeTable[objectType].behaviorFlags & TARGETABLE_STATIC_MODEL_FLAG) == 0)
+			    (g_objectTypeTable[objectType].behaviorFlags &
+			     TARGETABLE_STATIC_MODEL_FLAG) == 0) {
 				continue;
-			trigger1Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
-			trigger2Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
-			if (targetOrMode == TARGET_RELATION_OR)
+			}
+			trigger1Matches = Mission_ObjectMatchesTriggerVariable(
+				objectIndex, target1Type, target1);
+			trigger2Matches = Mission_ObjectMatchesTriggerVariable(
+				objectIndex, target2Type, target2);
+			if (targetOrMode == TARGET_RELATION_OR) {
 				trigger1Matches |= trigger2Matches;
-			else
+			} else {
 				trigger1Matches &= trigger2Matches;
-			if (trigger1Matches == 0 || g_curCraft->playerCommandAvoidTargetObjIdx == objectIndex)
+			}
+			if (trigger1Matches == 0 ||
+			    g_curCraft->playerCommandAvoidTargetObjIdx ==
+				    objectIndex) {
 				continue;
+			}
 
 			validTarget = pai_IsObjectTargetable(objectIndex);
 			if (validTarget != 0 &&
-				((g_paiContext.targetSearchFlags & TARGET_SEARCH_REQUIRE_ORDER_RANGE) == 0 ||
-				 pai_IsObjectWithinSkillRangeOfCraft(objectIndex)) &&
-				((g_paiContext.targetSearchFlags & TARGET_SEARCH_REQUIRE_CAPACITY) == 0 ||
-				 paifight_TargetHasAttackCapacity(objectIndex, (uint16_t)candidateCount))) {
-				pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIndex);
-				if (bestScore > (unsigned int)g_lastRoughDistance) {
+			    ((g_paiContext.targetSearchFlags &
+			      TARGET_SEARCH_REQUIRE_ORDER_RANGE) == 0 ||
+			     pai_IsObjectWithinSkillRangeOfCraft(
+				     objectIndex)) &&
+			    ((g_paiContext.targetSearchFlags &
+			      TARGET_SEARCH_REQUIRE_CAPACITY) == 0 ||
+			     paifight_TargetHasAttackCapacity(
+				     objectIndex, (uint16_t)candidateCount))) {
+				pai_ObjectRefUpdateRoughDistance(
+					g_paiContext.objectIndex, objectIndex);
+				if (bestScore >
+				    (unsigned int)g_lastRoughDistance) {
 					bestScore = g_lastRoughDistance;
 					bestObject = objectIndex;
 				}
@@ -295,30 +415,48 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 }
 
 // FUNCTION: XVT 0x45D1C0
-int16_t paifight_TargetEscortLeaderFromOrder(uint16_t orderSlot) {
+int16_t paifight_TargetEscortLeaderFromOrder(uint16_t orderSlot)
+{
 	int orderIndex;
 	int16_t result;
 
 	orderIndex = orderSlot;
 	result = paifight_TargetNearestEscortLeader(
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2);
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target1Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target1,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target1OrTarget2,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target2Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target2);
 	if (result == -1) {
 		result = paifight_TargetNearestEscortLeader(
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[0],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[0],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target3OrTarget4,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
+				.fg.orders[orderIndex]
+				.target3OrTarget4,
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[1],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[1]);
 	}
@@ -326,15 +464,19 @@ int16_t paifight_TargetEscortLeaderFromOrder(uint16_t orderSlot) {
 }
 
 // FUNCTION: XVT 0x45D2B0
-int16_t paifight_TargetNearestEscortLeader(int16_t target1Type, uint16_t target1, int16_t targetRelationOp,
-										   int16_t target2Type, uint16_t target2) {
+int16_t paifight_TargetNearestEscortLeader(int16_t target1Type,
+					   uint16_t target1,
+					   int16_t targetRelationOp,
+					   int16_t target2Type,
+					   uint16_t target2)
+{
 	uint16_t flightGroupIdx;
 	uint16_t bestObjectIndex;
 	unsigned int bestRangeScore;
 	int16_t matchesTarget1;
 	int16_t matchesTarget2;
 	uint16_t objectIndex;
-	CraftData* craft;
+	CraftData *craft;
 	int validTarget;
 
 	bestObjectIndex = UINT16_MAX;
@@ -342,33 +484,66 @@ int16_t paifight_TargetNearestEscortLeader(int16_t target1Type, uint16_t target1
 	flightGroupIdx = 0;
 	if ((int16_t)g_missionHeader.numFlightGroups > 0) {
 		do {
-			matchesTarget1 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target1Type, target1);
-			matchesTarget2 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target2Type, target2);
-			if (targetRelationOp == 1)
+			matchesTarget1 =
+				Mission_FlightGroupMatchesTriggerVariable(
+					flightGroupIdx, target1Type, target1);
+			matchesTarget2 =
+				Mission_FlightGroupMatchesTriggerVariable(
+					flightGroupIdx, target2Type, target2);
+			if (targetRelationOp == 1) {
 				matchesTarget1 |= matchesTarget2;
-			else
+			} else {
 				matchesTarget1 &= matchesTarget2;
+			}
 
 			if (matchesTarget1 != 0) {
-				objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-				while (objectIndex < (int)g_activeRegionCraftObjectSlotEnd) {
-					if (g_objectTable[objectIndex].objectType != 0) {
-						craft = g_objectTable[objectIndex].mobj->pCraft;
-						if (strcmp(g_planTable[craft->aiController.currentPlanId].name, "escortldr1pln") ==
-								0 &&
-							craft->aiController.escortTargetFG == flightGroupIdx &&
-							g_curCraft->playerCommandAvoidTargetObjIdx != objectIndex) {
-							validTarget = pai_IsObjectTargetable(objectIndex);
+				objectIndex =
+					(uint16_t)g_activeRegionObjectSlotStart;
+				while (objectIndex <
+				       (int)g_activeRegionCraftObjectSlotEnd) {
+					if (g_objectTable[objectIndex]
+						    .objectType != 0) {
+						craft = g_objectTable
+								[objectIndex]
+									.mobj
+									->pCraft;
+						if (strcmp(g_planTable
+								   [craft->aiController
+									    .currentPlanId]
+									   .name,
+							   "escortldr1pln") ==
+							    0 &&
+						    craft->aiController
+								    .escortTargetFG ==
+							    flightGroupIdx &&
+						    g_curCraft->playerCommandAvoidTargetObjIdx !=
+							    objectIndex) {
+							validTarget = pai_IsObjectTargetable(
+								objectIndex);
 
 							if (validTarget != 0 &&
-								((g_paiContext.targetSearchFlags & 4) == 0 ||
-								 pai_IsObjectWithinSkillRangeOfCraft(objectIndex)) &&
-								((g_paiContext.targetSearchFlags & 1) == 0 ||
-								 paifight_TargetHasAttackCapacity(objectIndex, UINT8_MAX))) {
-								pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIndex);
-								if (bestRangeScore > (unsigned int)g_lastRoughDistance) {
-									bestObjectIndex = objectIndex;
-									bestRangeScore = g_lastRoughDistance;
+							    ((g_paiContext
+								      .targetSearchFlags &
+							      4) == 0 ||
+							     pai_IsObjectWithinSkillRangeOfCraft(
+								     objectIndex)) &&
+							    ((g_paiContext
+								      .targetSearchFlags &
+							      1) == 0 ||
+							     paifight_TargetHasAttackCapacity(
+								     objectIndex,
+								     UINT8_MAX))) {
+								pai_ObjectRefUpdateRoughDistance(
+									g_paiContext
+										.objectIndex,
+									objectIndex);
+								if (bestRangeScore >
+								    (unsigned int)
+									    g_lastRoughDistance) {
+									bestObjectIndex =
+										objectIndex;
+									bestRangeScore =
+										g_lastRoughDistance;
 								}
 							}
 						}
@@ -377,49 +552,73 @@ int16_t paifight_TargetNearestEscortLeader(int16_t target1Type, uint16_t target1
 				}
 			}
 			++flightGroupIdx;
-		} while (flightGroupIdx < (int16_t)g_missionHeader.numFlightGroups);
+		} while (flightGroupIdx <
+			 (int16_t)g_missionHeader.numFlightGroups);
 	}
 
 	if (bestObjectIndex != UINT16_MAX) {
 		g_paiContext.controller->targetObjIdx = bestObjectIndex;
-		g_paiContext.controller->targetSignature = g_objectTable[bestObjectIndex].objectSignature;
+		g_paiContext.controller->targetSignature =
+			g_objectTable[bestObjectIndex].objectSignature;
 		g_paiContext.controller->hasLiveTarget = 1;
 	}
 	return bestObjectIndex;
 }
 
 // FUNCTION: XVT 0x45D5F0
-int16_t paifight_FindAttackerOfOrderTargetFromOrder(uint16_t orderSlot) {
+int16_t paifight_FindAttackerOfOrderTargetFromOrder(uint16_t orderSlot)
+{
 	int16_t result;
 
 	result = paifight_FindNearestAttackerOfMatchingTarget(
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1OrTarget2,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target2Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target2);
-	if (result == -1)
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderSlot]
+			.target1Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderSlot]
+			.target1,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderSlot]
+			.target1OrTarget2,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderSlot]
+			.target2Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderSlot]
+			.target2);
+	if (result == -1) {
 		result = paifight_FindNearestAttackerOfMatchingTarget(
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargetTypes[0],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargets[0],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target3OrTarget4,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
+				.fg.orders[orderSlot]
+				.target3OrTarget4,
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargetTypes[1],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargets[1]);
+	}
 	return result;
 }
 
 // FUNCTION: XVT 0x45D6E0
-int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type, uint16_t target1,
-													 int16_t targetOrMode, int16_t target2Type,
-													 uint16_t target2) {
+int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type,
+						     uint16_t target1,
+						     int16_t targetOrMode,
+						     int16_t target2Type,
+						     uint16_t target2)
+{
 	uint16_t targetObjectIndex;
 	uint16_t bestObjectIndex;
 	unsigned int bestRangeScore;
@@ -430,110 +629,184 @@ int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type, uint16
 	while (targetObjectIndex < (int)g_activeRegionCraftObjectSlotEnd) {
 		if (g_objectTable[targetObjectIndex].objectType != 0) {
 			uint16_t teamIndex;
-			CraftData* targetCraft;
+			CraftData *targetCraft;
 			int16_t hasAttacker;
 			int16_t matchesTarget1;
 			int16_t matchesTarget2;
 
 			teamIndex = 0;
-			targetCraft = g_objectTable[targetObjectIndex].mobj->pCraft;
+			targetCraft =
+				g_objectTable[targetObjectIndex].mobj->pCraft;
 			hasAttacker = 0;
 			do {
-				if (targetCraft->attackedByTeam[teamIndex] != 0)
+				if (targetCraft->attackedByTeam[teamIndex] !=
+				    0) {
 					hasAttacker = 1;
+				}
 				++teamIndex;
 			} while (teamIndex < 10);
 
 			if (hasAttacker != 0) {
 				matchesTarget1 =
-					Mission_ObjectMatchesTriggerVariable(targetObjectIndex, target1Type, target1);
+					Mission_ObjectMatchesTriggerVariable(
+						targetObjectIndex, target1Type,
+						target1);
 				matchesTarget2 =
-					Mission_ObjectMatchesTriggerVariable(targetObjectIndex, target2Type, target2);
-				if (targetOrMode == 1)
+					Mission_ObjectMatchesTriggerVariable(
+						targetObjectIndex, target2Type,
+						target2);
+				if (targetOrMode == 1) {
 					matchesTarget1 |= matchesTarget2;
-				else
+				} else {
 					matchesTarget1 &= matchesTarget2;
+				}
 
 				if (matchesTarget1 != 0) {
 					uint16_t objectIndex;
 
-					objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-					while (objectIndex < (int)g_activeRegionCraftObjectSlotEnd) {
-						CraftData* craft;
-						AiController* controller;
+					objectIndex = (uint16_t)
+						g_activeRegionObjectSlotStart;
+					while (objectIndex <
+					       (int)g_activeRegionCraftObjectSlotEnd) {
+						CraftData *craft;
+						AiController *controller;
 						int16_t maneuverMode;
 
-						if (g_objectTable[objectIndex].objectType != 0) {
-							craft = g_objectTable[objectIndex].mobj->pCraft;
-							controller = &craft->aiController;
-							maneuverMode = controller->maneuverMode;
-							if ((((maneuverMode == AI_MANEUVER_MODE_SETUP_ATTACK ||
-								   maneuverMode == AI_MANEUVER_MODE_ATTACK ||
-								   maneuverMode == AI_MANEUVER_MODE_ROCKET_ATTACK) &&
-								  controller->targetObjIdx == targetObjectIndex) ||
-								 targetCraft->aiFlight.threatObjIdx == objectIndex) &&
-								g_curCraft->playerCommandAvoidTargetObjIdx != targetObjectIndex) {
+						if (g_objectTable[objectIndex]
+							    .objectType != 0) {
+							craft = g_objectTable[objectIndex]
+									.mobj
+									->pCraft;
+							controller =
+								&craft->aiController;
+							maneuverMode =
+								controller
+									->maneuverMode;
+							if ((((maneuverMode ==
+								       AI_MANEUVER_MODE_SETUP_ATTACK ||
+							       maneuverMode ==
+								       AI_MANEUVER_MODE_ATTACK ||
+							       maneuverMode ==
+								       AI_MANEUVER_MODE_ROCKET_ATTACK) &&
+							      controller->targetObjIdx ==
+								      targetObjectIndex) ||
+							     targetCraft->aiFlight
+									     .threatObjIdx ==
+								     objectIndex) &&
+							    g_curCraft->playerCommandAvoidTargetObjIdx !=
+								    targetObjectIndex) {
 								int validTarget;
 
-								validTarget = pai_IsObjectTargetable(objectIndex);
+								validTarget = pai_IsObjectTargetable(
+									objectIndex);
 
-								if (validTarget != 0) {
-									if (g_objectTable[objectIndex].playerOwnerIdx != -1) {
+								if (validTarget !=
+								    0) {
+									if (g_objectTable[objectIndex]
+										    .playerOwnerIdx !=
+									    -1) {
 										int objectTeam;
 										int sourceTeam;
 
 										objectTeam =
-											g_missionFlightGroups[g_objectTable[objectIndex].flightGroupIdx]
-												.fg.team;
-										sourceTeam = g_objectTable[g_paiContext.objectIndex].mobj->team;
-										validTarget = objectTeam == sourceTeam
-														  ? 0
-														  : g_missionTeams[sourceTeam].allies[objectTeam] < 1;
+											g_missionFlightGroups
+												[g_objectTable[objectIndex]
+													 .flightGroupIdx]
+													.fg
+													.team;
+										sourceTeam =
+											g_objectTable[g_paiContext
+													      .objectIndex]
+												.mobj
+												->team;
+										validTarget =
+											objectTeam == sourceTeam
+												? 0
+												: g_missionTeams[sourceTeam]
+														  .allies[objectTeam] <
+													  1;
 									}
 
-									if (validTarget != 0 &&
-										((g_paiContext.targetSearchFlags & 4) == 0 ||
-										 pai_IsObjectWithinSkillRangeOfCraft(objectIndex)) &&
-										((g_paiContext.targetSearchFlags & 1) == 0 ||
-										 paifight_TargetHasAttackCapacity(objectIndex, UINT8_MAX))) {
-										if ((g_paiContext.targetSearchFlags & 0x20) != 0) {
-											g_lastRoughDistance =
-												collide_roughdistance3d(g_objectTable[objectIndex].world_x -
-																			g_paiContext.targetSearchOriginX,
-																		g_objectTable[objectIndex].world_y -
-																			g_paiContext.targetSearchOriginY,
-																		g_objectTable[objectIndex].world_z -
-																			g_paiContext.targetSearchOriginZ);
+									if (validTarget !=
+										    0 &&
+									    ((g_paiContext
+										      .targetSearchFlags &
+									      4) == 0 ||
+									     pai_IsObjectWithinSkillRangeOfCraft(
+										     objectIndex)) &&
+									    ((g_paiContext
+										      .targetSearchFlags &
+									      1) == 0 ||
+									     paifight_TargetHasAttackCapacity(
+										     objectIndex,
+										     UINT8_MAX))) {
+										if ((g_paiContext
+											     .targetSearchFlags &
+										     0x20) !=
+										    0) {
+											g_lastRoughDistance = collide_roughdistance3d(
+												g_objectTable[objectIndex]
+														.world_x -
+													g_paiContext
+														.targetSearchOriginX,
+												g_objectTable[objectIndex]
+														.world_y -
+													g_paiContext
+														.targetSearchOriginY,
+												g_objectTable[objectIndex]
+														.world_z -
+													g_paiContext
+														.targetSearchOriginZ);
 										} else {
-											pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex,
-																			 objectIndex);
+											pai_ObjectRefUpdateRoughDistance(
+												g_paiContext
+													.objectIndex,
+												objectIndex);
 										}
 
-										if ((g_paiContext.targetSearchFlags & 0x10) != 0) {
-											if (g_lastRoughDistance > AI_TARGET_RANGE_MAX) {
-												validTarget = 0;
+										if ((g_paiContext
+											     .targetSearchFlags &
+										     0x10) !=
+										    0) {
+											if (g_lastRoughDistance >
+											    AI_TARGET_RANGE_MAX) {
+												validTarget =
+													0;
 											} else {
 												int objectTeam;
 												int sourceTeam;
 
-												objectTeam = g_missionFlightGroups[g_objectTable[objectIndex]
-																					   .flightGroupIdx]
-																 .fg.team;
+												objectTeam =
+													g_missionFlightGroups
+														[g_objectTable[objectIndex]
+															 .flightGroupIdx]
+															.fg
+															.team;
 												sourceTeam =
-													g_objectTable[g_paiContext.objectIndex].mobj->team;
+													g_objectTable[g_paiContext
+															      .objectIndex]
+														.mobj
+														->team;
 												validTarget =
 													objectTeam == sourceTeam
 														? 0
-														: g_missionTeams[sourceTeam].allies[objectTeam] < 1;
+														: g_missionTeams[sourceTeam]
+																  .allies[objectTeam] <
+															  1;
 											}
 										} else {
-											validTarget = 1;
+											validTarget =
+												1;
 										}
 
-										if (validTarget != 0 &&
-											(unsigned int)g_lastRoughDistance < bestRangeScore) {
-											bestObjectIndex = objectIndex;
-											bestRangeScore = g_lastRoughDistance;
+										if (validTarget !=
+											    0 &&
+										    (unsigned int)g_lastRoughDistance <
+											    bestRangeScore) {
+											bestObjectIndex =
+												objectIndex;
+											bestRangeScore =
+												g_lastRoughDistance;
 										}
 									}
 								}
@@ -550,12 +823,14 @@ int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type, uint16
 }
 
 // FUNCTION: XVT 0x45DBA0
-int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx, uint16_t candidateCount) {
+int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx,
+					 uint16_t candidateCount)
+{
 	uint16_t attackerCount;
 	uint16_t objectIndex;
-	ObjectRecord* object;
-	CraftData* craft;
-	AiController* controller;
+	ObjectRecord *object;
+	CraftData *craft;
+	AiController *controller;
 	uint16_t attackTargetObjIdx;
 	uint8_t maneuverMode;
 	uint16_t candidateTotal;
@@ -565,18 +840,22 @@ int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx, uint16_t candida
 
 	attackerCount = 0;
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-		 objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
+	     objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 		object = &g_objectTable[objectIndex];
 		if (object->objectType != 0) {
 			craft = object->mobj->pCraft;
 			controller = &craft->aiController;
 			attackTargetObjIdx = controller->targetObjIdx;
-			if (targetObjIdx == attackTargetObjIdx && objectIndex != targetObjIdx &&
-				craft->playerCommandAvoidTargetObjIdx != attackTargetObjIdx) {
+			if (targetObjIdx == attackTargetObjIdx &&
+			    objectIndex != targetObjIdx &&
+			    craft->playerCommandAvoidTargetObjIdx !=
+				    attackTargetObjIdx) {
 				maneuverMode = controller->maneuverMode;
-				if (maneuverMode == AI_MANEUVER_MODE_SETUP_ATTACK ||
-					maneuverMode == AI_MANEUVER_MODE_ATTACK ||
-					maneuverMode == AI_MANEUVER_MODE_ROCKET_ATTACK) {
+				if (maneuverMode ==
+					    AI_MANEUVER_MODE_SETUP_ATTACK ||
+				    maneuverMode == AI_MANEUVER_MODE_ATTACK ||
+				    maneuverMode ==
+					    AI_MANEUVER_MODE_ROCKET_ATTACK) {
 					++attackerCount;
 				}
 			}
@@ -620,27 +899,35 @@ int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx, uint16_t candida
  * search, and for an escort-leader order (capescortersldr1pln) makes the nearest escort leader the AI's
  * target. */
 // FUNCTION: XVT 0x45DD00
-int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot) {
-	PaiPlanRecord* plan;
+int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot)
+{
+	PaiPlanRecord *plan;
 	int16_t targetObject;
 
-	plan =
-		&g_planTable[g_builtinPlanIdByNameIndex[g_orderLeaderBuiltinPlanNameIndex
-													[g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-														 .fg.orders[orderSlot]
-														 .order]]];
-	if (strcmp(plan->name, "disableldr1pln") == 0)
+	plan = &g_planTable
+		       [g_builtinPlanIdByNameIndex
+				[g_orderLeaderBuiltinPlanNameIndex
+					 [g_missionFlightGroups
+						  [g_paiContext
+							   .craftFlightGroupIndex]
+							  .fg.orders[orderSlot]
+							  .order]]];
+	if (strcmp(plan->name, "disableldr1pln") == 0) {
 		g_paiContext.requireUndisabledTarget = 1;
-	else
+	} else {
 		g_paiContext.requireUndisabledTarget = 0;
+	}
 	g_paiContext.targetSearchFlags = 7;
-	if (strcmp(plan->name, "capfreeldr1pln") == 0 || strcmp(plan->name, "disableldr1pln") == 0 ||
-		strcmp(plan->name, "kamikaze1pln") == 0) {
-		targetObject = paifight_FindAttackOrderTargetFromOrder(orderSlot);
+	if (strcmp(plan->name, "capfreeldr1pln") == 0 ||
+	    strcmp(plan->name, "disableldr1pln") == 0 ||
+	    strcmp(plan->name, "kamikaze1pln") == 0) {
+		targetObject =
+			paifight_FindAttackOrderTargetFromOrder(orderSlot);
 	} else if (strcmp(plan->name, "capescortersldr1pln") == 0) {
 		targetObject = paifight_TargetEscortLeaderFromOrder(orderSlot);
 	} else {
-		targetObject = paifight_FindAttackerOfOrderTargetFromOrder(orderSlot);
+		targetObject =
+			paifight_FindAttackerOfOrderTargetFromOrder(orderSlot);
 	}
 	return targetObject != -1;
 }
@@ -649,52 +936,77 @@ int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot) {
  * search, and for an escort-leader order (capescortersldr1pln) makes the nearest escort leader the AI's
  * target. */
 // FUNCTION: XVT 0x45DDF0
-int16_t paifight_SearchOrderSlotRemainingTargets(uint16_t orderSlot) {
-	PaiPlanRecord* plan;
+int16_t paifight_SearchOrderSlotRemainingTargets(uint16_t orderSlot)
+{
+	PaiPlanRecord *plan;
 	int16_t result;
 
-	plan =
-		&g_planTable[g_builtinPlanIdByNameIndex[g_orderLeaderBuiltinPlanNameIndex
-													[g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-														 .fg.orders[orderSlot]
-														 .order]]];
-	if (strcmp(plan->name, "disableldr1pln") == 0)
+	plan = &g_planTable
+		       [g_builtinPlanIdByNameIndex
+				[g_orderLeaderBuiltinPlanNameIndex
+					 [g_missionFlightGroups
+						  [g_paiContext
+							   .craftFlightGroupIndex]
+							  .fg.orders[orderSlot]
+							  .order]]];
+	if (strcmp(plan->name, "disableldr1pln") == 0) {
 		g_paiContext.requireUndisabledTarget = 1;
-	else
+	} else {
 		g_paiContext.requireUndisabledTarget = 0;
+	}
 	g_paiContext.targetSearchFlags = 2;
-	if (strcmp(plan->name, "capescortersldr1pln") == 0)
+	if (strcmp(plan->name, "capescortersldr1pln") == 0) {
 		result = paifight_TargetEscortLeaderFromOrder(orderSlot);
-	else
-		result = paifight_CountRemainingOrderTargetsFromOrderSlot(orderSlot);
+	} else {
+		result = paifight_CountRemainingOrderTargetsFromOrderSlot(
+			orderSlot);
+	}
 	return result != -1;
 }
 
 // FUNCTION: XVT 0x45DEB0
-int16_t paifight_CountRemainingOrderTargetsFromOrderSlot(uint16_t orderSlot) {
+int16_t paifight_CountRemainingOrderTargetsFromOrderSlot(uint16_t orderSlot)
+{
 	int orderIndex;
 	int16_t result;
 
 	orderIndex = orderSlot;
 	result = paifight_CountRemainingOrderTargets(
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2);
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target1Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target1,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target1OrTarget2,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target2Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderIndex]
+			.target2);
 	if (result == -1) {
 		result = paifight_CountRemainingOrderTargets(
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[0],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[0],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target3OrTarget4,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
+				.fg.orders[orderIndex]
+				.target3OrTarget4,
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[1],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[1]);
 	}
@@ -702,8 +1014,12 @@ int16_t paifight_CountRemainingOrderTargetsFromOrderSlot(uint16_t orderSlot) {
 }
 
 // FUNCTION: XVT 0x45DFA0
-int16_t paifight_CountRemainingOrderTargets(int16_t target1Type, uint16_t target1, int16_t targetRelationOp,
-											int16_t target2Type, uint16_t target2) {
+int16_t paifight_CountRemainingOrderTargets(int16_t target1Type,
+					    uint16_t target1,
+					    int16_t targetRelationOp,
+					    int16_t target2Type,
+					    uint16_t target2)
+{
 	uint16_t objectIndex;
 	uint16_t staticObjectIndex;
 	int targetCount;
@@ -712,37 +1028,57 @@ int16_t paifight_CountRemainingOrderTargets(int16_t target1Type, uint16_t target
 	int16_t matchesTarget1;
 	int16_t matchesTarget2;
 	int validTarget;
-	ObjectRecord* object;
-	MobileObject* mobileObject;
-	CraftData* craft;
+	ObjectRecord *object;
+	MobileObject *mobileObject;
+	CraftData *craft;
 
 	objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 	targetCount = 0;
 	while (objectIndex < (int)g_activeRegionCraftObjectSlotEnd) {
 		objectArrayIndex = objectIndex;
 		if (g_objectTable[objectArrayIndex].objectType != 0) {
-			flightGroupIdx = g_objectTable[objectArrayIndex].flightGroupIdx;
-			if (g_paiContext.craftFlightGroupIndex != flightGroupIdx) {
+			flightGroupIdx =
+				g_objectTable[objectArrayIndex].flightGroupIdx;
+			if (g_paiContext.craftFlightGroupIndex !=
+			    flightGroupIdx) {
 				matchesTarget1 =
-					Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target1Type, target1);
+					Mission_FlightGroupMatchesTriggerVariable(
+						flightGroupIdx, target1Type,
+						target1);
 				matchesTarget2 =
-					Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target2Type, target2);
-				if (targetRelationOp == 1)
+					Mission_FlightGroupMatchesTriggerVariable(
+						flightGroupIdx, target2Type,
+						target2);
+				if (targetRelationOp == 1) {
 					matchesTarget1 |= matchesTarget2;
-				else
+				} else {
 					matchesTarget1 &= matchesTarget2;
+				}
 
 				if (matchesTarget1 != 0) {
-					validTarget = pai_IsObjectTargetable(objectIndex);
+					validTarget = pai_IsObjectTargetable(
+						objectIndex);
 
 					if (validTarget != 0) {
-						mobileObject = g_objectTable[objectArrayIndex].mobj;
+						mobileObject =
+							g_objectTable
+								[objectArrayIndex]
+									.mobj;
 						craft = mobileObject->pCraft;
-						if (g_paiContext.requireUndisabledTarget == 0 ||
-							(craft->workingSubsystems != 0 &&
-							 (g_paiContext.requireUndisabledTarget == 0 ||
-							  craft->capturedByFlightGroup == 0 ||
-							  g_objectTable[g_paiContext.objectIndex].mobj->team != mobileObject->team))) {
+						if (g_paiContext.requireUndisabledTarget ==
+							    0 ||
+						    (craft->workingSubsystems !=
+							     0 &&
+						     (g_paiContext.requireUndisabledTarget ==
+							      0 ||
+						      craft->capturedByFlightGroup ==
+							      0 ||
+						      g_objectTable[g_paiContext
+									    .objectIndex]
+								      .mobj
+								      ->team !=
+							      mobileObject
+								      ->team))) {
 							++targetCount;
 						}
 					}
@@ -753,37 +1089,49 @@ int16_t paifight_CountRemainingOrderTargets(int16_t target1Type, uint16_t target
 	}
 
 	staticObjectIndex = (uint16_t)g_regionMainObjectSlotEnd;
-	while (staticObjectIndex < (int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount)) {
+	while (staticObjectIndex < (int)(g_regionMainObjectSlotEnd +
+					 g_regionStaticObjectSlotCount)) {
 		object = &g_objectTable[staticObjectIndex];
-		if (object->objectType != 0 && (g_objectTypeTable[object->objectType].behaviorFlags & 2) != 0) {
+		if (object->objectType != 0 &&
+		    (g_objectTypeTable[object->objectType].behaviorFlags & 2) !=
+			    0) {
 			flightGroupIdx = object->flightGroupIdx;
-			matchesTarget1 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target1Type, target1);
-			matchesTarget2 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target2Type, target2);
-			if (targetRelationOp == 1)
+			matchesTarget1 =
+				Mission_FlightGroupMatchesTriggerVariable(
+					flightGroupIdx, target1Type, target1);
+			matchesTarget2 =
+				Mission_FlightGroupMatchesTriggerVariable(
+					flightGroupIdx, target2Type, target2);
+			if (targetRelationOp == 1) {
 				matchesTarget1 |= matchesTarget2;
-			else
+			} else {
 				matchesTarget1 &= matchesTarget2;
+			}
 
 			if (matchesTarget1 != 0) {
-				validTarget = pai_IsObjectTargetable(staticObjectIndex);
-				if (validTarget != 0)
+				validTarget = pai_IsObjectTargetable(
+					staticObjectIndex);
+				if (validTarget != 0) {
 					++targetCount;
+				}
 			}
 		}
 		++staticObjectIndex;
 	}
 
-	if (targetCount != 0)
+	if (targetCount != 0) {
 		return (int16_t)targetCount;
+	}
 	return -1;
 }
 
 // FUNCTION: XVT 0x45E440
-int16_t paifight_escorttargetorder(void) {
+int16_t paifight_escorttargetorder(void)
+{
 	uint16_t sourceObjIdx;
 	uint16_t candidateTargetIdx;
 	unsigned int objectIndex;
-	ObjectRecord* object;
+	ObjectRecord *object;
 	int validTarget;
 	uint16_t bestTargetObjIdx;
 	uint16_t scanObjIdx;
@@ -793,42 +1141,64 @@ int16_t paifight_escorttargetorder(void) {
 	uint16_t targetObjIdx;
 
 	sourceObjIdx = g_paiContext.objectIndex;
-	if (g_paiContext.controller->maneuverMode == g_paiContext.initialManeuverId) {
-		candidateTargetIdx = g_paiContext.controller->candidateTargetIdx;
-		if (candidateTargetIdx != UINT16_MAX && candidateTargetIdx != AI_TARGET_ABORT) {
+	if (g_paiContext.controller->maneuverMode ==
+	    g_paiContext.initialManeuverId) {
+		candidateTargetIdx =
+			g_paiContext.controller->candidateTargetIdx;
+		if (candidateTargetIdx != UINT16_MAX &&
+		    candidateTargetIdx != AI_TARGET_ABORT) {
 			objectIndex = candidateTargetIdx;
 			validTarget = pai_IsObjectTargetable(objectIndex);
 
 			if (validTarget != 0) {
-				g_paiContext.controller->targetObjIdx = candidateTargetIdx;
-				g_paiContext.controller->targetSignature = g_objectTable[candidateTargetIdx].objectSignature;
+				g_paiContext.controller->targetObjIdx =
+					candidateTargetIdx;
+				g_paiContext.controller->targetSignature =
+					g_objectTable[candidateTargetIdx]
+						.objectSignature;
 				g_paiContext.controller->hasLiveTarget = 1;
 				return 1;
 			}
-			g_paiContext.controller->candidateTargetIdx = UINT16_MAX;
+			g_paiContext.controller->candidateTargetIdx =
+				UINT16_MAX;
 		}
 
 		bestTargetObjIdx = UINT16_MAX;
 		scanObjIdx = (uint16_t)g_activeRegionObjectSlotStart;
 		bestRangeScore = UINT32_MAX;
 		escortFlightGroupIdx = g_paiContext.controller->escortTargetFG;
-		for (; scanObjIdx < g_activeRegionCraftObjectSlotEnd; ++scanObjIdx) {
+		for (; scanObjIdx < g_activeRegionCraftObjectSlotEnd;
+		     ++scanObjIdx) {
 			object = &g_objectTable[scanObjIdx];
-			if (object->objectType != 0 && g_paiContext.objectIndex != scanObjIdx) {
+			if (object->objectType != 0 &&
+			    g_paiContext.objectIndex != scanObjIdx) {
 				targetsEscortFlightGroup = 0;
-				targetObjIdx = object->mobj->pCraft->aiController.targetObjIdx;
-				if (targetObjIdx < 0x8000 && targetObjIdx != UINT16_MAX) {
-					ObjectRecord* target = &g_objectTable[targetObjIdx];
+				targetObjIdx =
+					object->mobj->pCraft->aiController
+						.targetObjIdx;
+				if (targetObjIdx < 0x8000 &&
+				    targetObjIdx != UINT16_MAX) {
+					ObjectRecord *target =
+						&g_objectTable[targetObjIdx];
 					if (target->objectType != 0) {
-						targetsEscortFlightGroup = target->flightGroupIdx == escortFlightGroupIdx;
+						targetsEscortFlightGroup =
+							target->flightGroupIdx ==
+							escortFlightGroupIdx;
 					}
 				}
-				if (targetsEscortFlightGroup != 0 && paifight_TargetHasAttackCapacity(scanObjIdx, 0xFF)) {
-					pai_ObjectRefUpdateRoughDistance(sourceObjIdx, scanObjIdx);
-					if (bestRangeScore > (unsigned int)g_lastRoughDistance) {
-						if (g_lastRoughDistance < 0x40000) {
-							bestTargetObjIdx = scanObjIdx;
-							bestRangeScore = g_lastRoughDistance;
+				if (targetsEscortFlightGroup != 0 &&
+				    paifight_TargetHasAttackCapacity(scanObjIdx,
+								     0xFF)) {
+					pai_ObjectRefUpdateRoughDistance(
+						sourceObjIdx, scanObjIdx);
+					if (bestRangeScore >
+					    (unsigned int)g_lastRoughDistance) {
+						if (g_lastRoughDistance <
+						    0x40000) {
+							bestTargetObjIdx =
+								scanObjIdx;
+							bestRangeScore =
+								g_lastRoughDistance;
 						}
 					}
 				}
@@ -836,8 +1206,10 @@ int16_t paifight_escorttargetorder(void) {
 		}
 
 		if (bestTargetObjIdx != UINT16_MAX) {
-			g_paiContext.controller->targetObjIdx = bestTargetObjIdx;
-			g_paiContext.controller->targetSignature = g_objectTable[bestTargetObjIdx].objectSignature;
+			g_paiContext.controller->targetObjIdx =
+				bestTargetObjIdx;
+			g_paiContext.controller->targetSignature =
+				g_objectTable[bestTargetObjIdx].objectSignature;
 			g_paiContext.controller->hasLiveTarget = 1;
 			return 1;
 		}
@@ -846,7 +1218,8 @@ int16_t paifight_escorttargetorder(void) {
 }
 
 // FUNCTION: XVT 0x45E780
-int16_t paifight_fightershootorder(void) {
+int16_t paifight_fightershootorder(void)
+{
 	enum {
 		MAX_SHOOTING_SKILL_TIER = 2,
 		FAST_TARGET_SPEED = 25,
@@ -901,52 +1274,74 @@ int16_t paifight_fightershootorder(void) {
 	unsigned int maxRange;
 	int isValidTarget;
 
-	if (g_curCraft->workingSubsystems == 0)
+	if (g_curCraft->workingSubsystems == 0) {
 		return 0;
+	}
 
 	targetIndex = g_paiContext.controller->targetObjIdx;
 	burstRemaining = 0;
 	isValidTarget = pai_IsObjectTargetable(targetIndex);
 
 	if (isValidTarget != 0) {
-		maxRange = g_aiFighterShootMaxRangeBySkill[g_paiContext.skillTier];
+		maxRange =
+			g_aiFighterShootMaxRangeBySkill[g_paiContext.skillTier];
 		if ((int)g_regionMainObjectSlotEnd > targetIndex) {
-			ObjectRecord* targetObject;
-			MobileObject* targetMobile;
+			ObjectRecord *targetObject;
+			MobileObject *targetMobile;
 
 			targetObject = &g_objectTable[targetIndex];
 			targetMobile = targetObject->mobj;
-			if (targetMobile != NULL && targetMobile->speed > FAST_TARGET_SPEED) {
-				targetAngle = (uint16_t)(g_objectTable[g_paiContext.objectIndex].yaw - targetObject->yaw);
-				if (targetAngle >= ANGLE_HALF_TURN)
+			if (targetMobile != NULL &&
+			    targetMobile->speed > FAST_TARGET_SPEED) {
+				targetAngle =
+					(uint16_t)(g_objectTable
+							   [g_paiContext
+								    .objectIndex]
+								   .yaw -
+						   targetObject->yaw);
+				if (targetAngle >= ANGLE_HALF_TURN) {
 					targetAngle = (uint16_t)-targetAngle;
-				if (targetAngle < FAST_TARGET_HEAD_ON_ANGLE)
-					maxRange -= FAST_TARGET_HEAD_ON_RANGE_REDUCTION;
-				else if (targetAngle < FAST_TARGET_OBLIQUE_ANGLE)
-					maxRange -= FAST_TARGET_OBLIQUE_RANGE_REDUCTION;
+				}
+				if (targetAngle < FAST_TARGET_HEAD_ON_ANGLE) {
+					maxRange -=
+						FAST_TARGET_HEAD_ON_RANGE_REDUCTION;
+				} else if (targetAngle <
+					   FAST_TARGET_OBLIQUE_ANGLE) {
+					maxRange -=
+						FAST_TARGET_OBLIQUE_RANGE_REDUCTION;
+				}
 			}
 			if (targetObject->genusId == CRAFT_GENUS_PLATFORM ||
-				targetObject->genusId == CRAFT_GENUS_STARSHIP)
+			    targetObject->genusId == CRAFT_GENUS_STARSHIP) {
 				maxRange += LARGE_TARGET_RANGE_BONUS;
+			}
 		}
 
-		pai_ObjectRefDirectionToObjectRef(g_paiContext.objectIndex, targetIndex);
-		targetAngle = (uint16_t)(trig2_xyangle - g_objectTable[g_paiContext.objectIndex].yaw);
-		if (targetAngle >= ANGLE_HALF_TURN)
+		pai_ObjectRefDirectionToObjectRef(g_paiContext.objectIndex,
+						  targetIndex);
+		targetAngle =
+			(uint16_t)(trig2_xyangle -
+				   g_objectTable[g_paiContext.objectIndex].yaw);
+		if (targetAngle >= ANGLE_HALF_TURN) {
 			targetAngle = (uint16_t)-targetAngle;
+		}
 		pitchAngle = (uint16_t)(trig2_pitch - g_curCraft->pitch);
-		if (pitchAngle >= ANGLE_HALF_TURN)
+		if (pitchAngle >= ANGLE_HALF_TURN) {
 			pitchAngle = (uint16_t)-pitchAngle;
-		if (targetAngle >= MAX_TARGET_ANGLE || pitchAngle >= MAX_TARGET_ANGLE ||
-			(unsigned int)trig2_polardistance >= maxRange) {
+		}
+		if (targetAngle >= MAX_TARGET_ANGLE ||
+		    pitchAngle >= MAX_TARGET_ANGLE ||
+		    (unsigned int)trig2_polardistance >= maxRange) {
 			linkMode = 0;
 		} else {
 			linkMode = LASER_LINK_ALL_CANNONS;
 			if (trig2_polardistance >= LASER_LINK_CLOSE_RANGE) {
-				linkMode = (uint16_t)(trig2_polardistance < LASER_LINK_MEDIUM_RANGE);
+				linkMode = (uint16_t)(trig2_polardistance <
+						      LASER_LINK_MEDIUM_RANGE);
 				++linkMode;
 			}
-			burstRemaining = g_aiFighterShootBurstLengthBySkill[g_paiContext.skillTier];
+			burstRemaining = g_aiFighterShootBurstLengthBySkill
+				[g_paiContext.skillTier];
 		}
 
 		cannonClassCount = g_curCraft->cannonGroupCount;
@@ -955,14 +1350,27 @@ int16_t paifight_fightershootorder(void) {
 			uint16_t slotLink;
 
 			if (linkMode != 0) {
-				if (g_curCraft->laserState.projectileTypeId[slotIndex] != PROJECTILE_OBJECT_TYPE_ION_LASER) {
-					if (g_paiContext.controller->hasLiveTarget != 0)
+				if (g_curCraft->laserState
+					    .projectileTypeId[slotIndex] !=
+				    PROJECTILE_OBJECT_TYPE_ION_LASER) {
+					if (g_paiContext.controller
+						    ->hasLiveTarget != 0) {
 						slotLink =
-							strcmp(g_planTable[currentPlanId].name, "disableldr1pln") != 0 ? linkMode : 0;
-					else
+							strcmp(g_planTable[currentPlanId]
+								       .name,
+							       "disableldr1pln") !=
+									0
+								? linkMode
+								: 0;
+					} else {
 						slotLink = linkMode;
-				} else if (strcmp(g_planTable[currentPlanId].name, "disableldr1pln") == 0 &&
-						   g_paiContext.controller->hasLiveTarget == 1) {
+					}
+				} else if (strcmp(g_planTable[currentPlanId]
+							  .name,
+						  "disableldr1pln") == 0 &&
+					   g_paiContext.controller
+							   ->hasLiveTarget ==
+						   1) {
 					slotLink = linkMode;
 				} else {
 					slotLink = 0;
@@ -971,87 +1379,152 @@ int16_t paifight_fightershootorder(void) {
 				slotLink = 0;
 			}
 			g_curCraft->laserState.linkMode[slotIndex] = slotLink;
-			g_curCraft->laserState.burstRemaining[slotIndex] = burstRemaining;
+			g_curCraft->laserState.burstRemaining[slotIndex] =
+				burstRemaining;
 		}
 
-		if ((int)g_activeRegionCraftObjectSlotEnd <= targetIndex || Object_HasActiveDecoyBeam(targetIndex))
+		if ((int)g_activeRegionCraftObjectSlotEnd <= targetIndex ||
+		    Object_HasActiveDecoyBeam(targetIndex)) {
 			return 0;
+		}
 
 		{
-			CraftData* targetCraft;
+			CraftData *targetCraft;
 
-			if (g_objectTable[targetIndex].genusId == CRAFT_GENUS_STARSHIP ||
-				g_objectTable[targetIndex].genusId == CRAFT_GENUS_PLATFORM ||
-				g_objectTable[targetIndex].genusId == CRAFT_GENUS_FREIGHTER ||
-				(g_objectTable[targetIndex].genusId == CRAFT_GENUS_TRANSPORT &&
-				 g_missionFileVersion == MISSION_VERSION_SPECIAL_WARHEADS)) {
-				requiredWarheadClass = LARGE_TARGET_WARHEAD_CLASS;
-				warheadsPerManeuverLimit = LARGE_TARGET_MANEUVER_LIMIT;
+			if (g_objectTable[targetIndex].genusId ==
+				    CRAFT_GENUS_STARSHIP ||
+			    g_objectTable[targetIndex].genusId ==
+				    CRAFT_GENUS_PLATFORM ||
+			    g_objectTable[targetIndex].genusId ==
+				    CRAFT_GENUS_FREIGHTER ||
+			    (g_objectTable[targetIndex].genusId ==
+				     CRAFT_GENUS_TRANSPORT &&
+			     g_missionFileVersion ==
+				     MISSION_VERSION_SPECIAL_WARHEADS)) {
+				requiredWarheadClass =
+					LARGE_TARGET_WARHEAD_CLASS;
+				warheadsPerManeuverLimit =
+					LARGE_TARGET_MANEUVER_LIMIT;
 				incomingLimit = LARGE_TARGET_INCOMING_LIMIT;
 				/* Typed literals preserve the original unsigned range selection. */
-				fireRange = g_paiContext.skillTier == MAX_SHOOTING_SKILL_TIER ? 244332u : 203610u;
+				fireRange =
+					g_paiContext.skillTier ==
+							MAX_SHOOTING_SKILL_TIER
+						? 244332u
+						: 203610u;
 			} else {
 				fireRange = 101805u;
 				incomingLimit = SMALL_TARGET_INCOMING_LIMIT;
-				requiredWarheadClass = SMALL_TARGET_WARHEAD_CLASS;
-				warheadsPerManeuverLimit = SMALL_TARGET_MANEUVER_LIMIT;
+				requiredWarheadClass =
+					SMALL_TARGET_WARHEAD_CLASS;
+				warheadsPerManeuverLimit =
+					SMALL_TARGET_MANEUVER_LIMIT;
 			}
 
 			targetCraft = g_objectTable[targetIndex].mobj->pCraft;
-			targetDurability = (unsigned int)targetCraft->shieldEnergy[0];
+			targetDurability =
+				(unsigned int)targetCraft->shieldEnergy[0];
 			incomingDamage = 0;
-			if (strcmp(g_planTable[currentPlanId].name, "disableldr1pln") == 0) {
+			if (strcmp(g_planTable[currentPlanId].name,
+				   "disableldr1pln") == 0) {
 				unsigned int hullThreshold;
 
-				hullThreshold = targetCraft->hullMax / DISABLE_HULL_THRESHOLD_DIVISOR;
-				if (targetCraft->hullDamage > hullThreshold)
+				hullThreshold = targetCraft->hullMax /
+						DISABLE_HULL_THRESHOLD_DIVISOR;
+				if (targetCraft->hullDamage > hullThreshold) {
 					targetDurability += hullThreshold;
-				launcherCount = g_curCraft->warheadLauncherCount;
-				for (launcherIndex = 0; launcherIndex < launcherCount; ++launcherIndex) {
+				}
+				launcherCount =
+					g_curCraft->warheadLauncherCount;
+				for (launcherIndex = 0;
+				     launcherIndex < launcherCount;
+				     ++launcherIndex) {
 					uint8_t projectileType;
 					unsigned int missileDamage;
 
-					projectileType = g_curCraft->warheadSlotTypeIds[launcherIndex];
-					if (g_projectileTypeData.warheadClass[projectileType - PROJECTILE_OBJECT_TYPE_FIRST] ==
-							requiredWarheadClass ||
-						(g_missionFileVersion == MISSION_VERSION_SPECIAL_WARHEADS &&
-						 (projectileType == WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE ||
-						  projectileType == WARHEAD_OBJECT_TYPE_ION_PULSE) &&
-						 requiredWarheadClass == LARGE_TARGET_WARHEAD_CLASS)) {
+					projectileType =
+						g_curCraft->warheadSlotTypeIds
+							[launcherIndex];
+					if (g_projectileTypeData.warheadClass
+							    [projectileType -
+							     PROJECTILE_OBJECT_TYPE_FIRST] ==
+						    requiredWarheadClass ||
+					    (g_missionFileVersion ==
+						     MISSION_VERSION_SPECIAL_WARHEADS &&
+					     (projectileType ==
+						      WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE ||
+					      projectileType ==
+						      WARHEAD_OBJECT_TYPE_ION_PULSE) &&
+					     requiredWarheadClass ==
+						     LARGE_TARGET_WARHEAD_CLASS)) {
 						missileDamage =
-							g_projectileTypeData.damage[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
-						if (g_objectTable[targetIndex].genusId == CRAFT_GENUS_STARSHIP ||
-							g_objectTable[targetIndex].genusId == CRAFT_GENUS_PLATFORM)
-							missileDamage >>= LARGE_TARGET_DAMAGE_SHIFT;
-						if (g_objectTable[targetIndex].genusId == CRAFT_GENUS_FREIGHTER)
-							missileDamage >>= FREIGHTER_DAMAGE_SHIFT;
+							g_projectileTypeData.damage
+								[projectileType -
+								 PROJECTILE_OBJECT_TYPE_FIRST];
+						if (g_objectTable[targetIndex]
+								    .genusId ==
+							    CRAFT_GENUS_STARSHIP ||
+						    g_objectTable[targetIndex]
+								    .genusId ==
+							    CRAFT_GENUS_PLATFORM) {
+							missileDamage >>=
+								LARGE_TARGET_DAMAGE_SHIFT;
+						}
+						if (g_objectTable[targetIndex]
+							    .genusId ==
+						    CRAFT_GENUS_FREIGHTER) {
+							missileDamage >>=
+								FREIGHTER_DAMAGE_SHIFT;
+						}
 						incomingDamage += missileDamage;
 					}
 				}
 			} else {
-				targetDurability = targetCraft->hullMax + targetDurability - targetCraft->hullDamage;
+				targetDurability = targetCraft->hullMax +
+						   targetDurability -
+						   targetCraft->hullDamage;
 			}
 
-			for (projectileObjectIndex = g_projectileObjectSlotStart;
-				 projectileObjectIndex < (int)g_projectileObjectSlotEnd; ++projectileObjectIndex) {
-				ObjectRecord* projectileObject;
+			for (projectileObjectIndex =
+				     g_projectileObjectSlotStart;
+			     projectileObjectIndex <
+			     (int)g_projectileObjectSlotEnd;
+			     ++projectileObjectIndex) {
+				ObjectRecord *projectileObject;
 
-				projectileObject = &g_objectTable[projectileObjectIndex];
-				if (projectileObject->objectType >= PROJECTILE_OBJECT_TYPE_FIRST) {
-					WarheadGuidanceState* guidance;
+				projectileObject =
+					&g_objectTable[projectileObjectIndex];
+				if (projectileObject->objectType >=
+				    PROJECTILE_OBJECT_TYPE_FIRST) {
+					WarheadGuidanceState *guidance;
 
-					guidance = projectileObject->mobj->pWarheadGuidance;
-					if (guidance->homingTier != 0 && guidance->targetObjIdx == targetIndex) {
+					guidance = projectileObject->mobj
+							   ->pWarheadGuidance;
+					if (guidance->homingTier != 0 &&
+					    guidance->targetObjIdx ==
+						    targetIndex) {
 						unsigned int missileDamage;
 
 						missileDamage =
-							g_projectileTypeData
-								.damage[projectileObject->objectType - PROJECTILE_OBJECT_TYPE_FIRST];
-						if (g_objectTable[targetIndex].genusId == CRAFT_GENUS_STARSHIP ||
-							g_objectTable[targetIndex].genusId == CRAFT_GENUS_PLATFORM)
-							missileDamage >>= LARGE_TARGET_DAMAGE_SHIFT;
-						if (g_objectTable[targetIndex].genusId == CRAFT_GENUS_FREIGHTER)
-							missileDamage >>= FREIGHTER_DAMAGE_SHIFT;
+							g_projectileTypeData.damage
+								[projectileObject
+									 ->objectType -
+								 PROJECTILE_OBJECT_TYPE_FIRST];
+						if (g_objectTable[targetIndex]
+								    .genusId ==
+							    CRAFT_GENUS_STARSHIP ||
+						    g_objectTable[targetIndex]
+								    .genusId ==
+							    CRAFT_GENUS_PLATFORM) {
+							missileDamage >>=
+								LARGE_TARGET_DAMAGE_SHIFT;
+						}
+						if (g_objectTable[targetIndex]
+							    .genusId ==
+						    CRAFT_GENUS_FREIGHTER) {
+							missileDamage >>=
+								FREIGHTER_DAMAGE_SHIFT;
+						}
 						incomingDamage += missileDamage;
 					}
 				}
@@ -1060,106 +1533,219 @@ int16_t paifight_fightershootorder(void) {
 				uint16_t incomingCount;
 
 				incomingCount = 0;
-				for (projectileObjectIndex = g_projectileObjectSlotStart;
-					 projectileObjectIndex < (int)g_projectileObjectSlotEnd; ++projectileObjectIndex) {
-					ObjectRecord* projectileObject;
+				for (projectileObjectIndex =
+					     g_projectileObjectSlotStart;
+				     projectileObjectIndex <
+				     (int)g_projectileObjectSlotEnd;
+				     ++projectileObjectIndex) {
+					ObjectRecord *projectileObject;
 					uint8_t projectileType;
 
-					projectileObject = &g_objectTable[projectileObjectIndex];
-					projectileType = projectileObject->objectType;
+					projectileObject =
+						&g_objectTable
+							[projectileObjectIndex];
+					projectileType =
+						projectileObject->objectType;
 #ifdef XVT_MODERN
 					/* Impact effects remain in projectile slots after a hit. */
-					if (projectileType < PROJECTILE_OBJECT_TYPE_FIRST ||
-						projectileType >= PROJECTILE_OBJECT_TYPE_FIRST + PROJECTILE_OBJECT_TYPE_COUNT) {
+					if (projectileType <
+						    PROJECTILE_OBJECT_TYPE_FIRST ||
+					    projectileType >=
+						    PROJECTILE_OBJECT_TYPE_FIRST +
+							    PROJECTILE_OBJECT_TYPE_COUNT) {
 						continue;
 					}
 #endif
 					if (projectileType != 0 &&
-						(g_projectileTypeData.warheadClass[projectileType - PROJECTILE_OBJECT_TYPE_FIRST] ==
-							 requiredWarheadClass ||
-						 (g_missionFileVersion == MISSION_VERSION_SPECIAL_WARHEADS &&
-						  (projectileType == WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE ||
-						   projectileType == WARHEAD_OBJECT_TYPE_ION_PULSE) &&
-						  requiredWarheadClass == LARGE_TARGET_WARHEAD_CLASS))) {
-						WarheadGuidanceState* guidance;
+					    (g_projectileTypeData.warheadClass
+							     [projectileType -
+							      PROJECTILE_OBJECT_TYPE_FIRST] ==
+						     requiredWarheadClass ||
+					     (g_missionFileVersion ==
+						      MISSION_VERSION_SPECIAL_WARHEADS &&
+					      (projectileType ==
+						       WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE ||
+					       projectileType ==
+						       WARHEAD_OBJECT_TYPE_ION_PULSE) &&
+					      requiredWarheadClass ==
+						      LARGE_TARGET_WARHEAD_CLASS))) {
+						WarheadGuidanceState *guidance;
 
-						guidance = projectileObject->mobj->pWarheadGuidance;
-						if (guidance->homingTier != 0 && guidance->targetObjIdx == targetIndex) {
+						guidance =
+							projectileObject->mobj
+								->pWarheadGuidance;
+						if (guidance->homingTier != 0 &&
+						    guidance->targetObjIdx ==
+							    targetIndex) {
 							++incomingCount;
-							if (g_missionFileVersion == MISSION_VERSION_SPECIAL_WARHEADS &&
-								(projectileType == WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE ||
-								 projectileType == WARHEAD_OBJECT_TYPE_ION_PULSE) &&
-								requiredWarheadClass == LARGE_TARGET_WARHEAD_CLASS)
-								incomingCount += SPECIAL_WARHEAD_EXTRA_COUNT;
+							if (g_missionFileVersion ==
+								    MISSION_VERSION_SPECIAL_WARHEADS &&
+							    (projectileType ==
+								     WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE ||
+							     projectileType ==
+								     WARHEAD_OBJECT_TYPE_ION_PULSE) &&
+							    requiredWarheadClass ==
+								    LARGE_TARGET_WARHEAD_CLASS) {
+								incomingCount +=
+									SPECIAL_WARHEAD_EXTRA_COUNT;
+							}
 						}
 					}
 				}
 				if (incomingCount < incomingLimit &&
-					g_paiContext.controller->maneuverMode == AI_MANEUVER_MODE_ROCKET_ATTACK &&
-					g_curCraft->weaponFireInhibitTimer == 0 &&
-					g_curCraft->beamEffectAccum[WEAPON_INHIBIT_BEAM_EFFECT_SLOT] == 0 &&
-					g_curCraft->aiFlight.warheadsFiredThisManeuver < warheadsPerManeuverLimit) {
-					if (targetAngle >= MAX_WARHEAD_ANGLE || pitchAngle >= MAX_WARHEAD_ANGLE ||
-						(unsigned int)trig2_polardistance >= fireRange) {
-						g_curCraft->warheadLockTicks -= g_paiContext.controller->thinkInterval;
-						if (g_curCraft->warheadLockTicks < 0)
-							g_curCraft->warheadLockTicks = 0;
+				    g_paiContext.controller->maneuverMode ==
+					    AI_MANEUVER_MODE_ROCKET_ATTACK &&
+				    g_curCraft->weaponFireInhibitTimer == 0 &&
+				    g_curCraft->beamEffectAccum
+						    [WEAPON_INHIBIT_BEAM_EFFECT_SLOT] ==
+					    0 &&
+				    g_curCraft->aiFlight
+						    .warheadsFiredThisManeuver <
+					    warheadsPerManeuverLimit) {
+					if (targetAngle >= MAX_WARHEAD_ANGLE ||
+					    pitchAngle >= MAX_WARHEAD_ANGLE ||
+					    (unsigned int)trig2_polardistance >=
+						    fireRange) {
+						g_curCraft->warheadLockTicks -=
+							g_paiContext.controller
+								->thinkInterval;
+						if (g_curCraft
+							    ->warheadLockTicks <
+						    0) {
+							g_curCraft
+								->warheadLockTicks =
+								0;
+						}
 					} else {
 						uint16_t lockThreshold;
 
 						lockThreshold =
-							(uint16_t)(WARHEAD_LOCK_TICKS_PER_SKILL_LEVEL * (g_paiContext.skillTier + 1));
-						if (g_paiContext.skillTier == MAX_SHOOTING_SKILL_TIER) {
-							g_curCraft->warheadLockTicks += g_paiContext.controller->thinkInterval;
-							if (g_curCraft->hullDamage >= g_curCraft->systemDamageHullThreshold)
-								lockThreshold >>= 1;
+							(uint16_t)(WARHEAD_LOCK_TICKS_PER_SKILL_LEVEL *
+								   (g_paiContext
+									    .skillTier +
+								    1));
+						if (g_paiContext.skillTier ==
+						    MAX_SHOOTING_SKILL_TIER) {
+							g_curCraft
+								->warheadLockTicks +=
+								g_paiContext
+									.controller
+									->thinkInterval;
+							if (g_curCraft
+								    ->hullDamage >=
+							    g_curCraft
+								    ->systemDamageHullThreshold) {
+								lockThreshold >>=
+									1;
+							}
 						} else {
-							g_curCraft->warheadLockTicks +=
-								MATH2_fraction(g_paiContext.controller->thinkInterval, LOWER_SKILL_LOCK_RATE);
+							g_curCraft
+								->warheadLockTicks += MATH2_fraction(
+								g_paiContext
+									.controller
+									->thinkInterval,
+								LOWER_SKILL_LOCK_RATE);
 						}
-						if (g_curCraft->warheadLockTicks >= (int)lockThreshold) {
-							for (launcherIndex = 0; launcherIndex < g_curCraft->warheadLauncherCount;
-								 ++launcherIndex) {
+						if (g_curCraft
+							    ->warheadLockTicks >=
+						    (int)lockThreshold) {
+							for (launcherIndex = 0;
+							     launcherIndex <
+							     g_curCraft
+								     ->warheadLauncherCount;
+							     ++launcherIndex) {
 								uint8_t projectileType;
 
-								if (g_curCraft->warheadLauncherCooldownTicks[launcherIndex] == 0) {
-									projectileType = g_curCraft->warheadSlotTypeIds[launcherIndex];
-									if (g_projectileTypeData.warheadClass[projectileType -
-																		  PROJECTILE_OBJECT_TYPE_FIRST] ==
-											requiredWarheadClass ||
-										(g_missionFileVersion == MISSION_VERSION_SPECIAL_WARHEADS &&
-										 (projectileType == WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE ||
-										  projectileType == WARHEAD_OBJECT_TYPE_ION_PULSE) &&
-										 requiredWarheadClass == LARGE_TARGET_WARHEAD_CLASS &&
-										 (targetIndex == UINT16_MAX ||
-										  g_objectTable[targetIndex].mobj->pCraft->weaponFireInhibitTimer ==
-											  0 ||
-										  (uint16_t)g_objectTable[targetIndex]
-												  .mobj->pCraft->weaponFireInhibitTimer <
-											  SPECIAL_WARHEAD_INHIBIT_LIMIT))) {
-										if (g_paiContext.skillTier == MAX_SHOOTING_SKILL_TIER &&
-											g_curCraft->hullDamage >= g_curCraft->systemDamageHullThreshold) {
-											g_curCraft->warheadLauncherFlags[launcherIndex] =
+								if (g_curCraft->warheadLauncherCooldownTicks
+									    [launcherIndex] ==
+								    0) {
+									projectileType =
+										g_curCraft
+											->warheadSlotTypeIds
+												[launcherIndex];
+									if (g_projectileTypeData
+											    .warheadClass
+												    [projectileType -
+												     PROJECTILE_OBJECT_TYPE_FIRST] ==
+										    requiredWarheadClass ||
+									    (g_missionFileVersion ==
+										     MISSION_VERSION_SPECIAL_WARHEADS &&
+									     (projectileType ==
+										      WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE ||
+									      projectileType ==
+										      WARHEAD_OBJECT_TYPE_ION_PULSE) &&
+									     requiredWarheadClass ==
+										     LARGE_TARGET_WARHEAD_CLASS &&
+									     (targetIndex ==
+										      UINT16_MAX ||
+									      g_objectTable[targetIndex]
+											      .mobj
+											      ->pCraft
+											      ->weaponFireInhibitTimer ==
+										      0 ||
+									      (uint16_t)g_objectTable[targetIndex]
+											      .mobj
+											      ->pCraft
+											      ->weaponFireInhibitTimer <
+										      SPECIAL_WARHEAD_INHIBIT_LIMIT))) {
+										if (g_paiContext.skillTier ==
+											    MAX_SHOOTING_SKILL_TIER &&
+										    g_curCraft->hullDamage >=
+											    g_curCraft
+												    ->systemDamageHullThreshold) {
+											g_curCraft
+												->warheadLauncherFlags
+													[launcherIndex] =
 												PAIRED_FIRE_LAUNCHER_FLAGS;
 										} else {
 											int weaponSlotIndex;
 
-											weaponSlotIndex = g_modelDefs[g_curCraft->modelIndex]
-																  .warheadLauncherFirstSlot[launcherIndex];
-											g_curCraft->warheadLauncherFlags[launcherIndex] =
+											weaponSlotIndex =
+												g_modelDefs[g_curCraft
+														    ->modelIndex]
+													.warheadLauncherFirstSlot
+														[launcherIndex];
+											g_curCraft
+												->warheadLauncherFlags
+													[launcherIndex] =
 												NORMAL_LAUNCHER_FLAGS;
-											if (g_curCraft->weaponSlots[weaponSlotIndex].ammoCount <
-												g_curCraft->weaponSlots[weaponSlotIndex + 1].ammoCount)
-												g_curCraft->warheadLauncherFlags[launcherIndex] =
+											if (g_curCraft
+												    ->weaponSlots
+													    [weaponSlotIndex]
+												    .ammoCount <
+											    g_curCraft
+												    ->weaponSlots
+													    [weaponSlotIndex +
+													     1]
+												    .ammoCount) {
+												g_curCraft
+													->warheadLauncherFlags
+														[launcherIndex] =
 													(int8_t)IMBALANCED_LAUNCHER_FLAGS;
+											}
 										}
-										g_paiContext.controller->targetComponent =
-											paifight_SelectTargetComponentMesh(targetIndex);
-										laser_firewarheadsystem(g_paiContext.objectIndex, launcherIndex);
-										++g_curCraft->aiFlight.warheadsFiredThisManeuver;
-										if (g_objectTable[targetIndex].genusId == CRAFT_GENUS_STARFIGHTER ||
-											g_objectTable[targetIndex].genusId == CRAFT_GENUS_TRANSPORT)
-											g_curCraft->warheadLockTicks = 0;
+										g_paiContext
+											.controller
+											->targetComponent =
+											paifight_SelectTargetComponentMesh(
+												targetIndex);
+										laser_firewarheadsystem(
+											g_paiContext
+												.objectIndex,
+											launcherIndex);
+										++g_curCraft
+											  ->aiFlight
+											  .warheadsFiredThisManeuver;
+										if (g_objectTable[targetIndex]
+												    .genusId ==
+											    CRAFT_GENUS_STARFIGHTER ||
+										    g_objectTable[targetIndex]
+												    .genusId ==
+											    CRAFT_GENUS_TRANSPORT) {
+											g_curCraft
+												->warheadLockTicks =
+												0;
+										}
 									}
 								}
 							}
@@ -1169,14 +1755,17 @@ int16_t paifight_fightershootorder(void) {
 			}
 		}
 	} else {
-		for (slotIndex = 0; slotIndex < g_curCraft->cannonGroupCount; ++slotIndex)
+		for (slotIndex = 0; slotIndex < g_curCraft->cannonGroupCount;
+		     ++slotIndex) {
 			g_curCraft->laserState.linkMode[slotIndex] = 0;
+		}
 	}
 	return 0;
 }
 
 // FUNCTION: XVT 0x45F1E0
-uint16_t paifight_SelectTargetComponentMesh(uint16_t targetObjIdx) {
+uint16_t paifight_SelectTargetComponentMesh(uint16_t targetObjIdx)
+{
 	uint16_t selectedMeshIdx = 0;
 	int meshCount;
 	unsigned int nearestDistance = 0x1000000;
@@ -1193,10 +1782,12 @@ uint16_t paifight_SelectTargetComponentMesh(uint16_t targetObjIdx) {
 		uint16_t meshIndex;
 
 		objectType = g_objectTable[targetObjIdx].objectType;
-		if (objectType < 73)
+		if (objectType < 73) {
 			meshCount = g_objectTypeMeshCache[objectType].meshCount;
-		else
-			meshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
+		} else {
+			meshCount =
+				ModelMesh_GetObjectTypeMeshCount(objectType);
+		}
 
 		for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
 			int adjustedMeshIndex = meshIndex;
@@ -1207,229 +1798,443 @@ uint16_t paifight_SelectTargetComponentMesh(uint16_t targetObjIdx) {
 				if (adjustedMeshIndex < 0) {
 					meshType = MESH_COMPONENT_00_DEFAULT;
 				} else {
-					cachedMeshCount = g_objectTypeMeshCache[objectType].meshCount;
-					if (cachedMeshCount <= meshIndex)
-						adjustedMeshIndex = cachedMeshCount - 1;
-					meshType = g_objectTypeMeshCache[objectType].meshTypes[adjustedMeshIndex];
+					cachedMeshCount =
+						g_objectTypeMeshCache
+							[objectType]
+								.meshCount;
+					if (cachedMeshCount <= meshIndex) {
+						adjustedMeshIndex =
+							cachedMeshCount - 1;
+					}
+					meshType =
+						g_objectTypeMeshCache[objectType]
+							.meshTypes
+								[adjustedMeshIndex];
 				}
 			} else {
-				meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshIndex);
+				meshType = ModelMesh_GetObjectTypeMeshType(
+					objectType, meshIndex);
 			}
 
 			if ((uint16_t)meshType == MESH_COMPONENT_01_MAIN_HULL ||
-				(uint16_t)meshType == MESH_COMPONENT_03_FUSELAGE) {
+			    (uint16_t)meshType == MESH_COMPONENT_03_FUSELAGE) {
 				if (selectNearest) {
-					unsigned int distance = Object_DirectionAndDistanceToMeshCenter(g_paiContext.objectIndex,
-																					targetObjIdx, meshIndex);
+					unsigned int distance =
+						Object_DirectionAndDistanceToMeshCenter(
+							g_paiContext
+								.objectIndex,
+							targetObjIdx,
+							meshIndex);
 
 					if (distance < nearestDistance) {
 						selectedMeshIdx = meshIndex;
 						nearestDistance = distance;
 					}
 				} else {
-					candidateMeshes[candidateCount++] = (uint8_t)meshIndex;
+					candidateMeshes[candidateCount++] =
+						(uint8_t)meshIndex;
 				}
 			}
 		}
 
-		if (selectNearest)
+		if (selectNearest) {
 			return selectedMeshIdx;
+		}
 		return candidateMeshes[GameRandRange(candidateCount)];
 	}
 	return 0;
 }
 
 // FUNCTION: XVT 0x45F380
-int16_t paifight_missiledefenseorder(void) {
+int16_t paifight_missiledefenseorder(void)
+{
 	uint16_t launcherIndex;
 	uint16_t weaponSlotIndex;
 	int16_t selectedTarget;
 	unsigned int bestRange;
-	uint16_t* turretTargetIndex;
+	uint16_t *turretTargetIndex;
 	int candidateValid;
 
-	if (g_curCraft->objectKind == CRAFT_OBJECT_KIND_BREAKING_UP)
+	if (g_curCraft->objectKind == CRAFT_OBJECT_KIND_BREAKING_UP) {
 		return 0;
-	if (g_curCraft->workingSubsystems == 0)
+	}
+	if (g_curCraft->workingSubsystems == 0) {
 		return 0;
-	if (g_curCraft->weaponFireInhibitTimer != 0)
+	}
+	if (g_curCraft->weaponFireInhibitTimer != 0) {
 		return 0;
-	if (g_objectTable[g_paiContext.objectIndex].genusId == 0)
+	}
+	if (g_objectTable[g_paiContext.objectIndex].genusId == 0) {
 		return 0;
+	}
 
 	launcherIndex = 0;
 	while (launcherIndex < g_curCraft->warheadLauncherCount) {
-		weaponSlotIndex = g_modelDefs[g_curCraft->modelIndex].warheadLauncherFirstSlot[launcherIndex];
-		while (g_modelDefs[g_curCraft->modelIndex].warheadLauncherLastSlot[launcherIndex] + 1 >
-			   weaponSlotIndex) {
-			uint8_t meshIndex = g_modelDefs[g_curCraft->modelIndex].weaponHardpoints[weaponSlotIndex].meshIdx;
+		weaponSlotIndex =
+			g_modelDefs[g_curCraft->modelIndex]
+				.warheadLauncherFirstSlot[launcherIndex];
+		while (g_modelDefs[g_curCraft->modelIndex]
+				       .warheadLauncherLastSlot[launcherIndex] +
+			       1 >
+		       weaponSlotIndex) {
+			uint8_t meshIndex =
+				g_modelDefs[g_curCraft->modelIndex]
+					.weaponHardpoints[weaponSlotIndex]
+					.meshIdx;
 
 			if (g_curCraft->componentState[meshIndex] == 0) {
-				if ((g_curCraft->weaponSlots[weaponSlotIndex].projectileTypeId == 0x90 ||
-					 g_curCraft->weaponSlots[weaponSlotIndex].projectileTypeId == 0x95) &&
-					g_curCraft->weaponSlots[weaponSlotIndex].ammoCount != 0) {
-					if (g_curCraft->weaponSlots[weaponSlotIndex].missileDefenseCooldown != 0) {
-						--g_curCraft->weaponSlots[weaponSlotIndex].missileDefenseCooldown;
+				if ((g_curCraft->weaponSlots[weaponSlotIndex]
+						     .projectileTypeId ==
+					     0x90 ||
+				     g_curCraft->weaponSlots[weaponSlotIndex]
+						     .projectileTypeId ==
+					     0x95) &&
+				    g_curCraft->weaponSlots[weaponSlotIndex]
+						    .ammoCount != 0) {
+					if (g_curCraft
+						    ->weaponSlots
+							    [weaponSlotIndex]
+						    .missileDefenseCooldown !=
+					    0) {
+						--g_curCraft
+							  ->weaponSlots
+								  [weaponSlotIndex]
+							  .missileDefenseCooldown;
 					} else {
 						uint16_t candidateIndex;
 
-						turretTargetIndex = &g_curCraft->turretTargetStates[weaponSlotIndex].targetObjIdx;
+						turretTargetIndex =
+							&g_curCraft
+								 ->turretTargetStates
+									 [weaponSlotIndex]
+								 .targetObjIdx;
 						*turretTargetIndex = UINT16_MAX;
-						g_paifightSearchOriginX = g_paiContext.craftPositionX;
-						g_paifightSearchOriginY = g_paiContext.craftPositionY;
-						g_paifightSearchOriginZ = g_paiContext.craftPositionZ;
+						g_paifightSearchOriginX =
+							g_paiContext
+								.craftPositionX;
+						g_paifightSearchOriginY =
+							g_paiContext
+								.craftPositionY;
+						g_paifightSearchOriginZ =
+							g_paiContext
+								.craftPositionZ;
 						pai_calcrotatedpoint(
-							&g_objectTable[g_paiContext.objectIndex],
-							g_modelDefs[g_curCraft->modelIndex].weaponHardpoints[weaponSlotIndex].x,
-							g_modelDefs[g_curCraft->modelIndex].weaponHardpoints[weaponSlotIndex].z,
-							g_modelDefs[g_curCraft->modelIndex].weaponHardpoints[weaponSlotIndex].y);
-						if (g_objectTable[g_paiContext.objectIndex].objectType == 53) {
+							&g_objectTable
+								[g_paiContext
+									 .objectIndex],
+							g_modelDefs[g_curCraft
+									    ->modelIndex]
+								.weaponHardpoints
+									[weaponSlotIndex]
+								.x,
+							g_modelDefs[g_curCraft
+									    ->modelIndex]
+								.weaponHardpoints
+									[weaponSlotIndex]
+								.z,
+							g_modelDefs[g_curCraft
+									    ->modelIndex]
+								.weaponHardpoints
+									[weaponSlotIndex]
+								.y);
+						if (g_objectTable
+							    [g_paiContext
+								     .objectIndex]
+								    .objectType ==
+						    53) {
 							g_rotatedX *= 2;
 							g_rotatedY *= 2;
 							g_rotatedZ *= 2;
 						}
-						g_paifightSearchOriginX += g_rotatedX;
-						g_paifightSearchOriginY += g_rotatedY;
-						g_paifightSearchOriginZ += g_rotatedZ;
+						g_paifightSearchOriginX +=
+							g_rotatedX;
+						g_paifightSearchOriginY +=
+							g_rotatedY;
+						g_paifightSearchOriginZ +=
+							g_rotatedZ;
 
 						selectedTarget = -1;
 						bestRange = 0x40000;
-						for (candidateIndex = (uint16_t)g_projectileObjectSlotStart;
-							 candidateIndex < g_projectileObjectSlotEnd; ++candidateIndex) {
-							ObjectRecord* projectile = &g_objectTable[candidateIndex];
-							WarheadGuidanceState* guidance;
+						for (candidateIndex = (uint16_t)
+							     g_projectileObjectSlotStart;
+						     candidateIndex <
+						     g_projectileObjectSlotEnd;
+						     ++candidateIndex) {
+							ObjectRecord *projectile =
+								&g_objectTable
+									[candidateIndex];
+							WarheadGuidanceState
+								*guidance;
 							uint16_t otherIndex;
 							int16_t incomingCount;
 							int range;
 
-							if (projectile->objectType == 0)
+							if (projectile
+								    ->objectType ==
+							    0) {
 								continue;
-							guidance = &g_projectileGuidanceStates[(uint16_t)(candidateIndex -
-																			  g_projectileObjectSlotStart)];
-							if (guidance->homingTier == 0 ||
-								guidance->targetObjIdx != g_paiContext.objectIndex)
+							}
+							guidance = &g_projectileGuidanceStates[(
+								uint16_t)(candidateIndex -
+									  g_projectileObjectSlotStart)];
+							if (guidance->homingTier ==
+								    0 ||
+							    guidance->targetObjIdx !=
+								    g_paiContext
+									    .objectIndex) {
 								continue;
+							}
 
 							incomingCount = 0;
-							for (otherIndex = (uint16_t)g_projectileObjectSlotStart;
-								 otherIndex < g_projectileObjectSlotEnd; ++otherIndex) {
-								WarheadGuidanceState* otherGuidance;
-								if (g_objectTable[otherIndex].objectType == 0 || otherIndex == candidateIndex)
+							for (otherIndex = (uint16_t)
+								     g_projectileObjectSlotStart;
+							     otherIndex <
+							     g_projectileObjectSlotEnd;
+							     ++otherIndex) {
+								WarheadGuidanceState
+									*otherGuidance;
+								if (g_objectTable[otherIndex]
+										    .objectType ==
+									    0 ||
+								    otherIndex ==
+									    candidateIndex) {
 									continue;
+								}
 								otherGuidance = &g_projectileGuidanceStates[(
-									uint16_t)(otherIndex - g_projectileObjectSlotStart)];
-								if (otherGuidance->homingTier >= 5 &&
-									otherGuidance->targetObjIdx == candidateIndex)
+									uint16_t)(otherIndex -
+										  g_projectileObjectSlotStart)];
+								if (otherGuidance->homingTier >=
+									    5 &&
+								    otherGuidance->targetObjIdx ==
+									    candidateIndex) {
 									++incomingCount;
+								}
 							}
-							if ((uint16_t)incomingCount >= 1)
+							if ((uint16_t)
+								    incomingCount >=
+							    1) {
 								continue;
+							}
 
-							range = collide_roughdistance3d(projectile->world_x - g_paifightSearchOriginX,
-															projectile->world_y - g_paifightSearchOriginY,
-															projectile->world_z - g_paifightSearchOriginZ);
-							g_lastRoughDistance = range;
+							range = collide_roughdistance3d(
+								projectile->world_x -
+									g_paifightSearchOriginX,
+								projectile->world_y -
+									g_paifightSearchOriginY,
+								projectile->world_z -
+									g_paifightSearchOriginZ);
+							g_lastRoughDistance =
+								range;
 							if (range > 0x4000) {
-								if ((unsigned int)range < bestRange) {
-									selectedTarget = candidateIndex;
-									bestRange = range;
+								if ((unsigned int)
+									    range <
+								    bestRange) {
+									selectedTarget =
+										candidateIndex;
+									bestRange =
+										range;
 								}
 							}
 						}
 
-						if (selectedTarget != -1)
-							*turretTargetIndex = selectedTarget;
-						else {
+						if (selectedTarget != -1) {
+							*turretTargetIndex =
+								selectedTarget;
+						} else {
 							bestRange = 0x40000;
 							selectedTarget = -1;
-							for (candidateIndex = (uint16_t)g_activeRegionObjectSlotStart;
-								 candidateIndex < g_activeRegionCraftObjectSlotEnd; ++candidateIndex) {
-								uint16_t incomingCount;
-								uint16_t otherIndex;
-								unsigned int range;
+							for (candidateIndex = (uint16_t)
+								     g_activeRegionObjectSlotStart;
+							     candidateIndex <
+							     g_activeRegionCraftObjectSlotEnd;
+							     ++candidateIndex) {
+								uint16_t
+									incomingCount;
+								uint16_t
+									otherIndex;
+								unsigned int
+									range;
 								{
-									ObjectRecord* candidate = &g_objectTable[candidateIndex];
-									CraftData* candidateCraft;
-									if (candidate->objectType == 0)
+									ObjectRecord *candidate =
+										&g_objectTable
+											[candidateIndex];
+									CraftData
+										*candidateCraft;
+									if (candidate
+										    ->objectType ==
+									    0) {
 										continue;
-									candidateCraft = candidate->mobj->pCraft;
+									}
+									candidateCraft =
+										candidate
+											->mobj
+											->pCraft;
 									if (!((g_paiContext.objectIndex ==
-											   candidateCraft->aiController.targetObjIdx &&
-										   (candidateCraft->aiController.maneuverMode ==
-												AI_MANEUVER_MODE_ATTACK ||
-											candidateCraft->aiController.maneuverMode ==
-												AI_MANEUVER_MODE_ROCKET_ATTACK)) ||
-										  candidateCraft->lastAttackerObjIdx == (uint16_t)candidateIndex ||
-										  candidateCraft->aiFlight.threatObjIdx == candidateIndex)) {
-										int playerOwner = candidate->playerOwnerIdx;
+										       candidateCraft
+											       ->aiController
+											       .targetObjIdx &&
+									       (candidateCraft->aiController
+												.maneuverMode ==
+											AI_MANEUVER_MODE_ATTACK ||
+										candidateCraft->aiController
+												.maneuverMode ==
+											AI_MANEUVER_MODE_ROCKET_ATTACK)) ||
+									      candidateCraft->lastAttackerObjIdx ==
+										      (uint16_t)
+											      candidateIndex ||
+									      candidateCraft->aiFlight
+											      .threatObjIdx ==
+										      candidateIndex)) {
+										int playerOwner =
+											candidate
+												->playerOwnerIdx;
 										int ownTeam;
 										int candidateTeam;
 										int isEnemy;
-										if (playerOwner == -1)
+										if (playerOwner ==
+										    -1) {
 											continue;
+										}
 										candidateTeam =
-											g_missionFlightGroups[candidate->flightGroupIdx].fg.team;
-										ownTeam = g_objectTable[g_paiContext.objectIndex].mobj->team;
-										if (ownTeam == candidateTeam)
-											isEnemy = 0;
-										else
-											isEnemy = g_missionTeams[ownTeam].allies[candidateTeam] == 0;
-										if (isEnemy != 1)
+											g_missionFlightGroups
+												[candidate
+													 ->flightGroupIdx]
+													.fg
+													.team;
+										ownTeam =
+											g_objectTable[g_paiContext
+													      .objectIndex]
+												.mobj
+												->team;
+										if (ownTeam ==
+										    candidateTeam) {
+											isEnemy =
+												0;
+										} else {
+											isEnemy =
+												g_missionTeams[ownTeam]
+													.allies[candidateTeam] ==
+												0;
+										}
+										if (isEnemy !=
+										    1) {
 											continue;
-										if (g_players[playerOwner].currentTargetObjectIdx !=
-											g_paiContext.objectIndex)
+										}
+										if (g_players[playerOwner]
+											    .currentTargetObjectIdx !=
+										    g_paiContext
+											    .objectIndex) {
 											continue;
+										}
 									}
 								}
 
-								candidateValid = pai_IsObjectTargetable(candidateIndex);
-								if (candidateValid == 0)
+								candidateValid = pai_IsObjectTargetable(
+									candidateIndex);
+								if (candidateValid ==
+								    0) {
 									continue;
-
-								incomingCount = 0;
-								for (otherIndex = (uint16_t)g_projectileObjectSlotStart;
-									 otherIndex < g_projectileObjectSlotEnd; ++otherIndex) {
-									WarheadGuidanceState* otherGuidance;
-									if (g_objectTable[otherIndex].objectType == 0 ||
-										otherIndex == candidateIndex)
-										continue;
-									otherGuidance = &g_projectileGuidanceStates[(
-										uint16_t)(otherIndex - g_projectileObjectSlotStart)];
-									if (otherGuidance->homingTier != 0 &&
-										otherGuidance->targetObjIdx == candidateIndex)
-										++incomingCount;
 								}
-								if (incomingCount >= 2)
+
+								incomingCount =
+									0;
+								for (otherIndex = (uint16_t)
+									     g_projectileObjectSlotStart;
+								     otherIndex <
+								     g_projectileObjectSlotEnd;
+								     ++otherIndex) {
+									WarheadGuidanceState
+										*otherGuidance;
+									if (g_objectTable[otherIndex]
+											    .objectType ==
+										    0 ||
+									    otherIndex ==
+										    candidateIndex) {
+										continue;
+									}
+									otherGuidance = &g_projectileGuidanceStates[(
+										uint16_t)(otherIndex -
+											  g_projectileObjectSlotStart)];
+									if (otherGuidance->homingTier !=
+										    0 &&
+									    otherGuidance->targetObjIdx ==
+										    candidateIndex) {
+										++incomingCount;
+									}
+								}
+								if (incomingCount >=
+								    2) {
 									continue;
+								}
 
 								range = collide_roughdistance3d(
-									g_objectTable[candidateIndex].world_x - g_paifightSearchOriginX,
-									g_objectTable[candidateIndex].world_y - g_paifightSearchOriginY,
-									g_objectTable[candidateIndex].world_z - g_paifightSearchOriginZ);
-								g_lastRoughDistance = range;
-								if (range < bestRange) {
-									selectedTarget = candidateIndex;
-									bestRange = range;
+									g_objectTable[candidateIndex]
+											.world_x -
+										g_paifightSearchOriginX,
+									g_objectTable[candidateIndex]
+											.world_y -
+										g_paifightSearchOriginY,
+									g_objectTable[candidateIndex]
+											.world_z -
+										g_paifightSearchOriginZ);
+								g_lastRoughDistance =
+									range;
+								if (range <
+								    bestRange) {
+									selectedTarget =
+										candidateIndex;
+									bestRange =
+										range;
 								}
 							}
 						}
 
-						if (selectedTarget != -1)
-							*turretTargetIndex = selectedTarget;
-						if (*turretTargetIndex != UINT16_MAX) {
-							uint16_t oldTarget = g_paiContext.controller->targetObjIdx;
+						if (selectedTarget != -1) {
+							*turretTargetIndex =
+								selectedTarget;
+						}
+						if (*turretTargetIndex !=
+						    UINT16_MAX) {
+							uint16_t oldTarget =
+								g_paiContext
+									.controller
+									->targetObjIdx;
 							int projectileIndex;
-							g_paiContext.controller->targetObjIdx = *turretTargetIndex;
-							g_paiContext.controller->targetComponent =
-								paifight_SelectTargetComponentMesh(g_paiContext.controller->targetObjIdx);
+							g_paiContext.controller
+								->targetObjIdx =
+								*turretTargetIndex;
+							g_paiContext.controller
+								->targetComponent =
+								paifight_SelectTargetComponentMesh(
+									g_paiContext
+										.controller
+										->targetObjIdx);
 							projectileIndex = laser_firemissile(
-								g_paiContext.objectIndex, weaponSlotIndex,
-								g_curCraft->weaponSlots[weaponSlotIndex].projectileTypeId, UINT16_MAX);
-							if (projectileIndex != -1) {
-								g_projectileGuidanceStates[projectileIndex].homingTier = (GameRand() & 3) + 3;
-								g_curCraft->weaponSlots[weaponSlotIndex].missileDefenseCooldown = 20;
+								g_paiContext
+									.objectIndex,
+								weaponSlotIndex,
+								g_curCraft
+									->weaponSlots
+										[weaponSlotIndex]
+									.projectileTypeId,
+								UINT16_MAX);
+							if (projectileIndex !=
+							    -1) {
+								g_projectileGuidanceStates
+									[projectileIndex]
+										.homingTier =
+									(GameRand() &
+									 3) +
+									3;
+								g_curCraft
+									->weaponSlots
+										[weaponSlotIndex]
+									.missileDefenseCooldown =
+									20;
 							}
-							g_paiContext.controller->targetObjIdx = oldTarget;
+							g_paiContext.controller
+								->targetObjIdx =
+								oldTarget;
 						}
 					}
 				}
@@ -1442,7 +2247,8 @@ int16_t paifight_missiledefenseorder(void) {
 }
 
 // FUNCTION: XVT 0x45FBF0
-int16_t paifight_gunnerselfdefenseorder(void) {
+int16_t paifight_gunnerselfdefenseorder(void)
+{
 	enum {
 		DISABLED_FLIGHT_GROUP_STATUS = 14,
 		GUNNER_WEAPON_TYPE = 2,
@@ -1460,37 +2266,62 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 	g_paiContext.requireUndisabledTarget = 0;
 	objectType = g_objectTable[g_paiContext.objectIndex].objectType;
 	isSuperStarDestroyer = objectType == CRAFT_SPECIES_SUPER_STAR_DESTROYER;
-	flightGroupArrayIndex = g_objectTable[g_paiContext.objectIndex].flightGroupIdx;
-	if (g_missionFlightGroups[flightGroupArrayIndex].fg.status1 != DISABLED_FLIGHT_GROUP_STATUS &&
-		g_missionFlightGroups[flightGroupArrayIndex].fg.status2 != DISABLED_FLIGHT_GROUP_STATUS) {
-		for (weaponSlotIndex = 0; weaponSlotIndex < g_curCraft->laserSlotCount; ++weaponSlotIndex) {
-			TurretTargetState* turretState;
+	flightGroupArrayIndex =
+		g_objectTable[g_paiContext.objectIndex].flightGroupIdx;
+	if (g_missionFlightGroups[flightGroupArrayIndex].fg.status1 !=
+		    DISABLED_FLIGHT_GROUP_STATUS &&
+	    g_missionFlightGroups[flightGroupArrayIndex].fg.status2 !=
+		    DISABLED_FLIGHT_GROUP_STATUS) {
+		for (weaponSlotIndex = 0;
+		     weaponSlotIndex < g_curCraft->laserSlotCount;
+		     ++weaponSlotIndex) {
+			TurretTargetState *turretState;
 			uint16_t lastAttackerObjIdx;
 			int validTarget;
 			int searchForTarget;
 
-			if (g_curCraft->weaponSlots[weaponSlotIndex].projectileTypeId != GUNNER_WEAPON_TYPE)
+			if (g_curCraft->weaponSlots[weaponSlotIndex]
+				    .projectileTypeId != GUNNER_WEAPON_TYPE) {
 				continue;
-			turretState = &g_curCraft->turretTargetStates[weaponSlotIndex];
-			if (turretState->retargetCooldownTimer > 0)
+			}
+			turretState =
+				&g_curCraft
+					 ->turretTargetStates[weaponSlotIndex];
+			if (turretState->retargetCooldownTimer > 0) {
 				continue;
+			}
 
 			turretState->targetObjIdx = UINT16_MAX;
 			g_curCraft->weaponSlots[weaponSlotIndex].ammoCount = 0;
-			if (g_curCraft->objectKind == CRAFT_OBJECT_KIND_BREAKING_UP ||
-				g_curCraft->workingSubsystems == 0 || g_curCraft->weaponFireInhibitTimer != 0)
+			if (g_curCraft->objectKind ==
+				    CRAFT_OBJECT_KIND_BREAKING_UP ||
+			    g_curCraft->workingSubsystems == 0 ||
+			    g_curCraft->weaponFireInhibitTimer != 0) {
 				continue;
+			}
 
 			g_paifightSearchOriginX = g_paiContext.craftPositionX;
 			g_paifightSearchOriginY = g_paiContext.craftPositionY;
 			g_paifightSearchOriginZ = g_paiContext.craftPositionZ;
 			if (!isSuperStarDestroyer) {
-				pai_calcrotatedpoint(&g_objectTable[g_paiContext.objectIndex],
-									 g_modelDefs[g_curCraft->modelIndex].weaponHardpoints[weaponSlotIndex].x,
-									 g_modelDefs[g_curCraft->modelIndex].weaponHardpoints[weaponSlotIndex].z,
-									 g_modelDefs[g_curCraft->modelIndex].weaponHardpoints[weaponSlotIndex].y);
-				if (g_objectTable[g_paiContext.objectIndex].objectType ==
-					CRAFT_SPECIES_IMPERIAL_STAR_DESTROYER) {
+				pai_calcrotatedpoint(
+					&g_objectTable[g_paiContext
+							       .objectIndex],
+					g_modelDefs[g_curCraft->modelIndex]
+						.weaponHardpoints
+							[weaponSlotIndex]
+						.x,
+					g_modelDefs[g_curCraft->modelIndex]
+						.weaponHardpoints
+							[weaponSlotIndex]
+						.z,
+					g_modelDefs[g_curCraft->modelIndex]
+						.weaponHardpoints
+							[weaponSlotIndex]
+						.y);
+				if (g_objectTable[g_paiContext.objectIndex]
+					    .objectType ==
+				    CRAFT_SPECIES_IMPERIAL_STAR_DESTROYER) {
 					g_rotatedX *= 2;
 					g_rotatedY *= 2;
 					g_rotatedZ *= 2;
@@ -1498,13 +2329,17 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 				g_paifightSearchOriginX += g_rotatedX;
 				g_paifightSearchOriginY += g_rotatedY;
 				g_paifightSearchOriginZ += g_rotatedZ;
-				g_collisionSegmentStartWorldX = g_paifightSearchOriginX;
-				g_collisionSegmentStartWorldY = g_paifightSearchOriginY;
-				g_collisionSegmentStartWorldZ = g_paifightSearchOriginZ;
+				g_collisionSegmentStartWorldX =
+					g_paifightSearchOriginX;
+				g_collisionSegmentStartWorldY =
+					g_paifightSearchOriginY;
+				g_collisionSegmentStartWorldZ =
+					g_paifightSearchOriginZ;
 			}
 
 			lastAttackerObjIdx = g_curCraft->lastAttackerObjIdx;
-			validTarget = pai_IsObjectTargetable(lastAttackerObjIdx);
+			validTarget =
+				pai_IsObjectTargetable(lastAttackerObjIdx);
 
 			searchForTarget = validTarget == 0;
 			if (validTarget != 0) {
@@ -1512,34 +2347,75 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 				int clearSweep;
 
 				g_lastRoughDistance = collide_roughdistance3d(
-					g_objectTable[lastAttackerObjIdx].world_x - g_paifightSearchOriginX,
-					g_objectTable[lastAttackerObjIdx].world_y - g_paifightSearchOriginY,
-					g_objectTable[lastAttackerObjIdx].world_z - g_paifightSearchOriginZ);
+					g_objectTable[lastAttackerObjIdx]
+							.world_x -
+						g_paifightSearchOriginX,
+					g_objectTable[lastAttackerObjIdx]
+							.world_y -
+						g_paifightSearchOriginY,
+					g_objectTable[lastAttackerObjIdx]
+							.world_z -
+						g_paifightSearchOriginZ);
 				maxRangeScore = AI_TARGET_RANGE_MAX;
-				if (isSuperStarDestroyer)
+				if (isSuperStarDestroyer) {
 					maxRangeScore +=
-						g_objectTypeTable[g_objectTable[g_paiContext.objectIndex].objectType].maxBoundsExtent;
-				if ((unsigned int)g_lastRoughDistance >= maxRangeScore) {
+						g_objectTypeTable
+							[g_objectTable
+								 [g_paiContext
+									  .objectIndex]
+									 .objectType]
+								.maxBoundsExtent;
+				}
+				if ((unsigned int)g_lastRoughDistance >=
+				    maxRangeScore) {
 					searchForTarget = 1;
 				} else {
 					clearSweep = 1;
 					if (!isSuperStarDestroyer) {
-						Mission_ResolveObjectOrMissionPointWorldLoc(lastAttackerObjIdx, 0);
-						g_collisionProbeWorldX = g_worldLocX;
-						g_collisionProbeWorldY = g_worldLocY;
-						g_collisionProbeWorldZ = g_worldLocZ;
-						clearSweep = collide_CheckSweptModelCollision(g_paiContext.objectIndex,
-																	  g_paiContext.objectIndex) == 0;
+						Mission_ResolveObjectOrMissionPointWorldLoc(
+							lastAttackerObjIdx, 0);
+						g_collisionProbeWorldX =
+							g_worldLocX;
+						g_collisionProbeWorldY =
+							g_worldLocY;
+						g_collisionProbeWorldZ =
+							g_worldLocZ;
+						clearSweep =
+							collide_CheckSweptModelCollision(
+								g_paiContext
+									.objectIndex,
+								g_paiContext
+									.objectIndex) ==
+							0;
 					}
 					if (!clearSweep ||
-						(strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "board2pln") == 0 &&
-						 g_paiContext.controller->targetObjIdx == lastAttackerObjIdx)) {
+					    (strcmp(g_planTable
+							    [g_paiContext
+								     .controller
+								     ->currentPlanId]
+								    .name,
+						    "board2pln") == 0 &&
+					     g_paiContext.controller
+							     ->targetObjIdx ==
+						     lastAttackerObjIdx)) {
 						searchForTarget = 1;
-					} else if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name,
-									  "disableldr1pln") == 0 &&
-							   lastAttackerObjIdx == g_paiContext.controller->targetObjIdx &&
-							   g_objectTable[g_paiContext.controller->targetObjIdx]
-									   .mobj->pCraft->shieldEnergy[0] == 0) {
+					} else if (
+						strcmp(g_planTable
+							       [g_paiContext
+									.controller
+									->currentPlanId]
+								       .name,
+						       "disableldr1pln") == 0 &&
+						lastAttackerObjIdx ==
+							g_paiContext.controller
+								->targetObjIdx &&
+						g_objectTable[g_paiContext
+								      .controller
+								      ->targetObjIdx]
+								.mobj->pCraft
+								->shieldEnergy
+									[0] ==
+							0) {
 						searchForTarget = 1;
 					} else {
 						if (isSuperStarDestroyer) {
@@ -1547,18 +2423,31 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 							int turretIndex;
 
 							sharedTurretCount = 0;
-							for (turretIndex = 0; turretIndex < g_curCraft->laserSlotCount &&
-												  sharedTurretCount < MAX_SHARED_TURRETS;
-								 ++turretIndex) {
-								if (g_curCraft->turretTargetStates[turretIndex].targetObjIdx ==
-									lastAttackerObjIdx)
+							for (turretIndex = 0;
+							     turretIndex <
+								     g_curCraft
+									     ->laserSlotCount &&
+							     sharedTurretCount <
+								     MAX_SHARED_TURRETS;
+							     ++turretIndex) {
+								if (g_curCraft
+									    ->turretTargetStates
+										    [turretIndex]
+									    .targetObjIdx ==
+								    lastAttackerObjIdx) {
 									++sharedTurretCount;
+								}
 							}
-							if (sharedTurretCount >= MAX_SHARED_TURRETS)
+							if (sharedTurretCount >=
+							    MAX_SHARED_TURRETS) {
 								continue;
+							}
 						}
-						turretState->targetObjIdx = lastAttackerObjIdx;
-						turretState->retargetCooldownTimer += RETARGET_COOLDOWN_TICKS;
+						turretState->targetObjIdx =
+							lastAttackerObjIdx;
+						turretState
+							->retargetCooldownTimer +=
+							RETARGET_COOLDOWN_TICKS;
 						continue;
 					}
 				}
@@ -1572,129 +2461,237 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 				g_curCraft->lastAttackerObjIdx = UINT16_MAX;
 				bestRangeScore = AI_TARGET_RANGE_MAX;
 				bestTargetObjIdx = -1;
-				if (isSuperStarDestroyer)
+				if (isSuperStarDestroyer) {
 					bestRangeScore +=
-						g_objectTypeTable[g_objectTable[g_paiContext.objectIndex].objectType].maxBoundsExtent;
+						g_objectTypeTable
+							[g_objectTable
+								 [g_paiContext
+									  .objectIndex]
+									 .objectType]
+								.maxBoundsExtent;
+				}
 
-				for (candidateObjIdx = (uint16_t)g_activeRegionObjectSlotStart;
-					 candidateObjIdx < g_activeRegionCraftObjectSlotEnd; ++candidateObjIdx) {
+				for (candidateObjIdx = (uint16_t)
+					     g_activeRegionObjectSlotStart;
+				     candidateObjIdx <
+				     g_activeRegionCraftObjectSlotEnd;
+				     ++candidateObjIdx) {
 					int candidateArrayIndex;
-					ObjectRecord* candidateObject;
-					CraftData* candidateCraft;
+					ObjectRecord *candidateObject;
+					CraftData *candidateCraft;
 					int candidateValid;
 					int clearSweep;
 
 					candidateArrayIndex = candidateObjIdx;
-					if (g_objectTable[candidateArrayIndex].objectType == 0)
+					if (g_objectTable[candidateArrayIndex]
+						    .objectType == 0) {
 						continue;
-					candidateCraft = g_objectTable[candidateArrayIndex].mobj->pCraft;
-					if (candidateCraft->aiController.targetObjIdx != g_paiContext.objectIndex ||
-						(candidateCraft->aiController.maneuverMode != AI_MANEUVER_MODE_ATTACK &&
-						 candidateCraft->aiController.maneuverMode != AI_MANEUVER_MODE_ROCKET_ATTACK))
+					}
+					candidateCraft =
+						g_objectTable
+							[candidateArrayIndex]
+								.mobj->pCraft;
+					if (candidateCraft->aiController
+							    .targetObjIdx !=
+						    g_paiContext.objectIndex ||
+					    (candidateCraft->aiController
+							     .maneuverMode !=
+						     AI_MANEUVER_MODE_ATTACK &&
+					     candidateCraft->aiController
+							     .maneuverMode !=
+						     AI_MANEUVER_MODE_ROCKET_ATTACK)) {
 						continue;
+					}
 
 					candidateValid = 0;
-					candidateObject = &g_objectTable[candidateArrayIndex];
-					candidateValid = pai_IsObjectTargetable(candidateObjIdx);
-					if (candidateValid == 0)
+					candidateObject =
+						&g_objectTable
+							[candidateArrayIndex];
+					candidateValid = pai_IsObjectTargetable(
+						candidateObjIdx);
+					if (candidateValid == 0) {
 						continue;
+					}
 
-					g_lastRoughDistance =
-						collide_roughdistance3d(candidateObject->world_x - g_paifightSearchOriginX,
-												candidateObject->world_y - g_paifightSearchOriginY,
-												candidateObject->world_z - g_paifightSearchOriginZ);
+					g_lastRoughDistance = collide_roughdistance3d(
+						candidateObject->world_x -
+							g_paifightSearchOriginX,
+						candidateObject->world_y -
+							g_paifightSearchOriginY,
+						candidateObject->world_z -
+							g_paifightSearchOriginZ);
 					if (isSuperStarDestroyer) {
 						int turretIndex;
 
-						for (turretIndex = 0; turretIndex < g_curCraft->laserSlotCount; ++turretIndex) {
-							if (g_curCraft->turretTargetStates[turretIndex].targetObjIdx == candidateObjIdx)
-								g_lastRoughDistance += AI_TURRET_TARGET_PENALTY;
+						for (turretIndex = 0;
+						     turretIndex <
+						     g_curCraft->laserSlotCount;
+						     ++turretIndex) {
+							if (g_curCraft
+								    ->turretTargetStates
+									    [turretIndex]
+								    .targetObjIdx ==
+							    candidateObjIdx) {
+								g_lastRoughDistance +=
+									AI_TURRET_TARGET_PENALTY;
+							}
 						}
 					}
-					if ((unsigned int)g_lastRoughDistance >= bestRangeScore)
+					if ((unsigned int)g_lastRoughDistance >=
+					    bestRangeScore) {
 						continue;
+					}
 
 					clearSweep = 1;
 					if (!isSuperStarDestroyer) {
-						Mission_ResolveObjectOrMissionPointWorldLoc(candidateObjIdx, 0);
-						g_collisionProbeWorldX = g_worldLocX;
-						g_collisionProbeWorldY = g_worldLocY;
-						g_collisionProbeWorldZ = g_worldLocZ;
-						clearSweep = collide_CheckSweptModelCollision(g_paiContext.objectIndex,
-																	  g_paiContext.objectIndex) == 0;
+						Mission_ResolveObjectOrMissionPointWorldLoc(
+							candidateObjIdx, 0);
+						g_collisionProbeWorldX =
+							g_worldLocX;
+						g_collisionProbeWorldY =
+							g_worldLocY;
+						g_collisionProbeWorldZ =
+							g_worldLocZ;
+						clearSweep =
+							collide_CheckSweptModelCollision(
+								g_paiContext
+									.objectIndex,
+								g_paiContext
+									.objectIndex) ==
+							0;
 					}
 					if (clearSweep) {
-						bestTargetObjIdx = (int16_t)candidateObjIdx;
-						bestRangeScore = (unsigned int)g_lastRoughDistance;
+						bestTargetObjIdx = (int16_t)
+							candidateObjIdx;
+						bestRangeScore = (unsigned int)
+							g_lastRoughDistance;
 					}
 				}
 
 				if (bestTargetObjIdx != -1) {
-					turretState->targetObjIdx = bestTargetObjIdx;
-					if (turretState->retargetCooldownTimer <= 0)
-						turretState->retargetCooldownTimer += RETARGET_COOLDOWN_TICKS;
+					turretState->targetObjIdx =
+						bestTargetObjIdx;
+					if (turretState
+						    ->retargetCooldownTimer <=
+					    0) {
+						turretState
+							->retargetCooldownTimer +=
+							RETARGET_COOLDOWN_TICKS;
+					}
 				}
 			}
 		}
 	}
 
-	if (g_objectTable[g_paiContext.objectIndex].genusId == CRAFT_GENUS_STARFIGHTER &&
-		g_curCraft->cmTypeId != COUNTERMEASURE_TYPE_NONE && g_curCraft->cmAmmoCount != 0) {
+	if (g_objectTable[g_paiContext.objectIndex].genusId ==
+		    CRAFT_GENUS_STARFIGHTER &&
+	    g_curCraft->cmTypeId != COUNTERMEASURE_TYPE_NONE &&
+	    g_curCraft->cmAmmoCount != 0) {
 		uint16_t threatProjectileObjIdx;
 		int threatRange;
 
-		threatRange = g_aiWarheadThreatRangeBySkill[g_paiContext.skillTier];
-		for (threatProjectileObjIdx = (uint16_t)g_projectileObjectSlotStart;
-			 threatProjectileObjIdx < g_projectileObjectSlotEnd; ++threatProjectileObjIdx) {
-			ObjectRecord* projectileObject;
-			WarheadGuidanceState* guidance;
+		threatRange =
+			g_aiWarheadThreatRangeBySkill[g_paiContext.skillTier];
+		for (threatProjectileObjIdx =
+			     (uint16_t)g_projectileObjectSlotStart;
+		     threatProjectileObjIdx < g_projectileObjectSlotEnd;
+		     ++threatProjectileObjIdx) {
+			ObjectRecord *projectileObject;
+			WarheadGuidanceState *guidance;
 			int maxRangeScore;
 
-			projectileObject = &g_objectTable[threatProjectileObjIdx];
-			if (projectileObject->objectType == 0)
+			projectileObject =
+				&g_objectTable[threatProjectileObjIdx];
+			if (projectileObject->objectType == 0) {
 				continue;
+			}
 			guidance = projectileObject->mobj->pWarheadGuidance;
-			if (guidance->homingTier == 0 || guidance->targetObjIdx != g_paiContext.objectIndex)
+			if (guidance->homingTier == 0 ||
+			    guidance->targetObjIdx !=
+				    g_paiContext.objectIndex) {
 				continue;
-			if (projectileObject->objectType == WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE ||
-				projectileObject->objectType == WARHEAD_OBJECT_TYPE_ADVANCED_CONCUSSION_MISSILE)
+			}
+			if (projectileObject->objectType ==
+				    WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE ||
+			    projectileObject->objectType ==
+				    WARHEAD_OBJECT_TYPE_ADVANCED_CONCUSSION_MISSILE) {
 				maxRangeScore = 3 * threatRange;
-			else
+			} else {
 				maxRangeScore = threatRange;
-			if (pai_IsObjectWithinRangeOfCraft(threatProjectileObjIdx, maxRangeScore) == 1) {
-				if ((g_curCraft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_COUNTERMEASURES) != 0) {
-					if (g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF) {
-						if (g_curCraft->chaffActiveSeconds == 0) {
-							g_curCraft->chaffActiveSeconds += CHAFF_ACTIVE_SECONDS;
-							if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.status1 !=
-									UNLIMITED_AMMO_STATUS &&
-								g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.status2 !=
-									UNLIMITED_AMMO_STATUS)
-								--g_curCraft->cmAmmoCount;
+			}
+			if (pai_IsObjectWithinRangeOfCraft(
+				    threatProjectileObjIdx, maxRangeScore) ==
+			    1) {
+				if ((g_curCraft->workingSubsystems &
+				     CRAFT_SUBSYSTEM_FLAG_COUNTERMEASURES) !=
+				    0) {
+					if (g_curCraft->cmTypeId ==
+					    COUNTERMEASURE_TYPE_CHAFF) {
+						if (g_curCraft
+							    ->chaffActiveSeconds ==
+						    0) {
+							g_curCraft
+								->chaffActiveSeconds +=
+								CHAFF_ACTIVE_SECONDS;
+							if (g_missionFlightGroups[g_paiContext
+											  .craftFlightGroupIndex]
+									    .fg
+									    .status1 !=
+								    UNLIMITED_AMMO_STATUS &&
+							    g_missionFlightGroups[g_paiContext
+											  .craftFlightGroupIndex]
+									    .fg
+									    .status2 !=
+								    UNLIMITED_AMMO_STATUS) {
+								--g_curCraft
+									  ->cmAmmoCount;
+							}
 						}
-					} else if (g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_FLARE) {
+					} else if (g_curCraft->cmTypeId ==
+						   COUNTERMEASURE_TYPE_FLARE) {
 						uint16_t flareObjIdx;
 						int flareAlreadyTargetingThreat;
 
 						flareAlreadyTargetingThreat = 0;
-						for (flareObjIdx = (uint16_t)g_projectileObjectSlotStart;
-							 flareObjIdx < g_projectileObjectSlotEnd; ++flareObjIdx) {
-							ObjectRecord* flareObject;
-							WarheadGuidanceState* flareGuidance;
+						for (flareObjIdx = (uint16_t)
+							     g_projectileObjectSlotStart;
+						     flareObjIdx <
+						     g_projectileObjectSlotEnd;
+						     ++flareObjIdx) {
+							ObjectRecord
+								*flareObject;
+							WarheadGuidanceState
+								*flareGuidance;
 
-							flareObject = &g_objectTable[flareObjIdx];
-							if (flareObject->objectType != COUNTERMEASURE_PROJECTILE_OBJECT_TYPE)
+							flareObject =
+								&g_objectTable
+									[flareObjIdx];
+							if (flareObject
+								    ->objectType !=
+							    COUNTERMEASURE_PROJECTILE_OBJECT_TYPE) {
 								continue;
-							flareGuidance = flareObject->mobj->pWarheadGuidance;
-							if (flareGuidance->homingTier != 0 &&
-								flareGuidance->targetObjIdx == threatProjectileObjIdx) {
-								flareAlreadyTargetingThreat = 1;
+							}
+							flareGuidance =
+								flareObject
+									->mobj
+									->pWarheadGuidance;
+							if (flareGuidance->homingTier !=
+								    0 &&
+							    flareGuidance->targetObjIdx ==
+								    threatProjectileObjIdx) {
+								flareAlreadyTargetingThreat =
+									1;
 								break;
 							}
 						}
-						if (!flareAlreadyTargetingThreat && g_curCraft->cmFireCooldownTimer == 0)
-							laser_createcountermeasureprojectile(g_paiContext.objectIndex,
-																 COUNTERMEASURE_PROJECTILE_OBJECT_TYPE);
+						if (!flareAlreadyTargetingThreat &&
+						    g_curCraft->cmFireCooldownTimer ==
+							    0) {
+							laser_createcountermeasureprojectile(
+								g_paiContext
+									.objectIndex,
+								COUNTERMEASURE_PROJECTILE_OBJECT_TYPE);
+						}
 					}
 				}
 				return 0;
@@ -1705,7 +2702,8 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 }
 
 // FUNCTION: XVT 0x4606E0
-int16_t paifight_gunneroffenseorder(void) {
+int16_t paifight_gunneroffenseorder(void)
+{
 	enum {
 		DISABLED_FLIGHT_GROUP_STATUS = 14,
 		GUNNER_WEAPON_TYPE = 2,
@@ -1720,78 +2718,124 @@ int16_t paifight_gunneroffenseorder(void) {
 	int expandedProbe;
 
 	candidateSetsNeedBuild = 1;
-	if (g_curCraft->objectKind == CRAFT_OBJECT_KIND_BREAKING_UP)
+	if (g_curCraft->objectKind == CRAFT_OBJECT_KIND_BREAKING_UP) {
 		return 0;
-	if (g_curCraft->workingSubsystems == 0)
+	}
+	if (g_curCraft->workingSubsystems == 0) {
 		return 0;
+	}
 
-	if (g_missionFlightGroups[g_objectTable[g_paiContext.objectIndex].flightGroupIdx].fg.status1 ==
-			DISABLED_FLIGHT_GROUP_STATUS ||
-		g_missionFlightGroups[g_objectTable[g_paiContext.objectIndex].flightGroupIdx].fg.status2 ==
-			DISABLED_FLIGHT_GROUP_STATUS)
+	if (g_missionFlightGroups[g_objectTable[g_paiContext.objectIndex]
+					  .flightGroupIdx]
+			    .fg.status1 == DISABLED_FLIGHT_GROUP_STATUS ||
+	    g_missionFlightGroups[g_objectTable[g_paiContext.objectIndex]
+					  .flightGroupIdx]
+			    .fg.status2 == DISABLED_FLIGHT_GROUP_STATUS) {
 		return 0;
+	}
 
 	mountIndex = 0;
 	hasGunnerMount = 0;
 	for (; mountIndex < 2; ++mountIndex) {
-		if (g_modelDefs[g_curCraft->modelIndex].laserGroupMountType[mountIndex] == GUNNER_MOUNT_TYPE)
+		if (g_modelDefs[g_curCraft->modelIndex]
+			    .laserGroupMountType[mountIndex] ==
+		    GUNNER_MOUNT_TYPE) {
 			hasGunnerMount = 1;
+		}
 	}
-	if (!hasGunnerMount)
+	if (!hasGunnerMount) {
 		return 0;
+	}
 
 	g_paiContext.requireUndisabledTarget = 0;
 	g_paiContext.targetSearchFlags = TARGET_SEARCH_FLAGS;
-	if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipprotectpln") != 0 &&
-		strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipescortpln") != 0) {
+	if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name,
+		   "starshipprotectpln") != 0 &&
+	    strcmp(g_planTable[g_paiContext.controller->currentPlanId].name,
+		   "starshipescortpln") != 0) {
 		g_paiContext.requireUndisabledTarget =
-			strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipdisablepln") == 0 ||
-			strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "disableldr1pln") == 0;
+			strcmp(g_planTable[g_paiContext.controller
+						   ->currentPlanId]
+				       .name,
+			       "starshipdisablepln") == 0 ||
+			strcmp(g_planTable[g_paiContext.controller
+						   ->currentPlanId]
+				       .name,
+			       "disableldr1pln") == 0;
 	}
 
-	expandedProbe = g_objectTable[g_paiContext.objectIndex].objectType == CRAFT_SPECIES_SUPER_STAR_DESTROYER;
-	for (weaponSlotIndex = 0; weaponSlotIndex < g_curCraft->laserSlotCount; ++weaponSlotIndex) {
-		TurretTargetState* turretState = &g_curCraft->turretTargetStates[weaponSlotIndex];
+	expandedProbe = g_objectTable[g_paiContext.objectIndex].objectType ==
+			CRAFT_SPECIES_SUPER_STAR_DESTROYER;
+	for (weaponSlotIndex = 0; weaponSlotIndex < g_curCraft->laserSlotCount;
+	     ++weaponSlotIndex) {
+		TurretTargetState *turretState =
+			&g_curCraft->turretTargetStates[weaponSlotIndex];
 		int16_t targetObjectIndex;
 
-		if (g_curCraft->weaponSlots[weaponSlotIndex].projectileTypeId != GUNNER_WEAPON_TYPE ||
-			turretState->targetObjIdx != UINT16_MAX || turretState->retargetCooldownTimer > 0)
+		if (g_curCraft->weaponSlots[weaponSlotIndex].projectileTypeId !=
+			    GUNNER_WEAPON_TYPE ||
+		    turretState->targetObjIdx != UINT16_MAX ||
+		    turretState->retargetCooldownTimer > 0) {
 			continue;
+		}
 
-		turretState->retargetCooldownTimer += SIMULATION_TICKS_PER_SECOND;
+		turretState->retargetCooldownTimer +=
+			SIMULATION_TICKS_PER_SECOND;
 		if (candidateSetsNeedBuild == 1) {
-			paifight_BuildGunnerTargetCandidateSet(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													   .fg.orders[g_paiContext.orderSlot]
-													   .target1Type,
-												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													   .fg.orders[g_paiContext.orderSlot]
-													   .target1,
-												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													   .fg.orders[g_paiContext.orderSlot]
-													   .target1OrTarget2,
-												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													   .fg.orders[g_paiContext.orderSlot]
-													   .target2Type,
-												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													   .fg.orders[g_paiContext.orderSlot]
-													   .target2,
-												   0);
-			paifight_BuildGunnerTargetCandidateSet(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													   .fg.orders[g_paiContext.orderSlot]
-													   .secondaryTargetTypes[0],
-												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													   .fg.orders[g_paiContext.orderSlot]
-													   .secondaryTargets[0],
-												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													   .fg.orders[g_paiContext.orderSlot]
-													   .target3OrTarget4,
-												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													   .fg.orders[g_paiContext.orderSlot]
-													   .secondaryTargetTypes[1],
-												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													   .fg.orders[g_paiContext.orderSlot]
-													   .secondaryTargets[1],
-												   1);
+			paifight_BuildGunnerTargetCandidateSet(
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target1Type,
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target1,
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target1OrTarget2,
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target2Type,
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target2,
+				0);
+			paifight_BuildGunnerTargetCandidateSet(
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.secondaryTargetTypes[0],
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.secondaryTargets[0],
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target3OrTarget4,
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.secondaryTargetTypes[1],
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.secondaryTargets[1],
+				1);
 			candidateSetsNeedBuild = 0;
 		}
 
@@ -1799,88 +2843,148 @@ int16_t paifight_gunneroffenseorder(void) {
 		g_paifightSearchOriginY = g_paiContext.craftPositionY;
 		g_paifightSearchOriginZ = g_paiContext.craftPositionZ;
 		if (expandedProbe) {
-			g_paiContext.targetSearchOriginX = g_paiContext.craftPositionX;
-			g_paiContext.targetSearchOriginY = g_paiContext.craftPositionY;
-			g_paiContext.targetSearchOriginZ = g_paiContext.craftPositionZ;
+			g_paiContext.targetSearchOriginX =
+				g_paiContext.craftPositionX;
+			g_paiContext.targetSearchOriginY =
+				g_paiContext.craftPositionY;
+			g_paiContext.targetSearchOriginZ =
+				g_paiContext.craftPositionZ;
 		} else {
-			pai_calcrotatedpoint(&g_objectTable[g_paiContext.objectIndex],
-								 g_modelDefs[g_curCraft->modelIndex].weaponHardpoints[weaponSlotIndex].x,
-								 g_modelDefs[g_curCraft->modelIndex].weaponHardpoints[weaponSlotIndex].z,
-								 g_modelDefs[g_curCraft->modelIndex].weaponHardpoints[weaponSlotIndex].y);
-			if (g_objectTable[g_paiContext.objectIndex].objectType == CRAFT_SPECIES_IMPERIAL_STAR_DESTROYER) {
+			pai_calcrotatedpoint(
+				&g_objectTable[g_paiContext.objectIndex],
+				g_modelDefs[g_curCraft->modelIndex]
+					.weaponHardpoints[weaponSlotIndex]
+					.x,
+				g_modelDefs[g_curCraft->modelIndex]
+					.weaponHardpoints[weaponSlotIndex]
+					.z,
+				g_modelDefs[g_curCraft->modelIndex]
+					.weaponHardpoints[weaponSlotIndex]
+					.y);
+			if (g_objectTable[g_paiContext.objectIndex]
+				    .objectType ==
+			    CRAFT_SPECIES_IMPERIAL_STAR_DESTROYER) {
 				g_rotatedX *= 2;
 				g_rotatedY *= 2;
 				g_rotatedZ *= 2;
 			}
 			g_paifightSearchOriginX += g_rotatedX;
-			g_paiContext.targetSearchOriginX = g_paifightSearchOriginX;
+			g_paiContext.targetSearchOriginX =
+				g_paifightSearchOriginX;
 			g_paifightSearchOriginY += g_rotatedY;
-			g_paiContext.targetSearchOriginY = g_paifightSearchOriginY;
+			g_paiContext.targetSearchOriginY =
+				g_paifightSearchOriginY;
 			g_paifightSearchOriginZ += g_rotatedZ;
-			g_paiContext.targetSearchOriginZ = g_paifightSearchOriginZ;
+			g_paiContext.targetSearchOriginZ =
+				g_paifightSearchOriginZ;
 			g_collisionSegmentStartWorldX = g_paifightSearchOriginX;
 			g_collisionSegmentStartWorldY = g_paifightSearchOriginY;
 			g_collisionSegmentStartWorldZ = g_paifightSearchOriginZ;
 		}
 
 		g_curCraft->weaponSlots[weaponSlotIndex].ammoCount = 0;
-		if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipprotectpln") == 0 ||
-			strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipescortpln") == 0) {
-			targetObjectIndex = paifight_FindAttackerOfOrderTargetFromOrder(g_paiContext.orderSlot);
+		if (strcmp(g_planTable[g_paiContext.controller->currentPlanId]
+				   .name,
+			   "starshipprotectpln") == 0 ||
+		    strcmp(g_planTable[g_paiContext.controller->currentPlanId]
+				   .name,
+			   "starshipescortpln") == 0) {
+			targetObjectIndex =
+				paifight_FindAttackerOfOrderTargetFromOrder(
+					g_paiContext.orderSlot);
 			turretState->targetObjIdx = targetObjectIndex;
-			if (targetObjectIndex != -1)
-				turretState->retargetCooldownTimer += SIMULATION_TICKS_PER_SECOND;
+			if (targetObjectIndex != -1) {
+				turretState->retargetCooldownTimer +=
+					SIMULATION_TICKS_PER_SECOND;
+			}
 			continue;
 		}
 
-		targetObjectIndex = paifight_FindNearestGunnerTargetInCandidateSet(
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				.fg.orders[g_paiContext.orderSlot]
-				.target1Type,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				.fg.orders[g_paiContext.orderSlot]
-				.target1,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				.fg.orders[g_paiContext.orderSlot]
-				.target1OrTarget2,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				.fg.orders[g_paiContext.orderSlot]
-				.target2Type,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				.fg.orders[g_paiContext.orderSlot]
-				.target2,
-			0);
+		targetObjectIndex =
+			paifight_FindNearestGunnerTargetInCandidateSet(
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target1Type,
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target1,
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target1OrTarget2,
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target2Type,
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target2,
+				0);
 		if (targetObjectIndex != -1) {
 			turretState->targetObjIdx = targetObjectIndex;
-			turretState->retargetCooldownTimer += SIMULATION_TICKS_PER_SECOND;
-			if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipdisablepln") == 0 ||
-				strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "disableldr1pln") == 0)
-				g_curCraft->weaponSlots[weaponSlotIndex].ammoCount = 1;
+			turretState->retargetCooldownTimer +=
+				SIMULATION_TICKS_PER_SECOND;
+			if (strcmp(g_planTable[g_paiContext.controller
+						       ->currentPlanId]
+					   .name,
+				   "starshipdisablepln") == 0 ||
+			    strcmp(g_planTable[g_paiContext.controller
+						       ->currentPlanId]
+					   .name,
+				   "disableldr1pln") == 0) {
+				g_curCraft->weaponSlots[weaponSlotIndex]
+					.ammoCount = 1;
+			}
 		} else {
 			targetObjectIndex = paifight_FindNearestGunnerTargetInCandidateSet(
-				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-					.fg.orders[g_paiContext.orderSlot]
-					.secondaryTargetTypes[0],
-				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-					.fg.orders[g_paiContext.orderSlot]
-					.secondaryTargets[0],
-				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-					.fg.orders[g_paiContext.orderSlot]
-					.target3OrTarget4,
-				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-					.fg.orders[g_paiContext.orderSlot]
-					.secondaryTargetTypes[1],
-				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-					.fg.orders[g_paiContext.orderSlot]
-					.secondaryTargets[1],
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.secondaryTargetTypes[0],
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.secondaryTargets[0],
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.target3OrTarget4,
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.secondaryTargetTypes[1],
+				g_missionFlightGroups
+					[g_paiContext.craftFlightGroupIndex]
+						.fg
+						.orders[g_paiContext.orderSlot]
+						.secondaryTargets[1],
 				1);
 			if (targetObjectIndex != -1) {
 				turretState->targetObjIdx = targetObjectIndex;
-				turretState->retargetCooldownTimer += SIMULATION_TICKS_PER_SECOND;
-				if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipdisablepln") ==
-						0 ||
-					strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "disableldr1pln") == 0) {
-					g_curCraft->weaponSlots[weaponSlotIndex].ammoCount = 1;
+				turretState->retargetCooldownTimer +=
+					SIMULATION_TICKS_PER_SECOND;
+				if (strcmp(g_planTable[g_paiContext.controller
+							       ->currentPlanId]
+						   .name,
+					   "starshipdisablepln") == 0 ||
+				    strcmp(g_planTable[g_paiContext.controller
+							       ->currentPlanId]
+						   .name,
+					   "disableldr1pln") == 0) {
+					g_curCraft->weaponSlots[weaponSlotIndex]
+						.ammoCount = 1;
 				}
 			}
 		}
@@ -1889,9 +2993,10 @@ int16_t paifight_gunneroffenseorder(void) {
 }
 
 // FUNCTION: XVT 0x460DD0
-int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint16_t target1,
-													   int16_t target1OrTarget2, int16_t target2Type,
-													   uint16_t target2, int candidateSetIdx) {
+int16_t paifight_FindNearestGunnerTargetInCandidateSet(
+	int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
+	int16_t target2Type, uint16_t target2, int candidateSetIdx)
+{
 	enum {
 		TARGETABLE_STATIC_MODEL_FLAG = 2,
 		MISSION_VERSION_WITH_GUNNER_OBSTRUCTION_CHECK = 14,
@@ -1903,46 +3008,65 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 	uint16_t objectIndex;
 
 	bestObjectIndex = UINT16_MAX;
-	expandedProbe = g_objectTable[g_paiContext.objectIndex].objectType == CRAFT_SPECIES_SUPER_STAR_DESTROYER;
+	expandedProbe = g_objectTable[g_paiContext.objectIndex].objectType ==
+			CRAFT_SPECIES_SUPER_STAR_DESTROYER;
 	bestRangeScore = AI_TARGET_RANGE_MAX;
 	if (expandedProbe) {
 		bestRangeScore +=
-			g_objectTypeTable[g_objectTable[g_paiContext.objectIndex].objectType].maxBoundsExtent;
+			g_objectTypeTable
+				[g_objectTable[g_paiContext.objectIndex]
+					 .objectType]
+					.maxBoundsExtent;
 	}
 
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-		 objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
+	     objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 		int objectArrayIndex;
 		int clearSweep;
 
-		if (g_paifightGunnerTargetCandidateSet[2 * objectIndex + candidateSetIdx] == 0)
+		if (g_paifightGunnerTargetCandidateSet[2 * objectIndex +
+						       candidateSetIdx] == 0) {
 			continue;
+		}
 
 		objectArrayIndex = objectIndex;
-		g_lastRoughDistance =
-			collide_roughdistance3d(g_objectTable[objectArrayIndex].world_x - g_paifightSearchOriginX,
-									g_objectTable[objectArrayIndex].world_y - g_paifightSearchOriginY,
-									g_objectTable[objectArrayIndex].world_z - g_paifightSearchOriginZ);
+		g_lastRoughDistance = collide_roughdistance3d(
+			g_objectTable[objectArrayIndex].world_x -
+				g_paifightSearchOriginX,
+			g_objectTable[objectArrayIndex].world_y -
+				g_paifightSearchOriginY,
+			g_objectTable[objectArrayIndex].world_z -
+				g_paifightSearchOriginZ);
 		if (expandedProbe) {
 			int turretIndex;
 
-			for (turretIndex = 0; turretIndex < g_curCraft->laserSlotCount; ++turretIndex) {
-				if (g_curCraft->turretTargetStates[turretIndex].targetObjIdx == objectIndex)
-					g_lastRoughDistance += AI_TURRET_TARGET_PENALTY;
+			for (turretIndex = 0;
+			     turretIndex < g_curCraft->laserSlotCount;
+			     ++turretIndex) {
+				if (g_curCraft->turretTargetStates[turretIndex]
+					    .targetObjIdx == objectIndex) {
+					g_lastRoughDistance +=
+						AI_TURRET_TARGET_PENALTY;
+				}
 			}
 		}
-		if ((unsigned int)g_lastRoughDistance >= bestRangeScore)
+		if ((unsigned int)g_lastRoughDistance >= bestRangeScore) {
 			continue;
+		}
 
 		if (expandedProbe) {
 			clearSweep = 1;
 		} else {
-			g_collisionProbeWorldX = g_objectTable[objectArrayIndex].world_x;
-			g_collisionProbeWorldY = g_objectTable[objectArrayIndex].world_y;
-			g_collisionProbeWorldZ = g_objectTable[objectArrayIndex].world_z;
+			g_collisionProbeWorldX =
+				g_objectTable[objectArrayIndex].world_x;
+			g_collisionProbeWorldY =
+				g_objectTable[objectArrayIndex].world_y;
+			g_collisionProbeWorldZ =
+				g_objectTable[objectArrayIndex].world_z;
 			++g_gunnerCollisionProbeCount;
-			clearSweep =
-				collide_CheckSweptModelCollision(g_paiContext.objectIndex, g_paiContext.objectIndex) == 0;
+			clearSweep = collide_CheckSweptModelCollision(
+					     g_paiContext.objectIndex,
+					     g_paiContext.objectIndex) == 0;
 		}
 		if (clearSweep) {
 			bestObjectIndex = objectIndex;
@@ -1954,8 +3078,9 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 		uint16_t staticObjectIndex;
 
 		for (staticObjectIndex = (uint16_t)g_regionMainObjectSlotEnd;
-			 staticObjectIndex < g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount;
-			 ++staticObjectIndex) {
+		     staticObjectIndex <
+		     g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount;
+		     ++staticObjectIndex) {
 			int objectArrayIndex;
 			int16_t matchesTarget1;
 			int16_t matchesTarget2;
@@ -1964,37 +3089,57 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 
 			objectArrayIndex = staticObjectIndex;
 			if (g_objectTable[objectArrayIndex].objectType == 0 ||
-				(g_objectTypeTable[g_objectTable[objectArrayIndex].objectType].behaviorFlags &
-				 TARGETABLE_STATIC_MODEL_FLAG) == 0)
+			    (g_objectTypeTable[g_objectTable[objectArrayIndex]
+						       .objectType]
+				     .behaviorFlags &
+			     TARGETABLE_STATIC_MODEL_FLAG) == 0) {
 				continue;
+			}
 
-			matchesTarget1 = Mission_ObjectMatchesTriggerVariable(staticObjectIndex, target1Type, target1);
-			matchesTarget2 = Mission_ObjectMatchesTriggerVariable(staticObjectIndex, target2Type, target2);
-			if (target1OrTarget2 == 1)
+			matchesTarget1 = Mission_ObjectMatchesTriggerVariable(
+				staticObjectIndex, target1Type, target1);
+			matchesTarget2 = Mission_ObjectMatchesTriggerVariable(
+				staticObjectIndex, target2Type, target2);
+			if (target1OrTarget2 == 1) {
 				matchesTarget1 |= matchesTarget2;
-			else
+			} else {
 				matchesTarget1 &= matchesTarget2;
-			if (matchesTarget1 == 0)
+			}
+			if (matchesTarget1 == 0) {
 				continue;
+			}
 
 			validTarget = pai_IsObjectTargetable(staticObjectIndex);
-			if (validTarget == 0)
+			if (validTarget == 0) {
 				continue;
+			}
 
-			Mission_ResolveObjectOrMissionPointWorldLoc(staticObjectIndex, 0);
-			g_lastRoughDistance = collide_roughdistance3d(g_worldLocX - g_paifightSearchOriginX,
-														  g_worldLocY - g_paifightSearchOriginY,
-														  g_worldLocZ - g_paifightSearchOriginZ);
+			Mission_ResolveObjectOrMissionPointWorldLoc(
+				staticObjectIndex, 0);
+			g_lastRoughDistance = collide_roughdistance3d(
+				g_worldLocX - g_paifightSearchOriginX,
+				g_worldLocY - g_paifightSearchOriginY,
+				g_worldLocZ - g_paifightSearchOriginZ);
 			if (expandedProbe) {
 				int turretIndex;
 
-				for (turretIndex = 0; turretIndex < g_curCraft->laserSlotCount; ++turretIndex) {
-					if (g_curCraft->turretTargetStates[turretIndex].targetObjIdx == staticObjectIndex)
-						g_lastRoughDistance += AI_TURRET_TARGET_PENALTY;
+				for (turretIndex = 0;
+				     turretIndex < g_curCraft->laserSlotCount;
+				     ++turretIndex) {
+					if (g_curCraft
+						    ->turretTargetStates
+							    [turretIndex]
+						    .targetObjIdx ==
+					    staticObjectIndex) {
+						g_lastRoughDistance +=
+							AI_TURRET_TARGET_PENALTY;
+					}
 				}
 			}
-			if ((unsigned int)g_lastRoughDistance >= bestRangeScore)
+			if ((unsigned int)g_lastRoughDistance >=
+			    bestRangeScore) {
 				continue;
+			}
 
 			if (expandedProbe) {
 				clearSweep = 1;
@@ -2004,53 +3149,81 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 				g_collisionProbeWorldZ = g_worldLocZ;
 				++g_gunnerCollisionProbeCount;
 				clearSweep =
-					collide_CheckSweptModelCollision(g_paiContext.objectIndex, g_paiContext.objectIndex) == 0;
+					collide_CheckSweptModelCollision(
+						g_paiContext.objectIndex,
+						g_paiContext.objectIndex) == 0;
 			}
 			if (clearSweep) {
 				bestObjectIndex = staticObjectIndex;
-				bestRangeScore = (unsigned int)g_lastRoughDistance;
+				bestRangeScore =
+					(unsigned int)g_lastRoughDistance;
 			}
 		}
 	}
 
-	if (!expandedProbe && bestRangeScore > AI_TARGET_RANGE_MAX)
+	if (!expandedProbe && bestRangeScore > AI_TARGET_RANGE_MAX) {
 		bestObjectIndex = UINT16_MAX;
+	}
 
 	if (bestObjectIndex != UINT16_MAX &&
-		g_missionFileVersion == MISSION_VERSION_WITH_GUNNER_OBSTRUCTION_CHECK) {
-		CraftData* savedCraft;
+	    g_missionFileVersion ==
+		    MISSION_VERSION_WITH_GUNNER_OBSTRUCTION_CHECK) {
+		CraftData *savedCraft;
 		uint16_t blockerObjectIndex;
 
 		savedCraft = g_curCraft;
-		for (blockerObjectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-			 blockerObjectIndex < g_activeRegionCraftObjectSlotEnd; ++blockerObjectIndex) {
+		for (blockerObjectIndex =
+			     (uint16_t)g_activeRegionObjectSlotStart;
+		     blockerObjectIndex < g_activeRegionCraftObjectSlotEnd;
+		     ++blockerObjectIndex) {
 			int blockerArrayIndex;
-			ObjectRecord* blocker;
+			ObjectRecord *blocker;
 			int blockerTeam;
-			MobileObject* sourceMobile;
+			MobileObject *sourceMobile;
 			int sourceTeam;
 			int enemy;
 
 			blockerArrayIndex = blockerObjectIndex;
 			blocker = &g_objectTable[blockerArrayIndex];
-			blockerTeam = g_missionFlightGroups[blocker->flightGroupIdx].fg.team;
-			sourceMobile = g_objectTable[g_paiContext.objectIndex].mobj;
+			blockerTeam =
+				g_missionFlightGroups[blocker->flightGroupIdx]
+					.fg.team;
+			sourceMobile =
+				g_objectTable[g_paiContext.objectIndex].mobj;
 			sourceTeam = sourceMobile->team;
-			enemy = sourceTeam != blockerTeam && g_missionTeams[sourceTeam].allies[blockerTeam] < 1;
-			if (!enemy && (sourceMobile->speed == 0 || (blocker->genusId != CRAFT_GENUS_STARFIGHTER &&
-														blocker->genusId != CRAFT_GENUS_TRANSPORT &&
-														blocker->genusId != CRAFT_GENUS_UTILITY_VEHICLE))) {
-				g_lastRoughDistance = collide_roughdistance3d(blocker->world_x - g_paifightSearchOriginX,
-															  blocker->world_y - g_paifightSearchOriginY,
-															  blocker->world_z - g_paifightSearchOriginZ);
-				g_lastRoughDistance -= g_objectTypeTable[blocker->objectType].maxBoundsExtent;
-				if ((unsigned int)g_lastRoughDistance <= bestRangeScore) {
-					ObjectRecord* bestObject = &g_objectTable[bestObjectIndex];
+			enemy = sourceTeam != blockerTeam &&
+				g_missionTeams[sourceTeam].allies[blockerTeam] <
+					1;
+			if (!enemy &&
+			    (sourceMobile->speed == 0 ||
+			     (blocker->genusId != CRAFT_GENUS_STARFIGHTER &&
+			      blocker->genusId != CRAFT_GENUS_TRANSPORT &&
+			      blocker->genusId !=
+				      CRAFT_GENUS_UTILITY_VEHICLE))) {
+				g_lastRoughDistance = collide_roughdistance3d(
+					blocker->world_x -
+						g_paifightSearchOriginX,
+					blocker->world_y -
+						g_paifightSearchOriginY,
+					blocker->world_z -
+						g_paifightSearchOriginZ);
+				g_lastRoughDistance -=
+					g_objectTypeTable[blocker->objectType]
+						.maxBoundsExtent;
+				if ((unsigned int)g_lastRoughDistance <=
+				    bestRangeScore) {
+					ObjectRecord *bestObject =
+						&g_objectTable[bestObjectIndex];
 
-					g_collisionProbeWorldX = bestObject->world_x;
-					g_collisionProbeWorldY = bestObject->world_y;
-					g_collisionProbeWorldZ = bestObject->world_z;
-					if (collide_CheckSweptModelCollision(blockerObjectIndex, blockerObjectIndex) != 0) {
+					g_collisionProbeWorldX =
+						bestObject->world_x;
+					g_collisionProbeWorldY =
+						bestObject->world_y;
+					g_collisionProbeWorldZ =
+						bestObject->world_z;
+					if (collide_CheckSweptModelCollision(
+						    blockerObjectIndex,
+						    blockerObjectIndex) != 0) {
 						bestObjectIndex = UINT16_MAX;
 						break;
 					}
@@ -2064,44 +3237,58 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 }
 
 // FUNCTION: XVT 0x461460
-void paifight_BuildGunnerTargetCandidateSet(int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
-											int16_t target2Type, uint16_t target2, uint16_t candidateSetIdx) {
+void paifight_BuildGunnerTargetCandidateSet(
+	int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
+	int16_t target2Type, uint16_t target2, uint16_t candidateSetIdx)
+{
 	uint16_t objectIndex;
 	int candidateSetOffset;
 
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-		 objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
+	     objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 		int16_t matchesFirst;
 		int16_t matchesSecond;
-		CraftData* craft;
-		ObjectRecord* object;
+		CraftData *craft;
+		ObjectRecord *object;
 
 		candidateSetOffset = candidateSetIdx;
-		g_paifightGunnerTargetCandidateSet[2 * objectIndex + candidateSetOffset] = 0;
+		g_paifightGunnerTargetCandidateSet[2 * objectIndex +
+						   candidateSetOffset] = 0;
 		object = &g_objectTable[objectIndex];
-		if (object->objectType == 0)
+		if (object->objectType == 0) {
 			continue;
-		matchesFirst = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
-		matchesSecond = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
-		if (target1OrTarget2 == 1)
+		}
+		matchesFirst = Mission_ObjectMatchesTriggerVariable(
+			objectIndex, target1Type, target1);
+		matchesSecond = Mission_ObjectMatchesTriggerVariable(
+			objectIndex, target2Type, target2);
+		if (target1OrTarget2 == 1) {
 			matchesFirst |= matchesSecond;
-		else
+		} else {
 			matchesFirst &= matchesSecond;
-		if (matchesFirst == 0)
+		}
+		if (matchesFirst == 0) {
 			continue;
+		}
 		craft = g_objectTable[objectIndex].mobj->pCraft;
-		if (g_paiContext.requireUndisabledTarget != 0 && craft->workingSubsystems == 0)
+		if (g_paiContext.requireUndisabledTarget != 0 &&
+		    craft->workingSubsystems == 0) {
 			continue;
+		}
 
-		if (pai_IsObjectTargetable(objectIndex))
-			g_paifightGunnerTargetCandidateSet[2 * objectIndex + candidateSetOffset] = 1;
+		if (pai_IsObjectTargetable(objectIndex)) {
+			g_paifightGunnerTargetCandidateSet[2 * objectIndex +
+							   candidateSetOffset] =
+				1;
+		}
 	}
 }
 
 // FUNCTION: XVT 0x461690
-int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16_t target1,
-													 int16_t target1OrTarget2, int16_t target2Type,
-													 uint16_t target2, int16_t requireClearSweep) {
+int16_t paifight_FindNearestMatchingTargetFromOrigin(
+	int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
+	int16_t target2Type, uint16_t target2, int16_t requireClearSweep)
+{
 	enum {
 		TARGETABLE_STATIC_MODEL_FLAG = 2,
 	};
@@ -2118,41 +3305,57 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16
 	bestObjectIndex = UINT16_MAX;
 	bestRangeScore = UINT_MAX;
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-		 objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
+	     objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 		objectArrayIndex = objectIndex;
-		if (g_objectTable[objectArrayIndex].objectType == 0)
+		if (g_objectTable[objectArrayIndex].objectType == 0) {
 			continue;
+		}
 
-		matchesTarget1 = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
-		matchesTarget2 = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
-		if (target1OrTarget2 == 1)
+		matchesTarget1 = Mission_ObjectMatchesTriggerVariable(
+			objectIndex, target1Type, target1);
+		matchesTarget2 = Mission_ObjectMatchesTriggerVariable(
+			objectIndex, target2Type, target2);
+		if (target1OrTarget2 == 1) {
 			matchesTarget1 |= matchesTarget2;
-		else
+		} else {
 			matchesTarget1 &= matchesTarget2;
-		if (matchesTarget1 == 0)
+		}
+		if (matchesTarget1 == 0) {
 			continue;
+		}
 		if (g_paiContext.requireUndisabledTarget != 0 &&
-			g_objectTable[objectArrayIndex].mobj->pCraft->workingSubsystems == 0)
+		    g_objectTable[objectArrayIndex]
+				    .mobj->pCraft->workingSubsystems == 0) {
 			continue;
+		}
 
 		validTarget = pai_IsObjectTargetable(objectIndex);
-		if (validTarget == 0)
+		if (validTarget == 0) {
 			continue;
+		}
 
 		rangeScore = (unsigned int)collide_roughdistance3d(
-			g_objectTable[objectArrayIndex].world_x - g_paifightSearchOriginX,
-			g_objectTable[objectArrayIndex].world_y - g_paifightSearchOriginY,
-			g_objectTable[objectArrayIndex].world_z - g_paifightSearchOriginZ);
+			g_objectTable[objectArrayIndex].world_x -
+				g_paifightSearchOriginX,
+			g_objectTable[objectArrayIndex].world_y -
+				g_paifightSearchOriginY,
+			g_objectTable[objectArrayIndex].world_z -
+				g_paifightSearchOriginZ);
 		g_lastRoughDistance = (int)rangeScore;
-		if (rangeScore >= bestRangeScore)
+		if (rangeScore >= bestRangeScore) {
 			continue;
+		}
 		if (requireClearSweep != 0) {
-			Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
+			Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex,
+								    0);
 			g_collisionProbeWorldX = g_worldLocX;
 			g_collisionProbeWorldY = g_worldLocY;
 			g_collisionProbeWorldZ = g_worldLocZ;
-			if (collide_CheckSweptModelCollision(g_paiContext.objectIndex, g_paiContext.objectIndex) != 0)
+			if (collide_CheckSweptModelCollision(
+				    g_paiContext.objectIndex,
+				    g_paiContext.objectIndex) != 0) {
 				continue;
+			}
 			rangeScore = (unsigned int)g_lastRoughDistance;
 		}
 		bestObjectIndex = objectIndex;
@@ -2160,86 +3363,119 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16
 	}
 
 	for (objectIndex = (uint16_t)g_regionMainObjectSlotEnd;
-		 objectIndex < g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount; ++objectIndex) {
+	     objectIndex <
+	     g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount;
+	     ++objectIndex) {
 		objectArrayIndex = objectIndex;
 		if (g_objectTable[objectArrayIndex].objectType == 0 ||
-			(g_objectTypeTable[g_objectTable[objectArrayIndex].objectType].behaviorFlags &
-			 TARGETABLE_STATIC_MODEL_FLAG) == 0)
+		    (g_objectTypeTable[g_objectTable[objectArrayIndex]
+					       .objectType]
+			     .behaviorFlags &
+		     TARGETABLE_STATIC_MODEL_FLAG) == 0) {
 			continue;
+		}
 
-		matchesTarget1 = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
-		matchesTarget2 = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
-		if (target1OrTarget2 == 1)
+		matchesTarget1 = Mission_ObjectMatchesTriggerVariable(
+			objectIndex, target1Type, target1);
+		matchesTarget2 = Mission_ObjectMatchesTriggerVariable(
+			objectIndex, target2Type, target2);
+		if (target1OrTarget2 == 1) {
 			matchesTarget1 |= matchesTarget2;
-		else
+		} else {
 			matchesTarget1 &= matchesTarget2;
-		if (matchesTarget1 == 0)
+		}
+		if (matchesTarget1 == 0) {
 			continue;
+		}
 
 		validTarget = pai_IsObjectTargetable(objectIndex);
-		if (validTarget == 0)
+		if (validTarget == 0) {
 			continue;
+		}
 
 		Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
-		rangeScore = (unsigned int)collide_roughdistance3d(g_worldLocX - g_paifightSearchOriginX,
-														   g_worldLocY - g_paifightSearchOriginY,
-														   g_worldLocZ - g_paifightSearchOriginZ);
+		rangeScore = (unsigned int)collide_roughdistance3d(
+			g_worldLocX - g_paifightSearchOriginX,
+			g_worldLocY - g_paifightSearchOriginY,
+			g_worldLocZ - g_paifightSearchOriginZ);
 		g_lastRoughDistance = (int)rangeScore;
-		if (rangeScore >= bestRangeScore)
+		if (rangeScore >= bestRangeScore) {
 			continue;
+		}
 		if (requireClearSweep != 0) {
 			g_collisionProbeWorldX = g_worldLocX;
 			g_collisionProbeWorldY = g_worldLocY;
 			g_collisionProbeWorldZ = g_worldLocZ;
-			if (collide_CheckSweptModelCollision(g_paiContext.objectIndex, g_paiContext.objectIndex) != 0)
+			if (collide_CheckSweptModelCollision(
+				    g_paiContext.objectIndex,
+				    g_paiContext.objectIndex) != 0) {
 				continue;
+			}
 			rangeScore = (unsigned int)g_lastRoughDistance;
 		}
 		bestObjectIndex = objectIndex;
 		bestRangeScore = rangeScore;
 	}
 
-	if (bestRangeScore > AI_TARGET_RANGE_MAX)
+	if (bestRangeScore > AI_TARGET_RANGE_MAX) {
 		bestObjectIndex = UINT16_MAX;
+	}
 	return (int16_t)bestObjectIndex;
 }
 
 // FUNCTION: XVT 0x461C00
-int16_t paifight_coverleaderorder(void) {
-	CraftData* leaderCraft;
+int16_t paifight_coverleaderorder(void)
+{
+	CraftData *leaderCraft;
 	uint16_t lastAttackerObjIdx;
 	uint16_t objectIndex;
 	int alreadyCovered;
 
-	if (g_paiContext.leaderObjectIndex == UINT8_MAX)
+	if (g_paiContext.leaderObjectIndex == UINT8_MAX) {
 		return 0;
+	}
 
-	leaderCraft = g_objectTable[g_paiContext.leaderObjectIndex].mobj->pCraft;
-	if (leaderCraft == NULL)
+	leaderCraft =
+		g_objectTable[g_paiContext.leaderObjectIndex].mobj->pCraft;
+	if (leaderCraft == NULL) {
 		return 0;
+	}
 
 	lastAttackerObjIdx = leaderCraft->lastAttackerObjIdx;
-	if (lastAttackerObjIdx != UINT16_MAX && g_objectTable[lastAttackerObjIdx].objectType != 0 &&
-		leaderCraft->objectKind == CRAFT_OBJECT_KIND_ACTIVE) {
-		if ((g_missionFlightGroups[g_objectTable[g_paiContext.objectIndex].flightGroupIdx].playerOwnerIdx ==
-				 -1 ||
-			 g_curCraft->playerCommandAvoidTargetObjIdx != lastAttackerObjIdx) &&
-			(g_objectTable[lastAttackerObjIdx].genusId == 0 ||
-			 g_objectTable[lastAttackerObjIdx].genusId == 1)) {
+	if (lastAttackerObjIdx != UINT16_MAX &&
+	    g_objectTable[lastAttackerObjIdx].objectType != 0 &&
+	    leaderCraft->objectKind == CRAFT_OBJECT_KIND_ACTIVE) {
+		if ((g_missionFlightGroups
+				     [g_objectTable[g_paiContext.objectIndex]
+					      .flightGroupIdx]
+					     .playerOwnerIdx == -1 ||
+		     g_curCraft->playerCommandAvoidTargetObjIdx !=
+			     lastAttackerObjIdx) &&
+		    (g_objectTable[lastAttackerObjIdx].genusId == 0 ||
+		     g_objectTable[lastAttackerObjIdx].genusId == 1)) {
 			alreadyCovered = 0;
-			for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-				 objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
+			for (objectIndex =
+				     (uint16_t)g_activeRegionObjectSlotStart;
+			     objectIndex < g_activeRegionCraftObjectSlotEnd;
+			     ++objectIndex) {
 				if (objectIndex != g_paiContext.objectIndex) {
-					ObjectRecord* candidateObject;
+					ObjectRecord *candidateObject;
 
-					candidateObject = &g_objectTable[objectIndex];
+					candidateObject =
+						&g_objectTable[objectIndex];
 					if (candidateObject->objectType != 0 &&
-						candidateObject->flightGroupIdx == g_paiContext.craftFlightGroupIndex) {
-						CraftData* candidateCraft;
+					    candidateObject->flightGroupIdx ==
+						    g_paiContext
+							    .craftFlightGroupIndex) {
+						CraftData *candidateCraft;
 
-						candidateCraft = candidateObject->mobj->pCraft;
+						candidateCraft =
+							candidateObject->mobj
+								->pCraft;
 						if (candidateCraft != NULL &&
-							candidateCraft->aiController.targetObjIdx == lastAttackerObjIdx) {
+						    candidateCraft->aiController
+								    .targetObjIdx ==
+							    lastAttackerObjIdx) {
 							alreadyCovered = 1;
 						}
 					}
@@ -2247,8 +3483,11 @@ int16_t paifight_coverleaderorder(void) {
 			}
 
 			if (!alreadyCovered) {
-				g_paiContext.controller->targetObjIdx = lastAttackerObjIdx;
-				g_paiContext.controller->targetSignature = g_objectTable[lastAttackerObjIdx].objectSignature;
+				g_paiContext.controller->targetObjIdx =
+					lastAttackerObjIdx;
+				g_paiContext.controller->targetSignature =
+					g_objectTable[lastAttackerObjIdx]
+						.objectSignature;
 				g_paiContext.controller->hasLiveTarget = 0;
 				return 1;
 			}
@@ -2259,44 +3498,56 @@ int16_t paifight_coverleaderorder(void) {
 }
 
 // FUNCTION: XVT 0x461DA0
-int16_t paifight_followleadatkorder(void) {
+int16_t paifight_followleadatkorder(void)
+{
 	enum { PLAYER_LEADER_TARGET_RANGE = 0x50000 };
 
-	AiController* leaderController;
-	PaiPlanRecord* plan;
+	AiController *leaderController;
+	PaiPlanRecord *plan;
 	int leaderObjectIndex;
 	int leaderPlayerOwner;
 	uint16_t maneuverMode;
 	uint16_t candidateTargetIdx;
 	uint16_t targetObjIdx;
 	int validTarget;
-	ObjectRecord* target;
+	ObjectRecord *target;
 
 	leaderObjectIndex = g_paiContext.leaderObjectIndex;
 	leaderPlayerOwner = g_objectTable[leaderObjectIndex].playerOwnerIdx;
 	leaderController = &g_paiContext.leaderOrSelfCraft->aiController;
 	maneuverMode = leaderController->maneuverMode;
 	plan = &g_planTable[g_paiContext.controller->currentPlanId];
-	if (strcmp(plan->name, "disableldr1pln") == 0)
+	if (strcmp(plan->name, "disableldr1pln") == 0) {
 		g_paiContext.requireUndisabledTarget = 1;
-	else
+	} else {
 		g_paiContext.requireUndisabledTarget = 0;
-	if (maneuverMode != AI_MANEUVER_MODE_ATTACK && maneuverMode != AI_MANEUVER_MODE_ROCKET_ATTACK &&
-		leaderPlayerOwner == -1)
+	}
+	if (maneuverMode != AI_MANEUVER_MODE_ATTACK &&
+	    maneuverMode != AI_MANEUVER_MODE_ROCKET_ATTACK &&
+	    leaderPlayerOwner == -1) {
 		return 0;
+	}
 
 	candidateTargetIdx = g_paiContext.controller->candidateTargetIdx;
-	if (candidateTargetIdx != UINT16_MAX && candidateTargetIdx != AI_TARGET_ABORT) {
+	if (candidateTargetIdx != UINT16_MAX &&
+	    candidateTargetIdx != AI_TARGET_ABORT) {
 		validTarget = pai_IsObjectTargetable(candidateTargetIdx);
 
 		if (validTarget != 0) {
 			if (leaderPlayerOwner != -1) {
-				pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, candidateTargetIdx);
-				if (g_lastRoughDistance > PLAYER_LEADER_TARGET_RANGE)
+				pai_ObjectRefUpdateRoughDistance(
+					g_paiContext.objectIndex,
+					candidateTargetIdx);
+				if (g_lastRoughDistance >
+				    PLAYER_LEADER_TARGET_RANGE) {
 					return 0;
+				}
 			}
-			g_paiContext.controller->targetObjIdx = candidateTargetIdx;
-			g_paiContext.controller->targetSignature = g_objectTable[candidateTargetIdx].objectSignature;
+			g_paiContext.controller->targetObjIdx =
+				candidateTargetIdx;
+			g_paiContext.controller->targetSignature =
+				g_objectTable[candidateTargetIdx]
+					.objectSignature;
 			g_paiContext.controller->hasLiveTarget = 1;
 			return 1;
 		}
@@ -2312,30 +3563,47 @@ int16_t paifight_followleadatkorder(void) {
 		uint16_t objectIndex;
 
 		for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-			 (int)objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
-			ObjectRecord* object = &g_objectTable[objectIndex];
+		     (int)objectIndex < g_activeRegionCraftObjectSlotEnd;
+		     ++objectIndex) {
+			ObjectRecord *object = &g_objectTable[objectIndex];
 			if (object->objectType != 0) {
-				CraftData* craft = object->mobj->pCraft;
-				if ((g_paiContext.requireUndisabledTarget == 0 || craft->workingSubsystems != 0) &&
-					g_curCraft->playerCommandAvoidTargetObjIdx != objectIndex &&
-					g_objectTable[craft->lastAttackerObjIdx].playerOwnerIdx == leaderPlayerOwner) {
-					int objectTeam = g_missionFlightGroups[object->flightGroupIdx].fg.team;
-					int leaderTeam = g_objectTable[leaderObjectIndex].mobj->team;
+				CraftData *craft = object->mobj->pCraft;
+				if ((g_paiContext.requireUndisabledTarget ==
+					     0 ||
+				     craft->workingSubsystems != 0) &&
+				    g_curCraft->playerCommandAvoidTargetObjIdx !=
+					    objectIndex &&
+				    g_objectTable[craft->lastAttackerObjIdx]
+						    .playerOwnerIdx ==
+					    leaderPlayerOwner) {
+					int objectTeam =
+						g_missionFlightGroups
+							[object->flightGroupIdx]
+								.fg.team;
+					int leaderTeam =
+						g_objectTable[leaderObjectIndex]
+							.mobj->team;
 					int isHostile;
 
-					if (objectTeam == leaderTeam)
+					if (objectTeam == leaderTeam) {
 						isHostile = 0;
-					else
-						isHostile = g_missionTeams[leaderTeam].allies[objectTeam] == 0;
-					if (isHostile != 0)
+					} else {
+						isHostile =
+							g_missionTeams[leaderTeam]
+								.allies[objectTeam] ==
+							0;
+					}
+					if (isHostile != 0) {
 						targetObjIdx = objectIndex;
+					}
 				}
 			}
 		}
 	}
 
-	if (targetObjIdx == UINT16_MAX)
+	if (targetObjIdx == UINT16_MAX) {
 		return 0;
+	}
 
 	target = &g_objectTable[targetObjIdx];
 	if (target->mobj != NULL) {
@@ -2344,70 +3612,130 @@ int16_t paifight_followleadatkorder(void) {
 			uint16_t candidateIndex;
 			uint16_t objectIndex;
 			flightGroupIdx = target->flightGroupIdx;
-			candidateIndex = (uint16_t)(g_curCraft->craftOrdinal + targetObjIdx);
-			if ((int)candidateIndex >= g_activeRegionCraftObjectSlotEnd)
-				candidateIndex = (uint16_t)g_activeRegionObjectSlotStart;
+			candidateIndex = (uint16_t)(g_curCraft->craftOrdinal +
+						    targetObjIdx);
+			if ((int)candidateIndex >=
+			    g_activeRegionCraftObjectSlotEnd) {
+				candidateIndex =
+					(uint16_t)g_activeRegionObjectSlotStart;
+			}
 
-			for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-				 (int)objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
-				ObjectRecord* candidate = &g_objectTable[candidateIndex];
-				CraftData* candidateCraft = candidate->mobj->pCraft;
+			for (objectIndex =
+				     (uint16_t)g_activeRegionObjectSlotStart;
+			     (int)objectIndex <
+			     g_activeRegionCraftObjectSlotEnd;
+			     ++objectIndex) {
+				ObjectRecord *candidate =
+					&g_objectTable[candidateIndex];
+				CraftData *candidateCraft =
+					candidate->mobj->pCraft;
 				if (candidateCraft == NULL) {
-					if ((int)++candidateIndex >= g_activeRegionCraftObjectSlotEnd)
-						candidateIndex = (uint16_t)g_activeRegionObjectSlotStart;
+					if ((int)++candidateIndex >=
+					    g_activeRegionCraftObjectSlotEnd) {
+						candidateIndex = (uint16_t)
+							g_activeRegionObjectSlotStart;
+					}
 					continue;
 				}
-				if ((g_paiContext.requireUndisabledTarget != 0 && candidateCraft->workingSubsystems == 0) ||
-					g_curCraft->playerCommandAvoidTargetObjIdx == objectIndex) {
-					if ((int)++candidateIndex >= g_activeRegionCraftObjectSlotEnd)
-						candidateIndex = (uint16_t)g_activeRegionObjectSlotStart;
+				if ((g_paiContext.requireUndisabledTarget !=
+					     0 &&
+				     candidateCraft->workingSubsystems == 0) ||
+				    g_curCraft->playerCommandAvoidTargetObjIdx ==
+					    objectIndex) {
+					if ((int)++candidateIndex >=
+					    g_activeRegionCraftObjectSlotEnd) {
+						candidateIndex = (uint16_t)
+							g_activeRegionObjectSlotStart;
+					}
 					continue;
 				}
-				if (candidate->objectType != 0 && candidate->flightGroupIdx == flightGroupIdx &&
-					pai_IsObjectTargetableNearCraft(g_paiContext.objectIndex, candidateIndex, 1)) {
-					if (strcmp(plan->name, "capfreeldr1pln") != 0 &&
-						strcmp(plan->name, "disableldr1pln") != 0 &&
-						strcmp(plan->name, "kamikaze1pln") != 0) {
-						g_paiContext.controller->targetObjIdx = candidateIndex;
-						g_paiContext.controller->targetSignature =
-							g_objectTable[candidateIndex].objectSignature;
-						g_paiContext.controller->hasLiveTarget = 1;
+				if (candidate->objectType != 0 &&
+				    candidate->flightGroupIdx ==
+					    flightGroupIdx &&
+				    pai_IsObjectTargetableNearCraft(
+					    g_paiContext.objectIndex,
+					    candidateIndex, 1)) {
+					if (strcmp(plan->name,
+						   "capfreeldr1pln") != 0 &&
+					    strcmp(plan->name,
+						   "disableldr1pln") != 0 &&
+					    strcmp(plan->name,
+						   "kamikaze1pln") != 0) {
+						g_paiContext.controller
+							->targetObjIdx =
+							candidateIndex;
+						g_paiContext.controller
+							->targetSignature =
+							g_objectTable[candidateIndex]
+								.objectSignature;
+						g_paiContext.controller
+							->hasLiveTarget = 1;
 						return 1;
 					}
-					if (pai_CurrentOrderTargetsMatchObject(candidateIndex) != 0) {
-						g_paiContext.controller->targetObjIdx = candidateIndex;
-						g_paiContext.controller->targetSignature =
-							g_objectTable[candidateIndex].objectSignature;
-						g_paiContext.controller->hasLiveTarget = 1;
+					if (pai_CurrentOrderTargetsMatchObject(
+						    candidateIndex) != 0) {
+						g_paiContext.controller
+							->targetObjIdx =
+							candidateIndex;
+						g_paiContext.controller
+							->targetSignature =
+							g_objectTable[candidateIndex]
+								.objectSignature;
+						g_paiContext.controller
+							->hasLiveTarget = 1;
 						return 1;
 					}
 				}
-				if ((int)++candidateIndex >= g_activeRegionCraftObjectSlotEnd)
-					candidateIndex = (uint16_t)g_activeRegionObjectSlotStart;
+				if ((int)++candidateIndex >=
+				    g_activeRegionCraftObjectSlotEnd) {
+					candidateIndex = (uint16_t)
+						g_activeRegionObjectSlotStart;
+				}
 			}
 		}
 	} else {
 		uint16_t staticCandidateIdx = (uint16_t)(targetObjIdx + 1);
 		uint16_t scanned;
 		uint16_t flightGroupIdx = target->flightGroupIdx;
-		if ((int)staticCandidateIdx >= g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount)
-			staticCandidateIdx = (uint16_t)g_regionMainObjectSlotEnd;
+		if ((int)staticCandidateIdx >=
+		    g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount) {
+			staticCandidateIdx =
+				(uint16_t)g_regionMainObjectSlotEnd;
+		}
 		for (scanned = (uint16_t)g_regionMainObjectSlotEnd;
-			 (int)scanned < g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount; ++scanned) {
-			ObjectRecord* candidate = &g_objectTable[staticCandidateIdx];
-			if ((g_paiContext.requireUndisabledTarget == 0 || candidate->typeSpecificWord != 0) &&
-				g_curCraft->playerCommandAvoidTargetObjIdx != staticCandidateIdx) {
-				if (candidate->objectType != 0 && candidate->flightGroupIdx == flightGroupIdx &&
-					pai_IsObjectTargetableNearCraft(g_paiContext.objectIndex, staticCandidateIdx, 1) &&
-					pai_CurrentOrderTargetsMatchObject(staticCandidateIdx) != 0) {
-					g_paiContext.controller->targetObjIdx = staticCandidateIdx;
-					g_paiContext.controller->targetSignature =
-						g_objectTable[staticCandidateIdx].objectSignature;
-					g_paiContext.controller->hasLiveTarget = 1;
+		     (int)scanned <
+		     g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount;
+		     ++scanned) {
+			ObjectRecord *candidate =
+				&g_objectTable[staticCandidateIdx];
+			if ((g_paiContext.requireUndisabledTarget == 0 ||
+			     candidate->typeSpecificWord != 0) &&
+			    g_curCraft->playerCommandAvoidTargetObjIdx !=
+				    staticCandidateIdx) {
+				if (candidate->objectType != 0 &&
+				    candidate->flightGroupIdx ==
+					    flightGroupIdx &&
+				    pai_IsObjectTargetableNearCraft(
+					    g_paiContext.objectIndex,
+					    staticCandidateIdx, 1) &&
+				    pai_CurrentOrderTargetsMatchObject(
+					    staticCandidateIdx) != 0) {
+					g_paiContext.controller->targetObjIdx =
+						staticCandidateIdx;
+					g_paiContext.controller
+						->targetSignature =
+						g_objectTable[staticCandidateIdx]
+							.objectSignature;
+					g_paiContext.controller->hasLiveTarget =
+						1;
 					return 1;
 				}
-				if ((int)++staticCandidateIdx >= g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount)
-					staticCandidateIdx = (uint16_t)g_regionMainObjectSlotEnd;
+				if ((int)++staticCandidateIdx >=
+				    g_regionMainObjectSlotEnd +
+					    g_regionStaticObjectSlotCount) {
+					staticCandidateIdx = (uint16_t)
+						g_regionMainObjectSlotEnd;
+				}
 			}
 		}
 	}
@@ -2416,43 +3744,48 @@ int16_t paifight_followleadatkorder(void) {
 }
 
 // FUNCTION: XVT 0x462550
-int16_t paifight_checkescortorder(void) {
+int16_t paifight_checkescortorder(void)
+{
 	g_paiContext.controller->escortTargetFG = -1;
-	if (paifight_searchforclosestingroup(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-											 .fg.orders[g_paiContext.orderSlot]
-											 .target1Type,
-										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-											 .fg.orders[g_paiContext.orderSlot]
-											 .target1,
-										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-											 .fg.orders[g_paiContext.orderSlot]
-											 .target1OrTarget2,
-										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-											 .fg.orders[g_paiContext.orderSlot]
-											 .target2Type,
-										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-											 .fg.orders[g_paiContext.orderSlot]
-											 .target2) != -1) {
-		g_paiContext.controller->escortTargetFG = g_aiEscortCandidateFgIdx;
+	if (paifight_searchforclosestingroup(
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[g_paiContext.orderSlot]
+			    .target1Type,
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[g_paiContext.orderSlot]
+			    .target1,
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[g_paiContext.orderSlot]
+			    .target1OrTarget2,
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[g_paiContext.orderSlot]
+			    .target2Type,
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[g_paiContext.orderSlot]
+			    .target2) != -1) {
+		g_paiContext.controller->escortTargetFG =
+			g_aiEscortCandidateFgIdx;
 		return 0;
 	}
 
-	if (paifight_searchforclosestingroup(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-											 .fg.orders[g_paiContext.orderSlot]
-											 .secondaryTargetTypes[0],
-										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-											 .fg.orders[g_paiContext.orderSlot]
-											 .secondaryTargets[0],
-										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-											 .fg.orders[g_paiContext.orderSlot]
-											 .target3OrTarget4,
-										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-											 .fg.orders[g_paiContext.orderSlot]
-											 .secondaryTargetTypes[1],
-										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-											 .fg.orders[g_paiContext.orderSlot]
-											 .secondaryTargets[1]) != -1) {
-		g_paiContext.controller->escortTargetFG = g_aiEscortCandidateFgIdx;
+	if (paifight_searchforclosestingroup(
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[g_paiContext.orderSlot]
+			    .secondaryTargetTypes[0],
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[g_paiContext.orderSlot]
+			    .secondaryTargets[0],
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[g_paiContext.orderSlot]
+			    .target3OrTarget4,
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[g_paiContext.orderSlot]
+			    .secondaryTargetTypes[1],
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[g_paiContext.orderSlot]
+			    .secondaryTargets[1]) != -1) {
+		g_paiContext.controller->escortTargetFG =
+			g_aiEscortCandidateFgIdx;
 		return 0;
 	}
 
@@ -2460,8 +3793,10 @@ int16_t paifight_checkescortorder(void) {
 }
 
 // FUNCTION: XVT 0x462690
-int16_t paifight_searchforclosestingroup(int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
-										 int16_t target2Type, uint16_t target2) {
+int16_t paifight_searchforclosestingroup(int16_t target1Type, uint16_t target1,
+					 int16_t target1OrTarget2,
+					 int16_t target2Type, uint16_t target2)
+{
 	uint16_t flightGroupIdx;
 	uint16_t bestObjectIndex;
 	unsigned int bestRangeScore;
@@ -2473,37 +3808,58 @@ int16_t paifight_searchforclosestingroup(int16_t target1Type, uint16_t target1, 
 	bestObjectIndex = (int16_t)UINT16_MAX;
 	bestRangeScore = UINT32_MAX;
 	while (g_missionHeader.numFlightGroups > flightGroupIdx) {
-		matchesTarget1 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target1Type, target1);
-		matchesTarget2 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target2Type, target2);
-		if (target1OrTarget2 == 1)
+		matchesTarget1 = Mission_FlightGroupMatchesTriggerVariable(
+			flightGroupIdx, target1Type, target1);
+		matchesTarget2 = Mission_FlightGroupMatchesTriggerVariable(
+			flightGroupIdx, target2Type, target2);
+		if (target1OrTarget2 == 1) {
 			matchesTarget1 |= matchesTarget2;
-		else
+		} else {
 			matchesTarget1 &= matchesTarget2;
+		}
 
 		if (matchesTarget1 != 0) {
-			for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-				 objectIndex < (int)g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
-				if (g_objectTable[objectIndex].objectType != 0 &&
-					g_objectTable[objectIndex].flightGroupIdx == flightGroupIdx) {
-					pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIndex);
-					if (bestRangeScore > (unsigned int)g_lastRoughDistance) {
+			for (objectIndex =
+				     (uint16_t)g_activeRegionObjectSlotStart;
+			     objectIndex <
+			     (int)g_activeRegionCraftObjectSlotEnd;
+			     ++objectIndex) {
+				if (g_objectTable[objectIndex].objectType !=
+					    0 &&
+				    g_objectTable[objectIndex].flightGroupIdx ==
+					    flightGroupIdx) {
+					pai_ObjectRefUpdateRoughDistance(
+						g_paiContext.objectIndex,
+						objectIndex);
+					if (bestRangeScore >
+					    (unsigned int)g_lastRoughDistance) {
 						bestObjectIndex = objectIndex;
-						bestRangeScore = g_lastRoughDistance;
-						g_aiEscortCandidateFgIdx = (uint8_t)flightGroupIdx;
+						bestRangeScore =
+							g_lastRoughDistance;
+						g_aiEscortCandidateFgIdx =
+							(uint8_t)flightGroupIdx;
 					}
 				}
 			}
 
 			for (objectIndex = (uint16_t)g_regionMainObjectSlotEnd;
-				 objectIndex < (int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount);
-				 ++objectIndex) {
-				if (g_objectTable[objectIndex].objectType != 0 &&
-					g_objectTable[objectIndex].flightGroupIdx == flightGroupIdx) {
-					pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIndex);
-					if (bestRangeScore > (unsigned int)g_lastRoughDistance) {
+			     objectIndex < (int)(g_regionMainObjectSlotEnd +
+						 g_regionStaticObjectSlotCount);
+			     ++objectIndex) {
+				if (g_objectTable[objectIndex].objectType !=
+					    0 &&
+				    g_objectTable[objectIndex].flightGroupIdx ==
+					    flightGroupIdx) {
+					pai_ObjectRefUpdateRoughDistance(
+						g_paiContext.objectIndex,
+						objectIndex);
+					if (bestRangeScore >
+					    (unsigned int)g_lastRoughDistance) {
 						bestObjectIndex = objectIndex;
-						bestRangeScore = g_lastRoughDistance;
-						g_aiEscortCandidateFgIdx = (uint8_t)flightGroupIdx;
+						bestRangeScore =
+							g_lastRoughDistance;
+						g_aiEscortCandidateFgIdx =
+							(uint8_t)flightGroupIdx;
 					}
 				}
 			}
@@ -2515,58 +3871,85 @@ int16_t paifight_searchforclosestingroup(int16_t target1Type, uint16_t target1, 
 }
 
 // FUNCTION: XVT 0x462830
-int16_t paifight_OrderSlotHasFutureTargets(uint16_t orderSlot) {
+int16_t paifight_OrderSlotHasFutureTargets(uint16_t orderSlot)
+{
 	int orderIndex;
 
 	orderIndex = orderSlot;
 	if (paifight_HasFutureFgTargets(
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1Type,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2Type,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2) != 0)
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[orderIndex]
+			    .target1Type,
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[orderIndex]
+			    .target1,
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[orderIndex]
+			    .target1OrTarget2,
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[orderIndex]
+			    .target2Type,
+		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[orderIndex]
+			    .target2) != 0) {
 		return 1;
+	}
 
-	return paifight_HasFutureFgTargets(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-										   .fg.orders[orderIndex]
-										   .secondaryTargetTypes[0],
-									   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-										   .fg.orders[orderIndex]
-										   .secondaryTargets[0],
-									   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-										   .fg.orders[orderIndex]
-										   .target3OrTarget4,
-									   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-										   .fg.orders[orderIndex]
-										   .secondaryTargetTypes[1],
-									   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-										   .fg.orders[orderIndex]
-										   .secondaryTargets[1]) != 0;
+	return paifight_HasFutureFgTargets(
+		       g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			       .fg.orders[orderIndex]
+			       .secondaryTargetTypes[0],
+		       g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			       .fg.orders[orderIndex]
+			       .secondaryTargets[0],
+		       g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			       .fg.orders[orderIndex]
+			       .target3OrTarget4,
+		       g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			       .fg.orders[orderIndex]
+			       .secondaryTargetTypes[1],
+		       g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			       .fg.orders[orderIndex]
+			       .secondaryTargets[1]) != 0;
 }
 
 // FUNCTION: XVT 0x462930
-int16_t paifight_HasFutureFgTargets(int16_t target1Type, uint16_t target1, int16_t targetRelationOp,
-									int16_t target2Type, uint16_t target2) {
+int16_t paifight_HasFutureFgTargets(int16_t target1Type, uint16_t target1,
+				    int16_t targetRelationOp,
+				    int16_t target2Type, uint16_t target2)
+{
 	uint16_t flightGroupIdx;
 	int16_t matchesTarget1;
 	int16_t matchesTarget2;
 
-	for (flightGroupIdx = 0; flightGroupIdx < (int16_t)g_missionHeader.numFlightGroups; ++flightGroupIdx) {
+	for (flightGroupIdx = 0;
+	     flightGroupIdx < (int16_t)g_missionHeader.numFlightGroups;
+	     ++flightGroupIdx) {
 		if (g_missionFgStats[flightGroupIdx].arrivalEnabled != 0 ||
-			g_missionFlightGroups[flightGroupIdx].playerOwnerIdx != -1) {
-			matchesTarget1 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target1Type, target1);
-			matchesTarget2 = Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target2Type, target2);
+		    g_missionFlightGroups[flightGroupIdx].playerOwnerIdx !=
+			    -1) {
+			matchesTarget1 =
+				Mission_FlightGroupMatchesTriggerVariable(
+					flightGroupIdx, target1Type, target1);
+			matchesTarget2 =
+				Mission_FlightGroupMatchesTriggerVariable(
+					flightGroupIdx, target2Type, target2);
 
-			if (targetRelationOp == 1)
+			if (targetRelationOp == 1) {
 				matchesTarget1 |= matchesTarget2;
-			else
+			} else {
 				matchesTarget1 &= matchesTarget2;
+			}
 
 			if (matchesTarget1 != 0) {
-				if (g_missionFgStats[flightGroupIdx].hasArrived == 0)
+				if (g_missionFgStats[flightGroupIdx]
+					    .hasArrived == 0) {
 					return 1;
-				if (g_missionFgStats[flightGroupIdx].wavesRemaining != 0)
+				}
+				if (g_missionFgStats[flightGroupIdx]
+					    .wavesRemaining != 0) {
 					return 1;
+				}
 			}
 		}
 	}

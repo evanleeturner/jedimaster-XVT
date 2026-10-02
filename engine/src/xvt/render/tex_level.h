@@ -37,10 +37,12 @@ typedef struct TexLevelImageHeader {
 
 #pragma pack(pop)
 typedef char xvt_size_TexLevelHeader[(sizeof(TexLevelHeader) == 0x34) ? 1 : -1];
-typedef char xvt_size_TexLevelImageHeader[(sizeof(TexLevelImageHeader) == 0x2C) ? 1 : -1];
+typedef char xvt_size_TexLevelImageHeader[(sizeof(TexLevelImageHeader) == 0x2C)
+						  ? 1
+						  : -1];
 
-unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int* texLevel);
-unsigned int TexLevel_Convert24BppPalettesTo8Bpp(unsigned int* texLevel);
+unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int *texLevel);
+unsigned int TexLevel_Convert24BppPalettesTo8Bpp(unsigned int *texLevel);
 
 #ifdef __cplusplus
 }

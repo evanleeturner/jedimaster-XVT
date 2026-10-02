@@ -27,26 +27,28 @@ typedef struct FrontendFindData {
 	uint8_t trailingPadding[2];
 } FrontendFindData;
 
-__declspec(dllimport) FrontendFindHandle __stdcall FindFirstFileA(const char* fileName,
-																  FrontendFindData* findData);
-__declspec(dllimport) int __stdcall FindNextFileA(FrontendFindHandle findHandle, FrontendFindData* findData);
+__declspec(dllimport) FrontendFindHandle __stdcall
+FindFirstFileA(const char *fileName, FrontendFindData *findData);
+__declspec(dllimport) int __stdcall FindNextFileA(FrontendFindHandle findHandle,
+						  FrontendFindData *findData);
 __declspec(dllimport) int __stdcall FindClose(FrontendFindHandle findHandle);
 
 #endif
 
 // FUNCTION: XVT 0x4DFA10
-FrontendFileList* FrontendFileList_BuildSorted(const char* wildcard) {
+FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard)
+{
 #ifdef XVT_MODERN
 	return FrontendFileList_BuildSortedModern(wildcard);
 #else
 	char currentDirectory[256];
-	FrontendFileList* list;
-	FrontendFileListNode* node;
+	FrontendFileList *list;
+	FrontendFileListNode *node;
 	FrontendFindHandle findHandle;
 	extern FrontendFindData FindFileData;
 
 	_getcwd(currentDirectory, sizeof(currentDirectory));
-	list = (FrontendFileList*)malloc(sizeof(*list));
+	list = (FrontendFileList *)malloc(sizeof(*list));
 	if (list == NULL) {
 		_chdir(currentDirectory);
 		return NULL;
@@ -58,14 +60,14 @@ FrontendFileList* FrontendFileList_BuildSorted(const char* wildcard) {
 		list->count = 0;
 		return list;
 	}
-	node = (FrontendFileListNode*)malloc(sizeof(*node));
+	node = (FrontendFileListNode *)malloc(sizeof(*node));
 	if (node == NULL) {
 		_chdir(currentDirectory);
 		free(list);
 		FindClose(findHandle);
 		return NULL;
 	}
-	node->path = (char*)malloc(strlen(FindFileData.fileName) + 2);
+	node->path = (char *)malloc(strlen(FindFileData.fileName) + 2);
 	if (node->path == NULL) {
 		_chdir(currentDirectory);
 		free(node);
@@ -78,11 +80,11 @@ FrontendFileList* FrontendFileList_BuildSorted(const char* wildcard) {
 	list->head = node;
 	list->count = 1;
 	while (FindNextFileA(findHandle, &FindFileData)) {
-		node = (FrontendFileListNode*)malloc(sizeof(*node));
+		node = (FrontendFileListNode *)malloc(sizeof(*node));
 		if (node == NULL) {
 			break;
 		}
-		node->path = (char*)malloc(strlen(FindFileData.fileName) + 2);
+		node->path = (char *)malloc(strlen(FindFileData.fileName) + 2);
 		if (node->path == NULL) {
 			free(node);
 			break;
@@ -98,9 +100,10 @@ FrontendFileList* FrontendFileList_BuildSorted(const char* wildcard) {
 }
 
 // FUNCTION: XVT 0x4DFC30
-void FrontendFileList_Free(FrontendFileList* list) {
-	FrontendFileListNode* node;
-	FrontendFileListNode* next;
+void FrontendFileList_Free(FrontendFileList *list)
+{
+	FrontendFileListNode *node;
+	FrontendFileListNode *next;
 
 	if (list != NULL) {
 		node = list->head;
@@ -117,8 +120,10 @@ void FrontendFileList_Free(FrontendFileList* list) {
 /* Inserts a filename node into a lexicographically sorted singly linked list
  * and increments the list count. The head node is assumed to exist. */
 // FUNCTION: XVT 0x4DFC70
-void FrontendFileList_InsertNodeSorted(FrontendFileList* list, FrontendFileListNode* node) {
-	FrontendFileListNode* cursor;
+void FrontendFileList_InsertNodeSorted(FrontendFileList *list,
+				       FrontendFileListNode *node)
+{
+	FrontendFileListNode *cursor;
 
 	cursor = list->head;
 	if (strcmp(node->path, cursor->path) < 0) {

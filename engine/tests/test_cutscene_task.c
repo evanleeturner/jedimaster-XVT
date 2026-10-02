@@ -29,7 +29,9 @@ enum { MISSION_INDEX = 11, DESCRIPTION_ID = 22 };
 static XvtTestAssets g_assets;
 static CutsceneEntry g_table[5];
 
-static void Entry(int index, const char* movie, int mission, int phase, int description) {
+static void Entry(int index, const char *movie, int mission, int phase,
+		  int description)
+{
 	memset(&g_table[index], 0, sizeof g_table[index]);
 	strcpy(g_table[index].movieName, movie);
 	g_table[index].campaignId = mission;
@@ -39,7 +41,8 @@ static void Entry(int index, const char* movie, int mission, int phase, int desc
 
 /* The table: "first" and "fourth" match phase 0, "second" matches phase 1, the others never match the
  * pilot's mission. Placeholders exist for the movies named in present. */
-static void Fresh(const char* present_a, const char* present_b) {
+static void Fresh(const char *present_a, const char *present_b)
+{
 	XvtCutsceneTask_Reset();
 	XvtMovieTask_Shutdown();
 	XvtTest_CloseAssets(&g_assets);
@@ -73,8 +76,9 @@ static void Fresh(const char* present_a, const char* present_b) {
 }
 
 /* Ticks the movie task until the movie completes and reaps it, as the port does. */
-static void FinishMovie(void) {
-	struct timespec pause = { 0, 1000000 };
+static void FinishMovie(void)
+{
+	struct timespec pause = {0, 1000000};
 	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
 		XvtMovieTask_Update();
 		nanosleep(&pause, NULL);
@@ -83,7 +87,8 @@ static void FinishMovie(void) {
 	XvtMovieTask_ReapFinished();
 }
 
-static void CheckRefusals(void) {
+static void CheckRefusals(void)
+{
 	Fresh(NULL, NULL);
 	g_pilotData.missionDirectoryId = MISSION_DIRECTORY_MELEES;
 	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), 0);
@@ -97,30 +102,36 @@ static void CheckRefusals(void) {
 	/* A refusal starts no run: with the table back, the next call starts one. */
 	g_cutsceneTable = g_table;
 	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(5), 1);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_NotSuspended);
+	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
+			  CDAudio_NotSuspended);
 }
 
-static void CheckNoMatch(void) {
+static void CheckNoMatch(void)
+{
 	Fresh("first", "fourth");
 	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(5), 1);
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_NotSuspended);
+	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
+			  CDAudio_NotSuspended);
 
 	/* That return left no run: phase 0 now starts a new one, whose first match plays. */
 	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), XVT_MOVIE_PENDING);
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
 }
 
-static void CheckMissingMovieEndsRun(void) {
+static void CheckMissingMovieEndsRun(void)
+{
 	/* "first" is missing, "fourth" is there: the failure of the first ends the run before the other. */
 	Fresh("fourth", NULL);
 	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), 0);
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
 	/* CD audio was suspended for the movie and asked to resume after it. */
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_ResumePending);
+	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
+			  CDAudio_ResumePending);
 }
 
-static void CheckPendingMovie(void) {
+static void CheckPendingMovie(void)
+{
 	Fresh("first", "fourth");
 	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), XVT_MOVIE_PENDING);
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
@@ -132,7 +143,8 @@ static void CheckPendingMovie(void) {
 	FinishMovie();
 	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(1), 0);
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_ResumePending);
+	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
+			  CDAudio_ResumePending);
 	int result = 77;
 	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
 
@@ -141,7 +153,8 @@ static void CheckPendingMovie(void) {
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
 }
 
-static void CheckReset(void) {
+static void CheckReset(void)
+{
 	Fresh("first", NULL);
 	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), XVT_MOVIE_PENDING);
 	XvtCutsceneTask_Reset();
@@ -158,7 +171,8 @@ static void CheckReset(void) {
 	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 1);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckRefusals();
 	CheckNoMatch();
 	CheckMissingMovieEndsRun();

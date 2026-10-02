@@ -20,7 +20,8 @@
 /* A volume no step can produce: steps move the level from its start in multiples of 256. */
 enum { UNSET = 12345 };
 
-static void Fresh(void) {
+static void Fresh(void)
+{
 	XvtCdTask_CancelFade();
 	memset(&g_frontState, 0, sizeof g_frontState);
 	g_musicCdMciDeviceId = 1;
@@ -28,11 +29,15 @@ static void Fresh(void) {
 	XvtTime_Reset();
 }
 
-static unsigned Volume(void) { return g_frontState.cdAudioTrackCache.currentAuxVolume; }
+static unsigned Volume(void)
+{
+	return g_frontState.cdAudioTrackCache.currentAuxVolume;
+}
 
 static void AdvanceMs(int ms) { XvtTime_AdvanceHostClock(ms * 1000); }
 
-static void CheckBeginNeedsADevice(void) {
+static void CheckBeginNeedsADevice(void)
+{
 	Fresh();
 	g_musicCdMciDeviceId = 0;
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 0);
@@ -49,7 +54,8 @@ static void CheckBeginNeedsADevice(void) {
 	XvtCdTask_CancelFade();
 }
 
-static void CheckEqualLevels(void) {
+static void CheckEqualLevels(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(1000, 1000, 1000), 1);
 	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
@@ -62,7 +68,8 @@ static void CheckEqualLevels(void) {
 	XVT_ASSERT_INT_EQ(Volume(), UNSET);
 }
 
-static void CheckStepTiming(void) {
+static void CheckStepTiming(void)
+{
 	Fresh();
 	/* 2560 apart over 1000 ms: a step of 256 every 1000 * 256 / 2560 + 1 = 101 ms, 10 steps. */
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
@@ -97,7 +104,8 @@ static void CheckStepTiming(void) {
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), UINT64_MAX);
 }
 
-static void CheckNonPositiveDuration(void) {
+static void CheckNonPositiveDuration(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 512, 0), 1);
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 1000);
@@ -112,7 +120,8 @@ static void CheckNonPositiveDuration(void) {
 	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
 }
 
-static void CheckLastStepOvershootsAndClamps(void) {
+static void CheckLastStepOvershootsAndClamps(void)
+{
 	/* 300 apart is two steps, rounded up: the fade ends 212 past to. */
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 300, 0), 1);
@@ -148,7 +157,8 @@ static void CheckLastStepOvershootsAndClamps(void) {
 	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
 }
 
-static void CheckBeginReplacesFade(void) {
+static void CheckBeginReplacesFade(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
 	AdvanceMs(101);
@@ -162,7 +172,8 @@ static void CheckBeginReplacesFade(void) {
 	XvtCdTask_CancelFade();
 }
 
-static void CheckCancel(void) {
+static void CheckCancel(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
 	AdvanceMs(202);
@@ -176,7 +187,8 @@ static void CheckCancel(void) {
 	XVT_ASSERT_INT_EQ(Volume(), 512);
 }
 
-static void CheckResumeDelay(void) {
+static void CheckResumeDelay(void)
+{
 	Fresh();
 	AdvanceMs(1000);
 	g_frontState.cdAudioSuspendState = CDAudio_ResumePending;
@@ -187,10 +199,12 @@ static void CheckResumeDelay(void) {
 	AdvanceMs(500);
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 1000);
 	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_ResumePending);
+	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
+			  CDAudio_ResumePending);
 	AdvanceMs(1);
 	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_NotSuspended);
+	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
+			  CDAudio_NotSuspended);
 
 	/* Overdue reads as 0. */
 	g_frontState.cdAudioSuspendState = CDAudio_ResumePending;
@@ -198,7 +212,8 @@ static void CheckResumeDelay(void) {
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 0);
 }
 
-static void CheckTrackEnd(void) {
+static void CheckTrackEnd(void)
+{
 	Fresh();
 	AdvanceMs(1000);
 	g_frontState.cdAudioCurrentTrack = 3;
@@ -215,7 +230,8 @@ static void CheckTrackEnd(void) {
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), UINT64_MAX);
 }
 
-static void CheckSoonestWake(void) {
+static void CheckSoonestWake(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
 	g_frontState.cdAudioCurrentTrack = 1;
@@ -227,7 +243,8 @@ static void CheckSoonestWake(void) {
 	XvtCdTask_CancelFade();
 }
 
-int main(void) {
+int main(void)
+{
 	CheckBeginNeedsADevice();
 	CheckEqualLevels();
 	CheckStepTiming();

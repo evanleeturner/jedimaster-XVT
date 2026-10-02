@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 extern uint16_t g_billboardTextureSequenceIndex;
-extern int16_t* g_billboardTextureFrameSequence;
+extern int16_t *g_billboardTextureFrameSequence;
 extern uint16_t g_localDebrisRecycleSlotCursor;
 
 void FlightObject_UpdateSpecialBehavior(void);

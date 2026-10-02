@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 int16_t FlightPlayer_HasDisabledSubsystem(void);
-void nullsub_8(const char* message);
+void nullsub_8(const char *message);
 void FlightPlayer_IncreaseThrottleSpeed(int16_t step, int playerIdx);
 void FlightPlayer_DecreaseThrottleSpeed(int16_t step, int playerIdx);
 

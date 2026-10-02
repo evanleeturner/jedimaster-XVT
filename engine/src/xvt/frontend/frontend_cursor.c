@@ -20,27 +20,36 @@ __declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
 
 // GLOBAL: XVT 0x52C100
 const uint8_t g_defaultCursorBitmap[100] = {
-	1,    1,    1,    1,    1,    1,    1,    1,    1,    0,    1,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-	1,    0,    0,    1,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 1,    0,    0,    0,    1,    0xFF, 0xFF, 0xFF,
-	0xFF, 1,    0,    0,    0,    0,    1,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 1,    0,    0,    0,    1,
-	0xFF, 0xFF, 1,    0xFF, 0xFF, 0xFF, 1,    0,    0,    1,    0xFF, 1,    0,    1,    0xFF, 0xFF, 0xFF,
-	1,    0,    1,    1,    0,    0,    0,    1,    0xFF, 0xFF, 0xFF, 1,    1,    0,    0,    0,    0,
-	0,    1,    0xFF, 0xFF, 1,    0,    0,    0,    0,    0,    0,    0,    1,    1,    0,
+	1,    1,    1,	  1,	1,    1,    1,	  1,	1,    0,    1,	  0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 1,    0,	  0,	1,    0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 1,	  0,	0,    0,    1,	  0xFF, 0xFF, 0xFF, 0xFF, 1,
+	0,    0,    0,	  0,	1,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 1,	  0,
+	0,    0,    1,	  0xFF, 0xFF, 1,    0xFF, 0xFF, 0xFF, 1,    0,	  0,
+	1,    0xFF, 1,	  0,	1,    0xFF, 0xFF, 0xFF, 1,    0,    1,	  1,
+	0,    0,    0,	  1,	0xFF, 0xFF, 0xFF, 1,	1,    0,    0,	  0,
+	0,    0,    1,	  0xFF, 0xFF, 1,    0,	  0,	0,    0,    0,	  0,
+	0,    1,    1,	  0,
 };
 
 // FUNCTION: XVT 0x4B49A0
-int FrontendCursor_SetImageFromResourceName(const char* resourceName, void* saveBuf) {
+int FrontendCursor_SetImageFromResourceName(const char *resourceName,
+					    void *saveBuf)
+{
 	RECT resourceRect;
 	int resourceIndex;
 
 	resourceIndex = FrontImage_FindResourceByName(resourceName);
-	if (resourceIndex == -1)
+	if (resourceIndex == -1) {
 		return 0;
-	if (g_frontState.resourceTable[resourceIndex].image->isCompressed != 0)
+	}
+	if (g_frontState.resourceTable[resourceIndex].image->isCompressed !=
+	    0) {
 		return 0;
+	}
 	FrontImage_GetResourceRect(resourceName, &resourceRect);
-	g_frontState.cursorMaskPixels = g_frontState.resourceTable[resourceIndex].image->pixels;
-	g_frontState.cursorSaveBuf = (uint8_t*)saveBuf;
+	g_frontState.cursorMaskPixels =
+		g_frontState.resourceTable[resourceIndex].image->pixels;
+	g_frontState.cursorSaveBuf = (uint8_t *)saveBuf;
 	g_frontState.cursorWidth = resourceRect.right - resourceRect.left + 1;
 	g_frontState.cursorHeight = resourceRect.bottom - resourceRect.top + 1;
 	strcpy(g_frontState.cursorSpriteName, resourceName);
@@ -50,17 +59,21 @@ int FrontendCursor_SetImageFromResourceName(const char* resourceName, void* save
 }
 
 // FUNCTION: XVT 0x4DDC40
-void FrontendCursor_Init(void) {
+void FrontendCursor_Init(void)
+{
 	g_frontState.cursorWidth = 10;
 	g_frontState.cursorHeight = 10;
 	g_frontState.cursorMaskPixels = g_frontState.cursorDefaultMask;
 	g_frontState.cursorSaveBuf = g_frontState.cursorDefaultSaveBuf;
-	memcpy(g_frontState.cursorDefaultMask, g_defaultCursorBitmap, sizeof(g_frontState.cursorDefaultMask));
-	memset(g_frontState.cursorSpriteName, 0, sizeof(g_frontState.cursorSpriteName));
+	memcpy(g_frontState.cursorDefaultMask, g_defaultCursorBitmap,
+	       sizeof(g_frontState.cursorDefaultMask));
+	memset(g_frontState.cursorSpriteName, 0,
+	       sizeof(g_frontState.cursorSpriteName));
 }
 
 // FUNCTION: XVT 0x4DDC90
-void FrontendCursor_Draw(void) {
+void FrontendCursor_Draw(void)
+{
 	RECT clippedRect;
 	RECT originalRect;
 	int cursorWidth;
@@ -68,17 +81,18 @@ void FrontendCursor_Draw(void) {
 	int visibleWidth;
 	int visibleHeight;
 	int displayBpp;
-	uint8_t* backBuffer;
-	uint8_t* cursorPixels;
-	uint8_t* saveBuffer;
-	uint8_t* backBufferRow;
+	uint8_t *backBuffer;
+	uint8_t *cursorPixels;
+	uint8_t *saveBuffer;
+	uint8_t *backBufferRow;
 	int rowsRemaining;
 	int column;
 	int maskValue;
 
-	if (g_frontState.mouseX < 0 || g_frontState.mouseX >= 640 || g_frontState.mouseY < 0 ||
-		g_frontState.mouseY >= 480)
+	if (g_frontState.mouseX < 0 || g_frontState.mouseX >= 640 ||
+	    g_frontState.mouseY < 0 || g_frontState.mouseY >= 480) {
 		return;
+	}
 
 	cursorHeight = g_frontState.cursorHeight;
 	clippedRect.left = 0;
@@ -86,7 +100,8 @@ void FrontendCursor_Draw(void) {
 	clippedRect.top = 0;
 	clippedRect.right = g_frontState.cursorWidth - 1;
 	clippedRect.bottom = g_frontState.cursorHeight - 1;
-	FrontendDraw_RectOffsetXY(&clippedRect, g_frontState.mouseX, g_frontState.mouseY);
+	FrontendDraw_RectOffsetXY(&clippedRect, g_frontState.mouseX,
+				  g_frontState.mouseY);
 	FrontendDraw_RectCopy(&originalRect, &clippedRect);
 	FrontendDraw_RectClipToBounds(&clippedRect);
 	visibleWidth = clippedRect.right - originalRect.right + cursorWidth;
@@ -102,112 +117,146 @@ void FrontendCursor_Draw(void) {
 #endif
 	if (g_frontState.cursorSpriteName[0] != '\0') {
 		switch (displayBpp) {
-			case 8: {
-				backBufferRow =
-					&backBuffer[g_frontState.mouseX + g_frontState.mouseY * g_frontState.drawSurfacePitch];
-				if (visibleHeight > 0) {
-					rowsRemaining = visibleHeight;
-					do {
-						memcpy(saveBuffer, backBufferRow, visibleWidth);
-						saveBuffer += cursorWidth;
-						backBufferRow += g_frontState.drawSurfacePitch;
-						--rowsRemaining;
-					} while (rowsRemaining != 0);
-				}
-				break;
+		case 8: {
+			backBufferRow =
+				&backBuffer[g_frontState.mouseX +
+					    g_frontState.mouseY *
+						    g_frontState
+							    .drawSurfacePitch];
+			if (visibleHeight > 0) {
+				rowsRemaining = visibleHeight;
+				do {
+					memcpy(saveBuffer, backBufferRow,
+					       visibleWidth);
+					saveBuffer += cursorWidth;
+					backBufferRow +=
+						g_frontState.drawSurfacePitch;
+					--rowsRemaining;
+				} while (rowsRemaining != 0);
 			}
-			case 16: {
-				backBufferRow = &backBuffer[2 * g_frontState.mouseX +
-											g_frontState.mouseY * g_frontState.drawSurfacePitch];
-				if (visibleHeight > 0) {
-					rowsRemaining = visibleHeight;
-					do {
-						if (visibleWidth > 0) {
-							uint16_t* sourcePixel;
-							uint16_t* savedPixel;
-							int pixelsRemaining;
-
-							sourcePixel = (uint16_t*)backBufferRow;
-							savedPixel = (uint16_t*)saveBuffer;
-							pixelsRemaining = visibleWidth;
-							do {
-								*savedPixel++ = *sourcePixel++;
-								--pixelsRemaining;
-							} while (pixelsRemaining != 0);
-						}
-						saveBuffer += 2 * cursorWidth;
-						backBufferRow += g_frontState.drawSurfacePitch & ~1;
-						--rowsRemaining;
-					} while (rowsRemaining != 0);
-				}
-				break;
-			}
-			default:
-				break;
+			break;
 		}
-		FrontImage_DrawSprite(g_frontState.cursorSpriteName, g_frontState.mouseX, g_frontState.mouseY);
+		case 16: {
+			backBufferRow =
+				&backBuffer[2 * g_frontState.mouseX +
+					    g_frontState.mouseY *
+						    g_frontState
+							    .drawSurfacePitch];
+			if (visibleHeight > 0) {
+				rowsRemaining = visibleHeight;
+				do {
+					if (visibleWidth > 0) {
+						uint16_t *sourcePixel;
+						uint16_t *savedPixel;
+						int pixelsRemaining;
+
+						sourcePixel = (uint16_t *)
+							backBufferRow;
+						savedPixel =
+							(uint16_t *)saveBuffer;
+						pixelsRemaining = visibleWidth;
+						do {
+							*savedPixel++ =
+								*sourcePixel++;
+							--pixelsRemaining;
+						} while (pixelsRemaining != 0);
+					}
+					saveBuffer += 2 * cursorWidth;
+					backBufferRow +=
+						g_frontState.drawSurfacePitch &
+						~1;
+					--rowsRemaining;
+				} while (rowsRemaining != 0);
+			}
+			break;
+		}
+		default:
+			break;
+		}
+		FrontImage_DrawSprite(g_frontState.cursorSpriteName,
+				      g_frontState.mouseX, g_frontState.mouseY);
 	} else {
 		switch (displayBpp) {
-			case 8: {
-				backBufferRow =
-					&backBuffer[g_frontState.mouseX + g_frontState.mouseY * g_frontState.drawSurfacePitch];
-				if (visibleHeight > 0) {
-					rowsRemaining = visibleHeight;
-					do {
-						memcpy(saveBuffer, backBufferRow, visibleWidth);
-						for (column = 0; column < visibleWidth; ++column) {
-							if (cursorPixels[column] != 0)
-								backBufferRow[column] = cursorPixels[column];
+		case 8: {
+			backBufferRow =
+				&backBuffer[g_frontState.mouseX +
+					    g_frontState.mouseY *
+						    g_frontState
+							    .drawSurfacePitch];
+			if (visibleHeight > 0) {
+				rowsRemaining = visibleHeight;
+				do {
+					memcpy(saveBuffer, backBufferRow,
+					       visibleWidth);
+					for (column = 0; column < visibleWidth;
+					     ++column) {
+						if (cursorPixels[column] != 0) {
+							backBufferRow[column] =
+								cursorPixels
+									[column];
 						}
-						saveBuffer += cursorWidth;
-						cursorPixels += cursorWidth;
-						backBufferRow += g_frontState.drawSurfacePitch;
-						--rowsRemaining;
-					} while (rowsRemaining != 0);
-				}
-				break;
+					}
+					saveBuffer += cursorWidth;
+					cursorPixels += cursorWidth;
+					backBufferRow +=
+						g_frontState.drawSurfacePitch;
+					--rowsRemaining;
+				} while (rowsRemaining != 0);
 			}
-			case 16: {
-				backBufferRow = &backBuffer[2 * g_frontState.mouseX +
-											g_frontState.mouseY * g_frontState.drawSurfacePitch];
-				if (visibleHeight > 0) {
-					rowsRemaining = visibleHeight;
-					do {
-						column = 0;
-						if (visibleWidth > 0) {
-							uint16_t* destinationPixel;
-							uint16_t* savedPixel;
+			break;
+		}
+		case 16: {
+			backBufferRow =
+				&backBuffer[2 * g_frontState.mouseX +
+					    g_frontState.mouseY *
+						    g_frontState
+							    .drawSurfacePitch];
+			if (visibleHeight > 0) {
+				rowsRemaining = visibleHeight;
+				do {
+					column = 0;
+					if (visibleWidth > 0) {
+						uint16_t *destinationPixel;
+						uint16_t *savedPixel;
 
-							destinationPixel = (uint16_t*)backBufferRow;
-							savedPixel = (uint16_t*)saveBuffer;
-							do {
-								*savedPixel = *destinationPixel;
-								maskValue = cursorPixels[column];
-								switch (maskValue) {
-									case 1:
-										*destinationPixel = 31;
-										break;
-									case 0xFF:
-										*destinationPixel = 0xFFFF;
-										break;
-									default:
-										break;
-								}
-								++destinationPixel;
-								++savedPixel;
-								++column;
-							} while (column < visibleWidth);
-						}
-						cursorPixels += cursorWidth;
-						saveBuffer += 2 * cursorWidth;
-						backBufferRow += g_frontState.drawSurfacePitch & ~1;
-						--rowsRemaining;
-					} while (rowsRemaining != 0);
-				}
-				break;
+						destinationPixel = (uint16_t *)
+							backBufferRow;
+						savedPixel =
+							(uint16_t *)saveBuffer;
+						do {
+							*savedPixel =
+								*destinationPixel;
+							maskValue = cursorPixels
+								[column];
+							switch (maskValue) {
+							case 1:
+								*destinationPixel =
+									31;
+								break;
+							case 0xFF:
+								*destinationPixel =
+									0xFFFF;
+								break;
+							default:
+								break;
+							}
+							++destinationPixel;
+							++savedPixel;
+							++column;
+						} while (column < visibleWidth);
+					}
+					cursorPixels += cursorWidth;
+					saveBuffer += 2 * cursorWidth;
+					backBufferRow +=
+						g_frontState.drawSurfacePitch &
+						~1;
+					--rowsRemaining;
+				} while (rowsRemaining != 0);
 			}
-			default:
-				break;
+			break;
+		}
+		default:
+			break;
 		}
 	}
 
@@ -222,9 +271,10 @@ void FrontendCursor_Draw(void) {
 }
 
 // FUNCTION: XVT 0x4DDF90
-void FrontendCursor_Restore(void) {
-	uint8_t* destination;
-	uint8_t* source;
+void FrontendCursor_Restore(void)
+{
+	uint8_t *destination;
+	uint8_t *source;
 	int displayBpp;
 
 	destination = FrontendDisplay_LockBackBuffer();
@@ -236,80 +286,86 @@ void FrontendCursor_Restore(void) {
 #endif
 
 	switch (displayBpp) {
-		case 8: {
-			int sourcePitch;
-			int copyWidth;
-			int remainingRows;
-			int rowOffset;
+	case 8: {
+		int sourcePitch;
+		int copyWidth;
+		int remainingRows;
+		int rowOffset;
 
-			rowOffset = g_frontState.drawSurfacePitch;
-			rowOffset *= g_frontState.cursorPrevDrawY;
-			rowOffset += g_frontState.cursorPrevDrawX;
-			destination += rowOffset;
-			sourcePitch = g_frontState.cursorWidth;
-			copyWidth = g_frontState.cursorPrevDrawWidth;
-			if (g_frontState.cursorPrevDrawHeight > 0) {
-				remainingRows = g_frontState.cursorPrevDrawHeight;
-				do {
-					memcpy(destination, source, copyWidth);
-					source += sourcePitch;
-					destination += g_frontState.drawSurfacePitch;
-					--remainingRows;
-				} while (remainingRows != 0);
-			}
-			break;
+		rowOffset = g_frontState.drawSurfacePitch;
+		rowOffset *= g_frontState.cursorPrevDrawY;
+		rowOffset += g_frontState.cursorPrevDrawX;
+		destination += rowOffset;
+		sourcePitch = g_frontState.cursorWidth;
+		copyWidth = g_frontState.cursorPrevDrawWidth;
+		if (g_frontState.cursorPrevDrawHeight > 0) {
+			remainingRows = g_frontState.cursorPrevDrawHeight;
+			do {
+				memcpy(destination, source, copyWidth);
+				source += sourcePitch;
+				destination += g_frontState.drawSurfacePitch;
+				--remainingRows;
+			} while (remainingRows != 0);
 		}
-		case 16: {
-			int copyWidth;
-			int sourcePitch;
-			int remainingRows;
-			int rowOffset;
-			uint8_t* rowDestination;
+		break;
+	}
+	case 16: {
+		int copyWidth;
+		int sourcePitch;
+		int remainingRows;
+		int rowOffset;
+		uint8_t *rowDestination;
 
-			rowOffset = g_frontState.drawSurfacePitch;
-			rowOffset *= g_frontState.cursorPrevDrawY;
-			rowOffset += 2 * g_frontState.cursorPrevDrawX;
-			rowDestination = destination + rowOffset;
-			copyWidth = g_frontState.cursorPrevDrawWidth;
-			sourcePitch = g_frontState.cursorWidth;
-			if (g_frontState.cursorPrevDrawHeight > 0) {
-				remainingRows = g_frontState.cursorPrevDrawHeight;
-				do {
-					if (copyWidth > 0) {
-						uint16_t* sourcePixel;
-						uint16_t* destinationPixel;
-						int remainingPixels;
+		rowOffset = g_frontState.drawSurfacePitch;
+		rowOffset *= g_frontState.cursorPrevDrawY;
+		rowOffset += 2 * g_frontState.cursorPrevDrawX;
+		rowDestination = destination + rowOffset;
+		copyWidth = g_frontState.cursorPrevDrawWidth;
+		sourcePitch = g_frontState.cursorWidth;
+		if (g_frontState.cursorPrevDrawHeight > 0) {
+			remainingRows = g_frontState.cursorPrevDrawHeight;
+			do {
+				if (copyWidth > 0) {
+					uint16_t *sourcePixel;
+					uint16_t *destinationPixel;
+					int remainingPixels;
 
-						sourcePixel = (uint16_t*)source;
-						destinationPixel = (uint16_t*)rowDestination;
-						remainingPixels = copyWidth;
-						do {
-							*destinationPixel++ = *sourcePixel++;
-							--remainingPixels;
-						} while (remainingPixels != 0);
-					}
-					source += 2 * sourcePitch;
-					rowDestination += g_frontState.drawSurfacePitch & 0xFFFFFFFE;
-					--remainingRows;
-				} while (remainingRows != 0);
-			}
-			break;
+					sourcePixel = (uint16_t *)source;
+					destinationPixel =
+						(uint16_t *)rowDestination;
+					remainingPixels = copyWidth;
+					do {
+						*destinationPixel++ =
+							*sourcePixel++;
+						--remainingPixels;
+					} while (remainingPixels != 0);
+				}
+				source += 2 * sourcePitch;
+				rowDestination +=
+					g_frontState.drawSurfacePitch &
+					0xFFFFFFFE;
+				--remainingRows;
+			} while (remainingRows != 0);
 		}
-		default:
-			break;
+		break;
+	}
+	default:
+		break;
 	}
 	FrontendDisplay_UnlockBackBuffer();
 }
 
 // FUNCTION: XVT 0x4DE090
-int* FrontendCursor_GetPos(int* outX, int* outY) {
+int *FrontendCursor_GetPos(int *outX, int *outY)
+{
 	*outX = g_frontState.mouseX;
 	*outY = g_frontState.mouseY;
 	return outX;
 }
 
 // FUNCTION: XVT 0x4DE0B0
-int FrontendCursor_SetPos(int x, int y) {
+int FrontendCursor_SetPos(int x, int y)
+{
 	if (x > 640) {
 		x = 640;
 	} else if (x < 0) {
@@ -341,14 +397,16 @@ void FrontendCursor_Hide(void) { g_frontState.cursorVisible = 0; }
 int FrontendCursor_IsVisible(void) { return g_frontState.cursorVisible; }
 
 // FUNCTION: XVT 0x4DE130
-int FrontendCursor_GetDimensions(int* outWidth, int* outHeight) {
+int FrontendCursor_GetDimensions(int *outWidth, int *outHeight)
+{
 	*outWidth = g_frontState.cursorWidth;
 	*outHeight = g_frontState.cursorHeight;
 	return 1;
 }
 
 // FUNCTION: XVT 0x4DE150
-int FrontendCursor_HideOsCursor(void) {
+int FrontendCursor_HideOsCursor(void)
+{
 #ifdef XVT_MODERN
 	return Aeron_SetHostCursorVisible(0);
 #else
@@ -359,7 +417,8 @@ int FrontendCursor_HideOsCursor(void) {
 }
 
 // FUNCTION: XVT 0x4DE170
-int FrontendCursor_ShowOsCursor(void) {
+int FrontendCursor_ShowOsCursor(void)
+{
 #ifdef XVT_MODERN
 	/* The port renders its own cursor, so legacy show requests keep the host cursor hidden. */
 	return Aeron_SetHostCursorVisible(0);

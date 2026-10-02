@@ -15,25 +15,35 @@
 #include <string.h>
 
 static char g_folder[XVT_TEST_PATH_CAPACITY];
-static AeronVfs* g_vfs;
+static AeronVfs *g_vfs;
 
 /* Replaces the file "case.bin" with size bytes of data and opens it in mode. */
-static AeronFile* OpenWith(const void* data, size_t size, AeronVfsOpenMode mode) {
+static AeronFile *OpenWith(const void *data, size_t size, AeronVfsOpenMode mode)
+{
 	XvtTest_WriteFile(g_folder, "case.bin", data, size);
-	AeronFile* file = NULL;
-	XVT_ASSERT_INT_EQ(AeronVfs_Open(g_vfs, AERON_VFS_ROOT_USER, "case.bin", mode, &file), 1);
+	AeronFile *file = NULL;
+	XVT_ASSERT_INT_EQ(AeronVfs_Open(g_vfs, AERON_VFS_ROOT_USER, "case.bin",
+					mode, &file),
+			  1);
 	return file;
 }
 
 /* Replaces the file "case.bin" with text and opens it for reading only. */
-static AeronFile* OpenText(const char* text) { return OpenWith(text, strlen(text), AERON_VFS_READ); }
+static AeronFile *OpenText(const char *text)
+{
+	return OpenWith(text, strlen(text), AERON_VFS_READ);
+}
 
 /* Opens an empty "case.bin" for writing only. */
-static AeronFile* OpenEmptyForWriting(void) { return OpenWith("", 0, AERON_VFS_WRITE); }
+static AeronFile *OpenEmptyForWriting(void)
+{
+	return OpenWith("", 0, AERON_VFS_WRITE);
+}
 
-static void CheckRead(void) {
+static void CheckRead(void)
+{
 	char buffer[16];
-	AeronFile* file = OpenText("0123456789");
+	AeronFile *file = OpenText("0123456789");
 	XVT_ASSERT_INT_EQ(XvtFile_Read(buffer, 0, 3, file), 0);
 	XVT_ASSERT_INT_EQ(XvtFile_Read(buffer, 4, 0, file), 0);
 
@@ -49,8 +59,9 @@ static void CheckRead(void) {
 	XvtFile_Close(file);
 }
 
-static void CheckWrite(void) {
-	AeronFile* file = OpenEmptyForWriting();
+static void CheckWrite(void)
+{
+	AeronFile *file = OpenEmptyForWriting();
 	XVT_ASSERT_INT_EQ(XvtFile_Write("abcdefghijkl", 4, 3, file), 3);
 	XVT_ASSERT_INT_EQ(XvtFile_Write("x", 0, 1, file), 0);
 	XVT_ASSERT_INT_EQ(XvtFile_Write("x", 1, 0, file), 0);
@@ -64,10 +75,11 @@ static void CheckWrite(void) {
 	XVT_ASSERT_TRUE(XvtTest_FileIs(g_folder, "case.bin", "abc"));
 }
 
-static void CheckGetcPutc(void) {
+static void CheckGetcPutc(void)
+{
 	/* A 0xFF byte reads as 255, not as EOF. */
-	const unsigned char bytes[] = { 0x00, 0xFF, 0x41 };
-	AeronFile* file = OpenWith(bytes, sizeof bytes, AERON_VFS_READ);
+	const unsigned char bytes[] = {0x00, 0xFF, 0x41};
+	AeronFile *file = OpenWith(bytes, sizeof bytes, AERON_VFS_READ);
 	XVT_ASSERT_INT_EQ(XvtFile_Getc(file), 0x00);
 	XVT_ASSERT_INT_EQ(XvtFile_Getc(file), 0xFF);
 	XVT_ASSERT_INT_EQ(XvtFile_Getc(file), 0x41);
@@ -81,7 +93,7 @@ static void CheckGetcPutc(void) {
 	XVT_ASSERT_INT_EQ(XvtFile_Putc('A', file), 'A');
 	XVT_ASSERT_INT_EQ(XvtFile_Close(file), 0);
 	size_t size;
-	char* written = XvtTest_ReadFile(g_folder, "case.bin", &size);
+	char *written = XvtTest_ReadFile(g_folder, "case.bin", &size);
 	XVT_ASSERT_INT_EQ(size, 3);
 	XVT_ASSERT_INT_EQ((unsigned char)written[0], 0xFF);
 	XVT_ASSERT_INT_EQ((unsigned char)written[1], 0xFF);
@@ -97,9 +109,10 @@ static void CheckGetcPutc(void) {
 	XvtFile_Close(file);
 }
 
-static void CheckGets(void) {
+static void CheckGets(void)
+{
 	char line[16];
-	AeronFile* file = OpenText("ab\r\ncd\nef");
+	AeronFile *file = OpenText("ab\r\ncd\nef");
 	XVT_ASSERT_TRUE(XvtFile_Gets(line, sizeof line, file) == line);
 	XVT_ASSERT_INT_EQ(strcmp(line, "ab\n"), 0);
 	XVT_ASSERT_TRUE(XvtFile_Gets(line, sizeof line, file) == line);
@@ -134,19 +147,20 @@ static void CheckGets(void) {
 	XVT_ASSERT_INT_EQ(XvtFile_Close(file), 0);
 }
 
-static void CheckPrintf(void) {
+static void CheckPrintf(void)
+{
 	/* Longer than any fixed buffer a formatter is likely to start with. */
 	char text[2001];
 	memset(text, 'x', 2000);
 	text[2000] = 0;
 
-	AeronFile* file = OpenEmptyForWriting();
+	AeronFile *file = OpenEmptyForWriting();
 	XVT_ASSERT_INT_EQ(XvtFile_Printf(file, "%d-%s", 42, "ok"), 5);
 	XVT_ASSERT_INT_EQ(XvtFile_Printf(file, "[%s]", text), 2002);
 	XVT_ASSERT_INT_EQ(XvtFile_Close(file), 0);
 
 	size_t size;
-	char* written = XvtTest_ReadFile(g_folder, "case.bin", &size);
+	char *written = XvtTest_ReadFile(g_folder, "case.bin", &size);
 	XVT_ASSERT_INT_EQ(size, 5 + 2002);
 	XVT_ASSERT_INT_EQ(memcmp(written, "42-ok[", 6), 0);
 	XVT_ASSERT_INT_EQ(memcmp(written + 6, text, 2000), 0);
@@ -159,13 +173,15 @@ static void CheckPrintf(void) {
 	XvtFile_Close(file);
 }
 
-static void CheckScanfConversions(void) {
+static void CheckScanfConversions(void)
+{
 	char word[32], rest[32];
 	int number = 0, second = 0;
 	unsigned value = 0;
 
-	AeronFile* file = OpenText("  alpha -42\n 7 ");
-	XVT_ASSERT_INT_EQ(XvtFile_Scanf(file, "%s %d %u", word, &number, &value), 3);
+	AeronFile *file = OpenText("  alpha -42\n 7 ");
+	XVT_ASSERT_INT_EQ(
+		XvtFile_Scanf(file, "%s %d %u", word, &number, &value), 3);
 	XVT_ASSERT_INT_EQ(strcmp(word, "alpha"), 0);
 	XVT_ASSERT_INT_EQ(number, -42);
 	XVT_ASSERT_INT_EQ(value, 7);
@@ -180,7 +196,9 @@ static void CheckScanfConversions(void) {
 
 	/* A width bounds each conversion. */
 	file = OpenText("12345 abcdef");
-	XVT_ASSERT_INT_EQ(XvtFile_Scanf(file, "%2d%d %3s%s", &number, &second, word, rest), 4);
+	XVT_ASSERT_INT_EQ(XvtFile_Scanf(file, "%2d%d %3s%s", &number, &second,
+					word, rest),
+			  4);
 	XVT_ASSERT_INT_EQ(number, 12);
 	XVT_ASSERT_INT_EQ(second, 345);
 	XVT_ASSERT_INT_EQ(strcmp(word, "abc"), 0);
@@ -210,12 +228,13 @@ static void CheckScanfConversions(void) {
 	XvtFile_Close(file);
 }
 
-static void CheckScanfLiteralsAndEnds(void) {
+static void CheckScanfLiteralsAndEnds(void)
+{
 	int number = 0, second = 0;
 	char word[32];
 
 	/* A literal must match the next byte; whitespace in the format skips any whitespace first. */
-	AeronFile* file = OpenText("1 ,2");
+	AeronFile *file = OpenText("1 ,2");
 	XVT_ASSERT_INT_EQ(XvtFile_Scanf(file, "%d,%d", &number, &second), 1);
 	XvtFile_Close(file);
 	file = OpenText("1 ,2");
@@ -251,8 +270,9 @@ static void CheckScanfLiteralsAndEnds(void) {
 	XvtFile_Close(file);
 }
 
-static void CheckSeekTell(void) {
-	AeronFile* file = OpenText("abcdef");
+static void CheckSeekTell(void)
+{
+	AeronFile *file = OpenText("abcdef");
 	XVT_ASSERT_INT_EQ(XvtFile_Tell(file), 0);
 	XVT_ASSERT_INT_EQ(XvtFile_Seek(file, 2, SEEK_SET), 0);
 	XVT_ASSERT_INT_EQ(XvtFile_Getc(file), 'c');
@@ -274,18 +294,20 @@ static void CheckSeekTell(void) {
 	XVT_ASSERT_INT_EQ(XvtFile_Close(file), 0);
 }
 
-static void CheckCloseFlush(void) {
+static void CheckCloseFlush(void)
+{
 	XVT_ASSERT_INT_EQ(XvtFile_Close(NULL), 0);
-	AeronFile* file = OpenEmptyForWriting();
+	AeronFile *file = OpenEmptyForWriting();
 	XVT_ASSERT_INT_EQ(XvtFile_Putc('z', file), 'z');
 	XVT_ASSERT_INT_EQ(XvtFile_Flush(file), 0);
 	XVT_ASSERT_INT_EQ(XvtFile_Close(file), 0);
 	XVT_ASSERT_TRUE(XvtTest_FileIs(g_folder, "case.bin", "z"));
 }
 
-int main(void) {
+int main(void)
+{
 	XvtTest_MakeFolder(g_folder);
-	AeronVfsConfig config = { 0 };
+	AeronVfsConfig config = {0};
 	config.asset_root = g_folder;
 	config.resource_root = g_folder;
 	config.user_root = g_folder;

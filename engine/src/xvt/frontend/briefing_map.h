@@ -37,24 +37,34 @@ extern int16_t g_briefingMapLabelAge[8];
 extern int16_t g_briefingMapLabelStyle[8];
 extern int16_t g_briefingMapLabelsChanged;
 
-int16_t BriefingMap_SelectNearestMissionPoint14FlightGroup(RECT* viewportRect, int16_t mouseX,
-														   int16_t mouseY);
-void BriefingMap_ProjectPointToViewport(const RECT* viewportRect, int16_t mapX, int16_t mapY, int16_t* outX,
-										int16_t* outY);
-int16_t BriefingMap_StepS16TowardTarget(int16_t current, int16_t target, int16_t step);
+int16_t BriefingMap_SelectNearestMissionPoint14FlightGroup(RECT *viewportRect,
+							   int16_t mouseX,
+							   int16_t mouseY);
+void BriefingMap_ProjectPointToViewport(const RECT *viewportRect, int16_t mapX,
+					int16_t mapY, int16_t *outX,
+					int16_t *outY);
+int16_t BriefingMap_StepS16TowardTarget(int16_t current, int16_t target,
+					int16_t step);
 void BriefingMap_AnimateViewState(void);
 void BriefingMap_UpdateScriptPlaybackAfterAnimation(void);
-int16_t BriefingMap_SelectFlightGroupAtCursor(RECT* viewportRect, RECT* clipRect, int leftDown, int rightDown,
-											  int16_t mouseX, int16_t mouseY);
-int16_t BriefingMap_DrawViewportAndSelection(RECT* viewportRect, RECT* clipRect, int16_t highlightPhase);
-void BriefingMap_DrawGrid(const RECT* viewportRect, const RECT* clipRect);
-void BriefingMap_DrawOverlays(RECT* viewportRect, RECT* clipRect);
-void BriefingMap_DrawRevealedLabelIfActive(const char* text, int16_t colorRampGroup, int16_t x, int16_t y,
-										   int16_t revealCount, int16_t shadeGroup);
-void BriefingMap_DrawRevealedLabel(const char* text, int16_t colorRampGroup, int16_t x, int16_t y,
-								   int16_t revealCount, int16_t shadeGroup);
-void BriefingMap_DrawCraftIconHighlight(RECT* viewportRect, RECT* clipRect, int flightGroupIndex,
-										int highlightPhase);
+int16_t BriefingMap_SelectFlightGroupAtCursor(RECT *viewportRect,
+					      RECT *clipRect, int leftDown,
+					      int rightDown, int16_t mouseX,
+					      int16_t mouseY);
+int16_t BriefingMap_DrawViewportAndSelection(RECT *viewportRect, RECT *clipRect,
+					     int16_t highlightPhase);
+void BriefingMap_DrawGrid(const RECT *viewportRect, const RECT *clipRect);
+void BriefingMap_DrawOverlays(RECT *viewportRect, RECT *clipRect);
+void BriefingMap_DrawRevealedLabelIfActive(const char *text,
+					   int16_t colorRampGroup, int16_t x,
+					   int16_t y, int16_t revealCount,
+					   int16_t shadeGroup);
+void BriefingMap_DrawRevealedLabel(const char *text, int16_t colorRampGroup,
+				   int16_t x, int16_t y, int16_t revealCount,
+				   int16_t shadeGroup);
+void BriefingMap_DrawCraftIconHighlight(RECT *viewportRect, RECT *clipRect,
+					int flightGroupIndex,
+					int highlightPhase);
 
 #ifdef __cplusplus
 }

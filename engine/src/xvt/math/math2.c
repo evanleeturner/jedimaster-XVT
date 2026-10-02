@@ -7,19 +7,21 @@
 
 // GLOBAL: XVT 0x51C4C0
 RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37] = {
-	{ 0, 18 },  { 1, 18 },  { 2, 18 },  { 3, 18 },  { 4, 17 },  { 5, 17 },  { 6, 17 },  { 7, 17 },
-	{ 8, 16 },  { 9, 16 },  { 10, 16 }, { 10, 15 }, { 11, 15 }, { 12, 15 }, { 12, 14 }, { 13, 14 },
-	{ 14, 14 }, { 14, 13 }, { 15, 13 }, { 15, 12 }, { 16, 12 }, { 16, 11 }, { 17, 11 }, { 17, 10 },
-	{ 18, 10 }, { 18, 9 },  { 18, 8 },  { 19, 8 },  { 19, 7 },  { 19, 6 },  { 20, 6 },  { 20, 5 },
-	{ 21, 4 },  { 21, 3 },  { 21, 2 },  { 21, 1 },  { 21, 0 },
+	{0, 18},  {1, 18},  {2, 18},  {3, 18},	{4, 17},  {5, 17},  {6, 17},
+	{7, 17},  {8, 16},  {9, 16},  {10, 16}, {10, 15}, {11, 15}, {12, 15},
+	{12, 14}, {13, 14}, {14, 14}, {14, 13}, {15, 13}, {15, 12}, {16, 12},
+	{16, 11}, {17, 11}, {17, 10}, {18, 10}, {18, 9},  {18, 8},  {19, 8},
+	{19, 7},  {19, 6},  {20, 6},  {20, 5},	{21, 4},  {21, 3},  {21, 2},
+	{21, 1},  {21, 0},
 };
 // GLOBAL: XVT 0x51C510
 RadarEllipseClampLimit g_radarEllipseClampTable[37] = {
-	{ 0, 18 },  { 1, 18 },  { 2, 18 },  { 3, 18 },  { 4, 17 },  { 5, 17 },  { 6, 17 },  { 7, 17 },
-	{ 8, 16 },  { 9, 16 },  { 10, 16 }, { 10, 15 }, { 11, 15 }, { 12, 15 }, { 12, 14 }, { 13, 14 },
-	{ 14, 14 }, { 14, 13 }, { 15, 13 }, { 15, 12 }, { 16, 12 }, { 16, 11 }, { 17, 11 }, { 17, 10 },
-	{ 18, 10 }, { 18, 9 },  { 18, 8 },  { 19, 8 },  { 19, 7 },  { 19, 6 },  { 20, 6 },  { 20, 5 },
-	{ 21, 4 },  { 21, 3 },  { 21, 2 },  { 21, 1 },  { 21, 0 },
+	{0, 18},  {1, 18},  {2, 18},  {3, 18},	{4, 17},  {5, 17},  {6, 17},
+	{7, 17},  {8, 16},  {9, 16},  {10, 16}, {10, 15}, {11, 15}, {12, 15},
+	{12, 14}, {13, 14}, {14, 14}, {14, 13}, {15, 13}, {15, 12}, {16, 12},
+	{16, 11}, {17, 11}, {17, 10}, {18, 10}, {18, 9},  {18, 8},  {19, 8},
+	{19, 7},  {19, 6},  {20, 6},  {20, 5},	{21, 4},  {21, 3},  {21, 2},
+	{21, 1},  {21, 0},
 };
 // GLOBAL: XVT 0x51C55C
 int g_radarEllipseClampCachedResolutionMode = FLIGHT_RESOLUTION_320X240;
@@ -30,7 +32,8 @@ int16_t radarx = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x425AE0
-int MATH2_ABoverC32(int a, int b, int c) {
+int MATH2_ABoverC32(int a, int b, int c)
+{
 	uint64_t product;
 	int negative;
 
@@ -50,24 +53,27 @@ int MATH2_ABoverC32(int a, int b, int c) {
 
 	if (negative != 0) {
 		product = (uint64_t)(uint32_t)b * (uint32_t)a;
-		if ((uint32_t)(product >> 32) >= (uint32_t)c)
+		if ((uint32_t)(product >> 32) >= (uint32_t)c) {
 			a = INT32_MAX;
-		else
+		} else {
 			a = (int)(uint32_t)(product / (uint32_t)c);
+		}
 		a = (int)(0u - (uint32_t)a);
 		return a;
 	}
 
 	product = (uint64_t)(uint32_t)b * (uint32_t)a;
-	if ((uint32_t)(product >> 32) >= (uint32_t)c)
+	if ((uint32_t)(product >> 32) >= (uint32_t)c) {
 		a = INT32_MAX;
-	else
+	} else {
 		a = (int)(uint32_t)(product / (uint32_t)c);
+	}
 	return a;
 }
 
 // FUNCTION: XVT 0x425B70
-unsigned int MATH2_fraction(uint16_t value, uint16_t fracQ16) {
+unsigned int MATH2_fraction(uint16_t value, uint16_t fracQ16)
+{
 	unsigned int product;
 	unsigned int result;
 
@@ -82,26 +88,34 @@ unsigned int MATH2_fraction(uint16_t value, uint16_t fracQ16) {
 }
 
 // FUNCTION: XVT 0x425BA0
-unsigned int MATH2_longfraction(unsigned int value, uint16_t fracQ16) {
+unsigned int MATH2_longfraction(unsigned int value, uint16_t fracQ16)
+{
 	if (fracQ16 == 0xffffu) {
 		return value;
 	}
-	return (((value & 0xffffu) * fracQ16) >> 16) + ((value >> 16) * fracQ16);
+	return (((value & 0xffffu) * fracQ16) >> 16) +
+	       ((value >> 16) * fracQ16);
 }
 
 // FUNCTION: XVT 0x425C20
-uint16_t MATH2_ratioQ16(uint16_t numerator, uint16_t denominator) {
-	if (numerator == denominator)
+uint16_t MATH2_ratioQ16(uint16_t numerator, uint16_t denominator)
+{
+	if (numerator == denominator) {
 		return 0xffffu;
-	if (denominator == 0)
+	}
+	if (denominator == 0) {
 		return 0;
-	if (numerator < denominator)
+	}
+	if (numerator < denominator) {
 		return ((uint32_t)numerator << 16) / (uint32_t)denominator;
+	}
 	return 0xffffu;
 }
 
 // FUNCTION: XVT 0x425C60
-unsigned int MATH2_longratioQ16(unsigned int numerator, unsigned int denominator) {
+unsigned int MATH2_longratioQ16(unsigned int numerator,
+				unsigned int denominator)
+{
 	if (numerator == denominator) {
 		return 0xFFFF;
 	}
@@ -121,7 +135,8 @@ unsigned int MATH2_longratioQ16(unsigned int numerator, unsigned int denominator
 }
 
 // FUNCTION: XVT 0x425D80
-unsigned int MATH2_mphconvert(int16_t speed, uint16_t divisor) {
+unsigned int MATH2_mphconvert(int16_t speed, uint16_t divisor)
+{
 	unsigned int framesPerSecond;
 	unsigned int scaledValue;
 	unsigned int result;
@@ -137,7 +152,8 @@ unsigned int MATH2_mphconvert(int16_t speed, uint16_t divisor) {
 }
 
 // FUNCTION: XVT 0x425E30
-int16_t MATH2_getradarcoord(int side, int up, int forward) {
+int16_t MATH2_getradarcoord(int side, int up, int forward)
+{
 	int angle;
 	int tableIndex;
 	int projectedY;
@@ -154,20 +170,29 @@ int16_t MATH2_getradarcoord(int side, int up, int forward) {
 			tableIndex = 0;
 			remaining = 37;
 			do {
-				yLimit = g_radarEllipseClamp320x240Preset[tableIndex].yLimit;
+				yLimit = g_radarEllipseClamp320x240Preset
+						 [tableIndex]
+							 .yLimit;
 				g_radarEllipseClampTable[tableIndex].xLimit =
-					g_radarEllipseClamp320x240Preset[tableIndex].xLimit;
-				g_radarEllipseClampTable[tableIndex].yLimit = yLimit;
+					g_radarEllipseClamp320x240Preset
+						[tableIndex]
+							.xLimit;
+				g_radarEllipseClampTable[tableIndex].yLimit =
+					yLimit;
 				++tableIndex;
 				--remaining;
 			} while (remaining != 0);
-		} else if (g_flightResolutionMode == FLIGHT_RESOLUTION_480X360) {
+		} else if (g_flightResolutionMode ==
+			   FLIGHT_RESOLUTION_480X360) {
 			tableIndex = 0;
 			angle = 0;
 			do {
-				g_radarEllipseClampTable[tableIndex].xLimit = (uint8_t)trig2_sinewordmult(30, (int16_t)angle);
+				g_radarEllipseClampTable[tableIndex].xLimit =
+					(uint8_t)trig2_sinewordmult(
+						30, (int16_t)angle);
 				g_radarEllipseClampTable[tableIndex].yLimit =
-					(uint8_t)trig2_cosinewordmult(30, (int16_t)angle);
+					(uint8_t)trig2_cosinewordmult(
+						30, (int16_t)angle);
 				++tableIndex;
 				angle += 443;
 			} while (angle < 0x4000);
@@ -175,14 +200,18 @@ int16_t MATH2_getradarcoord(int side, int up, int forward) {
 			tableIndex = 0;
 			angle = 0;
 			do {
-				g_radarEllipseClampTable[tableIndex].xLimit = (uint8_t)trig2_sinewordmult(44, (int16_t)angle);
+				g_radarEllipseClampTable[tableIndex].xLimit =
+					(uint8_t)trig2_sinewordmult(
+						44, (int16_t)angle);
 				g_radarEllipseClampTable[tableIndex].yLimit =
-					(uint8_t)trig2_cosinewordmult(44, (int16_t)angle);
+					(uint8_t)trig2_cosinewordmult(
+						44, (int16_t)angle);
 				++tableIndex;
 				angle += 443;
 			} while (angle < 0x4000);
 		}
-		g_radarEllipseClampCachedResolutionMode = g_flightResolutionMode;
+		g_radarEllipseClampCachedResolutionMode =
+			g_flightResolutionMode;
 	}
 
 	projectedY = up;
@@ -221,7 +250,8 @@ int16_t MATH2_getradarcoord(int side, int up, int forward) {
 
 	radarx = (int16_t)projectedX;
 	radary = (int16_t)projectedY;
-	trig2_calcarctan_core(projectedX, projectedY, &arctanValues[1], arctanValues);
+	trig2_calcarctan_core(projectedX, projectedY, &arctanValues[1],
+			      arctanValues);
 	arctanValues[1] = (int16_t)-arctanValues[1];
 	angleDivisor = 443;
 	arctanValues[1] += 0x4000;

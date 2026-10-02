@@ -9,24 +9,28 @@
 #include <string.h>
 
 #ifndef XVT_MODERN
-__declspec(dllimport) void* __stdcall LocalAlloc(unsigned int flags, size_t bytes);
-__declspec(dllimport) void* __stdcall LocalFree(void* memory);
+__declspec(dllimport) void *__stdcall LocalAlloc(unsigned int flags,
+						 size_t bytes);
+__declspec(dllimport) void *__stdcall LocalFree(void *memory);
 #endif
 
 // GLOBAL: XVT 0x5569D4
-static void* g_waveFileDataBuffer = NULL;
+static void *g_waveFileDataBuffer = NULL;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x44B650
-IDirectSoundBuffer* DirectSound_LoadWaveBuffer(IDirectSound* directSound, const char* fileName,
-											   int omitSoftwareAndFrequencyCaps) {
-	IDirectSoundBuffer* buffer = NULL;
-	const void* sampleData;
-	DSBUFFERDESC desc = { 0 };
+IDirectSoundBuffer *DirectSound_LoadWaveBuffer(IDirectSound *directSound,
+					       const char *fileName,
+					       int omitSoftwareAndFrequencyCaps)
+{
+	IDirectSoundBuffer *buffer = NULL;
+	const void *sampleData;
+	DSBUFFERDESC desc = {0};
 
 	g_waveFileDataBuffer = NULL;
-	if (DirectSound_LoadFileAndFindAudioData(0, fileName, &desc.lpwfxFormat, &sampleData,
-											 &desc.dwBufferBytes)) {
+	if (DirectSound_LoadFileAndFindAudioData(0, fileName, &desc.lpwfxFormat,
+						 &sampleData,
+						 &desc.dwBufferBytes)) {
 		desc.dwSize = sizeof(desc);
 		/* 194 is DSBCAPS_STATIC | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME; 234 adds DSBCAPS_LOCSOFTWARE and
 		 * DSBCAPS_CTRLFREQUENCY. */
@@ -34,8 +38,10 @@ IDirectSoundBuffer* DirectSound_LoadWaveBuffer(IDirectSound* directSound, const 
 		if (omitSoftwareAndFrequencyCaps == 0) {
 			desc.dwFlags = 234;
 		}
-		if (directSound->lpVtbl->CreateSoundBuffer(directSound, &desc, &buffer, NULL) >= 0) {
-			if (!DirectSound_CopyWaveDataToBuffer(buffer, sampleData, desc.dwBufferBytes)) {
+		if (directSound->lpVtbl->CreateSoundBuffer(
+			    directSound, &desc, &buffer, NULL) >= 0) {
+			if (!DirectSound_CopyWaveDataToBuffer(
+				    buffer, sampleData, desc.dwBufferBytes)) {
 				buffer->lpVtbl->Release(buffer);
 				buffer = NULL;
 			}
@@ -51,16 +57,19 @@ IDirectSoundBuffer* DirectSound_LoadWaveBuffer(IDirectSound* directSound, const 
 }
 
 // FUNCTION: XVT 0x44B720
-int DirectSound_ReloadWaveBuffer(IDirectSoundBuffer* buffer, const char* fileName) {
+int DirectSound_ReloadWaveBuffer(IDirectSoundBuffer *buffer,
+				 const char *fileName)
+{
 	int result;
 	unsigned int sampleBytes;
-	const void* sampleData;
+	const void *sampleData;
 
 	result = 0;
 	g_waveFileDataBuffer = NULL;
-	if (DirectSound_LoadFileAndFindAudioData(0, fileName, NULL, &sampleData, &sampleBytes) &&
-		buffer->lpVtbl->Restore(buffer) >= 0 &&
-		DirectSound_CopyWaveDataToBuffer(buffer, sampleData, sampleBytes)) {
+	if (DirectSound_LoadFileAndFindAudioData(0, fileName, NULL, &sampleData,
+						 &sampleBytes) &&
+	    buffer->lpVtbl->Restore(buffer) >= 0 &&
+	    DirectSound_CopyWaveDataToBuffer(buffer, sampleData, sampleBytes)) {
 		result = 1;
 	}
 	if (g_waveFileDataBuffer != NULL) {
@@ -70,11 +79,14 @@ int DirectSound_ReloadWaveBuffer(IDirectSoundBuffer* buffer, const char* fileNam
 }
 
 // FUNCTION: XVT 0x44B790
-int DirectSound_LoadFileAndFindAudioData(int unused, const char* fileName, WAVEFORMATEX** format,
-										 const void** sampleData, unsigned int* sampleBytes) {
-	XvtFile* stream;
+int DirectSound_LoadFileAndFindAudioData(int unused, const char *fileName,
+					 WAVEFORMATEX **format,
+					 const void **sampleData,
+					 unsigned int *sampleBytes)
+{
+	XvtFile *stream;
 	size_t fileSize;
-	void* fileData;
+	void *fileData;
 
 	(void)unused;
 	stream = File_Open(fileName, "rb");
@@ -85,7 +97,9 @@ int DirectSound_LoadFileAndFindAudioData(int unused, const char* fileName, WAVEF
 		fileData = g_waveFileDataBuffer = malloc(fileSize);
 		if (fileData != NULL) {
 			if (File_ReadBytes(stream, fileData, fileSize) &&
-				DirectSound_FindFormatAndDataChunks(fileData, format, sampleData, sampleBytes)) {
+			    DirectSound_FindFormatAndDataChunks(
+				    fileData, format, sampleData,
+				    sampleBytes)) {
 				File_Close(stream);
 				return 1;
 			}
@@ -98,20 +112,23 @@ int DirectSound_LoadFileAndFindAudioData(int unused, const char* fileName, WAVEF
 }
 
 // FUNCTION: XVT 0x44B840
-DirectSoundBufferSet* DirectSound_LoadWaveBufferSet(IDirectSound* directSound, const char* fileName,
-													int bufferCount) {
-	DirectSoundBufferSet* set;
+DirectSoundBufferSet *DirectSound_LoadWaveBufferSet(IDirectSound *directSound,
+						    const char *fileName,
+						    int bufferCount)
+{
+	DirectSoundBufferSet *set;
 	int actualBufferCount;
 	int bufferIndex;
-	IDirectSoundBuffer** bufferSlot;
-	const void* sampleData;
+	IDirectSoundBuffer **bufferSlot;
+	const void *sampleData;
 	unsigned int sampleBytes;
-	WAVEFORMATEX* format;
+	WAVEFORMATEX *format;
 	size_t allocationSize;
-	IDirectSound* device;
+	IDirectSound *device;
 
 	set = NULL;
-	if (DirectSound_LoadFileAndFindAudioData(0, fileName, &format, &sampleData, &sampleBytes)) {
+	if (DirectSound_LoadFileAndFindAudioData(0, fileName, &format,
+						 &sampleData, &sampleBytes)) {
 		actualBufferCount = bufferCount;
 		if (actualBufferCount < 1) {
 			actualBufferCount = 1;
@@ -119,7 +136,8 @@ DirectSoundBufferSet* DirectSound_LoadWaveBufferSet(IDirectSound* directSound, c
 		device = directSound;
 		bufferIndex = 1;
 		allocationSize =
-			offsetof(DirectSoundBufferSet, buffers) + actualBufferCount * sizeof(IDirectSoundBuffer*);
+			offsetof(DirectSoundBufferSet, buffers) +
+			actualBufferCount * sizeof(IDirectSoundBuffer *);
 #ifdef XVT_MODERN
 		set = calloc(1, allocationSize);
 #else
@@ -127,16 +145,25 @@ DirectSoundBufferSet* DirectSound_LoadWaveBufferSet(IDirectSound* directSound, c
 #endif
 		if (set != NULL) {
 			set->bufferCount = actualBufferCount;
-			set->waveData = (uint8_t*)sampleData;
+			set->waveData = (uint8_t *)sampleData;
 			set->waveDataSize = sampleBytes;
-			set->buffers[0] = DirectSound_LoadWaveBuffer(device, fileName, 0);
+			set->buffers[0] =
+				DirectSound_LoadWaveBuffer(device, fileName, 0);
 			if (set->bufferCount > 1) {
 				bufferSlot = &set->buffers[1];
 				do {
-					if (device->lpVtbl->DuplicateSoundBuffer(device, set->buffers[0], bufferSlot) < 0) {
-						*bufferSlot = DirectSound_LoadWaveBuffer(device, fileName, 0);
+					if (device->lpVtbl
+						    ->DuplicateSoundBuffer(
+							    device,
+							    set->buffers[0],
+							    bufferSlot) < 0) {
+						*bufferSlot =
+							DirectSound_LoadWaveBuffer(
+								device,
+								fileName, 0);
 						if (*bufferSlot == NULL) {
-							DirectSound_FreeWaveBufferSet(set);
+							DirectSound_FreeWaveBufferSet(
+								set);
 							set = NULL;
 							break;
 						}
@@ -151,9 +178,10 @@ DirectSoundBufferSet* DirectSound_LoadWaveBufferSet(IDirectSound* directSound, c
 }
 
 // FUNCTION: XVT 0x44B920
-void DirectSound_FreeWaveBufferSet(DirectSoundBufferSet* set) {
+void DirectSound_FreeWaveBufferSet(DirectSoundBufferSet *set)
+{
 	int bufferIndex;
-	IDirectSoundBuffer** buffer;
+	IDirectSoundBuffer **buffer;
 
 	if (set != NULL) {
 		bufferIndex = 0;
@@ -177,37 +205,47 @@ void DirectSound_FreeWaveBufferSet(DirectSoundBufferSet* set) {
 }
 
 // FUNCTION: XVT 0x44B960
-IDirectSoundBuffer* DirectSound_AcquireWaveBufferSetBuffer(DirectSoundBufferSet* set) {
-	IDirectSoundBuffer* buffer;
+IDirectSoundBuffer *
+DirectSound_AcquireWaveBufferSetBuffer(DirectSoundBufferSet *set)
+{
+	IDirectSoundBuffer *buffer;
 	int nextBufferIndex;
 	int bufferCount;
 	int status;
 
-	if (set == NULL)
+	if (set == NULL) {
 		return NULL;
+	}
 	buffer = set->buffers[set->nextBufferIndex];
 	if (buffer != NULL) {
-		if (buffer->lpVtbl->GetStatus(buffer, (uint32_t*)&status) < 0)
+		if (buffer->lpVtbl->GetStatus(buffer, (uint32_t *)&status) <
+		    0) {
 			status = 0;
+		}
 		if (((uint8_t)status & 1) != 0) {
 			bufferCount = set->bufferCount;
 			if (bufferCount > 1) {
 				nextBufferIndex = set->nextBufferIndex + 1;
 				set->nextBufferIndex = nextBufferIndex;
-				if (bufferCount <= nextBufferIndex)
+				if (bufferCount <= nextBufferIndex) {
 					set->nextBufferIndex = 0;
-				buffer = set->buffers[set->nextBufferIndex];
-				if (buffer->lpVtbl->GetStatus(buffer, (uint32_t*)&status) >= 0 &&
-					((uint8_t)status & 1) != 0) {
-					buffer->lpVtbl->Stop(buffer);
-					buffer->lpVtbl->SetCurrentPosition(buffer, 0);
 				}
-			} else
+				buffer = set->buffers[set->nextBufferIndex];
+				if (buffer->lpVtbl->GetStatus(
+					    buffer, (uint32_t *)&status) >= 0 &&
+				    ((uint8_t)status & 1) != 0) {
+					buffer->lpVtbl->Stop(buffer);
+					buffer->lpVtbl->SetCurrentPosition(
+						buffer, 0);
+				}
+			} else {
 				buffer = NULL;
+			}
 		}
 		if (buffer != NULL && (status & 2) != 0 &&
-			(buffer->lpVtbl->Restore(buffer) < 0 ||
-			 !DirectSound_CopyWaveDataToBuffer(buffer, set->waveData, set->waveDataSize))) {
+		    (buffer->lpVtbl->Restore(buffer) < 0 ||
+		     !DirectSound_CopyWaveDataToBuffer(buffer, set->waveData,
+						       set->waveDataSize))) {
 			buffer = NULL;
 		}
 	}
@@ -215,25 +253,30 @@ IDirectSoundBuffer* DirectSound_AcquireWaveBufferSetBuffer(DirectSoundBufferSet*
 }
 
 // FUNCTION: XVT 0x44BA30
-int DirectSound_PlayWaveBufferSet(DirectSoundBufferSet* set, uint32_t playFlags) {
+int DirectSound_PlayWaveBufferSet(DirectSoundBufferSet *set, uint32_t playFlags)
+{
 	int result;
-	IDirectSoundBuffer* buffer;
+	IDirectSoundBuffer *buffer;
 
 	result = 0;
-	if (set == NULL)
+	if (set == NULL) {
 		return 0;
+	}
 	if ((playFlags & 1) == 0 || set->bufferCount == 1) {
 		buffer = DirectSound_AcquireWaveBufferSetBuffer(set);
-		if (buffer != NULL)
-			result = buffer->lpVtbl->Play(buffer, 0, 0, playFlags) >= 0;
+		if (buffer != NULL) {
+			result = buffer->lpVtbl->Play(buffer, 0, 0,
+						      playFlags) >= 0;
+		}
 	}
 	return result;
 }
 
 // FUNCTION: XVT 0x44BA80
-int DirectSound_StopWaveBufferSet(DirectSoundBufferSet* set) {
+int DirectSound_StopWaveBufferSet(DirectSoundBufferSet *set)
+{
 	int bufferIndex;
-	IDirectSoundBuffer** buffer;
+	IDirectSoundBuffer **buffer;
 
 	if (set == NULL) {
 		return 0;
@@ -253,29 +296,40 @@ int DirectSound_StopWaveBufferSet(DirectSoundBufferSet* set) {
 }
 
 // FUNCTION: XVT 0x44BAD0
-int DirectSound_CopyWaveDataToBuffer(IDirectSoundBuffer* buffer, const void* sampleData,
-									 unsigned int sampleBytes) {
-	void* region1;
+int DirectSound_CopyWaveDataToBuffer(IDirectSoundBuffer *buffer,
+				     const void *sampleData,
+				     unsigned int sampleBytes)
+{
+	void *region1;
 	uint32_t region1Bytes;
-	void* region2;
+	void *region2;
 	uint32_t region2Bytes;
 
 	if (buffer == NULL || sampleData == NULL || sampleBytes == 0 ||
-		buffer->lpVtbl->Lock(buffer, 0, sampleBytes, &region1, &region1Bytes, &region2, &region2Bytes, 0) < 0)
+	    buffer->lpVtbl->Lock(buffer, 0, sampleBytes, &region1,
+				 &region1Bytes, &region2, &region2Bytes,
+				 0) < 0) {
 		return 0;
+	}
 	memcpy(region1, sampleData, region1Bytes);
-	if (region2Bytes != 0)
-		memcpy(region2, (const uint8_t*)sampleData + region1Bytes, region2Bytes);
-	buffer->lpVtbl->Unlock(buffer, region1, region1Bytes, region2, region2Bytes);
+	if (region2Bytes != 0) {
+		memcpy(region2, (const uint8_t *)sampleData + region1Bytes,
+		       region2Bytes);
+	}
+	buffer->lpVtbl->Unlock(buffer, region1, region1Bytes, region2,
+			       region2Bytes);
 	return 1;
 }
 
 // FUNCTION: XVT 0x44BB90
-int DirectSound_FindFormatAndDataChunks(const void* riffData, WAVEFORMATEX** format, const void** sampleData,
-										unsigned int* sampleBytes) {
-	const uint32_t* chunk;
-	const uint8_t* riffEnd;
-	const uint32_t* riffWords;
+int DirectSound_FindFormatAndDataChunks(const void *riffData,
+					WAVEFORMATEX **format,
+					const void **sampleData,
+					unsigned int *sampleBytes)
+{
+	const uint32_t *chunk;
+	const uint8_t *riffEnd;
+	const uint32_t *riffWords;
 
 	if (format != NULL) {
 		*format = NULL;
@@ -287,54 +341,65 @@ int DirectSound_FindFormatAndDataChunks(const void* riffData, WAVEFORMATEX** for
 		*sampleBytes = 0;
 	}
 
-	riffWords = (const uint32_t*)riffData;
+	riffWords = (const uint32_t *)riffData;
 	chunk = riffWords + 3;
 	if (riffWords[0] == 0x46464952 && riffWords[2] == 0x45564157) {
-		riffEnd = (const uint8_t*)chunk + riffWords[1] - 4;
-		if (riffEnd > (const uint8_t*)chunk) {
+		riffEnd = (const uint8_t *)chunk + riffWords[1] - 4;
+		if (riffEnd > (const uint8_t *)chunk) {
 			do {
 				uint32_t chunkId;
 				uint32_t chunkSize;
-				const uint8_t* chunkData;
+				const uint8_t *chunkData;
 
 				chunkId = chunk[0];
 				chunkSize = chunk[1];
 				++chunk;
 				++chunk;
-				chunkData = (const uint8_t*)chunk;
+				chunkData = (const uint8_t *)chunk;
 				switch (chunkId) {
-					case 0x20746D66:
-						if (format != NULL && *format == NULL) {
-							if (chunkSize < 14) {
-								riffEnd = (const uint8_t*)chunk;
-								break;
-							}
-							*format = (WAVEFORMATEX*)chunkData;
-							if ((sampleData == NULL || *sampleData != NULL) &&
-								(sampleBytes == NULL || *sampleBytes != 0)) {
-								return 1;
-							}
+				case 0x20746D66:
+					if (format != NULL && *format == NULL) {
+						if (chunkSize < 14) {
+							riffEnd = (const uint8_t
+									   *)
+								chunk;
+							break;
 						}
-						break;
-					case 0x61746164:
-						if (!((sampleData == NULL || *sampleData != NULL) &&
-							  (sampleBytes == NULL || *sampleBytes != 0))) {
-							if (sampleData != NULL) {
-								*sampleData = chunkData;
-							}
-							if (sampleBytes != NULL) {
-								*sampleBytes = chunkSize;
-							}
-							if (format == NULL || *format != NULL) {
-								return 1;
-							}
+						*format = (WAVEFORMATEX *)
+							chunkData;
+						if ((sampleData == NULL ||
+						     *sampleData != NULL) &&
+						    (sampleBytes == NULL ||
+						     *sampleBytes != 0)) {
+							return 1;
 						}
-						break;
-					default:
-						break;
+					}
+					break;
+				case 0x61746164:
+					if (!((sampleData == NULL ||
+					       *sampleData != NULL) &&
+					      (sampleBytes == NULL ||
+					       *sampleBytes != 0))) {
+						if (sampleData != NULL) {
+							*sampleData = chunkData;
+						}
+						if (sampleBytes != NULL) {
+							*sampleBytes =
+								chunkSize;
+						}
+						if (format == NULL ||
+						    *format != NULL) {
+							return 1;
+						}
+					}
+					break;
+				default:
+					break;
 				}
-				chunk = (const uint32_t*)(chunkData + ((chunkSize + 1) & 0xFFFFFFFEu));
-			} while ((const uint8_t*)chunk < riffEnd);
+				chunk = (const uint32_t *)(chunkData +
+							   ((chunkSize + 1) &
+							    0xFFFFFFFEu));
+			} while ((const uint8_t *)chunk < riffEnd);
 		}
 	}
 	return 0;

@@ -17,37 +17,44 @@ typedef struct Integration {
 	uint8_t type, family;
 } Integration;
 
-static Integration* g_entries;
+static Integration *g_entries;
 static size_t g_count;
 
-void XvtFlightIntegration_Shutdown(void) {
+void XvtFlightIntegration_Shutdown(void)
+{
 	free(g_entries);
 	g_entries = NULL;
 	g_count = 0;
 }
 
-int XvtFlightIntegration_Init(size_t count) {
+int XvtFlightIntegration_Init(size_t count)
+{
 	XvtFlightIntegration_Shutdown();
 	g_entries = calloc(count, sizeof *g_entries);
-	if (!g_entries)
+	if (!g_entries) {
 		return 0;
+	}
 	g_count = count;
 	return 1;
 }
 
-void XvtFlightIntegration_ResetSlotAndMotion(unsigned slot) {
-	if (slot < g_count)
+void XvtFlightIntegration_ResetSlotAndMotion(unsigned slot)
+{
+	if (slot < g_count) {
 		memset(&g_entries[slot], 0, sizeof g_entries[slot]);
+	}
 	XvtReferenceMotion_Reset(slot);
 }
 
-static Integration* XvtFlightIntegration_SyncEntry(unsigned slot) {
-	if (slot >= g_count)
+static Integration *XvtFlightIntegration_SyncEntry(unsigned slot)
+{
+	if (slot >= g_count) {
 		return NULL;
-	Integration* s = &g_entries[slot];
-	const ObjectRecord* o = &g_objectTable[slot];
+	}
+	Integration *s = &g_entries[slot];
+	const ObjectRecord *o = &g_objectTable[slot];
 	if (s->signature != o->objectSignature || s->type != o->objectType ||
-		(o->mobj && s->family != o->mobj->family)) {
+	    (o->mobj && s->family != o->mobj->family)) {
 		memset(s, 0, sizeof *s);
 		s->signature = o->objectSignature;
 		s->type = o->objectType;
@@ -57,23 +64,32 @@ static Integration* XvtFlightIntegration_SyncEntry(unsigned slot) {
 	}
 	if (o->mobj) {
 		if (!o->mobj->rollImpulseRate) {
-			s->remainder[XVT_INTEGRATE_SPIN_DECAY] = s->remainder[XVT_INTEGRATE_SPIN_ANGLE] = 0;
+			s->remainder[XVT_INTEGRATE_SPIN_DECAY] =
+				s->remainder[XVT_INTEGRATE_SPIN_ANGLE] = 0;
 		}
 		if (o->mobj->pCraft) {
 			unsigned carried = o->mobj->pCraft->carriedObjectIndex;
 			if (carried != s->carried) {
-				if (s->carried < g_count && s->carried != slot)
-					XvtFlightIntegration_ResetSlotAndMotion(s->carried);
-				if (carried < g_count && carried != slot)
-					XvtFlightIntegration_ResetSlotAndMotion(carried);
+				if (s->carried < g_count &&
+				    s->carried != slot) {
+					XvtFlightIntegration_ResetSlotAndMotion(
+						s->carried);
+				}
+				if (carried < g_count && carried != slot) {
+					XvtFlightIntegration_ResetSlotAndMotion(
+						carried);
+				}
 				s->carried = carried;
 			}
 		}
 		if (o->mobj->pWarheadGuidance) {
-			const WarheadGuidanceState* guidance = o->mobj->pWarheadGuidance;
-			if (s->target != guidance->targetObjIdx || s->target_signature != guidance->targetSignature ||
-				!guidance->homingTier) {
-				for (unsigned c = XVT_INTEGRATE_HOME_YAW; c <= XVT_INTEGRATE_HOME_SPEED; ++c) {
+			const WarheadGuidanceState *guidance =
+				o->mobj->pWarheadGuidance;
+			if (s->target != guidance->targetObjIdx ||
+			    s->target_signature != guidance->targetSignature ||
+			    !guidance->homingTier) {
+				for (unsigned c = XVT_INTEGRATE_HOME_YAW;
+				     c <= XVT_INTEGRATE_HOME_SPEED; ++c) {
 					s->remainder[c] = 0;
 					s->direction[c] = 0;
 				}
@@ -85,17 +101,21 @@ static Integration* XvtFlightIntegration_SyncEntry(unsigned slot) {
 	return s;
 }
 
-void XvtFlightIntegration_Clear(unsigned slot, unsigned channel) {
-	Integration* s = XvtFlightIntegration_SyncEntry(slot);
+void XvtFlightIntegration_Clear(unsigned slot, unsigned channel)
+{
+	Integration *s = XvtFlightIntegration_SyncEntry(slot);
 	if (s && channel < XVT_INTEGRATE_COUNT) {
 		s->remainder[channel] = 0;
 		s->direction[channel] = 0;
 	}
 }
 
-static int64_t Integrate(Integration* s, unsigned channel, int64_t numerator, int64_t divisor, int sign) {
-	if (!s)
+static int64_t Integrate(Integration *s, unsigned channel, int64_t numerator,
+			 int64_t divisor, int sign)
+{
+	if (!s) {
 		return numerator / divisor;
+	}
 	if (s->direction[channel] != sign) {
 		s->remainder[channel] = 0;
 		s->direction[channel] = sign;
@@ -105,24 +125,32 @@ static int64_t Integrate(Integration* s, unsigned channel, int64_t numerator, in
 	return numerator / divisor;
 }
 
-int XvtFlightIntegration_Rate(unsigned slot, unsigned channel, int rate, unsigned elapsed, int divisor) {
-	if (channel >= XVT_INTEGRATE_COUNT || divisor <= 0)
+int XvtFlightIntegration_Rate(unsigned slot, unsigned channel, int rate,
+			      unsigned elapsed, int divisor)
+{
+	if (channel >= XVT_INTEGRATE_COUNT || divisor <= 0) {
 		return 0;
-	int64_t v = Integrate(XvtFlightIntegration_SyncEntry(slot), channel, (int64_t)rate * elapsed, divisor,
-						  (rate > 0) - (rate < 0));
+	}
+	int64_t v = Integrate(XvtFlightIntegration_SyncEntry(slot), channel,
+			      (int64_t)rate * elapsed, divisor,
+			      (rate > 0) - (rate < 0));
 	return v > INT_MAX ? INT_MAX : v < INT_MIN ? INT_MIN : (int)v;
 }
 
-unsigned XvtFlightIntegration_Steer(unsigned slot, unsigned channel, uint16_t rate, uint16_t accel,
-									uint16_t factor, int direction) {
-	if (channel >= XVT_INTEGRATE_COUNT)
+unsigned XvtFlightIntegration_Steer(unsigned slot, unsigned channel,
+				    uint16_t rate, uint16_t accel,
+				    uint16_t factor, int direction)
+{
+	if (channel >= XVT_INTEGRATE_COUNT) {
 		return 0;
+	}
 	uint64_t a = accel == UINT16_MAX ? 65536u : accel;
 	uint64_t f = factor == UINT16_MAX ? 65536u : factor;
 	/* The complete product fits uint64_t even at the uint16_t elapsed limit. */
 	uint64_t product = (uint64_t)rate * g_elapsedTicks * a * f;
-	uint64_t divisor = (uint64_t)SIMULATION_TICKS_PER_SECOND * XVT_Q16_SCALE * XVT_Q16_SCALE;
-	Integration* s = XvtFlightIntegration_SyncEntry(slot);
+	uint64_t divisor = (uint64_t)SIMULATION_TICKS_PER_SECOND *
+			   XVT_Q16_SCALE * XVT_Q16_SCALE;
+	Integration *s = XvtFlightIntegration_SyncEntry(slot);
 	if (s && s->direction[channel] != direction) {
 		s->remainder[channel] = 0;
 		s->direction[channel] = direction;
@@ -136,88 +164,115 @@ unsigned XvtFlightIntegration_Steer(unsigned slot, unsigned channel, uint16_t ra
 	return whole > UINT16_MAX ? UINT16_MAX : (unsigned)whole;
 }
 
-void XvtFlightIntegration_Move(unsigned slot) {
-	Integration* s = XvtFlightIntegration_SyncEntry(slot);
+void XvtFlightIntegration_Move(unsigned slot)
+{
+	Integration *s = XvtFlightIntegration_SyncEntry(slot);
 	if (s) {
-		const ObjectRecord* o = &g_objectTable[slot];
-		const int position[3] = { o->world_x, o->world_y, o->world_z };
-		for (unsigned a = 0; a < 3; ++a)
-			if (position[a] <= -0x01000000 || position[a] >= 0x01000000)
+		const ObjectRecord *o = &g_objectTable[slot];
+		const int position[3] = {o->world_x, o->world_y, o->world_z};
+		for (unsigned a = 0; a < 3; ++a) {
+			if (position[a] <= -0x01000000 ||
+			    position[a] >= 0x01000000) {
 				s->position_remainder[a] = 0;
+			}
+		}
 	}
-	const MobileObject* m = g_objectTable[slot].mobj;
-	const int axes[3] = { m->moveX, m->moveY, m->moveZ };
-	int* outputs[3] = { &trig2_xmovedist, &trig2_ymovedist, &trig2_zmovedist };
+	const MobileObject *m = g_objectTable[slot].mobj;
+	const int axes[3] = {m->moveX, m->moveY, m->moveZ};
+	int *outputs[3] = {&trig2_xmovedist, &trig2_ymovedist,
+			   &trig2_zmovedist};
 	int64_t speed = ((int64_t)4660 * m->speed + 128) >> 8;
-	const int64_t divisor = (int64_t)SIMULATION_TICKS_PER_SECOND * XVT_Q15_SCALE;
+	const int64_t divisor =
+		(int64_t)SIMULATION_TICKS_PER_SECOND * XVT_Q15_SCALE;
 	for (unsigned a = 0; a < 3; ++a) {
-		int64_t numerator = speed * g_elapsedTicks * axes[a] + (s ? s->position_remainder[a] : 0);
+		int64_t numerator = speed * g_elapsedTicks * axes[a] +
+				    (s ? s->position_remainder[a] : 0);
 		*outputs[a] = (int)(numerator / divisor);
-		if (s)
+		if (s) {
 			s->position_remainder[a] = numerator % divisor;
+		}
 	}
 }
 
-void XvtFlightIntegration_Push(unsigned slot, unsigned axis, int* accum, int cap, int* output) {
+void XvtFlightIntegration_Push(unsigned slot, unsigned axis, int *accum,
+			       int cap, int *output)
+{
 	int rate = *accum < -cap ? -cap : *accum > cap ? cap : *accum;
-	int step = XvtFlightIntegration_Rate(slot, XVT_INTEGRATE_PUSH_X + axis, rate, g_elapsedTicks,
-										 SIMULATION_TICKS_PER_SECOND);
-	if ((*accum > 0 && step > *accum) || (*accum < 0 && step < *accum))
+	int step = XvtFlightIntegration_Rate(slot, XVT_INTEGRATE_PUSH_X + axis,
+					     rate, g_elapsedTicks,
+					     SIMULATION_TICKS_PER_SECOND);
+	if ((*accum > 0 && step > *accum) || (*accum < 0 && step < *accum)) {
 		step = *accum;
+	}
 	*accum -= step;
 	*output += step;
-	if (!*accum)
+	if (!*accum) {
 		XvtFlightIntegration_Clear(slot, XVT_INTEGRATE_PUSH_X + axis);
+	}
 }
 
-void XvtFlightIntegration_ResetShared(void) {
-	if (!g_entries)
+void XvtFlightIntegration_ResetShared(void)
+{
+	if (!g_entries) {
 		return;
+	}
 	for (unsigned slot = 0; slot < g_count; ++slot) {
-		if (slot >= (unsigned)g_localTransientSlotStart && slot < (unsigned)g_localDebrisSlotEnd)
+		if (slot >= (unsigned)g_localTransientSlotStart &&
+		    slot < (unsigned)g_localDebrisSlotEnd) {
 			continue;
+		}
 		memset(&g_entries[slot], 0, sizeof g_entries[slot]);
 	}
 }
 
-typedef char XvtIntegrationSchemaChannels[(XVT_INTEGRATE_COUNT == XVT_STATE_INTEGRATION_CHANNELS) ? 1 : -1];
+typedef char XvtIntegrationSchemaChannels
+	[(XVT_INTEGRATE_COUNT == XVT_STATE_INTEGRATION_CHANNELS) ? 1 : -1];
 
-void XvtFlightIntegration_Encode(unsigned slot, XvtIntegrationWire* out) {
+void XvtFlightIntegration_Encode(unsigned slot, XvtIntegrationWire *out)
+{
 	memset(out, 0, sizeof *out);
 	XvtWire_Set16(out->slot, slot);
-	if (slot >= g_count)
+	if (slot >= g_count) {
 		return;
-	const Integration* state = &g_entries[slot];
-	const ObjectRecord* object = &g_objectTable[slot];
+	}
+	const Integration *state = &g_entries[slot];
+	const ObjectRecord *object = &g_objectTable[slot];
 	if (!object->objectType || state->type != object->objectType ||
-		state->signature != object->objectSignature ||
-		(object->mobj && state->family != object->mobj->family))
+	    state->signature != object->objectSignature ||
+	    (object->mobj && state->family != object->mobj->family)) {
 		return;
+	}
 	XvtWire_Set16(out->signature, state->signature);
 	out->type = state->type;
 	out->family = state->family;
 	XvtWire_Set16(out->carried_slot, state->carried);
 	XvtWire_Set16(out->target_slot, state->target);
 	XvtWire_Set16(out->target_signature, state->target_signature);
-	for (unsigned axis = 0; axis < XVT_STATE_POSITION_AXES; ++axis)
-		XvtWire_Set64(out->position_remainder[axis], (uint64_t)state->position_remainder[axis]);
+	for (unsigned axis = 0; axis < XVT_STATE_POSITION_AXES; ++axis) {
+		XvtWire_Set64(out->position_remainder[axis],
+			      (uint64_t)state->position_remainder[axis]);
+	}
 	for (unsigned channel = 0; channel < XVT_INTEGRATE_COUNT; ++channel) {
-		XvtWire_Set64(out->remainder[channel], (uint64_t)state->remainder[channel]);
+		XvtWire_Set64(out->remainder[channel],
+			      (uint64_t)state->remainder[channel]);
 		out->direction[channel] = state->direction[channel];
 	}
 }
 
-int XvtFlightIntegration_Decode(const XvtIntegrationWire* record, int apply) {
+int XvtFlightIntegration_Decode(const XvtIntegrationWire *record, int apply)
+{
 	unsigned slot = XvtWire_Get16(record->slot);
-	if (slot >= g_count)
+	if (slot >= g_count) {
 		return 0;
-	if (!record->type) {
-		XvtIntegrationWire empty = { 0 };
-		XvtWire_Set16(empty.slot, slot);
-		if (memcmp(record, &empty, sizeof empty))
-			return 0;
 	}
-	Integration state = { 0 };
+	if (!record->type) {
+		XvtIntegrationWire empty = {0};
+		XvtWire_Set16(empty.slot, slot);
+		if (memcmp(record, &empty, sizeof empty)) {
+			return 0;
+		}
+	}
+	Integration state = {0};
 	state.signature = XvtWire_Get16(record->signature);
 	state.type = record->type;
 	state.family = record->family;
@@ -225,27 +280,39 @@ int XvtFlightIntegration_Decode(const XvtIntegrationWire* record, int apply) {
 	state.target = XvtWire_Get16(record->target_slot);
 	state.target_signature = XvtWire_Get16(record->target_signature);
 	if ((state.carried != UINT16_MAX && state.carried >= g_count) ||
-		(state.target != UINT16_MAX && state.target >= g_count))
+	    (state.target != UINT16_MAX && state.target >= g_count)) {
 		return 0;
-	const int64_t position_divisor = (int64_t)SIMULATION_TICKS_PER_SECOND * XVT_Q15_SCALE;
+	}
+	const int64_t position_divisor =
+		(int64_t)SIMULATION_TICKS_PER_SECOND * XVT_Q15_SCALE;
 	for (unsigned axis = 0; axis < XVT_STATE_POSITION_AXES; ++axis) {
-		state.position_remainder[axis] = (int64_t)XvtWire_Get64(record->position_remainder[axis]);
+		state.position_remainder[axis] = (int64_t)XvtWire_Get64(
+			record->position_remainder[axis]);
 		if (state.position_remainder[axis] <= -position_divisor ||
-			state.position_remainder[axis] >= position_divisor)
+		    state.position_remainder[axis] >= position_divisor) {
 			return 0;
+		}
 	}
 	for (unsigned channel = 0; channel < XVT_INTEGRATE_COUNT; ++channel) {
-		state.remainder[channel] = (int64_t)XvtWire_Get64(record->remainder[channel]);
+		state.remainder[channel] =
+			(int64_t)XvtWire_Get64(record->remainder[channel]);
 		state.direction[channel] = record->direction[channel];
-		if (state.direction[channel] < -1 || state.direction[channel] > 1)
+		if (state.direction[channel] < -1 ||
+		    state.direction[channel] > 1) {
 			return 0;
-		int64_t divisor = channel >= XVT_INTEGRATE_ROLL
-							  ? (int64_t)SIMULATION_TICKS_PER_SECOND * XVT_Q16_SCALE * XVT_Q16_SCALE
-							  : (int64_t)INT32_MAX + 1;
-		if (state.remainder[channel] <= -divisor || state.remainder[channel] >= divisor)
+		}
+		int64_t divisor =
+			channel >= XVT_INTEGRATE_ROLL
+				? (int64_t)SIMULATION_TICKS_PER_SECOND *
+					  XVT_Q16_SCALE * XVT_Q16_SCALE
+				: (int64_t)INT32_MAX + 1;
+		if (state.remainder[channel] <= -divisor ||
+		    state.remainder[channel] >= divisor) {
 			return 0;
+		}
 	}
-	if (apply)
+	if (apply) {
 		g_entries[slot] = state;
+	}
 	return 1;
 }

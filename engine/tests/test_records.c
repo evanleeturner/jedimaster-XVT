@@ -23,18 +23,22 @@
 /* One listed field: where it sits and how big it is in the record and in the live struct. */
 typedef struct Field {
 	size_t record_offset, record_size, live_offset, live_size;
-	const char* name;
+	const char *name;
 } Field;
 
-#define FIELD(RecordType, LiveType, member)                                                                  \
-	{ offsetof(RecordType, member), sizeof(((RecordType*)0)->member), offsetof(LiveType, member),            \
-	  sizeof(((LiveType*)0)->member), #member }
-#define OBJECT_FIELD(member) FIELD(XvtSnapshotObjectRecord, ObjectRecord, member)
-#define MOBILE_FIELD(member) FIELD(XvtSnapshotMobileObject, MobileObject, member)
+#define FIELD(RecordType, LiveType, member)                                    \
+	{offsetof(RecordType, member), sizeof(((RecordType *)0)->member),      \
+	 offsetof(LiveType, member), sizeof(((LiveType *)0)->member), #member}
+#define OBJECT_FIELD(member)                                                   \
+	FIELD(XvtSnapshotObjectRecord, ObjectRecord, member)
+#define MOBILE_FIELD(member)                                                   \
+	FIELD(XvtSnapshotMobileObject, MobileObject, member)
 #define CRAFT_FIELD(member) FIELD(XvtSnapshotCraftData, CraftData, member)
-#define CHAR_DATA_FIELD(member) FIELD(XvtSnapshotMobileObjectCharData, MobileObjectCharData, member)
+#define CHAR_DATA_FIELD(member)                                                \
+	FIELD(XvtSnapshotMobileObjectCharData, MobileObjectCharData, member)
 #define PLAYER_FIELD(member) FIELD(XvtSnapshotPlayerData, PlayerData, member)
-#define MISSION_FIELD(member) FIELD(XvtSnapshotFlightMissionState, FlightMissionState, member)
+#define MISSION_FIELD(member)                                                  \
+	FIELD(XvtSnapshotFlightMissionState, FlightMissionState, member)
 
 static const Field kObjectFields[] = {
 	OBJECT_FIELD(objectSignature),
@@ -420,7 +424,8 @@ static CraftData g_testCraft[3];
 static MobileObjectCharData g_testCharData[3];
 static WarheadGuidanceState g_testGuidance[3];
 
-static void UseTestPools(void) {
+static void UseTestPools(void)
+{
 	g_objectTable = g_testObjects;
 	g_mobileObjectPoolBase = g_testMobiles;
 	g_craftDataPoolBase = g_testCraft;
@@ -430,8 +435,9 @@ static void UseTestPools(void) {
 
 /* Fills size bytes from a seeded generator: neighbouring bytes differ in all but rare cases, and two seeds
  * give unrelated patterns. */
-static void Fill(void* data, size_t size, uint32_t seed) {
-	uint8_t* bytes = data;
+static void Fill(void *data, size_t size, uint32_t seed)
+{
+	uint8_t *bytes = data;
 	uint32_t state = seed * 2654435761u + 1u;
 	for (size_t i = 0; i < size; ++i) {
 		state = state * 1103515245u + 12345u;
@@ -441,14 +447,20 @@ static void Fill(void* data, size_t size, uint32_t seed) {
 
 /* The check fails, naming the field, when a listed field differs in size or in any byte between the
  * record and the live struct. */
-static void CheckFields(const Field* fields, size_t count, const void* record, const void* live) {
+static void CheckFields(const Field *fields, size_t count, const void *record,
+			const void *live)
+{
 	for (size_t i = 0; i < count; ++i) {
-		const Field* f = &fields[i];
+		const Field *f = &fields[i];
 		int same = f->record_size == f->live_size &&
-				   memcmp((const uint8_t*)record + f->record_offset, (const uint8_t*)live + f->live_offset,
-						  f->record_size) == 0;
-		if (!same)
-			fprintf(stderr, "field %s differs between the record and the live struct\n", f->name);
+			   memcmp((const uint8_t *)record + f->record_offset,
+				  (const uint8_t *)live + f->live_offset,
+				  f->record_size) == 0;
+		if (!same) {
+			fprintf(stderr,
+				"field %s differs between the record and the live struct\n",
+				f->name);
+		}
 		XVT_ASSERT_TRUE(same);
 	}
 }
@@ -456,126 +468,177 @@ static void CheckFields(const Field* fields, size_t count, const void* record, c
 /* One record type: its two sizes, its Encode/Decode pair, how to clear its links on either side, and
  * its listed fields. */
 typedef struct RecordKind {
-	const char* name;
+	const char *name;
 	size_t record_size, live_size;
-	void (*encode)(void* record, const void* live);
-	void (*decode)(void* live, const void* record);
-	void (*clear_live_links)(void* live);
-	void (*clear_record_links)(void* record);
-	const Field* fields;
+	void (*encode)(void *record, const void *live);
+	void (*decode)(void *live, const void *record);
+	void (*clear_live_links)(void *live);
+	void (*clear_record_links)(void *record);
+	const Field *fields;
 	size_t field_count;
 } RecordKind;
 
-static void EncodeObject(void* record, const void* live) { XvtSnapshot_EncodeObjectRecord(record, live); }
+static void EncodeObject(void *record, const void *live)
+{
+	XvtSnapshot_EncodeObjectRecord(record, live);
+}
 
-static void DecodeObject(void* live, const void* record) { XvtSnapshot_DecodeObjectRecord(live, record); }
+static void DecodeObject(void *live, const void *record)
+{
+	XvtSnapshot_DecodeObjectRecord(live, record);
+}
 
-static void ClearObjectLive(void* live) { ((ObjectRecord*)live)->mobj = NULL; }
+static void ClearObjectLive(void *live) { ((ObjectRecord *)live)->mobj = NULL; }
 
-static void ClearObjectRecord(void* record) { ((XvtSnapshotObjectRecord*)record)->mobj = 0; }
+static void ClearObjectRecord(void *record)
+{
+	((XvtSnapshotObjectRecord *)record)->mobj = 0;
+}
 
-static void EncodeMobile(void* record, const void* live) { XvtSnapshot_EncodeMobileObject(record, live); }
+static void EncodeMobile(void *record, const void *live)
+{
+	XvtSnapshot_EncodeMobileObject(record, live);
+}
 
-static void DecodeMobile(void* live, const void* record) { XvtSnapshot_DecodeMobileObject(live, record); }
+static void DecodeMobile(void *live, const void *record)
+{
+	XvtSnapshot_DecodeMobileObject(live, record);
+}
 
-static void ClearMobileLive(void* live) {
-	MobileObject* mobile = live;
+static void ClearMobileLive(void *live)
+{
+	MobileObject *mobile = live;
 	mobile->pWarheadGuidance = NULL;
 	mobile->pCraft = NULL;
 	mobile->pCharData = NULL;
 }
 
-static void ClearMobileRecord(void* record) {
-	XvtSnapshotMobileObject* mobile = record;
+static void ClearMobileRecord(void *record)
+{
+	XvtSnapshotMobileObject *mobile = record;
 	mobile->pWarheadGuidance = 0;
 	mobile->pCraft = 0;
 	mobile->pCharData = 0;
 }
 
-static void EncodeCraft(void* record, const void* live) { XvtSnapshot_EncodeCraftData(record, live); }
+static void EncodeCraft(void *record, const void *live)
+{
+	XvtSnapshot_EncodeCraftData(record, live);
+}
 
-static void DecodeCraft(void* live, const void* record) { XvtSnapshot_DecodeCraftData(live, record); }
+static void DecodeCraft(void *live, const void *record)
+{
+	XvtSnapshot_DecodeCraftData(live, record);
+}
 
-static void ClearCraftLive(void* live) {
-	CraftData* craft = live;
-	for (int i = 0; i < 16; ++i)
+static void ClearCraftLive(void *live)
+{
+	CraftData *craft = live;
+	for (int i = 0; i < 16; ++i) {
 		craft->turretObjectLinks[i] = NULL;
+	}
 	craft->effectiveAiObjectLink = NULL;
 }
 
-static void ClearCraftRecord(void* record) {
-	XvtSnapshotCraftData* craft = record;
-	for (int i = 0; i < 16; ++i)
+static void ClearCraftRecord(void *record)
+{
+	XvtSnapshotCraftData *craft = record;
+	for (int i = 0; i < 16; ++i) {
 		craft->turretObjectLinks[i] = 0;
+	}
 	craft->effectiveAiObjectLink = 0;
 }
 
-static void EncodeChar(void* record, const void* live) {
+static void EncodeChar(void *record, const void *live)
+{
 	XvtSnapshot_EncodeMobileObjectCharData(record, live);
 }
 
-static void DecodeChar(void* live, const void* record) {
+static void DecodeChar(void *live, const void *record)
+{
 	XvtSnapshot_DecodeMobileObjectCharData(live, record);
 }
 
-static void EncodePlayer(void* record, const void* live) { XvtSnapshot_EncodePlayerData(record, live); }
+static void EncodePlayer(void *record, const void *live)
+{
+	XvtSnapshot_EncodePlayerData(record, live);
+}
 
-static void DecodePlayer(void* live, const void* record) { XvtSnapshot_DecodePlayerData(live, record); }
+static void DecodePlayer(void *live, const void *record)
+{
+	XvtSnapshot_DecodePlayerData(live, record);
+}
 
-static void EncodeMission(void* record, const void* live) {
+static void EncodeMission(void *record, const void *live)
+{
 	XvtSnapshot_EncodeFlightMissionState(record, live);
 }
 
-static void DecodeMission(void* live, const void* record) {
+static void DecodeMission(void *live, const void *record)
+{
 	XvtSnapshot_DecodeFlightMissionState(live, record);
 }
 
 /* Character, player and mission-state records carry no links. */
-static void NoLinks(void* data) { (void)data; }
+static void NoLinks(void *data) { (void)data; }
 
 static const RecordKind kKinds[] = {
-	{ "object", sizeof(XvtSnapshotObjectRecord), sizeof(ObjectRecord), EncodeObject, DecodeObject,
-	  ClearObjectLive, ClearObjectRecord, kObjectFields, sizeof kObjectFields / sizeof kObjectFields[0] },
-	{ "mobile", sizeof(XvtSnapshotMobileObject), sizeof(MobileObject), EncodeMobile, DecodeMobile,
-	  ClearMobileLive, ClearMobileRecord, kMobileFields, sizeof kMobileFields / sizeof kMobileFields[0] },
-	{ "craft", sizeof(XvtSnapshotCraftData), sizeof(CraftData), EncodeCraft, DecodeCraft, ClearCraftLive,
-	  ClearCraftRecord, kCraftFields, sizeof kCraftFields / sizeof kCraftFields[0] },
-	{ "character", sizeof(XvtSnapshotMobileObjectCharData), sizeof(MobileObjectCharData), EncodeChar,
-	  DecodeChar, NoLinks, NoLinks, kCharFields, sizeof kCharFields / sizeof kCharFields[0] },
-	{ "player", sizeof(XvtSnapshotPlayerData), sizeof(PlayerData), EncodePlayer, DecodePlayer, NoLinks,
-	  NoLinks, kPlayerFields, sizeof kPlayerFields / sizeof kPlayerFields[0] },
-	{ "mission state", sizeof(XvtSnapshotFlightMissionState), sizeof(FlightMissionState), EncodeMission,
-	  DecodeMission, NoLinks, NoLinks, kMissionFields, sizeof kMissionFields / sizeof kMissionFields[0] },
+	{"object", sizeof(XvtSnapshotObjectRecord), sizeof(ObjectRecord),
+	 EncodeObject, DecodeObject, ClearObjectLive, ClearObjectRecord,
+	 kObjectFields, sizeof kObjectFields / sizeof kObjectFields[0]},
+	{"mobile", sizeof(XvtSnapshotMobileObject), sizeof(MobileObject),
+	 EncodeMobile, DecodeMobile, ClearMobileLive, ClearMobileRecord,
+	 kMobileFields, sizeof kMobileFields / sizeof kMobileFields[0]},
+	{"craft", sizeof(XvtSnapshotCraftData), sizeof(CraftData), EncodeCraft,
+	 DecodeCraft, ClearCraftLive, ClearCraftRecord, kCraftFields,
+	 sizeof kCraftFields / sizeof kCraftFields[0]},
+	{"character", sizeof(XvtSnapshotMobileObjectCharData),
+	 sizeof(MobileObjectCharData), EncodeChar, DecodeChar, NoLinks, NoLinks,
+	 kCharFields, sizeof kCharFields / sizeof kCharFields[0]},
+	{"player", sizeof(XvtSnapshotPlayerData), sizeof(PlayerData),
+	 EncodePlayer, DecodePlayer, NoLinks, NoLinks, kPlayerFields,
+	 sizeof kPlayerFields / sizeof kPlayerFields[0]},
+	{"mission state", sizeof(XvtSnapshotFlightMissionState),
+	 sizeof(FlightMissionState), EncodeMission, DecodeMission, NoLinks,
+	 NoLinks, kMissionFields,
+	 sizeof kMissionFields / sizeof kMissionFields[0]},
 };
 
 #define KIND_COUNT (sizeof kKinds / sizeof kKinds[0])
 
-static void* Allocate(size_t size) {
-	void* data = malloc(size);
+static void *Allocate(size_t size)
+{
+	void *data = malloc(size);
 	XVT_ASSERT_TRUE(data != NULL);
 	return data;
 }
 
 /* Encode fills every byte of the record whatever it held before, and each listed field is the live
  * field's bytes as they are. */
-static void CheckEncodeCopiesFields(void) {
+static void CheckEncodeCopiesFields(void)
+{
 	UseTestPools();
 	for (size_t k = 0; k < KIND_COUNT; ++k) {
-		const RecordKind* kind = &kKinds[k];
+		const RecordKind *kind = &kKinds[k];
 		for (uint32_t seed = 1; seed <= 2; ++seed) {
-			void* live = Allocate(kind->live_size);
-			uint8_t* zeros = Allocate(kind->record_size);
-			uint8_t* ones = Allocate(kind->record_size);
+			void *live = Allocate(kind->live_size);
+			uint8_t *zeros = Allocate(kind->record_size);
+			uint8_t *ones = Allocate(kind->record_size);
 			Fill(live, kind->live_size, seed);
 			kind->clear_live_links(live);
 			memset(zeros, 0x00, kind->record_size);
 			memset(ones, 0xFF, kind->record_size);
 			kind->encode(zeros, live);
 			kind->encode(ones, live);
-			if (memcmp(zeros, ones, kind->record_size) != 0)
-				fprintf(stderr, "the %s record keeps bytes Encode did not write\n", kind->name);
-			XVT_ASSERT_INT_EQ(memcmp(zeros, ones, kind->record_size), 0);
-			CheckFields(kind->fields, kind->field_count, zeros, live);
+			if (memcmp(zeros, ones, kind->record_size) != 0) {
+				fprintf(stderr,
+					"the %s record keeps bytes Encode did not write\n",
+					kind->name);
+			}
+			XVT_ASSERT_INT_EQ(
+				memcmp(zeros, ones, kind->record_size), 0);
+			CheckFields(kind->fields, kind->field_count, zeros,
+				    live);
 			free(live);
 			free(zeros);
 			free(ones);
@@ -584,18 +647,20 @@ static void CheckEncodeCopiesFields(void) {
 }
 
 /* Decode writes each listed field back as the record holds it. */
-static void CheckDecodeWritesFields(void) {
+static void CheckDecodeWritesFields(void)
+{
 	UseTestPools();
 	for (size_t k = 0; k < KIND_COUNT; ++k) {
-		const RecordKind* kind = &kKinds[k];
+		const RecordKind *kind = &kKinds[k];
 		for (uint32_t seed = 3; seed <= 4; ++seed) {
-			void* record = Allocate(kind->record_size);
-			void* live = Allocate(kind->live_size);
+			void *record = Allocate(kind->record_size);
+			void *live = Allocate(kind->live_size);
 			Fill(record, kind->record_size, seed);
 			kind->clear_record_links(record);
 			memset(live, 0xA5, kind->live_size);
 			kind->decode(live, record);
-			CheckFields(kind->fields, kind->field_count, record, live);
+			CheckFields(kind->fields, kind->field_count, record,
+				    live);
 			free(record);
 			free(live);
 		}
@@ -604,14 +669,15 @@ static void CheckDecodeWritesFields(void) {
 
 /* A record decoded into a live struct and encoded again gives the same bytes, whatever the live struct
  * held before: native padding never reaches the record. */
-static void CheckRoundTrip(void) {
+static void CheckRoundTrip(void)
+{
 	UseTestPools();
 	for (size_t k = 0; k < KIND_COUNT; ++k) {
-		const RecordKind* kind = &kKinds[k];
-		void* live = Allocate(kind->live_size);
-		void* other = Allocate(kind->live_size);
-		uint8_t* record = Allocate(kind->record_size);
-		uint8_t* again = Allocate(kind->record_size);
+		const RecordKind *kind = &kKinds[k];
+		void *live = Allocate(kind->live_size);
+		void *other = Allocate(kind->live_size);
+		uint8_t *record = Allocate(kind->record_size);
+		uint8_t *again = Allocate(kind->record_size);
 		Fill(live, kind->live_size, 5);
 		kind->clear_live_links(live);
 		kind->encode(record, live);
@@ -619,8 +685,11 @@ static void CheckRoundTrip(void) {
 		memset(other, 0x5A, kind->live_size);
 		kind->decode(other, record);
 		kind->encode(again, other);
-		if (memcmp(again, record, kind->record_size) != 0)
-			fprintf(stderr, "the %s record does not survive a round trip\n", kind->name);
+		if (memcmp(again, record, kind->record_size) != 0) {
+			fprintf(stderr,
+				"the %s record does not survive a round trip\n",
+				kind->name);
+		}
 		XVT_ASSERT_INT_EQ(memcmp(again, record, kind->record_size), 0);
 		free(live);
 		free(other);
@@ -630,7 +699,8 @@ static void CheckRoundTrip(void) {
 }
 
 /* An object's mobile record is linked by its byte offset in the mobile record array, plus 1. */
-static void CheckObjectLink(void) {
+static void CheckObjectLink(void)
+{
 	UseTestPools();
 	ObjectRecord live;
 	XvtSnapshotObjectRecord record;
@@ -656,7 +726,8 @@ static void CheckObjectLink(void) {
 
 /* A mobile record links its guidance, craft and character records the same way, each by its offset in
  * its own pool's record array. */
-static void CheckMobileLinks(void) {
+static void CheckMobileLinks(void)
+{
 	UseTestPools();
 	MobileObject live;
 	XvtSnapshotMobileObject record;
@@ -668,7 +739,8 @@ static void CheckMobileLinks(void) {
 	XvtSnapshot_EncodeMobileObject(&record, &live);
 	XVT_ASSERT_INT_EQ(record.pWarheadGuidance, 1);
 	XVT_ASSERT_INT_EQ(record.pCraft, 1 * sizeof(XvtSnapshotCraftData) + 1);
-	XVT_ASSERT_INT_EQ(record.pCharData, 2 * sizeof(XvtSnapshotMobileObjectCharData) + 1);
+	XVT_ASSERT_INT_EQ(record.pCharData,
+			  2 * sizeof(XvtSnapshotMobileObjectCharData) + 1);
 
 	memset(&live, 0, sizeof live);
 	XvtSnapshot_DecodeMobileObject(&live, &record);
@@ -699,25 +771,36 @@ static void CheckMobileLinks(void) {
 
 /* A craft record links 16 turret objects and one AI object in the object table, by their offsets in the
  * object record array. */
-static void CheckCraftLinks(void) {
+static void CheckCraftLinks(void)
+{
 	UseTestPools();
-	CraftData* live = Allocate(sizeof *live);
-	XvtSnapshotCraftData* record = Allocate(sizeof *record);
+	CraftData *live = Allocate(sizeof *live);
+	XvtSnapshotCraftData *record = Allocate(sizeof *record);
 	memset(live, 0, sizeof *live);
-	for (int i = 0; i < 16; ++i)
-		live->turretObjectLinks[i] = i % 5 == 4 ? NULL : &g_testObjects[i % 5];
+	for (int i = 0; i < 16; ++i) {
+		live->turretObjectLinks[i] =
+			i % 5 == 4 ? NULL : &g_testObjects[i % 5];
+	}
 	live->effectiveAiObjectLink = &g_testObjects[3];
 	XvtSnapshot_EncodeCraftData(record, live);
 	for (int i = 0; i < 16; ++i) {
-		uint32_t expected = i % 5 == 4 ? 0 : (uint32_t)((i % 5) * sizeof(XvtSnapshotObjectRecord) + 1);
+		uint32_t expected =
+			i % 5 == 4
+				? 0
+				: (uint32_t)((i %
+					      5) * sizeof(XvtSnapshotObjectRecord) +
+					     1);
 		XVT_ASSERT_INT_EQ(record->turretObjectLinks[i], expected);
 	}
-	XVT_ASSERT_INT_EQ(record->effectiveAiObjectLink, 3 * sizeof(XvtSnapshotObjectRecord) + 1);
+	XVT_ASSERT_INT_EQ(record->effectiveAiObjectLink,
+			  3 * sizeof(XvtSnapshotObjectRecord) + 1);
 
 	memset(live, 0, sizeof *live);
 	XvtSnapshot_DecodeCraftData(live, record);
-	for (int i = 0; i < 16; ++i)
-		XVT_ASSERT_TRUE(live->turretObjectLinks[i] == (i % 5 == 4 ? NULL : &g_testObjects[i % 5]));
+	for (int i = 0; i < 16; ++i) {
+		XVT_ASSERT_TRUE(live->turretObjectLinks[i] ==
+				(i % 5 == 4 ? NULL : &g_testObjects[i % 5]));
+	}
 	XVT_ASSERT_TRUE(live->effectiveAiObjectLink == &g_testObjects[3]);
 
 	record->effectiveAiObjectLink = 0;
@@ -729,7 +812,8 @@ static void CheckCraftLinks(void) {
 
 /* Decode does not range-check a link: one just past the pool gives the pointer just past the pool's last
  * entry, not none and not a clamped entry. */
-static void CheckLinksNotRangeChecked(void) {
+static void CheckLinksNotRangeChecked(void)
+{
 	UseTestPools();
 	ObjectRecord live;
 	XvtSnapshotObjectRecord record;
@@ -739,7 +823,8 @@ static void CheckLinksNotRangeChecked(void) {
 	XVT_ASSERT_TRUE(live.mobj == g_testMobiles + 3);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckEncodeCopiesFields();
 	CheckDecodeWritesFields();
 	CheckRoundTrip();

@@ -29,10 +29,14 @@ static ObjectRecord g_testObjects[2];
 static MobileObject g_testMobiles[2];
 static CraftData g_testCraft[1];
 
-static AeronInputSnapshot* Host(void) { return (AeronInputSnapshot*)Aeron_InputSnapshot(); }
+static AeronInputSnapshot *Host(void)
+{
+	return (AeronInputSnapshot *)Aeron_InputSnapshot();
+}
 
 /* Player PLAYER flies the craft in main slot SLOT, bound to it by signature; nothing is in the way. */
-static void World(void) {
+static void World(void)
+{
 	memset(g_testObjects, 0, sizeof g_testObjects);
 	memset(g_testMobiles, 0, sizeof g_testMobiles);
 	memset(g_testCraft, 0, sizeof g_testCraft);
@@ -46,8 +50,9 @@ static void World(void) {
 	g_testObjects[SLOT].objectSignature = SIGNATURE;
 	g_testObjects[SLOT].mobj = &g_testMobiles[SLOT];
 	g_testMobiles[SLOT].pCraft = &g_testCraft[0];
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		g_players[i].objectIndex = -1;
+	}
 	g_players[PLAYER].participationState = 1;
 	g_players[PLAYER].objectIndex = SLOT;
 	g_players[PLAYER].boundObjectSignature = SIGNATURE;
@@ -56,14 +61,15 @@ static void World(void) {
 	g_flightPlayerCount = 1;
 
 	XvtInput_ResetCapture();
-	AeronInputSnapshot* host = Host();
+	AeronInputSnapshot *host = Host();
 	uint64_t frame = host->frame_id;
 	memset(host, 0, sizeof *host);
 	host->frame_id = frame + 1;
 	host->has_focus = 1;
 }
 
-static void SetGameInput(void) {
+static void SetGameInput(void)
+{
 	g_actionKey = 0x41;
 	g_ctrlAxisX = 12;
 	g_ctrlAxisY = -12;
@@ -76,15 +82,20 @@ static void SetGameInput(void) {
 
 /* A gamepad model with yaw on the left stick and fire on the west button, and that gamepad connected in
  * Aeron's snapshot with the stick pushed and fire held after a first frame with it released. */
-static void ControllerFiring(void) {
+static void ControllerFiring(void)
+{
 	static XvtControllerOptions options;
 	memset(&options, 0, sizeof options);
-	XvtControllerModel* model = &options.models[0];
-	memcpy(model->guid, "0123456789abcdef0123456789abcdea", sizeof model->guid);
+	XvtControllerModel *model = &options.models[0];
+	memcpy(model->guid, "0123456789abcdef0123456789abcdea",
+	       sizeof model->guid);
 	model->kind = AERON_CONTROLLER_KIND_GAMEPAD;
-	XvtControllerOptions_ClearProfile(&model->profile, AERON_CONTROLLER_KIND_GAMEPAD);
-	model->profile.mapping.axes[XVT_INPUT_AXIS_YAW].source = AERON_GAMEPAD_AXIS_LEFTX;
-	model->profile.bindings[0].source.kind = AERON_CONTROLLER_DIGITAL_BUTTON;
+	XvtControllerOptions_ClearProfile(&model->profile,
+					  AERON_CONTROLLER_KIND_GAMEPAD);
+	model->profile.mapping.axes[XVT_INPUT_AXIS_YAW].source =
+		AERON_GAMEPAD_AXIS_LEFTX;
+	model->profile.bindings[0].source.kind =
+		AERON_CONTROLLER_DIGITAL_BUTTON;
 	model->profile.bindings[0].source.index = AERON_GAMEPAD_BUTTON_WEST;
 	model->profile.bindings[0].source.threshold = 0.5f;
 	model->profile.bindings[0].action = XVT_INPUT_ACTION_FIRE_WEAPON;
@@ -92,7 +103,7 @@ static void ControllerFiring(void) {
 	options.count = 1;
 	XvtControllerMapping_Init(&options);
 
-	AeronControllerSnapshot* pad = &Host()->controllers[0];
+	AeronControllerSnapshot *pad = &Host()->controllers[0];
 	pad->connected = 1;
 	pad->kind = AERON_CONTROLLER_KIND_GAMEPAD;
 	pad->instance_id = 5;
@@ -108,8 +119,9 @@ static void ControllerFiring(void) {
 	XVT_ASSERT_TRUE(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW) != 0);
 }
 
-static void CheckEncodeDecode(void) {
-	for (int axis = -128; axis <= 127; ++axis)
+static void CheckEncodeDecode(void)
+{
+	for (int axis = -128; axis <= 127; ++axis) {
 		for (int mods = 0; mods < 4; ++mods) {
 			FlightInputFrameRecord in, out;
 			memset(&in, 0, sizeof in);
@@ -127,19 +139,23 @@ static void CheckEncodeDecode(void) {
 			memset(&out, 0, sizeof out);
 			XvtFlightControls_DecodeAxes(bytes, &out);
 			XVT_ASSERT_INT_EQ(out.keyMods, mods);
-			const int8_t sent[3] = { in.axisX, in.axisY, in.axisR };
-			const int8_t back[3] = { out.axisX, out.axisY, out.axisR };
+			const int8_t sent[3] = {in.axisX, in.axisY, in.axisR};
+			const int8_t back[3] = {out.axisX, out.axisY,
+						out.axisR};
 			for (int i = 0; i < 3; ++i) {
 				/* Axes come back even: an even axis exactly, an odd one off by one. */
 				XVT_ASSERT_INT_EQ(back[i] % 2, 0);
 				XVT_ASSERT_TRUE(abs(back[i] - sent[i]) <= 1);
-				if (sent[i] % 2 == 0)
+				if (sent[i] % 2 == 0) {
 					XVT_ASSERT_INT_EQ(back[i], sent[i]);
+				}
 			}
 		}
+	}
 }
 
-static void CheckThrottleEligible(void) {
+static void CheckThrottleEligible(void)
+{
 	World();
 	XVT_ASSERT_TRUE(XvtFlightControls_ThrottleEligible(PLAYER));
 	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(0));
@@ -178,7 +194,8 @@ static void CheckThrottleEligible(void) {
 	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
 }
 
-static void CheckApplyThrottle(void) {
+static void CheckApplyThrottle(void)
+{
 	FlightInputFrameRecord record;
 	memset(&record, 0, sizeof record);
 	record.flags = XVT_INPUT_THROTTLE_PRESENT;
@@ -205,7 +222,8 @@ static void CheckApplyThrottle(void) {
 	XVT_ASSERT_INT_EQ(g_testCraft[0].throttleSpeed, 7);
 }
 
-static void CheckSampleThrottleSendsNothing(void) {
+static void CheckSampleThrottleSendsNothing(void)
+{
 	FlightInputFrameRecord record;
 
 	/* No lever was read: no controller mapping is installed. */
@@ -233,56 +251,83 @@ static void CheckSampleThrottleSendsNothing(void) {
 	XVT_ASSERT_INT_EQ(record.flags & XVT_INPUT_THROTTLE_PRESENT, 0);
 }
 
-static void CheckRollStep(void) {
+static void CheckRollStep(void)
+{
 	/* Steps from one tick to one second of ticks, and rates up to twice the unit rate: full deflection
 	 * then fits the 16-bit result. These relationships hold for each. */
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 0);
-	static const uint16_t kTicks[] = { 1, 4, 59, SIMULATION_TICKS_PER_SECOND };
-	static const uint16_t kRates[] = { 0x1C00, 0x3800, 0x5555, 0x7000 };
-	static const int16_t kModifiers[] = { -30000, -500, -1, 0, 1, 500, 30000 };
-	for (size_t t = 0; t < sizeof kTicks / sizeof kTicks[0]; ++t)
+	static const uint16_t kTicks[] = {1, 4, 59,
+					  SIMULATION_TICKS_PER_SECOND};
+	static const uint16_t kRates[] = {0x1C00, 0x3800, 0x5555, 0x7000};
+	static const int16_t kModifiers[] = {-30000, -500, -1,	 0,
+					     1,	     500,  30000};
+	for (size_t t = 0; t < sizeof kTicks / sizeof kTicks[0]; ++t) {
 		for (size_t r = 0; r < sizeof kRates / sizeof kRates[0]; ++r) {
 			g_elapsedTicks = kTicks[t];
 			uint16_t rate = kRates[r];
 
 			/* With the roll axis at 0 the step is modifier_step, whatever it is. */
 			g_xvtControlRoll = 0;
-			for (size_t m = 0; m < sizeof kModifiers / sizeof kModifiers[0]; ++m)
-				XVT_ASSERT_INT_EQ(XvtFlightControls_RollStep(0, rate, kModifiers[m]), kModifiers[m]);
+			for (size_t m = 0;
+			     m < sizeof kModifiers / sizeof kModifiers[0];
+			     ++m) {
+				XVT_ASSERT_INT_EQ(
+					XvtFlightControls_RollStep(
+						0, rate, kModifiers[m]),
+					kModifiers[m]);
+			}
 
 			/* Full deflection is the limit, in both directions. */
 			g_xvtControlRoll = 127;
 			int full = XvtFlightControls_RollStep(0, rate, 0);
 			XVT_ASSERT_TRUE(full >= 0);
-			XVT_ASSERT_INT_EQ(XvtFlightControls_RollStep(0, rate, 30000), full);
+			XVT_ASSERT_INT_EQ(
+				XvtFlightControls_RollStep(0, rate, 30000),
+				full);
 			g_xvtControlRoll = -127;
-			XVT_ASSERT_INT_EQ(XvtFlightControls_RollStep(0, rate, -30000), -full);
+			XVT_ASSERT_INT_EQ(
+				XvtFlightControls_RollStep(0, rate, -30000),
+				-full);
 
 			for (int roll = -127; roll <= 127; roll += 6) {
 				g_xvtControlRoll = (int16_t)roll;
-				int plain = XvtFlightControls_RollStep(0, rate, 0);
+				int plain =
+					XvtFlightControls_RollStep(0, rate, 0);
 				/* The step follows the axis's direction and never passes full deflection. */
-				XVT_ASSERT_TRUE(roll > 0 ? plain >= 0 : plain <= 0);
-				for (size_t m = 0; m < sizeof kModifiers / sizeof kModifiers[0]; ++m) {
-					int step = XvtFlightControls_RollStep(0, rate, kModifiers[m]);
-					XVT_ASSERT_TRUE(step >= -full && step <= full);
+				XVT_ASSERT_TRUE(roll > 0 ? plain >= 0
+							 : plain <= 0);
+				for (size_t m = 0;
+				     m <
+				     sizeof kModifiers / sizeof kModifiers[0];
+				     ++m) {
+					int step = XvtFlightControls_RollStep(
+						0, rate, kModifiers[m]);
+					XVT_ASSERT_TRUE(step >= -full &&
+							step <= full);
 					/* modifier_step adds on, while the sum stays inside the limit. */
-					if (plain + kModifiers[m] >= -full && plain + kModifiers[m] <= full)
-						XVT_ASSERT_INT_EQ(step, plain + kModifiers[m]);
+					if (plain + kModifiers[m] >= -full &&
+					    plain + kModifiers[m] <= full) {
+						XVT_ASSERT_INT_EQ(
+							step,
+							plain + kModifiers[m]);
+					}
 				}
 			}
 		}
+	}
 	g_xvtControlRoll = 0;
 }
 
-static void CheckReset(void) {
+static void CheckReset(void)
+{
 	World();
 	g_xvtControlRoll = -40;
 	XvtFlightControls_Reset();
 	XVT_ASSERT_INT_EQ(g_xvtControlRoll, 0);
 }
 
-static void CheckBlockedReadClears(void) {
+static void CheckBlockedReadClears(void)
+{
 	/* Without focus the keyboard route blocks: the read returns 0 and clears the game's input, even with
 	 * a controller pushing yaw and holding fire. */
 	World();
@@ -312,7 +357,8 @@ static void CheckBlockedReadClears(void) {
 	XvtControllerMapping_Shutdown();
 }
 
-static void CheckRecover(void) {
+static void CheckRecover(void)
+{
 	World();
 	ControllerFiring();
 
@@ -349,7 +395,8 @@ static void CheckRecover(void) {
  * fits the 16-bit step, and the limit itself wraps negative. At 0x8000 a left roll comes back as a right
  * roll. The step is the roll axis scaled by positive factors and limited to full deflection, so it must
  * keep the axis's sign. */
-static void KnownFailureRollStepFastRate(void) {
+static void KnownFailureRollStepFastRate(void)
+{
 	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 0);
 	g_elapsedTicks = 59;
 	g_xvtControlRoll = -60;
@@ -359,10 +406,12 @@ static void KnownFailureRollStepFastRate(void) {
 }
 
 /* Runs every check, or with "known-failure <name>" only that known failure; an unknown name passes. */
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
-		if (strcmp(argv[2], "roll_step_fast_rate") == 0)
+		if (strcmp(argv[2], "roll_step_fast_rate") == 0) {
 			KnownFailureRollStepFastRate();
+		}
 		return 0;
 	}
 	CheckEncodeDecode();

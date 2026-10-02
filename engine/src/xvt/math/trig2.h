@@ -41,7 +41,8 @@ void trig2_movexyz(uint16_t distance, int16_t yaw, uint16_t pitch);
 void trig2_ctop(int dx, int dy, int dz);
 void trig2_ctop2dim(int dx, int dy);
 int trig2_calcangleplanedistance(int magnitudeA, int magnitudeB);
-int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t* outAngle, int16_t* outRatioIndex);
+int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *outAngle,
+			      int16_t *outRatioIndex);
 int16_t trig2_arctan(int y, int x);
 
 #ifdef __cplusplus

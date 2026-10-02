@@ -20,7 +20,8 @@ struct SessionPlayerInfo {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_SessionPlayerInfo[(sizeof(SessionPlayerInfo) == 40) ? 1 : -1];
+typedef char
+	xvt_size_SessionPlayerInfo[(sizeof(SessionPlayerInfo) == 40) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -30,7 +31,8 @@ struct NetSessionScratchPacket {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetSessionScratchPacket[(sizeof(NetSessionScratchPacket) == 512) ? 1 : -1];
+typedef char xvt_size_NetSessionScratchPacket
+	[(sizeof(NetSessionScratchPacket) == 512) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -41,14 +43,15 @@ typedef struct NetSessionScratchState {
 } NetSessionScratchState;
 
 #pragma pack(pop)
-typedef char xvt_size_NetSessionScratchState[(sizeof(NetSessionScratchState) == 516) ? 1 : -1];
+typedef char xvt_size_NetSessionScratchState
+	[(sizeof(NetSessionScratchState) == 516) ? 1 : -1];
 
 /* DirectPlay flight-session state is reset as one block by the original game. */
 #pragma pack(push, 1)
 
 typedef struct NetSessionState {
 	uint32_t reservedState0;
-	IDirectPlay2A* dplayInterface;
+	IDirectPlay2A *dplayInterface;
 	uint32_t reservedState1;
 	NetworkTransportType networkType;
 	GUID appGuid;
@@ -79,7 +82,8 @@ typedef struct NetSessionState {
 } NetSessionState;
 
 #pragma pack(pop)
-typedef char xvt_size_NetSessionState[(sizeof(NetSessionState) == 25652 + sizeof(void*)) ? 1 : -1];
+typedef char xvt_size_NetSessionState
+	[(sizeof(NetSessionState) == 25652 + sizeof(void *)) ? 1 : -1];
 
 extern NetSessionState g_netSession;
 
@@ -89,54 +93,69 @@ extern int g_netSessionSentWorldMessageWriteIndex;
 extern NetQueuedPacket g_netSessionSentHistory[128];
 extern NetQueuedPacket g_netSessionSentWorldMessageHistory[256];
 
-void NetSession_DebugTrace(const char* message);
-int NetSession_InitGameSession(const char* formalName, const char* pilotName, int isHost,
-							   const char* mpGameName, NetworkTransportType networkType, int numHumanPlayers,
-							   int inProgressLaunch, const char* connectionAddress);
+void NetSession_DebugTrace(const char *message);
+int NetSession_InitGameSession(const char *formalName, const char *pilotName,
+			       int isHost, const char *mpGameName,
+			       NetworkTransportType networkType,
+			       int numHumanPlayers, int inProgressLaunch,
+			       const char *connectionAddress);
 int NetSession_Shutdown(void);
 int NetSession_EnumeratePlayers(void);
-int AERON_DXAPI NetSession_EnumPlayersCallback(DPID dplayId, uint32_t playerType, const DPNAME* nameInfo,
-											   uint32_t flags, void* context);
+int AERON_DXAPI NetSession_EnumPlayersCallback(DPID dplayId,
+					       uint32_t playerType,
+					       const DPNAME *nameInfo,
+					       uint32_t flags, void *context);
 /* Only contiguous retransmissions advance the channel receive watermark. */
-static inline void NetSession_AdvanceReceivedSequence(int* receivedSequence, unsigned int sequence) {
+static inline void NetSession_AdvanceReceivedSequence(int *receivedSequence,
+						      unsigned int sequence)
+{
 	unsigned int nextSequence = (unsigned int)*receivedSequence + 1;
-	if (nextSequence > 127)
+	if (nextSequence > 127) {
 		nextSequence = 0;
-	if (nextSequence == sequence)
+	}
+	if (nextSequence == sequence) {
 		*receivedSequence = nextSequence;
+	}
 }
 
 void NetSession_PumpIncomingPackets(void);
-int NetSession_BroadcastPacketToPlayers(unsigned int* payload, int payloadSize);
-int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int payloadSize);
-int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t packetClass, uint8_t sequence,
-									   const unsigned int* packet, unsigned int packetSize);
-SessionPlayerInfo* NetSession_GetPlayerRoster(int* outCount);
-SessionPlayerInfo* NetSession_GetLocalPlayerInfo(void);
-int NetSession_SetPlayerRoster(const SessionPlayerInfo* players, int playerCount);
+int NetSession_BroadcastPacketToPlayers(unsigned int *payload, int payloadSize);
+int NetSession_SendPacket(int directPlayId, unsigned int *payload,
+			  signed int payloadSize);
+int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t packetClass,
+				       uint8_t sequence,
+				       const unsigned int *packet,
+				       unsigned int packetSize);
+SessionPlayerInfo *NetSession_GetPlayerRoster(int *outCount);
+SessionPlayerInfo *NetSession_GetLocalPlayerInfo(void);
+int NetSession_SetPlayerRoster(const SessionPlayerInfo *players,
+			       int playerCount);
 int NetSession_GetPlayerCount(void);
 int NetSession_IsLocalHost(void);
-int* NetSession_ReceiveGamePacket(int* outSenderDpid, int* outPayloadSize);
-int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int* packet);
-void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize);
-int NetSession_SendCompactGamePacket(int directPlayId, unsigned int* payload, int payloadSize, ...);
-int* NetSession_WaitForGamePacket(int* outDpid, int* outPayloadSize, int timeoutSeconds);
+int *NetSession_ReceiveGamePacket(int *outSenderDpid, int *outPayloadSize);
+int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet);
+void *NetSession_ReceivePacket(int *outSenderDpid, int *outPayloadSize);
+int NetSession_SendCompactGamePacket(int directPlayId, unsigned int *payload,
+				     int payloadSize, ...);
+int *NetSession_WaitForGamePacket(int *outDpid, int *outPayloadSize,
+				  int timeoutSeconds);
 int NetSession_FindPlayerSlotByDpid(int dpid);
 int NetSession_GetPlayerDplayId(int playerIndex);
 int NetSession_GetDplayIdByActivePlayerIndex(int activePlayerIndex);
 int NetSession_FindActivePlayerIndexByDpid(int dpid);
 int NetSession_GetHostDplayId(void);
 int NetSession_GetLocalDplayId(void);
-char* NetSession_GetPlayerName(int playerSlot);
-SessionPlayerInfo* NetSession_PeekQueuedPlayerInfo(void);
+char *NetSession_GetPlayerName(int playerSlot);
+SessionPlayerInfo *NetSession_PeekQueuedPlayerInfo(void);
 void NetSession_DiscardFirstQueuedPlayerInfo(void);
 int NetSession_CountLeadingActivePlayers(void);
 void NetSession_SetPlayerCount(int playerCount);
-void NetSession_AddPlayerToRosterSlot(int playerSlot, const SessionPlayerInfo* playerInfo);
+void NetSession_AddPlayerToRosterSlot(int playerSlot,
+				      const SessionPlayerInfo *playerInfo);
 int NetSession_BroadcastPlayerRoster(int toPlayerId);
 int NetSession_GetQueuedPlayerInfoCount(void);
-void NetSession_QueuePlayerInfo(const SessionPlayerInfo* playerInfo);
-int NetSession_AddPlayerToGroup(const SessionPlayerInfo* playerInfo);
+void NetSession_QueuePlayerInfo(const SessionPlayerInfo *playerInfo);
+int NetSession_AddPlayerToGroup(const SessionPlayerInfo *playerInfo);
 int NetSession_CountActivePlayers(void);
 int NetSession_RemovePlayerFromGroup(int playerDplayId);
 int NetSession_SelectFirstActivePlayerAsHost(void);

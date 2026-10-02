@@ -5,13 +5,13 @@
 #include <string.h>
 
 // GLOBAL: XVT 0x527F48
-int g_joystickCalibrationInitialized[2] = { 0, 0 };
+int g_joystickCalibrationInitialized[2] = {0, 0};
 // GLOBAL: XVT 0x527F50
-JoystickCalibration g_joystickCalibration = { 1, 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+JoystickCalibration g_joystickCalibration = {1, 1, 1, 0, 0, 0, 0, 0, 0, 0};
 // GLOBAL: XVT 0x622CA0
 int g_joyAxisCenterZ = 0;
 // GLOBAL: XVT 0x622CA8
-unsigned int g_joyDeviceId[2] = { 0, 0 };
+unsigned int g_joyDeviceId[2] = {0, 0};
 // GLOBAL: XVT 0x622CB4
 int g_joyAxisCenterX = 0;
 // GLOBAL: XVT 0x622CB8
@@ -23,7 +23,9 @@ int g_joyDeviceIndex = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4AABA0
-void Joystick_PollScaledAxes(int deviceIndex, int* pAxisX, int* pAxisY, int* pAxisZ, int* pButtons) {
+void Joystick_PollScaledAxes(int deviceIndex, int *pAxisX, int *pAxisY,
+			     int *pAxisZ, int *pButtons)
+{
 	JOYINFOEX joystickInfo;
 	JOYCAPSA joystickCaps;
 	int absDelta;
@@ -32,43 +34,77 @@ void Joystick_PollScaledAxes(int deviceIndex, int* pAxisX, int* pAxisY, int* pAx
 	if (g_joystickCalibrationInitialized[deviceIndex] == 0) {
 		g_joystickCalibrationInitialized[deviceIndex] = 1;
 		memset(&joystickCaps, 0, sizeof(joystickCaps));
-		if (joyGetDevCapsA(Joystick_GetDeviceId(0), &joystickCaps, sizeof(joystickCaps)) == JOYERR_NOERROR) {
+		if (joyGetDevCapsA(Joystick_GetDeviceId(0), &joystickCaps,
+				   sizeof(joystickCaps)) == JOYERR_NOERROR) {
 			g_joyDeviceId[deviceIndex] = Joystick_GetDeviceId(0);
-			g_joystickCalibration.hasPov = (joystickCaps.wCaps & JOYCAPS_HASPOV) != 0;
-			g_joystickCalibration.axisRangeX = (int)(joystickCaps.wXmax - joystickCaps.wXmin);
-			g_joystickCalibration.axisRangeY = (int)(joystickCaps.wYmax - joystickCaps.wYmin);
-			g_joystickCalibration.axisRangeZ = (int)(joystickCaps.wZmax - joystickCaps.wZmin);
+			g_joystickCalibration.hasPov =
+				(joystickCaps.wCaps & JOYCAPS_HASPOV) != 0;
+			g_joystickCalibration.axisRangeX =
+				(int)(joystickCaps.wXmax - joystickCaps.wXmin);
+			g_joystickCalibration.axisRangeY =
+				(int)(joystickCaps.wYmax - joystickCaps.wYmin);
+			g_joystickCalibration.axisRangeZ =
+				(int)(joystickCaps.wZmax - joystickCaps.wZmin);
 			g_joystickCalibration.axisNormalizeOffsetX =
-				(g_joystickCalibration.axisRangeX >> 1) - (int)joystickCaps.wXmax;
+				(g_joystickCalibration.axisRangeX >> 1) -
+				(int)joystickCaps.wXmax;
 			g_joystickCalibration.axisNormalizeOffsetY =
-				(g_joystickCalibration.axisRangeY >> 1) - (int)joystickCaps.wYmax;
+				(g_joystickCalibration.axisRangeY >> 1) -
+				(int)joystickCaps.wYmax;
 			g_joystickCalibration.axisNormalizeOffsetZ =
-				(g_joystickCalibration.axisRangeZ >> 1) - (int)joystickCaps.wZmax;
-			g_joystickCalibration.axisDeadzoneX = g_joystickCalibration.axisRangeX / 20;
-			g_joystickCalibration.axisDeadzoneY = g_joystickCalibration.axisRangeY / 20;
-			g_joystickCalibration.axisDeadzoneZ = g_joystickCalibration.axisRangeZ / 20;
-			g_joyAxisCenterX = (g_joystickCalibration.axisRangeX >> 1) + (int)joystickCaps.wXmin;
-			g_joyAxisCenterY = (g_joystickCalibration.axisRangeY >> 1) + (int)joystickCaps.wYmin;
-			g_joyAxisCenterZ = (g_joystickCalibration.axisRangeZ >> 1) + (int)joystickCaps.wZmin;
-		} else if (joyGetDevCapsA(Joystick_GetDeviceId(1), &joystickCaps, sizeof(joystickCaps)) ==
-				   JOYERR_NOERROR) {
+				(g_joystickCalibration.axisRangeZ >> 1) -
+				(int)joystickCaps.wZmax;
+			g_joystickCalibration.axisDeadzoneX =
+				g_joystickCalibration.axisRangeX / 20;
+			g_joystickCalibration.axisDeadzoneY =
+				g_joystickCalibration.axisRangeY / 20;
+			g_joystickCalibration.axisDeadzoneZ =
+				g_joystickCalibration.axisRangeZ / 20;
+			g_joyAxisCenterX =
+				(g_joystickCalibration.axisRangeX >> 1) +
+				(int)joystickCaps.wXmin;
+			g_joyAxisCenterY =
+				(g_joystickCalibration.axisRangeY >> 1) +
+				(int)joystickCaps.wYmin;
+			g_joyAxisCenterZ =
+				(g_joystickCalibration.axisRangeZ >> 1) +
+				(int)joystickCaps.wZmin;
+		} else if (joyGetDevCapsA(
+				   Joystick_GetDeviceId(1), &joystickCaps,
+				   sizeof(joystickCaps)) == JOYERR_NOERROR) {
 			g_joyDeviceId[deviceIndex] = Joystick_GetDeviceId(1);
-			g_joystickCalibration.hasPov = (joystickCaps.wCaps & JOYCAPS_HASPOV) != 0;
-			g_joystickCalibration.axisRangeX = (int)(joystickCaps.wXmax - joystickCaps.wXmin);
-			g_joystickCalibration.axisRangeY = (int)(joystickCaps.wYmax - joystickCaps.wYmin);
-			g_joystickCalibration.axisRangeZ = (int)(joystickCaps.wZmax - joystickCaps.wZmin);
+			g_joystickCalibration.hasPov =
+				(joystickCaps.wCaps & JOYCAPS_HASPOV) != 0;
+			g_joystickCalibration.axisRangeX =
+				(int)(joystickCaps.wXmax - joystickCaps.wXmin);
+			g_joystickCalibration.axisRangeY =
+				(int)(joystickCaps.wYmax - joystickCaps.wYmin);
+			g_joystickCalibration.axisRangeZ =
+				(int)(joystickCaps.wZmax - joystickCaps.wZmin);
 			g_joystickCalibration.axisNormalizeOffsetX =
-				(g_joystickCalibration.axisRangeX >> 1) - (int)joystickCaps.wXmax;
+				(g_joystickCalibration.axisRangeX >> 1) -
+				(int)joystickCaps.wXmax;
 			g_joystickCalibration.axisNormalizeOffsetY =
-				(g_joystickCalibration.axisRangeY >> 1) - (int)joystickCaps.wYmax;
+				(g_joystickCalibration.axisRangeY >> 1) -
+				(int)joystickCaps.wYmax;
 			g_joystickCalibration.axisNormalizeOffsetZ =
-				(g_joystickCalibration.axisRangeZ >> 1) - (int)joystickCaps.wZmax;
-			g_joystickCalibration.axisDeadzoneX = g_joystickCalibration.axisRangeX / 20;
-			g_joystickCalibration.axisDeadzoneY = g_joystickCalibration.axisRangeY / 20;
-			g_joystickCalibration.axisDeadzoneZ = g_joystickCalibration.axisRangeZ / 20;
-			g_joyAxisCenterX = (g_joystickCalibration.axisRangeX >> 1) + (int)joystickCaps.wXmin;
-			g_joyAxisCenterY = (g_joystickCalibration.axisRangeY >> 1) + (int)joystickCaps.wYmin;
-			g_joyAxisCenterZ = (g_joystickCalibration.axisRangeZ >> 1) + (int)joystickCaps.wZmin;
+				(g_joystickCalibration.axisRangeZ >> 1) -
+				(int)joystickCaps.wZmax;
+			g_joystickCalibration.axisDeadzoneX =
+				g_joystickCalibration.axisRangeX / 20;
+			g_joystickCalibration.axisDeadzoneY =
+				g_joystickCalibration.axisRangeY / 20;
+			g_joystickCalibration.axisDeadzoneZ =
+				g_joystickCalibration.axisRangeZ / 20;
+			g_joyAxisCenterX =
+				(g_joystickCalibration.axisRangeX >> 1) +
+				(int)joystickCaps.wXmin;
+			g_joyAxisCenterY =
+				(g_joystickCalibration.axisRangeY >> 1) +
+				(int)joystickCaps.wYmin;
+			g_joyAxisCenterZ =
+				(g_joystickCalibration.axisRangeZ >> 1) +
+				(int)joystickCaps.wZmin;
 		} else {
 			g_joystickCalibration.hasPov = 0;
 			g_joystickCalibration.axisRangeX = 1;
@@ -86,16 +122,21 @@ void Joystick_PollScaledAxes(int deviceIndex, int* pAxisX, int* pAxisY, int* pAx
 	*pButtons = 0;
 	memset(&joystickInfo, 0, sizeof(joystickInfo));
 	joystickInfo.dwSize = sizeof(joystickInfo);
-	joystickInfo.dwFlags =
-		JOY_RETURNX | JOY_RETURNY | JOY_RETURNZ | JOY_RETURNBUTTONS | JOY_RETURNPOV | JOY_RETURNCENTERED;
-	if (joyGetPosEx(g_joyDeviceId[deviceIndex], &joystickInfo) == JOYERR_NOERROR) {
+	joystickInfo.dwFlags = JOY_RETURNX | JOY_RETURNY | JOY_RETURNZ |
+			       JOY_RETURNBUTTONS | JOY_RETURNPOV |
+			       JOY_RETURNCENTERED;
+	if (joyGetPosEx(g_joyDeviceId[deviceIndex], &joystickInfo) ==
+	    JOYERR_NOERROR) {
 		absDelta = (int)joystickInfo.dwXpos - g_joyAxisCenterX;
 		if (absDelta < 0) {
 			absDelta = -absDelta;
 		}
 		if (absDelta > g_joystickCalibration.axisDeadzoneX) {
-			*pAxisX = (int)(255u * (g_joystickCalibration.axisNormalizeOffsetX + joystickInfo.dwXpos) /
-							g_joystickCalibration.axisRangeX);
+			*pAxisX = (int)(255u *
+					(g_joystickCalibration
+						 .axisNormalizeOffsetX +
+					 joystickInfo.dwXpos) /
+					g_joystickCalibration.axisRangeX);
 		} else {
 			*pAxisX = 0;
 		}
@@ -105,8 +146,11 @@ void Joystick_PollScaledAxes(int deviceIndex, int* pAxisX, int* pAxisY, int* pAx
 			absDelta = -absDelta;
 		}
 		if (absDelta > g_joystickCalibration.axisDeadzoneY) {
-			*pAxisY = (int)(255u * (g_joystickCalibration.axisNormalizeOffsetY + joystickInfo.dwYpos) /
-							g_joystickCalibration.axisRangeY);
+			*pAxisY = (int)(255u *
+					(g_joystickCalibration
+						 .axisNormalizeOffsetY +
+					 joystickInfo.dwYpos) /
+					g_joystickCalibration.axisRangeY);
 		} else {
 			*pAxisY = 0;
 		}
@@ -115,15 +159,20 @@ void Joystick_PollScaledAxes(int deviceIndex, int* pAxisX, int* pAxisY, int* pAx
 		if (absDelta < 0) {
 			absDelta = -absDelta;
 		}
-		if (absDelta > g_joystickCalibration.axisDeadzoneZ && g_joystickCalibration.axisRangeZ > 0) {
-			*pAxisZ = (int)(255u * (g_joystickCalibration.axisNormalizeOffsetZ + joystickInfo.dwZpos) /
-							g_joystickCalibration.axisRangeZ);
+		if (absDelta > g_joystickCalibration.axisDeadzoneZ &&
+		    g_joystickCalibration.axisRangeZ > 0) {
+			*pAxisZ = (int)(255u *
+					(g_joystickCalibration
+						 .axisNormalizeOffsetZ +
+					 joystickInfo.dwZpos) /
+					g_joystickCalibration.axisRangeZ);
 		} else {
 			*pAxisZ = 0;
 		}
 
 		*pButtons = (int)(joystickInfo.dwButtons & 0xffff);
-		if (g_joystickCalibration.hasPov != 0 && joystickInfo.dwPOV != JOY_POVCENTERED) {
+		if (g_joystickCalibration.hasPov != 0 &&
+		    joystickInfo.dwPOV != JOY_POVCENTERED) {
 			*pButtons |= 0x10000 << (joystickInfo.dwPOV / 0x2328u);
 		}
 	} else {
@@ -137,7 +186,9 @@ void Joystick_PollScaledAxes(int deviceIndex, int* pAxisX, int* pAxisY, int* pAx
 int16_t Joystick_InitializeBackendStub(void) { return 1; }
 
 // FUNCTION: XVT 0x4ACB90
-int Joystick_PollScaledAxesIfActive(int* pAxisX, int* pAxisY, int* pAxisZ, int* pAxisR) {
+int Joystick_PollScaledAxesIfActive(int *pAxisX, int *pAxisY, int *pAxisZ,
+				    int *pAxisR)
+{
 	int buttons;
 
 	(void)pAxisR;
@@ -149,6 +200,7 @@ int Joystick_PollScaledAxesIfActive(int* pAxisX, int* pAxisY, int* pAxisZ, int* 
 		return 0;
 	}
 
-	Joystick_PollScaledAxes(g_joyDeviceIndex, pAxisX, pAxisY, pAxisZ, &buttons);
+	Joystick_PollScaledAxes(g_joyDeviceIndex, pAxisX, pAxisY, pAxisZ,
+				&buttons);
 	return buttons;
 }

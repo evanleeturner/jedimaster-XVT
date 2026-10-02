@@ -37,11 +37,16 @@ struct ColorInfo {
 	int alphaPosShiftRight;
 };
 
-unsigned int Color_FindNearestRgbTripletIndex(const uint8_t* targetRgb, const uint8_t* palette,
-											  unsigned int startIndex, unsigned int endIndex);
-void Color_BuildRgb565ToPaletteIndexLut(uint8_t* outTable, unsigned int startIndex, unsigned int endIndex);
-uint8_t Color_FindNearestRgb565Index(const uint16_t* palette, int targetRed, int targetGreen, int targetBlue,
-									 int startIndex, int endIndex);
+unsigned int Color_FindNearestRgbTripletIndex(const uint8_t *targetRgb,
+					      const uint8_t *palette,
+					      unsigned int startIndex,
+					      unsigned int endIndex);
+void Color_BuildRgb565ToPaletteIndexLut(uint8_t *outTable,
+					unsigned int startIndex,
+					unsigned int endIndex);
+uint8_t Color_FindNearestRgb565Index(const uint16_t *palette, int targetRed,
+				     int targetGreen, int targetBlue,
+				     int startIndex, int endIndex);
 
 #ifdef __cplusplus
 }

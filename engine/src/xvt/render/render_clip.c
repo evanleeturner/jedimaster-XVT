@@ -6,7 +6,7 @@
 // GLOBAL: XVT 0x53F8F0
 int g_clipIdxA[32];
 // GLOBAL: XVT 0x52F870
-int g_clipIdxB[32] = { 0 };
+int g_clipIdxB[32] = {0};
 // GLOBAL: XVT 0x54F978
 int g_clipCountA;
 // GLOBAL: XVT 0x54F998
@@ -18,9 +18,11 @@ float g_invProjScale;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4096D0
-int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex, RenderClipVertex* vertices) {
-	RenderClipVertex* previous;
-	RenderClipVertex* current;
+int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex,
+			   RenderClipVertex *vertices)
+{
+	RenderClipVertex *previous;
+	RenderClipVertex *current;
 	float previousY;
 	float currentY;
 	int result;
@@ -41,15 +43,20 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex, RenderClipVertex
 			float currentU = current->u;
 			float previousV = previous->v;
 			float currentV = current->v;
-			float previousScaledInverseDepth = previous->scaledInverseDepth;
-			float currentScaledInverseDepth = current->scaledInverseDepth;
+			float previousScaledInverseDepth =
+				previous->scaledInverseDepth;
+			float currentScaledInverseDepth =
+				current->scaledInverseDepth;
 			float deltaU = currentU - previousU;
 			float deltaX = currentX - previousX;
-			float deltaLightIntensity = currentLightIntensity - previousLightIntensity;
+			float deltaLightIntensity =
+				currentLightIntensity - previousLightIntensity;
 			float deltaY = currentY - previousY;
 			float deltaV = currentV - previousV;
-			float deltaScaledInverseDepth = currentScaledInverseDepth - previousScaledInverseDepth;
-			RenderClipVertex* destination;
+			float deltaScaledInverseDepth =
+				currentScaledInverseDepth -
+				previousScaledInverseDepth;
+			RenderClipVertex *destination;
 			float t;
 
 			previousY = -previousY;
@@ -57,16 +64,32 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex, RenderClipVertex
 				t = previousY / deltaY;
 				destination = &vertices[output];
 				destination->x = previousX + t * deltaX;
-				destination->lightIntensity = previousLightIntensity + t * deltaLightIntensity;
-				destination->scaledInverseDepth = previousScaledInverseDepth + t * deltaScaledInverseDepth;
+				destination->lightIntensity =
+					previousLightIntensity +
+					t * deltaLightIntensity;
+				destination->scaledInverseDepth =
+					previousScaledInverseDepth +
+					t * deltaScaledInverseDepth;
 				if (deltaScaledInverseDepth != 0.0f) {
-					float baseDepth = (float)(unsigned int)g_projScaleInt / previousScaledInverseDepth;
-					float otherDepth = (float)(unsigned int)g_projScaleInt / currentScaledInverseDepth;
+					float baseDepth =
+						(float)(unsigned int)
+							g_projScaleInt /
+						previousScaledInverseDepth;
+					float otherDepth =
+						(float)(unsigned int)
+							g_projScaleInt /
+						currentScaledInverseDepth;
 					float destinationDepth =
-						(float)(unsigned int)g_projScaleInt / destination->scaledInverseDepth;
-					float uvT = (destinationDepth - baseDepth) / (otherDepth - baseDepth);
-					destination->u = previousU + deltaU * uvT;
-					destination->v = previousV + deltaV * uvT;
+						(float)(unsigned int)
+							g_projScaleInt /
+						destination->scaledInverseDepth;
+					float uvT =
+						(destinationDepth - baseDepth) /
+						(otherDepth - baseDepth);
+					destination->u =
+						previousU + deltaU * uvT;
+					destination->v =
+						previousV + deltaV * uvT;
 				} else {
 					destination->u = previousU + t * deltaU;
 					destination->v = previousV + t * deltaV;
@@ -75,16 +98,33 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex, RenderClipVertex
 				t = currentY / deltaY;
 				destination = &vertices[output];
 				destination->x = currentX - deltaX * t;
-				destination->lightIntensity = currentLightIntensity - deltaLightIntensity * t;
-				destination->scaledInverseDepth = currentScaledInverseDepth - deltaScaledInverseDepth * t;
+				destination->lightIntensity =
+					currentLightIntensity -
+					deltaLightIntensity * t;
+				destination->scaledInverseDepth =
+					currentScaledInverseDepth -
+					deltaScaledInverseDepth * t;
 				if (deltaScaledInverseDepth != 0.0f) {
-					float baseProjection = (float)(unsigned int)g_projScaleInt / currentScaledInverseDepth;
-					float otherProjection = (float)(unsigned int)g_projScaleInt / previousScaledInverseDepth;
+					float baseProjection =
+						(float)(unsigned int)
+							g_projScaleInt /
+						currentScaledInverseDepth;
+					float otherProjection =
+						(float)(unsigned int)
+							g_projScaleInt /
+						previousScaledInverseDepth;
 					float destinationProjection =
-						(float)(unsigned int)g_projScaleInt / destination->scaledInverseDepth;
-					float uvT = (destinationProjection - baseProjection) / (otherProjection - baseProjection);
-					destination->u = currentU - deltaU * uvT;
-					destination->v = currentV - deltaV * uvT;
+						(float)(unsigned int)
+							g_projScaleInt /
+						destination->scaledInverseDepth;
+					float uvT = (destinationProjection -
+						     baseProjection) /
+						    (otherProjection -
+						     baseProjection);
+					destination->u =
+						currentU - deltaU * uvT;
+					destination->v =
+						currentV - deltaV * uvT;
 				} else {
 					destination->u = currentU - deltaU * t;
 					destination->v = currentV - deltaV * t;
@@ -113,7 +153,7 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex, RenderClipVertex
 		float deltaU = currentU - previousU;
 		float deltaV = currentV - previousV;
 		float deltaZ = currentZ - previousZ;
-		RenderClipVertex* destination;
+		RenderClipVertex *destination;
 		float t;
 
 		currentY = -currentY;
@@ -121,14 +161,23 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex, RenderClipVertex
 			t = previousY / deltaY;
 			destination = &vertices[output];
 			destination->x = previousX - t * deltaX;
-			destination->lightIntensity = previousRhw - t * deltaRhw;
-			destination->scaledInverseDepth = previousZ - t * deltaZ;
+			destination->lightIntensity =
+				previousRhw - t * deltaRhw;
+			destination->scaledInverseDepth =
+				previousZ - t * deltaZ;
 			if (deltaZ != 0.0f) {
-				float baseProjection = (float)(unsigned int)g_projScaleInt / previousZ;
-				float otherProjection = (float)(unsigned int)g_projScaleInt / currentZ;
+				float baseProjection =
+					(float)(unsigned int)g_projScaleInt /
+					previousZ;
+				float otherProjection =
+					(float)(unsigned int)g_projScaleInt /
+					currentZ;
 				float destinationProjection =
-					(float)(unsigned int)g_projScaleInt / destination->scaledInverseDepth;
-				float uvT = (destinationProjection - baseProjection) / (otherProjection - baseProjection);
+					(float)(unsigned int)g_projScaleInt /
+					destination->scaledInverseDepth;
+				float uvT = (destinationProjection -
+					     baseProjection) /
+					    (otherProjection - baseProjection);
 				destination->u = previousU + deltaU * uvT;
 				destination->v = previousV + deltaV * uvT;
 			} else {
@@ -142,11 +191,18 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex, RenderClipVertex
 			destination->lightIntensity = currentRhw + deltaRhw * t;
 			destination->scaledInverseDepth = currentZ + deltaZ * t;
 			if (deltaZ != 0.0f) {
-				float baseProjection = (float)(unsigned int)g_projScaleInt / currentZ;
-				float otherProjection = (float)(unsigned int)g_projScaleInt / previousZ;
+				float baseProjection =
+					(float)(unsigned int)g_projScaleInt /
+					currentZ;
+				float otherProjection =
+					(float)(unsigned int)g_projScaleInt /
+					previousZ;
 				float destinationProjection =
-					(float)(unsigned int)g_projScaleInt / destination->scaledInverseDepth;
-				float uvT = (destinationProjection - baseProjection) / (otherProjection - baseProjection);
+					(float)(unsigned int)g_projScaleInt /
+					destination->scaledInverseDepth;
+				float uvT = (destinationProjection -
+					     baseProjection) /
+					    (otherProjection - baseProjection);
 				destination->u = currentU - deltaU * uvT;
 				destination->v = currentV - deltaV * uvT;
 			} else {
@@ -165,24 +221,30 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex, RenderClipVertex
 }
 
 // FUNCTION: XVT 0x409C10
-void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex, RenderClipVertex* vertices) {
-	RenderClipVertex* previous = &vertices[prevVertIndex];
+void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex,
+			       RenderClipVertex *vertices)
+{
+	RenderClipVertex *previous = &vertices[prevVertIndex];
 	float previousY = previous->y;
-	RenderClipVertex* current = &vertices[curVertIndex];
+	RenderClipVertex *current = &vertices[curVertIndex];
 	float currentY = current->y;
 	int viewportBottom = g_flightVpMaxY;
 	float boundary = (float)viewportBottom;
 
 	if (previousY > boundary) {
-		if (currentY >= boundary)
+		if (currentY >= boundary) {
 			return;
+		}
 
 		{
 			int output;
-			float previousX, currentX, previousLightIntensity, currentLightIntensity;
+			float previousX, currentX, previousLightIntensity,
+				currentLightIntensity;
 			float previousU, currentU, previousV, currentV;
-			float previousScaledInverseDepth, currentScaledInverseDepth;
-			float deltaX, deltaY, deltaLightIntensity, deltaU, deltaV, deltaScaledInverseDepth;
+			float previousScaledInverseDepth,
+				currentScaledInverseDepth;
+			float deltaX, deltaY, deltaLightIntensity, deltaU,
+				deltaV, deltaScaledInverseDepth;
 
 			output = g_clipVertCursor++;
 			previousX = previous->x;
@@ -193,14 +255,17 @@ void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex, RenderClipVe
 			currentU = current->u;
 			previousV = previous->v;
 			currentV = current->v;
-			previousScaledInverseDepth = previous->scaledInverseDepth;
+			previousScaledInverseDepth =
+				previous->scaledInverseDepth;
 			currentScaledInverseDepth = current->scaledInverseDepth;
 			deltaX = currentX - previousX;
 			deltaY = currentY - previousY;
-			deltaLightIntensity = currentLightIntensity - previousLightIntensity;
+			deltaLightIntensity =
+				currentLightIntensity - previousLightIntensity;
 			deltaU = currentU - previousU;
 			deltaV = currentV - previousV;
-			deltaScaledInverseDepth = currentScaledInverseDepth - previousScaledInverseDepth;
+			deltaScaledInverseDepth = currentScaledInverseDepth -
+						  previousScaledInverseDepth;
 
 			/* From here previousY and currentY hold each vertex's distance from the bottom edge; whichever
 			 * is divided by deltaY below then holds the fraction along the edge where it is clipped. */
@@ -208,40 +273,77 @@ void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex, RenderClipVe
 			currentY = boundary - currentY;
 			if (currentY > previousY) {
 				previousY = previousY / deltaY;
-				vertices[output].x = previousX - previousY * deltaX;
-				vertices[output].lightIntensity = previousLightIntensity - previousY * deltaLightIntensity;
+				vertices[output].x =
+					previousX - previousY * deltaX;
+				vertices[output].lightIntensity =
+					previousLightIntensity -
+					previousY * deltaLightIntensity;
 				vertices[output].scaledInverseDepth =
-					previousScaledInverseDepth - previousY * deltaScaledInverseDepth;
+					previousScaledInverseDepth -
+					previousY * deltaScaledInverseDepth;
 				if (deltaScaledInverseDepth != 0.0f) {
-					float projection = (float)g_projScaleInt;
-					float previousDepth = projection / previousScaledInverseDepth;
-					float currentDepth = projection / currentScaledInverseDepth;
-					float destinationDepth = projection / vertices[output].scaledInverseDepth;
-					float uvT = (destinationDepth - previousDepth) / (currentDepth - previousDepth);
-					vertices[output].u = previousU + deltaU * uvT;
-					vertices[output].v = previousV + deltaV * uvT;
+					float projection =
+						(float)g_projScaleInt;
+					float previousDepth =
+						projection /
+						previousScaledInverseDepth;
+					float currentDepth =
+						projection /
+						currentScaledInverseDepth;
+					float destinationDepth =
+						projection /
+						vertices[output]
+							.scaledInverseDepth;
+					float uvT =
+						(destinationDepth -
+						 previousDepth) /
+						(currentDepth - previousDepth);
+					vertices[output].u =
+						previousU + deltaU * uvT;
+					vertices[output].v =
+						previousV + deltaV * uvT;
 				} else {
-					vertices[output].u = previousU - previousY * deltaU;
-					vertices[output].v = previousV - previousY * deltaV;
+					vertices[output].u =
+						previousU - previousY * deltaU;
+					vertices[output].v =
+						previousV - previousY * deltaV;
 				}
 			} else {
 				currentY = currentY / deltaY;
-				vertices[output].x = currentX + currentY * deltaX;
-				vertices[output].lightIntensity = currentLightIntensity + deltaLightIntensity * currentY;
+				vertices[output].x =
+					currentX + currentY * deltaX;
+				vertices[output].lightIntensity =
+					currentLightIntensity +
+					deltaLightIntensity * currentY;
 				vertices[output].scaledInverseDepth =
-					currentScaledInverseDepth + deltaScaledInverseDepth * currentY;
+					currentScaledInverseDepth +
+					deltaScaledInverseDepth * currentY;
 				if (deltaScaledInverseDepth != 0.0f) {
-					float projection = (float)g_projScaleInt;
-					float previousProjection = projection / previousScaledInverseDepth;
-					float currentProjection = projection / currentScaledInverseDepth;
-					float destinationProjection = projection / vertices[output].scaledInverseDepth;
-					float uvT = (destinationProjection - currentProjection) /
-								(previousProjection - currentProjection);
-					vertices[output].u = currentU - deltaU * uvT;
-					vertices[output].v = currentV - deltaV * uvT;
+					float projection =
+						(float)g_projScaleInt;
+					float previousProjection =
+						projection /
+						previousScaledInverseDepth;
+					float currentProjection =
+						projection /
+						currentScaledInverseDepth;
+					float destinationProjection =
+						projection /
+						vertices[output]
+							.scaledInverseDepth;
+					float uvT = (destinationProjection -
+						     currentProjection) /
+						    (previousProjection -
+						     currentProjection);
+					vertices[output].u =
+						currentU - deltaU * uvT;
+					vertices[output].v =
+						currentV - deltaV * uvT;
 				} else {
-					vertices[output].u = currentU + deltaU * currentY;
-					vertices[output].v = currentV + deltaV * currentY;
+					vertices[output].u =
+						currentU + deltaU * currentY;
+					vertices[output].v =
+						currentV + deltaV * currentY;
 				}
 			}
 			vertices[output].y = (float)g_flightVpMaxY;
@@ -280,38 +382,56 @@ void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex, RenderClipVe
 		if (currentY > previousY) {
 			previousY = previousY / deltaY;
 			vertices[output].x = previousX + previousY * deltaX;
-			vertices[output].lightIntensity = previousRhw + previousY * deltaRhw;
-			vertices[output].scaledInverseDepth = previousZ + previousY * deltaZ;
+			vertices[output].lightIntensity =
+				previousRhw + previousY * deltaRhw;
+			vertices[output].scaledInverseDepth =
+				previousZ + previousY * deltaZ;
 			if (deltaZ != 0.0f) {
 				float projection = (float)g_projScaleInt;
-				float previousProjection = projection / previousZ;
+				float previousProjection =
+					projection / previousZ;
 				float currentProjection = projection / currentZ;
-				float destinationProjection = projection / vertices[output].scaledInverseDepth;
-				float uvT =
-					(destinationProjection - previousProjection) / (currentProjection - previousProjection);
+				float destinationProjection =
+					projection /
+					vertices[output].scaledInverseDepth;
+				float uvT = (destinationProjection -
+					     previousProjection) /
+					    (currentProjection -
+					     previousProjection);
 				vertices[output].u = previousU + deltaU * uvT;
 				vertices[output].v = previousV + deltaV * uvT;
 			} else {
-				vertices[output].u = previousU + previousY * deltaU;
-				vertices[output].v = previousV + previousY * deltaV;
+				vertices[output].u =
+					previousU + previousY * deltaU;
+				vertices[output].v =
+					previousV + previousY * deltaV;
 			}
 		} else {
 			currentY = currentY / deltaY;
 			vertices[output].x = currentX - currentY * deltaX;
-			vertices[output].lightIntensity = currentRhw - deltaRhw * currentY;
-			vertices[output].scaledInverseDepth = currentZ - deltaZ * currentY;
+			vertices[output].lightIntensity =
+				currentRhw - deltaRhw * currentY;
+			vertices[output].scaledInverseDepth =
+				currentZ - deltaZ * currentY;
 			if (deltaZ != 0.0f) {
 				float projection = (float)g_projScaleInt;
-				float previousProjection = projection / previousZ;
+				float previousProjection =
+					projection / previousZ;
 				float currentProjection = projection / currentZ;
-				float destinationProjection = projection / vertices[output].scaledInverseDepth;
-				float uvT =
-					(destinationProjection - currentProjection) / (previousProjection - currentProjection);
+				float destinationProjection =
+					projection /
+					vertices[output].scaledInverseDepth;
+				float uvT = (destinationProjection -
+					     currentProjection) /
+					    (previousProjection -
+					     currentProjection);
 				vertices[output].u = currentU - deltaU * uvT;
 				vertices[output].v = currentV - deltaV * uvT;
 			} else {
-				vertices[output].u = currentU - deltaU * currentY;
-				vertices[output].v = currentV - deltaV * currentY;
+				vertices[output].u =
+					currentU - deltaU * currentY;
+				vertices[output].v =
+					currentV - deltaV * currentY;
 			}
 		}
 		vertices[output].y = (float)g_flightVpMaxY;
@@ -322,9 +442,11 @@ void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex, RenderClipVe
 }
 
 // FUNCTION: XVT 0x40A1A0
-int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex, RenderClipVertex* vertices) {
-	RenderClipVertex* previous;
-	RenderClipVertex* current;
+int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex,
+			    RenderClipVertex *vertices)
+{
+	RenderClipVertex *previous;
+	RenderClipVertex *current;
 	float currentX;
 	float previousX;
 	int result;
@@ -335,16 +457,20 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex, RenderClipVerte
 	result = INT32_MIN;
 
 	if (previousX < 0.0f) {
-		if (currentX < 0.0f)
+		if (currentX < 0.0f) {
 			return result;
+		}
 
 		{
 			int output;
-			float currentY, previousY, currentLightIntensity, previousLightIntensity;
+			float currentY, previousY, currentLightIntensity,
+				previousLightIntensity;
 			float currentU, previousU, currentV, previousV;
-			float currentScaledInverseDepth, previousScaledInverseDepth, deltaX, deltaY, deltaLightIntensity;
+			float currentScaledInverseDepth,
+				previousScaledInverseDepth, deltaX, deltaY,
+				deltaLightIntensity;
 			float deltaU, deltaV, deltaScaledInverseDepth;
-			RenderClipVertex* destination;
+			RenderClipVertex *destination;
 			output = g_clipVertCursor++;
 			previousY = previous->y;
 			currentY = current->y;
@@ -354,14 +480,17 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex, RenderClipVerte
 			currentU = current->u;
 			previousV = previous->v;
 			currentV = current->v;
-			previousScaledInverseDepth = previous->scaledInverseDepth;
+			previousScaledInverseDepth =
+				previous->scaledInverseDepth;
 			currentScaledInverseDepth = current->scaledInverseDepth;
 			deltaX = currentX - previousX;
 			deltaY = currentY - previousY;
-			deltaLightIntensity = currentLightIntensity - previousLightIntensity;
+			deltaLightIntensity =
+				currentLightIntensity - previousLightIntensity;
 			deltaU = currentU - previousU;
 			deltaV = currentV - previousV;
-			deltaScaledInverseDepth = currentScaledInverseDepth - previousScaledInverseDepth;
+			deltaScaledInverseDepth = currentScaledInverseDepth -
+						  previousScaledInverseDepth;
 
 			/* From here previousX and currentX hold each vertex's distance from the left edge; whichever
 			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
@@ -370,47 +499,76 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex, RenderClipVerte
 				previousX = previousX / deltaX;
 				destination = &vertices[output];
 				destination->y = previousY + previousX * deltaY;
-				destination->lightIntensity = previousLightIntensity + previousX * deltaLightIntensity;
+				destination->lightIntensity =
+					previousLightIntensity +
+					previousX * deltaLightIntensity;
 				destination->scaledInverseDepth =
-					previousScaledInverseDepth + previousX * deltaScaledInverseDepth;
+					previousScaledInverseDepth +
+					previousX * deltaScaledInverseDepth;
 				if (deltaScaledInverseDepth != 0.0f) {
 					float projection;
 					float baseDepth;
 					float otherDepth;
 					float uvT;
-					projection = (float)(unsigned int)g_projScaleInt;
-					baseDepth = projection / previousScaledInverseDepth;
-					otherDepth = projection / currentScaledInverseDepth;
-					uvT =
-						(projection / destination->scaledInverseDepth - baseDepth) / (otherDepth - baseDepth);
-					destination->u = previousU + deltaU * uvT;
-					destination->v = previousV + deltaV * uvT;
+					projection = (float)(unsigned int)
+						g_projScaleInt;
+					baseDepth = projection /
+						    previousScaledInverseDepth;
+					otherDepth = projection /
+						     currentScaledInverseDepth;
+					uvT = (projection /
+						       destination
+							       ->scaledInverseDepth -
+					       baseDepth) /
+					      (otherDepth - baseDepth);
+					destination->u =
+						previousU + deltaU * uvT;
+					destination->v =
+						previousV + deltaV * uvT;
 				} else {
-					destination->u = previousU + previousX * deltaU;
-					destination->v = previousV + previousX * deltaV;
+					destination->u =
+						previousU + previousX * deltaU;
+					destination->v =
+						previousV + previousX * deltaV;
 				}
 			} else {
 				currentX = currentX / deltaX;
 				destination = &vertices[output];
 				destination->y = currentY - currentX * deltaY;
-				destination->lightIntensity = currentLightIntensity - currentX * deltaLightIntensity;
+				destination->lightIntensity =
+					currentLightIntensity -
+					currentX * deltaLightIntensity;
 				destination->scaledInverseDepth =
-					currentScaledInverseDepth - currentX * deltaScaledInverseDepth;
+					currentScaledInverseDepth -
+					currentX * deltaScaledInverseDepth;
 				if (deltaScaledInverseDepth != 0.0f) {
 					float projection;
 					float baseProjection;
 					float otherProjection;
 					float uvT;
-					projection = (float)(unsigned int)g_projScaleInt;
-					baseProjection = projection / currentScaledInverseDepth;
-					otherProjection = projection / previousScaledInverseDepth;
-					uvT = (projection / destination->scaledInverseDepth - baseProjection) /
-						  (otherProjection - baseProjection);
-					destination->u = currentU - deltaU * uvT;
-					destination->v = currentV - deltaV * uvT;
+					projection = (float)(unsigned int)
+						g_projScaleInt;
+					baseProjection =
+						projection /
+						currentScaledInverseDepth;
+					otherProjection =
+						projection /
+						previousScaledInverseDepth;
+					uvT = (projection /
+						       destination
+							       ->scaledInverseDepth -
+					       baseProjection) /
+					      (otherProjection -
+					       baseProjection);
+					destination->u =
+						currentU - deltaU * uvT;
+					destination->v =
+						currentV - deltaV * uvT;
 				} else {
-					destination->u = currentU - currentX * deltaU;
-					destination->v = currentV - currentX * deltaV;
+					destination->u =
+						currentU - currentX * deltaU;
+					destination->v =
+						currentV - currentX * deltaV;
 				}
 			}
 			destination->x = 0.0f;
@@ -425,7 +583,7 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex, RenderClipVerte
 			float currentU, previousU, currentV, previousV;
 			float currentZ, previousZ, deltaX, deltaY, deltaRhw;
 			float deltaU, deltaV, deltaZ;
-			RenderClipVertex* destination;
+			RenderClipVertex *destination;
 			output = g_clipVertCursor++;
 			previousY = previous->y;
 			currentY = current->y;
@@ -451,45 +609,68 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex, RenderClipVerte
 				previousX = previousX / deltaX;
 				destination = &vertices[output];
 				destination->y = previousY - previousX * deltaY;
-				destination->lightIntensity = previousRhw - previousX * deltaRhw;
-				destination->scaledInverseDepth = previousZ - previousX * deltaZ;
+				destination->lightIntensity =
+					previousRhw - previousX * deltaRhw;
+				destination->scaledInverseDepth =
+					previousZ - previousX * deltaZ;
 				if (deltaZ != 0.0f) {
 					float projection;
 					float baseProjection;
 					float otherProjection;
 					float uvT;
-					projection = (float)(unsigned int)g_projScaleInt;
+					projection = (float)(unsigned int)
+						g_projScaleInt;
 					baseProjection = projection / previousZ;
 					otherProjection = projection / currentZ;
-					uvT = (projection / destination->scaledInverseDepth - baseProjection) /
-						  (otherProjection - baseProjection);
-					destination->u = previousU + deltaU * uvT;
-					destination->v = previousV + deltaV * uvT;
+					uvT = (projection /
+						       destination
+							       ->scaledInverseDepth -
+					       baseProjection) /
+					      (otherProjection -
+					       baseProjection);
+					destination->u =
+						previousU + deltaU * uvT;
+					destination->v =
+						previousV + deltaV * uvT;
 				} else {
-					destination->u = previousU - previousX * deltaU;
-					destination->v = previousV - previousX * deltaV;
+					destination->u =
+						previousU - previousX * deltaU;
+					destination->v =
+						previousV - previousX * deltaV;
 				}
 			} else {
 				currentX = currentX / deltaX;
 				destination = &vertices[output];
 				destination->y = currentY + currentX * deltaY;
-				destination->lightIntensity = currentRhw + currentX * deltaRhw;
-				destination->scaledInverseDepth = currentZ + currentX * deltaZ;
+				destination->lightIntensity =
+					currentRhw + currentX * deltaRhw;
+				destination->scaledInverseDepth =
+					currentZ + currentX * deltaZ;
 				if (deltaZ != 0.0f) {
 					float projection;
 					float baseProjection;
 					float otherProjection;
 					float uvT;
-					projection = (float)(unsigned int)g_projScaleInt;
+					projection = (float)(unsigned int)
+						g_projScaleInt;
 					baseProjection = projection / currentZ;
-					otherProjection = projection / previousZ;
-					uvT = (projection / destination->scaledInverseDepth - baseProjection) /
-						  (otherProjection - baseProjection);
-					destination->u = currentU - deltaU * uvT;
-					destination->v = currentV - deltaV * uvT;
+					otherProjection =
+						projection / previousZ;
+					uvT = (projection /
+						       destination
+							       ->scaledInverseDepth -
+					       baseProjection) /
+					      (otherProjection -
+					       baseProjection);
+					destination->u =
+						currentU - deltaU * uvT;
+					destination->v =
+						currentV - deltaV * uvT;
 				} else {
-					destination->u = currentU + currentX * deltaU;
-					destination->v = currentV + currentX * deltaV;
+					destination->u =
+						currentU + currentX * deltaU;
+					destination->v =
+						currentV + currentX * deltaV;
 				}
 			}
 			destination->x = 0.0f;
@@ -504,24 +685,30 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex, RenderClipVerte
 }
 
 // FUNCTION: XVT 0x40A6E0
-void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex, RenderClipVertex* vertices) {
-	RenderClipVertex* previous = &vertices[prevVertIndex];
+void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex,
+			      RenderClipVertex *vertices)
+{
+	RenderClipVertex *previous = &vertices[prevVertIndex];
 	float previousX = previous->x;
-	RenderClipVertex* current = &vertices[curVertIndex];
+	RenderClipVertex *current = &vertices[curVertIndex];
 	float currentX = current->x;
 	int viewportWidth = g_flightVpWidth;
 	float boundary = (float)viewportWidth;
 
 	if (previousX > boundary) {
-		if (currentX > boundary)
+		if (currentX > boundary) {
 			return;
+		}
 
 		{
 			int output;
-			float previousY, currentY, previousLightIntensity, currentLightIntensity;
+			float previousY, currentY, previousLightIntensity,
+				currentLightIntensity;
 			float previousU, currentU, previousV, currentV;
-			float previousScaledInverseDepth, currentScaledInverseDepth;
-			float deltaX, deltaY, deltaLightIntensity, deltaU, deltaV, deltaScaledInverseDepth;
+			float previousScaledInverseDepth,
+				currentScaledInverseDepth;
+			float deltaX, deltaY, deltaLightIntensity, deltaU,
+				deltaV, deltaScaledInverseDepth;
 
 			output = g_clipVertCursor++;
 			previousY = previous->y;
@@ -532,14 +719,17 @@ void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex, RenderClipVer
 			currentU = current->u;
 			previousV = previous->v;
 			currentV = current->v;
-			previousScaledInverseDepth = previous->scaledInverseDepth;
+			previousScaledInverseDepth =
+				previous->scaledInverseDepth;
 			currentScaledInverseDepth = current->scaledInverseDepth;
 			deltaX = currentX - previousX;
 			deltaY = currentY - previousY;
-			deltaLightIntensity = currentLightIntensity - previousLightIntensity;
+			deltaLightIntensity =
+				currentLightIntensity - previousLightIntensity;
 			deltaU = currentU - previousU;
 			deltaV = currentV - previousV;
-			deltaScaledInverseDepth = currentScaledInverseDepth - previousScaledInverseDepth;
+			deltaScaledInverseDepth = currentScaledInverseDepth -
+						  previousScaledInverseDepth;
 
 			/* From here previousX and currentX hold each vertex's distance from the right edge; whichever
 			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
@@ -547,40 +737,77 @@ void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex, RenderClipVer
 			currentX = boundary - currentX;
 			if (currentX > previousX) {
 				previousX = previousX / deltaX;
-				vertices[output].y = previousY - previousX * deltaY;
-				vertices[output].lightIntensity = previousLightIntensity - previousX * deltaLightIntensity;
+				vertices[output].y =
+					previousY - previousX * deltaY;
+				vertices[output].lightIntensity =
+					previousLightIntensity -
+					previousX * deltaLightIntensity;
 				vertices[output].scaledInverseDepth =
-					previousScaledInverseDepth - previousX * deltaScaledInverseDepth;
+					previousScaledInverseDepth -
+					previousX * deltaScaledInverseDepth;
 				if (deltaScaledInverseDepth != 0.0f) {
-					float projection = (float)g_projScaleInt;
-					float previousDepth = projection / previousScaledInverseDepth;
-					float currentDepth = projection / currentScaledInverseDepth;
-					float destinationDepth = projection / vertices[output].scaledInverseDepth;
-					float uvT = (destinationDepth - previousDepth) / (currentDepth - previousDepth);
-					vertices[output].u = previousU + deltaU * uvT;
-					vertices[output].v = previousV + deltaV * uvT;
+					float projection =
+						(float)g_projScaleInt;
+					float previousDepth =
+						projection /
+						previousScaledInverseDepth;
+					float currentDepth =
+						projection /
+						currentScaledInverseDepth;
+					float destinationDepth =
+						projection /
+						vertices[output]
+							.scaledInverseDepth;
+					float uvT =
+						(destinationDepth -
+						 previousDepth) /
+						(currentDepth - previousDepth);
+					vertices[output].u =
+						previousU + deltaU * uvT;
+					vertices[output].v =
+						previousV + deltaV * uvT;
 				} else {
-					vertices[output].u = previousU - previousX * deltaU;
-					vertices[output].v = previousV - previousX * deltaV;
+					vertices[output].u =
+						previousU - previousX * deltaU;
+					vertices[output].v =
+						previousV - previousX * deltaV;
 				}
 			} else {
 				currentX = currentX / deltaX;
-				vertices[output].y = currentY + currentX * deltaY;
-				vertices[output].lightIntensity = currentLightIntensity + deltaLightIntensity * currentX;
+				vertices[output].y =
+					currentY + currentX * deltaY;
+				vertices[output].lightIntensity =
+					currentLightIntensity +
+					deltaLightIntensity * currentX;
 				vertices[output].scaledInverseDepth =
-					currentScaledInverseDepth + deltaScaledInverseDepth * currentX;
+					currentScaledInverseDepth +
+					deltaScaledInverseDepth * currentX;
 				if (deltaScaledInverseDepth != 0.0f) {
-					float projection = (float)g_projScaleInt;
-					float previousProjection = projection / previousScaledInverseDepth;
-					float currentProjection = projection / currentScaledInverseDepth;
-					float destinationProjection = projection / vertices[output].scaledInverseDepth;
-					float uvT = (destinationProjection - currentProjection) /
-								(previousProjection - currentProjection);
-					vertices[output].u = currentU - deltaU * uvT;
-					vertices[output].v = currentV - deltaV * uvT;
+					float projection =
+						(float)g_projScaleInt;
+					float previousProjection =
+						projection /
+						previousScaledInverseDepth;
+					float currentProjection =
+						projection /
+						currentScaledInverseDepth;
+					float destinationProjection =
+						projection /
+						vertices[output]
+							.scaledInverseDepth;
+					float uvT = (destinationProjection -
+						     currentProjection) /
+						    (previousProjection -
+						     currentProjection);
+					vertices[output].u =
+						currentU - deltaU * uvT;
+					vertices[output].v =
+						currentV - deltaV * uvT;
 				} else {
-					vertices[output].u = currentU + deltaU * currentX;
-					vertices[output].v = currentV + deltaV * currentX;
+					vertices[output].u =
+						currentU + deltaU * currentX;
+					vertices[output].v =
+						currentV + deltaV * currentX;
 				}
 			}
 			vertices[output].x = (float)g_flightVpWidth;
@@ -619,38 +846,56 @@ void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex, RenderClipVer
 		if (currentX > previousX) {
 			previousX = previousX / deltaX;
 			vertices[output].y = previousY + previousX * deltaY;
-			vertices[output].lightIntensity = previousRhw + previousX * deltaRhw;
-			vertices[output].scaledInverseDepth = previousZ + previousX * deltaZ;
+			vertices[output].lightIntensity =
+				previousRhw + previousX * deltaRhw;
+			vertices[output].scaledInverseDepth =
+				previousZ + previousX * deltaZ;
 			if (deltaZ != 0.0f) {
 				float projection = (float)g_projScaleInt;
-				float previousProjection = projection / previousZ;
+				float previousProjection =
+					projection / previousZ;
 				float currentProjection = projection / currentZ;
-				float destinationProjection = projection / vertices[output].scaledInverseDepth;
-				float uvT =
-					(destinationProjection - previousProjection) / (currentProjection - previousProjection);
+				float destinationProjection =
+					projection /
+					vertices[output].scaledInverseDepth;
+				float uvT = (destinationProjection -
+					     previousProjection) /
+					    (currentProjection -
+					     previousProjection);
 				vertices[output].u = previousU + deltaU * uvT;
 				vertices[output].v = previousV + deltaV * uvT;
 			} else {
-				vertices[output].u = previousU + previousX * deltaU;
-				vertices[output].v = previousV + previousX * deltaV;
+				vertices[output].u =
+					previousU + previousX * deltaU;
+				vertices[output].v =
+					previousV + previousX * deltaV;
 			}
 		} else {
 			currentX = currentX / deltaX;
 			vertices[output].y = currentY - currentX * deltaY;
-			vertices[output].lightIntensity = currentRhw - deltaRhw * currentX;
-			vertices[output].scaledInverseDepth = currentZ - deltaZ * currentX;
+			vertices[output].lightIntensity =
+				currentRhw - deltaRhw * currentX;
+			vertices[output].scaledInverseDepth =
+				currentZ - deltaZ * currentX;
 			if (deltaZ != 0.0f) {
 				float projection = (float)g_projScaleInt;
-				float previousProjection = projection / previousZ;
+				float previousProjection =
+					projection / previousZ;
 				float currentProjection = projection / currentZ;
-				float destinationProjection = projection / vertices[output].scaledInverseDepth;
-				float uvT =
-					(destinationProjection - currentProjection) / (previousProjection - currentProjection);
+				float destinationProjection =
+					projection /
+					vertices[output].scaledInverseDepth;
+				float uvT = (destinationProjection -
+					     currentProjection) /
+					    (previousProjection -
+					     currentProjection);
 				vertices[output].u = currentU - deltaU * uvT;
 				vertices[output].v = currentV - deltaV * uvT;
 			} else {
-				vertices[output].u = currentU - deltaU * currentX;
-				vertices[output].v = currentV - deltaV * currentX;
+				vertices[output].u =
+					currentU - deltaU * currentX;
+				vertices[output].v =
+					currentV - deltaV * currentX;
 			}
 		}
 		vertices[output].x = (float)g_flightVpWidth;
@@ -661,10 +906,12 @@ void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex, RenderClipVer
 }
 
 // FUNCTION: XVT 0x40AC80
-void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex, RenderClipVertex* vertices) {
-	RenderClipVertex* previous = &vertices[prevVertIndex];
+void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex,
+			     RenderClipVertex *vertices)
+{
+	RenderClipVertex *previous = &vertices[prevVertIndex];
 	float previousScaledInverseDepth = previous->scaledInverseDepth;
-	RenderClipVertex* current = &vertices[curVertIndex];
+	RenderClipVertex *current = &vertices[curVertIndex];
 	float currentScaledInverseDepth = current->scaledInverseDepth;
 	int output;
 
@@ -690,12 +937,16 @@ void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex, RenderClipVert
 		previousY = previous->y;
 		previousLightIntensity = previous->lightIntensity;
 		previousU = previous->u;
-		currentDepth = (float)(unsigned int)g_projScaleInt / currentScaledInverseDepth;
+		currentDepth = (float)(unsigned int)g_projScaleInt /
+			       currentScaledInverseDepth;
 		previousV = previous->v;
-		currentX = (current->x - (float)(g_flightVpWidth >> 1)) * currentDepth;
+		currentX = (current->x - (float)(g_flightVpWidth >> 1)) *
+			   currentDepth;
 		/* From here currentX is the edge's x difference (current vertex minus previous). */
 		currentX = currentX * g_invProjScale - previousX;
-		currentY = (current->y - (float)(g_projOffsetY + (g_flightVpHeight >> 1))) * currentDepth;
+		currentY = (current->y -
+			    (float)(g_projOffsetY + (g_flightVpHeight >> 1))) *
+			   currentDepth;
 		/* From here currentY is the edge's y difference (current vertex minus previous). */
 		currentY = currentY * g_invProjScale - previousY;
 		deltaU = current->u - previousU;
@@ -703,7 +954,8 @@ void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex, RenderClipVert
 		t = currentDepth - previousScaledInverseDepth;
 		t = previousScaledInverseDepth / (t - g_renderUnitFloat);
 		vertices[output].lightIntensity =
-			previousLightIntensity - (current->lightIntensity - previousLightIntensity) * t;
+			previousLightIntensity -
+			(current->lightIntensity - previousLightIntensity) * t;
 		vertices[output].x = previousX - currentX * t;
 		vertices[output].y = previousY - currentY * t;
 		vertices[output].v = previousV - t * deltaV;
@@ -712,8 +964,11 @@ void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex, RenderClipVert
 		vertices[output].scaledInverseDepth = projection;
 		vertices[output].x = vertices[output].x * projection;
 		vertices[output].y = projection * vertices[output].y;
-		vertices[output].x = (float)(g_flightVpWidth >> 1) + vertices[output].x;
-		vertices[output].y = (float)(g_projOffsetY + (g_flightVpHeight >> 1)) + vertices[output].y;
+		vertices[output].x =
+			(float)(g_flightVpWidth >> 1) + vertices[output].x;
+		vertices[output].y =
+			(float)(g_projOffsetY + (g_flightVpHeight >> 1)) +
+			vertices[output].y;
 		g_clipIdxA[g_clipCountA++] = output;
 		g_clipIdxA[g_clipCountA++] = curVertIndex;
 	} else if (currentScaledInverseDepth < 0.0f) {
@@ -732,22 +987,29 @@ void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex, RenderClipVert
 
 		output = g_clipVertCursor++;
 		currentX = current->x;
-		previousDepth = (float)(unsigned int)g_projScaleInt / previousScaledInverseDepth;
+		previousDepth = (float)(unsigned int)g_projScaleInt /
+				previousScaledInverseDepth;
 		currentY = current->y;
 		currentLightIntensity = current->lightIntensity;
 		currentU = current->u;
 		currentV = current->v;
-		previousX = (previous->x - (float)(g_flightVpWidth >> 1)) * previousDepth;
+		previousX = (previous->x - (float)(g_flightVpWidth >> 1)) *
+			    previousDepth;
 		/* From here previousX is the edge's x difference (current vertex minus previous). */
 		previousX = currentX - previousX * g_invProjScale;
-		previousY = (previous->y - (float)(g_projOffsetY + (g_flightVpHeight >> 1))) * previousDepth;
+		previousY = (previous->y -
+			     (float)(g_projOffsetY + (g_flightVpHeight >> 1))) *
+			    previousDepth;
 		/* From here previousY is the edge's y difference (current vertex minus previous). */
 		previousY = currentY - previousY * g_invProjScale;
 		deltaU = currentU - previous->u;
 		deltaV = currentV - previous->v;
-		t = currentScaledInverseDepth / (currentScaledInverseDepth - previousDepth + g_renderUnitFloat);
+		t = currentScaledInverseDepth /
+		    (currentScaledInverseDepth - previousDepth +
+		     g_renderUnitFloat);
 		vertices[output].lightIntensity =
-			currentLightIntensity - (currentLightIntensity - previous->lightIntensity) * t;
+			currentLightIntensity -
+			(currentLightIntensity - previous->lightIntensity) * t;
 		vertices[output].x = currentX - previousX * t;
 		vertices[output].y = currentY - previousY * t;
 		vertices[output].u = currentU - deltaU * t;
@@ -756,8 +1018,11 @@ void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex, RenderClipVert
 		vertices[output].scaledInverseDepth = projection;
 		vertices[output].x = vertices[output].x * projection;
 		vertices[output].y = projection * vertices[output].y;
-		vertices[output].x = (float)(g_flightVpWidth >> 1) + vertices[output].x;
-		vertices[output].y = (float)(g_projOffsetY + (g_flightVpHeight >> 1)) + vertices[output].y;
+		vertices[output].x =
+			(float)(g_flightVpWidth >> 1) + vertices[output].x;
+		vertices[output].y =
+			(float)(g_projOffsetY + (g_flightVpHeight >> 1)) +
+			vertices[output].y;
 		g_clipIdxA[g_clipCountA++] = output;
 	} else {
 		g_clipIdxA[g_clipCountA++] = curVertIndex;

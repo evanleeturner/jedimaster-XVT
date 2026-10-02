@@ -17,22 +17,25 @@ extern int g_remotePlayerRenderSmoothingEnabled;
 void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta);
 void FlightSync_DiscardAllPredictedInputFrames(void);
 void FlightSync_DiscardPredictedInputFrames(int playerIdx);
-void FlightSync_RemoveInputHistoryFrame(int playerIdx, InputFrame* frame);
-InputFrame* FlightSync_InsertInputFrame(int playerIdx, int timestamp, const FlightInputFrameRecord* input);
-InputFrame* FlightSync_FindLastUnrelayedInputFrame(int playerIdx);
+void FlightSync_RemoveInputHistoryFrame(int playerIdx, InputFrame *frame);
+InputFrame *FlightSync_InsertInputFrame(int playerIdx, int timestamp,
+					const FlightInputFrameRecord *input);
+InputFrame *FlightSync_FindLastUnrelayedInputFrame(int playerIdx);
 void FlightSync_ResetRemotePlayerRenderSmoothing(void);
 void FlightSync_CaptureSamplesAndRestorePoses(void);
 void FlightSync_ApplyRemotePlayerRenderSmoothing(void);
 #ifndef XVT_MODERN
-void FlightSync_ApplyWorldMessagePacket(uint8_t* packet);
+void FlightSync_ApplyWorldMessagePacket(uint8_t *packet);
 #endif
-void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int* packet);
-void FlightSync_HandleServerChecksumPacket(uint8_t* packet);
-void FlightSync_CopyWorldStateResyncChunk(const void* src, int offset, unsigned int size);
-void FlightSync_ApplyResyncAndReplayWorldMessages(unsigned int worldStateBytes, int serverTickTime);
+void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int *packet);
+void FlightSync_HandleServerChecksumPacket(uint8_t *packet);
+void FlightSync_CopyWorldStateResyncChunk(const void *src, int offset,
+					  unsigned int size);
+void FlightSync_ApplyResyncAndReplayWorldMessages(unsigned int worldStateBytes,
+						  int serverTickTime);
 void FlightSync_SnapshotWorldStateForReplay(void);
 #ifndef XVT_MODERN
-void FlightSync_BufferWorldMessagePacket(uint8_t* packet);
+void FlightSync_BufferWorldMessagePacket(uint8_t *packet);
 #endif
 void FlightSync_ClearBufferedWorldMessages(void);
 #ifndef XVT_MODERN

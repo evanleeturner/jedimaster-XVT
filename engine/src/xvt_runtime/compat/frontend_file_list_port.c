@@ -8,20 +8,23 @@
 #include <string.h>
 
 typedef struct FrontendFileListBuildState {
-	FrontendFileList* list;
+	FrontendFileList *list;
 	char directory[XVT_PATH_CAPACITY];
 } FrontendFileListBuildState;
 
-static int FrontendFileList_CollectModernFile(void* userdata, const AeronVfsEntry* entry) {
-	FrontendFileListBuildState* state;
-	FrontendFileListNode* node;
+static int FrontendFileList_CollectModernFile(void *userdata,
+					      const AeronVfsEntry *entry)
+{
+	FrontendFileListBuildState *state;
+	FrontendFileListNode *node;
 
-	state = (FrontendFileListBuildState*)userdata;
-	node = (FrontendFileListNode*)malloc(sizeof(*node));
+	state = (FrontendFileListBuildState *)userdata;
+	node = (FrontendFileListNode *)malloc(sizeof(*node));
 	if (node == NULL) {
 		return 0;
 	}
-	node->path = (char*)malloc(strlen(state->directory) + strlen(entry->name) + 2);
+	node->path = (char *)malloc(strlen(state->directory) +
+				    strlen(entry->name) + 2);
 	if (node->path == NULL) {
 		free(node);
 		return 0;
@@ -38,28 +41,32 @@ static int FrontendFileList_CollectModernFile(void* userdata, const AeronVfsEntr
 	return 1;
 }
 
-FrontendFileList* FrontendFileList_BuildSortedModern(const char* wildcard) {
+FrontendFileList *FrontendFileList_BuildSortedModern(const char *wildcard)
+{
 	FrontendFileListBuildState state;
 
-	state.list = (FrontendFileList*)malloc(sizeof(*state.list));
+	state.list = (FrontendFileList *)malloc(sizeof(*state.list));
 	if (state.list == NULL) {
 		return NULL;
 	}
 	state.list->head = NULL;
 	state.list->count = 0;
-	if (!XvtStorage_Normalize(wildcard, state.directory, sizeof(state.directory))) {
+	if (!XvtStorage_Normalize(wildcard, state.directory,
+				  sizeof(state.directory))) {
 		free(state.list);
 		return NULL;
 	}
-	char* slash = strrchr(state.directory, '/');
-	if (slash)
+	char *slash = strrchr(state.directory, '/');
+	if (slash) {
 		slash[1] = 0;
-	else
+	} else {
 		state.directory[0] = 0;
-	if (!XvtStorage_Glob(AERON_VFS_ROOT_USER, wildcard, FrontendFileList_CollectModernFile, &state)) {
-		FrontendFileListNode* node = state.list->head;
+	}
+	if (!XvtStorage_Glob(AERON_VFS_ROOT_USER, wildcard,
+			     FrontendFileList_CollectModernFile, &state)) {
+		FrontendFileListNode *node = state.list->head;
 		while (node) {
-			FrontendFileListNode* next = node->next;
+			FrontendFileListNode *next = node->next;
 			free(node->path);
 			free(node);
 			node = next;

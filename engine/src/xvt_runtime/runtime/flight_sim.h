@@ -22,14 +22,17 @@ typedef enum XvtInputInsertStatus {
  * tick is overwritten. Returns DUPLICATE when the frame at tick is authoritative or applied, FULL
  * when the history is at capacity, and INVALID for a bad player, a tick at or below 0, NULL input,
  * unknown flags, a throttle without its flag, or a corrupt count. */
-XvtInputInsertStatus XvtFlightHistory_Insert(unsigned player, int tick, const FlightInputFrameRecord* input,
-											 InputFrame** out);
+XvtInputInsertStatus
+XvtFlightHistory_Insert(unsigned player, int tick,
+			const FlightInputFrameRecord *input, InputFrame **out);
 /* Insert for received input: a full history first drops its predicted frames and retries. A new
  * frame is marked authoritative and unapplied, or real, and applied on the host. An authoritative
  * duplicate must match the frames already at tick, which then become authoritative and unapplied;
  * a mismatch logs an error and returns CONFLICT. Otherwise returns Insert's status. */
-XvtInputInsertStatus XvtFlightHistory_InsertReal(unsigned player, int tick,
-												 const FlightInputFrameRecord* input, int authoritative);
+XvtInputInsertStatus
+XvtFlightHistory_InsertReal(unsigned player, int tick,
+			    const FlightInputFrameRecord *input,
+			    int authoritative);
 
 /* Clears the step, pause and replay state and the prediction fallback. */
 void XvtFlightSim_Reset(void);

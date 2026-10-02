@@ -11,9 +11,9 @@
  * asks the port for settings instead. One global state; not thread-safe. */
 
 /* Clears all state and installs options; invalid options log a warning and leave none installed. */
-void XvtControllerMapping_Init(const XvtControllerOptions* options);
+void XvtControllerMapping_Init(const XvtControllerOptions *options);
 /* Keeps options for the next ApplyPending; invalid options log a warning and are dropped. */
-void XvtControllerMapping_SetOptions(const XvtControllerOptions* options);
+void XvtControllerMapping_SetOptions(const XvtControllerOptions *options);
 /* Installs the options SetOptions kept, if any. Controllers whose model was removed or changed release
  * their actions; the rest keep their state and axis controller. */
 void XvtControllerMapping_ApplyPending(void);
@@ -22,14 +22,14 @@ void XvtControllerMapping_ApplyPending(void);
  * then reads each model's axes from the controller it used last, else the lowest instance id, and the
  * bindings of every matching controller. On a controller's first frame, logs a warning for configured
  * controls it lacks. */
-void XvtControllerMapping_Update(const AeronInputSnapshot* input);
+void XvtControllerMapping_Update(const AeronInputSnapshot *input);
 /* Drops every controller state, held button, axis value and queued key without sending releases; the
  * mapping resumes at the next Update that allows it. */
 void XvtControllerMapping_Suspend(void);
 /* Clears all state, the installed options included. */
 void XvtControllerMapping_Shutdown(void);
 /* The installed options, not ones waiting for ApplyPending. */
-const XvtControllerOptions* XvtControllerMapping_Options(void);
+const XvtControllerOptions *XvtControllerMapping_Options(void);
 /* Yaw, pitch or roll from this frame, -127 to 127: 0 inside the deadzone, inverted as configured, and a
  * gamepad's pitch flipped once more, since its Y axis points down. 0 for throttle, an unbound axis, or while
  * suspended. */
@@ -45,20 +45,23 @@ uint16_t XvtControllerMapping_ReadKey(void);
 void XvtControllerMapping_DropCommands(void);
 /* The connected controller matching model's GUID and kind whose instance id is preferred, else the one
  * with the lowest instance id; NULL when none. */
-const AeronControllerSnapshot* XvtControllerMapping_Resolve(const XvtControllerModel* model,
-															const AeronInputSnapshot* input,
-															uint32_t preferred);
+const AeronControllerSnapshot *
+XvtControllerMapping_Resolve(const XvtControllerModel *model,
+			     const AeronInputSnapshot *input,
+			     uint32_t preferred);
 /* The instance id of the controller whose axes that model uses, or 0. */
-uint32_t XvtControllerMapping_AnalogInstance(const char* guid);
+uint32_t XvtControllerMapping_AnalogInstance(const char *guid);
 /* A throttle lever position, 0 to 65535, from a raw axis value: a full axis spans -32768 to 32767, a
  * gamepad trigger 0 to 32767; invert flips it; within 328 of either end it snaps to that end, and the
  * travel between is rescaled to the full range. */
-uint16_t XvtControllerMapping_ThrottlePosition(int16_t raw, AeronControllerKind kind, int source,
-											   bool invert);
+uint16_t XvtControllerMapping_ThrottlePosition(int16_t raw,
+					       AeronControllerKind kind,
+					       int source, bool invert);
 /* Writes the last throttle position and a generation that changes when the throttle's controller or
  * binding changes or the mapping suspends, so a caller knows to reset its baseline. Returns true when a
  * throttle was read this frame. */
-bool XvtControllerMapping_ThrottleSample(uint16_t* position, uint32_t* generation);
+bool XvtControllerMapping_ThrottleSample(uint16_t *position,
+					 uint32_t *generation);
 /* 1 when a configured model had a connected controller this frame, suspended or not. */
 int XvtControllerMapping_IsModelConnected(void);
 /* As Axis, with only the configured inversion: gamepad pitch is not flipped. */

@@ -1,10 +1,14 @@
 #include "xvt/assets/endian.h"
 
 // FUNCTION: XVT 0x4CC8F0
-uint16_t Endian_Swap16(uint16_t value) { return (uint16_t)((value >> 8) | (value << 8)); }
+uint16_t Endian_Swap16(uint16_t value)
+{
+	return (uint16_t)((value >> 8) | (value << 8));
+}
 
 // FUNCTION: XVT 0x4CC900
-unsigned int Endian_Swap32(unsigned int value) {
+unsigned int Endian_Swap32(unsigned int value)
+{
 	unsigned int highByte;
 	unsigned int middleByte;
 	unsigned int result;

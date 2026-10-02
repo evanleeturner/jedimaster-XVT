@@ -95,7 +95,8 @@ enum NetPacketType {
 	NET_PACKET_PLAYER_LEFT = 71,
 	NET_PACKET_TEAM_ASSIGNMENTS_READY = 72,
 	NET_PACKET_FRONTEND_MISSION_START = 73,
-	NET_PACKET_FRONTEND_OPCODE_74 = 74, /* Probed by the legacy dialog-dismiss path. */
+	NET_PACKET_FRONTEND_OPCODE_74 =
+		74, /* Probed by the legacy dialog-dismiss path. */
 	NET_PACKET_NEXT_TOURNAMENT_MISSION = 75,
 	NET_PACKET_NEXT_BATTLE_MISSION = 76,
 	NET_PACKET_CHAT = 77,
@@ -175,67 +176,85 @@ extern const GUID g_netDirectPlayInetAddressTypeGuid;
 void Net_ShutdownDirectPlaySessionForQuit(void);
 void Net_ShutdownDirectPlaySession(void);
 void Net_ShutdownDirectPlaySessionNoHandshake(void);
-int Net_ShutdownDirectPlaySessionEx(int suppressRestart, int waitForHandshakeAcks);
+int Net_ShutdownDirectPlaySessionEx(int suppressRestart,
+				    int waitForHandshakeAcks);
 int Net_RefreshPlayerRoster(void);
-int AERON_DXAPI Net_EnumPlayersCallback(DPID playerId, uint32_t playerType, const DPNAME* nameDesc,
-										uint32_t flags, void* context);
-int Net_CreateDirectPlayPlayer(const char* longPlayerInfo, const char* shortPlayerName);
-const GUID* Net_GetDirectPlayServiceProviderGuid(NetworkTransportType networkType);
+int AERON_DXAPI Net_EnumPlayersCallback(DPID playerId, uint32_t playerType,
+					const DPNAME *nameDesc, uint32_t flags,
+					void *context);
+int Net_CreateDirectPlayPlayer(const char *longPlayerInfo,
+			       const char *shortPlayerName);
+const GUID *
+Net_GetDirectPlayServiceProviderGuid(NetworkTransportType networkType);
 void Net_PumpIncomingPackets(void);
-int Net_SendPacketAndFlush(int toPlayerId, const void* packet, unsigned int packetSize);
-int Net_SendPacketInternal(int toPlayerId, const void* packet, unsigned int packetSize);
-int Net_SendDirectPlayPacket(int destPlayerId, const void* packet, int packetSize, int unusedSendMode);
-int Net_SendSequencedDirectPlayPacket(int destPlayerId, int packetClass, int sequenceId, const void* packet,
-									  unsigned int packetSize);
-NetPlayerInfo* Net_GetPlayerRoster(int* outCount);
+int Net_SendPacketAndFlush(int toPlayerId, const void *packet,
+			   unsigned int packetSize);
+int Net_SendPacketInternal(int toPlayerId, const void *packet,
+			   unsigned int packetSize);
+int Net_SendDirectPlayPacket(int destPlayerId, const void *packet,
+			     int packetSize, int unusedSendMode);
+int Net_SendSequencedDirectPlayPacket(int destPlayerId, int packetClass,
+				      int sequenceId, const void *packet,
+				      unsigned int packetSize);
+NetPlayerInfo *Net_GetPlayerRoster(int *outCount);
 int Net_GetPlayerCount(void);
 int Net_DidReadyPlayerLeaveThisFrame(void);
 int Net_IsHost(void);
 int Net_PollForPacketTypeOrBacklog(int packetType);
 int Net_PollForPlayerCreatedOrBacklog(void);
-int* Net_GetNextAppPacket(DPID* outSenderId, uint32_t* outPacketSize);
-void Net_HandleDirectPlaySystemMessage(int packetType, const void* packetData);
-void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize);
-int* Net_WaitForAppPacket(DPID* outSenderId, uint32_t* outPacketSize, int timeoutSeconds);
+int *Net_GetNextAppPacket(DPID *outSenderId, uint32_t *outPacketSize);
+void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData);
+void *Net_DequeueIncomingPacket(DPID *outSenderId, uint32_t *outPacketSize);
+int *Net_WaitForAppPacket(DPID *outSenderId, uint32_t *outPacketSize,
+			  int timeoutSeconds);
 int Net_CountPlayersWithLowerId(DPID playerId);
 int Net_GetHostPlayerId(void);
 int Net_GetLocalPlayerId(void);
 void Net_MarkPlayerReadyNoLock(int playerId);
 void Net_ClearPlayerReadyFlag(int playerId);
 int Net_IsPlayerReady(int playerId);
-NetPlayerInfo* Net_FindPlayer(int playerId);
+NetPlayerInfo *Net_FindPlayer(int playerId);
 int Net_SetPlayerReady(int playerId);
 void Net_ClearPlayerReadyFlagWithLockGuard(int playerId);
 int Net_CountReadyPlayers(void);
 void Net_ClearPlayerReadyFlags(void);
-int NetSession_ImportRuntimeState(void** dplayInterfaceOut, GUID* appGuidOut, GUID* sessionGuidOut,
-								  int32_t* groupIdOut, int* hostPlayerIdOut,
-								  NetPlayerInfo* localPlayerInfoOut, NetQueuedPacket* recvQueueOut,
-								  int32_t* recvQueueReadOut, int* recvQueueCountOut, int* recvQueueWriteOut,
-								  NetReliablePeerSlot* reliablePeerSlotsOut,
-								  uint32_t* reliablePeerSlotCountOut, uint32_t* broadcastSeqCounterOut,
-								  char* broadcastPayloadOut, int* broadcastPayloadLengthOut,
-								  int* broadcastPiggybackEmptyOut, uint32_t* groupSeqCounterOut,
-								  char* groupPayloadOut, int* groupPayloadLengthOut,
-								  int* groupPiggybackEmptyOut, NetQueuedPacket* sentHistoryOut,
-								  int* sentHistoryWriteIndexOut);
+int NetSession_ImportRuntimeState(
+	void **dplayInterfaceOut, GUID *appGuidOut, GUID *sessionGuidOut,
+	int32_t *groupIdOut, int *hostPlayerIdOut,
+	NetPlayerInfo *localPlayerInfoOut, NetQueuedPacket *recvQueueOut,
+	int32_t *recvQueueReadOut, int *recvQueueCountOut,
+	int *recvQueueWriteOut, NetReliablePeerSlot *reliablePeerSlotsOut,
+	uint32_t *reliablePeerSlotCountOut, uint32_t *broadcastSeqCounterOut,
+	char *broadcastPayloadOut, int *broadcastPayloadLengthOut,
+	int *broadcastPiggybackEmptyOut, uint32_t *groupSeqCounterOut,
+	char *groupPayloadOut, int *groupPayloadLengthOut,
+	int *groupPiggybackEmptyOut, NetQueuedPacket *sentHistoryOut,
+	int *sentHistoryWriteIndexOut);
 int NetSession_ExportRuntimeState(
-	void** dplayInterface, const void* appGuid, const void* sessionGuid, int* groupId, int* hostPlayerId,
-	const void* localPlayerInfo, const NetQueuedPacket* recvQueueEntries, int* recvQueueRead,
-	int* recvQueueCount, int* recvQueueWrite, const NetReliablePeerSlot* reliablePeerSlots,
-	int* reliablePeerSlotCount, int* broadcastSeqCounter, const void* broadcastPayload,
-	int* broadcastPayloadLength, int* broadcastPiggybackEmpty, int* groupSeqCounter, const void* groupPayload,
-	int* groupPayloadLength, int* groupPiggybackEmpty, const NetQueuedPacket* sentHistory,
-	int* sentHistoryWriteIndex, NetQueuedPacket* sentWorldMessageHistory, int* sentWorldMessageWriteIndex);
+	void **dplayInterface, const void *appGuid, const void *sessionGuid,
+	int *groupId, int *hostPlayerId, const void *localPlayerInfo,
+	const NetQueuedPacket *recvQueueEntries, int *recvQueueRead,
+	int *recvQueueCount, int *recvQueueWrite,
+	const NetReliablePeerSlot *reliablePeerSlots,
+	int *reliablePeerSlotCount, int *broadcastSeqCounter,
+	const void *broadcastPayload, int *broadcastPayloadLength,
+	int *broadcastPiggybackEmpty, int *groupSeqCounter,
+	const void *groupPayload, int *groupPayloadLength,
+	int *groupPiggybackEmpty, const NetQueuedPacket *sentHistory,
+	int *sentHistoryWriteIndex, NetQueuedPacket *sentWorldMessageHistory,
+	int *sentWorldMessageWriteIndex);
 int Net_CompactReliablePeerSlotsForRoster(void);
 int Net_SendSequenceKeepalives(void);
-int Net_CheckAndRecordIncomingSequence(int playerId, int sequenceId, int useChannel0, int useChannel2);
-int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId, int useChannel0, int useChannel2,
-								  int peerSlotIndex);
+int Net_CheckAndRecordIncomingSequence(int playerId, int sequenceId,
+				       int useChannel0, int useChannel2);
+int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId,
+				  int useChannel0, int useChannel2,
+				  int peerSlotIndex);
 int Net_RemoveIncomingPacketAtIndex(unsigned int queueIndex);
 unsigned int Net_GetAverageLatencyMs(int playerId);
 int Net_SetPlayerLatencyMs(int playerId, int latencyMs);
-int Net_SetPlayerNameWithLockGuard(unsigned int playerId, const char* longName, const char* shortName);
+int Net_SetPlayerNameWithLockGuard(unsigned int playerId, const char *longName,
+				   const char *shortName);
 int Net_RefreshPlayerRosterWithLockGuard(void);
 unsigned int Net_FindOrCreatePeerSlot(int directPlayId);
 int Net_GetPacketDropRateBasisPoints(int playerId);
@@ -251,28 +270,39 @@ int Net_RestoreAutoDialRegistrySetting(void);
 int Net_WaitForShutdownHandshakeAcks(void);
 
 #ifndef XVT_MODERN
-int Net_StartNetworkSession(int appGuidData1, int appGuidData2, int appGuidData3, int appGuidData4,
-							const char* localPlayerInfo, const char* localPlayerName, int isHost,
-							const char* sessionName, NetworkTransportType networkType, int waitForPlayerCount,
-							int unusedA11, const char* connectionAddress,
-							const GUID* joinSessionInstanceGuid);
-int Net_HostDirectPlaySession(const char* sessionName);
-int Net_JoinDirectPlaySession(const char* sessionName, const GUID* sessionInstanceGuid);
-const GUID* Net_FindSessionByName(const char* sessionName);
-int AERON_DXAPI Net_EnumSessionsMatchNameCallback(const DPSESSIONDESC2* sessionDesc, uint32_t* timeoutMs,
-												  uint32_t flags, void* context);
-int Net_EnumerateAppSessions(unsigned int appGuid0, unsigned int appGuid1, unsigned int appGuid2,
-							 unsigned int appGuid3, NetSessionEnumEntry* outSessions, int maxSessions,
-							 NetworkTransportType networkType);
-int AERON_DXAPI Net_EnumerateAppSessionsCallback(const DPSESSIONDESC2* sessionDesc, uint32_t* timeoutMs,
-												 uint32_t flags, void* userData);
-int Net_CompareSessionEnumEntriesByName(const NetSessionEnumEntry* lhs, const NetSessionEnumEntry* rhs);
-int Net_OpenDirectPlaySession(GUID appGuid, const char* localPlayerInfo, const char* localPlayerName,
-							  int isHost, const char* sessionName, NetworkTransportType networkType,
-							  const char* connectionAddress);
-HRESULT Net_BuildDirectPlayAddress(IDirectPlayLobbyA* directPlayLobby, const GUID* serviceProviderGuid,
-								   const GUID* addressTypeGuid, const char* address,
-								   void** outConnectionBuffer, size_t* outConnectionBufferSize);
+int Net_StartNetworkSession(
+	int appGuidData1, int appGuidData2, int appGuidData3, int appGuidData4,
+	const char *localPlayerInfo, const char *localPlayerName, int isHost,
+	const char *sessionName, NetworkTransportType networkType,
+	int waitForPlayerCount, int unusedA11, const char *connectionAddress,
+	const GUID *joinSessionInstanceGuid);
+int Net_HostDirectPlaySession(const char *sessionName);
+int Net_JoinDirectPlaySession(const char *sessionName,
+			      const GUID *sessionInstanceGuid);
+const GUID *Net_FindSessionByName(const char *sessionName);
+int AERON_DXAPI Net_EnumSessionsMatchNameCallback(
+	const DPSESSIONDESC2 *sessionDesc, uint32_t *timeoutMs, uint32_t flags,
+	void *context);
+int Net_EnumerateAppSessions(unsigned int appGuid0, unsigned int appGuid1,
+			     unsigned int appGuid2, unsigned int appGuid3,
+			     NetSessionEnumEntry *outSessions, int maxSessions,
+			     NetworkTransportType networkType);
+int AERON_DXAPI Net_EnumerateAppSessionsCallback(
+	const DPSESSIONDESC2 *sessionDesc, uint32_t *timeoutMs, uint32_t flags,
+	void *userData);
+int Net_CompareSessionEnumEntriesByName(const NetSessionEnumEntry *lhs,
+					const NetSessionEnumEntry *rhs);
+int Net_OpenDirectPlaySession(GUID appGuid, const char *localPlayerInfo,
+			      const char *localPlayerName, int isHost,
+			      const char *sessionName,
+			      NetworkTransportType networkType,
+			      const char *connectionAddress);
+HRESULT Net_BuildDirectPlayAddress(IDirectPlayLobbyA *directPlayLobby,
+				   const GUID *serviceProviderGuid,
+				   const GUID *addressTypeGuid,
+				   const char *address,
+				   void **outConnectionBuffer,
+				   size_t *outConnectionBufferSize);
 #endif
 
 #ifdef __cplusplus

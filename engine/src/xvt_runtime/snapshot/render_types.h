@@ -38,11 +38,18 @@ enum {
 	XVT_SNAP_TYPE_COMPONENT_FOLLOWUP = 132
 };
 
-enum { XVT_SNAP_HYPERSPACE_NONE, XVT_SNAP_HYPERSPACE_STARTING, XVT_SNAP_HYPERSPACE_TRANSITION };
+enum {
+	XVT_SNAP_HYPERSPACE_NONE,
+	XVT_SNAP_HYPERSPACE_STARTING,
+	XVT_SNAP_HYPERSPACE_TRANSITION
+};
 
 enum { XVT_SNAP_TEXTURE_FRAME_BIT = 0x8000 };
 
-enum { XVT_SNAP_INVALID_TEXTURE_FRAME = 0xff00, XVT_SNAP_HYPERSPACE_STREAK_END = 0x213 };
+enum {
+	XVT_SNAP_INVALID_TEXTURE_FRAME = 0xff00,
+	XVT_SNAP_HYPERSPACE_STREAK_END = 0x213
+};
 
 enum { XVT_SNAP_MESH_HULL = 1, XVT_SNAP_MESH_FUSELAGE = 3 };
 
@@ -65,7 +72,8 @@ typedef struct XvtSnapObjectId {
 
 typedef struct XvtSnapCamera {
 	int32_t world_pos[3];
-	float rows[9]; /* Precise render camera, with Q15 fallback for other camera writers. */
+	float rows
+		[9]; /* Precise render camera, with Q15 fallback for other camera writers. */
 	XvtSnapRect viewport;
 	int32_t center_x, center_y, projection_offset_y;
 	uint16_t screen_width, screen_height, aspect_y_q16;
@@ -93,7 +101,8 @@ typedef struct XvtSnapObject {
 	uint16_t working_subsystems, installed_subsystems;
 	uint16_t throttle, overdrive_off;
 	int16_t max_speed;
-	uint8_t laser_recharge_level, shield_recharge_level, beam_recharge_level;
+	uint8_t laser_recharge_level, shield_recharge_level,
+		beam_recharge_level;
 } XvtSnapObject;
 
 enum { XVT_SLOT_MAIN, XVT_SLOT_LOCAL_TRANSIENT, XVT_SLOT_STATIC };
@@ -147,7 +156,12 @@ typedef struct XvtSnapImageAsset {
 	XvtSnapRect cockpit_viewport;
 } XvtSnapImageAsset;
 
-enum { XVT_TARGET_FRONT_BACK, XVT_TARGET_FRONT_OFFSCREEN, XVT_TARGET_FRONT_BACKUP, XVT_TARGET_FLIGHT_MAIN };
+enum {
+	XVT_TARGET_FRONT_BACK,
+	XVT_TARGET_FRONT_OFFSCREEN,
+	XVT_TARGET_FRONT_BACKUP,
+	XVT_TARGET_FLIGHT_MAIN
+};
 
 enum {
 	XVT_TARGET_FRONT_PRESENTED = 6,

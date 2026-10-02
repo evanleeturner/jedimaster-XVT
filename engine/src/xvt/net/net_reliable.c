@@ -18,10 +18,15 @@ int g_netLastDeliveredRecvSequence;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x46F650
-int NetReliable_GetLastDeliveredRecvSequence(void) { return g_netLastDeliveredRecvSequence; }
+int NetReliable_GetLastDeliveredRecvSequence(void)
+{
+	return g_netLastDeliveredRecvSequence;
+}
 
 // FUNCTION: XVT 0x46FC00
-int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence, int channelA, int channelB) {
+int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence,
+					   int channelA, int channelB)
+{
 	uint32_t savedSlotCount;
 	unsigned int slot;
 	int recvSequence;
@@ -29,33 +34,43 @@ int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence, int c
 
 	savedSlotCount = g_netSession.reliablePeerSlotCount;
 	slot = NetReliable_FindOrCreatePeerSlot(directPlayId);
-	if (savedSlotCount != g_netSession.reliablePeerSlotCount || slot >= 40)
+	if (savedSlotCount != g_netSession.reliablePeerSlotCount ||
+	    slot >= 40) {
 		return 0;
+	}
 
-	if (channelA)
-		recvSequence = g_netSession.reliablePeerSlots[slot].recvSeqChannelA;
-	else if (channelB)
-		recvSequence = g_netSession.reliablePeerSlots[slot].recvSeqChannelB;
-	else
-		recvSequence = g_netSession.reliablePeerSlots[slot].recvSeqDefault;
+	if (channelA) {
+		recvSequence =
+			g_netSession.reliablePeerSlots[slot].recvSeqChannelA;
+	} else if (channelB) {
+		recvSequence =
+			g_netSession.reliablePeerSlots[slot].recvSeqChannelB;
+	} else {
+		recvSequence =
+			g_netSession.reliablePeerSlots[slot].recvSeqDefault;
+	}
 
 	delta = sequence - recvSequence;
-	if (delta >= -64 && (delta <= 0 || delta >= 64))
+	if (delta >= -64 && (delta <= 0 || delta >= 64)) {
 		return 1;
+	}
 
-	if (channelA)
+	if (channelA) {
 		g_netSession.reliablePeerSlots[slot].recvSeqChannelA = sequence;
-	else if (channelB)
+	} else if (channelB) {
 		g_netSession.reliablePeerSlots[slot].recvSeqChannelB = sequence;
-	else
+	} else {
 		g_netSession.reliablePeerSlots[slot].recvSeqDefault = sequence;
+	}
 	return 0;
 }
 
 /* Finds a queued reliable receive packet matching sequence, channel, and peer
  * filters. Returns the ring index or -1. */
 // FUNCTION: XVT 0x46FCE0
-int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA, int channelB, int peerSlot) {
+int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA,
+				     int channelB, int peerSlot)
+{
 	unsigned int i;
 	int index;
 	int sequenceByte;
@@ -63,47 +78,61 @@ int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA, in
 	int isClass2;
 	unsigned int slot;
 	DPID directPlayId;
-	NetReliablePeerSlot* peer;
+	NetReliablePeerSlot *peer;
 
 	(void)unused;
 
 	index = g_netRecvQueueReadIndex;
 	for (i = g_netRecvQueueCount; i != 0; --i) {
 		if (g_netSessionRecvQueue[index].isResentCopy != 0) {
-			directPlayId = g_netSessionRecvQueue[index].directPlayId;
-			sequenceByte = g_netSessionRecvQueue[index].sequenceByte;
-			isClass0 = g_netSessionRecvQueue[index].packetClass == 0;
-			isClass2 = g_netSessionRecvQueue[index].packetClass == 2;
+			directPlayId =
+				g_netSessionRecvQueue[index].directPlayId;
+			sequenceByte =
+				g_netSessionRecvQueue[index].sequenceByte;
+			isClass0 =
+				g_netSessionRecvQueue[index].packetClass == 0;
+			isClass2 =
+				g_netSessionRecvQueue[index].packetClass == 2;
 			slot = 0;
 			if (g_netSession.reliablePeerSlotCount != 0) {
 				peer = g_netSession.reliablePeerSlots;
 				while (peer->directPlayId != directPlayId) {
 					++peer;
 					++slot;
-					if (slot >= g_netSession.reliablePeerSlotCount)
+					if (slot >=
+					    g_netSession
+						    .reliablePeerSlotCount) {
 						break;
+					}
 				}
 			}
 			if (slot == (unsigned int)peerSlot) {
 				if (channelA != 0) {
-					if (isClass0 && sequenceByte == remoteSeq)
+					if (isClass0 &&
+					    sequenceByte == remoteSeq) {
 						return index;
+					}
 				} else if (channelB != 0) {
-					if (isClass2 && sequenceByte == remoteSeq)
+					if (isClass2 &&
+					    sequenceByte == remoteSeq) {
 						return index;
-				} else if (!isClass0 && !isClass2 && sequenceByte == remoteSeq) {
+					}
+				} else if (!isClass0 && !isClass2 &&
+					   sequenceByte == remoteSeq) {
 					return index;
 				}
 			}
 		}
-		if ((unsigned int)++index >= 0x400)
+		if ((unsigned int)++index >= 0x400) {
 			index = 0;
+		}
 	}
 	return -1;
 }
 
 // FUNCTION: XVT 0x46FDF0
-int NetReliable_RemoveQueuedPacket(unsigned int queueIndex) {
+int NetReliable_RemoveQueuedPacket(unsigned int queueIndex)
+{
 	if (g_netRecvQueueReadIndex == (int)queueIndex) {
 		++g_netRecvQueueReadIndex;
 		--g_netRecvQueueCount;
@@ -125,8 +154,9 @@ int NetReliable_RemoveQueuedPacket(unsigned int queueIndex) {
 		}
 
 		while (endIndex != srcIndex) {
-			memcpy(&g_netSessionRecvQueue[queueIndex], &g_netSessionRecvQueue[srcIndex],
-				   sizeof(g_netSessionRecvQueue[queueIndex]));
+			memcpy(&g_netSessionRecvQueue[queueIndex],
+			       &g_netSessionRecvQueue[srcIndex],
+			       sizeof(g_netSessionRecvQueue[queueIndex]));
 			++queueIndex;
 			if (queueIndex >= 1024u) {
 				queueIndex = 0;
@@ -148,11 +178,12 @@ int NetReliable_RemoveQueuedPacket(unsigned int queueIndex) {
 }
 
 // FUNCTION: XVT 0x46FEE0
-unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId) {
+unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId)
+{
 	unsigned int slot;
-	NetReliablePeerSlot* peer;
+	NetReliablePeerSlot *peer;
 	unsigned int initializeSlot;
-	unsigned int* peerSlotCount;
+	unsigned int *peerSlotCount;
 
 	slot = 0;
 	if (g_netSession.reliablePeerSlotCount != 0) {
@@ -167,18 +198,28 @@ unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId) {
 	}
 
 	if (g_netSession.reliablePeerSlotCount == slot && slot < 40) {
-		g_netSession.reliablePeerSlots[slot].directPlayId = directPlayId;
+		g_netSession.reliablePeerSlots[slot].directPlayId =
+			directPlayId;
 		initializeSlot = slot;
-		g_netSession.reliablePeerSlots[initializeSlot].lastDeliveredSeqDefault = 127;
-		g_netSession.reliablePeerSlots[initializeSlot].lastDeliveredSeqChannelA = 127;
-		g_netSession.reliablePeerSlots[initializeSlot].lastDeliveredSeqChannelB = 127;
-		g_netSession.reliablePeerSlots[initializeSlot].recvSeqDefault = 127;
-		g_netSession.reliablePeerSlots[initializeSlot].recvSeqChannelA = 127;
-		g_netSession.reliablePeerSlots[initializeSlot].recvSeqChannelB = 127;
+		g_netSession.reliablePeerSlots[initializeSlot]
+			.lastDeliveredSeqDefault = 127;
+		g_netSession.reliablePeerSlots[initializeSlot]
+			.lastDeliveredSeqChannelA = 127;
+		g_netSession.reliablePeerSlots[initializeSlot]
+			.lastDeliveredSeqChannelB = 127;
+		g_netSession.reliablePeerSlots[initializeSlot].recvSeqDefault =
+			127;
+		g_netSession.reliablePeerSlots[initializeSlot].recvSeqChannelA =
+			127;
+		g_netSession.reliablePeerSlots[initializeSlot].recvSeqChannelB =
+			127;
 		g_netSession.reliablePeerSlots[initializeSlot].sendSeq = 0;
-		g_netSession.reliablePeerSlots[initializeSlot].lastPiggybackType = NET_PACKET_NOP;
-		g_netSession.reliablePeerSlots[initializeSlot].piggybackLength = 1;
-		g_netSession.reliablePeerSlots[slot].lastActivityMs = timeGetTime();
+		g_netSession.reliablePeerSlots[initializeSlot]
+			.lastPiggybackType = NET_PACKET_NOP;
+		g_netSession.reliablePeerSlots[initializeSlot].piggybackLength =
+			1;
+		g_netSession.reliablePeerSlots[slot].lastActivityMs =
+			timeGetTime();
 		g_netSession.reliablePeerSlots[slot].packetCount = 0;
 		g_netSession.reliablePeerSlots[slot].packetDropCount = 0;
 		peerSlotCount = &g_netSession.reliablePeerSlotCount;
@@ -189,7 +230,8 @@ unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId) {
 }
 
 // FUNCTION: XVT 0x46FFC0
-void NetReliable_ResetRecvQueueState(void) {
+void NetReliable_ResetRecvQueueState(void)
+{
 	unsigned int slot;
 
 	g_netRecvQueueReadIndex = g_netRecvQueueWriteIndex;
@@ -202,21 +244,24 @@ void NetReliable_ResetRecvQueueState(void) {
 			g_netSession.reliablePeerSlots[slot].recvSeqChannelA;
 		g_netSession.reliablePeerSlots[slot].lastDeliveredSeqChannelB =
 			g_netSession.reliablePeerSlots[slot].recvSeqChannelB;
-		g_netSession.reliablePeerSlots[slot].lastActivityMs = timeGetTime();
+		g_netSession.reliablePeerSlots[slot].lastActivityMs =
+			timeGetTime();
 	}
 }
 
 // FUNCTION: XVT 0x470020
-int NetReliable_GetPeerPacketDropCountByDpid(int directPlayId) {
+int NetReliable_GetPeerPacketDropCountByDpid(int directPlayId)
+{
 	unsigned int slot;
-	NetReliablePeerSlot* peer;
+	NetReliablePeerSlot *peer;
 
 	slot = 0;
 	if (g_netSession.reliablePeerSlotCount != 0) {
 		peer = g_netSession.reliablePeerSlots;
 		do {
 			if ((DPID)directPlayId == peer->directPlayId) {
-				return g_netSession.reliablePeerSlots[slot].packetDropCount;
+				return g_netSession.reliablePeerSlots[slot]
+					.packetDropCount;
 			}
 			peer++;
 			slot++;
@@ -231,14 +276,15 @@ int NetReliable_GetPeerPacketDropCountByDpid(int directPlayId) {
 #pragma function(memcpy)
 #endif
 // FUNCTION: XVT 0x470060
-int NetReliable_KeepOnlyHostReceivedPackets(void) {
+int NetReliable_KeepOnlyHostReceivedPackets(void)
+{
 	unsigned int dstIndex;
 	unsigned int srcIndex;
 	unsigned int keptCount;
 	unsigned int slot;
 	DPID directPlayId;
-	NetQueuedPacket* sourcePacket;
-	NetReliablePeerSlot* peer;
+	NetQueuedPacket *sourcePacket;
+	NetReliablePeerSlot *peer;
 
 	dstIndex = (unsigned int)g_netRecvQueueReadIndex;
 	srcIndex = (unsigned int)g_netRecvQueueReadIndex;
@@ -246,17 +292,21 @@ int NetReliable_KeepOnlyHostReceivedPackets(void) {
 	while ((int)g_netRecvQueueCount > 0) {
 		sourcePacket = &g_netSessionRecvQueue[srcIndex];
 		directPlayId = sourcePacket->directPlayId;
-		if (directPlayId == 0 || (DPID)g_netSession.hostDplayId == directPlayId) {
-			memcpy(&g_netSessionRecvQueue[dstIndex], sourcePacket, sizeof(*sourcePacket));
+		if (directPlayId == 0 ||
+		    (DPID)g_netSession.hostDplayId == directPlayId) {
+			memcpy(&g_netSessionRecvQueue[dstIndex], sourcePacket,
+			       sizeof(*sourcePacket));
 			++dstIndex;
-			if (dstIndex >= 1024)
+			if (dstIndex >= 1024) {
 				dstIndex = 0;
+			}
 			++keptCount;
 		}
 
 		++srcIndex;
-		if (srcIndex >= 1024)
+		if (srcIndex >= 1024) {
 			srcIndex = 0;
+		}
 		--g_netRecvQueueCount;
 	}
 
@@ -266,10 +316,14 @@ int NetReliable_KeepOnlyHostReceivedPackets(void) {
 	if (g_netSession.reliablePeerSlotCount != 0) {
 		peer = g_netSession.reliablePeerSlots;
 		do {
-			if (peer->directPlayId != (DPID)g_netSession.hostDplayId) {
-				peer->lastDeliveredSeqDefault = peer->recvSeqDefault;
-				peer->lastDeliveredSeqChannelA = peer->recvSeqChannelA;
-				peer->lastDeliveredSeqChannelB = peer->recvSeqChannelB;
+			if (peer->directPlayId !=
+			    (DPID)g_netSession.hostDplayId) {
+				peer->lastDeliveredSeqDefault =
+					peer->recvSeqDefault;
+				peer->lastDeliveredSeqChannelA =
+					peer->recvSeqChannelA;
+				peer->lastDeliveredSeqChannelB =
+					peer->recvSeqChannelB;
 				peer->lastActivityMs = timeGetTime();
 			}
 			++peer;

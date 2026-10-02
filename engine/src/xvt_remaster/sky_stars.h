@@ -24,9 +24,9 @@ typedef struct XvtRemasterSkyStarsParams {
 
 /* Allocates the stars with their shaders and instance buffer and fills the position and shade tables
  * (sRGB shades 8 to 23 of 31, linearized). Returns NULL, logging an error, when a GPU resource fails. */
-XvtRemasterSkyStars* XvtRemasterSkyStars_Create(void);
+XvtRemasterSkyStars *XvtRemasterSkyStars_Create(void);
 /* Releases everything; NULL is accepted. */
-void XvtRemasterSkyStars_Destroy(XvtRemasterSkyStars* stars);
+void XvtRemasterSkyStars_Destroy(XvtRemasterSkyStars *stars);
 
 /* Captures the current scene transform after AeronScene_Begin. The public
  * jittered view-projection keeps stars aligned with temporally jittered meshes. */
@@ -35,16 +35,19 @@ void XvtRemasterSkyStars_Destroy(XvtRemasterSkyStars* stars);
  * pixel scaled into the render target, and brightness = exposure * brightness. Returns 0 for a NULL
  * argument, a divisor of 0 or over 32, a classic pixel scale that is not positive, a scene without a
  * jittered view-projection or with a zero render or output size, or a failed upload. */
-int XvtRemasterSkyStars_Prepare(XvtRemasterSkyStars* stars, AeronCommandBuffer* cmd,
-								const AeronScene3D* scene, const XvtRemasterSkyStarsParams* params);
+int XvtRemasterSkyStars_Prepare(XvtRemasterSkyStars *stars,
+				AeronCommandBuffer *cmd,
+				const AeronScene3D *scene,
+				const XvtRemasterSkyStarsParams *params);
 
 /* AeronScene BEFORE_OPAQUE hook draw. */
 /* user is the stars. Does nothing for a NULL stars or pass, or before any instances exist. Creates the
  * pipeline for the pass's sample count on first use or a change (on failure marks the command buffer
  * failed and draws nothing), then draws six vertices per star, depth-tested without writing depth,
  * blended premultiplied. rt_w and rt_h are unused. */
-void XvtRemasterSkyStars_Draw(AeronCommandBuffer* command_buffer, AeronRenderPass* render_pass, int rt_w,
-							  int rt_h, void* user);
+void XvtRemasterSkyStars_Draw(AeronCommandBuffer *command_buffer,
+			      AeronRenderPass *render_pass, int rt_w, int rt_h,
+			      void *user);
 
 #ifdef __cplusplus
 }

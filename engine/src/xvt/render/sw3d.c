@@ -19,7 +19,7 @@ typedef struct SoftwareLightSample {
 // GLOBAL: XVT 0x612284
 int g_sw3dLightSampleBlockMask = 0;
 // GLOBAL: XVT 0x612280
-SceneFace* g_sw3dCurrentFace = NULL;
+SceneFace *g_sw3dCurrentFace = NULL;
 // GLOBAL: XVT 0x612288
 int g_sw3dSpanShadeDitherAccum = 0;
 // GLOBAL: XVT 0x61228C
@@ -53,7 +53,7 @@ int g_sw3dSpanStartX = 0;
 // GLOBAL: XVT 0x6122D4
 int g_sw3dCurrentLightSampleCacheStamp = 0;
 // GLOBAL: XVT 0x612B58
-SceneMesh* g_sw3dSpanSceneMesh = NULL;
+SceneMesh *g_sw3dSpanSceneMesh = NULL;
 // GLOBAL: XVT 0x612B5C
 float g_sw3dSpanTextureWidthFloat = 0.0f;
 // GLOBAL: XVT 0x612B60
@@ -63,9 +63,9 @@ int g_sw3dSpanTextureWidthShift = 0;
 // GLOBAL: XVT 0x612B68
 int g_sw3dSpanTextureHeightShift = 0;
 // GLOBAL: XVT 0x612B6C
-uint8_t* g_sw3dSpanShadeTable = 0;
+uint8_t *g_sw3dSpanShadeTable = 0;
 // GLOBAL: XVT 0x612B70
-uint8_t* g_sw3dSpanTexels = 0;
+uint8_t *g_sw3dSpanTexels = 0;
 // GLOBAL: XVT 0x612B74
 int g_sw3dSpanTexelMask = 0;
 // GLOBAL: XVT 0x612B80
@@ -81,16 +81,17 @@ float g_sw3dLightSampleBlockSizeFloat = 0.0f;
 // GLOBAL: XVT 0x612B7C
 int g_sw3dLightSampleBlockShift = 0;
 // GLOBAL: XVT 0x612AE0
-SceneFace g_sw3dCockpitMaskSentinelFace = { 0 };
+SceneFace g_sw3dCockpitMaskSentinelFace = {0};
 // GLOBAL: XVT 0x523404
 int g_sw3dSkipOddScanlines = 0;
 // GLOBAL: XVT 0x527370
-int g_sw3dShadeDitherInitialByScanlineParity[2] = { 0, 128 };
+int g_sw3dShadeDitherInitialByScanlineParity[2] = {0, 128};
 
 // GLOBAL: XVT 0x527378
 const int g_sw3dTextureShiftBySizeDiv16[65] = {
-	3, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,  9,
-	9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10,
+	3, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8,	8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,	9,
+	9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10,
 };
 
 // GLOBAL: XVT 0x527480
@@ -101,21 +102,23 @@ const float g_sw3dLightIntensityToShadeScale = 15.0f;
 const float g_sw3dFloatToIntRoundBias = 12582912.0f;
 // GLOBAL: XVT 0x5274A8
 const float g_sw3dTexCoordBiasByShift[12] = {
-	49152.0f, 24576.0f, 12288.0f, 6144.0f, 3072.0f, 1536.0f, 768.0f, 384.0f, 192.0f, 96.0f, 48.0f, 24.0f,
+	49152.0f, 24576.0f, 12288.0f, 6144.0f, 3072.0f, 1536.0f,
+	768.0f,	  384.0f,   192.0f,   96.0f,   48.0f,	24.0f,
 };
 
 // GLOBAL: XVT 0x60F1C4
-ProjVertex* g_sw3dGeneratedClipVertex = NULL;
+ProjVertex *g_sw3dGeneratedClipVertex = NULL;
 // GLOBAL: XVT 0x60F1D0
-ProjVertex* g_sw3dLatestClipVertex = NULL;
+ProjVertex *g_sw3dLatestClipVertex = NULL;
 // GLOBAL: XVT 0x60F1E0
-ProjVertex* g_sw3dPreviousClipVertex = NULL;
+ProjVertex *g_sw3dPreviousClipVertex = NULL;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x470300
-void sw3d_ProjectMeshVertices(SceneMesh* mesh) {
-	SceneFace* face = &g_visFaceList[mesh->faceBaseIndex];
-	ProjVertex* output;
+void sw3d_ProjectMeshVertices(SceneMesh *mesh)
+{
+	SceneFace *face = &g_visFaceList[mesh->faceBaseIndex];
+	ProjVertex *output;
 	int vertexIndex;
 	int faceIndex;
 
@@ -125,9 +128,10 @@ void sw3d_ProjectMeshVertices(SceneMesh* mesh) {
 	for (vertexIndex = 0; vertexIndex < mesh->vertexCount; ++vertexIndex) {
 		g_vertexRemap[vertexIndex] = -1;
 	}
-	for (faceIndex = 0; faceIndex < mesh->visFaceCount; ++faceIndex, ++face) {
+	for (faceIndex = 0; faceIndex < mesh->visFaceCount;
+	     ++faceIndex, ++face) {
 		OptVector transformed;
-		const FaceRecord* geometry;
+		const FaceRecord *geometry;
 		float totalW;
 		float c00;
 		float c01;
@@ -143,15 +147,19 @@ void sw3d_ProjectMeshVertices(SceneMesh* mesh) {
 		float area;
 		int cornerIndex;
 
-		RenderScene_TransformFaceTextureGradients(face, &mesh->pFaceTexturing[face->faceIndex],
-												  &mesh->viewPosX);
+		RenderScene_TransformFaceTextureGradients(
+			face, &mesh->pFaceTexturing[face->faceIndex],
+			&mesh->viewPosX);
 		geometry = &mesh->pFaceGeom[face->faceIndex];
 		face->maxScaledInverseDepth = 0.0f;
 		totalW = 0.0f;
-		face->minScaledInverseDepth = (float)(unsigned int)g_projScaleInt;
+		face->minScaledInverseDepth =
+			(float)(unsigned int)g_projScaleInt;
 		for (cornerIndex = 0; cornerIndex < 4; ++cornerIndex) {
-			const int modelVertexIndex = geometry->vertexIdx[cornerIndex];
-			const int normalIndex = geometry->normalIdx[cornerIndex];
+			const int modelVertexIndex =
+				geometry->vertexIdx[cornerIndex];
+			const int normalIndex =
+				geometry->normalIdx[cornerIndex];
 			int remappedVertex;
 			float vertexW;
 
@@ -160,46 +168,72 @@ void sw3d_ProjectMeshVertices(SceneMesh* mesh) {
 			}
 			remappedVertex = g_vertexRemap[modelVertexIndex];
 			if (remappedVertex == -1) {
-				g_vertexRemap[modelVertexIndex] = mesh->projVertCursor;
+				g_vertexRemap[modelVertexIndex] =
+					mesh->projVertCursor;
 				++mesh->projVertCursor;
-				transformed.x = mesh->pModelVerts[modelVertexIndex].x;
-				transformed.y = mesh->pModelVerts[modelVertexIndex].y;
-				transformed.z = mesh->pModelVerts[modelVertexIndex].z;
-				Math3D_RotateVec3(&transformed.x, mesh->viewOrient);
+				transformed.x =
+					mesh->pModelVerts[modelVertexIndex].x;
+				transformed.y =
+					mesh->pModelVerts[modelVertexIndex].y;
+				transformed.z =
+					mesh->pModelVerts[modelVertexIndex].z;
+				Math3D_RotateVec3(&transformed.x,
+						  mesh->viewOrient);
 				transformed.x += mesh->viewPosX;
 				transformed.y += mesh->viewPosY;
 				transformed.z += mesh->viewPosZ;
 				if (transformed.z < g_sw3dUnitFloat) {
-					output->scaledInverseDepth = transformed.z - g_sw3dUnitFloat;
+					output->scaledInverseDepth =
+						transformed.z - g_sw3dUnitFloat;
 					output->sx = transformed.x;
 					output->sy = transformed.y;
 					face->nearClipState = -1;
-					vertexW = (float)(unsigned int)g_projScaleInt;
+					vertexW = (float)(unsigned int)
+						g_projScaleInt;
 				} else {
-					output->scaledInverseDepth = (float)(unsigned int)g_projScaleInt / transformed.z;
-					output->sx = output->scaledInverseDepth * transformed.x;
-					output->sy = output->scaledInverseDepth * transformed.y;
-					output->sx += (float)(g_flightVpWidth >> 1);
-					output->sy += (float)(g_projOffsetY + (g_flightVpHeight >> 1));
+					output->scaledInverseDepth =
+						(float)(unsigned int)
+							g_projScaleInt /
+						transformed.z;
+					output->sx =
+						output->scaledInverseDepth *
+						transformed.x;
+					output->sy =
+						output->scaledInverseDepth *
+						transformed.y;
+					output->sx +=
+						(float)(g_flightVpWidth >> 1);
+					output->sy +=
+						(float)(g_projOffsetY +
+							(g_flightVpHeight >>
+							 1));
 					vertexW = output->scaledInverseDepth;
 				}
-				RenderScene_ComputeVertexLighting(mesh, output, &mesh->pVertNormals[normalIndex],
-												  &mesh->pModelVerts[modelVertexIndex], &g_meshEyePos);
+				RenderScene_ComputeVertexLighting(
+					mesh, output,
+					&mesh->pVertNormals[normalIndex],
+					&mesh->pModelVerts[modelVertexIndex],
+					&g_meshEyePos);
 				++output;
 			} else {
-				const ProjVertex* projected = &g_projVertList[mesh->vertBaseIndex + remappedVertex];
+				const ProjVertex *projected =
+					&g_projVertList[mesh->vertBaseIndex +
+							remappedVertex];
 				if (projected->scaledInverseDepth < 0.0f) {
 					face->nearClipState = -1;
-					vertexW = (float)(unsigned int)g_projScaleInt;
+					vertexW = (float)(unsigned int)
+						g_projScaleInt;
 				} else {
 					vertexW = projected->scaledInverseDepth;
 				}
 			}
 			totalW += vertexW;
-			if (face->maxScaledInverseDepth < vertexW)
+			if (face->maxScaledInverseDepth < vertexW) {
 				face->maxScaledInverseDepth = vertexW;
-			if (face->minScaledInverseDepth > vertexW)
+			}
+			if (face->minScaledInverseDepth > vertexW) {
 				face->minScaledInverseDepth = vertexW;
+			}
 		}
 
 		if (mesh->pUVs != NULL) {
@@ -213,25 +247,43 @@ void sw3d_ProjectMeshVertices(SceneMesh* mesh) {
 			transformed.x += mesh->viewPosX;
 			transformed.y += mesh->viewPosY;
 			transformed.z += mesh->viewPosZ;
-			face->gradients[6] = transformed.x - mesh->pUVs[uvIndex].v * face->gradients[3] -
-								 mesh->pUVs[uvIndex].u * face->gradients[0];
-			face->gradients[7] = transformed.y - mesh->pUVs[uvIndex].v * face->gradients[4] -
-								 mesh->pUVs[uvIndex].u * face->gradients[1];
-			face->gradients[8] = transformed.z - mesh->pUVs[uvIndex].v * face->gradients[5] -
-								 mesh->pUVs[uvIndex].u * face->gradients[2];
-			c00 = face->gradients[8] * face->gradients[4] - face->gradients[5] * face->gradients[7];
-			c01 = face->gradients[5] * face->gradients[6] - face->gradients[8] * face->gradients[3];
-			c02 = face->gradients[7] * face->gradients[3] - face->gradients[4] * face->gradients[6];
-			c10 = face->gradients[2] * face->gradients[7] - face->gradients[8] * face->gradients[1];
-			c11 = face->gradients[8] * face->gradients[0] - face->gradients[2] * face->gradients[6];
-			c12 = face->gradients[6] * face->gradients[1] - face->gradients[7] * face->gradients[0];
-			c20 = face->gradients[5] * face->gradients[1] - face->gradients[2] * face->gradients[4];
-			c21 = face->gradients[2] * face->gradients[3] - face->gradients[5] * face->gradients[0];
-			c22 = face->gradients[4] * face->gradients[0] - face->gradients[1] * face->gradients[3];
-			if (c20 == 0.0f && c21 == 0.0f && c22 == 0.0f)
+			face->gradients[6] =
+				transformed.x -
+				mesh->pUVs[uvIndex].v * face->gradients[3] -
+				mesh->pUVs[uvIndex].u * face->gradients[0];
+			face->gradients[7] =
+				transformed.y -
+				mesh->pUVs[uvIndex].v * face->gradients[4] -
+				mesh->pUVs[uvIndex].u * face->gradients[1];
+			face->gradients[8] =
+				transformed.z -
+				mesh->pUVs[uvIndex].v * face->gradients[5] -
+				mesh->pUVs[uvIndex].u * face->gradients[2];
+			c00 = face->gradients[8] * face->gradients[4] -
+			      face->gradients[5] * face->gradients[7];
+			c01 = face->gradients[5] * face->gradients[6] -
+			      face->gradients[8] * face->gradients[3];
+			c02 = face->gradients[7] * face->gradients[3] -
+			      face->gradients[4] * face->gradients[6];
+			c10 = face->gradients[2] * face->gradients[7] -
+			      face->gradients[8] * face->gradients[1];
+			c11 = face->gradients[8] * face->gradients[0] -
+			      face->gradients[2] * face->gradients[6];
+			c12 = face->gradients[6] * face->gradients[1] -
+			      face->gradients[7] * face->gradients[0];
+			c20 = face->gradients[5] * face->gradients[1] -
+			      face->gradients[2] * face->gradients[4];
+			c21 = face->gradients[2] * face->gradients[3] -
+			      face->gradients[5] * face->gradients[0];
+			c22 = face->gradients[4] * face->gradients[0] -
+			      face->gradients[1] * face->gradients[3];
+			if (c20 == 0.0f && c21 == 0.0f && c22 == 0.0f) {
 				c22 = 1.0f;
-			inverse = g_sw3dUnitFloat /
-					  (c21 * face->gradients[7] + (c20 * face->gradients[6] + c22 * face->gradients[8]));
+			}
+			inverse =
+				g_sw3dUnitFloat / (c21 * face->gradients[7] +
+						   (c20 * face->gradients[6] +
+						    c22 * face->gradients[8]));
 			scaled = inverse * g_invProjScale;
 			face->gradients[0] = scaled * c00;
 			face->gradients[1] = scaled * c01;
@@ -242,29 +294,46 @@ void sw3d_ProjectMeshVertices(SceneMesh* mesh) {
 			face->gradients[6] = scaled * c20;
 			face->gradients[7] = scaled * c21;
 			face->gradients[8] = inverse * c22;
-			face->gradients[2] -= (float)(g_flightVpWidth >> 1) * face->gradients[0];
-			face->gradients[2] -= (float)(g_projOffsetY + (g_flightVpHeight >> 1)) * face->gradients[1];
-			face->gradients[5] -= (float)(g_flightVpWidth >> 1) * face->gradients[3];
-			face->gradients[5] -= (float)(g_projOffsetY + (g_flightVpHeight >> 1)) * face->gradients[4];
-			face->gradients[8] -= (float)(g_flightVpWidth >> 1) * face->gradients[6];
-			face->gradients[8] -= (float)(g_projOffsetY + (g_flightVpHeight >> 1)) * face->gradients[7];
-			area = face->gradients[0] * face->gradients[4] - face->gradients[3] * face->gradients[1];
-			if (area < g_sw3dZeroFloat)
+			face->gradients[2] -= (float)(g_flightVpWidth >> 1) *
+					      face->gradients[0];
+			face->gradients[2] -= (float)(g_projOffsetY +
+						      (g_flightVpHeight >> 1)) *
+					      face->gradients[1];
+			face->gradients[5] -= (float)(g_flightVpWidth >> 1) *
+					      face->gradients[3];
+			face->gradients[5] -= (float)(g_projOffsetY +
+						      (g_flightVpHeight >> 1)) *
+					      face->gradients[4];
+			face->gradients[8] -= (float)(g_flightVpWidth >> 1) *
+					      face->gradients[6];
+			face->gradients[8] -= (float)(g_projOffsetY +
+						      (g_flightVpHeight >> 1)) *
+					      face->gradients[7];
+			area = face->gradients[0] * face->gradients[4] -
+			       face->gradients[3] * face->gradients[1];
+			if (area < g_sw3dZeroFloat) {
 				area = -area;
+			}
 			{
-				const OptTextureData* material = (const OptTextureData*)mesh->pMaterial;
+				const OptTextureData *material =
+					(const OptTextureData *)mesh->pMaterial;
 				float lodScale;
 
 				/* totalW, the sum of the corners' w values, becomes the corner count over that sum: the
 				 * reciprocal of their mean. */
 				if (geometry->vertexIdx[3] == -1) {
-					totalW = g_sw3dTriangleCornerCount / totalW;
+					totalW = g_sw3dTriangleCornerCount /
+						 totalW;
 				} else {
 					totalW = g_sw3dQuadCornerCount / totalW;
 				}
-				lodScale = (float)(unsigned int)g_projScaleInt * totalW;
-				face->texelsPerPixelQ8 = (int)((float)((material->width * material->height) << 8) *
-											   (area * (lodScale * lodScale)));
+				lodScale = (float)(unsigned int)g_projScaleInt *
+					   totalW;
+				face->texelsPerPixelQ8 =
+					(int)((float)((material->width *
+						       material->height)
+						      << 8) *
+					      (area * (lodScale * lodScale)));
 			}
 		}
 	}
@@ -272,10 +341,12 @@ void sw3d_ProjectMeshVertices(SceneMesh* mesh) {
 }
 
 // FUNCTION: XVT 0x4709C0
-void sw3d_ProjectMeshVerticesDistant(SceneMesh* mesh) {
-	const float projectionScale = (float)(unsigned int)g_projScaleInt / mesh->viewPosZ * g_sw3dDistantDepth;
-	SceneFace* face = &g_visFaceList[mesh->faceBaseIndex];
-	ProjVertex* output;
+void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh)
+{
+	const float projectionScale = (float)(unsigned int)g_projScaleInt /
+				      mesh->viewPosZ * g_sw3dDistantDepth;
+	SceneFace *face = &g_visFaceList[mesh->faceBaseIndex];
+	ProjVertex *output;
 	int vertexBaseIndex;
 	int vertexIndex;
 	int faceIndex;
@@ -287,19 +358,24 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh* mesh) {
 	for (vertexIndex = 0; vertexIndex < mesh->vertexCount; ++vertexIndex) {
 		g_vertexRemap[vertexIndex] = -1;
 	}
-	for (faceIndex = 0; faceIndex < mesh->visFaceCount; ++faceIndex, ++face) {
-		const FaceRecord* geometry;
+	for (faceIndex = 0; faceIndex < mesh->visFaceCount;
+	     ++faceIndex, ++face) {
+		const FaceRecord *geometry;
 		int cornerIndex;
 
-		RenderScene_TransformFaceTextureGradients(face, &mesh->pFaceTexturing[face->faceIndex],
-												  &mesh->viewPosX);
+		RenderScene_TransformFaceTextureGradients(
+			face, &mesh->pFaceTexturing[face->faceIndex],
+			&mesh->viewPosX);
 		geometry = &mesh->pFaceGeom[face->faceIndex];
 		face->maxScaledInverseDepth = 0.0f;
-		face->minScaledInverseDepth = (float)(unsigned int)g_projScaleInt;
+		face->minScaledInverseDepth =
+			(float)(unsigned int)g_projScaleInt;
 		for (cornerIndex = 0; cornerIndex < 4; ++cornerIndex) {
 			OptVector transformed;
-			const int modelVertexIndex = geometry->vertexIdx[cornerIndex];
-			const int normalIndex = geometry->normalIdx[cornerIndex];
+			const int modelVertexIndex =
+				geometry->vertexIdx[cornerIndex];
+			const int normalIndex =
+				geometry->normalIdx[cornerIndex];
 			int remappedVertex;
 			float vertexW;
 
@@ -308,27 +384,41 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh* mesh) {
 			}
 			remappedVertex = g_vertexRemap[modelVertexIndex];
 			if (remappedVertex == -1) {
-				g_vertexRemap[modelVertexIndex] = mesh->projVertCursor;
+				g_vertexRemap[modelVertexIndex] =
+					mesh->projVertCursor;
 				++mesh->projVertCursor;
-				transformed.x = mesh->pModelVerts[modelVertexIndex].x;
-				transformed.y = mesh->pModelVerts[modelVertexIndex].y;
-				transformed.z = mesh->pModelVerts[modelVertexIndex].z;
-				Math3D_RotateVec3(&transformed.x, mesh->viewOrient);
+				transformed.x =
+					mesh->pModelVerts[modelVertexIndex].x;
+				transformed.y =
+					mesh->pModelVerts[modelVertexIndex].y;
+				transformed.z =
+					mesh->pModelVerts[modelVertexIndex].z;
+				Math3D_RotateVec3(&transformed.x,
+						  mesh->viewOrient);
 				transformed.x += mesh->viewPosX;
 				transformed.y += mesh->viewPosY;
 				transformed.z += mesh->viewPosZ;
 				transformed.z += g_sw3dDistantDepth;
-				output->scaledInverseDepth = projectionScale / transformed.z;
-				output->sx = output->scaledInverseDepth * transformed.x;
-				output->sy = output->scaledInverseDepth * transformed.y;
+				output->scaledInverseDepth =
+					projectionScale / transformed.z;
+				output->sx = output->scaledInverseDepth *
+					     transformed.x;
+				output->sy = output->scaledInverseDepth *
+					     transformed.y;
 				output->sx += (float)(g_flightVpWidth >> 1);
-				output->sy += (float)(g_projOffsetY + (g_flightVpHeight >> 1));
+				output->sy += (float)(g_projOffsetY +
+						      (g_flightVpHeight >> 1));
 				vertexW = output->scaledInverseDepth;
-				RenderScene_ComputeVertexLighting(mesh, output, &mesh->pVertNormals[normalIndex],
-												  &mesh->pModelVerts[modelVertexIndex], &g_meshEyePos);
+				RenderScene_ComputeVertexLighting(
+					mesh, output,
+					&mesh->pVertNormals[normalIndex],
+					&mesh->pModelVerts[modelVertexIndex],
+					&g_meshEyePos);
 				++output;
 			} else {
-				vertexW = g_projVertList[mesh->vertBaseIndex + remappedVertex].scaledInverseDepth;
+				vertexW = g_projVertList[mesh->vertBaseIndex +
+							 remappedVertex]
+						  .scaledInverseDepth;
 			}
 			if (face->maxScaledInverseDepth < vertexW) {
 				face->maxScaledInverseDepth = vertexW;
@@ -341,7 +431,8 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh* mesh) {
 		if (mesh->pUVs != NULL) {
 			OptVector transformed;
 			const int uvIndex = geometry->uvIdx[0];
-			const OptVector* modelVertex = &mesh->pModelVerts[geometry->vertexIdx[0]];
+			const OptVector *modelVertex =
+				&mesh->pModelVerts[geometry->vertexIdx[0]];
 			float c00;
 			float c01;
 			float c02;
@@ -362,26 +453,42 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh* mesh) {
 			transformed.y += mesh->viewPosY;
 			transformed.z += mesh->viewPosZ;
 			transformed.z += g_sw3dDistantDepth;
-			face->gradients[6] = transformed.x - mesh->pUVs[uvIndex].v * face->gradients[3] -
-								 mesh->pUVs[uvIndex].u * face->gradients[0];
-			face->gradients[7] = transformed.y - mesh->pUVs[uvIndex].v * face->gradients[4] -
-								 mesh->pUVs[uvIndex].u * face->gradients[1];
-			face->gradients[8] = transformed.z - mesh->pUVs[uvIndex].v * face->gradients[5] -
-								 mesh->pUVs[uvIndex].u * face->gradients[2];
-			c00 = face->gradients[8] * face->gradients[4] - face->gradients[5] * face->gradients[7];
-			c01 = face->gradients[5] * face->gradients[6] - face->gradients[8] * face->gradients[3];
-			c02 = face->gradients[7] * face->gradients[3] - face->gradients[4] * face->gradients[6];
-			c10 = face->gradients[2] * face->gradients[7] - face->gradients[8] * face->gradients[1];
-			c11 = face->gradients[8] * face->gradients[0] - face->gradients[2] * face->gradients[6];
-			c12 = face->gradients[1] * face->gradients[6] - face->gradients[7] * face->gradients[0];
-			c20 = face->gradients[5] * face->gradients[1] - face->gradients[2] * face->gradients[4];
-			c21 = face->gradients[2] * face->gradients[3] - face->gradients[5] * face->gradients[0];
-			c22 = face->gradients[4] * face->gradients[0] - face->gradients[1] * face->gradients[3];
+			face->gradients[6] =
+				transformed.x -
+				mesh->pUVs[uvIndex].v * face->gradients[3] -
+				mesh->pUVs[uvIndex].u * face->gradients[0];
+			face->gradients[7] =
+				transformed.y -
+				mesh->pUVs[uvIndex].v * face->gradients[4] -
+				mesh->pUVs[uvIndex].u * face->gradients[1];
+			face->gradients[8] =
+				transformed.z -
+				mesh->pUVs[uvIndex].v * face->gradients[5] -
+				mesh->pUVs[uvIndex].u * face->gradients[2];
+			c00 = face->gradients[8] * face->gradients[4] -
+			      face->gradients[5] * face->gradients[7];
+			c01 = face->gradients[5] * face->gradients[6] -
+			      face->gradients[8] * face->gradients[3];
+			c02 = face->gradients[7] * face->gradients[3] -
+			      face->gradients[4] * face->gradients[6];
+			c10 = face->gradients[2] * face->gradients[7] -
+			      face->gradients[8] * face->gradients[1];
+			c11 = face->gradients[8] * face->gradients[0] -
+			      face->gradients[2] * face->gradients[6];
+			c12 = face->gradients[1] * face->gradients[6] -
+			      face->gradients[7] * face->gradients[0];
+			c20 = face->gradients[5] * face->gradients[1] -
+			      face->gradients[2] * face->gradients[4];
+			c21 = face->gradients[2] * face->gradients[3] -
+			      face->gradients[5] * face->gradients[0];
+			c22 = face->gradients[4] * face->gradients[0] -
+			      face->gradients[1] * face->gradients[3];
 			if (c20 == 0.0f && c21 == 0.0f && c22 == 0.0f) {
 				c22 = 1.0f;
 			}
-			inverse = g_sw3dUnitFloat /
-					  (c20 * face->gradients[6] + c21 * face->gradients[7] + c22 * face->gradients[8]);
+			inverse = g_sw3dUnitFloat / (c20 * face->gradients[6] +
+						     c21 * face->gradients[7] +
+						     c22 * face->gradients[8]);
 			scaled = inverse / projectionScale;
 			face->gradients[0] = scaled * c00;
 			face->gradients[1] = scaled * c01;
@@ -392,24 +499,47 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh* mesh) {
 			face->gradients[6] = scaled * c20;
 			face->gradients[7] = scaled * c21;
 			face->gradients[8] = inverse * c22;
-			face->gradients[2] -= (float)(g_flightVpWidth >> 1) * face->gradients[0];
-			face->gradients[2] -= (float)(g_projOffsetY + (g_flightVpHeight >> 1)) * face->gradients[1];
-			face->gradients[5] -= (float)(g_flightVpWidth >> 1) * face->gradients[3];
-			face->gradients[5] -= (float)(g_projOffsetY + (g_flightVpHeight >> 1)) * face->gradients[4];
-			face->gradients[8] -= (float)(g_flightVpWidth >> 1) * face->gradients[6];
-			face->gradients[8] -= (float)(g_projOffsetY + (g_flightVpHeight >> 1)) * face->gradients[7];
+			face->gradients[2] -= (float)(g_flightVpWidth >> 1) *
+					      face->gradients[0];
+			face->gradients[2] -= (float)(g_projOffsetY +
+						      (g_flightVpHeight >> 1)) *
+					      face->gradients[1];
+			face->gradients[5] -= (float)(g_flightVpWidth >> 1) *
+					      face->gradients[3];
+			face->gradients[5] -= (float)(g_projOffsetY +
+						      (g_flightVpHeight >> 1)) *
+					      face->gradients[4];
+			face->gradients[8] -= (float)(g_flightVpWidth >> 1) *
+					      face->gradients[6];
+			face->gradients[8] -= (float)(g_projOffsetY +
+						      (g_flightVpHeight >> 1)) *
+					      face->gradients[7];
 			{
-				const OptTextureData* material = (const OptTextureData*)mesh->pMaterial;
+				const OptTextureData *material =
+					(const OptTextureData *)mesh->pMaterial;
 				float mipValue;
-				mipValue = face->gradients[4] * face->gradients[0] * transformed.z * transformed.z;
-				if (mipValue < g_sw3dZeroFloat)
+				mipValue = face->gradients[4] *
+					   face->gradients[0] * transformed.z *
+					   transformed.z;
+				if (mipValue < g_sw3dZeroFloat) {
 					mipValue = -mipValue;
-				face->texelsPerPixelQ8 = (int)((float)((material->width * material->height) << 8) * mipValue);
-				mipValue = face->gradients[1] * face->gradients[3] * transformed.z * transformed.z;
-				if (mipValue < g_sw3dZeroFloat)
+				}
+				face->texelsPerPixelQ8 =
+					(int)((float)((material->width *
+						       material->height)
+						      << 8) *
+					      mipValue);
+				mipValue = face->gradients[1] *
+					   face->gradients[3] * transformed.z *
+					   transformed.z;
+				if (mipValue < g_sw3dZeroFloat) {
 					mipValue = -mipValue;
+				}
 				face->texelsPerPixelQ8 +=
-					(int)((float)((material->width * material->height) << 8) * mipValue);
+					(int)((float)((material->width *
+						       material->height)
+						      << 8) *
+					      mipValue);
 			}
 		}
 	}
@@ -417,19 +547,20 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh* mesh) {
 }
 
 // FUNCTION: XVT 0x471020
-void sw3d_RasterizeMeshFaces(SceneMesh* mesh) {
+void sw3d_RasterizeMeshFaces(SceneMesh *mesh)
+{
 	enum {
 		SW3D_INVALID_EDGE = -1,
 		SW3D_REJECTED_EDGE = -2,
 		SW3D_FACE_NEEDS_NEAR_CLIP = -1,
 	};
 
-	ProjVertex* vertices = &g_projVertList[mesh->vertBaseIndex];
-	SceneFace* faceCursor = &g_visFaceList[mesh->faceBaseIndex];
+	ProjVertex *vertices = &g_projVertList[mesh->vertBaseIndex];
+	SceneFace *faceCursor = &g_visFaceList[mesh->faceBaseIndex];
 	int sceneEdgeCursor = g_sceneEdgeCursor;
-	SceneFace* face;
-	SceneEdge* outputEdge;
-	SceneEdge* firstEdge;
+	SceneFace *face;
+	SceneEdge *outputEdge;
+	SceneEdge *firstEdge;
 	int edgeIndex;
 	const int edgeCount = mesh->edgeCount;
 	int faceIndex;
@@ -445,7 +576,7 @@ void sw3d_RasterizeMeshFaces(SceneMesh* mesh) {
 	}
 
 	for (faceIndex = 0; faceIndex < mesh->visFaceCount; ++faceIndex) {
-		const FaceRecord* record;
+		const FaceRecord *record;
 		int cornerCount;
 		int currentCorner;
 		int previousCorner;
@@ -459,10 +590,15 @@ void sw3d_RasterizeMeshFaces(SceneMesh* mesh) {
 			face->nearClipState = g_flightVpHeight;
 			g_sw3dLatestClipVertex = NULL;
 			g_sw3dPreviousClipVertex = NULL;
-			cornerCount = record->edgeIdx[(sizeof(record->edgeIdx) / sizeof(record->edgeIdx[0])) - 1] !=
-								  SW3D_INVALID_EDGE
-							  ? (int)(sizeof(record->edgeIdx) / sizeof(record->edgeIdx[0]))
-							  : (int)(sizeof(record->edgeIdx) / sizeof(record->edgeIdx[0])) - 1;
+			cornerCount =
+				record->edgeIdx[(sizeof(record->edgeIdx) /
+						 sizeof(record->edgeIdx[0])) -
+						1] != SW3D_INVALID_EDGE
+					? (int)(sizeof(record->edgeIdx) /
+						sizeof(record->edgeIdx[0]))
+					: (int)(sizeof(record->edgeIdx) /
+						sizeof(record->edgeIdx[0])) -
+						  1;
 			currentCorner = 0;
 			for (previousCorner = cornerCount;;) {
 				int sourceEdge;
@@ -474,34 +610,52 @@ void sw3d_RasterizeMeshFaces(SceneMesh* mesh) {
 				g_sw3dGeneratedClipVertex = NULL;
 				if (existingEdge == SW3D_INVALID_EDGE) {
 					if (sw3d_SetupClippedEdge(
-							mesh, outputEdge, &vertices[g_vertexRemap[record->vertexIdx[previousCorner]]],
-							&vertices[g_vertexRemap[record->vertexIdx[currentCorner]]]) >= 0) {
-						face->edges[outputCount++] = outputEdge;
-						outputEdge->pClipVert = g_sw3dGeneratedClipVertex;
-						g_sceneEdgeFlags[sourceEdge] = mesh->emittedEdgeCount;
+						    mesh, outputEdge,
+						    &vertices
+							    [g_vertexRemap
+								     [record->vertexIdx
+									      [previousCorner]]],
+						    &vertices
+							    [g_vertexRemap
+								     [record->vertexIdx
+									      [currentCorner]]]) >=
+					    0) {
+						face->edges[outputCount++] =
+							outputEdge;
+						outputEdge->pClipVert =
+							g_sw3dGeneratedClipVertex;
+						g_sceneEdgeFlags[sourceEdge] =
+							mesh->emittedEdgeCount;
 						++mesh->emittedEdgeCount;
 						++outputEdge;
-					} else if (g_sw3dGeneratedClipVertex == NULL) {
-						g_sceneEdgeFlags[sourceEdge] = SW3D_REJECTED_EDGE;
+					} else if (g_sw3dGeneratedClipVertex ==
+						   NULL) {
+						g_sceneEdgeFlags[sourceEdge] =
+							SW3D_REJECTED_EDGE;
 					}
 				} else if (existingEdge != SW3D_REJECTED_EDGE) {
-					SceneEdge* edge;
+					SceneEdge *edge;
 
 					edge = &firstEdge[existingEdge];
 					face->edges[outputCount++] = edge;
 					if (edge->pClipVert != NULL) {
-						g_sw3dPreviousClipVertex = g_sw3dLatestClipVertex;
-						g_sw3dLatestClipVertex = edge->pClipVert;
+						g_sw3dPreviousClipVertex =
+							g_sw3dLatestClipVertex;
+						g_sw3dLatestClipVertex =
+							edge->pClipVert;
 					}
 				}
 				currentCorner = previousCorner;
-				if (previousCorner <= 0)
+				if (previousCorner <= 0) {
 					break;
+				}
 			}
 
 			if (g_sw3dPreviousClipVertex != NULL) {
-				if (sw3d_SetupClippedEdge(mesh, outputEdge, g_sw3dLatestClipVertex,
-										  g_sw3dPreviousClipVertex) >= 0) {
+				if (sw3d_SetupClippedEdge(
+					    mesh, outputEdge,
+					    g_sw3dLatestClipVertex,
+					    g_sw3dPreviousClipVertex) >= 0) {
 					face->edges[outputCount++] = outputEdge;
 					++mesh->emittedEdgeCount;
 					++outputEdge;
@@ -509,10 +663,15 @@ void sw3d_RasterizeMeshFaces(SceneMesh* mesh) {
 			}
 		} else {
 			face->nearClipState = g_flightVpHeight;
-			cornerCount = record->edgeIdx[(sizeof(record->edgeIdx) / sizeof(record->edgeIdx[0])) - 1] !=
-								  SW3D_INVALID_EDGE
-							  ? (int)(sizeof(record->edgeIdx) / sizeof(record->edgeIdx[0]))
-							  : (int)(sizeof(record->edgeIdx) / sizeof(record->edgeIdx[0])) - 1;
+			cornerCount =
+				record->edgeIdx[(sizeof(record->edgeIdx) /
+						 sizeof(record->edgeIdx[0])) -
+						1] != SW3D_INVALID_EDGE
+					? (int)(sizeof(record->edgeIdx) /
+						sizeof(record->edgeIdx[0]))
+					: (int)(sizeof(record->edgeIdx) /
+						sizeof(record->edgeIdx[0])) -
+						  1;
 			currentCorner = 0;
 			for (previousCorner = cornerCount;;) {
 				int sourceEdge;
@@ -522,22 +681,35 @@ void sw3d_RasterizeMeshFaces(SceneMesh* mesh) {
 				sourceEdge = record->edgeIdx[previousCorner];
 				existingEdge = g_sceneEdgeFlags[sourceEdge];
 				if (existingEdge == SW3D_INVALID_EDGE) {
-					if (sw3d_SetupEdge(outputEdge,
-									   &vertices[g_vertexRemap[record->vertexIdx[previousCorner]]],
-									   &vertices[g_vertexRemap[record->vertexIdx[currentCorner]]]) >= 0) {
-						face->edges[outputCount++] = outputEdge;
-						g_sceneEdgeFlags[sourceEdge] = mesh->emittedEdgeCount;
+					if (sw3d_SetupEdge(
+						    outputEdge,
+						    &vertices
+							    [g_vertexRemap
+								     [record->vertexIdx
+									      [previousCorner]]],
+						    &vertices
+							    [g_vertexRemap
+								     [record->vertexIdx
+									      [currentCorner]]]) >=
+					    0) {
+						face->edges[outputCount++] =
+							outputEdge;
+						g_sceneEdgeFlags[sourceEdge] =
+							mesh->emittedEdgeCount;
 						++mesh->emittedEdgeCount;
 						++outputEdge;
 					} else {
-						g_sceneEdgeFlags[sourceEdge] = SW3D_REJECTED_EDGE;
+						g_sceneEdgeFlags[sourceEdge] =
+							SW3D_REJECTED_EDGE;
 					}
 				} else if (existingEdge != SW3D_REJECTED_EDGE) {
-					face->edges[outputCount++] = &firstEdge[existingEdge];
+					face->edges[outputCount++] =
+						&firstEdge[existingEdge];
 				}
 				currentCorner = previousCorner;
-				if (previousCorner <= 0)
+				if (previousCorner <= 0) {
 					break;
+				}
 			}
 		}
 
@@ -553,11 +725,12 @@ void sw3d_RasterizeMeshFaces(SceneMesh* mesh) {
 }
 
 // FUNCTION: XVT 0x471410
-void sw3d_ScanConvertFace(SceneFace* face) {
-	SceneEdge* left;
-	SceneEdge* right;
-	SceneEdge* edge;
-	SceneEdge* swapEdge;
+void sw3d_ScanConvertFace(SceneFace *face)
+{
+	SceneEdge *left;
+	SceneEdge *right;
+	SceneEdge *edge;
+	SceneEdge *swapEdge;
 	int edgeIndex;
 	int edgeCount;
 	int remainingEdges;
@@ -577,10 +750,12 @@ void sw3d_ScanConvertFace(SceneFace* face) {
 	right = left;
 	for (edgeIndex = 1; edgeIndex < edgeCount; ++edgeIndex) {
 		edge = face->edges[edgeIndex];
-		if (left->yStart > edge->yStart)
+		if (left->yStart > edge->yStart) {
 			left = edge;
-		if (right->yEnd < edge->yEnd)
+		}
+		if (right->yEnd < edge->yEnd) {
 			right = edge;
+		}
 	}
 
 	face->yTop = left->yStart;
@@ -600,7 +775,8 @@ void sw3d_ScanConvertFace(SceneFace* face) {
 		if (edgeIndex == face->edgeCount) {
 			face->yBot = face->yTop;
 		} else {
-			if (right->x < left->x || (right->x == left->x && right->dxdy < left->dxdy)) {
+			if (right->x < left->x ||
+			    (right->x == left->x && right->dxdy < left->dxdy)) {
 				swapEdge = left;
 				left = right;
 				right = swapEdge;
@@ -609,8 +785,9 @@ void sw3d_ScanConvertFace(SceneFace* face) {
 			face->pScanEdge = left;
 			scanY = left->yStart;
 			runEnd = right->yEnd;
-			if (right->yEnd > left->yEnd)
+			if (right->yEnd > left->yEnd) {
 				runEnd = left->yEnd;
+			}
 			runRows = runEnd - scanY;
 			leftStartX = left->x;
 			rightStartX = right->x;
@@ -621,30 +798,45 @@ void sw3d_ScanConvertFace(SceneFace* face) {
 				do {
 					--runRows;
 					face->spanLightIntensityDx =
-						(right->lightIntensity - left->lightIntensity) / (right->x - left->x);
-					sw3d_InsertSpan(left->x, right->x, scanY++, face);
-					if (runRows <= 0)
+						(right->lightIntensity -
+						 left->lightIntensity) /
+						(right->x - left->x);
+					sw3d_InsertSpan(left->x, right->x,
+							scanY++, face);
+					if (runRows <= 0) {
 						break;
+					}
 					left->x += left->dxdy;
-					left->lightIntensity += left->dLightIntensityDy;
+					left->lightIntensity +=
+						left->dLightIntensityDy;
 					right->x += right->dxdy;
-					right->lightIntensity += right->dLightIntensityDy;
+					right->lightIntensity +=
+						right->dLightIntensityDy;
 				} while (1);
 			} else {
 				runRowsFloat = (float)runRows;
 				face->spanLightIntensityDx =
-					(runRowsFloat * right->dLightIntensityDy + right->lightIntensity -
-					 (runRowsFloat * left->dLightIntensityDy + left->lightIntensity)) /
-					(runRowsFloat * right->dxdy + right->x - (runRowsFloat * left->dxdy + left->x));
+					(runRowsFloat *
+						 right->dLightIntensityDy +
+					 right->lightIntensity -
+					 (runRowsFloat *
+						  left->dLightIntensityDy +
+					  left->lightIntensity)) /
+					(runRowsFloat * right->dxdy + right->x -
+					 (runRowsFloat * left->dxdy + left->x));
 				do {
 					--runRows;
-					sw3d_InsertSpan(left->x, right->x, scanY++, face);
-					if (runRows <= 0)
+					sw3d_InsertSpan(left->x, right->x,
+							scanY++, face);
+					if (runRows <= 0) {
 						break;
+					}
 					left->x += left->dxdy;
-					left->lightIntensity += left->dLightIntensityDy;
+					left->lightIntensity +=
+						left->dLightIntensityDy;
 					right->x += right->dxdy;
-					right->lightIntensity += right->dLightIntensityDy;
+					right->lightIntensity +=
+						right->dLightIntensityDy;
 				} while (1);
 			}
 
@@ -653,66 +845,97 @@ void sw3d_ScanConvertFace(SceneFace* face) {
 					--remainingEdges;
 					if (scanY == left->yEnd) {
 						left->x = leftStartX;
-						left->lightIntensity = leftStartLight;
-						for (edgeIndex = 0; edgeIndex < face->edgeCount; ++edgeIndex) {
-							if (face->edges[edgeIndex]->yStart == scanY)
+						left->lightIntensity =
+							leftStartLight;
+						for (edgeIndex = 0;
+						     edgeIndex <
+						     face->edgeCount;
+						     ++edgeIndex) {
+							if (face->edges[edgeIndex]
+								    ->yStart ==
+							    scanY) {
 								break;
+							}
 						}
-						if (edgeIndex == face->edgeCount) {
+						if (edgeIndex ==
+						    face->edgeCount) {
 							face->yBot = scanY;
 							break;
 						}
 						left = face->edges[edgeIndex];
 						face->pScanEdge = left;
 						leftStartX = left->x;
-						leftStartLight = left->lightIntensity;
+						leftStartLight =
+							left->lightIntensity;
 						right->x += right->dxdy;
-						right->lightIntensity += right->dLightIntensityDy;
+						right->lightIntensity +=
+							right->dLightIntensityDy;
 					} else {
 						right->x = rightStartX;
-						right->lightIntensity = rightStartLight;
-						for (edgeIndex = 0; edgeIndex < face->edgeCount; ++edgeIndex) {
-							if (face->edges[edgeIndex]->yStart == scanY)
+						right->lightIntensity =
+							rightStartLight;
+						for (edgeIndex = 0;
+						     edgeIndex <
+						     face->edgeCount;
+						     ++edgeIndex) {
+							if (face->edges[edgeIndex]
+								    ->yStart ==
+							    scanY) {
 								break;
+							}
 						}
-						if (edgeIndex == face->edgeCount) {
+						if (edgeIndex ==
+						    face->edgeCount) {
 							face->yBot = scanY;
 							break;
 						}
 						right = face->edges[edgeIndex];
 						rightStartX = right->x;
-						rightStartLight = right->lightIntensity;
+						rightStartLight =
+							right->lightIntensity;
 						left->x += left->dxdy;
-						left->lightIntensity += left->dLightIntensityDy;
+						left->lightIntensity +=
+							left->dLightIntensityDy;
 					}
 				} else {
 					remainingEdges -= 2;
-					if (remainingEdges == 0)
+					if (remainingEdges == 0) {
 						break;
+					}
 
 					left->x = leftStartX;
 					right->x = rightStartX;
 					left->lightIntensity = leftStartLight;
 					right->lightIntensity = rightStartLight;
-					for (edgeIndex = 0; edgeIndex < face->edgeCount; ++edgeIndex) {
-						if (face->edges[edgeIndex]->yStart == scanY)
+					for (edgeIndex = 0;
+					     edgeIndex < face->edgeCount;
+					     ++edgeIndex) {
+						if (face->edges[edgeIndex]
+							    ->yStart == scanY) {
 							break;
+						}
 					}
 					if (edgeIndex == face->edgeCount) {
 						face->yBot = scanY;
 						break;
 					}
 					left = face->edges[edgeIndex];
-					for (++edgeIndex; edgeIndex < face->edgeCount; ++edgeIndex) {
-						if (face->edges[edgeIndex]->yStart == scanY)
+					for (++edgeIndex;
+					     edgeIndex < face->edgeCount;
+					     ++edgeIndex) {
+						if (face->edges[edgeIndex]
+							    ->yStart == scanY) {
 							break;
+						}
 					}
 					if (edgeIndex == face->edgeCount) {
 						face->yBot = scanY;
 						break;
 					}
 					right = face->edges[edgeIndex];
-					if (right->x < left->x || (right->x == left->x && right->dxdy < left->dxdy)) {
+					if (right->x < left->x ||
+					    (right->x == left->x &&
+					     right->dxdy < left->dxdy)) {
 						swapEdge = left;
 						left = right;
 						right = swapEdge;
@@ -724,55 +947,86 @@ void sw3d_ScanConvertFace(SceneFace* face) {
 					rightStartLight = right->lightIntensity;
 				}
 
-				if (remainingEdges == 1)
+				if (remainingEdges == 1) {
 					return;
+				}
 				if (remainingEdges == 2) {
-					if (right->yEnd != left->yEnd)
+					if (right->yEnd != left->yEnd) {
 						return;
+					}
 					runRows = left->yEnd - scanY;
 					runRowsFloat = (float)runRows;
-					if (right->dxdy * runRowsFloat + right->x - (left->dxdy * runRowsFloat + left->x) >
-						g_sw3dUnitFloat) {
+					if (right->dxdy * runRowsFloat +
+						    right->x -
+						    (left->dxdy * runRowsFloat +
+						     left->x) >
+					    g_sw3dUnitFloat) {
 						do {
 							--runRows;
 							face->spanLightIntensityDx =
-								(right->lightIntensity - left->lightIntensity) / (right->x - left->x);
-							sw3d_InsertSpan(left->x, right->x, scanY++, face);
-							if (runRows <= 0)
+								(right->lightIntensity -
+								 left->lightIntensity) /
+								(right->x -
+								 left->x);
+							sw3d_InsertSpan(
+								left->x,
+								right->x,
+								scanY++, face);
+							if (runRows <= 0) {
 								break;
+							}
 							left->x += left->dxdy;
-							left->lightIntensity += left->dLightIntensityDy;
+							left->lightIntensity +=
+								left->dLightIntensityDy;
 							right->x += right->dxdy;
-							right->lightIntensity += right->dLightIntensityDy;
+							right->lightIntensity +=
+								right->dLightIntensityDy;
 						} while (1);
 					} else {
 						face->spanLightIntensityDx =
-							(right->lightIntensity - left->lightIntensity) / (right->x - left->x);
+							(right->lightIntensity -
+							 left->lightIntensity) /
+							(right->x - left->x);
 						do {
 							--runRows;
-							sw3d_InsertSpan(left->x, right->x, scanY++, face);
-							if (runRows <= 0)
+							sw3d_InsertSpan(
+								left->x,
+								right->x,
+								scanY++, face);
+							if (runRows <= 0) {
 								break;
+							}
 							left->x += left->dxdy;
-							left->lightIntensity += left->dLightIntensityDy;
+							left->lightIntensity +=
+								left->dLightIntensityDy;
 							right->x += right->dxdy;
-							right->lightIntensity += right->dLightIntensityDy;
+							right->lightIntensity +=
+								right->dLightIntensityDy;
 						} while (1);
 					}
 				} else {
-					runEnd = left->yEnd < right->yEnd ? left->yEnd : right->yEnd;
+					runEnd = left->yEnd < right->yEnd
+							 ? left->yEnd
+							 : right->yEnd;
 					runRows = runEnd - scanY;
 					do {
 						--runRows;
 						face->spanLightIntensityDx =
-							(right->lightIntensity - left->lightIntensity) / (right->x - left->x);
-						sw3d_InsertSpan(left->x, right->x, scanY++, face);
-						if (runRows <= 0)
+							(right->lightIntensity -
+							 left->lightIntensity) /
+							(right->x - left->x);
+						sw3d_InsertSpan(left->x,
+								right->x,
+								scanY++, face);
+						if (runRows <= 0) {
 							break;
+						}
 						left->x += left->dxdy;
-						left->lightIntensity += left->dLightIntensityDy;
+						left->lightIntensity +=
+							left->dLightIntensityDy;
 						right->x += right->dxdy;
-						right->lightIntensity += right->dLightIntensityDy;
+						right->lightIntensity +=
+							right->dLightIntensityDy;
 					} while (1);
 				}
 			}
@@ -788,16 +1042,17 @@ void sw3d_ScanConvertFace(SceneFace* face) {
 }
 
 // FUNCTION: XVT 0x471A10
-int sw3d_SetupClippedEdge(SceneMesh* mesh, SceneEdge* edge, const ProjVertex* first,
-						  const ProjVertex* second) {
-	const ProjVertex* inside;
-	const ProjVertex* outside;
+int sw3d_SetupClippedEdge(SceneMesh *mesh, SceneEdge *edge,
+			  const ProjVertex *first, const ProjVertex *second)
+{
+	const ProjVertex *inside;
+	const ProjVertex *outside;
 #ifdef XVT_MODERN
 	uint32_t coordinateBits;
 #endif
 	int secondY;
 	int firstY;
-	const ProjVertex* swapVertex;
+	const ProjVertex *swapVertex;
 	int swapY;
 	float inverseHeight;
 	float firstRowOffset;
@@ -805,16 +1060,18 @@ int sw3d_SetupClippedEdge(SceneMesh* mesh, SceneEdge* edge, const ProjVertex* fi
 	inside = second;
 	outside = first;
 #ifdef XVT_MODERN
-	memcpy(&coordinateBits, &second->scaledInverseDepth, sizeof(coordinateBits));
+	memcpy(&coordinateBits, &second->scaledInverseDepth,
+	       sizeof(coordinateBits));
 	if (coordinateBits > 0x80000000u) {
 #else
-	if (*(const uint32_t*)&second->scaledInverseDepth > 0x80000000u) {
+	if (*(const uint32_t *)&second->scaledInverseDepth > 0x80000000u) {
 #endif
 #ifdef XVT_MODERN
-		memcpy(&coordinateBits, &first->scaledInverseDepth, sizeof(coordinateBits));
+		memcpy(&coordinateBits, &first->scaledInverseDepth,
+		       sizeof(coordinateBits));
 		if (coordinateBits > 0x80000000u)
 #else
-		if (*(const uint32_t*)&first->scaledInverseDepth > 0x80000000u)
+		if (*(const uint32_t *)&first->scaledInverseDepth > 0x80000000u)
 #endif
 			return -1;
 		outside = second;
@@ -822,10 +1079,11 @@ int sw3d_SetupClippedEdge(SceneMesh* mesh, SceneEdge* edge, const ProjVertex* fi
 	}
 
 #ifdef XVT_MODERN
-	memcpy(&coordinateBits, &outside->scaledInverseDepth, sizeof(coordinateBits));
+	memcpy(&coordinateBits, &outside->scaledInverseDepth,
+	       sizeof(coordinateBits));
 	if (coordinateBits > 0x80000000u) {
 #else
-	if (*(const uint32_t*)&outside->scaledInverseDepth > 0x80000000u) {
+	if (*(const uint32_t *)&outside->scaledInverseDepth > 0x80000000u) {
 #endif
 		float insideInverseW;
 		float insideX;
@@ -834,27 +1092,40 @@ int sw3d_SetupClippedEdge(SceneMesh* mesh, SceneEdge* edge, const ProjVertex* fi
 		float clippedY;
 
 		g_sw3dPreviousClipVertex = g_sw3dLatestClipVertex;
-		g_sw3dLatestClipVertex = &g_projVertList[mesh->projVertCursor + mesh->vertBaseIndex];
+		g_sw3dLatestClipVertex = &g_projVertList[mesh->projVertCursor +
+							 mesh->vertBaseIndex];
 		g_sw3dGeneratedClipVertex = g_sw3dLatestClipVertex;
 		++mesh->projVertCursor;
 		++g_projVertCount;
 
 		insideInverseW = g_sw3dUnitFloat / inside->scaledInverseDepth;
-		insideX = (inside->sx - (float)(g_flightVpWidth >> 1)) * insideInverseW;
-		insideY = (inside->sy - (float)(g_projOffsetY + (g_flightVpHeight >> 1))) * insideInverseW;
-		clipFraction = outside->scaledInverseDepth /
-					   (outside->scaledInverseDepth - insideInverseW * (float)(unsigned int)g_projScaleInt +
-						g_sw3dUnitFloat);
+		insideX = (inside->sx - (float)(g_flightVpWidth >> 1)) *
+			  insideInverseW;
+		insideY = (inside->sy -
+			   (float)(g_projOffsetY + (g_flightVpHeight >> 1))) *
+			  insideInverseW;
+		clipFraction =
+			outside->scaledInverseDepth /
+			(outside->scaledInverseDepth -
+			 insideInverseW * (float)(unsigned int)g_projScaleInt +
+			 g_sw3dUnitFloat);
 		clippedY = (insideY - outside->sy) * clipFraction + outside->sy;
 		g_sw3dLatestClipVertex->sx =
-			((insideX - outside->sx) * clipFraction + outside->sx) * (float)(unsigned int)g_projScaleInt;
-		g_sw3dLatestClipVertex->sy = clippedY * (float)(unsigned int)g_projScaleInt;
-		g_sw3dLatestClipVertex->sx = (float)(g_flightVpWidth >> 1) + g_sw3dLatestClipVertex->sx;
+			((insideX - outside->sx) * clipFraction + outside->sx) *
+			(float)(unsigned int)g_projScaleInt;
 		g_sw3dLatestClipVertex->sy =
-			(float)(g_projOffsetY + (g_flightVpHeight >> 1)) + g_sw3dLatestClipVertex->sy;
-		g_sw3dLatestClipVertex->scaledInverseDepth = (float)(unsigned int)g_projScaleInt;
+			clippedY * (float)(unsigned int)g_projScaleInt;
+		g_sw3dLatestClipVertex->sx = (float)(g_flightVpWidth >> 1) +
+					     g_sw3dLatestClipVertex->sx;
+		g_sw3dLatestClipVertex->sy =
+			(float)(g_projOffsetY + (g_flightVpHeight >> 1)) +
+			g_sw3dLatestClipVertex->sy;
+		g_sw3dLatestClipVertex->scaledInverseDepth =
+			(float)(unsigned int)g_projScaleInt;
 		g_sw3dLatestClipVertex->lightIntensity =
-			outside->lightIntensity + (inside->lightIntensity - outside->lightIntensity) * clipFraction;
+			outside->lightIntensity +
+			(inside->lightIntensity - outside->lightIntensity) *
+				clipFraction;
 		outside = g_sw3dLatestClipVertex;
 	}
 
@@ -862,28 +1133,31 @@ int sw3d_SetupClippedEdge(SceneMesh* mesh, SceneEdge* edge, const ProjVertex* fi
 	memcpy(&coordinateBits, &outside->sy, sizeof(coordinateBits));
 	if (coordinateBits > 0x80000000u) {
 #else
-	if (*(const uint32_t*)&outside->sy > 0x80000000u) {
+	if (*(const uint32_t *)&outside->sy > 0x80000000u) {
 #endif
 		firstY = 0;
 	} else {
 		firstY = (int)outside->sy;
-		if ((float)firstY != outside->sy)
+		if ((float)firstY != outside->sy) {
 			++firstY;
+		}
 	}
 #ifdef XVT_MODERN
 	memcpy(&coordinateBits, &inside->sy, sizeof(coordinateBits));
 	if (coordinateBits > 0x80000000u) {
 #else
-	if (*(const uint32_t*)&inside->sy > 0x80000000u) {
+	if (*(const uint32_t *)&inside->sy > 0x80000000u) {
 #endif
 		secondY = 0;
 	} else {
 		secondY = (int)inside->sy;
-		if ((float)secondY != inside->sy)
+		if ((float)secondY != inside->sy) {
 			++secondY;
+		}
 	}
-	if (firstY == secondY)
+	if (firstY == secondY) {
 		return -1;
+	}
 	if (firstY > secondY) {
 		swapVertex = outside;
 		outside = inside;
@@ -892,28 +1166,36 @@ int sw3d_SetupClippedEdge(SceneMesh* mesh, SceneEdge* edge, const ProjVertex* fi
 		firstY = secondY;
 		secondY = swapY;
 	}
-	if (secondY <= 0)
+	if (secondY <= 0) {
 		return -1;
-	if (g_flightVpHeight <= firstY)
+	}
+	if (g_flightVpHeight <= firstY) {
 		return -1;
-	if (secondY > g_flightVpHeight)
+	}
+	if (secondY > g_flightVpHeight) {
 		secondY = g_flightVpHeight;
+	}
 
 	edge->yEnd = secondY;
 	inverseHeight = g_sw3dUnitFloat / (inside->sy - outside->sy);
 	edge->dxdy = (inside->sx - outside->sx) * inverseHeight;
-	edge->dLightIntensityDy = (inside->lightIntensity - outside->lightIntensity) * inverseHeight;
+	edge->dLightIntensityDy =
+		(inside->lightIntensity - outside->lightIntensity) *
+		inverseHeight;
 	edge->pClipVert = NULL;
 	firstRowOffset = (float)firstY - outside->sy;
 	edge->x = outside->sx + firstRowOffset * edge->dxdy;
-	edge->lightIntensity = outside->lightIntensity + firstRowOffset * edge->dLightIntensityDy;
+	edge->lightIntensity = outside->lightIntensity +
+			       firstRowOffset * edge->dLightIntensityDy;
 	edge->yStart = firstY;
 	return firstY;
 }
 
 // FUNCTION: XVT 0x471CE0
-int sw3d_SetupEdge(SceneEdge* edge, const ProjVertex* first, const ProjVertex* second) {
-	const ProjVertex* swapVertex;
+int sw3d_SetupEdge(SceneEdge *edge, const ProjVertex *first,
+		   const ProjVertex *second)
+{
+	const ProjVertex *swapVertex;
 	int firstY;
 	int secondY;
 	int swapY;
@@ -924,20 +1206,23 @@ int sw3d_SetupEdge(SceneEdge* edge, const ProjVertex* first, const ProjVertex* s
 		firstY = 0;
 	} else {
 		firstY = (int)first->sy;
-		if ((float)firstY != first->sy)
+		if ((float)firstY != first->sy) {
 			++firstY;
+		}
 	}
 
 	if (second->sy < 0.0f) {
 		secondY = 0;
 	} else {
 		secondY = (int)second->sy;
-		if ((float)secondY != second->sy)
+		if ((float)secondY != second->sy) {
 			++secondY;
+		}
 	}
 
-	if (firstY == secondY)
+	if (firstY == secondY) {
 		return -1;
+	}
 	if (firstY > secondY) {
 		swapVertex = first;
 		first = second;
@@ -946,27 +1231,34 @@ int sw3d_SetupEdge(SceneEdge* edge, const ProjVertex* first, const ProjVertex* s
 		firstY = secondY;
 		secondY = swapY;
 	}
-	if (secondY <= 0)
+	if (secondY <= 0) {
 		return -1;
-	if (firstY >= g_flightVpHeight)
+	}
+	if (firstY >= g_flightVpHeight) {
 		return -1;
-	if (secondY > g_flightVpHeight)
+	}
+	if (secondY > g_flightVpHeight) {
 		secondY = g_flightVpHeight;
+	}
 
 	edge->yEnd = secondY;
 	inverseHeight = g_sw3dUnitFloat / (second->sy - first->sy);
 	edge->dxdy = (second->sx - first->sx) * inverseHeight;
-	edge->dLightIntensityDy = (second->lightIntensity - first->lightIntensity) * inverseHeight;
+	edge->dLightIntensityDy =
+		(second->lightIntensity - first->lightIntensity) *
+		inverseHeight;
 	edge->pClipVert = NULL;
 	firstRowOffset = (float)firstY - first->sy;
 	edge->x = first->sx + firstRowOffset * edge->dxdy;
-	edge->lightIntensity = first->lightIntensity + firstRowOffset * edge->dLightIntensityDy;
+	edge->lightIntensity = first->lightIntensity +
+			       firstRowOffset * edge->dLightIntensityDy;
 	edge->yStart = firstY;
 	return firstY;
 }
 
 // FUNCTION: XVT 0x4865E0
-void sw3d_DrawVisibleFacesToSurface(void) {
+void sw3d_DrawVisibleFacesToSurface(void)
+{
 	enum {
 		SW3D_MIP_MIN_DIMENSION = 8,
 		SW3D_MIP_THRESHOLD_Q8 = 256,
@@ -989,8 +1281,8 @@ void sw3d_DrawVisibleFacesToSurface(void) {
 	g_sw3dSpanSceneMesh = NULL;
 	faceIndex = g_visFacePassStart;
 	while (faceIndex < g_visFaceCount) {
-		const OptTextureData* material;
-		SceneMesh** pMesh;
+		const OptTextureData *material;
+		SceneMesh **pMesh;
 		float rowBaseW;
 		int mipTexelOffset;
 		int textureWidth;
@@ -1003,14 +1295,18 @@ void sw3d_DrawVisibleFacesToSurface(void) {
 		g_sw3dCurrentFace->pScanEdge = &spanStartEdge;
 		mipTexelOffset = 0;
 		pMesh = &g_sw3dCurrentFace->pMesh;
-		material = (const OptTextureData*)(*pMesh)->pMaterial;
+		material = (const OptTextureData *)(*pMesh)->pMaterial;
 		textureWidth = material->width;
 		textureHeight = material->height;
-		if (g_mipmappingEnabled != mipTexelOffset && textureWidth * textureHeight == material->textureSize) {
-			int mipMetric = (int)((float)g_sw3dCurrentFace->texelsPerPixelQ8 * g_mipLodScale);
+		if (g_mipmappingEnabled != mipTexelOffset &&
+		    textureWidth * textureHeight == material->textureSize) {
+			int mipMetric = (int)((float)g_sw3dCurrentFace
+						      ->texelsPerPixelQ8 *
+					      g_mipLodScale);
 
-			while (mipMetric > SW3D_MIP_THRESHOLD_Q8 && textureWidth != SW3D_MIP_MIN_DIMENSION &&
-				   textureHeight != SW3D_MIP_MIN_DIMENSION) {
+			while (mipMetric > SW3D_MIP_THRESHOLD_Q8 &&
+			       textureWidth != SW3D_MIP_MIN_DIMENSION &&
+			       textureHeight != SW3D_MIP_MIN_DIMENSION) {
 				mipMetric >>= 2;
 				mipTexelOffset += textureWidth * textureHeight;
 				textureWidth >>= 1;
@@ -1022,48 +1318,63 @@ void sw3d_DrawVisibleFacesToSurface(void) {
 		g_sw3dSpanTextureHeightFloat = (float)textureHeight;
 		textureHeightShiftIndex = textureHeight;
 		textureHeightShiftIndex &= ~SW3D_TEXTURE_SHIFT_MASK;
-		g_sw3dSpanTextureWidthShift =
-			g_sw3dTextureShiftBySizeDiv16[(textureWidth & ~SW3D_TEXTURE_SHIFT_MASK) >>
-										  SW3D_TEXTURE_SHIFT_INDEX_SHIFT];
+		g_sw3dSpanTextureWidthShift = g_sw3dTextureShiftBySizeDiv16
+			[(textureWidth & ~SW3D_TEXTURE_SHIFT_MASK) >>
+			 SW3D_TEXTURE_SHIFT_INDEX_SHIFT];
 		g_sw3dSpanTexelMask = textureWidth * textureHeight - 1;
-		g_sw3dSpanTextureHeightShift =
-			g_sw3dTextureShiftBySizeDiv16[textureHeightShiftIndex >> SW3D_TEXTURE_SHIFT_INDEX_SHIFT];
+		g_sw3dSpanTextureHeightShift = g_sw3dTextureShiftBySizeDiv16
+			[textureHeightShiftIndex >>
+			 SW3D_TEXTURE_SHIFT_INDEX_SHIFT];
 		g_sw3dSpanShadeTable = (*pMesh)->pPalette;
-		g_sw3dSpanTexels = (uint8_t*)(*pMesh)->pTexels + mipTexelOffset;
+		g_sw3dSpanTexels =
+			(uint8_t *)(*pMesh)->pTexels + mipTexelOffset;
 		g_sw3dSpanSceneMesh = *pMesh;
-		rowBaseW = (float)(unsigned int)g_sw3dCurrentScanlineY * g_sw3dCurrentFace->gradients[7] +
-				   g_sw3dCurrentFace->gradients[8];
+		rowBaseW = (float)(unsigned int)g_sw3dCurrentScanlineY *
+				   g_sw3dCurrentFace->gradients[7] +
+			   g_sw3dCurrentFace->gradients[8];
 		g_sw3dSpanFramebufferRowOffset =
-			g_surfacePitch * (g_sw3dCurrentScanlineY + g_flightVpY) + g_flightBytesPerPixel * g_flightVpX;
+			g_surfacePitch *
+				(g_sw3dCurrentScanlineY + g_flightVpY) +
+			g_flightBytesPerPixel * g_flightVpX;
 
-		for (spanIndex = 0; (unsigned int)g_sw3dCurrentScanlineY < (unsigned int)g_sw3dCurrentFace->yBot;
-			 ++spanIndex, ++g_sw3dCurrentScanlineY) {
-			SceneFace* rowFace = g_sw3dCurrentFace;
-			SceneSpan* span = rowFace->pSpans[spanIndex];
+		for (spanIndex = 0; (unsigned int)g_sw3dCurrentScanlineY <
+				    (unsigned int)g_sw3dCurrentFace->yBot;
+		     ++spanIndex, ++g_sw3dCurrentScanlineY) {
+			SceneFace *rowFace = g_sw3dCurrentFace;
+			SceneSpan *span = rowFace->pSpans[spanIndex];
 
 			if (span != NULL) {
-				SceneSpan* occluder;
+				SceneSpan *occluder;
 				int sampleSubrow;
 				int startX;
 				int endX;
 				float startXFloat;
 				float lightIntensity;
 
-				sampleSubrow = g_sw3dCurrentScanlineY & g_sw3dLightSampleBlockMask;
+				sampleSubrow = g_sw3dCurrentScanlineY &
+					       g_sw3dLightSampleBlockMask;
 				if (sampleSubrow != 0) {
-					g_sw3dLightSampleSubrowFloat = (float)(unsigned int)sampleSubrow;
+					g_sw3dLightSampleSubrowFloat =
+						(float)(unsigned int)
+							sampleSubrow;
 					g_sw3dLightSampleSubrowLerpT =
-						g_sw3dLightSampleSubrowFloat * g_sw3dSpanLengthReciprocal[g_sw3dLightSampleBlockSize];
+						g_sw3dLightSampleSubrowFloat *
+						g_sw3dSpanLengthReciprocal
+							[g_sw3dLightSampleBlockSize];
 					g_sw3dLightSampleRowsToNextBlockFloat =
-						(float)(unsigned int)(g_sw3dLightSampleBlockSize - sampleSubrow);
+						(float)(unsigned int)(g_sw3dLightSampleBlockSize -
+								      sampleSubrow);
 				} else {
 					g_sw3dLightSampleSubrowLerpT = 0.0f;
 					g_sw3dLightSampleSubrowFloat = 0.0f;
-					g_sw3dLightSampleRowsToNextBlockFloat = (float)(unsigned int)g_sw3dLightSampleBlockSize;
+					g_sw3dLightSampleRowsToNextBlockFloat =
+						(float)(unsigned int)
+							g_sw3dLightSampleBlockSize;
 				}
 				g_sw3dCurrentLightSampleCacheStamp =
 					g_sw3dLightSampleCacheSceneStampBase +
-					((unsigned int)g_sw3dCurrentScanlineY >> g_sw3dLightSampleBlockShift);
+					((unsigned int)g_sw3dCurrentScanlineY >>
+					 g_sw3dLightSampleBlockShift);
 
 				occluder = span->next;
 				startX = span->xStart;
@@ -1072,27 +1383,41 @@ void sw3d_DrawVisibleFacesToSurface(void) {
 				lightIntensity = span->lightIntensity;
 				spanStartEdge.lightIntensity = lightIntensity;
 				spanStartEdge.x = startXFloat;
-				g_sw3dCurrentFace->spanLightIntensityDx = span->dLightIntensityDx;
+				g_sw3dCurrentFace->spanLightIntensityDx =
+					span->dLightIntensityDx;
 				if (occluder != NULL) {
 					do {
-						const int occluderStart = occluder->xStart;
+						const int occluderStart =
+							occluder->xStart;
 
 						if (endX <= occluderStart) {
 							break;
 						}
 						if (startX >= occluderStart) {
-							const int occluderEnd = occluder->xEnd;
+							const int occluderEnd =
+								occluder->xEnd;
 
-							if (startX < occluderEnd) {
-								startX = occluder->xEnd;
-								if (endX <= occluderEnd) {
+							if (startX <
+							    occluderEnd) {
+								startX =
+									occluder->xEnd;
+								if (endX <=
+								    occluderEnd) {
 									break;
 								}
 							}
 						} else {
-							float spanStartW = (float)startX * g_sw3dCurrentFace->gradients[6] + rowBaseW;
+							float spanStartW =
+								(float)startX *
+									g_sw3dCurrentFace
+										->gradients
+											[6] +
+								rowBaseW;
 
-							sw3d_DrawTexturedSpan(startX, occluderStart, spanStartW);
+							sw3d_DrawTexturedSpan(
+								startX,
+								occluderStart,
+								spanStartW);
 							startX = occluder->xEnd;
 							endX = span->xEnd;
 							if (endX <= startX) {
@@ -1102,14 +1427,26 @@ void sw3d_DrawVisibleFacesToSurface(void) {
 						occluder = occluder->next;
 					} while (occluder != NULL);
 					if (endX > startX) {
-						float spanStartW = (float)startX * g_sw3dCurrentFace->gradients[6] + rowBaseW;
+						float spanStartW =
+							(float)startX *
+								g_sw3dCurrentFace
+									->gradients
+										[6] +
+							rowBaseW;
 
-						sw3d_DrawTexturedSpan(startX, endX, spanStartW);
+						sw3d_DrawTexturedSpan(
+							startX, endX,
+							spanStartW);
 					}
 				} else {
-					float spanStartW = g_sw3dCurrentFace->gradients[6] * startXFloat + rowBaseW;
+					float spanStartW =
+						g_sw3dCurrentFace
+								->gradients[6] *
+							startXFloat +
+						rowBaseW;
 
-					sw3d_DrawTexturedSpan(startX, endX, spanStartW);
+					sw3d_DrawTexturedSpan(startX, endX,
+							      spanStartW);
 				}
 				rowFace = g_sw3dCurrentFace;
 			}
@@ -1125,12 +1462,13 @@ void sw3d_DrawVisibleFacesToSurface(void) {
 }
 
 // FUNCTION: XVT 0x486980
-void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
-	SceneSpan* current;
-	SceneSpan* next;
-	SceneSpan* insertionNext;
-	SceneSpan* previous;
-	SceneSpan* span;
+void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace *face)
+{
+	SceneSpan *current;
+	SceneSpan *next;
+	SceneSpan *insertionNext;
+	SceneSpan *previous;
+	SceneSpan *span;
 	float newW;
 	float currentW;
 	int startX;
@@ -1161,7 +1499,8 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 	if (endX >= g_flightVpWidth) {
 		endX = g_flightVpWidth;
 	}
-	if (endX <= startX || startX >= g_flightVpWidth || (g_sw3dSkipOddScanlines && (scanY & 1))) {
+	if (endX <= startX || startX >= g_flightVpWidth ||
+	    (g_sw3dSkipOddScanlines && (scanY & 1))) {
 		return;
 	}
 
@@ -1177,7 +1516,8 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 			break;
 		}
 
-		if (face->maxScaledInverseDepth <= current->face->minScaledInverseDepth) {
+		if (face->maxScaledInverseDepth <=
+		    current->face->minScaledInverseDepth) {
 			startX = current->xEnd;
 			if (startX >= endX) {
 				return;
@@ -1186,7 +1526,8 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 			current = current->next;
 			continue;
 		}
-		if (face->minScaledInverseDepth >= current->face->maxScaledInverseDepth) {
+		if (face->minScaledInverseDepth >=
+		    current->face->maxScaledInverseDepth) {
 			if (current->xEnd > endX) {
 				previous = current;
 				current = current->next;
@@ -1194,9 +1535,12 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 			}
 			current->xEnd = startX;
 			if (current->xEnd == current->xStart) {
-				current->face->pSpans[scanY - current->face->yTop] = NULL;
+				current->face
+					->pSpans[scanY - current->face->yTop] =
+					NULL;
 				if (previous == NULL) {
-					g_scanlineSpanHeads[scanY] = current->next;
+					g_scanlineSpanHeads[scanY] =
+						current->next;
 				} else {
 					previous->next = current->next;
 				}
@@ -1208,9 +1552,11 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 			continue;
 		}
 
-		newW = face->gradients[7] * (float)scanY + face->gradients[8] + face->gradients[6] * (float)startX;
-		currentW = current->face->gradients[7] * (float)scanY + current->face->gradients[8] +
-				   current->face->gradients[6] * (float)startX;
+		newW = face->gradients[7] * (float)scanY + face->gradients[8] +
+		       face->gradients[6] * (float)startX;
+		currentW = current->face->gradients[7] * (float)scanY +
+			   current->face->gradients[8] +
+			   current->face->gradients[6] * (float)startX;
 		if (newW <= currentW) {
 			if (current->face->gradients[6] >= face->gradients[6]) {
 				startX = current->xEnd;
@@ -1223,8 +1569,10 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 			}
 			if (current->xEnd < endX) {
 				overlapWidth = current->xEnd - startX;
-				newW += (float)overlapWidth * face->gradients[6];
-				currentW += (float)overlapWidth * current->face->gradients[6];
+				newW += (float)overlapWidth *
+					face->gradients[6];
+				currentW += (float)overlapWidth *
+					    current->face->gradients[6];
 				if (newW <= currentW) {
 					startX = current->xEnd;
 					previous = current;
@@ -1233,15 +1581,20 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 				}
 			} else {
 				overlapWidth = endX - startX;
-				newW += (float)overlapWidth * face->gradients[6];
-				currentW += (float)overlapWidth * current->face->gradients[6];
+				newW += (float)overlapWidth *
+					face->gradients[6];
+				currentW += (float)overlapWidth *
+					    current->face->gradients[6];
 				if (newW <= currentW) {
 					return;
 				}
 			}
-			currentLeftWidth = (int)((float)overlapWidth -
-									 (newW - currentW) / (face->gradients[6] - current->face->gradients[6])) +
-							   1;
+			currentLeftWidth =
+				(int)((float)overlapWidth -
+				      (newW - currentW) /
+					      (face->gradients[6] -
+					       current->face->gradients[6])) +
+				1;
 			if (currentLeftWidth < 0) {
 				currentLeftWidth = 0;
 			}
@@ -1262,9 +1615,12 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 			}
 			current->xEnd = startX;
 			if (current->xEnd == current->xStart) {
-				current->face->pSpans[scanY - current->face->yTop] = NULL;
+				current->face
+					->pSpans[scanY - current->face->yTop] =
+					NULL;
 				if (previous == NULL) {
-					g_scanlineSpanHeads[scanY] = current->next;
+					g_scanlineSpanHeads[scanY] =
+						current->next;
 				} else {
 					previous->next = current->next;
 				}
@@ -1279,13 +1635,18 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 		if (current->xEnd <= endX) {
 			overlapWidth = current->xEnd - startX;
 			newW += (float)overlapWidth * face->gradients[6];
-			currentW += (float)overlapWidth * current->face->gradients[6];
+			currentW += (float)overlapWidth *
+				    current->face->gradients[6];
 			if (newW >= currentW) {
 				current->xEnd = startX;
 				if (current->xEnd == current->xStart) {
-					current->face->pSpans[scanY - current->face->yTop] = NULL;
+					current->face
+						->pSpans[scanY -
+							 current->face->yTop] =
+						NULL;
 					if (previous == NULL) {
-						g_scanlineSpanHeads[scanY] = current->next;
+						g_scanlineSpanHeads[scanY] =
+							current->next;
 					} else {
 						previous->next = current->next;
 					}
@@ -1297,7 +1658,10 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 				continue;
 			}
 
-			crossingFromRight = (int)((newW - currentW) / (face->gradients[6] - current->face->gradients[6]));
+			crossingFromRight =
+				(int)((newW - currentW) /
+				      (face->gradients[6] -
+				       current->face->gradients[6]));
 			if (crossingFromRight < 0) {
 				crossingFromRight = 0;
 			}
@@ -1308,13 +1672,19 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 			currentLeftWidth = startX - current->xStart;
 			currentRightWidth = endX - current->xEnd;
 
-			if (currentLeftWidth <= crossingFromRight && currentLeftWidth <= crossingFromLeft &&
-				currentRightWidth >= currentLeftWidth) {
-				currentLeftWidth = current->xEnd - current->xStart - crossingFromRight;
+			if (currentLeftWidth <= crossingFromRight &&
+			    currentLeftWidth <= crossingFromLeft &&
+			    currentRightWidth >= currentLeftWidth) {
+				currentLeftWidth = current->xEnd -
+						   current->xStart -
+						   crossingFromRight;
 				current->xStart += currentLeftWidth;
-				current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+				current->lightIntensity +=
+					(float)currentLeftWidth *
+					current->dLightIntensityDx;
 				next = current->next;
-				if (next == NULL || next->xStart > current->xStart) {
+				if (next == NULL ||
+				    next->xStart > current->xStart) {
 					break;
 				}
 				if (previous == NULL) {
@@ -1323,16 +1693,27 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 					previous->next = next;
 				}
 				if (current->xStart < next->xEnd) {
-					currentLeftWidth = next->xEnd - current->xStart;
+					currentLeftWidth =
+						next->xEnd - current->xStart;
 					current->xStart += currentLeftWidth;
-					current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+					current->lightIntensity +=
+						(float)currentLeftWidth *
+						current->dLightIntensityDx;
 				}
 				insertionNext = next->next;
-				while (insertionNext != NULL && insertionNext->xStart < current->xStart) {
-					if (current->xStart < insertionNext->xEnd) {
-						currentLeftWidth = insertionNext->xEnd - current->xStart;
-						current->xStart += currentLeftWidth;
-						current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+				while (insertionNext != NULL &&
+				       insertionNext->xStart <
+					       current->xStart) {
+					if (current->xStart <
+					    insertionNext->xEnd) {
+						currentLeftWidth =
+							insertionNext->xEnd -
+							current->xStart;
+						current->xStart +=
+							currentLeftWidth;
+						current->lightIntensity +=
+							(float)currentLeftWidth *
+							current->dLightIntensityDx;
 					}
 					if (current->xStart >= current->xEnd) {
 						break;
@@ -1344,7 +1725,10 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 					next->next = current;
 					current->next = insertionNext;
 				} else {
-					current->face->pSpans[scanY - current->face->yTop] = NULL;
+					current->face
+						->pSpans[scanY -
+							 current->face->yTop] =
+						NULL;
 				}
 				if (previous == NULL) {
 					current = g_scanlineSpanHeads[scanY];
@@ -1352,13 +1736,18 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 					current = previous->next;
 				}
 				continue;
-			} else if (currentLeftWidth >= crossingFromRight && crossingFromLeft >= crossingFromRight &&
-					   currentRightWidth >= crossingFromRight) {
+			} else if (currentLeftWidth >= crossingFromRight &&
+				   crossingFromLeft >= crossingFromRight &&
+				   currentRightWidth >= crossingFromRight) {
 				current->xEnd = startX;
 				if (current->xEnd == current->xStart) {
-					current->face->pSpans[scanY - current->face->yTop] = NULL;
+					current->face
+						->pSpans[scanY -
+							 current->face->yTop] =
+						NULL;
 					if (previous == NULL) {
-						g_scanlineSpanHeads[scanY] = current->next;
+						g_scanlineSpanHeads[scanY] =
+							current->next;
 					} else {
 						previous->next = current->next;
 					}
@@ -1369,8 +1758,9 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 				}
 				continue;
 			}
-			if (currentLeftWidth >= crossingFromLeft && crossingFromLeft <= crossingFromRight &&
-				currentRightWidth >= crossingFromLeft) {
+			if (currentLeftWidth >= crossingFromLeft &&
+			    crossingFromLeft <= crossingFromRight &&
+			    currentRightWidth >= crossingFromLeft) {
 				startX = current->xEnd;
 				if (startX >= endX) {
 					return;
@@ -1388,11 +1778,15 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 		} else {
 			overlapWidth = endX - startX;
 			newW += (float)overlapWidth * face->gradients[6];
-			currentW += (float)overlapWidth * current->face->gradients[6];
+			currentW += (float)overlapWidth *
+				    current->face->gradients[6];
 			if (newW < currentW) {
 				currentLeftWidth =
 					(int)((float)overlapWidth -
-						  (newW - currentW) / (face->gradients[6] - current->face->gradients[6])) +
+					      (newW - currentW) /
+						      (face->gradients[6] -
+						       current->face->gradients
+							       [6])) +
 					1;
 				if (currentLeftWidth < 0) {
 					currentLeftWidth = 0;
@@ -1441,7 +1835,8 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 		if (current->xStart >= span->xEnd) {
 			return;
 		}
-		if (face->maxScaledInverseDepth <= current->face->minScaledInverseDepth) {
+		if (face->maxScaledInverseDepth <=
+		    current->face->minScaledInverseDepth) {
 			if (current->xEnd >= span->xEnd) {
 				span->xEnd = current->xStart;
 				return;
@@ -1450,30 +1845,45 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 			current = current->next;
 			continue;
 		}
-		if (face->minScaledInverseDepth >= current->face->maxScaledInverseDepth) {
+		if (face->minScaledInverseDepth >=
+		    current->face->maxScaledInverseDepth) {
 			if (current->xEnd <= span->xEnd) {
-				current->face->pSpans[scanY - current->face->yTop] = NULL;
+				current->face
+					->pSpans[scanY - current->face->yTop] =
+					NULL;
 				previous->next = current->next;
 				current = current->next;
 				continue;
 			}
 			currentLeftWidth = span->xEnd - current->xStart;
 			current->xStart += currentLeftWidth;
-			current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+			current->lightIntensity += (float)currentLeftWidth *
+						   current->dLightIntensityDx;
 			next = current->next;
 			if (next != NULL && next->xStart < current->xStart) {
 				previous->next = next;
 				if (current->xStart < next->xEnd) {
-					currentLeftWidth = next->xEnd - current->xStart;
+					currentLeftWidth =
+						next->xEnd - current->xStart;
 					current->xStart += currentLeftWidth;
-					current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+					current->lightIntensity +=
+						(float)currentLeftWidth *
+						current->dLightIntensityDx;
 				}
 				insertionNext = next->next;
-				while (insertionNext != NULL && insertionNext->xStart < current->xStart) {
-					if (current->xStart < insertionNext->xEnd) {
-						currentLeftWidth = insertionNext->xEnd - current->xStart;
-						current->xStart += currentLeftWidth;
-						current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+				while (insertionNext != NULL &&
+				       insertionNext->xStart <
+					       current->xStart) {
+					if (current->xStart <
+					    insertionNext->xEnd) {
+						currentLeftWidth =
+							insertionNext->xEnd -
+							current->xStart;
+						current->xStart +=
+							currentLeftWidth;
+						current->lightIntensity +=
+							(float)currentLeftWidth *
+							current->dLightIntensityDx;
 					}
 					if (current->xStart >= current->xEnd) {
 						break;
@@ -1485,7 +1895,10 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 					next->next = current;
 					current->next = insertionNext;
 				} else {
-					current->face->pSpans[scanY - current->face->yTop] = NULL;
+					current->face
+						->pSpans[scanY -
+							 current->face->yTop] =
+						NULL;
 				}
 				current = previous->next;
 				continue;
@@ -1496,9 +1909,10 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 		}
 
 		newW = face->gradients[7] * (float)scanY + face->gradients[8] +
-			   face->gradients[6] * (float)current->xStart;
-		currentW = current->face->gradients[7] * (float)scanY + current->face->gradients[8] +
-				   current->face->gradients[6] * (float)current->xStart;
+		       face->gradients[6] * (float)current->xStart;
+		currentW = current->face->gradients[7] * (float)scanY +
+			   current->face->gradients[8] +
+			   current->face->gradients[6] * (float)current->xStart;
 		if (newW <= currentW) {
 			if (current->face->gradients[6] >= face->gradients[6]) {
 				if (current->xEnd >= span->xEnd) {
@@ -1512,21 +1926,28 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 
 			if (current->xEnd < span->xEnd) {
 				overlapWidth = current->xEnd - current->xStart;
-				newW += (float)overlapWidth * face->gradients[6];
-				currentW += (float)overlapWidth * current->face->gradients[6];
+				newW += (float)overlapWidth *
+					face->gradients[6];
+				currentW += (float)overlapWidth *
+					    current->face->gradients[6];
 				if (newW <= currentW) {
 					previous = current;
 					current = current->next;
 					continue;
 				}
 				crossingFromRight =
-					(int)((newW - currentW) / (face->gradients[6] - current->face->gradients[6]));
+					(int)((newW - currentW) /
+					      (face->gradients[6] -
+					       current->face->gradients[6]));
 				if (crossingFromRight < 0) {
 					crossingFromRight = 0;
 				}
 				current->xEnd -= crossingFromRight;
 				if (current->xEnd <= current->xStart) {
-					current->face->pSpans[scanY - current->face->yTop] = NULL;
+					current->face
+						->pSpans[scanY -
+							 current->face->yTop] =
+						NULL;
 					previous->next = current->next;
 					current = current->next;
 				} else {
@@ -1538,12 +1959,16 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 
 			overlapWidth = span->xEnd - current->xStart;
 			newW += (float)overlapWidth * face->gradients[6];
-			currentW += (float)overlapWidth * current->face->gradients[6];
+			currentW += (float)overlapWidth *
+				    current->face->gradients[6];
 			if (newW <= currentW) {
 				span->xEnd = current->xStart;
 				return;
 			}
-			crossingFromRight = (int)((newW - currentW) / (face->gradients[6] - current->face->gradients[6]));
+			crossingFromRight =
+				(int)((newW - currentW) /
+				      (face->gradients[6] -
+				       current->face->gradients[6]));
 			if (crossingFromRight < 0) {
 				crossingFromRight = 0;
 			}
@@ -1551,39 +1976,62 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 				crossingFromRight = overlapWidth;
 			}
 			currentLeftWidth = overlapWidth - crossingFromRight;
-			if (currentLeftWidth > crossingFromRight && current->xEnd - span->xEnd > crossingFromRight) {
+			if (currentLeftWidth > crossingFromRight &&
+			    current->xEnd - span->xEnd > crossingFromRight) {
 				span->xEnd = current->xStart;
 				return;
 			}
 			if (current->xEnd - span->xEnd > currentLeftWidth) {
 				current->xStart += overlapWidth;
-				current->lightIntensity += (float)overlapWidth * current->dLightIntensityDx;
+				current->lightIntensity +=
+					(float)overlapWidth *
+					current->dLightIntensityDx;
 				next = current->next;
-				if (next != NULL && next->xStart < current->xStart) {
+				if (next != NULL &&
+				    next->xStart < current->xStart) {
 					previous->next = next;
 					if (current->xStart < next->xEnd) {
-						currentLeftWidth = next->xEnd - current->xStart;
-						current->xStart += currentLeftWidth;
-						current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+						currentLeftWidth =
+							next->xEnd -
+							current->xStart;
+						current->xStart +=
+							currentLeftWidth;
+						current->lightIntensity +=
+							(float)currentLeftWidth *
+							current->dLightIntensityDx;
 					}
 					insertionNext = next->next;
-					while (insertionNext != NULL && insertionNext->xStart < current->xStart) {
-						if (current->xStart < insertionNext->xEnd) {
-							currentLeftWidth = insertionNext->xEnd - current->xStart;
-							current->xStart += currentLeftWidth;
-							current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+					while (insertionNext != NULL &&
+					       insertionNext->xStart <
+						       current->xStart) {
+						if (current->xStart <
+						    insertionNext->xEnd) {
+							currentLeftWidth =
+								insertionNext
+									->xEnd -
+								current->xStart;
+							current->xStart +=
+								currentLeftWidth;
+							current->lightIntensity +=
+								(float)currentLeftWidth *
+								current->dLightIntensityDx;
 						}
-						if (current->xStart >= current->xEnd) {
+						if (current->xStart >=
+						    current->xEnd) {
 							break;
 						}
 						next = insertionNext;
-						insertionNext = insertionNext->next;
+						insertionNext =
+							insertionNext->next;
 					}
 					if (current->xStart < current->xEnd) {
 						next->next = current;
 						current->next = insertionNext;
 					} else {
-						current->face->pSpans[scanY - current->face->yTop] = NULL;
+						current->face->pSpans
+							[scanY -
+							 current->face->yTop] =
+							NULL;
 					}
 					current = previous->next;
 					continue;
@@ -1600,28 +2048,42 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 
 		if (current->face->gradients[6] <= face->gradients[6]) {
 			if (current->xEnd <= span->xEnd) {
-				current->face->pSpans[scanY - current->face->yTop] = NULL;
+				current->face
+					->pSpans[scanY - current->face->yTop] =
+					NULL;
 				previous->next = current->next;
 				current = current->next;
 				continue;
 			}
 			currentLeftWidth = span->xEnd - current->xStart;
 			current->xStart += currentLeftWidth;
-			current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+			current->lightIntensity += (float)currentLeftWidth *
+						   current->dLightIntensityDx;
 			next = current->next;
 			if (next != NULL && next->xStart < current->xStart) {
 				previous->next = next;
 				if (current->xStart < next->xEnd) {
-					currentLeftWidth = next->xEnd - current->xStart;
+					currentLeftWidth =
+						next->xEnd - current->xStart;
 					current->xStart += currentLeftWidth;
-					current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+					current->lightIntensity +=
+						(float)currentLeftWidth *
+						current->dLightIntensityDx;
 				}
 				insertionNext = next->next;
-				while (insertionNext != NULL && insertionNext->xStart < current->xStart) {
-					if (current->xStart < insertionNext->xEnd) {
-						currentLeftWidth = insertionNext->xEnd - current->xStart;
-						current->xStart += currentLeftWidth;
-						current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+				while (insertionNext != NULL &&
+				       insertionNext->xStart <
+					       current->xStart) {
+					if (current->xStart <
+					    insertionNext->xEnd) {
+						currentLeftWidth =
+							insertionNext->xEnd -
+							current->xStart;
+						current->xStart +=
+							currentLeftWidth;
+						current->lightIntensity +=
+							(float)currentLeftWidth *
+							current->dLightIntensityDx;
 					}
 					if (current->xStart >= current->xEnd) {
 						break;
@@ -1633,7 +2095,10 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 					next->next = current;
 					current->next = insertionNext;
 				} else {
-					current->face->pSpans[scanY - current->face->yTop] = NULL;
+					current->face
+						->pSpans[scanY -
+							 current->face->yTop] =
+						NULL;
 				}
 				current = previous->next;
 				continue;
@@ -1646,14 +2111,20 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 		if (span->xEnd >= current->xEnd) {
 			overlapWidth = current->xEnd - current->xStart;
 			newW += (float)overlapWidth * face->gradients[6];
-			currentW += (float)overlapWidth * current->face->gradients[6];
+			currentW += (float)overlapWidth *
+				    current->face->gradients[6];
 			if (newW >= currentW) {
-				current->face->pSpans[scanY - current->face->yTop] = NULL;
+				current->face
+					->pSpans[scanY - current->face->yTop] =
+					NULL;
 				previous->next = current->next;
 				current = current->next;
 				continue;
 			}
-			crossingFromRight = (int)((newW - currentW) / (face->gradients[6] - current->face->gradients[6]));
+			crossingFromRight =
+				(int)((newW - currentW) /
+				      (face->gradients[6] -
+				       current->face->gradients[6]));
 			if (crossingFromRight < 0) {
 				crossingFromRight = 0;
 			}
@@ -1662,9 +2133,12 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 				currentLeftWidth = 0;
 			}
 			current->xStart += currentLeftWidth;
-			current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+			current->lightIntensity += (float)currentLeftWidth *
+						   current->dLightIntensityDx;
 			if (current->xEnd <= current->xStart) {
-				current->face->pSpans[scanY - current->face->yTop] = NULL;
+				current->face
+					->pSpans[scanY - current->face->yTop] =
+					NULL;
 				previous->next = current->next;
 				current = current->next;
 				continue;
@@ -1673,16 +2147,27 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 			if (next != NULL && next->xStart < current->xStart) {
 				previous->next = next;
 				if (current->xStart < next->xEnd) {
-					currentLeftWidth = next->xEnd - current->xStart;
+					currentLeftWidth =
+						next->xEnd - current->xStart;
 					current->xStart += currentLeftWidth;
-					current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+					current->lightIntensity +=
+						(float)currentLeftWidth *
+						current->dLightIntensityDx;
 				}
 				insertionNext = next->next;
-				while (insertionNext != NULL && insertionNext->xStart < current->xStart) {
-					if (current->xStart < insertionNext->xEnd) {
-						currentLeftWidth = insertionNext->xEnd - current->xStart;
-						current->xStart += currentLeftWidth;
-						current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+				while (insertionNext != NULL &&
+				       insertionNext->xStart <
+					       current->xStart) {
+					if (current->xStart <
+					    insertionNext->xEnd) {
+						currentLeftWidth =
+							insertionNext->xEnd -
+							current->xStart;
+						current->xStart +=
+							currentLeftWidth;
+						current->lightIntensity +=
+							(float)currentLeftWidth *
+							current->dLightIntensityDx;
 					}
 					if (current->xStart >= current->xEnd) {
 						break;
@@ -1694,7 +2179,10 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 					next->next = current;
 					current->next = insertionNext;
 				} else {
-					current->face->pSpans[scanY - current->face->yTop] = NULL;
+					current->face
+						->pSpans[scanY -
+							 current->face->yTop] =
+						NULL;
 				}
 				current = previous->next;
 				continue;
@@ -1704,36 +2192,59 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 		} else {
 			overlapWidth = span->xEnd - current->xStart;
 			newW += (float)overlapWidth * face->gradients[6];
-			currentW += (float)overlapWidth * current->face->gradients[6];
+			currentW += (float)overlapWidth *
+				    current->face->gradients[6];
 			if (newW >= currentW) {
 				current->xStart += overlapWidth;
-				current->lightIntensity += (float)overlapWidth * current->dLightIntensityDx;
+				current->lightIntensity +=
+					(float)overlapWidth *
+					current->dLightIntensityDx;
 				next = current->next;
-				if (next != NULL && next->xStart < current->xStart) {
+				if (next != NULL &&
+				    next->xStart < current->xStart) {
 					previous->next = next;
 					if (current->xStart < next->xEnd) {
-						currentLeftWidth = next->xEnd - current->xStart;
-						current->xStart += currentLeftWidth;
-						current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+						currentLeftWidth =
+							next->xEnd -
+							current->xStart;
+						current->xStart +=
+							currentLeftWidth;
+						current->lightIntensity +=
+							(float)currentLeftWidth *
+							current->dLightIntensityDx;
 					}
 					insertionNext = next->next;
-					while (insertionNext != NULL && insertionNext->xStart < current->xStart) {
-						if (current->xStart < insertionNext->xEnd) {
-							currentLeftWidth = insertionNext->xEnd - current->xStart;
-							current->xStart += currentLeftWidth;
-							current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+					while (insertionNext != NULL &&
+					       insertionNext->xStart <
+						       current->xStart) {
+						if (current->xStart <
+						    insertionNext->xEnd) {
+							currentLeftWidth =
+								insertionNext
+									->xEnd -
+								current->xStart;
+							current->xStart +=
+								currentLeftWidth;
+							current->lightIntensity +=
+								(float)currentLeftWidth *
+								current->dLightIntensityDx;
 						}
-						if (current->xStart >= current->xEnd) {
+						if (current->xStart >=
+						    current->xEnd) {
 							break;
 						}
 						next = insertionNext;
-						insertionNext = insertionNext->next;
+						insertionNext =
+							insertionNext->next;
 					}
 					if (current->xStart < current->xEnd) {
 						next->next = current;
 						current->next = insertionNext;
 					} else {
-						current->face->pSpans[scanY - current->face->yTop] = NULL;
+						current->face->pSpans
+							[scanY -
+							 current->face->yTop] =
+							NULL;
 					}
 					current = previous->next;
 					continue;
@@ -1742,8 +2253,11 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 				current = current->next;
 				continue;
 			}
-			currentLeftWidth = (int)((float)overlapWidth -
-									 (newW - currentW) / (face->gradients[6] - current->face->gradients[6]));
+			currentLeftWidth =
+				(int)((float)overlapWidth -
+				      (newW - currentW) /
+					      (face->gradients[6] -
+					       current->face->gradients[6]));
 			if (currentLeftWidth < 0) {
 				currentLeftWidth = 0;
 			}
@@ -1751,21 +2265,33 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 				currentLeftWidth = overlapWidth;
 			}
 			current->xStart += currentLeftWidth;
-			current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+			current->lightIntensity += (float)currentLeftWidth *
+						   current->dLightIntensityDx;
 			next = current->next;
 			if (next != NULL && next->xStart < current->xStart) {
 				previous->next = next;
 				if (current->xStart < next->xEnd) {
-					currentLeftWidth = next->xEnd - current->xStart;
+					currentLeftWidth =
+						next->xEnd - current->xStart;
 					current->xStart += currentLeftWidth;
-					current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+					current->lightIntensity +=
+						(float)currentLeftWidth *
+						current->dLightIntensityDx;
 				}
 				insertionNext = next->next;
-				while (insertionNext != NULL && insertionNext->xStart < current->xStart) {
-					if (current->xStart < insertionNext->xEnd) {
-						currentLeftWidth = insertionNext->xEnd - current->xStart;
-						current->xStart += currentLeftWidth;
-						current->lightIntensity += (float)currentLeftWidth * current->dLightIntensityDx;
+				while (insertionNext != NULL &&
+				       insertionNext->xStart <
+					       current->xStart) {
+					if (current->xStart <
+					    insertionNext->xEnd) {
+						currentLeftWidth =
+							insertionNext->xEnd -
+							current->xStart;
+						current->xStart +=
+							currentLeftWidth;
+						current->lightIntensity +=
+							(float)currentLeftWidth *
+							current->dLightIntensityDx;
 					}
 					if (current->xStart >= current->xEnd) {
 						break;
@@ -1777,7 +2303,10 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 					next->next = current;
 					current->next = insertionNext;
 				} else {
-					current->face->pSpans[scanY - current->face->yTop] = NULL;
+					current->face
+						->pSpans[scanY -
+							 current->face->yTop] =
+						NULL;
 				}
 				current = previous->next;
 				continue;
@@ -1789,7 +2318,8 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 }
 
 // FUNCTION: XVT 0x4879D0
-void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
+void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW)
+{
 	enum {
 		SW3D_MIN_SPECIALIZED_TEXTURE_SHIFT = 3,
 		SW3D_MAX_SPECIALIZED_TEXTURE_SHIFT = 8,
@@ -1800,12 +2330,12 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 		SW3D_MAX_SHADE_Q8 = 0xEFF,
 	};
 
-	SceneFace* face;
-	SoftwareLightSample* lightSamples;
-	SoftwareLightSample* leftSample;
-	SoftwareLightSample* rightSample;
-	float* uGradient;
-	float* vGradient;
+	SceneFace *face;
+	SoftwareLightSample *lightSamples;
+	SoftwareLightSample *leftSample;
+	SoftwareLightSample *rightSample;
+	float *uGradient;
+	float *vGradient;
 	float uAtY;
 	float vAtY;
 	float wAtY;
@@ -1849,8 +2379,10 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 	int textureHeightMask;
 
 	face = g_sw3dCurrentFace;
-	lightSamples = (SoftwareLightSample*)face->pLightSamples;
-	wAtY = (float)(unsigned int)g_sw3dCurrentScanlineY * face->gradients[7] + face->gradients[8];
+	lightSamples = (SoftwareLightSample *)face->pLightSamples;
+	wAtY = (float)(unsigned int)g_sw3dCurrentScanlineY *
+		       face->gradients[7] +
+	       face->gradients[8];
 	uGradient = &face->gradients[0];
 	vGradient = &face->gradients[3];
 	uAtY = (float)g_sw3dCurrentScanlineY * uGradient[1];
@@ -1862,10 +2394,12 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 	inverseW = g_sw3dSpanOneFloat / spanStartW;
 	u = inverseW * uNumerator;
 	v = inverseW * vNumerator;
-	lightIntensity =
-		((float)startX - face->pScanEdge->x) * face->spanLightIntensityDx + face->pScanEdge->lightIntensity;
+	lightIntensity = ((float)startX - face->pScanEdge->x) *
+				 face->spanLightIntensityDx +
+			 face->pScanEdge->lightIntensity;
 
-	g_sw3dSpanShadeDitherAccum = g_sw3dShadeDitherInitialByScanlineParity[g_sw3dCurrentScanlineY & 1];
+	g_sw3dSpanShadeDitherAccum = g_sw3dShadeDitherInitialByScanlineParity
+		[g_sw3dCurrentScanlineY & 1];
 	startBlock = startX >> g_sw3dLightSampleBlockShift;
 	endBlock = (endX - 1) >> g_sw3dLightSampleBlockShift;
 	g_sw3dSpanStartX = startX;
@@ -1878,21 +2412,31 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 	if (stampDelta != 0) {
 		if (stampDelta != 1) {
 			leftSample->stamp = g_sw3dCurrentLightSampleCacheStamp;
-			leftSample->intensity = FlightLight_ComputeSoftwareFaceSampleIntensity(
-				face, blockStartX, blockStartY,
-				spanStartW - (float)withinBlockX * face->gradients[6] -
-					g_sw3dLightSampleSubrowFloat * face->gradients[7]);
+			leftSample->intensity =
+				FlightLight_ComputeSoftwareFaceSampleIntensity(
+					face, blockStartX, blockStartY,
+					spanStartW -
+						(float)withinBlockX *
+							face->gradients[6] -
+						g_sw3dLightSampleSubrowFloat *
+							face->gradients[7]);
 		} else {
 			++leftSample->stamp;
 			leftSample->intensity += leftSample->rowDelta;
 		}
-		leftSample->rowDelta = FlightLight_ComputeSoftwareFaceSampleIntensity(
-								   face, blockStartX, blockStartY + g_sw3dLightSampleBlockSize,
-								   spanStartW - (float)withinBlockX * face->gradients[6] +
-									   g_sw3dLightSampleRowsToNextBlockFloat * face->gradients[7]) -
-							   leftSample->intensity;
+		leftSample->rowDelta =
+			FlightLight_ComputeSoftwareFaceSampleIntensity(
+				face, blockStartX,
+				blockStartY + g_sw3dLightSampleBlockSize,
+				spanStartW -
+					(float)withinBlockX *
+						face->gradients[6] +
+					g_sw3dLightSampleRowsToNextBlockFloat *
+						face->gradients[7]) -
+			leftSample->intensity;
 	}
-	leftLight = leftSample->intensity + g_sw3dLightSampleSubrowLerpT * leftSample->rowDelta;
+	leftLight = leftSample->intensity +
+		    g_sw3dLightSampleSubrowLerpT * leftSample->rowDelta;
 
 	boundaryX = (startBlock + 1) << g_sw3dLightSampleBlockShift;
 	g_sw3dSpanLength = boundaryX - g_sw3dSpanStartX;
@@ -1907,45 +2451,74 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 		rightSample->stamp = g_sw3dCurrentLightSampleCacheStamp;
 		if (stampDelta != 1) {
 			rightSample->intensity =
-				FlightLight_ComputeSoftwareFaceSampleIntensity(face, boundaryX, blockStartY, boundaryW);
-			sampleIntensity = FlightLight_ComputeSoftwareFaceSampleIntensity(
-				face, boundaryX, blockStartY + g_sw3dLightSampleBlockSize, boundaryW);
+				FlightLight_ComputeSoftwareFaceSampleIntensity(
+					face, boundaryX, blockStartY,
+					boundaryW);
+			sampleIntensity =
+				FlightLight_ComputeSoftwareFaceSampleIntensity(
+					face, boundaryX,
+					blockStartY +
+						g_sw3dLightSampleBlockSize,
+					boundaryW);
 		} else {
-			sampleIntensity = FlightLight_ComputeSoftwareFaceSampleIntensity(
-				face, boundaryX, blockStartY + g_sw3dLightSampleBlockSize, boundaryW);
+			sampleIntensity =
+				FlightLight_ComputeSoftwareFaceSampleIntensity(
+					face, boundaryX,
+					blockStartY +
+						g_sw3dLightSampleBlockSize,
+					boundaryW);
 			rightSample->intensity += rightSample->rowDelta;
 		}
-		rightSample->rowDelta = sampleIntensity - rightSample->intensity;
+		rightSample->rowDelta =
+			sampleIntensity - rightSample->intensity;
 	}
-	rightLight = rightSample->intensity + g_sw3dLightSampleSubrowLerpT * rightSample->rowDelta;
-	leftLight += (rightLight - leftLight) * ((float)withinBlockX * g_sw3dLightSampleInvBlockSize);
+	rightLight = rightSample->intensity +
+		     g_sw3dLightSampleSubrowLerpT * rightSample->rowDelta;
+	leftLight += (rightLight - leftLight) *
+		     ((float)withinBlockX * g_sw3dLightSampleInvBlockSize);
 	rightU = inverseW * uNumerator;
 	rightV = inverseW * vNumerator;
 
 	fixedPointBias = g_sw3dTexCoordBiasByShift[g_sw3dSpanTextureWidthShift];
-	memcpy(&fixedPointBiasBits, &fixedPointBias, sizeof(fixedPointBiasBits));
-	fixedPointValue = (rightU - u) * g_sw3dSpanLengthReciprocal[g_sw3dSpanLength] + fixedPointBias;
+	memcpy(&fixedPointBiasBits, &fixedPointBias,
+	       sizeof(fixedPointBiasBits));
+	fixedPointValue =
+		(rightU - u) * g_sw3dSpanLengthReciprocal[g_sw3dSpanLength] +
+		fixedPointBias;
 	memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
 	g_sw3dSpanStepUQ8 = fixedPointBits - fixedPointBiasBits;
-	fixedPointBias = g_sw3dTexCoordBiasByShift[g_sw3dSpanTextureHeightShift];
-	memcpy(&fixedPointBiasBits, &fixedPointBias, sizeof(fixedPointBiasBits));
-	fixedPointValue = (rightV - v) * g_sw3dSpanLengthReciprocal[g_sw3dSpanLength] + fixedPointBias;
+	fixedPointBias =
+		g_sw3dTexCoordBiasByShift[g_sw3dSpanTextureHeightShift];
+	memcpy(&fixedPointBiasBits, &fixedPointBias,
+	       sizeof(fixedPointBiasBits));
+	fixedPointValue =
+		(rightV - v) * g_sw3dSpanLengthReciprocal[g_sw3dSpanLength] +
+		fixedPointBias;
 	memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
 	g_sw3dSpanStepVQ8 = fixedPointBits - fixedPointBiasBits;
 
 	if ((unsigned int)block > (unsigned int)endBlock) {
 		g_sw3dSpanLength = endX - g_sw3dSpanStartX;
 	} else {
-		uNumeratorBlockStep = uGradient[0] * g_sw3dLightSampleBlockSizeFloat;
-		vNumeratorBlockStep = vGradient[0] * g_sw3dLightSampleBlockSizeFloat;
-		wBlockStep = face->gradients[6] * g_sw3dLightSampleBlockSizeFloat;
+		uNumeratorBlockStep =
+			uGradient[0] * g_sw3dLightSampleBlockSizeFloat;
+		vNumeratorBlockStep =
+			vGradient[0] * g_sw3dLightSampleBlockSizeFloat;
+		wBlockStep =
+			face->gradients[6] * g_sw3dLightSampleBlockSizeFloat;
 	}
 
-	lightIntensityAtEnd = (float)g_sw3dSpanLength * face->spanLightIntensityDx + lightIntensity;
-	lightIntensityBlockStep = face->spanLightIntensityDx * g_sw3dLightSampleBlockSizeFloat;
+	lightIntensityAtEnd =
+		(float)g_sw3dSpanLength * face->spanLightIntensityDx +
+		lightIntensity;
+	lightIntensityBlockStep =
+		face->spanLightIntensityDx * g_sw3dLightSampleBlockSizeFloat;
 	fixedPointBias = g_sw3dTexCoordBiasByShift[0];
-	memcpy(&fixedPointBiasBits, &fixedPointBias, sizeof(fixedPointBiasBits));
-	fixedPointValue = (leftLight + lightIntensity) * g_sw3dLightIntensityToShadeScale + fixedPointBias;
+	memcpy(&fixedPointBiasBits, &fixedPointBias,
+	       sizeof(fixedPointBiasBits));
+	fixedPointValue = (leftLight + lightIntensity) *
+				  g_sw3dLightIntensityToShadeScale +
+			  fixedPointBias;
 	memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
 	g_sw3dSpanShadeQ8 = fixedPointBits - fixedPointBiasBits;
 	if (g_sw3dSpanShadeQ8 < 0) {
@@ -1954,7 +2527,9 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 	if (g_sw3dSpanShadeQ8 > SW3D_MAX_SHADE_Q8) {
 		g_sw3dSpanShadeQ8 = SW3D_MAX_SHADE_Q8;
 	}
-	fixedPointValue = (rightLight + lightIntensityAtEnd) * g_sw3dLightIntensityToShadeScale + fixedPointBias;
+	fixedPointValue = (rightLight + lightIntensityAtEnd) *
+				  g_sw3dLightIntensityToShadeScale +
+			  fixedPointBias;
 	memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
 	endShadeQ8 = fixedPointBits - fixedPointBiasBits;
 	if (endShadeQ8 < 0) {
@@ -1968,31 +2543,42 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 		shadeDeltaQ8 += g_sw3dLightSampleBlockSize;
 	}
 	fixedPointBias = g_sw3dFloatToIntRoundBias;
-	memcpy(&fixedPointBiasBits, &fixedPointBias, sizeof(fixedPointBiasBits));
-	fixedPointValue = (float)shadeDeltaQ8 * g_sw3dSpanLengthReciprocal[g_sw3dSpanLength] + fixedPointBias;
+	memcpy(&fixedPointBiasBits, &fixedPointBias,
+	       sizeof(fixedPointBiasBits));
+	fixedPointValue = (float)shadeDeltaQ8 *
+				  g_sw3dSpanLengthReciprocal[g_sw3dSpanLength] +
+			  fixedPointBias;
 	memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
 	g_sw3dSpanShadeStepQ8 = fixedPointBits - fixedPointBiasBits;
 
 	fixedPointBias = g_sw3dTexCoordBiasByShift[g_sw3dSpanTextureWidthShift];
-	memcpy(&fixedPointBiasBits, &fixedPointBias, sizeof(fixedPointBiasBits));
+	memcpy(&fixedPointBiasBits, &fixedPointBias,
+	       sizeof(fixedPointBiasBits));
 	fixedPointValue = u + fixedPointBias;
 	memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
 	g_sw3dSpanUQ8 = fixedPointBits - fixedPointBiasBits;
 	fixedPointValue = rightU + fixedPointBias;
 	memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
 	nextUQ8 = fixedPointBits - fixedPointBiasBits;
-	fixedPointBias = g_sw3dTexCoordBiasByShift[g_sw3dSpanTextureHeightShift];
-	memcpy(&fixedPointBiasBits, &fixedPointBias, sizeof(fixedPointBiasBits));
+	fixedPointBias =
+		g_sw3dTexCoordBiasByShift[g_sw3dSpanTextureHeightShift];
+	memcpy(&fixedPointBiasBits, &fixedPointBias,
+	       sizeof(fixedPointBiasBits));
 	fixedPointValue = v + fixedPointBias;
 	memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
 	g_sw3dSpanVQ8 = fixedPointBits - fixedPointBiasBits;
 	fixedPointValue = rightV + fixedPointBias;
 	memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
 	nextVQ8 = fixedPointBits - fixedPointBiasBits;
-	useSpecializedTextureWrap = g_sw3dSpanTextureWidthShift >= SW3D_MIN_SPECIALIZED_TEXTURE_SHIFT &&
-								g_sw3dSpanTextureWidthShift <= SW3D_MAX_SPECIALIZED_TEXTURE_SHIFT &&
-								g_sw3dSpanTextureHeightShift >= SW3D_MIN_SPECIALIZED_TEXTURE_SHIFT &&
-								g_sw3dSpanTextureHeightShift <= SW3D_MAX_SPECIALIZED_TEXTURE_SHIFT;
+	useSpecializedTextureWrap =
+		g_sw3dSpanTextureWidthShift >=
+			SW3D_MIN_SPECIALIZED_TEXTURE_SHIFT &&
+		g_sw3dSpanTextureWidthShift <=
+			SW3D_MAX_SPECIALIZED_TEXTURE_SHIFT &&
+		g_sw3dSpanTextureHeightShift >=
+			SW3D_MIN_SPECIALIZED_TEXTURE_SHIFT &&
+		g_sw3dSpanTextureHeightShift <=
+			SW3D_MAX_SPECIALIZED_TEXTURE_SHIFT;
 	if (useSpecializedTextureWrap) {
 		textureWidthMask = (1 << g_sw3dSpanTextureWidthShift) - 1;
 		textureHeightMask = (1 << g_sw3dSpanTextureHeightShift) - 1;
@@ -2010,39 +2596,64 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 		if (g_flightBytesPerPixel == 2 && !useSpecializedTextureWrap) {
 			sw3d_DrawTexturedShadeSpanGeneric16bpp();
 		} else {
-			for (pixelIndex = 0; pixelIndex < g_sw3dSpanLength; ++pixelIndex) {
+			for (pixelIndex = 0; pixelIndex < g_sw3dSpanLength;
+			     ++pixelIndex) {
 				unsigned int shadeAccum;
 				int texelIndex;
 				int texel;
 
 				if (useSpecializedTextureWrap) {
-					texelIndex = (((g_sw3dSpanVQ8 >> SW3D_FIXED_POINT_SHIFT) & textureHeightMask)
-								  << g_sw3dSpanTextureWidthShift) |
-								 ((g_sw3dSpanUQ8 >> SW3D_FIXED_POINT_SHIFT) & textureWidthMask);
+					texelIndex =
+						(((g_sw3dSpanVQ8 >>
+						   SW3D_FIXED_POINT_SHIFT) &
+						  textureHeightMask)
+						 << g_sw3dSpanTextureWidthShift) |
+						((g_sw3dSpanUQ8 >>
+						  SW3D_FIXED_POINT_SHIFT) &
+						 textureWidthMask);
 				} else {
-					texelIndex = ((g_sw3dSpanVQ8 >> SW3D_FIXED_POINT_SHIFT) << g_sw3dSpanTextureWidthShift) +
-								 (g_sw3dSpanUQ8 >> SW3D_FIXED_POINT_SHIFT);
+					texelIndex =
+						((g_sw3dSpanVQ8 >>
+						  SW3D_FIXED_POINT_SHIFT)
+						 << g_sw3dSpanTextureWidthShift) +
+						(g_sw3dSpanUQ8 >>
+						 SW3D_FIXED_POINT_SHIFT);
 					texelIndex &= g_sw3dSpanTexelMask;
 				}
 				texel = g_sw3dSpanTexels[texelIndex];
-				shadeAccum = (unsigned int)(g_sw3dSpanShadeQ8 + g_sw3dSpanShadeDitherAccum);
-				g_sw3dSpanShadeDitherAccum = (uint8_t)shadeAccum;
+				shadeAccum =
+					(unsigned int)(g_sw3dSpanShadeQ8 +
+						       g_sw3dSpanShadeDitherAccum);
+				g_sw3dSpanShadeDitherAccum =
+					(uint8_t)shadeAccum;
 				if (g_flightBytesPerPixel == 2) {
-					uint16_t* surface16 =
-						(uint16_t*)((uint8_t*)g_surfacePixels + g_sw3dSpanFramebufferRowOffset);
-					uint16_t* shadeTable16 =
-						(uint16_t*)(g_sw3dSpanShadeTable + SW3D_TRUE_COLOR_SHADE_TABLE_OFFSET);
-					surface16[g_sw3dSpanStartX + pixelIndex] =
-						shadeTable16[(((shadeAccum >> SW3D_FIXED_POINT_SHIFT) & SW3D_SHADE_LEVEL_MASK)
-									  << SW3D_FIXED_POINT_SHIFT) +
-									 texel];
+					uint16_t *surface16 =
+						(uint16_t
+							 *)((uint8_t *)
+								    g_surfacePixels +
+							    g_sw3dSpanFramebufferRowOffset);
+					uint16_t *shadeTable16 =
+						(uint16_t
+							 *)(g_sw3dSpanShadeTable +
+							    SW3D_TRUE_COLOR_SHADE_TABLE_OFFSET);
+					surface16[g_sw3dSpanStartX +
+						  pixelIndex] = shadeTable16
+						[(((shadeAccum >>
+						    SW3D_FIXED_POINT_SHIFT) &
+						   SW3D_SHADE_LEVEL_MASK)
+						  << SW3D_FIXED_POINT_SHIFT) +
+						 texel];
 				} else {
-					uint8_t* surface8 =
-						(uint8_t*)g_surfacePixels + g_sw3dSpanFramebufferRowOffset + g_sw3dSpanStartX;
-					surface8[pixelIndex] = g_sw3dSpanShadeTable[(((shadeAccum >> SW3D_FIXED_POINT_SHIFT) &
-																  SW3D_SHADE_LEVEL_MASK) *
-																 SW3D_SHADE_TABLE_LEVEL_STRIDE) +
-																texel];
+					uint8_t *surface8 =
+						(uint8_t *)g_surfacePixels +
+						g_sw3dSpanFramebufferRowOffset +
+						g_sw3dSpanStartX;
+					surface8[pixelIndex] = g_sw3dSpanShadeTable
+						[(((shadeAccum >>
+						    SW3D_FIXED_POINT_SHIFT) &
+						   SW3D_SHADE_LEVEL_MASK) *
+						  SW3D_SHADE_TABLE_LEVEL_STRIDE) +
+						 texel];
 				}
 				g_sw3dSpanShadeQ8 += g_sw3dSpanShadeStepQ8;
 				g_sw3dSpanVQ8 += g_sw3dSpanStepVQ8;
@@ -2064,31 +2675,48 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 		}
 		++block;
 		rightSample = &lightSamples[block];
-		stampDelta = g_sw3dCurrentLightSampleCacheStamp - rightSample->stamp;
+		stampDelta =
+			g_sw3dCurrentLightSampleCacheStamp - rightSample->stamp;
 		if (stampDelta != 0) {
 			rightSample->stamp = g_sw3dCurrentLightSampleCacheStamp;
 			if (stampDelta != 1) {
 				rightSample->intensity =
-					FlightLight_ComputeSoftwareFaceSampleIntensity(face, boundaryX, blockStartY, boundaryW);
-				sampleIntensity = FlightLight_ComputeSoftwareFaceSampleIntensity(
-					face, boundaryX, blockStartY + g_sw3dLightSampleBlockSize, boundaryW);
+					FlightLight_ComputeSoftwareFaceSampleIntensity(
+						face, boundaryX, blockStartY,
+						boundaryW);
+				sampleIntensity =
+					FlightLight_ComputeSoftwareFaceSampleIntensity(
+						face, boundaryX,
+						blockStartY +
+							g_sw3dLightSampleBlockSize,
+						boundaryW);
 			} else {
-				sampleIntensity = FlightLight_ComputeSoftwareFaceSampleIntensity(
-					face, boundaryX, blockStartY + g_sw3dLightSampleBlockSize, boundaryW);
+				sampleIntensity =
+					FlightLight_ComputeSoftwareFaceSampleIntensity(
+						face, boundaryX,
+						blockStartY +
+							g_sw3dLightSampleBlockSize,
+						boundaryW);
 				rightSample->intensity += rightSample->rowDelta;
 			}
-			rightSample->rowDelta = sampleIntensity - rightSample->intensity;
+			rightSample->rowDelta =
+				sampleIntensity - rightSample->intensity;
 		}
 		rightU = inverseW * uNumerator;
 		rightV = inverseW * vNumerator;
-		rightLight = rightSample->intensity + g_sw3dLightSampleSubrowLerpT * rightSample->rowDelta;
+		rightLight =
+			rightSample->intensity +
+			g_sw3dLightSampleSubrowLerpT * rightSample->rowDelta;
 		lightIntensityAtEnd += lightIntensityBlockStep;
 		g_sw3dSpanShadeQ8 = endShadeQ8;
 		fixedPointBias = g_sw3dTexCoordBiasByShift[0];
-		memcpy(&fixedPointBiasBits, &fixedPointBias, sizeof(fixedPointBiasBits));
-		fixedPointValue =
-			(rightLight + lightIntensityAtEnd) * g_sw3dLightIntensityToShadeScale + fixedPointBias;
-		memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
+		memcpy(&fixedPointBiasBits, &fixedPointBias,
+		       sizeof(fixedPointBiasBits));
+		fixedPointValue = (rightLight + lightIntensityAtEnd) *
+					  g_sw3dLightIntensityToShadeScale +
+				  fixedPointBias;
+		memcpy(&fixedPointBits, &fixedPointValue,
+		       sizeof(fixedPointBits));
 		endShadeQ8 = fixedPointBits - fixedPointBiasBits;
 		if (endShadeQ8 < 0) {
 			endShadeQ8 = 0;
@@ -2100,32 +2728,42 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 		if (shadeDeltaQ8 < 0) {
 			shadeDeltaQ8 += g_sw3dLightSampleBlockSize;
 		}
-		g_sw3dSpanShadeStepQ8 = shadeDeltaQ8 >> g_sw3dLightSampleBlockShift;
+		g_sw3dSpanShadeStepQ8 =
+			shadeDeltaQ8 >> g_sw3dLightSampleBlockShift;
 		g_sw3dSpanUQ8 = nextUQ8;
 		g_sw3dSpanVQ8 = nextVQ8;
-		fixedPointBias = g_sw3dTexCoordBiasByShift[g_sw3dSpanTextureWidthShift];
-		memcpy(&fixedPointBiasBits, &fixedPointBias, sizeof(fixedPointBiasBits));
+		fixedPointBias =
+			g_sw3dTexCoordBiasByShift[g_sw3dSpanTextureWidthShift];
+		memcpy(&fixedPointBiasBits, &fixedPointBias,
+		       sizeof(fixedPointBiasBits));
 		fixedPointValue = rightU + fixedPointBias;
-		memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
+		memcpy(&fixedPointBits, &fixedPointValue,
+		       sizeof(fixedPointBits));
 		nextUQ8 = fixedPointBits - fixedPointBiasBits;
-		fixedPointBias = g_sw3dTexCoordBiasByShift[g_sw3dSpanTextureHeightShift];
-		memcpy(&fixedPointBiasBits, &fixedPointBias, sizeof(fixedPointBiasBits));
+		fixedPointBias =
+			g_sw3dTexCoordBiasByShift[g_sw3dSpanTextureHeightShift];
+		memcpy(&fixedPointBiasBits, &fixedPointBias,
+		       sizeof(fixedPointBiasBits));
 		fixedPointValue = rightV + fixedPointBias;
-		memcpy(&fixedPointBits, &fixedPointValue, sizeof(fixedPointBits));
+		memcpy(&fixedPointBits, &fixedPointValue,
+		       sizeof(fixedPointBits));
 		nextVQ8 = fixedPointBits - fixedPointBiasBits;
-		g_sw3dSpanStepUQ8 = (nextUQ8 - g_sw3dSpanUQ8) >> g_sw3dLightSampleBlockShift;
-		g_sw3dSpanStepVQ8 = (nextVQ8 - g_sw3dSpanVQ8) >> g_sw3dLightSampleBlockShift;
+		g_sw3dSpanStepUQ8 = (nextUQ8 - g_sw3dSpanUQ8) >>
+				    g_sw3dLightSampleBlockShift;
+		g_sw3dSpanStepVQ8 = (nextVQ8 - g_sw3dSpanVQ8) >>
+				    g_sw3dLightSampleBlockShift;
 	}
 }
 
 // FUNCTION: XVT 0x497850
-int sw3d_DrawTexturedShadeSpanGeneric16bpp(void) {
-	uint8_t* pixel;
-	uint8_t* pixelEnd;
-	uint8_t* shadeTable;
+int sw3d_DrawTexturedShadeSpanGeneric16bpp(void)
+{
+	uint8_t *pixel;
+	uint8_t *pixelEnd;
+	uint8_t *shadeTable;
 	int result;
 
-	pixel = (uint8_t*)g_surfacePixels;
+	pixel = (uint8_t *)g_surfacePixels;
 	shadeTable = g_sw3dSpanShadeTable + 4096;
 	pixel += g_sw3dSpanFramebufferRowOffset;
 	pixelEnd = pixel;
@@ -2137,11 +2775,17 @@ int sw3d_DrawTexturedShadeSpanGeneric16bpp(void) {
 		int texel;
 		unsigned int shadeAccum;
 
-		texelIndex = ((g_sw3dSpanVQ8 >> 8) << g_sw3dSpanTextureWidthShift) + (g_sw3dSpanUQ8 >> 8);
+		texelIndex =
+			((g_sw3dSpanVQ8 >> 8) << g_sw3dSpanTextureWidthShift) +
+			(g_sw3dSpanUQ8 >> 8);
 		texel = g_sw3dSpanTexels[texelIndex & g_sw3dSpanTexelMask];
-		shadeAccum = (unsigned int)(g_sw3dSpanShadeQ8 + g_sw3dSpanShadeDitherAccum);
+		shadeAccum = (unsigned int)(g_sw3dSpanShadeQ8 +
+					    g_sw3dSpanShadeDitherAccum);
 		g_sw3dSpanShadeDitherAccum = (uint8_t)shadeAccum;
-		*(uint16_t*)pixel = ((uint16_t*)shadeTable)[(((shadeAccum >> 8) & 0xF) << 8) + texel];
+		*(uint16_t *)pixel =
+			((uint16_t *)
+				 shadeTable)[(((shadeAccum >> 8) & 0xF) << 8) +
+					     texel];
 		pixel += 2;
 		g_sw3dSpanShadeQ8 += g_sw3dSpanShadeStepQ8;
 		result = g_sw3dSpanVQ8 + g_sw3dSpanStepVQ8;
@@ -2152,8 +2796,10 @@ int sw3d_DrawTexturedShadeSpanGeneric16bpp(void) {
 }
 
 // FUNCTION: XVT 0x497940
-void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int scanY, float spriteW) {
-	SceneSpan* span;
+void sw3d_BlitOccludedSpan(const uint8_t *pSrcRaster, int startX, int endX,
+			   int scanY, float spriteW)
+{
+	SceneSpan *span;
 	int drawX;
 
 	drawX = startX;
@@ -2162,11 +2808,12 @@ void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int 
 	} else {
 		pSrcRaster -= startX;
 	}
-	g_sw3dSpanFramebufferRowOffset =
-		g_flightBytesPerPixel * g_flightVpX + g_surfacePitch * (scanY + g_flightVpY);
+	g_sw3dSpanFramebufferRowOffset = g_flightBytesPerPixel * g_flightVpX +
+					 g_surfacePitch * (scanY + g_flightVpY);
 
-	for (span = g_scanlineSpanHeads[scanY]; span != NULL; span = span->next) {
-		SceneFace* face;
+	for (span = g_scanlineSpanHeads[scanY]; span != NULL;
+	     span = span->next) {
+		SceneFace *face;
 		int spanEnd;
 		float spanW;
 		float deltaX;
@@ -2186,7 +2833,8 @@ void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int 
 				return;
 			}
 		} else if (spriteW < face->maxScaledInverseDepth) {
-			spanW = (float)scanY * face->gradients[7] + face->gradients[8];
+			spanW = (float)scanY * face->gradients[7] +
+				face->gradients[8];
 			spanW = (float)drawX * face->gradients[6] + spanW;
 			if (spriteW <= spanW) {
 				if (face->gradients[6] >= 0.0f) {
@@ -2196,21 +2844,28 @@ void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int 
 					}
 				} else {
 					if (endX > spanEnd) {
-						deltaX = (float)(spanEnd - drawX);
-						spanW = deltaX * face->gradients[6] + spanW;
+						deltaX = (float)(spanEnd -
+								 drawX);
+						spanW = deltaX * face->gradients
+									 [6] +
+							spanW;
 						if (spriteW <= spanW) {
 							drawX = spanEnd;
 							continue;
 						}
 					} else {
 						deltaX = (float)(endX - drawX);
-						spanW = deltaX * face->gradients[6] + spanW;
+						spanW = deltaX * face->gradients
+									 [6] +
+							spanW;
 						if (spriteW <= spanW) {
 							return;
 						}
 					}
 					depthFalloff = -face->gradients[6];
-					drawX += (int)(deltaX - (spriteW - spanW) / depthFalloff);
+					drawX += (int)(deltaX -
+						       (spriteW - spanW) /
+							       depthFalloff);
 					if (endX <= drawX) {
 						return;
 					}
@@ -2218,19 +2873,23 @@ void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int 
 			} else if (face->gradients[6] > 0.0f) {
 				if (endX >= spanEnd) {
 					deltaX = (float)(spanEnd - drawX);
-					spanW = deltaX * face->gradients[6] + spanW;
+					spanW = deltaX * face->gradients[6] +
+						spanW;
 					if (spriteW >= spanW) {
 						continue;
 					}
 				} else {
 					deltaX = (float)(endX - drawX);
-					spanW = deltaX * face->gradients[6] + spanW;
+					spanW = deltaX * face->gradients[6] +
+						spanW;
 					if (spriteW >= spanW) {
 						continue;
 					}
 				}
 				depthFalloff = -face->gradients[6];
-				endX = drawX + (int)(deltaX - (spriteW - spanW) / depthFalloff);
+				endX = drawX +
+				       (int)(deltaX -
+					     (spriteW - spanW) / depthFalloff);
 				if (endX <= drawX) {
 					return;
 				}
@@ -2243,7 +2902,8 @@ void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int 
 			break;
 		}
 		if (spriteW <= span->face->minScaledInverseDepth) {
-			sw3d_CopySpanToFramebuffer(pSrcRaster, drawX, span->xStart - drawX);
+			sw3d_CopySpanToFramebuffer(pSrcRaster, drawX,
+						   span->xStart - drawX);
 			drawX = span->xEnd;
 			if (endX <= drawX) {
 				return;
@@ -2251,59 +2911,96 @@ void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int 
 		} else if (spriteW < span->face->maxScaledInverseDepth) {
 			float spanW;
 
-			spanW = (float)scanY * span->face->gradients[7] + span->face->gradients[8];
-			spanW = (float)span->xStart * span->face->gradients[6] + spanW;
+			spanW = (float)scanY * span->face->gradients[7] +
+				span->face->gradients[8];
+			spanW = (float)span->xStart * span->face->gradients[6] +
+				spanW;
 			if (spriteW <= spanW) {
-				sw3d_CopySpanToFramebuffer(pSrcRaster, drawX, span->xStart - drawX);
+				sw3d_CopySpanToFramebuffer(pSrcRaster, drawX,
+							   span->xStart -
+								   drawX);
 				drawX = span->xEnd;
 				if (span->face->gradients[6] >= 0.0f) {
 					if (endX <= drawX) {
 						return;
 					}
 				} else if (endX > drawX) {
-					spanW = (float)(drawX - span->xStart) * span->face->gradients[6] + spanW;
+					spanW = (float)(drawX - span->xStart) *
+							span->face
+								->gradients[6] +
+						spanW;
 					if (spriteW > spanW) {
 						float depthFalloff;
 
-						depthFalloff = -span->face->gradients[6];
-						drawX -= (int)((spriteW - spanW) / depthFalloff);
+						depthFalloff =
+							-span->face
+								 ->gradients[6];
+						drawX -= (int)((spriteW -
+								spanW) /
+							       depthFalloff);
 					}
 				} else {
 					float depthFalloff;
 
-					spanW = (float)(endX - span->xStart) * span->face->gradients[6] + spanW;
+					spanW = (float)(endX - span->xStart) *
+							span->face
+								->gradients[6] +
+						spanW;
 					if (spriteW <= spanW) {
 						return;
 					}
-					depthFalloff = -span->face->gradients[6];
-					drawX = endX - (int)((spriteW - spanW) / depthFalloff);
+					depthFalloff =
+						-span->face->gradients[6];
+					drawX = endX - (int)((spriteW - spanW) /
+							     depthFalloff);
 					if (endX <= drawX) {
 						return;
 					}
 				}
 			} else if (span->face->gradients[6] > 0.0f) {
 				if (endX > span->xEnd) {
-					spanW = (float)(span->xEnd - span->xStart) * span->face->gradients[6] + spanW;
+					spanW = (float)(span->xEnd -
+							span->xStart) *
+							span->face
+								->gradients[6] +
+						spanW;
 					if (spriteW < spanW) {
 						float depthFalloff;
 
-						depthFalloff = -span->face->gradients[6];
+						depthFalloff =
+							-span->face
+								 ->gradients[6];
 						sw3d_CopySpanToFramebuffer(
-							pSrcRaster, drawX, span->xEnd - (int)((spriteW - spanW) / depthFalloff) - drawX);
+							pSrcRaster, drawX,
+							span->xEnd -
+								(int)((spriteW -
+								       spanW) /
+								      depthFalloff) -
+								drawX);
 						drawX = span->xEnd;
 					}
 				} else {
 					float deltaX;
 
 					deltaX = (float)(endX - span->xStart);
-					spanW = deltaX * span->face->gradients[6] + spanW;
+					spanW = deltaX *
+							span->face
+								->gradients[6] +
+						spanW;
 					if (spriteW < spanW) {
 						float depthFalloff;
 
-						depthFalloff = -span->face->gradients[6];
+						depthFalloff =
+							-span->face
+								 ->gradients[6];
 						sw3d_CopySpanToFramebuffer(
 							pSrcRaster, drawX,
-							span->xStart + (int)(deltaX - (spriteW - spanW) / depthFalloff) - drawX);
+							span->xStart +
+								(int)(deltaX -
+								      (spriteW -
+								       spanW) /
+									      depthFalloff) -
+								drawX);
 						return;
 					}
 				}
@@ -2316,10 +3013,14 @@ void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int 
 }
 
 // FUNCTION: XVT 0x497D80
-void sw3d_CopySpanToFramebuffer(const uint8_t* pSrcRasterBase, int startX, int pixelCount) {
+void sw3d_CopySpanToFramebuffer(const uint8_t *pSrcRasterBase, int startX,
+				int pixelCount)
+{
 	if (pixelCount > 0) {
 		if (g_flightBytesPerPixel == 2) {
-			uint8_t* dst = (uint8_t*)g_surfacePixels + g_sw3dSpanFramebufferRowOffset + startX + startX;
+			uint8_t *dst = (uint8_t *)g_surfacePixels +
+				       g_sw3dSpanFramebufferRowOffset + startX +
+				       startX;
 
 			pSrcRasterBase += 2 * startX;
 			do {
@@ -2331,7 +3032,8 @@ void sw3d_CopySpanToFramebuffer(const uint8_t* pSrcRasterBase, int startX, int p
 				dst += 2;
 			} while (--pixelCount != 0);
 		} else {
-			uint8_t* dst = (uint8_t*)g_surfacePixels + startX + g_sw3dSpanFramebufferRowOffset;
+			uint8_t *dst = (uint8_t *)g_surfacePixels + startX +
+				       g_sw3dSpanFramebufferRowOffset;
 
 			pSrcRasterBase += startX;
 			do {

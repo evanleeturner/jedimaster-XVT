@@ -8,8 +8,8 @@
 extern "C" {
 #endif
 
-
-static __inline int Math_MulQ15(int a, int b) {
+static __inline int Math_MulQ15(int a, int b)
+{
 #ifdef XVT_MODERN
 	return (int)(((int64_t)a * b) >> 15);
 #else
@@ -25,10 +25,13 @@ static __inline int Math_MulQ15(int a, int b) {
 #endif
 }
 
-static __inline int Math_Dot3Q15(int leftX, int leftY, int leftZ, int rightX, int rightY, int rightZ) {
+static __inline int Math_Dot3Q15(int leftX, int leftY, int leftZ, int rightX,
+				 int rightY, int rightZ)
+{
 #ifdef XVT_MODERN
-	return (int)(((int64_t)leftX * rightX) >> 15) + (int)(((int64_t)leftY * rightY) >> 15) +
-		   (int)(((int64_t)leftZ * rightZ) >> 15);
+	return (int)(((int64_t)leftX * rightX) >> 15) +
+	       (int)(((int64_t)leftY * rightY) >> 15) +
+	       (int)(((int64_t)leftZ * rightZ) >> 15);
 #else
 	__asm {
 		mov eax, leftX
@@ -51,15 +54,20 @@ static __inline int Math_Dot3Q15(int leftX, int leftY, int leftZ, int rightX, in
 
 /* Unlike Math_Dot3Q15, the products and their sum are 32-bit and may wrap; the sum is then clamped to
  * [-0x3FFF0000, 0x3FFFFFFF] before the shift, so the result stays within -32766..32767. */
-static __inline int Math_Dot3Q15Wrapped(int leftX, int leftY, int leftZ, int rightX, int rightY, int rightZ) {
+static __inline int Math_Dot3Q15Wrapped(int leftX, int leftY, int leftZ,
+					int rightX, int rightY, int rightZ)
+{
 #ifdef XVT_MODERN
-	int32_t value = (int32_t)((uint32_t)leftX * (uint32_t)rightX + (uint32_t)leftY * (uint32_t)rightY +
-							  (uint32_t)leftZ * (uint32_t)rightZ);
+	int32_t value = (int32_t)((uint32_t)leftX * (uint32_t)rightX +
+				  (uint32_t)leftY * (uint32_t)rightY +
+				  (uint32_t)leftZ * (uint32_t)rightZ);
 
-	if (value >= 0x40000000)
+	if (value >= 0x40000000) {
 		value = 0x3FFFFFFF;
-	if (value <= -0x40000000)
+	}
+	if (value <= -0x40000000) {
 		value = -0x3FFF0000;
+	}
 	return value >> 15;
 #else
 	__asm {
@@ -87,14 +95,19 @@ static __inline int Math_Dot3Q15Wrapped(int leftX, int leftY, int leftZ, int rig
 }
 
 /* Two-term form of Math_Dot3Q15Wrapped: 32-bit products and sum, clamped the same way before the shift. */
-static __inline int Math_Dot2Q15Wrapped(int leftX, int leftY, int rightX, int rightY) {
+static __inline int Math_Dot2Q15Wrapped(int leftX, int leftY, int rightX,
+					int rightY)
+{
 #ifdef XVT_MODERN
-	int32_t value = (int32_t)((uint32_t)leftX * (uint32_t)rightX + (uint32_t)leftY * (uint32_t)rightY);
+	int32_t value = (int32_t)((uint32_t)leftX * (uint32_t)rightX +
+				  (uint32_t)leftY * (uint32_t)rightY);
 
-	if (value >= 0x40000000)
+	if (value >= 0x40000000) {
 		value = 0x3FFFFFFF;
-	if (value <= -0x40000000)
+	}
+	if (value <= -0x40000000) {
 		value = -0x3FFF0000;
+	}
 	return value >> 15;
 #else
 	__asm {
@@ -118,17 +131,23 @@ static __inline int Math_Dot2Q15Wrapped(int leftX, int leftY, int rightX, int ri
 #endif
 }
 
-static __inline int Math_RodriguesTermNonnegativeCos(int axisA_Q15, int axisB_Q15, int oneMinusCos_Q15,
-													 int crossTerm_Q15) {
+static __inline int Math_RodriguesTermNonnegativeCos(int axisA_Q15,
+						     int axisB_Q15,
+						     int oneMinusCos_Q15,
+						     int crossTerm_Q15)
+{
 #ifdef XVT_MODERN
 	int32_t product = (int32_t)((uint32_t)axisA_Q15 * (uint32_t)axisB_Q15);
-	int32_t value =
-		(int32_t)((uint32_t)(product >> 15) * (uint32_t)oneMinusCos_Q15 + ((uint32_t)crossTerm_Q15 << 15));
+	int32_t value = (int32_t)((uint32_t)(product >> 15) *
+					  (uint32_t)oneMinusCos_Q15 +
+				  ((uint32_t)crossTerm_Q15 << 15));
 
-	if (value >= 0x40000000)
+	if (value >= 0x40000000) {
 		value = 0x3FFFFFFF;
-	if (value <= -0x40000000)
+	}
+	if (value <= -0x40000000) {
 		value = -0x3FFF0000;
+	}
 	return value >> 15;
 #else
 	__asm {
@@ -154,17 +173,22 @@ static __inline int Math_RodriguesTermNonnegativeCos(int axisA_Q15, int axisB_Q1
 #endif
 }
 
-static __inline int Math_RodriguesTermNegativeCos(int axisA_Q15, int axisB_Q15, int absCos_Q15,
-												  int crossTerm_Q15) {
+static __inline int Math_RodriguesTermNegativeCos(int axisA_Q15, int axisB_Q15,
+						  int absCos_Q15,
+						  int crossTerm_Q15)
+{
 #ifdef XVT_MODERN
 	int32_t product = (int32_t)((uint32_t)axisA_Q15 * (uint32_t)axisB_Q15);
-	int32_t value = (int32_t)((uint32_t)(product >> 15) * (uint32_t)absCos_Q15 + (uint32_t)product +
-							  ((uint32_t)crossTerm_Q15 << 15));
+	int32_t value =
+		(int32_t)((uint32_t)(product >> 15) * (uint32_t)absCos_Q15 +
+			  (uint32_t)product + ((uint32_t)crossTerm_Q15 << 15));
 
-	if (value >= 0x40000000)
+	if (value >= 0x40000000) {
 		value = 0x3FFFFFFF;
-	if (value <= -0x40000000)
+	}
+	if (value <= -0x40000000) {
 		value = -0x3FFF0000;
+	}
 	return value >> 15;
 #else
 	__asm {

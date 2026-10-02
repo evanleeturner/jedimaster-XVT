@@ -7,62 +7,82 @@ static const char g_inventorAsciiCharScanFormat[] = " %c";
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4138A0
-void InventorAscii_SkipPastOpenBrace(XvtFile* stream) {
+void InventorAscii_SkipPastOpenBrace(XvtFile *stream)
+{
 	char character;
 
-	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != '{') {
+	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) ==
+		       1 &&
+	       character != '{') {
 	}
 }
 
 // FUNCTION: XVT 0x4138E0
-void InventorAscii_SkipPastOpenBracket(XvtFile* stream) {
+void InventorAscii_SkipPastOpenBracket(XvtFile *stream)
+{
 	char character;
 
-	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != '[') {
+	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) ==
+		       1 &&
+	       character != '[') {
 	}
 }
 
 // FUNCTION: XVT 0x413920
-void InventorAscii_SkipListSeparator(XvtFile* stream) {
+void InventorAscii_SkipListSeparator(XvtFile *stream)
+{
 	char character;
 
 	if (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-		while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != ',') {
+		while (File_Scanf(stream, g_inventorAsciiCharScanFormat,
+				  &character) == 1 &&
+		       character != ',') {
 		}
 	}
 }
 
 // FUNCTION: XVT 0x413970
-void InventorAscii_SkipPastQuote(XvtFile* stream) {
+void InventorAscii_SkipPastQuote(XvtFile *stream)
+{
 	char character;
 
-	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != '"') {
+	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) ==
+		       1 &&
+	       character != '"') {
 	}
 }
 
 // FUNCTION: XVT 0x4139B0
-void InventorAscii_SkipPastCloseBrace(XvtFile* stream) {
+void InventorAscii_SkipPastCloseBrace(XvtFile *stream)
+{
 	char character;
 
-	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != '}') {
+	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) ==
+		       1 &&
+	       character != '}') {
 	}
 }
 
 // FUNCTION: XVT 0x4139F0
-void InventorAscii_SkipPastCloseBracket(XvtFile* stream) {
+void InventorAscii_SkipPastCloseBracket(XvtFile *stream)
+{
 	char character;
 
-	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) == 1 && character != ']') {
+	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) ==
+		       1 &&
+	       character != ']') {
 	}
 }
 
 // FUNCTION: XVT 0x413A30
-int InventorAscii_PeekNextIsQuote(XvtFile* stream) {
+int InventorAscii_PeekNextIsQuote(XvtFile *stream)
+{
 	long position;
 	char character;
 
 	position = File_RawTell(stream);
-	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) != 1) {
+	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) !=
+	    1) {
 		File_RawSeek(stream, position, SEEK_SET);
 		return 0;
 	}
@@ -77,12 +97,14 @@ int InventorAscii_PeekNextIsQuote(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x413AA0
-int InventorAscii_PeekNextIsCloseBrace(XvtFile* stream) {
+int InventorAscii_PeekNextIsCloseBrace(XvtFile *stream)
+{
 	long position;
 	char character;
 
 	position = File_RawTell(stream);
-	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) != 1) {
+	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) !=
+	    1) {
 		File_RawSeek(stream, position, SEEK_SET);
 		return 0;
 	}
@@ -97,12 +119,14 @@ int InventorAscii_PeekNextIsCloseBrace(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x413B10
-int InventorAscii_PeekNextIsOpenBrace(XvtFile* stream) {
+int InventorAscii_PeekNextIsOpenBrace(XvtFile *stream)
+{
 	long position;
 	char character;
 
 	position = File_RawTell(stream);
-	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) != 1) {
+	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) !=
+	    1) {
 		File_RawSeek(stream, position, SEEK_SET);
 		return 0;
 	}
@@ -117,12 +141,14 @@ int InventorAscii_PeekNextIsOpenBrace(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x413B80
-int InventorAscii_PeekNextIsCloseBracket(XvtFile* stream) {
+int InventorAscii_PeekNextIsCloseBracket(XvtFile *stream)
+{
 	long position;
 	char character;
 
 	position = File_RawTell(stream);
-	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) != 1) {
+	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) !=
+	    1) {
 		File_RawSeek(stream, position, SEEK_SET);
 		return 0;
 	}
@@ -137,12 +163,14 @@ int InventorAscii_PeekNextIsCloseBracket(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x413BF0
-int InventorAscii_PeekNextIsOpenBracket(XvtFile* stream) {
+int InventorAscii_PeekNextIsOpenBracket(XvtFile *stream)
+{
 	long position;
 	char character;
 
 	position = File_RawTell(stream);
-	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) != 1) {
+	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) !=
+	    1) {
 		File_RawSeek(stream, position, SEEK_SET);
 		return 0;
 	}
@@ -157,7 +185,8 @@ int InventorAscii_PeekNextIsOpenBracket(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x413C60
-void InventorAscii_SkipToEndOfLine(XvtFile* stream) {
+void InventorAscii_SkipToEndOfLine(XvtFile *stream)
+{
 
 	while ((uint8_t)File_Getc(stream) != '\n') {
 	}

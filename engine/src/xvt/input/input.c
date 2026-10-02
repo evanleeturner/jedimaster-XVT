@@ -8,7 +8,8 @@ int g_joystickBackendInitialized = 0;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4ACA90
-int Input_InitializeJoystickBackend(void) {
+int Input_InitializeJoystickBackend(void)
+{
 	int active;
 
 	if (g_joystickDetectionCached == 0) {
@@ -21,7 +22,8 @@ int Input_InitializeJoystickBackend(void) {
 }
 
 // FUNCTION: XVT 0x4ACAC0
-int Input_DetectActiveJoystick(void) {
+int Input_DetectActiveJoystick(void)
+{
 	int active;
 
 	if (g_joystickDetectionCached == 0) {
@@ -34,7 +36,8 @@ int Input_DetectActiveJoystick(void) {
 }
 
 // FUNCTION: XVT 0x4ACAF0
-int Input_ProbeActiveJoystickDevices(void) {
+int Input_ProbeActiveJoystickDevices(void)
+{
 	int axisX;
 	int axisY;
 	int buttons;

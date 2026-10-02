@@ -9,18 +9,19 @@ extern "C" {
 #endif
 
 struct FrontendFileListNode {
-	char* path;
-	struct FrontendFileListNode* next;
+	char *path;
+	struct FrontendFileListNode *next;
 };
 
 struct FrontendFileList {
-	FrontendFileListNode* head;
+	FrontendFileListNode *head;
 	int count;
 };
 
-FrontendFileList* FrontendFileList_BuildSorted(const char* wildcard);
-void FrontendFileList_Free(FrontendFileList* list);
-void FrontendFileList_InsertNodeSorted(FrontendFileList* list, FrontendFileListNode* node);
+FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard);
+void FrontendFileList_Free(FrontendFileList *list);
+void FrontendFileList_InsertNodeSorted(FrontendFileList *list,
+				       FrontendFileListNode *node);
 
 #ifdef __cplusplus
 }

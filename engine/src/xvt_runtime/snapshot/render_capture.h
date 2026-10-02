@@ -62,8 +62,10 @@ void XvtRenderCapture_BeginClassicFrame(void);
  * 640x480 camera. Does nothing without an open frame, with an empty rectangle, or with a bad
  * local player index; counts a drop when the preview list is full. The preview is valid only
  * when handle has a nonzero asset id. */
-void XvtRenderCapture_FrontendPreview(uint16_t handle, const float position[3], const float orientation[9],
-									  float scale, uint16_t node_switch, int x, int y, int width, int height);
+void XvtRenderCapture_FrontendPreview(uint16_t handle, const float position[3],
+				      const float orientation[9], float scale,
+				      uint16_t node_switch, int x, int y,
+				      int width, int height);
 /* Captures the targeting CRT preview of the local player's current target into the pending
  * view. Does nothing, leaving the old preview, when capture is inactive, the object table is
  * missing, the rectangle is empty, or the local player index is bad. Leaves it cleared and invalid when the
@@ -75,8 +77,9 @@ void XvtRenderCapture_Crt(int x, int y, int width, int height, int masked);
 void XvtRenderCapture_CrtMarker(int x, int y, int z);
 /* Copies the hyperspace streaks into the pending view. Copies nothing when the view is invalid
  * or count exceeds XVT_SNAP_STREAKS. */
-void XvtRenderCapture_Hyperspace(unsigned count, const int* x, const int* y, const int* z,
-								 const int* half_width, const int* roll);
+void XvtRenderCapture_Hyperspace(unsigned count, const int *x, const int *y,
+				 const int *z, const int *half_width,
+				 const int *roll);
 /* Returns the next draw-order number in the open frame, starting at 0. Returns 0 when no frame
  * is open, which a caller cannot tell from the first number. */
 uint32_t XvtRenderSnapshot_NextOrder(void);
@@ -97,10 +100,11 @@ void XvtRenderCapture_EndPresentation(void);
  * serial into out. While capture is inactive it clears out's flight view. When no view was
  * published this frame, it copies previous's view, target boxes included, if previous is valid
  * and has the same mission and world generation; otherwise out keeps no flight view. */
-void XvtRenderCapture_Commit(XvtRenderSnapshot* out, const XvtRenderSnapshot* previous);
+void XvtRenderCapture_Commit(XvtRenderSnapshot *out,
+			     const XvtRenderSnapshot *previous);
 /* Capture-side access only; invalid outside an open host frame. */
 /* Returns NULL outside an open frame. */
-XvtRenderSnapshot* XvtRenderSnapshot_Writer(void);
+XvtRenderSnapshot *XvtRenderSnapshot_Writer(void);
 #ifdef __cplusplus
 }
 #endif

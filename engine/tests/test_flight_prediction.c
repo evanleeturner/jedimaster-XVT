@@ -16,12 +16,14 @@
 
 enum { TICK = 40 };
 
-static void World(void) {
+static void World(void)
+{
 	memset(g_players, 0, sizeof g_players);
 	memset(g_inputHistory, 0, sizeof g_inputHistory);
 	memset(g_inputFrameCount, 0, sizeof g_inputFrameCount);
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		g_players[i].objectIndex = -1;
+	}
 	for (int i = 0; i < 4; ++i) {
 		g_players[i].participationState = 1;
 		g_players[i].objectIndex = i;
@@ -33,7 +35,8 @@ static void World(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 0);
 }
 
-static FlightInputFrameRecord Controls(int8_t axis) {
+static FlightInputFrameRecord Controls(int8_t axis)
+{
 	FlightInputFrameRecord input;
 	memset(&input, 0, sizeof input);
 	input.key = 0x61;
@@ -47,8 +50,11 @@ static FlightInputFrameRecord Controls(int8_t axis) {
 }
 
 /* Appends a frame to player's history, which the caller keeps in tick order. */
-static void AddFrame(unsigned player, int tick, int valid, int applied, int8_t axis) {
-	InputFrame* frame = &g_inputHistory[player][g_inputFrameCount[player]++];
+static void AddFrame(unsigned player, int tick, int valid, int applied,
+		     int8_t axis)
+{
+	InputFrame *frame =
+		&g_inputHistory[player][g_inputFrameCount[player]++];
 	frame->timestamp = tick;
 	frame->inputSource = valid;
 	frame->awaitingRelay = applied;
@@ -56,16 +62,20 @@ static void AddFrame(unsigned player, int tick, int valid, int applied, int8_t a
 }
 
 /* The frame at tick in player's history, or NULL. */
-static const InputFrame* FrameAt(unsigned player, int tick) {
-	for (int i = 0; i < g_inputFrameCount[player]; ++i)
-		if (g_inputHistory[player][i].timestamp == tick)
+static const InputFrame *FrameAt(unsigned player, int tick)
+{
+	for (int i = 0; i < g_inputFrameCount[player]; ++i) {
+		if (g_inputHistory[player][i].timestamp == tick) {
 			return &g_inputHistory[player][i];
+		}
+	}
 	return NULL;
 }
 
 /* Checks that player has a predicted, unapplied frame at tick holding source's axes and roll bit only. */
-static void AssertPredicted(unsigned player, int tick, int8_t axis) {
-	const InputFrame* frame = FrameAt(player, tick);
+static void AssertPredicted(unsigned player, int tick, int8_t axis)
+{
+	const InputFrame *frame = FrameAt(player, tick);
 	XVT_ASSERT_TRUE(frame != NULL);
 	XVT_ASSERT_INT_EQ(frame->inputSource, XVT_INPUT_PREDICTED);
 	XVT_ASSERT_INT_EQ(frame->awaitingRelay, 0);
@@ -79,7 +89,8 @@ static void AssertPredicted(unsigned player, int tick, int8_t axis) {
 	XVT_ASSERT_INT_EQ(frame->input.throttle, 0);
 }
 
-static void CheckInvalidTick(void) {
+static void CheckInvalidTick(void)
+{
 	World();
 	AddFrame(1, 2, XVT_INPUT_REAL, 1, 10);
 	XVT_ASSERT_INT_EQ(XvtFlightPrediction_Queue(0), 0);
@@ -89,11 +100,13 @@ static void CheckInvalidTick(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 0);
 }
 
-static void CheckWhichPlayers(void) {
+static void CheckWhichPlayers(void)
+{
 	World();
 	/* Every player has a history frame before the tick. */
-	for (unsigned player = 0; player < 8; ++player)
+	for (unsigned player = 0; player < 8; ++player) {
 		AddFrame(player, 2, XVT_INPUT_REAL, 1, (int8_t)(10 * player));
+	}
 	XVT_ASSERT_INT_EQ(XvtFlightPrediction_Queue(TICK), 1);
 	/* The connected remote players are predicted; the local player and the unconnected ones are not. */
 	for (unsigned player = 1; player < 4; ++player) {
@@ -101,8 +114,9 @@ static void CheckWhichPlayers(void) {
 		AssertPredicted(player, TICK, (int8_t)(10 * player));
 	}
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[0], 1);
-	for (unsigned player = 4; player < 8; ++player)
+	for (unsigned player = 4; player < 8; ++player) {
 		XVT_ASSERT_INT_EQ(g_inputFrameCount[player], 1);
+	}
 
 	/* The local player is whichever g_localPlayer names. */
 	World();
@@ -114,7 +128,8 @@ static void CheckWhichPlayers(void) {
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[2], 1);
 }
 
-static void CheckSourceIsNewestBeforeTick(void) {
+static void CheckSourceIsNewestBeforeTick(void)
+{
 	/* Real at 2, predicted at 4, authoritative at 6, real after the tick: the authoritative frame is the
 	 * newest non-predicted frame before the tick. */
 	World();
@@ -126,8 +141,10 @@ static void CheckSourceIsNewestBeforeTick(void) {
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 5);
 	AssertPredicted(1, TICK, 20);
 	/* The history stays in tick order. */
-	for (int i = 1; i < g_inputFrameCount[1]; ++i)
-		XVT_ASSERT_TRUE(g_inputHistory[1][i - 1].timestamp < g_inputHistory[1][i].timestamp);
+	for (int i = 1; i < g_inputFrameCount[1]; ++i) {
+		XVT_ASSERT_TRUE(g_inputHistory[1][i - 1].timestamp <
+				g_inputHistory[1][i].timestamp);
+	}
 	/* The frames already there are untouched. */
 	XVT_ASSERT_INT_EQ(FrameAt(1, 4)->inputSource, XVT_INPUT_PREDICTED);
 	XVT_ASSERT_INT_EQ(FrameAt(1, 4)->input.axisX, 50);
@@ -143,11 +160,13 @@ static void CheckSourceIsNewestBeforeTick(void) {
 	/* No history at all: nothing inserted, and still 1. */
 	World();
 	XVT_ASSERT_INT_EQ(XvtFlightPrediction_Queue(TICK), 1);
-	for (unsigned player = 0; player < 8; ++player)
+	for (unsigned player = 0; player < 8; ++player) {
 		XVT_ASSERT_INT_EQ(g_inputFrameCount[player], 0);
+	}
 }
 
-static void CheckLeavesRealAndAuthoritative(void) {
+static void CheckLeavesRealAndAuthoritative(void)
+{
 	World();
 	AddFrame(1, 2, XVT_INPUT_REAL, 1, 10);
 	AddFrame(1, TICK, XVT_INPUT_REAL, 0, 30);
@@ -156,18 +175,19 @@ static void CheckLeavesRealAndAuthoritative(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightPrediction_Queue(TICK), 1);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 2);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[2], 2);
-	const InputFrame* real = FrameAt(1, TICK);
+	const InputFrame *real = FrameAt(1, TICK);
 	XVT_ASSERT_INT_EQ(real->inputSource, XVT_INPUT_REAL);
 	XVT_ASSERT_INT_EQ(real->input.axisX, 30);
 	XVT_ASSERT_INT_EQ(real->input.key, 0x61);
 	XVT_ASSERT_INT_EQ(real->input.throttle, 777);
-	const InputFrame* authoritative = FrameAt(2, TICK);
+	const InputFrame *authoritative = FrameAt(2, TICK);
 	XVT_ASSERT_INT_EQ(authoritative->inputSource, XVT_INPUT_AUTHORITATIVE);
 	XVT_ASSERT_INT_EQ(authoritative->input.axisX, 40);
 	XVT_ASSERT_INT_EQ(authoritative->input.keyMods, 0x0F);
 }
 
-static void CheckReplacesPrediction(void) {
+static void CheckReplacesPrediction(void)
+{
 	World();
 	AddFrame(1, 2, XVT_INPUT_REAL, 1, 10);
 	AddFrame(1, TICK, XVT_INPUT_PREDICTED, 0, 99);
@@ -176,7 +196,8 @@ static void CheckReplacesPrediction(void) {
 	AssertPredicted(1, TICK, 10);
 }
 
-static void CheckConfirmedControls(void) {
+static void CheckConfirmedControls(void)
+{
 	FlightInputFrameRecord confirmed = Controls(30);
 
 	/* With no history, confirmed controls are the source. */
@@ -229,7 +250,8 @@ static void CheckConfirmedControls(void) {
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[2], 0);
 }
 
-static void CheckCorruptHistory(void) {
+static void CheckCorruptHistory(void)
+{
 	/* Player 2's count is corrupt: recovery is requested and 0 returned; player 1's prediction stays. */
 	World();
 	AddFrame(1, 2, XVT_INPUT_REAL, 1, 10);
@@ -246,11 +268,13 @@ static void CheckCorruptHistory(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 1);
 }
 
-static void CheckFullHistory(void) {
+static void CheckFullHistory(void)
+{
 	/* A full history: recovery is requested and 0 returned. */
 	World();
-	for (int i = 0; i < XVT_INPUT_HISTORY_CAPACITY; ++i)
+	for (int i = 0; i < XVT_INPUT_HISTORY_CAPACITY; ++i) {
 		AddFrame(1, 2 * (i + 1), XVT_INPUT_REAL, 1, 10);
+	}
 	int tick = 2 * (XVT_INPUT_HISTORY_CAPACITY + 1);
 	XVT_ASSERT_INT_EQ(XvtFlightPrediction_Queue(tick), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 1);
@@ -259,14 +283,16 @@ static void CheckFullHistory(void) {
 
 	/* One frame fewer and the same tick is predicted. */
 	World();
-	for (int i = 0; i < XVT_INPUT_HISTORY_CAPACITY - 1; ++i)
+	for (int i = 0; i < XVT_INPUT_HISTORY_CAPACITY - 1; ++i) {
 		AddFrame(1, 2 * (i + 1), XVT_INPUT_REAL, 1, 10);
+	}
 	XVT_ASSERT_INT_EQ(XvtFlightPrediction_Queue(tick), 1);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 0);
 	AssertPredicted(1, tick, 10);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckInvalidTick();
 	CheckWhichPlayers();
 	CheckSourceIsNewestBeforeTick();

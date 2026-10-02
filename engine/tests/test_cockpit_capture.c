@@ -37,36 +37,48 @@ static XvtCockpitState g_out, g_expected;
 static XvtSnapPreview g_crt;
 static uint8_t g_framebuffer[16];
 
-static void Palette(void) {
-	for (unsigned index = 0; index < 256; ++index)
-		g_swPalette[index] = (RgbTriplet) { (uint8_t)(index & 63), (uint8_t)(index >> 6), 7 };
+static void Palette(void)
+{
+	for (unsigned index = 0; index < 256; ++index) {
+		g_swPalette[index] = (RgbTriplet){(uint8_t)(index & 63),
+						  (uint8_t)(index >> 6), 7};
+	}
 }
 
 /* The local player in seat 0 has no craft and looks forward with the map closed. The goals, damage and
  * command pages have sizes; the message log pane is 100 by 50. The cockpit layout is valid. */
-static void World(void) {
+static void World(void)
+{
 	Palette();
 	g_screenWidth = 640;
 	g_screenHeight = 480;
 	memset(g_players, 0, sizeof g_players);
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		g_players[i].objectIndex = -1;
+	}
 	g_localPlayer = LOCAL;
 	g_players[LOCAL].currentTargetObjectIdx = -1;
 	g_players[LOCAL].viewState.hudStateLive = HUD_VIEW_FORWARD;
 	memset(&g_flightMissionState, 0, sizeof g_flightMissionState);
-	memset(g_hudCockpitResourceDescriptors, 0, sizeof g_hudCockpitResourceDescriptors);
+	memset(g_hudCockpitResourceDescriptors, 0,
+	       sizeof g_hudCockpitResourceDescriptors);
 	g_hudCockpitResourcesLoaded = 0;
 	g_flightPlayerCount = 0;
 	g_flightFontDigitWidth = 4;
 
 	memset(g_hudElementLayouts, 0, sizeof g_hudElementLayouts);
 	g_hudInstrumentSetBaseIndex = HUD_COCKPIT_INSTRUMENT_BASE_INDEX;
-	g_hudElementLayouts[HUD_MFD_GOALS_ELEMENT] = (HudElementLayout) { .x = 10, .y = 20 };
-	g_hudElementLayouts[HUD_MFD_DAMAGE_ELEMENT] = (HudElementLayout) { .x = 30, .y = 40 };
+	g_hudElementLayouts[HUD_MFD_GOALS_ELEMENT] =
+		(HudElementLayout){.x = 10, .y = 20};
+	g_hudElementLayouts[HUD_MFD_DAMAGE_ELEMENT] =
+		(HudElementLayout){.x = 30, .y = 40};
 	g_hudElementLayouts[HUD_MFD_MAP_OR_COMMAND_ELEMENT] =
-		(HudElementLayout) { .x = 50, .y = 60, .clipWidth = 70, .clipHeightOrForegroundColor = 80 };
-	g_hudElementLayouts[HUD_MFD_MESSAGE_LOG_ELEMENT] = (HudElementLayout) { .x = 90, .y = 100 };
+		(HudElementLayout){.x = 50,
+				   .y = 60,
+				   .clipWidth = 70,
+				   .clipHeightOrForegroundColor = 80};
+	g_hudElementLayouts[HUD_MFD_MESSAGE_LOG_ELEMENT] =
+		(HudElementLayout){.x = 90, .y = 100};
 	memset(g_mfdPageStates, 0, sizeof g_mfdPageStates);
 	g_mfdActivePage = MFD_PAGE_NONE;
 	g_mfdGoalsBlitWidth = 50;
@@ -105,25 +117,29 @@ static void World(void) {
 	g_crt.mask_index = 2;
 }
 
-static const XvtCockpitState* Presented(void) {
+static const XvtCockpitState *Presented(void)
+{
 	XvtCockpit_Export(&g_out);
 	return &g_out;
 }
 
 /* The host's frame up to the composition: begin, refresh the local player, select the composition. */
-static void Compose(void) {
+static void Compose(void)
+{
 	XvtCockpit_BeginFrame();
 	XvtCockpit_RefreshInstruments(LOCAL);
 	XvtCockpit_LatchComposition();
 }
 
-static const XvtCockpitState* SealAndPresent(void) {
+static const XvtCockpitState *SealAndPresent(void)
+{
 	XvtCockpit_Seal(&g_crt);
 	XvtCockpit_Presented(0);
 	return Presented();
 }
 
-static void CheckCopyState(void) {
+static void CheckCopyState(void)
+{
 	static XvtCockpitState source, destination;
 	memset(&source, 0x11, sizeof source);
 	memset(&destination, 0xCD, sizeof destination);
@@ -132,31 +148,42 @@ static void CheckCopyState(void) {
 	source.overlay_content.glyph_count = 2;
 	XvtCockpit_CopyState(&destination, &source);
 
-	XVT_ASSERT_INT_EQ(memcmp(&destination, &source, offsetof(XvtCockpitState, page_content)), 0);
+	XVT_ASSERT_INT_EQ(memcmp(&destination, &source,
+				 offsetof(XvtCockpitState, page_content)),
+			  0);
 	XVT_ASSERT_INT_EQ(destination.page_content.row_count, 2);
 	XVT_ASSERT_INT_EQ(destination.page_content.glyph_count, 3);
 	XVT_ASSERT_INT_EQ(destination.overlay_content.glyph_count, 2);
-	const XvtCockpitPageStore* from = &source.page_content;
-	XvtCockpitPageStore* to = &destination.page_content;
-	XVT_ASSERT_INT_EQ(memcmp(to->rows, from->rows, 2 * sizeof to->rows[0]), 0);
-	XVT_ASSERT_INT_EQ(memcmp(to->glyphs, from->glyphs, 3 * sizeof to->glyphs[0]), 0);
-	XVT_ASSERT_INT_EQ(memcmp(destination.overlay_content.glyphs, source.overlay_content.glyphs,
-							 2 * sizeof destination.overlay_content.glyphs[0]),
-					  0);
+	const XvtCockpitPageStore *from = &source.page_content;
+	XvtCockpitPageStore *to = &destination.page_content;
+	XVT_ASSERT_INT_EQ(memcmp(to->rows, from->rows, 2 * sizeof to->rows[0]),
+			  0);
+	XVT_ASSERT_INT_EQ(
+		memcmp(to->glyphs, from->glyphs, 3 * sizeof to->glyphs[0]), 0);
+	XVT_ASSERT_INT_EQ(
+		memcmp(destination.overlay_content.glyphs,
+		       source.overlay_content.glyphs,
+		       2 * sizeof destination.overlay_content.glyphs[0]),
+		0);
 	/* The unused rest of each store keeps its old contents. */
-	const unsigned char* row = (const unsigned char*)&to->rows[2];
-	const unsigned char* glyph = (const unsigned char*)&to->glyphs[3];
-	const unsigned char* overlay = (const unsigned char*)&destination.overlay_content.glyphs[2];
+	const unsigned char *row = (const unsigned char *)&to->rows[2];
+	const unsigned char *glyph = (const unsigned char *)&to->glyphs[3];
+	const unsigned char *overlay =
+		(const unsigned char *)&destination.overlay_content.glyphs[2];
 	XVT_ASSERT_INT_EQ(row[0], 0xCD);
 	XVT_ASSERT_INT_EQ(glyph[0], 0xCD);
 	XVT_ASSERT_INT_EQ(overlay[0], 0xCD);
-	XVT_ASSERT_INT_EQ(((const unsigned char*)&to->glyphs[XVT_HUD_PAGE_GLYPH_CAPACITY - 1])[0], 0xCD);
+	XVT_ASSERT_INT_EQ(
+		((const unsigned char *)&to
+			 ->glyphs[XVT_HUD_PAGE_GLYPH_CAPACITY - 1])[0],
+		0xCD);
 }
 
-static void CheckComposeSealPresent(void) {
+static void CheckComposeSealPresent(void)
+{
 	World();
 	Compose();
-	const XvtCockpitState* state = SealAndPresent();
+	const XvtCockpitState *state = SealAndPresent();
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_TRUE(state->presentation_serial != 0);
 	/* The sealed CRT is the one handed in. */
@@ -168,7 +195,9 @@ static void CheckComposeSealPresent(void) {
 	XVT_ASSERT_INT_EQ(state->palette_argb[5], XvtRenderDraw_Color(5));
 	XVT_ASSERT_INT_EQ(state->palette_argb[200], XvtRenderDraw_Color(200));
 	XvtRenderCockpit_CaptureDefinition(&g_expected.definition);
-	XVT_ASSERT_INT_EQ(memcmp(&state->definition, &g_expected.definition, sizeof state->definition), 0);
+	XVT_ASSERT_INT_EQ(memcmp(&state->definition, &g_expected.definition,
+				 sizeof state->definition),
+			  0);
 
 	/* A new frame keeps the composition selected: sealing it again publishes again. */
 	uint64_t serial = state->presentation_serial;
@@ -178,7 +207,8 @@ static void CheckComposeSealPresent(void) {
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 }
 
-static void CheckNothingPublishedUnsealed(void) {
+static void CheckNothingPublishedUnsealed(void)
+{
 	World();
 	/* Without a composition, Seal does nothing and an unsealed frame is not published. */
 	XvtCockpit_Seal(&g_crt);
@@ -193,7 +223,8 @@ static void CheckNothingPublishedUnsealed(void) {
 	XVT_ASSERT_INT_EQ(Presented()->presentation_serial, 0);
 }
 
-static void CheckBeginFrameDropsPendingCrt(void) {
+static void CheckBeginFrameDropsPendingCrt(void)
+{
 	World();
 	Compose();
 	XvtCockpit_Seal(&g_crt);
@@ -203,7 +234,8 @@ static void CheckBeginFrameDropsPendingCrt(void) {
 	XVT_ASSERT_INT_EQ(Presented()->crt.valid, 0);
 }
 
-static void CheckRefreshLocalOnly(void) {
+static void CheckRefreshLocalOnly(void)
+{
 	World();
 	/* Another player's refresh leaves working invalid, so no composition is selected. */
 	XvtCockpit_BeginFrame();
@@ -216,7 +248,8 @@ static void CheckRefreshLocalOnly(void) {
 	XVT_ASSERT_INT_EQ(XvtCockpit_LoadingAssetsReady(), 0);
 }
 
-static void CheckWorkingFollowsLayout(void) {
+static void CheckWorkingFollowsLayout(void)
+{
 	World();
 	XvtRenderCockpit_Reset();
 	Compose();
@@ -226,7 +259,7 @@ static void CheckWorkingFollowsLayout(void) {
 
 	XvtRenderAssets_CaptureCockpit(0);
 	Compose();
-	const XvtCockpitState* state = SealAndPresent();
+	const XvtCockpitState *state = SealAndPresent();
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(state->view.screen_width, 640);
 
@@ -243,7 +276,8 @@ static void CheckWorkingFollowsLayout(void) {
 	XVT_ASSERT_INT_EQ(SealAndPresent()->view.screen_width, 800);
 }
 
-static void CheckLoadingAssetsReady(void) {
+static void CheckLoadingAssetsReady(void)
+{
 	World();
 	Compose();
 	uint64_t generation = SealAndPresent()->definition.resource_generation;
@@ -260,23 +294,28 @@ static void CheckLoadingAssetsReady(void) {
 	XVT_ASSERT_INT_EQ(XvtCockpit_LoadingAssetsReady(), 0);
 }
 
-static int AllZero(const void* data, size_t size) {
-	const unsigned char* bytes = data;
-	for (size_t index = 0; index < size; ++index)
-		if (bytes[index])
+static int AllZero(const void *data, size_t size)
+{
+	const unsigned char *bytes = data;
+	for (size_t index = 0; index < size; ++index) {
+		if (bytes[index]) {
 			return 0;
+		}
+	}
 	return 1;
 }
 
-static void CheckReset(void) {
+static void CheckReset(void)
+{
 	World();
 	Compose();
 	XvtCockpitMessages_RecordProgress(1, 0, 0, 10, 2, 5);
 	XVT_ASSERT_INT_EQ(SealAndPresent()->valid, 1);
 
 	XvtCockpit_Reset();
-	const XvtCockpitState* state = Presented();
-	XVT_ASSERT_INT_EQ(AllZero(state, offsetof(XvtCockpitState, page_content)), 1);
+	const XvtCockpitState *state = Presented();
+	XVT_ASSERT_INT_EQ(
+		AllZero(state, offsetof(XvtCockpitState, page_content)), 1);
 	XVT_ASSERT_INT_EQ(state->page_content.glyph_count, 0);
 	XVT_ASSERT_INT_EQ(state->overlay_content.glyph_count, 0);
 	/* The messages were reset with it: the progress bar is gone. */
@@ -284,18 +323,21 @@ static void CheckReset(void) {
 	XVT_ASSERT_INT_EQ(Presented()->loading.progress_visible, 0);
 }
 
-static void CheckStandaloneOverlay(void) {
+static void CheckStandaloneOverlay(void)
+{
 	World();
 	XvtRenderCockpit_Reset();
 	/* No composition and nothing to show: published, but not valid. */
 	XvtCockpit_Presented(1);
-	const XvtCockpitState* state = Presented();
+	const XvtCockpitState *state = Presented();
 	uint64_t serial = state->presentation_serial;
 	XVT_ASSERT_TRUE(serial != 0);
 	XVT_ASSERT_INT_EQ(state->valid, 0);
 	/* Without a valid layout it first captured the cockpit definition. */
 	XvtRenderCockpit_CaptureDefinition(&g_expected.definition);
-	XVT_ASSERT_INT_EQ(memcmp(&state->definition, &g_expected.definition, sizeof state->definition), 0);
+	XVT_ASSERT_INT_EQ(memcmp(&state->definition, &g_expected.definition,
+				 sizeof state->definition),
+			  0);
 
 	/* With the loading display showing it is valid, and each publication has a new serial. */
 	XvtCockpitMessages_RecordProgress(1, 0, 0, 10, 2, 5);
@@ -313,7 +355,8 @@ static void CheckStandaloneOverlay(void) {
 	XVT_ASSERT_INT_EQ(Presented()->valid, 1);
 }
 
-static void CheckGenerations(void) {
+static void CheckGenerations(void)
+{
 	World();
 	XvtCockpitMessages_RecordProgress(1, 0, 0, 10, 2, 5);
 	XvtCockpit_Presented(1);
@@ -321,11 +364,15 @@ static void CheckGenerations(void) {
 
 	/* Nothing changed: no generation rises. */
 	XvtCockpit_Presented(1);
-	const XvtCockpitState* state = Presented();
-	XVT_ASSERT_INT_EQ(state->definition_generation, g_expected.definition_generation);
-	XVT_ASSERT_INT_EQ(state->palette_generation, g_expected.palette_generation);
-	XVT_ASSERT_INT_EQ(state->artwork_generation, g_expected.artwork_generation);
-	XVT_ASSERT_INT_EQ(state->instruments_generation, g_expected.instruments_generation);
+	const XvtCockpitState *state = Presented();
+	XVT_ASSERT_INT_EQ(state->definition_generation,
+			  g_expected.definition_generation);
+	XVT_ASSERT_INT_EQ(state->palette_generation,
+			  g_expected.palette_generation);
+	XVT_ASSERT_INT_EQ(state->artwork_generation,
+			  g_expected.artwork_generation);
+	XVT_ASSERT_INT_EQ(state->instruments_generation,
+			  g_expected.instruments_generation);
 	XVT_ASSERT_INT_EQ(state->radar_generation, g_expected.radar_generation);
 	XVT_ASSERT_INT_EQ(state->text_generation, g_expected.text_generation);
 	XVT_ASSERT_INT_EQ(state->crt_generation, g_expected.crt_generation);
@@ -335,21 +382,27 @@ static void CheckGenerations(void) {
 	XvtCockpit_Presented(1);
 	state = Presented();
 	XVT_ASSERT_TRUE(state->text_generation > g_expected.text_generation);
-	XVT_ASSERT_INT_EQ(state->definition_generation, g_expected.definition_generation);
-	XVT_ASSERT_INT_EQ(state->palette_generation, g_expected.palette_generation);
-	XVT_ASSERT_INT_EQ(state->artwork_generation, g_expected.artwork_generation);
-	XVT_ASSERT_INT_EQ(state->instruments_generation, g_expected.instruments_generation);
+	XVT_ASSERT_INT_EQ(state->definition_generation,
+			  g_expected.definition_generation);
+	XVT_ASSERT_INT_EQ(state->palette_generation,
+			  g_expected.palette_generation);
+	XVT_ASSERT_INT_EQ(state->artwork_generation,
+			  g_expected.artwork_generation);
+	XVT_ASSERT_INT_EQ(state->instruments_generation,
+			  g_expected.instruments_generation);
 	XVT_ASSERT_INT_EQ(state->crt_generation, g_expected.crt_generation);
 
 	/* A composed frame brings a new palette and a sealed CRT: those generations rise. */
 	XvtCockpit_Export(&g_expected);
 	Compose();
 	state = SealAndPresent();
-	XVT_ASSERT_TRUE(state->palette_generation > g_expected.palette_generation);
+	XVT_ASSERT_TRUE(state->palette_generation >
+			g_expected.palette_generation);
 	XVT_ASSERT_TRUE(state->crt_generation > g_expected.crt_generation);
 }
 
-static void CheckLatchPages(void) {
+static void CheckLatchPages(void)
+{
 	World();
 	g_mfdPageStates[MFD_PAGE_SCOREBOARD] = MFD_PAGE_STATE_CLOSED;
 	g_mfdPageStates[MFD_PAGE_GOALS] = MFD_PAGE_STATE_OPEN;
@@ -360,7 +413,7 @@ static void CheckLatchPages(void) {
 	/* Off the map: open pages are placed except the command page; closed ones and the log are not. */
 	XvtCockpit_LatchPages();
 	XvtCockpit_Presented(1);
-	const XvtCockpitPage* pages = Presented()->pages;
+	const XvtCockpitPage *pages = Presented()->pages;
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_GOALS].visible, 1);
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_DAMAGE].visible, 1);
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_MAP_HELP].visible, 0);
@@ -377,7 +430,8 @@ static void CheckLatchPages(void) {
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_MAP_HELP].visible, 1);
 }
 
-static void CheckSealExportsLatchedPages(void) {
+static void CheckSealExportsLatchedPages(void)
+{
 	World();
 	g_mfdPageStates[MFD_PAGE_GOALS] = MFD_PAGE_STATE_OPEN;
 	XvtCockpitPages_BeginSection(MFD_PAGE_GOALS, XVT_COCKPIT_PAGE_HEADER);
@@ -385,15 +439,20 @@ static void CheckSealExportsLatchedPages(void) {
 	XvtCockpitPages_EndSection();
 	Compose();
 	XvtCockpit_LatchPages();
-	const XvtCockpitState* state = SealAndPresent();
+	const XvtCockpitState *state = SealAndPresent();
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(state->pages[MFD_PAGE_GOALS].visible, 1);
 	XVT_ASSERT_INT_EQ(state->pages[MFD_PAGE_GOALS].glyph_count, 1);
 	XVT_ASSERT_INT_EQ(state->page_content.glyph_count, 1);
-	XVT_ASSERT_INT_EQ(state->page_content.glyphs[state->pages[MFD_PAGE_GOALS].first_glyph].character, 'G');
+	XVT_ASSERT_INT_EQ(
+		state->page_content
+			.glyphs[state->pages[MFD_PAGE_GOALS].first_glyph]
+			.character,
+		'G');
 }
 
-static void CheckLatchMessages(void) {
+static void CheckLatchMessages(void)
+{
 	World();
 	/* A closed message log is placed hidden. */
 	XvtCockpit_LatchMessages();
@@ -404,29 +463,35 @@ static void CheckLatchMessages(void) {
 	g_mfdPageStates[MFD_PAGE_MESSAGE_LOG] = MFD_PAGE_STATE_OPEN;
 	XvtCockpit_LatchMessages();
 	XvtCockpit_Presented(1);
-	const XvtCockpitPage* page = &Presented()->pages[MFD_PAGE_MESSAGE_LOG];
+	const XvtCockpitPage *page = &Presented()->pages[MFD_PAGE_MESSAGE_LOG];
 	XVT_ASSERT_INT_EQ(page->visible, 1);
 	int narrow = page->placement.width;
 	g_flightPlayerCount = 1;
 	XvtCockpit_LatchMessages();
 	XvtCockpit_Presented(1);
-	XVT_ASSERT_TRUE(Presented()->pages[MFD_PAGE_MESSAGE_LOG].placement.width > narrow);
+	XVT_ASSERT_TRUE(
+		Presented()->pages[MFD_PAGE_MESSAGE_LOG].placement.width >
+		narrow);
 
 	/* In a composed frame the open log is latched, so the sealed frame shows it. */
 	Compose();
 	XvtCockpit_LatchMessages();
-	XVT_ASSERT_INT_EQ(SealAndPresent()->pages[MFD_PAGE_MESSAGE_LOG].visible, 1);
+	XVT_ASSERT_INT_EQ(SealAndPresent()->pages[MFD_PAGE_MESSAGE_LOG].visible,
+			  1);
 }
 
-static void CheckLatchLauncher(void) {
+static void CheckLatchLauncher(void)
+{
 	World();
-	XvtCockpitReadouts_RecordNumber((XvtCockpitNumberId)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 2), 7, 2, 1);
+	XvtCockpitReadouts_RecordNumber(
+		(XvtCockpitNumberId)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 2), 7,
+		2, 1);
 	XvtCockpit_LatchLauncher(2, 100, 110, 20, 10);
 	/* Launchers from 4 up are ignored. */
 	XvtCockpit_LatchLauncher(4, 1, 1, 1, 1);
 	XvtCockpit_Presented(1);
-	const XvtCockpitWeapons* weapons = &Presented()->weapons;
-	const XvtCockpitNumber* count = &weapons->launchers[2].count;
+	const XvtCockpitWeapons *weapons = &Presented()->weapons;
+	const XvtCockpitNumber *count = &weapons->launchers[2].count;
 	XVT_ASSERT_INT_EQ(weapons->launchers[2].visible, 1);
 	XVT_ASSERT_INT_EQ(count->value, 7);
 	XVT_ASSERT_INT_EQ(count->x, 100);
@@ -439,30 +504,42 @@ static void CheckLatchLauncher(void) {
 	XVT_ASSERT_INT_EQ(count->keyed, 1);
 	XVT_ASSERT_INT_EQ(count->color_key_argb, XvtRenderDraw_Color(BYPASS));
 	XVT_ASSERT_INT_EQ(weapons->launchers[3].visible, 0);
-	XVT_ASSERT_INT_EQ(AllZero(&weapons->lock_indicator, sizeof weapons->lock_indicator), 1);
+	XVT_ASSERT_INT_EQ(AllZero(&weapons->lock_indicator,
+				  sizeof weapons->lock_indicator),
+			  1);
 	XVT_ASSERT_INT_EQ(AllZero(&g_out.target, sizeof g_out.target), 1);
 }
 
-static void CaptureReadyMessage(void) {
+static void CaptureReadyMessage(void)
+{
 	XvtCockpitMessages_BeginMessage(0);
 	XvtCockpitMessages_RecordGlyph('M', 8, 10, 0);
 	XvtCockpitMessages_EndMessage();
 }
 
-static void CheckLatchMessage(void) {
+static void CheckLatchMessage(void)
+{
 	World();
 	CaptureReadyMessage();
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_NETWORK_PING, "12", XVT_COCKPIT_ALIGN_LEFT);
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_NETWORK_LAG, "3", XVT_COCKPIT_ALIGN_LEFT);
+	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_NETWORK_PING, "12",
+				   XVT_COCKPIT_ALIGN_LEFT);
+	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_NETWORK_LAG, "3",
+				   XVT_COCKPIT_ALIGN_LEFT);
 
 	/* The ready pane is latched while the log is closed, and moves the ping and lag fields with it. */
-	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400, 120, 30);
+	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400,
+				120, 30);
 	XvtCockpit_Presented(1);
-	const XvtCockpitState* state = Presented();
-	XVT_ASSERT_INT_EQ(state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 1);
-	XVT_ASSERT_INT_EQ(state->messages.panes[XVT_COCKPIT_MESSAGE_READY].placement.x, 300);
-	const XvtCockpitTextField* ping = &state->text_fields[XVT_COCKPIT_TEXT_NETWORK_PING];
-	const XvtCockpitTextField* lag = &state->text_fields[XVT_COCKPIT_TEXT_NETWORK_LAG];
+	const XvtCockpitState *state = Presented();
+	XVT_ASSERT_INT_EQ(
+		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 1);
+	XVT_ASSERT_INT_EQ(
+		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].placement.x,
+		300);
+	const XvtCockpitTextField *ping =
+		&state->text_fields[XVT_COCKPIT_TEXT_NETWORK_PING];
+	const XvtCockpitTextField *lag =
+		&state->text_fields[XVT_COCKPIT_TEXT_NETWORK_LAG];
 	XVT_ASSERT_INT_EQ(strcmp(ping->caption.text, "12"), 0);
 	XVT_ASSERT_INT_EQ(ping->x, 70 + (300 - 40));
 	XVT_ASSERT_INT_EQ(ping->y, 80 + (400 - 55));
@@ -474,39 +551,58 @@ static void CheckLatchMessage(void) {
 	/* While the log is open the ready pane is not latched, but the fields are still placed. */
 	World();
 	CaptureReadyMessage();
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_NETWORK_PING, "12", XVT_COCKPIT_ALIGN_LEFT);
+	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_NETWORK_PING, "12",
+				   XVT_COCKPIT_ALIGN_LEFT);
 	g_mfdPageStates[MFD_PAGE_MESSAGE_LOG] = MFD_PAGE_STATE_OPEN;
-	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400, 120, 30);
+	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400,
+				120, 30);
 	XvtCockpitMessages_BeginMessage(3);
 	XvtCockpitMessages_RecordGlyph('S', 8, 10, 0);
 	XvtCockpitMessages_EndMessage();
-	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_SYSTEM, 50, 60, 0, 0, 100, 20);
+	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_SYSTEM, 50, 60, 0, 0, 100,
+				20);
 	XvtCockpit_Presented(1);
 	state = Presented();
-	XVT_ASSERT_INT_EQ(state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
-	XVT_ASSERT_INT_EQ(state->messages.panes[XVT_COCKPIT_MESSAGE_SYSTEM].visible, 1);
-	XVT_ASSERT_INT_EQ(state->text_fields[XVT_COCKPIT_TEXT_NETWORK_PING].y, 80 + (400 - 55));
+	XVT_ASSERT_INT_EQ(
+		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
+	XVT_ASSERT_INT_EQ(
+		state->messages.panes[XVT_COCKPIT_MESSAGE_SYSTEM].visible, 1);
+	XVT_ASSERT_INT_EQ(state->text_fields[XVT_COCKPIT_TEXT_NETWORK_PING].y,
+			  80 + (400 - 55));
 }
 
-static void CheckPlacedPanesHidden(void) {
+static void CheckPlacedPanesHidden(void)
+{
 	World();
 	CaptureReadyMessage();
 	Compose();
-	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_READY, 50, 60, 0, 0, 100, 20);
-	XVT_ASSERT_INT_EQ(SealAndPresent()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 1);
+	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_READY, 50, 60, 0, 0, 100,
+				20);
+	XVT_ASSERT_INT_EQ(SealAndPresent()
+				  ->messages.panes[XVT_COCKPIT_MESSAGE_READY]
+				  .visible,
+			  1);
 
 	/* A new composition hides the placed panes until they are latched again. */
 	Compose();
-	XVT_ASSERT_INT_EQ(SealAndPresent()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
+	XVT_ASSERT_INT_EQ(SealAndPresent()
+				  ->messages.panes[XVT_COCKPIT_MESSAGE_READY]
+				  .visible,
+			  0);
 
 	/* So does BeginMessagePlacement. */
 	Compose();
-	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_READY, 50, 60, 0, 0, 100, 20);
+	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_READY, 50, 60, 0, 0, 100,
+				20);
 	XvtCockpit_BeginMessagePlacement();
-	XVT_ASSERT_INT_EQ(SealAndPresent()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
+	XVT_ASSERT_INT_EQ(SealAndPresent()
+				  ->messages.panes[XVT_COCKPIT_MESSAGE_READY]
+				  .visible,
+			  0);
 }
 
-static void CheckRetainPresentedFrame(void) {
+static void CheckRetainPresentedFrame(void)
+{
 	World();
 	XvtCockpit_LatchLauncher(1, 10, 10, 5, 5);
 	XvtCockpit_Presented(1);
@@ -514,7 +610,7 @@ static void CheckRetainPresentedFrame(void) {
 	XvtCockpit_LatchLauncher(3, 20, 20, 5, 5);
 	XvtCockpit_RetainPresentedFrame();
 	XvtCockpit_Presented(1);
-	const XvtCockpitState* state = Presented();
+	const XvtCockpitState *state = Presented();
 	XVT_ASSERT_INT_EQ(state->weapons.launchers[1].visible, 1);
 	XVT_ASSERT_INT_EQ(state->weapons.launchers[3].visible, 0);
 
@@ -527,7 +623,8 @@ static void CheckRetainPresentedFrame(void) {
 	XVT_ASSERT_INT_EQ(Presented()->presentation_serial, serial);
 }
 
-static void CheckExportResourcesRefusals(void) {
+static void CheckExportResourcesRefusals(void)
+{
 	static XvtCockpitResources resources;
 	World();
 	/* Working is invalid. */
@@ -552,7 +649,8 @@ static void CheckExportResourcesRefusals(void) {
 
 /* Known failure: with panel 0 unbound the output is left invalid but not cleared. ExportResources captures
  * the cockpit definition into it before it looks at panel 0, and returns with that definition in place. */
-static void CheckExportResourcesClearedWithoutPanel(void) {
+static void CheckExportResourcesClearedWithoutPanel(void)
+{
 	static XvtCockpitResources resources;
 	World();
 	Compose();
@@ -562,11 +660,13 @@ static void CheckExportResourcesClearedWithoutPanel(void) {
 	XVT_ASSERT_INT_EQ(AllZero(&resources, sizeof resources), 1);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
 	/* "known-failure <check>" runs one check the code is known to fail; an unknown name runs nothing. */
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
-		if (strcmp(argv[2], "export_resources_without_panel") == 0)
+		if (strcmp(argv[2], "export_resources_without_panel") == 0) {
 			CheckExportResourcesClearedWithoutPanel();
+		}
 		return 0;
 	}
 	CheckCopyState();

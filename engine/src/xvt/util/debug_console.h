@@ -13,11 +13,12 @@ extern int g_debugConsoleInitialized;
 extern uint8_t g_debugConsoleTextBuffer[80 * 25 * 2];
 #endif
 
-void DebugPrintf(const char* format, ...);
+void DebugPrintf(const char *format, ...);
 void DebugConsole_SetInitialized(int initialized);
 void DebugConsole_SetCursorPosition(int column, int row);
-int DebugConsole_WriteText(const char* text);
-void DebugConsole_WriteTextInScrollRegion(int topRow, int bottomRow, const char* text);
+int DebugConsole_WriteText(const char *text);
+void DebugConsole_WriteTextInScrollRegion(int topRow, int bottomRow,
+					  const char *text);
 void DebugConsole_ToggleFileDump(void);
 
 #ifdef __cplusplus

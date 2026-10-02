@@ -8,7 +8,8 @@
 extern "C" {
 #endif
 
-uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx, uint16_t staticObjIdx);
+uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx,
+					 uint16_t staticObjIdx);
 void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx);
 
 #ifdef __cplusplus

@@ -39,16 +39,18 @@ typedef struct XvtHudAssetSet {
  * share one atlas frame. A part is colorized by its request (its palette color, white for monochrome,
  * or the fade-shifted index), and, when cockpit_undither is on, undithered unless monochrome; the
  * base likewise. */
-int XvtHudAssets_PrepareResources(AeronCommandBuffer* cmd, const XvtCockpitResources* resources);
+int XvtHudAssets_PrepareResources(AeronCommandBuffer *cmd,
+				  const XvtCockpitResources *resources);
 /* Whether a committed group holds generation. */
 int XvtHudAssets_HasResources(uint64_t generation);
 /* Makes current the committed set whose base asset, part requests and palette match state and layout.
  * Selects the empty set, returning 1, when the layout has neither base nor parts, the definition is
  * invalid, or the instruments are hidden by a loading screen or alert and there are no parts. Returns
  * 0, logging an error, when no group matches. */
-int XvtHudAssets_Select(const XvtCockpitState* state, const XvtHudLayout* layout);
+int XvtHudAssets_Select(const XvtCockpitState *state,
+			const XvtHudLayout *layout);
 /* Releases every committed group whose base or part source images are gone from the snapshot. */
-void XvtHudAssets_Retire(const XvtRenderSnapshot* snapshot);
+void XvtHudAssets_Retire(const XvtRenderSnapshot *snapshot);
 /* Commits the pending group, newest first. */
 void XvtHudAssets_Commit(void);
 /* Releases the pending group. */
@@ -56,13 +58,13 @@ void XvtHudAssets_Abort(void);
 /* Releases everything. */
 void XvtHudAssets_Shutdown(void);
 /* The set the last Select made current, or NULL, also once its group was released. */
-const XvtHudAssetSet* XvtHudAssets_Current(void);
+const XvtHudAssetSet *XvtHudAssets_Current(void);
 /* True when loaded cockpit artwork differs from the requested preparation option. */
 /* 0 without a current snapshot with valid cockpit resources, or without a committed group for its
  * resource generation. */
 int XvtHudAssets_UnditherPending(int requested);
 /* Fonts retain the existing source-generation ownership in the image cache. */
 /* XvtRemasterAssets_Font(asset_id, 0). */
-const XvtFontAtlas* XvtHudAssets_FindFont(uint64_t asset_id);
+const XvtFontAtlas *XvtHudAssets_FindFont(uint64_t asset_id);
 
 #endif

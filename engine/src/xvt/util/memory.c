@@ -8,8 +8,9 @@
 #include <string.h>
 
 #ifndef XVT_MODERN
-__declspec(dllimport) int __stdcall VirtualProtect(void* address, size_t size, unsigned int newProtection,
-												   unsigned int* oldProtection);
+__declspec(dllimport) int __stdcall VirtualProtect(void *address, size_t size,
+						   unsigned int newProtection,
+						   unsigned int *oldProtection);
 #endif
 
 // GLOBAL: XVT 0x5280DC
@@ -17,11 +18,12 @@ uint8_t g_handleAllocatorInitialized = 0;
 // GLOBAL: XVT 0x5280E0
 unsigned int g_handleAllocationAttemptCount = 0;
 // GLOBAL: XVT 0x622CE8
-MemoryHandleTableState g_handleTables = { 0 };
+MemoryHandleTableState g_handleTables = {0};
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4AC490
-int Memory_SetRegionExecuteReadWrite(void* address, size_t size) {
+int Memory_SetRegionExecuteReadWrite(void *address, size_t size)
+{
 #ifdef XVT_MODERN
 	/* The source port does not patch its generated machine code. */
 	(void)address;
@@ -35,20 +37,23 @@ int Memory_SetRegionExecuteReadWrite(void* address, size_t size) {
 }
 
 // FUNCTION: XVT 0x4AC5D0
-uint16_t Memory_AllocHandleZeroed(size_t size, int legacyTag) {
+uint16_t Memory_AllocHandleZeroed(size_t size, int legacyTag)
+{
 	return Memory_AllocHandleInternal(size, legacyTag, 1);
 }
 
 // FUNCTION: XVT 0x4AC5F0
-uint16_t Memory_AllocHandle(size_t size, int legacyTag) {
+uint16_t Memory_AllocHandle(size_t size, int legacyTag)
+{
 	return Memory_AllocHandleInternal(size, legacyTag, 0);
 }
 
 // FUNCTION: XVT 0x4AC610
-uint16_t Memory_AllocHandleInternal(size_t size, int legacyTag, int clearFlag) {
+uint16_t Memory_AllocHandleInternal(size_t size, int legacyTag, int clearFlag)
+{
 	uint16_t tableIndex;
 	unsigned int slotIndex;
-	void* block;
+	void *block;
 
 	(void)legacyTag;
 	++g_handleAllocationAttemptCount;
@@ -83,7 +88,8 @@ uint16_t Memory_AllocHandleInternal(size_t size, int legacyTag, int clearFlag) {
 }
 
 // FUNCTION: XVT 0x4AC6E0
-void Memory_FreeHandle(unsigned int handle) {
+void Memory_FreeHandle(unsigned int handle)
+{
 #ifdef XVT_MODERN
 	XvtRenderAssets_RetireHandle(handle);
 #endif
@@ -95,7 +101,10 @@ void Memory_FreeHandle(unsigned int handle) {
 }
 
 // FUNCTION: XVT 0x4AC720
-void* Memory_LockHandle(uint16_t handle) { return g_handleTables.ptrTable[handle - 1]; }
+void *Memory_LockHandle(uint16_t handle)
+{
+	return g_handleTables.ptrTable[handle - 1];
+}
 
 // FUNCTION: XVT 0x4AC740
 void Memory_UnlockHandle(uint16_t handle) { (void)handle; }

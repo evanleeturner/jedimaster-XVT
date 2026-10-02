@@ -26,17 +26,19 @@ int g_debugConsoleFileDumpEnabled;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4079E0
-void DebugPrintf(const char* format, ...) { (void)format; }
+void DebugPrintf(const char *format, ...) { (void)format; }
 
 /* Also turns off the mpDump.txt file dump. */
 // FUNCTION: XVT 0x4ACBF0
-void DebugConsole_SetInitialized(int initialized) {
+void DebugConsole_SetInitialized(int initialized)
+{
 	g_debugConsoleFileDumpEnabled = 0;
 	g_debugConsoleInitialized = initialized;
 }
 
 // FUNCTION: XVT 0x4ACC10
-void DebugConsole_SetCursorPosition(int column, int row) {
+void DebugConsole_SetCursorPosition(int column, int row)
+{
 	g_debugConsoleCursorColumn = column;
 	g_debugConsoleCursorRow = row;
 }
@@ -45,15 +47,16 @@ void DebugConsole_SetCursorPosition(int column, int row) {
 #pragma function(memcpy)
 #endif
 // FUNCTION: XVT 0x4ACC30
-int DebugConsole_WriteText(const char* text) {
-	uint8_t* textBuffer;
-	const char* textCursor;
+int DebugConsole_WriteText(const char *text)
+{
+	uint8_t *textBuffer;
+	const char *textCursor;
 	int sourceLength;
 	int remainingLength;
 	int charIndex;
 	int zero;
-	XvtFile* stream;
-	uint8_t* textCell;
+	XvtFile *stream;
+	uint8_t *textCell;
 
 #ifdef XVT_MODERN
 	static uint8_t modernTextBuffer[80 * 25 * 2];
@@ -63,7 +66,7 @@ int DebugConsole_WriteText(const char* text) {
 #endif
 	if (g_debugConsoleInitialized == 0) {
 		int initializeCount;
-		uint8_t* initializeCell;
+		uint8_t *initializeCell;
 
 		initializeCell = textBuffer;
 		initializeCount = 2000;
@@ -108,18 +111,25 @@ int DebugConsole_WriteText(const char* text) {
 		if (g_debugConsoleCursorRow > g_debugConsoleScrollBottomRow) {
 #ifdef XVT_MODERN
 			memmove(&textBuffer[160 * g_debugConsoleScrollTopRow],
-					&textBuffer[160 * g_debugConsoleScrollTopRow + 160],
-					(size_t)(160 * (g_debugConsoleScrollBottomRow - g_debugConsoleScrollTopRow)));
+				&textBuffer[160 * g_debugConsoleScrollTopRow +
+					    160],
+				(size_t)(160 * (g_debugConsoleScrollBottomRow -
+						g_debugConsoleScrollTopRow)));
 #else
 			memcpy(&textBuffer[160 * g_debugConsoleScrollTopRow],
-				   &textBuffer[160 * g_debugConsoleScrollTopRow + 160],
-				   (size_t)(160 * (g_debugConsoleScrollBottomRow - g_debugConsoleScrollTopRow)));
+			       &textBuffer[160 * g_debugConsoleScrollTopRow +
+					   160],
+			       (size_t)(160 * (g_debugConsoleScrollBottomRow -
+					       g_debugConsoleScrollTopRow)));
 #endif
 			{
 				int clearCount;
-				uint8_t* clearCell;
+				uint8_t *clearCell;
 
-				clearCell = &textBuffer[160 * g_debugConsoleScrollBottomRow];
+				clearCell =
+					&textBuffer
+						[160 *
+						 g_debugConsoleScrollBottomRow];
 				clearCount = 80;
 				do {
 					*clearCell = ' ';
@@ -131,11 +141,13 @@ int DebugConsole_WriteText(const char* text) {
 			g_debugConsoleCursorRow = g_debugConsoleScrollBottomRow;
 		}
 
-		if (remainingLength + g_debugConsoleCursorColumn > 80)
+		if (remainingLength + g_debugConsoleCursorColumn > 80) {
 			remainingLength = 80 - g_debugConsoleCursorColumn;
+		}
 
 		charIndex = zero;
-		textCell = &textBuffer[2 * (g_debugConsoleCursorColumn + 80 * g_debugConsoleCursorRow)];
+		textCell = &textBuffer[2 * (g_debugConsoleCursorColumn +
+					    80 * g_debugConsoleCursorRow)];
 		if (remainingLength > 0) {
 			for (;;) {
 				if (textCursor[charIndex] == '\n') {
@@ -146,17 +158,20 @@ int DebugConsole_WriteText(const char* text) {
 					++g_debugConsoleCursorRow;
 					break;
 				}
-				textCell[charIndex * 2] = (uint8_t)textCursor[charIndex];
+				textCell[charIndex * 2] =
+					(uint8_t)textCursor[charIndex];
 				++charIndex;
-				if (remainingLength > charIndex)
+				if (remainingLength > charIndex) {
 					continue;
+				}
 				break;
 			}
 		}
 
 		g_debugConsoleCursorColumn += remainingLength;
-		if (remainingLength == sourceLength)
+		if (remainingLength == sourceLength) {
 			return g_debugConsoleCursorColumn;
+		}
 		textCursor += remainingLength;
 		g_debugConsoleCursorColumn = zero;
 		++g_debugConsoleCursorRow;
@@ -167,26 +182,31 @@ int DebugConsole_WriteText(const char* text) {
 #endif
 
 // FUNCTION: XVT 0x4ACDD0
-void DebugConsole_WriteTextInScrollRegion(int topRow, int bottomRow, const char* text) {
+void DebugConsole_WriteTextInScrollRegion(int topRow, int bottomRow,
+					  const char *text)
+{
 	g_debugConsoleScrollBottomRow = bottomRow;
 	g_debugConsoleScrollTopRow = topRow;
 	g_debugConsoleCursorRow = bottomRow;
-	if (g_debugConsoleCursorColumn == 0)
+	if (g_debugConsoleCursorColumn == 0) {
 		g_debugConsoleCursorRow = bottomRow + 1;
+	}
 	DebugConsole_WriteText(text);
 	g_debugConsoleScrollTopRow = 0;
 	g_debugConsoleScrollBottomRow = 24;
 }
 
 // FUNCTION: XVT 0x4ACE20
-void DebugConsole_ToggleFileDump(void) {
+void DebugConsole_ToggleFileDump(void)
+{
 	if (g_debugConsoleFileDumpEnabled != 0) {
 		g_debugConsoleFileDumpEnabled = 0;
 		return;
 	}
 
-	if (g_debugConsoleFileDumpGate0 != 0 || g_debugConsoleFileDumpGate1 != 0 ||
-		g_debugConsoleFileDumpGate2 != 0) {
+	if (g_debugConsoleFileDumpGate0 != 0 ||
+	    g_debugConsoleFileDumpGate1 != 0 ||
+	    g_debugConsoleFileDumpGate2 != 0) {
 		++g_debugConsoleFileDumpEnabled;
 	}
 }

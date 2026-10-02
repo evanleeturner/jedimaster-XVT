@@ -14,23 +14,28 @@
 
 static AeronInputSnapshot g_input;
 
-static void CheckRect(AeronRectI rect, int x, int y, int width, int height) {
+static void CheckRect(AeronRectI rect, int x, int y, int width, int height)
+{
 	XVT_ASSERT_INT_EQ(rect.x, x);
 	XVT_ASSERT_INT_EQ(rect.y, y);
 	XVT_ASSERT_INT_EQ(rect.width, width);
 	XVT_ASSERT_INT_EQ(rect.height, height);
 }
 
-static void CheckInitResetsFrame(void) {
+static void CheckInitResetsFrame(void)
+{
 	XvtPresentation_Init();
 	XvtPresentation_SyncToWindow(1920, 1080);
-	XVT_ASSERT_TRUE(XvtPresentation_LogicalRect().width != XVT_CLASSIC_WIDTH);
+	XVT_ASSERT_TRUE(XvtPresentation_LogicalRect().width !=
+			XVT_CLASSIC_WIDTH);
 	XvtPresentation_Init();
-	CheckRect(XvtPresentation_LogicalRect(), 0, 0, XVT_CLASSIC_WIDTH, XVT_CLASSIC_HEIGHT);
+	CheckRect(XvtPresentation_LogicalRect(), 0, 0, XVT_CLASSIC_WIDTH,
+		  XVT_CLASSIC_HEIGHT);
 	CheckRect(XvtPresentation_ClassicRect(), 0, 0, 640, 480);
 }
 
-static void CheckSyncToWindow(void) {
+static void CheckSyncToWindow(void)
+{
 	XvtPresentation_Init();
 	/* 480 * 1920 / 1080 is 853.3: rounded to 853, made even. */
 	XvtPresentation_SyncToWindow(1920, 1080);
@@ -59,7 +64,8 @@ static void CheckSyncToWindow(void) {
 	CheckRect(XvtPresentation_LogicalRect(), 0, 0, 1706, 480);
 }
 
-static void CheckSyncTellsAeron(void) {
+static void CheckSyncTellsAeron(void)
+{
 	int width = 0;
 	int height = 0;
 	XvtPresentation_Init();
@@ -74,23 +80,27 @@ static void CheckSyncTellsAeron(void) {
 	XVT_ASSERT_INT_EQ(height, 480);
 }
 
-static void CheckClassicRect(void) {
+static void CheckClassicRect(void)
+{
 	XvtPresentation_Init();
 	XvtPresentation_SyncToWindow(1920, 1080);
 	CheckRect(XvtPresentation_ClassicRect(), (852 - 640) / 2, 0, 640, 480);
 
 	/* FromClassic moves a rectangle by the classic rectangle's offset and changes nothing else. */
-	AeronRectI moved = XvtPresentation_FromClassic((AeronRectI) { 10, 20, 30, 40 });
+	AeronRectI moved =
+		XvtPresentation_FromClassic((AeronRectI){10, 20, 30, 40});
 	CheckRect(moved, 10 + (852 - 640) / 2, 20, 30, 40);
 
 	XvtPresentation_SyncToWindow(800, 600);
 	CheckRect(XvtPresentation_ClassicRect(), 0, 0, 640, 480);
-	moved = XvtPresentation_FromClassic((AeronRectI) { 10, 20, 30, 40 });
+	moved = XvtPresentation_FromClassic((AeronRectI){10, 20, 30, 40});
 	CheckRect(moved, 10, 20, 30, 40);
 }
 
 /* Sets the test's input snapshot to a window of the given size with the mouse at raw x, y. */
-static const AeronInputSnapshot* Window(int width, int height, int raw_x, int raw_y, int inside) {
+static const AeronInputSnapshot *Window(int width, int height, int raw_x,
+					int raw_y, int inside)
+{
 	memset(&g_input, 0, sizeof g_input);
 	g_input.window_width = width;
 	g_input.window_height = height;
@@ -100,56 +110,83 @@ static const AeronInputSnapshot* Window(int width, int height, int raw_x, int ra
 	return &g_input;
 }
 
-static void CheckMouseToClassic(void) {
+static void CheckMouseToClassic(void)
+{
 	int x = -1;
 	int y = -1;
 	XvtPresentation_Init();
 
 	/* 1280x720: the 4:3 area is 960x720, starting 160 points in. Its center is the classic center. */
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(1280, 720, 160 + 480, 360, 1), &x, &y), 1);
+	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(
+				  Window(1280, 720, 160 + 480, 360, 1), &x, &y),
+			  1);
 	XVT_ASSERT_INT_EQ(x, 320);
 	XVT_ASSERT_INT_EQ(y, 240);
 	/* The area's corners: the top left is classic 0, 0; one point short of the right edge is inside. */
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(1280, 720, 160, 0, 1), &x, &y), 1);
+	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(
+				  Window(1280, 720, 160, 0, 1), &x, &y),
+			  1);
 	XVT_ASSERT_INT_EQ(x, 0);
 	XVT_ASSERT_INT_EQ(y, 0);
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(1280, 720, 160 + 959, 719, 1), &x, &y), 1);
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(1280, 720, 160 + 960, 719, 1), &x, &y), 0);
+	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(
+				  Window(1280, 720, 160 + 959, 719, 1), &x, &y),
+			  1);
+	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(
+				  Window(1280, 720, 160 + 960, 719, 1), &x, &y),
+			  0);
 
 	/* Outside the area, in the side bar: 0, with the coordinates still written. */
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(1280, 720, 100, 360, 1), &x, &y), 0);
+	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(
+				  Window(1280, 720, 100, 360, 1), &x, &y),
+			  0);
 	XVT_ASSERT_INT_EQ(x, -60 * 640 / 960);
 	XVT_ASSERT_INT_EQ(y, 240);
 
 	/* Inside the area but not inside the content: 0, with the coordinates written. */
 	x = y = -1;
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(1280, 720, 160 + 480, 360, 0), &x, &y), 0);
+	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(
+				  Window(1280, 720, 160 + 480, 360, 0), &x, &y),
+			  0);
 	XVT_ASSERT_INT_EQ(x, 320);
 	XVT_ASSERT_INT_EQ(y, 240);
 
 	/* A tall window: 640x960 maps through a 640x480 area starting 240 points down. */
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(640, 960, 320, 240 + 240, 1), &x, &y), 1);
+	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(
+				  Window(640, 960, 320, 240 + 240, 1), &x, &y),
+			  1);
 	XVT_ASSERT_INT_EQ(x, 320);
 	XVT_ASSERT_INT_EQ(y, 240);
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(640, 960, 320, 100, 1), &x, &y), 0);
+	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(
+				  Window(640, 960, 320, 100, 1), &x, &y),
+			  0);
 	XVT_ASSERT_TRUE(y < 0);
 }
 
-static void CheckMouseToClassicRefusals(void) {
+static void CheckMouseToClassicRefusals(void)
+{
 	int x = 77;
 	int y = 88;
 	XvtPresentation_Init();
 	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(NULL, &x, &y), 0);
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(0, 720, 0, 0, 1), &x, &y), 0);
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(1280, 0, 0, 0, 1), &x, &y), 0);
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(-5, -5, 0, 0, 1), &x, &y), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtPresentation_MouseToClassic(Window(0, 720, 0, 0, 1), &x, &y),
+		0);
+	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(
+				  Window(1280, 0, 0, 0, 1), &x, &y),
+			  0);
+	XVT_ASSERT_INT_EQ(
+		XvtPresentation_MouseToClassic(Window(-5, -5, 0, 0, 1), &x, &y),
+		0);
 	/* A 1x1 window has no 4:3 area of whole points. */
-	XVT_ASSERT_INT_EQ(XvtPresentation_MouseToClassic(Window(1, 1, 0, 0, 1), &x, &y), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtPresentation_MouseToClassic(Window(1, 1, 0, 0, 1), &x, &y),
+		0);
 	XVT_ASSERT_INT_EQ(x, 77);
 	XVT_ASSERT_INT_EQ(y, 88);
 }
 
-static void CheckSuppressionLifted(void) {
+static void CheckSuppressionLifted(void)
+{
 	XvtPresentation_Init();
 	AeronDx5_SetClassicFlightRenderingSuppressed(1);
 	XvtPresentation_RequireClassic();
@@ -160,7 +197,8 @@ static void CheckSuppressionLifted(void) {
 	XVT_ASSERT_INT_EQ(AeronDx5_IsClassicFlightRenderingSuppressed(), 0);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckInitResetsFrame();
 	CheckSyncToWindow();
 	CheckSyncTellsAeron();

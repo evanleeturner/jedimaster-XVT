@@ -48,11 +48,14 @@ typedef struct XvtControllerSettings {
 /* Adds each connected gamepad without a model to the draft, with the defaults profile; when the count
  * grew, resets the edit state, marks the draft dirty and hands it to the mapping. A failure's message
  * stays in error until a later call succeeds. */
-void XvtControllerSettings_Discover(XvtControllerSettings* settings, AeronUiContext* ui,
-									const AeronInputSnapshot* input, const XvtControllerProfile* defaults);
+void XvtControllerSettings_Discover(XvtControllerSettings *settings,
+				    AeronUiContext *ui,
+				    const AeronInputSnapshot *input,
+				    const XvtControllerProfile *defaults);
 /* Nothing for a NULL argument. Zeroes settings, takes config's controller models as the original and the
  * draft, clears the editor, starts at the Yaw axis and clears the unconfigured profile as a joystick's. */
-void XvtControllerSettings_Open(XvtControllerSettings* settings, const XvtSettings* config);
+void XvtControllerSettings_Open(XvtControllerSettings *settings,
+				const XvtSettings *config);
 /* Nothing for a NULL argument. Draws the Device selector over the connected controllers (a repeated name
  * gets "#<slot>"; with none, a hint, and the selection and edit state are dropped), resets the edit state
  * when the selected device or its kind changed, notes when several controllers share the model and which
@@ -65,8 +68,9 @@ void XvtControllerSettings_Open(XvtControllerSettings* settings, const XvtSettin
  * Deadzone (not for the throttle) and Clear Binding. Then the error with Dismiss Error, and
  * Restore Controller Defaults, enabled with a device selected, which opens the
  * restore modal. */
-void XvtControllerSettings_Draw(XvtControllerSettings* settings, AeronUiContext* ui,
-								const AeronInputSnapshot* input);
+void XvtControllerSettings_Draw(XvtControllerSettings *settings,
+				AeronUiContext *ui,
+				const AeronInputSnapshot *input);
 /* Nothing for a NULL argument. With no compatible device selected, cancels the capture and closes the
  * conflict and detail modals. Draws at most one modal: the axis conflict (Replace installs the pending
  * source on the pending axis, unbinding that axis on every other model and that source from this
@@ -77,14 +81,18 @@ void XvtControllerSettings_Draw(XvtControllerSettings* settings, AeronUiContext*
  * Threshold slider (5 to 100 %) for an axis-direction binding, Remove, and Add Binding, where a control
  * bound to another action opens the conflict dialog, one bound to this action is highlighted, and a full
  * profile is refused with a message. */
-void XvtControllerSettings_DrawModals(XvtControllerSettings* settings, AeronUiContext* ui,
-									  const AeronInputSnapshot* input, const XvtSettings* config);
+void XvtControllerSettings_DrawModals(XvtControllerSettings *settings,
+				      AeronUiContext *ui,
+				      const AeronInputSnapshot *input,
+				      const XvtSettings *config);
 /* false with "controller settings are unavailable" for NULL settings or no loaded settings. Nothing when
  * the draft is unchanged. Stores the draft as the user's controller list (false with error on failure);
  * on success the stored list becomes the original and the draft. */
-bool XvtControllerSettings_Commit(XvtControllerSettings* settings, char* error, size_t error_capacity);
+bool XvtControllerSettings_Commit(XvtControllerSettings *settings, char *error,
+				  size_t error_capacity);
 /* Cancels the UI's controller capture (with a ui) and closes the axis conflict, binding conflict and
  * detail modals (with settings). */
-void XvtControllerSettings_CancelCapture(XvtControllerSettings* settings, AeronUiContext* ui);
+void XvtControllerSettings_CancelCapture(XvtControllerSettings *settings,
+					 AeronUiContext *ui);
 
 #endif

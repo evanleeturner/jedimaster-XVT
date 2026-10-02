@@ -23,9 +23,10 @@
 enum { SLOTS = 8, MAIN_SLOTS = 6, EXPLOSION_SLOT_END = 4 };
 
 static ObjectRecord g_testObjects[SLOTS];
-static XvtSnapMap* g_map;
+static XvtSnapMap *g_map;
 
-static void FreshWorld(void) {
+static void FreshWorld(void)
+{
 	memset(g_testObjects, 0, sizeof g_testObjects);
 	for (int i = 0; i < SLOTS; ++i) {
 		g_testObjects[i].objectSignature = (uint16_t)(0x100 + i);
@@ -48,32 +49,40 @@ static void FreshWorld(void) {
 }
 
 /* The captured record of the object in slot, as the capture would hand it over. */
-static XvtSnapObject Captured(unsigned slot, unsigned genus) {
+static XvtSnapObject Captured(unsigned slot, unsigned genus)
+{
 	XvtSnapObject object;
 	memset(&object, 0, sizeof object);
-	object.id = (XvtSnapObjectId) { (uint16_t)slot, g_testObjects[slot].objectSignature };
+	object.id = (XvtSnapObjectId){(uint16_t)slot,
+				      g_testObjects[slot].objectSignature};
 	object.genus = (uint8_t)genus;
-	object.slot_class = slot >= MAIN_SLOTS ? XVT_SLOT_STATIC : XVT_SLOT_MAIN;
+	object.slot_class =
+		slot >= MAIN_SLOTS ? XVT_SLOT_STATIC : XVT_SLOT_MAIN;
 	return object;
 }
 
 /* Returns how many map objects one captured object gives: 1 when kept, 0 when not. */
-static unsigned Kept(XvtSnapObject object) {
+static unsigned Kept(XvtSnapObject object)
+{
 	XvtRenderMap_Capture(g_map, &object, 1);
 	XVT_ASSERT_INT_EQ(g_map->active, 1);
 	return g_map->object_count;
 }
 
-static int AllZero(const void* data, size_t size) {
-	const uint8_t* bytes = data;
-	for (size_t i = 0; i < size; ++i)
-		if (bytes[i])
+static int AllZero(const void *data, size_t size)
+{
+	const uint8_t *bytes = data;
+	for (size_t i = 0; i < size; ++i) {
+		if (bytes[i]) {
 			return 0;
+		}
+	}
 	return 1;
 }
 
 /* With the local player's map closed, the map is left cleared and inactive. */
-static void CheckClosedMap(void) {
+static void CheckClosedMap(void)
+{
 	FreshWorld();
 	g_players[0].mapCameraState = 0;
 	XvtSnapObject object = Captured(0, CRAFT_GENUS_STARFIGHTER);
@@ -84,11 +93,13 @@ static void CheckClosedMap(void) {
 }
 
 /* Static objects are kept for genus up to platform or mine to satellite, wherever their slot. */
-static void CheckStaticGenera(void) {
+static void CheckStaticGenera(void)
+{
 	FreshWorld();
 	for (unsigned genus = 0; genus <= CRAFT_GENUS_PEOPLE; ++genus) {
-		unsigned expected =
-			genus <= CRAFT_GENUS_PLATFORM || (genus >= CRAFT_GENUS_MINE && genus <= CRAFT_GENUS_SATELLITE);
+		unsigned expected = genus <= CRAFT_GENUS_PLATFORM ||
+				    (genus >= CRAFT_GENUS_MINE &&
+				     genus <= CRAFT_GENUS_SATELLITE);
 		XVT_ASSERT_INT_EQ(Kept(Captured(MAIN_SLOTS, genus)), expected);
 		XVT_ASSERT_INT_EQ(Kept(Captured(SLOTS - 1, genus)), expected);
 	}
@@ -96,14 +107,18 @@ static void CheckStaticGenera(void) {
 
 /* Other objects are kept below g_explosionObjectSlotEnd for genus up to platform, a projectile, small
  * debris or an explosion; at or past it, never. */
-static void CheckOtherGenera(void) {
+static void CheckOtherGenera(void)
+{
 	FreshWorld();
 	for (unsigned genus = 0; genus <= CRAFT_GENUS_PEOPLE; ++genus) {
-		unsigned expected = genus <= CRAFT_GENUS_PLATFORM || genus == CRAFT_GENUS_PLAYER_PROJECTILE ||
-							genus == CRAFT_GENUS_OTHER_PROJECTILE || genus == CRAFT_GENUS_SMALL_DEBRIS ||
-							genus == CRAFT_GENUS_EXPLOSION;
+		unsigned expected = genus <= CRAFT_GENUS_PLATFORM ||
+				    genus == CRAFT_GENUS_PLAYER_PROJECTILE ||
+				    genus == CRAFT_GENUS_OTHER_PROJECTILE ||
+				    genus == CRAFT_GENUS_SMALL_DEBRIS ||
+				    genus == CRAFT_GENUS_EXPLOSION;
 		XVT_ASSERT_INT_EQ(Kept(Captured(0, genus)), expected);
-		XVT_ASSERT_INT_EQ(Kept(Captured(EXPLOSION_SLOT_END - 1, genus)), expected);
+		XVT_ASSERT_INT_EQ(Kept(Captured(EXPLOSION_SLOT_END - 1, genus)),
+				  expected);
 		XvtSnapObject transient = Captured(1, genus);
 		transient.slot_class = XVT_SLOT_LOCAL_TRANSIENT;
 		XVT_ASSERT_INT_EQ(Kept(transient), expected);
@@ -113,11 +128,14 @@ static void CheckOtherGenera(void) {
 }
 
 /* Several objects in one capture: each kept one is counted once. */
-static void CheckCount(void) {
+static void CheckCount(void)
+{
 	FreshWorld();
 	XvtSnapObject objects[5] = {
-		Captured(0, CRAFT_GENUS_STARFIGHTER),   Captured(1, CRAFT_GENUS_BACKDROP),
-		Captured(2, CRAFT_GENUS_EXPLOSION),     Captured(EXPLOSION_SLOT_END, CRAFT_GENUS_STARSHIP),
+		Captured(0, CRAFT_GENUS_STARFIGHTER),
+		Captured(1, CRAFT_GENUS_BACKDROP),
+		Captured(2, CRAFT_GENUS_EXPLOSION),
+		Captured(EXPLOSION_SLOT_END, CRAFT_GENUS_STARSHIP),
 		Captured(MAIN_SLOTS, CRAFT_GENUS_MINE),
 	};
 	XvtRenderMap_Capture(g_map, objects, 5);
@@ -126,14 +144,16 @@ static void CheckCount(void) {
 }
 
 /* The one map object a kept captured object gives. */
-static const XvtSnapMapObject* MapObject(XvtSnapObject object) {
+static const XvtSnapMapObject *MapObject(XvtSnapObject object)
+{
 	XVT_ASSERT_INT_EQ(Kept(object), 1);
 	return &g_map->objects[0];
 }
 
 /* The range from the camera focus: 0 at the focus's own position, never smaller farther away, and capped
  * at 9999. Without a valid focus slot there is no range. */
-static void CheckRange(void) {
+static void CheckRange(void)
+{
 	FreshWorld();
 	g_testObjects[0].world_x = 1000;
 	g_testObjects[0].world_y = -2000;
@@ -148,10 +168,14 @@ static void CheckRange(void) {
 	g_testObjects[MAIN_SLOTS].world_y += 1000000000;
 
 	g_players[0].viewState.cameraFocusObjIdx = 0;
-	unsigned same = MapObject(Captured(1, CRAFT_GENUS_STARFIGHTER))->range_value;
-	unsigned near = MapObject(Captured(2, CRAFT_GENUS_STARFIGHTER))->range_value;
-	unsigned farther = MapObject(Captured(3, CRAFT_GENUS_STARFIGHTER))->range_value;
-	unsigned far = MapObject(Captured(MAIN_SLOTS, CRAFT_GENUS_PLATFORM))->range_value;
+	unsigned same =
+		MapObject(Captured(1, CRAFT_GENUS_STARFIGHTER))->range_value;
+	unsigned near =
+		MapObject(Captured(2, CRAFT_GENUS_STARFIGHTER))->range_value;
+	unsigned farther =
+		MapObject(Captured(3, CRAFT_GENUS_STARFIGHTER))->range_value;
+	unsigned far = MapObject(Captured(MAIN_SLOTS, CRAFT_GENUS_PLATFORM))
+			       ->range_value;
 	XVT_ASSERT_INT_EQ(same, 0);
 	XVT_ASSERT_TRUE(near >= same);
 	XVT_ASSERT_TRUE(farther >= near);
@@ -159,12 +183,15 @@ static void CheckRange(void) {
 
 	/* The slot total is not a valid focus slot. */
 	g_players[0].viewState.cameraFocusObjIdx = SLOTS;
-	XVT_ASSERT_INT_EQ(MapObject(Captured(MAIN_SLOTS, CRAFT_GENUS_PLATFORM))->range_value, 0);
+	XVT_ASSERT_INT_EQ(MapObject(Captured(MAIN_SLOTS, CRAFT_GENUS_PLATFORM))
+				  ->range_value,
+			  0);
 }
 
 /* The current target sets map->target to its captured id; when no captured object is the target, no
  * captured object's id is there. */
-static void CheckTarget(void) {
+static void CheckTarget(void)
+{
 	FreshWorld();
 	XvtSnapObject objects[3] = {
 		Captured(1, CRAFT_GENUS_STARFIGHTER),
@@ -178,35 +205,43 @@ static void CheckTarget(void) {
 
 	g_players[0].currentTargetObjectIdx = 5;
 	XvtRenderMap_Capture(g_map, objects, 3);
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 3; ++i) {
 		XVT_ASSERT_TRUE(g_map->target.slot != objects[i].id.slot);
+	}
 }
 
 /* A kept object in a flight group gets that group's label. */
-static void CheckLabel(void) {
+static void CheckLabel(void)
+{
 	FreshWorld();
 	strcpy(g_missionFlightGroups[3].fg.name, "Gold");
 	strcpy(g_missionFlightGroups[4].fg.name, "Red");
 	g_testObjects[1].flightGroupIdx = 3;
 	g_testObjects[2].flightGroupIdx = 4;
-	const unsigned slots[2] = { 1, 2 };
-	const char* names[2] = { "Gold", "Red" };
+	const unsigned slots[2] = {1, 2};
+	const char *names[2] = {"Gold", "Red"};
 	for (int i = 0; i < 2; ++i) {
-		const XvtSnapMapObject* object = MapObject(Captured(slots[i], CRAFT_GENUS_STARFIGHTER));
+		const XvtSnapMapObject *object =
+			MapObject(Captured(slots[i], CRAFT_GENUS_STARFIGHTER));
 		XVT_ASSERT_INT_EQ(object->label_visible, 1);
 		XVT_ASSERT_TRUE(object->label_offset < g_map->label_bytes);
-		XVT_ASSERT_INT_EQ(strncmp(g_map->labels + object->label_offset, names[i], strlen(names[i])), 0);
+		XVT_ASSERT_INT_EQ(strncmp(g_map->labels + object->label_offset,
+					  names[i], strlen(names[i])),
+				  0);
 	}
 }
 
 /* Before map icons are loaded no object gets an icon. */
-static void CheckNoIconsBeforeLoad(void) {
+static void CheckNoIconsBeforeLoad(void)
+{
 	FreshWorld();
-	XVT_ASSERT_INT_EQ(MapObject(Captured(0, CRAFT_GENUS_STARFIGHTER))->icon_frame, 0);
+	XVT_ASSERT_INT_EQ(
+		MapObject(Captured(0, CRAFT_GENUS_STARFIGHTER))->icon_frame, 0);
 	XVT_ASSERT_INT_EQ(g_map->icon_asset_id, 0);
 }
 
-int main(void) {
+int main(void)
+{
 	g_map = malloc(sizeof *g_map);
 	XVT_ASSERT_TRUE(g_map != NULL);
 	CheckClosedMap();

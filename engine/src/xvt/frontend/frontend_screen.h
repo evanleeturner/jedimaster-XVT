@@ -28,10 +28,11 @@ struct FrontendScreenState {
 	int savedFrameCounter;
 };
 
-void FrontendScreen_SetCallbacks(FrontendScreenUpdateFn updateFn, FrontendScreenExitFn exitFn);
-int FrontendScreen_QueuePush(int (*updateFn)(int), const RECT* screenRect);
-int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn, RECT* screenRect);
-int FrontendScreen_PushState(FrontendScreenUpdateFn updateFn, RECT* screenRect);
+void FrontendScreen_SetCallbacks(FrontendScreenUpdateFn updateFn,
+				 FrontendScreenExitFn exitFn);
+int FrontendScreen_QueuePush(int (*updateFn)(int), const RECT *screenRect);
+int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn, RECT *screenRect);
+int FrontendScreen_PushState(FrontendScreenUpdateFn updateFn, RECT *screenRect);
 void FrontendScreen_PopState(void);
 
 #ifdef __cplusplus

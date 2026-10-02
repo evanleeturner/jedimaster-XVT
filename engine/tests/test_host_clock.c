@@ -7,7 +7,8 @@
 
 #include <stdint.h>
 
-static void CheckReset(void) {
+static void CheckReset(void)
+{
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(123456);
 	XVT_ASSERT_TRUE(XvtTime_GetElapsedUs() != 0);
@@ -16,7 +17,8 @@ static void CheckReset(void) {
 	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 0);
 }
 
-static void CheckAdvance(void) {
+static void CheckAdvance(void)
+{
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(250);
 	XvtTime_AdvanceHostClock(750);
@@ -32,7 +34,8 @@ static void CheckAdvance(void) {
 	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedUs(), 1000 + (uint64_t)INT32_MAX);
 }
 
-static void CheckWholeMilliseconds(void) {
+static void CheckWholeMilliseconds(void)
+{
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(999);
 	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 0);
@@ -42,7 +45,8 @@ static void CheckWholeMilliseconds(void) {
 	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 2);
 }
 
-static void CheckTicksWrap(void) {
+static void CheckTicksWrap(void)
+{
 	XvtTime_Reset();
 	/* 2^32 milliseconds plus 5, in steps of 2^31 - 1 microseconds and a last partial step. */
 	const uint64_t target = (UINT64_C(1) << 32) * 1000 + 5000;
@@ -57,7 +61,8 @@ static void CheckTicksWrap(void) {
 	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 5);
 }
 
-static void CheckWindowsClock(void) {
+static void CheckWindowsClock(void)
+{
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(42 * 1000 + 300);
 	XVT_ASSERT_INT_EQ(timeGetTime(), XvtTime_GetElapsedMs());
@@ -65,7 +70,8 @@ static void CheckWindowsClock(void) {
 	XVT_ASSERT_INT_EQ(timeGetTime(), 42);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckReset();
 	CheckAdvance();
 	CheckWholeMilliseconds();

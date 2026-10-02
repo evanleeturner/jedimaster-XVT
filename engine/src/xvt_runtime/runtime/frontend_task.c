@@ -50,7 +50,8 @@ static int g_initialized;
 static int g_startupMode;
 static int g_continuationFrame;
 
-int XvtFrontendTask_Init(int skip_intro) {
+int XvtFrontendTask_Init(int skip_intro)
+{
 	static char commandLine[] = "";
 	memset(&g_frontState, 0, sizeof(g_frontState));
 	g_shutdownComplete = 0;
@@ -63,12 +64,16 @@ int XvtFrontendTask_Init(int skip_intro) {
 	g_optSkipIntro = skip_intro;
 	g_noPageFlip = 1;
 	g_optNoFullscreen = 0;
-	g_frontState.frontendSoundBuffers = calloc(128, sizeof(FrontendSoundBufferRecord));
-	g_frontState.frontendSoundVoices = calloc(12, sizeof(FrontendSoundVoice));
-	g_frontState.resourceTable = calloc(512, sizeof(FrontImageResourceRecord));
-	if (!g_frontState.frontendSoundBuffers || !g_frontState.frontendSoundVoices ||
-		!g_frontState.resourceTable)
+	g_frontState.frontendSoundBuffers =
+		calloc(128, sizeof(FrontendSoundBufferRecord));
+	g_frontState.frontendSoundVoices =
+		calloc(12, sizeof(FrontendSoundVoice));
+	g_frontState.resourceTable =
+		calloc(512, sizeof(FrontImageResourceRecord));
+	if (!g_frontState.frontendSoundBuffers ||
+	    !g_frontState.frontendSoundVoices || !g_frontState.resourceTable) {
 		return 0;
+	}
 	g_frontState.clipMaxX = 639;
 	g_frontState.clipMaxY = 479;
 	g_frontState.displayBpp = 16;
@@ -78,12 +83,15 @@ int XvtFrontendTask_Init(int skip_intro) {
 	FrontendDisplay_SetFrameRate(24);
 	File_DetectGameAndCdPaths(NULL);
 	Config_Load();
-	if (!FrontendDisplay_InitMainWindow(NULL, 0))
+	if (!FrontendDisplay_InitMainWindow(NULL, 0)) {
 		return 0;
+	}
 	g_frontState.screenStates[0].updateFn =
-		skip_intro ? Concourse_Update : FrontendBootstrap_PlayOpeningAndEnterCredits;
+		skip_intro ? Concourse_Update
+			   : FrontendBootstrap_PlayOpeningAndEnterCredits;
 	g_frontState.screenStates[0].exitFn =
-		skip_intro ? Concourse_Exit : FrontendBootstrap_ExitIntroAndLoadCredits;
+		skip_intro ? Concourse_Exit
+			   : FrontendBootstrap_ExitIntroAndLoadCredits;
 	g_startupMode = skip_intro ? 2 : 1;
 	g_nextFrameDueUs = XvtTime_GetElapsedUs();
 	g_nextJoystickPollDueUs = g_nextFrameDueUs;
@@ -91,19 +99,22 @@ int XvtFrontendTask_Init(int skip_intro) {
 	return 1;
 }
 
-void XvtFrontendTask_ServiceFrameSystems(void) {
+void XvtFrontendTask_ServiceFrameSystems(void)
+{
 	uint64_t now = XvtTime_GetElapsedUs();
 	if (now >= g_nextJoystickPollDueUs) {
 		Joystick_UpdateState(0);
 		Joystick_UpdateState(1);
 		g_nextJoystickPollDueUs = now + 100000;
 	}
-	if (!XvtNetworkTask_IsActive())
+	if (!XvtNetworkTask_IsActive()) {
 		Net_PumpIncomingPackets();
+	}
 	XvtCdTask_Update();
 }
 
-int XvtFrontendTask_RunFrame(void) {
+int XvtFrontendTask_RunFrame(void)
+{
 	FrontendScreenExitFn exitFn;
 	FrontendScreenUpdateFn updateFn;
 	int result;
@@ -111,11 +122,14 @@ int XvtFrontendTask_RunFrame(void) {
 	int dialogWasActive = XvtDialog_IsActive();
 	g_continuationFrame = 0;
 	g_frontState.netReadyPlayerLeftThisFrame = 0;
-	if (g_frontState.textFadeFramesLeft)
-		memset(&g_frontState.textFadeColorCache, 0, sizeof(g_frontState.textFadeColorCache));
+	if (g_frontState.textFadeFramesLeft) {
+		memset(&g_frontState.textFadeColorCache, 0,
+		       sizeof(g_frontState.textFadeColorCache));
+	}
 	updateFn = g_frontState.screenStates[stackTop].updateFn;
-	if (!updateFn)
+	if (!updateFn) {
 		return 0;
+	}
 	XvtPresentation_RequireClassic();
 	XvtRenderFrontend_BeginDraw();
 	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
@@ -125,10 +139,12 @@ int XvtFrontendTask_RunFrame(void) {
 	}
 	exitFn = g_frontState.screenStates[stackTop].exitFn;
 	g_continuationFrame = XvtNetworkTask_Resume(&result);
-	if (!g_continuationFrame)
+	if (!g_continuationFrame) {
 		g_continuationFrame = XvtDialog_ResumeContinuation(&result);
-	if (!g_continuationFrame)
+	}
+	if (!g_continuationFrame) {
 		result = updateFn(g_frontState.frameCounter);
+	}
 	if (XvtCampaignTask_IsPending() || XvtNetworkTask_IsActive()) {
 		/* The entry prefix is suspended before the screen has completed frame zero. */
 		FrontendDisplay_UnlockBackBuffer();
@@ -137,7 +153,8 @@ int XvtFrontendTask_RunFrame(void) {
 			FrontendDisplay_PresentFrame();
 			g_frontState.mouseLeftClickLatch = 0;
 			g_frontState.mouseRightClickLatch = 0;
-			memset(g_frontState.joystickButtonReleased, 0, sizeof(g_frontState.joystickButtonReleased));
+			memset(g_frontState.joystickButtonReleased, 0,
+			       sizeof(g_frontState.joystickButtonReleased));
 		}
 		return 0;
 	}
@@ -147,37 +164,45 @@ int XvtFrontendTask_RunFrame(void) {
 	}
 	if (g_frontState.screenCallbacksDirty || result == 1) {
 		g_frontState.screenCallbacksDirty = 0;
-		if (exitFn)
+		if (exitFn) {
 			exitFn(g_frontState.frameCounter);
+		}
 	}
 	FrontendDisplay_UnlockBackBuffer();
 	if (g_frontState.pendingScreenUpdateFn) {
-		FrontendScreen_PushState(g_frontState.pendingScreenUpdateFn, &g_frontState.pendingScreenRect);
+		FrontendScreen_PushState(g_frontState.pendingScreenUpdateFn,
+					 &g_frontState.pendingScreenRect);
 		g_frontState.pendingScreenUpdateFn = NULL;
 	}
-	if (!XvtMovieTask_IsActive() && g_frontState.cursorVisible)
+	if (!XvtMovieTask_IsActive() && g_frontState.cursorVisible) {
 		FrontendCursor_Draw();
-	memset(g_frontState.joystickButtonReleased, 0, sizeof(g_frontState.joystickButtonReleased));
+	}
+	memset(g_frontState.joystickButtonReleased, 0,
+	       sizeof(g_frontState.joystickButtonReleased));
 	++g_frontState.frameCounter;
-	if (g_frontState.textFadeFramesLeft)
+	if (g_frontState.textFadeFramesLeft) {
 		--g_frontState.textFadeFramesLeft;
+	}
 	g_frontState.mouseLeftClickLatch = 0;
 	g_frontState.mouseRightClickLatch = 0;
 	return result;
 }
 
-void XvtFrontendTask_Update(void) {
+void XvtFrontendTask_Update(void)
+{
 	uint64_t now = XvtTime_GetElapsedUs();
 	int result;
-	if (g_quit || now < g_nextFrameDueUs)
+	if (g_quit || now < g_nextFrameDueUs) {
 		return;
+	}
 	g_nextFrameDueUs = now + (uint64_t)g_frontState.frameIntervalMs * 1000;
 	if (g_startupMode) {
 		int mode = g_startupMode;
 		g_startupMode = 0;
 		if (mode == 2) {
-			if (Frontend_LoadResources())
+			if (Frontend_LoadResources()) {
 				return;
+			}
 		} else {
 			FrontendBootstrap_InitMode();
 		}
@@ -188,38 +213,46 @@ void XvtFrontendTask_Update(void) {
 	}
 	int credits_frame =
 		!XvtDialog_IsActive() &&
-		g_frontState.screenStates[g_frontState.screenStackTop].updateFn == Credits_UpdateScreen;
+		g_frontState.screenStates[g_frontState.screenStackTop]
+				.updateFn == Credits_UpdateScreen;
 	if (XvtDialog_IsActive()) {
 		XvtDialog_Update();
 		result = 0;
 	} else {
 		result = XvtFrontendTask_RunFrame();
 	}
-	if (result == 1 || result == 2)
+	if (result == 1 || result == 2) {
 		g_quit = 1;
+	}
 	/* The original credits callback blocks in the music fade before presenting.
 	 * Retain its last presentation through the fade and concourse transition. */
-	if (credits_frame && g_creditsExitPending)
+	if (credits_frame && g_creditsExitPending) {
 		return;
+	}
 	/* Keep the last presented dialog until the parent has drawn its next frame. */
-	if (!XvtMovieTask_IsActive() && !XvtDialog_HasResult() && !g_continuationFrame &&
-		!XvtCampaignTask_IsPending() && !XvtNetworkTask_IsActive())
+	if (!XvtMovieTask_IsActive() && !XvtDialog_HasResult() &&
+	    !g_continuationFrame && !XvtCampaignTask_IsPending() &&
+	    !XvtNetworkTask_IsActive()) {
 		FrontendDisplay_PresentFrame();
+	}
 }
 
 int XvtFrontendTask_ShouldQuit(void) { return g_quit; }
 
-uint64_t XvtFrontendTask_NextWakeDelayUs(void) {
+uint64_t XvtFrontendTask_NextWakeDelayUs(void)
+{
 	uint64_t now = XvtTime_GetElapsedUs();
 	uint64_t delay = g_nextFrameDueUs > now ? g_nextFrameDueUs - now : 0;
 	uint64_t cd = XvtCdTask_NextWakeDelayUs();
 	return cd < delay ? cd : delay;
 }
 
-void XvtFrontendTask_Shutdown(void) {
+void XvtFrontendTask_Shutdown(void)
+{
 	int index;
-	if (!g_initialized)
+	if (!g_initialized) {
 		return;
+	}
 	XvtCampaignTask_Reset();
 	XvtNetworkTask_Shutdown();
 	Net_ShutdownDirectPlaySessionForQuit();
@@ -228,13 +261,15 @@ void XvtFrontendTask_Shutdown(void) {
 	XvtLaunchTask_Shutdown();
 	XvtDialog_Shutdown();
 	CDAudio_CloseDevice();
-	if (g_frontendCreditsFile)
+	if (g_frontendCreditsFile) {
 		File_Close(g_frontendCreditsFile);
+	}
 	g_frontendCreditsFile = NULL;
 	FrontendDisplay_UnlockBackBuffer();
 	if (g_frontState.uiStringCount) {
-		if (g_pilotData.name[0] && !Pilot_Save(0))
+		if (g_pilotData.name[0] && !Pilot_Save(0)) {
 			XvtStorage_Fatal("Cannot save the selected pilot", 1);
+		}
 		Config_Write();
 	}
 	Concourse_Exit(0);
@@ -246,34 +281,41 @@ void XvtFrontendTask_Shutdown(void) {
 	free(g_techLibrarySpecTextTable);
 	g_techLibrarySpecTextTable = NULL;
 	ModelPreview_FreeResources();
-	for (index = 0; index < 32768; ++index)
-		if (g_handleTables.ptrTable[index])
+	for (index = 0; index < 32768; ++index) {
+		if (g_handleTables.ptrTable[index]) {
 			Memory_FreeHandle((unsigned int)index + 1);
+		}
+	}
 	memset(g_loadedModels, 0, sizeof(g_loadedModels));
 	g_modelPreviewModelData = NULL;
 	g_modelPreviewAuxBufferHandle = 0;
 	g_modelPreviewAuxBufferCapacityBytes = 0;
 	if (g_frontState.frontendSoundVoices) {
 		for (index = 0; index < 12; ++index) {
-			IDirectSoundBuffer* buffer = g_frontState.frontendSoundVoices[index].buffer;
+			IDirectSoundBuffer *buffer =
+				g_frontState.frontendSoundVoices[index].buffer;
 			if (buffer) {
 				buffer->lpVtbl->Stop(buffer);
 				buffer->lpVtbl->Release(buffer);
-				g_frontState.frontendSoundVoices[index].buffer = NULL;
+				g_frontState.frontendSoundVoices[index].buffer =
+					NULL;
 			}
 		}
 	}
 	if (g_frontState.frontendSoundBuffers) {
 		for (index = 0; index < 128; ++index) {
-			IDirectSoundBuffer* buffer = g_frontState.frontendSoundBuffers[index].buffer;
+			IDirectSoundBuffer *buffer =
+				g_frontState.frontendSoundBuffers[index].buffer;
 			if (buffer) {
 				buffer->lpVtbl->Release(buffer);
-				g_frontState.frontendSoundBuffers[index].buffer = NULL;
+				g_frontState.frontendSoundBuffers[index]
+					.buffer = NULL;
 			}
 		}
 	}
 	if (g_frontState.frontendPrimarySoundBuffer) {
-		g_frontState.frontendPrimarySoundBuffer->lpVtbl->Release(g_frontState.frontendPrimarySoundBuffer);
+		g_frontState.frontendPrimarySoundBuffer->lpVtbl->Release(
+			g_frontState.frontendPrimarySoundBuffer);
 		g_frontState.frontendPrimarySoundBuffer = NULL;
 	}
 	FrontendDisplay_Shutdown(0);

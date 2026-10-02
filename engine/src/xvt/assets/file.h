@@ -67,27 +67,27 @@ enum {
 	FILE_ERROR_STR_PRESS_KEY_TO_EXIT = 0x3,
 };
 
-XvtFile* File_Open(const char* fileName, const char* mode);
-int16_t File_Close(XvtFile* stream);
-int File_Seek(XvtFile* stream, int offset, int16_t origin);
-int File_Tell(XvtFile* stream);
-int File_GetSize(XvtFile* stream);
-int16_t File_ReadByte(XvtFile* stream, uint8_t* value);
-int16_t File_ReadWord(XvtFile* stream, uint16_t* value);
-int16_t File_ReadDword(XvtFile* stream, unsigned int* value);
-int16_t File_ReadBytes(XvtFile* stream, void* buffer, size_t count);
-int16_t File_WriteByte(XvtFile* stream, char value);
-int16_t File_WriteWord(XvtFile* stream, int value);
-int16_t File_WriteDword(XvtFile* stream, int value);
-int16_t File_WriteBytes(XvtFile* stream, const void* buffer, size_t count);
+XvtFile *File_Open(const char *fileName, const char *mode);
+int16_t File_Close(XvtFile *stream);
+int File_Seek(XvtFile *stream, int offset, int16_t origin);
+int File_Tell(XvtFile *stream);
+int File_GetSize(XvtFile *stream);
+int16_t File_ReadByte(XvtFile *stream, uint8_t *value);
+int16_t File_ReadWord(XvtFile *stream, uint16_t *value);
+int16_t File_ReadDword(XvtFile *stream, unsigned int *value);
+int16_t File_ReadBytes(XvtFile *stream, void *buffer, size_t count);
+int16_t File_WriteByte(XvtFile *stream, char value);
+int16_t File_WriteWord(XvtFile *stream, int value);
+int16_t File_WriteDword(XvtFile *stream, int value);
+int16_t File_WriteBytes(XvtFile *stream, const void *buffer, size_t count);
 int File_CheckRequiredCdMovieAssetsPresent(void);
 int File_CheckGameCdPresent(int skipMovieChecks);
 char File_GetCdDriveLetter(void);
 char File_GetInstallDriveLetter(void);
-const char* File_GetInstallPath(void);
-int File_FindCdDriveLetter(const char* relativeCdFilePath);
-void File_DetectGameAndCdPaths(const char* requiredCdFilePath);
-const char* File_GetBaseGameInstallPath(void);
+const char *File_GetInstallPath(void);
+int File_FindCdDriveLetter(const char *relativeCdFilePath);
+void File_DetectGameAndCdPaths(const char *requiredCdFilePath);
+const char *File_GetBaseGameInstallPath(void);
 int File_ChangeToBaseGameInstallPath(void);
 int File_ChangeToInstallPath(void);
 

@@ -26,7 +26,8 @@
 
 enum { INPUT = 1000, WAITING_TICKS = 2 };
 
-static void World(int host, int cookie) {
+static void World(int host, int cookie)
+{
 	memset(g_players, 0, sizeof g_players);
 	for (int i = 0; i < 8; ++i) {
 		g_players[i].objectIndex = -1;
@@ -36,8 +37,9 @@ static void World(int host, int cookie) {
 	g_players[0].participationState = 1;
 	g_localPlayer = 0;
 	memset(&g_netSession, 0, sizeof g_netSession);
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		g_netSession.players[i].directPlayId = 100 + i;
+	}
 	g_netSession.hostDplayId = 500;
 	memset(g_inputHistory, 0, sizeof g_inputHistory);
 	memset(g_inputFrameCount, 0, sizeof g_inputFrameCount);
@@ -70,7 +72,8 @@ static void World(int host, int cookie) {
 	XvtTime_AdvanceHostClock(WAITING_TICKS * 4000);
 }
 
-static void CheckNothingWithoutCookie(void) {
+static void CheckNothingWithoutCookie(void)
+{
 	World(0, 0);
 	XvtFlightNetwork_ProcessPackets();
 	XVT_ASSERT_INT_EQ(g_inputTimestamp, INPUT);
@@ -84,7 +87,8 @@ static void CheckNothingWithoutCookie(void) {
 	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), WAITING_TICKS);
 }
 
-static void CheckNothingWithoutLocalPlayer(void) {
+static void CheckNothingWithoutLocalPlayer(void)
+{
 	World(0, 1);
 	g_players[0].participationState = 0;
 	XvtFlightNetwork_ProcessPackets();
@@ -92,7 +96,8 @@ static void CheckNothingWithoutLocalPlayer(void) {
 	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), WAITING_TICKS);
 }
 
-static void CheckClientStops(void) {
+static void CheckClientStops(void)
+{
 	/* No packet waits: a client stops reading, and the input clock takes the frame time read meanwhile. */
 	World(0, 1);
 	XvtFlightNetwork_ProcessPackets();
@@ -101,7 +106,8 @@ static void CheckClientStops(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 0);
 }
 
-static void CheckHostSendsWhileAllowed(void) {
+static void CheckHostSendsWhileAllowed(void)
+{
 	/* A host that ShouldSend refuses stops reading too. */
 	World(1, 1);
 	g_flightNetPendingAckCount = 1;
@@ -120,7 +126,8 @@ static void CheckHostSendsWhileAllowed(void) {
 	XVT_ASSERT_INT_EQ(g_inputTimestamp, INPUT + WAITING_TICKS);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckNothingWithoutCookie();
 	CheckNothingWithoutLocalPlayer();
 	CheckClientStops();

@@ -20,9 +20,12 @@ extern "C" {
  * the emitter's authored sRGB core and outer colors,
  * linearized, premultiplied and scaled by engine_emissive_strength. Returns 0 only when the coverage
  * mask cannot be created on first use; otherwise 1, including when nothing applies. */
-int XvtEngineGlows_Submit(AeronCommandBuffer* cmd, AeronScene3D* scene, const XvtRenderSnapshot* snapshot,
-						  const XvtSnapObject* object, const XvtMeshAsset* asset,
-						  const AeronSceneMeshTable* table, const float transform[16], int draw);
+int XvtEngineGlows_Submit(AeronCommandBuffer *cmd, AeronScene3D *scene,
+			  const XvtRenderSnapshot *snapshot,
+			  const XvtSnapObject *object,
+			  const XvtMeshAsset *asset,
+			  const AeronSceneMeshTable *table,
+			  const float transform[16], int draw);
 /* Destroys the coverage mask. */
 void XvtEngineGlows_Shutdown(void);
 #ifdef __cplusplus

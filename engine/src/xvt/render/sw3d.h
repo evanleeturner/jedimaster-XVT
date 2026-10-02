@@ -11,9 +11,9 @@ extern "C" {
 
 extern int g_sw3dSkipOddScanlines;
 
-extern ProjVertex* g_sw3dGeneratedClipVertex;
-extern ProjVertex* g_sw3dLatestClipVertex;
-extern ProjVertex* g_sw3dPreviousClipVertex;
+extern ProjVertex *g_sw3dGeneratedClipVertex;
+extern ProjVertex *g_sw3dLatestClipVertex;
+extern ProjVertex *g_sw3dPreviousClipVertex;
 extern int g_sw3dLightSampleBlockSize;
 extern int g_sw3dLightSampleBlockMask;
 extern float g_sw3dLightSampleInvBlockSize;
@@ -23,7 +23,7 @@ extern uint32_t g_sw3dFpuControlWordScratch;
 extern uint32_t g_sw3dInitializeSceneSavedFpuControl;
 extern int g_sw3dLightSampleCacheSceneStampBase;
 extern SceneFace g_sw3dCockpitMaskSentinelFace;
-extern SceneFace* g_sw3dCurrentFace;
+extern SceneFace *g_sw3dCurrentFace;
 extern int g_sw3dCurrentScanlineY;
 
 struct FaceTextureGradients {
@@ -39,26 +39,29 @@ extern int g_sw3dSpanShadeStepQ8;
 extern int g_sw3dSpanLength;
 extern int g_sw3dSpanStartX;
 extern int g_sw3dSpanTextureWidthShift;
-extern uint8_t* g_sw3dSpanShadeTable;
-extern uint8_t* g_sw3dSpanTexels;
+extern uint8_t *g_sw3dSpanShadeTable;
+extern uint8_t *g_sw3dSpanTexels;
 extern int g_sw3dSpanTexelMask;
 extern int g_sw3dSpanShadeQ8;
 extern int g_sw3dSpanStepVQ8;
 extern int g_sw3dSpanStepUQ8;
 
-void sw3d_ProjectMeshVertices(SceneMesh* mesh);
-void sw3d_ProjectMeshVerticesDistant(SceneMesh* mesh);
-void sw3d_RasterizeMeshFaces(SceneMesh* mesh);
-void sw3d_ScanConvertFace(SceneFace* face);
-int sw3d_SetupClippedEdge(SceneMesh* mesh, SceneEdge* edge, const ProjVertex* first,
-						  const ProjVertex* second);
-int sw3d_SetupEdge(SceneEdge* edge, const ProjVertex* first, const ProjVertex* second);
+void sw3d_ProjectMeshVertices(SceneMesh *mesh);
+void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh);
+void sw3d_RasterizeMeshFaces(SceneMesh *mesh);
+void sw3d_ScanConvertFace(SceneFace *face);
+int sw3d_SetupClippedEdge(SceneMesh *mesh, SceneEdge *edge,
+			  const ProjVertex *first, const ProjVertex *second);
+int sw3d_SetupEdge(SceneEdge *edge, const ProjVertex *first,
+		   const ProjVertex *second);
 void sw3d_DrawVisibleFacesToSurface(void);
 void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW);
-void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face);
+void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace *face);
 int sw3d_DrawTexturedShadeSpanGeneric16bpp(void);
-void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int scanY, float spriteW);
-void sw3d_CopySpanToFramebuffer(const uint8_t* pSrcRasterBase, int startX, int pixelCount);
+void sw3d_BlitOccludedSpan(const uint8_t *pSrcRaster, int startX, int endX,
+			   int scanY, float spriteW);
+void sw3d_CopySpanToFramebuffer(const uint8_t *pSrcRasterBase, int startX,
+				int pixelCount);
 
 #ifdef __cplusplus
 }

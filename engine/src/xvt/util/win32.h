@@ -34,7 +34,7 @@ typedef struct BITMAP {
 	int32_t bmWidthBytes;
 	uint16_t bmPlanes;
 	uint16_t bmBitsPixel;
-	void* bmBits;
+	void *bmBits;
 } BITMAP;
 
 #pragma pack(push, 1)
@@ -63,10 +63,12 @@ typedef struct BITMAPINFOHEADER {
 
 #pragma pack(pop)
 
-typedef char xvt_size_BITMAPFILEHEADER[(sizeof(BITMAPFILEHEADER) == 14) ? 1 : -1];
-typedef char xvt_size_BITMAPINFOHEADER[(sizeof(BITMAPINFOHEADER) == 40) ? 1 : -1];
+typedef char
+	xvt_size_BITMAPFILEHEADER[(sizeof(BITMAPFILEHEADER) == 14) ? 1 : -1];
+typedef char
+	xvt_size_BITMAPINFOHEADER[(sizeof(BITMAPINFOHEADER) == 40) ? 1 : -1];
 
-int Win32_CreateProcessFromCommandLine(char* commandLine);
+int Win32_CreateProcessFromCommandLine(char *commandLine);
 
 #ifdef __cplusplus
 }

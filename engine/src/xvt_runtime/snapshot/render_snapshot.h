@@ -136,8 +136,8 @@ void XvtRenderSnapshot_SetSceneKind(XvtSceneKind kind);
  * and advances the snapshot serial. */
 void XvtRenderSnapshot_Commit(int32_t game_time_ticks, int focused, int paused);
 /* Views stay valid until the next commit; NULL before their first publication. */
-const XvtRenderSnapshot* XvtRenderSnapshot_Current(void);
-const XvtRenderSnapshot* XvtRenderSnapshot_Previous(void);
+const XvtRenderSnapshot *XvtRenderSnapshot_Current(void);
+const XvtRenderSnapshot *XvtRenderSnapshot_Previous(void);
 
 #ifdef __cplusplus
 }

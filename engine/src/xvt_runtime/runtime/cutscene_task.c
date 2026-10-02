@@ -17,7 +17,8 @@ static struct {
 	int waiting;
 } g_cutscene;
 
-static void XvtCutsceneTask_Restore(void) {
+static void XvtCutsceneTask_Restore(void)
+{
 	FrontendDisplay_ClearBackBuffer();
 	FrontendDisplay_PresentFrame();
 	FrontendDisplay_ClearBackBuffer();
@@ -27,19 +28,24 @@ static void XvtCutsceneTask_Restore(void) {
 	CDAudio_RequestResumePlayback();
 }
 
-int XvtCutsceneTask_Play(int phase) {
+int XvtCutsceneTask_Play(int phase)
+{
 	int result;
 	if (!g_cutscene.active) {
-		if (g_pilotData.missionDirectoryId != MISSION_DIRECTORY_TRAINING_EXERCISES ||
-			g_pilotData.missionSequenceActive != 1 || !g_cutsceneTable)
+		if (g_pilotData.missionDirectoryId !=
+			    MISSION_DIRECTORY_TRAINING_EXERCISES ||
+		    g_pilotData.missionSequenceActive != 1 ||
+		    !g_cutsceneTable) {
 			return 0;
+		}
 		g_cutscene.phase = phase;
 		g_cutscene.entry_index = 0;
 		g_cutscene.active = 1;
 	}
 	if (g_cutscene.waiting) {
-		if (!XvtMovieTask_TakeResult(&result))
+		if (!XvtMovieTask_TakeResult(&result)) {
 			return XVT_MOVIE_PENDING;
+		}
 		g_cutscene.waiting = 0;
 		XvtCutsceneTask_Restore();
 		if (result != 0) {
@@ -48,12 +54,16 @@ int XvtCutsceneTask_Play(int phase) {
 		}
 		++g_cutscene.entry_index;
 	}
-	for (; g_cutscene.entry_index < (unsigned int)g_cutsceneCount; ++g_cutscene.entry_index) {
-		const CutsceneEntry* entry = &g_cutsceneTable[g_cutscene.entry_index];
+	for (; g_cutscene.entry_index < (unsigned int)g_cutsceneCount;
+	     ++g_cutscene.entry_index) {
+		const CutsceneEntry *entry =
+			&g_cutsceneTable[g_cutscene.entry_index];
 		if (entry->campaignId != g_pilotData.missionDescriptionIds[5] ||
-			entry->playAfterDebriefing != g_cutscene.phase ||
-			entry->campaignMissionId != g_pilotData.missionDescriptionIds[0])
+		    entry->playAfterDebriefing != g_cutscene.phase ||
+		    entry->campaignMissionId !=
+			    g_pilotData.missionDescriptionIds[0]) {
 			continue;
+		}
 		CDAudio_SuspendPlayback();
 		FrontendDisplay_DisableOffscreenRestore();
 		FrontendDisplay_UnlockBackBuffer();

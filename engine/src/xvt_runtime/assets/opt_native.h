@@ -15,16 +15,16 @@ extern "C" {
 /* For an OPT_NODEREF node: the node its name refers to, looked up with OptModel_ResolveNodeRef on first
  * use and cached in node->payloadCount. A failed lookup returns NULL and is tried again on the next call;
  * Read and relocation clear the cache. */
-OptNode* XvtOpt_ResolveCached(const OptimizedPolyObject* model, OptNode* node);
+OptNode *XvtOpt_ResolveCached(const OptimizedPolyObject *model, OptNode *node);
 /* Shifts every internal pointer by how far the model moved since selfMarker was recorded, then records
  * the new address; does nothing for NULL or a model that has not moved. A node reached from several
  * parents moves once. As in the original, a texture's palette pointer moves only for palette type 0;
  * for other types it goes stale, and readers find those palettes after the texels. Ends the program
  * through XvtStorage_Fatal when the graph is more than 256 levels deep or memory runs out. */
-void XvtOpt_Relocate(OptimizedPolyObject* model);
+void XvtOpt_Relocate(OptimizedPolyObject *model);
 /* Shifts the pointers inside node and everything below it by delta; node itself must already be at
  * its new address. Otherwise as Relocate. */
-void XvtOpt_RelocateNode(OptNode* node, intptr_t delta);
+void XvtOpt_RelocateNode(OptNode *node, intptr_t delta);
 /* Read takes ownership of the open VFS stream. */
 /* Returns the model's Memory handle, or 0. The first 4 bytes give the version: a positive value is
  * version 0 and is itself the body size; -1 and -2 are versions 1 and 2, followed by the size. The body
@@ -34,15 +34,16 @@ void XvtOpt_RelocateNode(OptNode* node, intptr_t delta);
  * copied as far as the file goes and zero after. *version is set once the marker is read; *native_size
  * only on success. The file is closed in every case, and a model whose close fails is freed and 0
  * returned. A failure logs an error naming label, except for a NULL file, which returns 0 silently. */
-uint16_t XvtOpt_Read(AeronFile* file, const char* label, int* version, unsigned int* native_size);
+uint16_t XvtOpt_Read(AeronFile *file, const char *label, int *version,
+		     unsigned int *native_size);
 /* Opens path for reading with XvtStorage_Open and passes it to Read, labelled with the last storage
  * path. A file that does not open returns 0 without a log. */
-uint16_t XvtOpt_Load(const char* path, int* version, unsigned int* native_size);
+uint16_t XvtOpt_Load(const char *path, int *version, unsigned int *native_size);
 /* Native contiguous model blocks are aligned to the widest pointer field. */
 /* Rounds size up to a multiple of sizeof(void*). */
 size_t XvtOpt_AlignSize(size_t size);
 /* Rounds pointer up to a multiple of sizeof(void*). */
-uint8_t* XvtOpt_AlignPointer(uint8_t* pointer);
+uint8_t *XvtOpt_AlignPointer(uint8_t *pointer);
 #ifdef __cplusplus
 }
 #endif

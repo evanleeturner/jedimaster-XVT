@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static uint8_t* g_image;
+static uint8_t *g_image;
 static size_t g_capacity;
 
 /* The rich world's tables: 2 main slots and 1 static slot, 1 entry in each of the other pools. */
@@ -27,7 +27,8 @@ static MobileObjectCharData g_testCharData[1];
 static WarheadGuidanceState g_testGuidance[1];
 
 /* Gives the world-state buffer room for the world as it is now. */
-static void SizeImage(void) {
+static void SizeImage(void)
+{
 	free(g_image);
 	g_capacity = XvtSnapshot_CalculateSize();
 	g_image = calloc(1, g_capacity + 64);
@@ -35,7 +36,8 @@ static void SizeImage(void) {
 }
 
 /* Clears the counts and tables the image depends on, then sizes a fresh image buffer for that world. */
-static void EmptyWorld(void) {
+static void EmptyWorld(void)
+{
 	g_regionMainObjectSlotEnd = 0;
 	g_regionStaticObjectSlotCount = 0;
 	g_localTransientSlotStart = 0;
@@ -48,14 +50,16 @@ static void EmptyWorld(void) {
 	memset(&g_flightMissionState, 0, sizeof g_flightMissionState);
 	/* A player's slot must be a main slot or -1; with no slots, every player has none. */
 	memset(g_players, 0, sizeof g_players);
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		g_players[i].objectIndex = -1;
+	}
 	SizeImage();
 }
 
 /* Slot 0 is a flying object with a craft, a character record and warhead guidance; slot 1 is empty but
  * owns the second mobile record; slot 2 is a static object. Player 0 sits in slot 0. */
-static void RichWorld(void) {
+static void RichWorld(void)
+{
 	EmptyWorld();
 	memset(g_testObjects, 0, sizeof g_testObjects);
 	memset(g_testMobiles, 0, sizeof g_testMobiles);
@@ -91,7 +95,8 @@ static void RichWorld(void) {
 static const size_t kSlot0Object = 1;
 static const size_t kSlot0Mobile = 1 + sizeof(XvtSnapshotObjectRecord);
 
-static void CheckCalculateSize(void) {
+static void CheckCalculateSize(void)
+{
 	EmptyWorld();
 	XVT_ASSERT_TRUE(g_capacity > 0);
 
@@ -110,7 +115,8 @@ static void CheckCalculateSize(void) {
 	XVT_ASSERT_INT_EQ(XvtSnapshot_CalculateSize(), g_capacity);
 }
 
-static void CheckEncodeRefusals(void) {
+static void CheckEncodeRefusals(void)
+{
 	EmptyWorld();
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Encode(NULL, g_capacity), 0);
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Encode(g_image, g_capacity - 1), 0);
@@ -118,7 +124,8 @@ static void CheckEncodeRefusals(void) {
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Encode(g_image, g_capacity), 0);
 }
 
-static void CheckValidate(void) {
+static void CheckValidate(void)
+{
 	EmptyWorld();
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
 	XVT_ASSERT_TRUE(written > 0 && written <= g_capacity);
@@ -127,15 +134,18 @@ static void CheckValidate(void) {
 	/* The length must be exact, and a NULL image is refused. */
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Validate(NULL, written), 0);
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Validate(g_image, written - 1), 0);
-	if (written < g_capacity)
-		XVT_ASSERT_INT_EQ(XvtSnapshot_Validate(g_image, written + 1), 0);
+	if (written < g_capacity) {
+		XVT_ASSERT_INT_EQ(XvtSnapshot_Validate(g_image, written + 1),
+				  0);
+	}
 
 	/* An image is only accepted by a world with the pool sizes it was written with. */
 	g_mobileObjectCharDataCount = 1;
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Validate(g_image, written), 0);
 }
 
-static void CheckDecodeRoundTrip(void) {
+static void CheckDecodeRoundTrip(void)
+{
 	EmptyWorld();
 	g_nextObjectSignature = 0x1234;
 	g_gameRandFeedbackState = 77;
@@ -149,14 +159,15 @@ static void CheckDecodeRoundTrip(void) {
 	XVT_ASSERT_INT_EQ(g_gameRandFeedbackState, 77);
 
 	/* Encoding the restored world gives the same bytes back. */
-	uint8_t* again = calloc(1, g_capacity);
+	uint8_t *again = calloc(1, g_capacity);
 	XVT_ASSERT_TRUE(again != NULL);
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Encode(again, g_capacity), written);
 	XVT_ASSERT_INT_EQ(memcmp(again, g_image, written), 0);
 	free(again);
 }
 
-static void CheckDecodeRefusalLeavesWorld(void) {
+static void CheckDecodeRefusalLeavesWorld(void)
+{
 	EmptyWorld();
 	g_nextObjectSignature = 0x1234;
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
@@ -165,7 +176,8 @@ static void CheckDecodeRefusalLeavesWorld(void) {
 	XVT_ASSERT_INT_EQ(g_nextObjectSignature, 0x4321);
 }
 
-static void CheckChecksumImage(void) {
+static void CheckChecksumImage(void)
+{
 	EmptyWorld();
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
 	unsigned sums[16];
@@ -174,16 +186,20 @@ static void CheckChecksumImage(void) {
 	/* A refused image leaves both arrays as they were. */
 	memset(sums, 0xAB, sizeof sums);
 	memset(lengths, 0xAB, sizeof lengths);
-	XVT_ASSERT_INT_EQ(XvtSnapshot_ChecksumImage(g_image, written - 1, sums, lengths), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtSnapshot_ChecksumImage(g_image, written - 1, sums, lengths),
+		0);
 	for (int i = 0; i < 16; ++i) {
 		XVT_ASSERT_INT_EQ(sums[i], 0xABABABABu);
 		XVT_ASSERT_INT_EQ(lengths[i], 0xABABABABu);
 	}
 
-	XVT_ASSERT_INT_EQ(XvtSnapshot_ChecksumImage(g_image, written, sums, lengths), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtSnapshot_ChecksumImage(g_image, written, sums, lengths), 1);
 	size_t covered = 0;
-	for (int i = 0; i < 16; ++i)
+	for (int i = 0; i < 16; ++i) {
 		covered += lengths[i];
+	}
 	XVT_ASSERT_TRUE(covered > 0 && covered <= written);
 
 	/* The sums are byte sums: one more in the image's first byte (the mission clock, which the
@@ -192,13 +208,16 @@ static void CheckChecksumImage(void) {
 	memcpy(before, sums, sizeof before);
 	int delta = g_image[0] == 0xFF ? -1 : 1;
 	g_image[0] = (uint8_t)(g_image[0] + delta);
-	XVT_ASSERT_INT_EQ(XvtSnapshot_ChecksumImage(g_image, written, sums, lengths), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtSnapshot_ChecksumImage(g_image, written, sums, lengths), 1);
 	XVT_ASSERT_INT_EQ(sums[0], before[0] + (unsigned)delta);
-	for (int i = 1; i < 16; ++i)
+	for (int i = 1; i < 16; ++i) {
 		XVT_ASSERT_INT_EQ(sums[i], before[i]);
+	}
 }
 
-static void CheckRichRoundTrip(void) {
+static void CheckRichRoundTrip(void)
+{
 	RichWorld();
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
 	XVT_ASSERT_TRUE(written > 0 && written <= g_capacity);
@@ -213,17 +232,19 @@ static void CheckRichRoundTrip(void) {
 	XVT_ASSERT_TRUE(g_testObjects[0].mobj == &g_testMobiles[0]);
 	XVT_ASSERT_TRUE(g_testMobiles[0].pCraft == &g_testCraft[0]);
 	XVT_ASSERT_TRUE(g_testMobiles[0].pCharData == &g_testCharData[0]);
-	XVT_ASSERT_TRUE(g_testMobiles[0].pWarheadGuidance == &g_testGuidance[0]);
+	XVT_ASSERT_TRUE(g_testMobiles[0].pWarheadGuidance ==
+			&g_testGuidance[0]);
 	XVT_ASSERT_TRUE(g_testObjects[2].mobj == NULL);
 
-	uint8_t* again = calloc(1, g_capacity);
+	uint8_t *again = calloc(1, g_capacity);
 	XVT_ASSERT_TRUE(again != NULL);
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Encode(again, g_capacity), written);
 	XVT_ASSERT_INT_EQ(memcmp(again, g_image, written), 0);
 	free(again);
 }
 
-static void CheckEmptySlotKeepsPoolLink(void) {
+static void CheckEmptySlotKeepsPoolLink(void)
+{
 	RichWorld();
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
 	g_testObjects[1].objectSignature = 0x7777;
@@ -233,10 +254,11 @@ static void CheckEmptySlotKeepsPoolLink(void) {
 	XVT_ASSERT_TRUE(g_testObjects[1].mobj == &g_testMobiles[1]);
 }
 
-static void CheckValidateRefusesBadRecords(void) {
+static void CheckValidateRefusesBadRecords(void)
+{
 	RichWorld();
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
-	uint8_t* bad = malloc(written);
+	uint8_t *bad = malloc(written);
 	XVT_ASSERT_TRUE(bad != NULL);
 	size_t mobj = kSlot0Object + offsetof(XvtSnapshotObjectRecord, mobj);
 	uint32_t link;
@@ -267,41 +289,52 @@ static void CheckValidateRefusesBadRecords(void) {
 	/* A player's slot must be a main slot. */
 	memcpy(bad, g_image, written);
 	int32_t slot = 2;
-	memcpy(bad + written - 8 * sizeof(XvtSnapshotPlayerData) + offsetof(XvtSnapshotPlayerData, objectIndex),
-		   &slot, sizeof slot);
+	memcpy(bad + written - 8 * sizeof(XvtSnapshotPlayerData) +
+		       offsetof(XvtSnapshotPlayerData, objectIndex),
+	       &slot, sizeof slot);
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Validate(bad, written), 0);
 	free(bad);
 }
 
-static void CheckChecksumSkipsLinks(void) {
+static void CheckChecksumSkipsLinks(void)
+{
 	RichWorld();
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
 	unsigned sums[16];
 	unsigned lengths[16];
 	unsigned before[16];
-	XVT_ASSERT_INT_EQ(XvtSnapshot_ChecksumImage(g_image, written, before, lengths), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtSnapshot_ChecksumImage(g_image, written, before, lengths),
+		1);
 
 	/* The mobile record's cached motion is not summed: changing it leaves every sum as it was. */
 	int16_t fwd = 1234;
-	memcpy(g_image + kSlot0Mobile + offsetof(XvtSnapshotMobileObject, cachedFwdX), &fwd, sizeof fwd);
-	XVT_ASSERT_INT_EQ(XvtSnapshot_ChecksumImage(g_image, written, sums, lengths), 1);
+	memcpy(g_image + kSlot0Mobile +
+		       offsetof(XvtSnapshotMobileObject, cachedFwdX),
+	       &fwd, sizeof fwd);
+	XVT_ASSERT_INT_EQ(
+		XvtSnapshot_ChecksumImage(g_image, written, sums, lengths), 1);
 	XVT_ASSERT_INT_EQ(memcmp(sums, before, sizeof sums), 0);
 
 	/* The object's signature is summed: one more in its low byte is one more in the first region. */
-	size_t signature = kSlot0Object + offsetof(XvtSnapshotObjectRecord, objectSignature);
+	size_t signature = kSlot0Object +
+			   offsetof(XvtSnapshotObjectRecord, objectSignature);
 	XVT_ASSERT_INT_EQ(g_image[signature], 0x01);
 	g_image[signature] = 0x02;
-	XVT_ASSERT_INT_EQ(XvtSnapshot_ChecksumImage(g_image, written, sums, lengths), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtSnapshot_ChecksumImage(g_image, written, sums, lengths), 1);
 	XVT_ASSERT_INT_EQ(sums[0], before[0] + 1);
 }
 
-static void CheckPresenceMap(void) {
+static void CheckPresenceMap(void)
+{
 	RichWorld();
 	XVT_ASSERT_TRUE(XvtSnapshot_Encode(g_image, g_capacity) > 0);
 	uint8_t map[16];
 	memset(map, 0xEE, sizeof map);
 	/* A slot count, then slot 0's five components, a run of one empty slot, and slot 2's object alone. */
-	XVT_ASSERT_INT_EQ(XvtSnapshot_BuildPresenceMap(map, g_image), (int)sizeof(int) + 3);
+	XVT_ASSERT_INT_EQ(XvtSnapshot_BuildPresenceMap(map, g_image),
+			  (int)sizeof(int) + 3);
 	int count;
 	memcpy(&count, map, sizeof count);
 	XVT_ASSERT_INT_EQ(count, 3);
@@ -311,13 +344,15 @@ static void CheckPresenceMap(void) {
 	XVT_ASSERT_INT_EQ(map[sizeof(int) + 3], 0xEE);
 }
 
-static void CheckLiveChecksum(void) {
+static void CheckLiveChecksum(void)
+{
 	EmptyWorld();
 	g_nextObjectSignature = 1;
 	int base = XvtSnapshot_LiveChecksum();
 
 	/* Left out by the header: the laser-fire flag and the player count. */
-	g_laserFireTimestampTrackingEnabled = !g_laserFireTimestampTrackingEnabled;
+	g_laserFireTimestampTrackingEnabled =
+		!g_laserFireTimestampTrackingEnabled;
 	g_flightPlayerCount += 3;
 	XVT_ASSERT_INT_EQ(XvtSnapshot_LiveChecksum(), base);
 
@@ -333,7 +368,8 @@ static ObjectRecord g_bigObjects[24];
 static MobileObject g_bigMobiles[8];
 static CraftData g_bigCraft[8];
 
-static void BigWorld(int flightGroups, int crafts, int statics) {
+static void BigWorld(int flightGroups, int crafts, int statics)
+{
 	EmptyWorld();
 	memset(g_bigObjects, 0, sizeof g_bigObjects);
 	memset(g_bigMobiles, 0, sizeof g_bigMobiles);
@@ -356,8 +392,10 @@ static void BigWorld(int flightGroups, int crafts, int statics) {
 	}
 	g_missionHeader.numFlightGroups = (int16_t)flightGroups;
 	for (int i = 0; i < flightGroups; ++i) {
-		memset(&g_missionFgStats[i], 0x11 + i, sizeof g_missionFgStats[i]);
-		memset(&g_missionFlightGroups[i], 0x31 + i, sizeof g_missionFlightGroups[i]);
+		memset(&g_missionFgStats[i], 0x11 + i,
+		       sizeof g_missionFgStats[i]);
+		memset(&g_missionFlightGroups[i], 0x31 + i,
+		       sizeof g_missionFlightGroups[i]);
 	}
 	g_players[0].objectIndex = 0;
 	SizeImage();
@@ -368,32 +406,37 @@ static void BigWorld(int flightGroups, int crafts, int statics) {
  * trailer tables, and (in the third world, whose 3,400-byte region shows it) right after the two short
  * tables that follow the 3,376-byte one. A change to the image layout or to the region rule must update
  * them. */
-static const unsigned kBig4Sums[16] = {
-	0x000001ef, 0x0000024c, 0x000056ee, 0x0004427c, 0x00000015, 0x00001c34
-};
-static const unsigned kBig4Lengths[16] = { 4005, 4005, 4096, 5528, 25509, 11760 };
-static const unsigned kBig12Sums[16] = { 0x000002c4, 0x000002a4, 0x000f0175, 0x00000015, 0x00001c34 };
-static const unsigned kBigSmallLengths[16] = { 4005, 4005, 8790, 3400, 22109, 11760 };
-static const unsigned kBigSmallSums[16] = { 0x000001ef, 0x0000024c, 0x0004a070,
-											0x00000000, 0x0000001d, 0x00001c34 };
-static const unsigned kBig12Lengths[16] = { 5340, 5340, 20362, 25509, 11760 };
+static const unsigned kBig4Sums[16] = {0x000001ef, 0x0000024c, 0x000056ee,
+				       0x0004427c, 0x00000015, 0x00001c34};
+static const unsigned kBig4Lengths[16] = {4005, 4005, 4096, 5528, 25509, 11760};
+static const unsigned kBig12Sums[16] = {0x000002c4, 0x000002a4, 0x000f0175,
+					0x00000015, 0x00001c34};
+static const unsigned kBigSmallLengths[16] = {4005, 4005,  8790,
+					      3400, 22109, 11760};
+static const unsigned kBigSmallSums[16] = {0x000001ef, 0x0000024c, 0x0004a070,
+					   0x00000000, 0x0000001d, 0x00001c34};
+static const unsigned kBig12Lengths[16] = {5340, 5340, 20362, 25509, 11760};
 
-static void CheckChecksumRegionsInBigWorlds(void) {
+static void CheckChecksumRegionsInBigWorlds(void)
+{
 	static const struct {
 		int flightGroups, crafts, statics;
-		const unsigned* sums;
-		const unsigned* lengths;
-	} cases[] = { { 4, 8, 2, kBig4Sums, kBig4Lengths },
-				  { 12, 8, 2, kBig12Sums, kBig12Lengths },
-				  { 4, 7, 10, kBigSmallSums, kBigSmallLengths } };
+		const unsigned *sums;
+		const unsigned *lengths;
+	} cases[] = {{4, 8, 2, kBig4Sums, kBig4Lengths},
+		     {12, 8, 2, kBig12Sums, kBig12Lengths},
+		     {4, 7, 10, kBigSmallSums, kBigSmallLengths}};
 
 	for (size_t c = 0; c < sizeof cases / sizeof cases[0]; ++c) {
-		BigWorld(cases[c].flightGroups, cases[c].crafts, cases[c].statics);
+		BigWorld(cases[c].flightGroups, cases[c].crafts,
+			 cases[c].statics);
 		size_t written = XvtSnapshot_Encode(g_image, g_capacity);
 		XVT_ASSERT_TRUE(written > 0);
 		unsigned sums[16];
 		unsigned lengths[16];
-		XVT_ASSERT_INT_EQ(XvtSnapshot_ChecksumImage(g_image, written, sums, lengths), 1);
+		XVT_ASSERT_INT_EQ(XvtSnapshot_ChecksumImage(g_image, written,
+							    sums, lengths),
+				  1);
 		/* More than one region closes, and the regions tile the world part from its start. */
 		size_t covered = 0;
 		int used = 0;
@@ -410,7 +453,8 @@ static void CheckChecksumRegionsInBigWorlds(void) {
 	g_missionHeader.numFlightGroups = 0;
 }
 
-static void CheckValidateRefusesOtherRanges(void) {
+static void CheckValidateRefusesOtherRanges(void)
+{
 	RichWorld();
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
 	XVT_ASSERT_INT_EQ(XvtSnapshot_Validate(g_image, written), 1);
@@ -430,7 +474,8 @@ static void CheckValidateRefusesOtherRanges(void) {
 
 /* Gives every value the live checksum mixes in without walking a pool a distinct nonzero value (seed 1),
  * or zero (seed 0), so a dropped, repeated or reordered field changes the result. */
-static void SetMixedOnlyValues(int seed) {
+static void SetMixedOnlyValues(int seed)
+{
 	int v = seed ? 0x31 : 0;
 	g_worldStateReservedByte = (uint8_t)v;
 	g_worldStateDebrisSlotCount = v + 1;
@@ -458,12 +503,15 @@ static void SetMixedOnlyValues(int seed) {
  * the player loop run. */
 static const unsigned kRichLiveChecksum = 0xdb657f64u;
 
-static void CheckLiveChecksumOfRichWorld(void) {
+static void CheckLiveChecksumOfRichWorld(void)
+{
 	RichWorld();
 	g_missionHeader.numFlightGroups = 3;
 	for (int i = 0; i < 3; ++i) {
-		memset(&g_missionFgStats[i], 0x21 + i, sizeof g_missionFgStats[i]);
-		memset(&g_missionFlightGroups[i], 0x41 + i, sizeof g_missionFlightGroups[i]);
+		memset(&g_missionFgStats[i], 0x21 + i,
+		       sizeof g_missionFgStats[i]);
+		memset(&g_missionFlightGroups[i], 0x41 + i,
+		       sizeof g_missionFlightGroups[i]);
 	}
 	g_players[0].participationState = 1;
 	g_nextObjectSignature = 9;
@@ -499,10 +547,12 @@ static void CheckLiveChecksumOfRichWorld(void) {
 #define GUIDE_SIZE sizeof(WarheadGuidanceState)
 #define CHAR_SIZE sizeof(XvtSnapshotMobileObjectCharData)
 
-static uint8_t* g_dup;
+static uint8_t *g_dup;
 
 /* Writes a 3-slot presence map: the slot count, then one flag byte per slot. */
-static void Map3(uint8_t map[7], int count, uint8_t slot0, uint8_t slot1, uint8_t slot2) {
+static void Map3(uint8_t map[7], int count, uint8_t slot0, uint8_t slot1,
+		 uint8_t slot2)
+{
 	memcpy(map, &count, sizeof count);
 	map[4] = slot0;
 	map[5] = slot1;
@@ -511,7 +561,8 @@ static void Map3(uint8_t map[7], int count, uint8_t slot0, uint8_t slot1, uint8_
 
 /* Copies the first `written` bytes of g_image into the duplicate buffer, with room to grow, applies map,
  * and returns the new size. */
-static size_t Apply(const uint8_t* map, size_t written) {
+static size_t Apply(const uint8_t *map, size_t written)
+{
 	free(g_dup);
 	g_dup = calloc(1, written + 4096);
 	XVT_ASSERT_TRUE(g_dup != NULL);
@@ -523,21 +574,29 @@ static size_t Apply(const uint8_t* map, size_t written) {
 }
 
 /* True when the duplicate buffer is g_image with `length` bytes at `at` removed. */
-static int Removed(size_t written, size_t at, size_t length) {
-	return (size_t)g_worldStateDupSize == written - length && memcmp(g_dup, g_image, at) == 0 &&
-		   memcmp(g_dup + at, g_image + at + length, written - at - length) == 0;
+static int Removed(size_t written, size_t at, size_t length)
+{
+	return (size_t)g_worldStateDupSize == written - length &&
+	       memcmp(g_dup, g_image, at) == 0 &&
+	       memcmp(g_dup + at, g_image + at + length,
+		      written - at - length) == 0;
 }
 
 /* True when the duplicate buffer is g_image with `length` zero bytes inserted at `at`. */
-static int Inserted(size_t written, size_t at, size_t length) {
-	for (size_t i = 0; i < length; ++i)
-		if (g_dup[at + i] != 0)
+static int Inserted(size_t written, size_t at, size_t length)
+{
+	for (size_t i = 0; i < length; ++i) {
+		if (g_dup[at + i] != 0) {
 			return 0;
-	return (size_t)g_worldStateDupSize == written + length && memcmp(g_dup, g_image, at) == 0 &&
-		   memcmp(g_dup + at + length, g_image + at, written - at) == 0;
+		}
+	}
+	return (size_t)g_worldStateDupSize == written + length &&
+	       memcmp(g_dup, g_image, at) == 0 &&
+	       memcmp(g_dup + at + length, g_image + at, written - at) == 0;
 }
 
-static void CheckApplyPresenceMapKeepsMatchingImage(void) {
+static void CheckApplyPresenceMapKeepsMatchingImage(void)
+{
 	RichWorld();
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
 	uint8_t map[16];
@@ -550,14 +609,16 @@ static void CheckApplyPresenceMapKeepsMatchingImage(void) {
 	g_players[0].objectIndex = -1;
 	SizeImage();
 	written = XvtSnapshot_Encode(g_image, g_capacity);
-	XVT_ASSERT_INT_EQ(XvtSnapshot_BuildPresenceMap(map, g_image), (int)sizeof(int) + 2);
+	XVT_ASSERT_INT_EQ(XvtSnapshot_BuildPresenceMap(map, g_image),
+			  (int)sizeof(int) + 2);
 	XVT_ASSERT_INT_EQ(map[sizeof(int)], 0x82);
 	XVT_ASSERT_INT_EQ(map[sizeof(int) + 1], 0x01);
 	XVT_ASSERT_INT_EQ(Apply(map, written), written);
 	XVT_ASSERT_INT_EQ(memcmp(g_dup, g_image, written), 0);
 }
 
-static void CheckApplyPresenceMapRemovesBlocks(void) {
+static void CheckApplyPresenceMapRemovesBlocks(void)
+{
 	RichWorld();
 	size_t written = XvtSnapshot_Encode(g_image, g_capacity);
 	const size_t craft = kSlot0Mobile + MOB_SIZE;
@@ -571,7 +632,8 @@ static void CheckApplyPresenceMapRemovesBlocks(void) {
 	XVT_ASSERT_TRUE(Removed(written, craft + CRAFT_SIZE, GUIDE_SIZE));
 	Map3(map, 3, 0x1F & ~0x10, 0, 0x01);
 	Apply(map, written);
-	XVT_ASSERT_TRUE(Removed(written, craft + CRAFT_SIZE + GUIDE_SIZE, CHAR_SIZE));
+	XVT_ASSERT_TRUE(
+		Removed(written, craft + CRAFT_SIZE + GUIDE_SIZE, CHAR_SIZE));
 
 	/* Removing an object or mobile record leaves the blocks nested under it. The walk then reads the
 	 * next slot inside those blocks, so these maps cover slot 0 alone. */
@@ -588,7 +650,8 @@ static void CheckApplyPresenceMapRemovesBlocks(void) {
 	XVT_ASSERT_TRUE(Removed(written, craft, CRAFT_SIZE));
 }
 
-static void CheckApplyPresenceMapInsertsZeroedBlocks(void) {
+static void CheckApplyPresenceMapInsertsZeroedBlocks(void)
+{
 	RichWorld();
 	g_testMobiles[0].pCraft = NULL;
 	g_testMobiles[0].pCharData = NULL;
@@ -600,7 +663,8 @@ static void CheckApplyPresenceMapInsertsZeroedBlocks(void) {
 	/* Slot 0's mobile record gains a craft, guidance and character block, in image order. */
 	Map3(map, 3, 0x1F, 0, 0x01);
 	Apply(map, written);
-	XVT_ASSERT_TRUE(Inserted(written, slot1, CRAFT_SIZE + GUIDE_SIZE + CHAR_SIZE));
+	XVT_ASSERT_TRUE(
+		Inserted(written, slot1, CRAFT_SIZE + GUIDE_SIZE + CHAR_SIZE));
 
 	/* Inserting a record adds that record alone: slot 2 gains a mobile record, slot 1 an object record
 	 * (after its type byte, which stays 0). */
@@ -612,7 +676,8 @@ static void CheckApplyPresenceMapInsertsZeroedBlocks(void) {
 	XVT_ASSERT_TRUE(Inserted(written, slot1 + 1, OBJ_SIZE));
 }
 
-int main(void) {
+int main(void)
+{
 	CheckCalculateSize();
 	CheckEncodeRefusals();
 	CheckValidate();

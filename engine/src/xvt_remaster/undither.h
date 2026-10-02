@@ -10,6 +10,7 @@
  * every alpha byte are left as they are. Returns 0, writing nothing, for a NULL argument, an image
  * without indices or coverage, a zero width or height, a palette_count of 0 or over 256, a covered index
  * at or past palette_count, or a failed allocation. */
-int XvtUndither_Apply(const AeronIndexedFrame* image, const uint8_t palette[256][4], unsigned palette_count,
-					  uint8_t* rgba);
+int XvtUndither_Apply(const AeronIndexedFrame *image,
+		      const uint8_t palette[256][4], unsigned palette_count,
+		      uint8_t *rgba);
 #endif

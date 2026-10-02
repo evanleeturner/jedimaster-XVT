@@ -29,12 +29,12 @@ int XvtResync_ReceiveFloor(void);
  * whole before it is written and acknowledged; the apply verifies the image against the table,
  * decodes it, installs the world and starts the replay. A receive whose image or queues fail
  * restarts once; a second failure ends the mission. */
-int XvtResync_ReceivePacket(int sender, const uint8_t* bytes, unsigned size);
+int XvtResync_ReceivePacket(int sender, const uint8_t *bytes, unsigned size);
 /* Host: starts sending world, a checkpoint image of size bytes, to player: announces the resync,
  * shows the alert and sends the checksum table and request from a pinned copy. Returns -1 when
  * started, and also, doing nothing, while a transfer is under way; returns 0, ending the send,
  * when the image fails validation, copying or checksumming. */
-int XvtResync_BeginSend(int peer_dpid, uint8_t* world, int size);
+int XvtResync_BeginSend(int peer_dpid, uint8_t *world, int size);
 /* Sends player the apply for size bytes, stamped with the input tick, and waits in the apply phase
  * for the acknowledgement, resending each retry interval and booting player after
  * XVT_RESYNC_RETRIES attempts. */
@@ -61,7 +61,7 @@ void XvtResync_Update(void);
 void XvtResync_Reset(void);
 /* Queues a checksum report from sender to be handled after the current transfer; a full queue logs
  * an error and ends the mission. */
-void XvtResync_DeferChecksum(int sender, const int* packet);
+void XvtResync_DeferChecksum(int sender, const int *packet);
 /* Called after the received world and buffered messages have been applied. */
 /* Tells the render capture that the world changed. */
 void XvtResync_WorldApplied(void);

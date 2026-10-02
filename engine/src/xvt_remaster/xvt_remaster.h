@@ -20,7 +20,7 @@ extern "C" {
 int XvtRemaster_Init(void);
 /* Called before the port tick; scene readiness controls classic suppression. */
 /* Nothing before Init. A failed settings sync requests a fatal renderer error. */
-void XvtRemaster_BeginFrame(const struct AeronInputSnapshot* input);
+void XvtRemaster_BeginFrame(const struct AeronInputSnapshot *input);
 /* Consume the committed snapshot after the port tick and before Aeron_Present. */
 /* Nothing before Init or without a snapshot. Advances the component animation and clears the preview
  * outputs; a changed scene kind invalidates the flight; no presentation size invalidates it and
@@ -39,9 +39,9 @@ void XvtRemaster_Shutdown(void);
 /* Borrowed retained output; frontend/movie artwork is linear SDR content. */
 /* NULL without a snapshot or in a movie scene; the frontend's presented image unless the main flight
  * target is presented, then the flight pipeline's output. */
-struct AeronTexture* XvtRemaster_Output(void);
+struct AeronTexture *XvtRemaster_Output(void);
 /* The frontend's movie overlay in a movie scene, else NULL. */
-struct AeronTexture* XvtRemaster_MovieOverlay(void);
+struct AeronTexture *XvtRemaster_MovieOverlay(void);
 
 #ifdef __cplusplus
 }

@@ -29,7 +29,8 @@ static AeronDplayDirectoryRoom g_testRoom;
 
 static int Placeholder(int frame) { return frame; }
 
-static void Fresh(void) {
+static void Fresh(void)
+{
 	XvtNetworkTask_Shutdown();
 	XvtNetworkSession_Shutdown();
 	XvtDialog_Shutdown();
@@ -40,17 +41,21 @@ static void Fresh(void) {
 	strcpy(g_pilotData.name, "Luke");
 	g_frontState.screenStates[0].updateFn = Placeholder;
 	g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_HOST;
-	memset((AeronInputSnapshot*)Aeron_InputSnapshot(), 0, sizeof(AeronInputSnapshot));
+	memset((AeronInputSnapshot *)Aeron_InputSnapshot(), 0,
+	       sizeof(AeronInputSnapshot));
 }
 
-static FrontendScreenUpdateFn TopScreen(void) {
+static FrontendScreenUpdateFn TopScreen(void)
+{
 	return g_frontState.screenStates[g_frontState.screenStackTop].updateFn;
 }
 
-static void CheckCompatible(void) {
+static void CheckCompatible(void)
+{
 	memset(&g_testRoom, 0, sizeof g_testRoom);
 	g_testRoom.protocol = AERON_DPLAY_DIRECTORY_PROTOCOL;
-	snprintf(g_testRoom.game_version, sizeof g_testRoom.game_version, "%d", FRONTEND_NET_PROTOCOL_VERSION);
+	snprintf(g_testRoom.game_version, sizeof g_testRoom.game_version, "%d",
+		 FRONTEND_NET_PROTOCOL_VERSION);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_Compatible(&g_testRoom), 1);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_Compatible(NULL), 0);
 
@@ -61,21 +66,25 @@ static void CheckCompatible(void) {
 
 	/* Another game version, or the same number written differently. */
 	snprintf(g_testRoom.game_version, sizeof g_testRoom.game_version, "%d",
-			 FRONTEND_NET_PROTOCOL_VERSION + 1);
+		 FRONTEND_NET_PROTOCOL_VERSION + 1);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_Compatible(&g_testRoom), 0);
-	snprintf(g_testRoom.game_version, sizeof g_testRoom.game_version, "0%d", FRONTEND_NET_PROTOCOL_VERSION);
+	snprintf(g_testRoom.game_version, sizeof g_testRoom.game_version, "0%d",
+		 FRONTEND_NET_PROTOCOL_VERSION);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_Compatible(&g_testRoom), 0);
-	snprintf(g_testRoom.game_version, sizeof g_testRoom.game_version, "%d ", FRONTEND_NET_PROTOCOL_VERSION);
+	snprintf(g_testRoom.game_version, sizeof g_testRoom.game_version, "%d ",
+		 FRONTEND_NET_PROTOCOL_VERSION);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_Compatible(&g_testRoom), 0);
 }
 
-static void CheckEmptyBrowser(void) {
+static void CheckEmptyBrowser(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_Snapshot()->room_count, 0);
 	XVT_ASSERT_TRUE(XvtNetworkTask_SelectedRoom() == NULL);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_SelectedIndex(), -1);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_SnapshotAge(), 0);
-	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(), AERON_DPLAY_DIRECTORY_ERROR_NONE);
+	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NONE);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_CanJoin(), 0);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_Preview()->title[0], 0);
@@ -93,29 +102,37 @@ static void CheckEmptyBrowser(void) {
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_SelectedIndex(), -1);
 
 	/* The scroll offset is the browser's own, for the list draw to read and write. */
-	XVT_ASSERT_TRUE(XvtNetworkTask_ScrollOffset() == XvtNetworkTask_ScrollOffset());
+	XVT_ASSERT_TRUE(XvtNetworkTask_ScrollOffset() ==
+			XvtNetworkTask_ScrollOffset());
 	*XvtNetworkTask_ScrollOffset() = 4;
 	XVT_ASSERT_INT_EQ(*XvtNetworkTask_ScrollOffset(), 4);
 }
 
-static void CheckRefreshRecordsError(void) {
+static void CheckRefreshRecordsError(void)
+{
 	Fresh();
 	XvtNetworkTask_Refresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(), AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
+	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_CanJoin(), 0);
 }
 
-static void CheckOpenBrowser(void) {
+static void CheckOpenBrowser(void)
+{
 	Fresh();
 	g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
 	XvtNetworkTask_OpenBrowser();
 	/* Client mode, a refresh started (and refused for want of a directory), any session left. */
-	XVT_ASSERT_INT_EQ(g_frontendMissionSessionMode, FRONTEND_MISSION_SESSION_NET_CLIENT);
-	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(), AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(g_frontendMissionSessionMode,
+			  FRONTEND_MISSION_SESSION_NET_CLIENT);
+	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state,
+			  XVT_NETWORK_SESSION_PENDING);
 }
 
-static void CheckBrowserVisible(void) {
+static void CheckBrowserVisible(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserVisible(), 0);
 	/* The join screen anywhere on the stack. */
@@ -137,20 +154,23 @@ static void CheckBrowserVisible(void) {
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserVisible(), 0);
 }
 
-static void CheckBegin(void) {
+static void CheckBegin(void)
+{
 	/* A join needs CanJoin; with no room selected it is ignored. */
 	Fresh();
 	XvtNetworkTask_Begin(XVT_NETWORK_CONNECT);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_IDLE);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state,
+			  XVT_NETWORK_SESSION_IDLE);
 
 	/* Either host action starts a host attempt in the network session. */
-	const int hosts[] = { XVT_NETWORK_HOST, XVT_NETWORK_AUTO_HOST };
+	const int hosts[] = {XVT_NETWORK_HOST, XVT_NETWORK_AUTO_HOST};
 	for (unsigned i = 0; i < 2; ++i) {
 		Fresh();
 		XvtNetworkTask_Begin(hosts[i]);
 		XVT_ASSERT_INT_EQ(XvtNetworkTask_IsActive(), 1);
-		XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_PENDING);
+		XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state,
+				  XVT_NETWORK_SESSION_PENDING);
 		XVT_ASSERT_INT_EQ(XvtNetworkTask_CanJoin(), 0);
 	}
 
@@ -159,11 +179,13 @@ static void CheckBegin(void) {
 	XvtNetworkTask_Begin(XVT_NETWORK_HOST);
 	XvtNetworkSession_Shutdown();
 	XvtNetworkTask_Begin(XVT_NETWORK_AUTO_HOST);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_IDLE);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state,
+			  XVT_NETWORK_SESSION_IDLE);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_IsActive(), 1);
 }
 
-static void CheckResumeWithoutAttempt(void) {
+static void CheckResumeWithoutAttempt(void)
+{
 	int result = 77;
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_Resume(&result), 0);
@@ -176,7 +198,8 @@ static void CheckResumeWithoutAttempt(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 }
 
-static void CheckResumeDuringAttempt(void) {
+static void CheckResumeDuringAttempt(void)
+{
 	int result = 77;
 	Fresh();
 	XvtNetworkTask_Begin(XVT_NETWORK_HOST);
@@ -186,7 +209,7 @@ static void CheckResumeDuringAttempt(void) {
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_IsActive(), 1);
 
 	/* Escape with the window focused cancels, returning to the host screen. */
-	AeronInputSnapshot* input = (AeronInputSnapshot*)Aeron_InputSnapshot();
+	AeronInputSnapshot *input = (AeronInputSnapshot *)Aeron_InputSnapshot();
 	input->has_focus = 1;
 	input->key_pressed[AERON_KEY_ESCAPE] = 1;
 	result = 77;
@@ -196,7 +219,8 @@ static void CheckResumeDuringAttempt(void) {
 	XVT_ASSERT_TRUE(TopScreen() == FrontendNet_HostGameScreen);
 }
 
-static void CheckResumeFinishesFailedAttempt(void) {
+static void CheckResumeFinishesFailedAttempt(void)
+{
 	int result = 77;
 	Fresh();
 	XvtNetworkTask_Begin(XVT_NETWORK_HOST);
@@ -208,9 +232,10 @@ static void CheckResumeFinishesFailedAttempt(void) {
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 }
 
-static void CheckCancel(void) {
+static void CheckCancel(void)
+{
 	/* A host attempt returns to the host screen, an auto host too. */
-	const int hosts[] = { XVT_NETWORK_HOST, XVT_NETWORK_AUTO_HOST };
+	const int hosts[] = {XVT_NETWORK_HOST, XVT_NETWORK_AUTO_HOST};
 	for (unsigned i = 0; i < 2; ++i) {
 		Fresh();
 		XvtNetworkTask_Begin(hosts[i]);
@@ -220,21 +245,25 @@ static void CheckCancel(void) {
 	}
 }
 
-static void CheckShutdown(void) {
+static void CheckShutdown(void)
+{
 	Fresh();
 	XvtNetworkTask_Refresh();
 	*XvtNetworkTask_ScrollOffset() = 3;
 	XvtNetworkTask_Begin(XVT_NETWORK_HOST);
 	XvtNetworkTask_Shutdown();
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(), AERON_DPLAY_DIRECTORY_ERROR_NONE);
+	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NONE);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_SelectedIndex(), -1);
 	XVT_ASSERT_INT_EQ(*XvtNetworkTask_ScrollOffset(), 0);
 	/* The network session is reset. */
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state,
+			  XVT_NETWORK_SESSION_PENDING);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckCompatible();
 	CheckEmptyBrowser();
 	CheckRefreshRecordsError();

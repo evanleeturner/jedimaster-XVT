@@ -37,12 +37,12 @@ typedef struct HyperEnvironmentUniform {
 typedef struct XvtHyperspace {
 	AeronShader *streak_vs, *streak_fs, *tunnel_vs, *tunnel_fs;
 	AeronGraphicsPipeline *streak_pipeline, *tunnel_pipeline;
-	AeronComputePipeline* environment_pipeline;
+	AeronComputePipeline *environment_pipeline;
 	AeronTexture *environment_atlas, *environment_cube;
-	AeronSampler* environment_sampler;
-	AeronScene3D* lighting_scene;
+	AeronSampler *environment_sampler;
+	AeronScene3D *lighting_scene;
 	AeronSampleCount pipeline_samples;
-	AeronBuffer* streak_vb;
+	AeronBuffer *streak_vb;
 	uint32_t streak_vb_capacity, streak_vertex_count;
 	int draw_background;
 	float view_proj[16];
@@ -51,8 +51,9 @@ typedef struct XvtHyperspace {
 
 static XvtHyperspace g_hyper;
 
-void XvtHyperspace_Shutdown(void) {
-	XvtHyperspace* h = &g_hyper;
+void XvtHyperspace_Shutdown(void)
+{
+	XvtHyperspace *h = &g_hyper;
 	Aeron_DestroyGraphicsPipeline(h->streak_pipeline);
 	Aeron_DestroyGraphicsPipeline(h->tunnel_pipeline);
 	Aeron_DestroyShader(h->streak_vs);
@@ -67,42 +68,53 @@ void XvtHyperspace_Shutdown(void) {
 	memset(h, 0, sizeof *h);
 }
 
-static int Init(void) {
-	XvtHyperspace* h = &g_hyper;
-	if (h->streak_vs)
+static int Init(void)
+{
+	XvtHyperspace *h = &g_hyper;
+	if (h->streak_vs) {
 		return 1;
-	h->streak_vs = Aeron_CreateShader(&(AeronShaderDesc) {
-		.name = "hyperspace_streak.vert", .stage = AERON_SHADER_STAGE_VERTEX, .uniform_buffer_count = 1 });
+	}
+	h->streak_vs = Aeron_CreateShader(
+		&(AeronShaderDesc){.name = "hyperspace_streak.vert",
+				   .stage = AERON_SHADER_STAGE_VERTEX,
+				   .uniform_buffer_count = 1});
 	h->streak_fs = Aeron_CreateShader(
-		&(AeronShaderDesc) { .name = "hyperspace_streak.frag", .stage = AERON_SHADER_STAGE_FRAGMENT });
+		&(AeronShaderDesc){.name = "hyperspace_streak.frag",
+				   .stage = AERON_SHADER_STAGE_FRAGMENT});
 	h->tunnel_vs = Aeron_CreateShader(
-		&(AeronShaderDesc) { .name = "hyperspace_tunnel.vert", .stage = AERON_SHADER_STAGE_VERTEX });
-	h->tunnel_fs = Aeron_CreateShader(&(AeronShaderDesc) {
-		.name = "hyperspace_tunnel.frag", .stage = AERON_SHADER_STAGE_FRAGMENT, .uniform_buffer_count = 1 });
-	h->environment_pipeline = Aeron_CreateComputePipeline(&(AeronComputePipelineDesc) {
-		.name = "hyperspace_environment.comp",
-		.readwrite_storage_texture_count = 1,
-		.uniform_buffer_count = 2,
-		.thread_count_x = 8,
-		.thread_count_y = 8,
-		.thread_count_z = 1,
-	});
-	h->environment_atlas = Aeron_CreateTexture(&(AeronTextureDesc) {
+		&(AeronShaderDesc){.name = "hyperspace_tunnel.vert",
+				   .stage = AERON_SHADER_STAGE_VERTEX});
+	h->tunnel_fs = Aeron_CreateShader(
+		&(AeronShaderDesc){.name = "hyperspace_tunnel.frag",
+				   .stage = AERON_SHADER_STAGE_FRAGMENT,
+				   .uniform_buffer_count = 1});
+	h->environment_pipeline =
+		Aeron_CreateComputePipeline(&(AeronComputePipelineDesc){
+			.name = "hyperspace_environment.comp",
+			.readwrite_storage_texture_count = 1,
+			.uniform_buffer_count = 2,
+			.thread_count_x = 8,
+			.thread_count_y = 8,
+			.thread_count_z = 1,
+		});
+	h->environment_atlas = Aeron_CreateTexture(&(AeronTextureDesc){
 		.width = HYPER_ENVIRONMENT_ATLAS_WIDTH,
 		.height = HYPER_ENVIRONMENT_FACE_SIZE,
 		.format = AERON_TEXTURE_FORMAT_RGBA16_FLOAT,
-		.usage = AERON_TEXTURE_USAGE_COMPUTE_STORAGE_WRITE | AERON_TEXTURE_USAGE_TRANSFER_SRC,
+		.usage = AERON_TEXTURE_USAGE_COMPUTE_STORAGE_WRITE |
+			 AERON_TEXTURE_USAGE_TRANSFER_SRC,
 		.debug_name = "xvt.hyperspace.environment_atlas",
 	});
-	h->environment_cube = Aeron_CreateTexture(&(AeronTextureDesc) {
+	h->environment_cube = Aeron_CreateTexture(&(AeronTextureDesc){
 		.width = HYPER_ENVIRONMENT_FACE_SIZE,
 		.height = HYPER_ENVIRONMENT_FACE_SIZE,
 		.format = AERON_TEXTURE_FORMAT_RGBA16_FLOAT,
-		.usage = AERON_TEXTURE_USAGE_SAMPLED | AERON_TEXTURE_USAGE_TRANSFER_DST,
+		.usage = AERON_TEXTURE_USAGE_SAMPLED |
+			 AERON_TEXTURE_USAGE_TRANSFER_DST,
 		.cube = 1,
 		.debug_name = "xvt.hyperspace.environment",
 	});
-	h->environment_sampler = Aeron_CreateSampler(&(AeronSamplerDesc) {
+	h->environment_sampler = Aeron_CreateSampler(&(AeronSamplerDesc){
 		.min_filter = AERON_FILTER_LINEAR,
 		.mag_filter = AERON_FILTER_LINEAR,
 		.mip_filter = AERON_FILTER_LINEAR,
@@ -110,16 +122,18 @@ static int Init(void) {
 		.address_v = AERON_ADDRESS_CLAMP_TO_EDGE,
 		.address_w = AERON_ADDRESS_CLAMP_TO_EDGE,
 	});
-	if (!h->streak_vs || !h->streak_fs || !h->tunnel_vs || !h->tunnel_fs || !h->environment_pipeline ||
-		!h->environment_atlas || !h->environment_cube || !h->environment_sampler) {
+	if (!h->streak_vs || !h->streak_fs || !h->tunnel_vs || !h->tunnel_fs ||
+	    !h->environment_pipeline || !h->environment_atlas ||
+	    !h->environment_cube || !h->environment_sampler) {
 		XvtHyperspace_Shutdown();
 		return 0;
 	}
 	return 1;
 }
 
-static AeronBlendStateDesc hyper_blend_additive(void) {
-	return (AeronBlendStateDesc) {
+static AeronBlendStateDesc hyper_blend_additive(void)
+{
+	return (AeronBlendStateDesc){
 		.enabled = 1,
 		.src_color = AERON_BLEND_ONE,
 		.dst_color = AERON_BLEND_ONE,
@@ -130,8 +144,9 @@ static AeronBlendStateDesc hyper_blend_additive(void) {
 	};
 }
 
-static AeronBlendStateDesc hyper_blend_pma(void) {
-	return (AeronBlendStateDesc) {
+static AeronBlendStateDesc hyper_blend_pma(void)
+{
+	return (AeronBlendStateDesc){
 		.enabled = 1,
 		.src_color = AERON_BLEND_ONE,
 		.dst_color = AERON_BLEND_ONE_MINUS_SRC_ALPHA,
@@ -142,15 +157,18 @@ static AeronBlendStateDesc hyper_blend_pma(void) {
 	};
 }
 
-static AeronGraphicsPipeline* hyper_create_pipeline(AeronShader* vs, AeronShader* fs, uint32_t stride,
-													const AeronVertexAttributeDesc* attrs,
-													uint32_t attr_count, AeronBlendStateDesc blend,
-													AeronSampleCount sample_count) {
-	const AeronVertexBufferLayoutDesc layout = { .slot = 0, .stride = stride };
-	AeronColorTargetStateDesc targets[1] = { 0 };
+static AeronGraphicsPipeline *
+hyper_create_pipeline(AeronShader *vs, AeronShader *fs, uint32_t stride,
+		      const AeronVertexAttributeDesc *attrs,
+		      uint32_t attr_count, AeronBlendStateDesc blend,
+		      AeronSampleCount sample_count)
+{
+	const AeronVertexBufferLayoutDesc layout = {.slot = 0,
+						    .stride = stride};
+	AeronColorTargetStateDesc targets[1] = {0};
 	targets[0].format = AERON_TEXTURE_FORMAT_RGBA16_FLOAT;
 	targets[0].blend = blend;
-	return Aeron_CreateGraphicsPipeline(&(AeronGraphicsPipelineDesc) {
+	return Aeron_CreateGraphicsPipeline(&(AeronGraphicsPipelineDesc){
 		.vertex_shader = vs,
 		.fragment_shader = fs,
 		.primitive_type = AERON_PRIMITIVE_TRIANGLES,
@@ -160,61 +178,74 @@ static AeronGraphicsPipeline* hyper_create_pipeline(AeronShader* vs, AeronShader
 		.attributes = attrs,
 		.attribute_count = attr_count,
 		.depth_format = AERON_TEXTURE_FORMAT_D32_FLOAT,
-		.depth = { .depth_test = 0, .depth_write = 0, .compare = AERON_COMPARE_ALWAYS },
+		.depth = {.depth_test = 0,
+			  .depth_write = 0,
+			  .compare = AERON_COMPARE_ALWAYS},
 		.color_target_count = 1,
 		.color_targets = targets,
 		.sample_count = sample_count,
 	});
 }
 
-static AeronGraphicsPipeline* hyper_create_fullscreen_pipeline(AeronShader* vs, AeronShader* fs,
-															   AeronSampleCount sample_count) {
+static AeronGraphicsPipeline *
+hyper_create_fullscreen_pipeline(AeronShader *vs, AeronShader *fs,
+				 AeronSampleCount sample_count)
+{
 	AeronColorTargetStateDesc target = {
 		.format = AERON_TEXTURE_FORMAT_RGBA16_FLOAT,
 		.blend = hyper_blend_pma(),
 	};
-	return Aeron_CreateGraphicsPipeline(&(AeronGraphicsPipelineDesc) {
+	return Aeron_CreateGraphicsPipeline(&(AeronGraphicsPipelineDesc){
 		.vertex_shader = vs,
 		.fragment_shader = fs,
 		.primitive_type = AERON_PRIMITIVE_TRIANGLES,
 		.cull_mode = AERON_CULL_NONE,
 		.depth_format = AERON_TEXTURE_FORMAT_D32_FLOAT,
-		.depth = { .depth_test = 0, .depth_write = 0, .compare = AERON_COMPARE_ALWAYS },
+		.depth = {.depth_test = 0,
+			  .depth_write = 0,
+			  .compare = AERON_COMPARE_ALWAYS},
 		.color_target_count = 1,
 		.color_targets = &target,
 		.sample_count = sample_count,
 	});
 }
 
-static void hyper_destroy_pipelines(XvtHyperspace* h) {
-	if (h->streak_pipeline)
+static void hyper_destroy_pipelines(XvtHyperspace *h)
+{
+	if (h->streak_pipeline) {
 		Aeron_DestroyGraphicsPipeline(h->streak_pipeline);
-	if (h->tunnel_pipeline)
+	}
+	if (h->tunnel_pipeline) {
 		Aeron_DestroyGraphicsPipeline(h->tunnel_pipeline);
+	}
 	h->streak_pipeline = NULL;
 	h->tunnel_pipeline = NULL;
 	h->pipeline_samples = 0;
 }
 
-static int hyper_ensure_pipelines(XvtHyperspace* h, AeronSampleCount sample_count) {
+static int hyper_ensure_pipelines(XvtHyperspace *h,
+				  AeronSampleCount sample_count)
+{
 	static const AeronVertexAttributeDesc streak_attrs[] = {
-		{ .location = 0,
-		  .buffer_slot = 0,
-		  .format = AERON_VERTEX_FORMAT_FLOAT3,
-		  .offset = (uint32_t)offsetof(HyperStreakVertex, position) },
-		{ .location = 1,
-		  .buffer_slot = 0,
-		  .format = AERON_VERTEX_FORMAT_FLOAT4,
-		  .offset = (uint32_t)offsetof(HyperStreakVertex, color) },
+		{.location = 0,
+		 .buffer_slot = 0,
+		 .format = AERON_VERTEX_FORMAT_FLOAT3,
+		 .offset = (uint32_t)offsetof(HyperStreakVertex, position)},
+		{.location = 1,
+		 .buffer_slot = 0,
+		 .format = AERON_VERTEX_FORMAT_FLOAT4,
+		 .offset = (uint32_t)offsetof(HyperStreakVertex, color)},
 	};
-	if (h->pipeline_samples == sample_count && h->streak_pipeline && h->tunnel_pipeline) {
+	if (h->pipeline_samples == sample_count && h->streak_pipeline &&
+	    h->tunnel_pipeline) {
 		return 1;
 	}
 	hyper_destroy_pipelines(h);
-	h->streak_pipeline =
-		hyper_create_pipeline(h->streak_vs, h->streak_fs, (uint32_t)sizeof(HyperStreakVertex), streak_attrs,
-							  2, hyper_blend_additive(), sample_count);
-	h->tunnel_pipeline = hyper_create_fullscreen_pipeline(h->tunnel_vs, h->tunnel_fs, sample_count);
+	h->streak_pipeline = hyper_create_pipeline(
+		h->streak_vs, h->streak_fs, (uint32_t)sizeof(HyperStreakVertex),
+		streak_attrs, 2, hyper_blend_additive(), sample_count);
+	h->tunnel_pipeline = hyper_create_fullscreen_pipeline(
+		h->tunnel_vs, h->tunnel_fs, sample_count);
 	if (!h->streak_pipeline || !h->tunnel_pipeline) {
 		hyper_destroy_pipelines(h);
 		return 0;
@@ -223,79 +254,96 @@ static int hyper_ensure_pipelines(XvtHyperspace* h, AeronSampleCount sample_coun
 	return 1;
 }
 
-static int hyper_ensure_streak_buffer(XvtHyperspace* h, uint32_t bytes) {
+static int hyper_ensure_streak_buffer(XvtHyperspace *h, uint32_t bytes)
+{
 	if (bytes == 0) {
 		return 1;
 	}
 	if (h->streak_vb && h->streak_vb_capacity >= bytes) {
 		return 1;
 	}
-	uint32_t capacity = h->streak_vb_capacity ? h->streak_vb_capacity : 64u * 1024u;
+	uint32_t capacity =
+		h->streak_vb_capacity ? h->streak_vb_capacity : 64u * 1024u;
 	while (capacity < bytes) {
 		capacity *= 2u;
 	}
 	if (h->streak_vb) {
 		Aeron_DestroyBuffer(h->streak_vb);
 	}
-	h->streak_vb = Aeron_CreateBuffer(&(AeronBufferDesc) { .size = capacity,
-														   .usage = AERON_BUFFER_USAGE_VERTEX,
-														   .debug_name = "xvt.hyperspace.streak_vertices" });
+	h->streak_vb = Aeron_CreateBuffer(&(AeronBufferDesc){
+		.size = capacity,
+		.usage = AERON_BUFFER_USAGE_VERTEX,
+		.debug_name = "xvt.hyperspace.streak_vertices"});
 	h->streak_vb_capacity = h->streak_vb ? capacity : 0;
 	return h->streak_vb != NULL;
 }
 
-static void hyper_widescreen_remap(float p[3], const float camera_rows[9], float x_scale) {
+static void hyper_widescreen_remap(float p[3], const float camera_rows[9],
+				   float x_scale)
+{
 	if (x_scale <= 1.0f) {
 		return;
 	}
 	float eye[3];
 	for (int r = 0; r < 3; r++) {
-		eye[r] =
-			camera_rows[r * 3 + 0] * p[0] + camera_rows[r * 3 + 1] * p[1] + camera_rows[r * 3 + 2] * p[2];
+		eye[r] = camera_rows[r * 3 + 0] * p[0] +
+			 camera_rows[r * 3 + 1] * p[1] +
+			 camera_rows[r * 3 + 2] * p[2];
 	}
 	eye[0] *= x_scale;
 	for (int c = 0; c < 3; c++) {
-		p[c] = camera_rows[0 * 3 + c] * eye[0] + camera_rows[1 * 3 + c] * eye[1] +
-			   camera_rows[2 * 3 + c] * eye[2];
+		p[c] = camera_rows[0 * 3 + c] * eye[0] +
+		       camera_rows[1 * 3 + c] * eye[1] +
+		       camera_rows[2 * 3 + c] * eye[2];
 	}
 }
 
-static void hyper_emit_streak(HyperStreakVertex* out, const XvtSnapStreak* streak, float extent,
-							  float transition_y, const float camera_rows[9], float x_scale) {
+static void hyper_emit_streak(HyperStreakVertex *out,
+			      const XvtSnapStreak *streak, float extent,
+			      float transition_y, const float camera_rows[9],
+			      float x_scale)
+{
 	XvtSnapObject synthetic;
 	memset(&synthetic, 0, sizeof synthetic);
 	synthetic.orient_dirty = 1;
 	synthetic.pitch = 0x4000u;
 	synthetic.roll = streak->roll;
 	float model[16];
-	XvtRenderMath_ObjectMatrix(&synthetic, (const int32_t[3]) { 0, 0, 0 }, model);
+	XvtRenderMath_ObjectMatrix(&synthetic, (const int32_t[3]){0, 0, 0},
+				   model);
 	/* The shared model matrix expects meter-space geometry; streak seeds retain XWA model units. */
 	const float model_units_to_meters = AERON_OPT_METERS_PER_UNIT;
 	const float half = (float)streak->half_width * model_units_to_meters;
 	extent *= model_units_to_meters;
 	const float corners[4][3] = {
-		{ half, 0.0f, 0.0f },
-		{ half, extent, 0.0f },
-		{ -half, extent, 0.0f },
-		{ -half, 0.0f, 0.0f },
+		{half, 0.0f, 0.0f},
+		{half, extent, 0.0f},
+		{-half, extent, 0.0f},
+		{-half, 0.0f, 0.0f},
 	};
-	static const uint8_t indices[6] = { 0, 1, 2, 0, 2, 3 };
+	static const uint8_t indices[6] = {0, 1, 2, 0, 2, 3};
 	for (int v = 0; v < 6; v++) {
-		const float* q = corners[indices[v]];
+		const float *q = corners[indices[v]];
 		float p[3] = {
-			model[0] * q[0] + model[1] * q[1] + model[2] * q[2] + (float)streak->offset[0],
-			model[4] * q[0] + model[5] * q[1] + model[6] * q[2] + (float)streak->offset[1] - transition_y,
-			model[8] * q[0] + model[9] * q[1] + model[10] * q[2] + (float)streak->offset[2],
+			model[0] * q[0] + model[1] * q[1] + model[2] * q[2] +
+				(float)streak->offset[0],
+			model[4] * q[0] + model[5] * q[1] + model[6] * q[2] +
+				(float)streak->offset[1] - transition_y,
+			model[8] * q[0] + model[9] * q[1] + model[10] * q[2] +
+				(float)streak->offset[2],
 		};
 		hyper_widescreen_remap(p, camera_rows, x_scale);
 		memcpy(out[v].position, p, sizeof p);
-		out[v].color[0] = out[v].color[1] = out[v].color[2] = out[v].color[3] = 1.0f;
+		out[v].color[0] = out[v].color[1] = out[v].color[2] =
+			out[v].color[3] = 1.0f;
 	}
 }
 
-static int hyper_generate_environment(XvtHyperspace* h, AeronCommandBuffer* cmd) {
-	const AeronComputeTextureBinding output = { .texture = h->environment_atlas };
-	AeronComputePass* pass = Aeron_BeginComputePass(&(AeronComputePassDesc) {
+static int hyper_generate_environment(XvtHyperspace *h, AeronCommandBuffer *cmd)
+{
+	const AeronComputeTextureBinding output = {
+		.texture = h->environment_atlas};
+	AeronComputePass *pass = Aeron_BeginComputePass(&(AeronComputePassDesc){
 		.command_buffer = cmd,
 		.write_textures = &output,
 		.write_texture_count = 1,
@@ -305,49 +353,60 @@ static int hyper_generate_environment(XvtHyperspace* h, AeronCommandBuffer* cmd)
 		return 0;
 	}
 	const HyperEnvironmentUniform environment = {
-		.roughness = XvtRemasterConfig_Effective()->hyperspace.mesh_environment_roughness,
+		.roughness = XvtRemasterConfig_Effective()
+				     ->hyperspace.mesh_environment_roughness,
 	};
 	Aeron_BindComputePipeline(pass, h->environment_pipeline);
-	Aeron_BindComputeUniformData(pass, 0, &h->tunnel_uniform, sizeof h->tunnel_uniform);
+	Aeron_BindComputeUniformData(pass, 0, &h->tunnel_uniform,
+				     sizeof h->tunnel_uniform);
 	Aeron_BindComputeUniformData(pass, 1, &environment, sizeof environment);
-	Aeron_DispatchCompute(pass, HYPER_ENVIRONMENT_ATLAS_WIDTH / 8, HYPER_ENVIRONMENT_FACE_SIZE / 8, 1);
+	Aeron_DispatchCompute(pass, HYPER_ENVIRONMENT_ATLAS_WIDTH / 8,
+			      HYPER_ENVIRONMENT_FACE_SIZE / 8, 1);
 	Aeron_EndComputePass(pass);
 
 	/* Metal cannot expose one face of a cube as a writable storage view.
 	 * Generate into a 2D atlas and copy each completed face into the sampled cube. */
 	for (uint32_t face = 0; face < 6; face++) {
-		if (!Aeron_CopyTextureCmd(cmd, &(AeronTextureCopyDesc) {
-										   .source = h->environment_atlas,
-										   .source_x = face * HYPER_ENVIRONMENT_FACE_SIZE,
-										   .destination = h->environment_cube,
-										   .destination_layer = face,
-										   .width = HYPER_ENVIRONMENT_FACE_SIZE,
-										   .height = HYPER_ENVIRONMENT_FACE_SIZE,
-									   })) {
+		if (!Aeron_CopyTextureCmd(
+			    cmd,
+			    &(AeronTextureCopyDesc){
+				    .source = h->environment_atlas,
+				    .source_x =
+					    face * HYPER_ENVIRONMENT_FACE_SIZE,
+				    .destination = h->environment_cube,
+				    .destination_layer = face,
+				    .width = HYPER_ENVIRONMENT_FACE_SIZE,
+				    .height = HYPER_ENVIRONMENT_FACE_SIZE,
+			    })) {
 			return 0;
 		}
 	}
 	return 1;
 }
 
-int XvtHyperspace_Prepare(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, AeronScene3D* scene,
-						  const XvtRenderView* view) {
-	XvtHyperspace* h = &g_hyper;
+int XvtHyperspace_Prepare(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
+			  AeronScene3D *scene, const XvtRenderView *view)
+{
+	XvtHyperspace *h = &g_hyper;
 	h->streak_vertex_count = 0;
 	h->draw_background = 0;
 	h->lighting_scene = NULL;
-	if (s->hyperspace.phase != XVT_SNAP_HYPERSPACE_TRANSITION)
+	if (s->hyperspace.phase != XVT_SNAP_HYPERSPACE_TRANSITION) {
 		return 1;
-	if (!Init())
+	}
+	if (!Init()) {
 		return 0;
+	}
 	int width, height;
 	AeronScene_RenderDims(scene, &width, &height);
-	memcpy(h->view_proj, AeronScene_JitteredViewProj(scene), sizeof h->view_proj);
-	const float* rows = s->camera.rows;
+	memcpy(h->view_proj, AeronScene_JitteredViewProj(scene),
+	       sizeof h->view_proj);
+	const float *rows = s->camera.rows;
 	unsigned ticks = s->hyperspace.elapsed_ticks;
 	if (ticks >= XVT_SNAP_HYPERSPACE_STREAK_END) {
-		const XvtHyperspaceSettings* p = &XvtRemasterConfig_Effective()->hyperspace;
-		HyperTunnelUniform* u = &h->tunnel_uniform;
+		const XvtHyperspaceSettings *p =
+			&XvtRemasterConfig_Effective()->hyperspace;
+		HyperTunnelUniform *u = &h->tunnel_uniform;
 		memset(u, 0, sizeof *u);
 		u->view[0] = (float)width;
 		u->view[1] = (float)height;
@@ -355,7 +414,8 @@ int XvtHyperspace_Prepare(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, A
 		u->projection[1] = tanf(view->camera.v_half_rad);
 		u->projection[2] = view->camera.proj_x_offset;
 		u->projection[3] = view->camera.proj_y_offset;
-		u->motion[0] = (float)(ticks - XVT_SNAP_HYPERSPACE_STREAK_END) / 236.0f;
+		u->motion[0] = (float)(ticks - XVT_SNAP_HYPERSPACE_STREAK_END) /
+			       236.0f;
 		u->motion[1] = p->travel_speed;
 		u->motion[2] = p->rotation_speed;
 		u->motion[3] = p->noise_scale;
@@ -372,23 +432,28 @@ int XvtHyperspace_Prepare(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, A
 		}
 		memcpy(u->dark_color, p->dark_color, sizeof p->dark_color);
 		memcpy(u->body_color, p->body_color, sizeof p->body_color);
-		memcpy(u->highlight_color, p->highlight_color, sizeof p->highlight_color);
+		memcpy(u->highlight_color, p->highlight_color,
+		       sizeof p->highlight_color);
 		memcpy(u->cap_color, p->cap_color, sizeof p->cap_color);
 		h->draw_background = 1;
-		if (!hyper_generate_environment(h, cmd))
+		if (!hyper_generate_environment(h, cmd)) {
 			return 0;
+		}
 		h->lighting_scene = scene;
 		return 1;
 	}
 	unsigned count = s->hyperspace.count;
-	if (!count)
+	if (!count) {
 		return 1;
+	}
 	uint32_t bytes = count * 6u * (uint32_t)sizeof(HyperStreakVertex);
-	if (!hyper_ensure_streak_buffer(h, bytes))
+	if (!hyper_ensure_streak_buffer(h, bytes)) {
 		return 0;
-	HyperStreakVertex* vertices = malloc(bytes);
-	if (!vertices)
+	}
+	HyperStreakVertex *vertices = malloc(bytes);
+	if (!vertices) {
 		return 0;
+	}
 	float extent, offset;
 	if (ticks < 472) {
 		extent = (float)(ticks >> 2) * (ticks >> 2);
@@ -398,51 +463,66 @@ int XvtHyperspace_Prepare(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, A
 		extent = 16000;
 		offset = 7552 + t * t;
 	}
-	float aspect = (float)width / height, x_scale = fmaxf(1, aspect / (4.0f / 3.0f));
-	for (unsigned i = 0; i < count; ++i)
-		hyper_emit_streak(vertices + i * 6, &s->hyperspace.streaks[i], extent, offset, rows, x_scale);
-	int ok = Aeron_UploadBufferDataCmd(cmd, h->streak_vb, 0, vertices, bytes);
+	float aspect = (float)width / height,
+	      x_scale = fmaxf(1, aspect / (4.0f / 3.0f));
+	for (unsigned i = 0; i < count; ++i) {
+		hyper_emit_streak(vertices + i * 6, &s->hyperspace.streaks[i],
+				  extent, offset, rows, x_scale);
+	}
+	int ok = Aeron_UploadBufferDataCmd(cmd, h->streak_vb, 0, vertices,
+					   bytes);
 	free(vertices);
-	if (ok)
+	if (ok) {
 		h->streak_vertex_count = count * 6;
+	}
 	return ok;
 }
 
-void XvtHyperspace_Draw(AeronCommandBuffer* command_buffer, AeronRenderPass* pass, int rt_w, int rt_h,
-						void* user) {
+void XvtHyperspace_Draw(AeronCommandBuffer *command_buffer,
+			AeronRenderPass *pass, int rt_w, int rt_h, void *user)
+{
 	(void)user;
-	XvtHyperspace* h = &g_hyper;
+	XvtHyperspace *h = &g_hyper;
 	if (!h || !pass) {
 		return;
 	}
 	if (!hyper_ensure_pipelines(h, Aeron_RenderPassGetSampleCount(pass))) {
-		Aeron_CommandBufferSetFailure(command_buffer, "Hyperspace pipeline preparation failed");
+		Aeron_CommandBufferSetFailure(
+			command_buffer,
+			"Hyperspace pipeline preparation failed");
 		return;
 	}
-	Aeron_SetViewport(pass, &(AeronRectI) { 0, 0, rt_w, rt_h });
+	Aeron_SetViewport(pass, &(AeronRectI){0, 0, rt_w, rt_h});
 	if (h->draw_background) {
 		Aeron_BindGraphicsPipeline(pass, h->tunnel_pipeline);
-		Aeron_BindUniformData(pass, AERON_SHADER_STAGE_FRAGMENT, 0, &h->tunnel_uniform,
-							  (uint32_t)sizeof h->tunnel_uniform);
+		Aeron_BindUniformData(pass, AERON_SHADER_STAGE_FRAGMENT, 0,
+				      &h->tunnel_uniform,
+				      (uint32_t)sizeof h->tunnel_uniform);
 		Aeron_Draw(pass, 3, 0);
 	}
 	if (h->streak_vertex_count && h->streak_vb) {
 		Aeron_BindGraphicsPipeline(pass, h->streak_pipeline);
 		Aeron_BindVertexBuffer(pass, 0, h->streak_vb, 0);
-		Aeron_BindUniformData(pass, AERON_SHADER_STAGE_VERTEX, 0, h->view_proj, sizeof h->view_proj);
+		Aeron_BindUniformData(pass, AERON_SHADER_STAGE_VERTEX, 0,
+				      h->view_proj, sizeof h->view_proj);
 		Aeron_Draw(pass, h->streak_vertex_count, 0);
 	}
 }
 
-int XvtHyperspace_Lighting(AeronScene3D* scene, XvtHyperLighting* out) {
-	const XvtHyperspace* h = &g_hyper;
-	if (!h->draw_background || h->lighting_scene != scene)
+int XvtHyperspace_Lighting(AeronScene3D *scene, XvtHyperLighting *out)
+{
+	const XvtHyperspace *h = &g_hyper;
+	if (!h->draw_background || h->lighting_scene != scene) {
 		return 0;
-	const XvtHyperspaceSettings* p = &XvtRemasterConfig_Effective()->hyperspace;
-	*out = (XvtHyperLighting) { .texture = h->environment_cube,
-								.sampler = h->environment_sampler,
-								.direction = { 0, 1, 0 } };
-	for (int c = 0; c < 3; ++c)
-		out->color[c] = p->cap_color[c] * p->brightness * p->highlight_strength * p->mesh_key_strength;
+	}
+	const XvtHyperspaceSettings *p =
+		&XvtRemasterConfig_Effective()->hyperspace;
+	*out = (XvtHyperLighting){.texture = h->environment_cube,
+				  .sampler = h->environment_sampler,
+				  .direction = {0, 1, 0}};
+	for (int c = 0; c < 3; ++c) {
+		out->color[c] = p->cap_color[c] * p->brightness *
+				p->highlight_strength * p->mesh_key_strength;
+	}
 	return 1;
 }

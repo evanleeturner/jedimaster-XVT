@@ -50,9 +50,10 @@ extern "C" {
  * log file given to XvtCrashNote_Install. Call sites use XVT_LOG_CRASH, which tools/log_catalog_check.py
  * holds to the catalog like the other log macros, at level C. */
 #if defined(_MSC_VER)
-void XvtCrashNote_Writef(const char* format, ...);
+void XvtCrashNote_Writef(const char *format, ...);
 #else
-__attribute__((format(printf, 1, 2))) void XvtCrashNote_Writef(const char* format, ...);
+__attribute__((format(printf, 1, 2))) void
+XvtCrashNote_Writef(const char *format, ...);
 #endif
 #define XVT_LOG_CRASH(...) XvtCrashNote_Writef(__VA_ARGS__)
 
@@ -69,8 +70,8 @@ void XvtCrashNote_Install(XvtLogFileHandle file);
  * terminator still fit; capacity 0 writes nothing and capacity 1 only the terminator. Uses no locale, no
  * lock and no allocation, so a signal handler may call it. Returns the bytes written before the
  * terminator. */
-size_t XvtCrashNote_FormatLine(char* out, size_t capacity, uint32_t ms_of_day, const char* format,
-							   va_list args);
+size_t XvtCrashNote_FormatLine(char *out, size_t capacity, uint32_t ms_of_day,
+			       const char *format, va_list args);
 
 #ifdef __cplusplus
 }

@@ -41,19 +41,24 @@ struct FlightViewScale {
 	int scale;
 };
 
-static __inline int FlightView_ScaleQ15(struct FlightViewScale operation) {
-	operation.value = (int)(((int64_t)operation.value * operation.scale) >> 15);
+static __inline int FlightView_ScaleQ15(struct FlightViewScale operation)
+{
+	operation.value =
+		(int)(((int64_t)operation.value * operation.scale) >> 15);
 	return operation.value;
 }
 
 HRESULT FlightView_CompositeMaskedSoftwareSurface(void);
 extern int g_currentObjectBoundsExtent;
-int16_t FlightView_RotateViewByInput(int pitchStep, int yawOrRollStep, int playerIdx);
+int16_t FlightView_RotateViewByInput(int pitchStep, int yawOrRollStep,
+				     int playerIdx);
 void FlightView_UpdatePlayerCamera(int playerIdx);
 void FlightView_Render(void);
 int FlightView_ComputeObjectViewPosition(uint16_t objectIdx);
-int FlightView_ProjectAndTestSphereVisible(int objectIdx, unsigned int sphereRadius);
-int FlightView_CullWorldSphereToViewport(int worldX, int worldY, int worldZ, int sphereRadius);
+int FlightView_ProjectAndTestSphereVisible(int objectIdx,
+					   unsigned int sphereRadius);
+int FlightView_CullWorldSphereToViewport(int worldX, int worldY, int worldZ,
+					 int sphereRadius);
 void FlightView_RenderStartupFrame(void);
 void FlightView_RenderFrame(void);
 

@@ -26,9 +26,12 @@ extern MissionBriefingCraftScreenFaction g_missionBriefingCraftScreenFaction;
 int MissionBriefing_Exit(int frameCounter);
 int MissionBriefing_Update(int frameCounter);
 int MissionBriefing_BroadcastRosterAndAssignments(void);
-int16_t MissionBriefing_HandleMapMouseInput(RECT* viewportRect, RECT* clipRect, int16_t suppressInput,
-											int leftDown, int rightDown, int16_t mouseX, int16_t mouseY);
-int16_t MissionBriefing_DrawMapViewport(RECT* viewportRect, RECT* clipRect, int16_t highlightPhase);
+int16_t MissionBriefing_HandleMapMouseInput(RECT *viewportRect, RECT *clipRect,
+					    int16_t suppressInput, int leftDown,
+					    int rightDown, int16_t mouseX,
+					    int16_t mouseY);
+int16_t MissionBriefing_DrawMapViewport(RECT *viewportRect, RECT *clipRect,
+					int16_t highlightPhase);
 int MissionBriefing_AreAllNetworkPlayersReady(void);
 
 #ifdef __cplusplus

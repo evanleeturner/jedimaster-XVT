@@ -14,19 +14,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void Surface(void) {
+static void Surface(void)
+{
 	g_flightRenderToFrontend = 0;
 	g_flightPageFlip = 0;
 	g_surfaceLockCount = 0;
 }
 
-static void CheckReset(void) {
+static void CheckReset(void)
+{
 	/* Handles and pool pointers are forgotten, not freed: the test frees the memory itself afterwards. */
-	void* objects = malloc(64);
-	void* mobiles = malloc(64);
-	void* charData = malloc(64);
-	void* craft = malloc(64);
-	void* guidance = malloc(64);
+	void *objects = malloc(64);
+	void *mobiles = malloc(64);
+	void *charData = malloc(64);
+	void *craft = malloc(64);
+	void *guidance = malloc(64);
 	XVT_ASSERT_TRUE(objects && mobiles && charData && craft && guidance);
 	g_objectTable = objects;
 	g_mobileObjectPoolBase = mobiles;
@@ -64,7 +66,8 @@ static void CheckReset(void) {
 	free(guidance);
 }
 
-static void CheckProvingGrounds(void) {
+static void CheckProvingGrounds(void)
+{
 	/* Craft 2, level 4 for traincourse... */
 	Surface();
 	g_flightConfTrainCourse = 1;
@@ -81,7 +84,8 @@ static void CheckProvingGrounds(void) {
 	XVT_ASSERT_INT_EQ(g_surfaceLockCount, 0);
 }
 
-static void CheckResets(void) {
+static void CheckResets(void)
+{
 	/* The flight input, the message log and the MFD pages are reset. */
 	Surface();
 	g_flightConfTrainCourse = 0;
@@ -90,19 +94,22 @@ static void CheckResets(void) {
 	g_messageLogTotalCount = 9;
 	g_mfdActivePage = 2;
 	g_mfdSecondaryPage = 3;
-	for (int i = 0; i < MFD_PAGE_COUNT; ++i)
+	for (int i = 0; i < MFD_PAGE_COUNT; ++i) {
 		g_mfdPageStates[i] = 1;
+	}
 	XvtFlightLoading_MissionSetup();
 	XVT_ASSERT_INT_EQ(g_keyMods, 0);
 	XVT_ASSERT_INT_EQ(g_mouseButtons, 0);
 	XVT_ASSERT_INT_EQ(g_messageLogTotalCount, 0);
 	XVT_ASSERT_INT_EQ(g_mfdActivePage, MFD_PAGE_NONE);
 	XVT_ASSERT_INT_EQ(g_mfdSecondaryPage, MFD_PAGE_NONE);
-	for (int i = 0; i < MFD_PAGE_COUNT; ++i)
+	for (int i = 0; i < MFD_PAGE_COUNT; ++i) {
 		XVT_ASSERT_INT_EQ(g_mfdPageStates[i], MFD_PAGE_STATE_CLOSED);
+	}
 }
 
-static void CheckNoiseTable(void) {
+static void CheckNoiseTable(void)
+{
 	/* The noise table is refilled from rand(): the same seed gives the same table whatever it held before,
 	 * and another seed another table. */
 	static uint8_t first[sizeof g_flightNoiseTable];
@@ -119,7 +126,8 @@ static void CheckNoiseTable(void) {
 	XVT_ASSERT_TRUE(memcmp(first, g_flightNoiseTable, sizeof first) != 0);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckReset();
 	CheckProvingGrounds();
 	CheckResets();

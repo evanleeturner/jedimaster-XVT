@@ -9,7 +9,8 @@
 #include <stdlib.h>
 
 // FUNCTION: XVT 0x4D7370
-int FrontendMissionList_FreeScreenResources(int frameCounter) {
+int FrontendMissionList_FreeScreenResources(int frameCounter)
+{
 	(void)frameCounter;
 
 	if (g_missionList != NULL) {
@@ -26,7 +27,8 @@ int FrontendMissionList_FreeScreenResources(int frameCounter) {
 }
 
 // FUNCTION: XVT 0x4F1C60
-int FrontendMissionList_FreeScreenResourcesAndClearInputGate(void) {
+int FrontendMissionList_FreeScreenResourcesAndClearInputGate(void)
+{
 	if (g_missionList != NULL) {
 		free(g_missionList);
 		g_missionList = NULL;

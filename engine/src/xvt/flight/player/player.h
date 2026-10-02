@@ -97,7 +97,8 @@ struct PerMissionKills {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PerMissionKills[(sizeof(PerMissionKills) == 808) ? 1 : -1];
+typedef char
+	xvt_size_PerMissionKills[(sizeof(PerMissionKills) == 808) ? 1 : -1];
 
 /* Stored as int8_t in the binary (IDB enum FlightChatRecipientMode). */
 typedef int8_t FlightChatRecipientMode;
@@ -193,7 +194,8 @@ struct PlayerFlightTransientTimers {
 	uint16_t flightGroupMessagePaneTimer;
 	uint16_t targetDescriptionRefreshTimer;
 	uint16_t mfdCraftListRefreshTimer;
-	uint16_t missionGoalsRefreshTimer; ///< Two-second countdown; expiry forces a mission-goals MFD redraw.
+	uint16_t
+		missionGoalsRefreshTimer; ///< Two-second countdown; expiry forces a mission-goals MFD redraw.
 };
 
 extern PlayerFlightTransientTimers g_playerFlightTransientTimers[8];
@@ -233,30 +235,38 @@ struct RemotePlayerSavedSimPose {
 	char gap36[12];
 };
 
-int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int preferredObjectSignature,
-								int resetTargetingState);
-int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int assignAiPlan);
+int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx,
+				int preferredObjectSignature,
+				int resetTargetingState);
+int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
+				  int assignAiPlan);
 void Player_SaveCraftSettings(int playerIndex);
 void Player_UpdateFlightControlsAndCamera(int playerIdx);
 void FlightChat_HandleInput(int playerIdx);
 int16_t Player_FindNearestObjective(int goalType, int playerIdx);
 int Player_ScaleControlStepByElapsedTicks(int16_t step);
-void Player_TransferShieldBankEnergy(uint16_t dstBank, uint16_t srcBank, int playerIdx);
+void Player_TransferShieldBankEnergy(uint16_t dstBank, uint16_t srcBank,
+				     int playerIdx);
 void Player_UpdateHudViewForCameraFocus(int playerIdx);
 uint16_t Player_PickTargetInSight(int playerIdx);
-uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction, int playerIdx);
-uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playerIdx, int iffFilter,
-							int targetFlags);
+uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction,
+				  int playerIdx);
+uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
+			    int playerIdx, int iffFilter, int targetFlags);
 void Player_SetTarget(int newTargetObjIdx, int playerIdx);
-uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int playerIdx);
-int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16, uint16_t objectIndex,
-							CraftData* craft);
+uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx,
+					  unsigned int playerIdx);
+int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16,
+			    uint16_t objectIndex, CraftData *craft);
 int16_t Player_CanRadioCommandCraft(int playerIdx);
-void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId, uint16_t responseIndex,
-									  int playerIdx);
-int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx, int16_t excludedObjIdx);
-void Player_StartPostDestructionState(int playerIdx, unsigned int sourceObjectIndex, int sourcePlayerIdx);
-void Player_AppendKillMessageActorName(int slot, char* text, int objectIndex);
+void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
+				      uint16_t responseIndex, int playerIdx);
+int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx,
+				    int16_t excludedObjIdx);
+void Player_StartPostDestructionState(int playerIdx,
+				      unsigned int sourceObjectIndex,
+				      int sourcePlayerIdx);
+void Player_AppendKillMessageActorName(int slot, char *text, int objectIndex);
 void Player_ComputePolarToObjectRef(int playerIdx, unsigned int objectRef);
 void Player_EndFlightParticipation(int playerIdx);
 void Player_EmitRemotePlayerDepartedMessages(int playerIdx);
@@ -265,7 +275,8 @@ void Player_ValidateAllCurrentTargets(void);
 int Player_HasAvailableOwnedCraft(int playerIdx);
 void Player_UpdateParticipationState(void);
 int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx);
-void Player_HandleHyperspaceCommand(struct CraftData* craft, unsigned int playerIdx);
+void Player_HandleHyperspaceCommand(struct CraftData *craft,
+				    unsigned int playerIdx);
 
 #ifdef __cplusplus
 }

@@ -23,16 +23,16 @@
 #include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
 #ifndef XVT_MODERN
-int _access(const char* filename, int mode);
+int _access(const char *filename, int mode);
 #else
-int access(const char* filename, int mode);
+int access(const char *filename, int mode);
 #endif
 
 #ifndef XVT_MODERN
 typedef struct InventorFieldRecord {
 	int fieldType;
 	int itemCount;
-	void* data;
+	void *data;
 } InventorFieldRecord;
 
 typedef struct OptExternalTexHeader {
@@ -68,113 +68,135 @@ typedef enum InventorFieldType {
 
 typedef struct InventorEnumDef {
 	int valueCount;
-	const char* const* valueNames;
-	const int* values;
+	const char *const *valueNames;
+	const int *values;
 } InventorEnumDef;
 
 typedef struct InventorFieldDef {
-	const char* fieldName;
+	const char *fieldName;
 	InventorFieldType fieldType;
-	const InventorEnumDef* enumDef;
-	const InventorFieldRecord* defaultRecord;
-	const void* defaultData;
+	const InventorEnumDef *enumDef;
+	const InventorFieldRecord *defaultRecord;
+	const void *defaultData;
 	size_t defaultDataSize;
 } InventorFieldDef;
 
 // GLOBAL: XVT 0x51AF28
-static const InventorFieldRecord g_defaultIntegerListRecord = { INVENTOR_FIELD_INTEGER_LIST, 4, NULL };
+static const InventorFieldRecord g_defaultIntegerListRecord = {
+	INVENTOR_FIELD_INTEGER_LIST, 4, NULL};
 // GLOBAL: XVT 0x51AF38
-static const int g_defaultIntegerList[4] = { 0, 1, 2, -1 };
+static const int g_defaultIntegerList[4] = {0, 1, 2, -1};
 // GLOBAL: XVT 0x51AF58
-static const InventorFieldRecord g_defaultIntegerRecord = { INVENTOR_FIELD_INTEGER, 1, NULL };
+static const InventorFieldRecord g_defaultIntegerRecord = {
+	INVENTOR_FIELD_INTEGER, 1, NULL};
 // GLOBAL: XVT 0x51AF64
 static const int g_defaultInteger = 0;
 // GLOBAL: XVT 0x51AF48
-static const InventorFieldRecord g_defaultStringRecord = { INVENTOR_FIELD_STRING, 1, NULL };
+static const InventorFieldRecord g_defaultStringRecord = {INVENTOR_FIELD_STRING,
+							  1, NULL};
 // GLOBAL: XVT 0x51AF54
-static const char g_defaultString[1] = { '\0' };
+static const char g_defaultString[1] = {'\0'};
 // GLOBAL: XVT 0x51AFB8
-static const InventorFieldRecord g_defaultVector3ListRecord = { INVENTOR_FIELD_VECTOR3_LIST, 1, NULL };
+static const InventorFieldRecord g_defaultVector3ListRecord = {
+	INVENTOR_FIELD_VECTOR3_LIST, 1, NULL};
 // GLOBAL: XVT 0x51AFF0
-static const InventorFieldRecord g_defaultVector3Record = { INVENTOR_FIELD_VECTOR3, 1, NULL };
+static const InventorFieldRecord g_defaultVector3Record = {
+	INVENTOR_FIELD_VECTOR3, 1, NULL};
 // GLOBAL: XVT 0x51AFC8
-static const OptVector g_defaultZeroVector = { 0.0f, 0.0f, 0.0f };
+static const OptVector g_defaultZeroVector = {0.0f, 0.0f, 0.0f};
 // GLOBAL: XVT 0x51B000
-static const OptVector g_defaultZeroScalarVector = { 0.0f, 0.0f, 0.0f };
+static const OptVector g_defaultZeroScalarVector = {0.0f, 0.0f, 0.0f};
 // GLOBAL: XVT 0x51B020
-static const OptVector g_defaultUnitVector = { 1.0f, 1.0f, 1.0f };
+static const OptVector g_defaultUnitVector = {1.0f, 1.0f, 1.0f};
 // GLOBAL: XVT 0x51B030
-static const InventorFieldRecord g_defaultRotationRecord = { INVENTOR_FIELD_ROTATION, 1, NULL };
+static const InventorFieldRecord g_defaultRotationRecord = {
+	INVENTOR_FIELD_ROTATION, 1, NULL};
 // GLOBAL: XVT 0x51B040
-static const float g_defaultRotation[4] = { 0.0f, 0.0f, 1.0f, 0.0f };
+static const float g_defaultRotation[4] = {0.0f, 0.0f, 1.0f, 0.0f};
 // GLOBAL: XVT 0x51B050
-static const InventorFieldRecord g_defaultColorListRecord = { INVENTOR_FIELD_COLOR_LIST, 1, NULL };
+static const InventorFieldRecord g_defaultColorListRecord = {
+	INVENTOR_FIELD_COLOR_LIST, 1, NULL};
 // GLOBAL: XVT 0x51B090
-static const InventorFieldRecord g_defaultColorRecord = { INVENTOR_FIELD_COLOR, 1, NULL };
+static const InventorFieldRecord g_defaultColorRecord = {INVENTOR_FIELD_COLOR,
+							 1, NULL};
 // GLOBAL: XVT 0x51B060
-static const OptVector g_defaultAmbientColor = { 0.2f, 0.2f, 0.2f };
+static const OptVector g_defaultAmbientColor = {0.2f, 0.2f, 0.2f};
 // GLOBAL: XVT 0x51B070
-static const OptVector g_defaultDiffuseColor = { 0.8f, 0.8f, 0.8f };
+static const OptVector g_defaultDiffuseColor = {0.8f, 0.8f, 0.8f};
 // GLOBAL: XVT 0x51B080
-static const OptVector g_defaultBlackColor = { 0.0f, 0.0f, 0.0f };
+static const OptVector g_defaultBlackColor = {0.0f, 0.0f, 0.0f};
 // GLOBAL: XVT 0x51B0A0
-static const OptVector g_defaultRgbColor = { 0.8f, 0.8f, 0.8f };
+static const OptVector g_defaultRgbColor = {0.8f, 0.8f, 0.8f};
 // GLOBAL: XVT 0x51B0B0
-static const InventorFieldRecord g_defaultFloatRecord = { INVENTOR_FIELD_FLOAT, 1, NULL };
+static const InventorFieldRecord g_defaultFloatRecord = {INVENTOR_FIELD_FLOAT,
+							 1, NULL};
 // GLOBAL: XVT 0x51B0BC
 static const float g_defaultZeroFloat = 0.0f;
 // GLOBAL: XVT 0x51B0C0
 static const float g_defaultShininess = 0.2f;
 // GLOBAL: XVT 0x51AFD8
-static const InventorFieldRecord g_defaultVector2ListRecord = { INVENTOR_FIELD_VECTOR2_LIST, 1, NULL };
+static const InventorFieldRecord g_defaultVector2ListRecord = {
+	INVENTOR_FIELD_VECTOR2_LIST, 1, NULL};
 // GLOBAL: XVT 0x51AFE8
-static const float g_defaultVector2[2] = { 0.0f, 0.0f };
+static const float g_defaultVector2[2] = {0.0f, 0.0f};
 // GLOBAL: XVT 0x51AF18
-static const InventorFieldRecord g_defaultEnumRecord = { INVENTOR_FIELD_ENUM, 1, NULL };
+static const InventorFieldRecord g_defaultEnumRecord = {INVENTOR_FIELD_ENUM, 1,
+							NULL};
 // GLOBAL: XVT 0x51AF24
 static const int g_defaultEnum = 0;
 
 // GLOBAL: XVT 0x51B320
-static const char* const g_bindingNames[9] = {
-	"DEFAULT",          "NONE",       "OVERALL",           "PER_PART", "PER_PART_INDEXED", "PER_FACE",
-	"PER_FACE_INDEXED", "PER_VERTEX", "PER_VERTEX_INDEXED"
-};
+static const char *const g_bindingNames[9] = {
+	"DEFAULT",	     "NONE",	 "OVERALL",	     "PER_PART",
+	"PER_PART_INDEXED",  "PER_FACE", "PER_FACE_INDEXED", "PER_VERTEX",
+	"PER_VERTEX_INDEXED"};
 // GLOBAL: XVT 0x51B348
-static const int g_bindingValues[9] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+static const int g_bindingValues[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 // GLOBAL: XVT 0x51B370
-static const InventorEnumDef g_bindingEnum = { 9, g_bindingNames, g_bindingValues };
+static const InventorEnumDef g_bindingEnum = {9, g_bindingNames,
+					      g_bindingValues};
 // GLOBAL: XVT 0x51B400
-static const char* const g_wrapNames[2] = { "REPEAT", "CLAMP" };
+static const char *const g_wrapNames[2] = {"REPEAT", "CLAMP"};
 // GLOBAL: XVT 0x51B408
-static const int g_wrapValues[2] = { 0, 1 };
+static const int g_wrapValues[2] = {0, 1};
 // GLOBAL: XVT 0x51B410
-static const InventorEnumDef g_wrapEnum = { 2, g_wrapNames, g_wrapValues };
+static const InventorEnumDef g_wrapEnum = {2, g_wrapNames, g_wrapValues};
 // GLOBAL: XVT 0x51B460
-static const char* const g_textureModelNames[3] = { "MODULATE", "DECAL", "BLEND" };
+static const char *const g_textureModelNames[3] = {"MODULATE", "DECAL",
+						   "BLEND"};
 // GLOBAL: XVT 0x51B470
-static const int g_textureModelValues[3] = { 0, 1, 2 };
+static const int g_textureModelValues[3] = {0, 1, 2};
 // GLOBAL: XVT 0x51B480
-static const InventorEnumDef g_textureModelEnum = { 3, g_textureModelNames, g_textureModelValues };
+static const InventorEnumDef g_textureModelEnum = {3, g_textureModelNames,
+						   g_textureModelValues};
 // GLOBAL: XVT 0x51B7A0
-static const char* const g_componentTypeNames[32] = {
-	"COMPTYPE_DEFAULT",    "COMPTYPE_MAINHULL",       "COMPTYPE_WING",        "COMPTYPE_FUSELAGE",
-	"COMPTYPE_GUNTURRET",  "COMPTYPE_SMALLGUN",       "COMPTYPE_ENGINE",      "COMPTYPE_BRIDGE",
-	"COMPTYPE_SHIELDGEN",  "COMPTYPE_ENERGYGEN",      "COMPTYPE_LAUNCHER",    "COMPTYPE_COMMSYS",
-	"COMPTYPE_BEAMSYS",    "COMPTYPE_COMMANDBEAM",    "COMPTYPE_DOCKINGPLAT", "COMPTYPE_LANDINGPLAT",
-	"COMPTYPE_HANGAR",     "COMPTYPE_CARGOPOD",       "COMPTYPE_MISCHULL",    "COMPTYPE_ANTENNA",
-	"COMPTYPE_ROTWING",    "COMPTYPE_ROTGUNTURRET",   "COMPTYPE_ROTLAUNCHER", "COMPTYPE_ROTCOMMSYS",
-	"COMPTYPE_ROTBEAMSYS", "COMPTYPE_ROTCOMMANDBEAM", "COMPTYPE_CUSTOM1",     "COMPTYPE_CUSTOM2",
-	"COMPTYPE_CUSTOM3",    "COMPTYPE_CUSTOM4",        "COMPTYPE_CUSTOM5",     "COMPTYPE_CUSTOM6",
+static const char *const g_componentTypeNames[32] = {
+	"COMPTYPE_DEFAULT",	"COMPTYPE_MAINHULL",
+	"COMPTYPE_WING",	"COMPTYPE_FUSELAGE",
+	"COMPTYPE_GUNTURRET",	"COMPTYPE_SMALLGUN",
+	"COMPTYPE_ENGINE",	"COMPTYPE_BRIDGE",
+	"COMPTYPE_SHIELDGEN",	"COMPTYPE_ENERGYGEN",
+	"COMPTYPE_LAUNCHER",	"COMPTYPE_COMMSYS",
+	"COMPTYPE_BEAMSYS",	"COMPTYPE_COMMANDBEAM",
+	"COMPTYPE_DOCKINGPLAT", "COMPTYPE_LANDINGPLAT",
+	"COMPTYPE_HANGAR",	"COMPTYPE_CARGOPOD",
+	"COMPTYPE_MISCHULL",	"COMPTYPE_ANTENNA",
+	"COMPTYPE_ROTWING",	"COMPTYPE_ROTGUNTURRET",
+	"COMPTYPE_ROTLAUNCHER", "COMPTYPE_ROTCOMMSYS",
+	"COMPTYPE_ROTBEAMSYS",	"COMPTYPE_ROTCOMMANDBEAM",
+	"COMPTYPE_CUSTOM1",	"COMPTYPE_CUSTOM2",
+	"COMPTYPE_CUSTOM3",	"COMPTYPE_CUSTOM4",
+	"COMPTYPE_CUSTOM5",	"COMPTYPE_CUSTOM6",
 };
 // GLOBAL: XVT 0x51B820
 static const int g_componentTypeValues[32] = {
-	0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15,
-	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-};
+	0,  1,	2,  3,	4,  5,	6,  7,	8,  9,	10, 11, 12, 13, 14, 15,
+	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
 // GLOBAL: XVT 0x51B8A0
-static const InventorEnumDef g_componentTypeEnum = { 41, g_componentTypeNames, g_componentTypeValues };
+static const InventorEnumDef g_componentTypeEnum = {41, g_componentTypeNames,
+						    g_componentTypeValues};
 // GLOBAL: XVT 0x51B958
-static const char* const g_hardpointTypeNames[32] = {
+static const char *const g_hardpointTypeNames[32] = {
 	"HARDPOINT_NONE",
 	"HARDPOINT_REBELLASER",
 	"HARDPOINT_TURBOREBELLASER",
@@ -210,329 +232,416 @@ static const char* const g_hardpointTypeNames[32] = {
 };
 // GLOBAL: XVT 0x51B9D8
 static const int g_hardpointTypeValues[32] = {
-	0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15,
-	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-};
+	0,  1,	2,  3,	4,  5,	6,  7,	8,  9,	10, 11, 12, 13, 14, 15,
+	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
 // GLOBAL: XVT 0x51BA58
-static const InventorEnumDef g_hardpointTypeEnum = { 41, g_hardpointTypeNames, g_hardpointTypeValues };
+static const InventorEnumDef g_hardpointTypeEnum = {41, g_hardpointTypeNames,
+						    g_hardpointTypeValues};
 
 // GLOBAL: XVT 0x51B0C8
 static const InventorFieldDef g_fieldCoordIndex = {
-	"coordIndex",          INVENTOR_FIELD_INTEGER_LIST, NULL, &g_defaultIntegerListRecord,
-	&g_defaultIntegerList, sizeof(g_defaultIntegerList)
-};
+	"coordIndex",
+	INVENTOR_FIELD_INTEGER_LIST,
+	NULL,
+	&g_defaultIntegerListRecord,
+	&g_defaultIntegerList,
+	sizeof(g_defaultIntegerList)};
 // GLOBAL: XVT 0x51B0E0
 static const InventorFieldDef g_fieldMaterialIndex = {
-	"materialIndex",       INVENTOR_FIELD_INTEGER_LIST, NULL, &g_defaultIntegerListRecord,
-	&g_defaultIntegerList, sizeof(g_defaultIntegerList)
-};
+	"materialIndex",
+	INVENTOR_FIELD_INTEGER_LIST,
+	NULL,
+	&g_defaultIntegerListRecord,
+	&g_defaultIntegerList,
+	sizeof(g_defaultIntegerList)};
 // GLOBAL: XVT 0x51B0F8
 static const InventorFieldDef g_fieldNormalIndex = {
-	"normalIndex",         INVENTOR_FIELD_INTEGER_LIST, NULL, &g_defaultIntegerListRecord,
-	&g_defaultIntegerList, sizeof(g_defaultIntegerList)
-};
+	"normalIndex",
+	INVENTOR_FIELD_INTEGER_LIST,
+	NULL,
+	&g_defaultIntegerListRecord,
+	&g_defaultIntegerList,
+	sizeof(g_defaultIntegerList)};
 // GLOBAL: XVT 0x51B110
 static const InventorFieldDef g_fieldTextureCoordIndex = {
-	"textureCoordIndex",         INVENTOR_FIELD_INTEGER_LIST, NULL,
-	&g_defaultIntegerListRecord, &g_defaultIntegerList,       sizeof(g_defaultIntegerList)
-};
+	"textureCoordIndex",
+	INVENTOR_FIELD_INTEGER_LIST,
+	NULL,
+	&g_defaultIntegerListRecord,
+	&g_defaultIntegerList,
+	sizeof(g_defaultIntegerList)};
 // GLOBAL: XVT 0x51B128
 static const InventorFieldDef g_fieldNumVertices = {
-	"numVertices",         INVENTOR_FIELD_INTEGER_LIST, NULL, &g_defaultIntegerListRecord,
-	&g_defaultIntegerList, sizeof(g_defaultIntegerList)
-};
+	"numVertices",
+	INVENTOR_FIELD_INTEGER_LIST,
+	NULL,
+	&g_defaultIntegerListRecord,
+	&g_defaultIntegerList,
+	sizeof(g_defaultIntegerList)};
 // GLOBAL: XVT 0x51B140
-static const InventorFieldDef g_fieldStartIndex = {
-	"startIndex",      INVENTOR_FIELD_INTEGER,  NULL, &g_defaultIntegerRecord,
-	&g_defaultInteger, sizeof(g_defaultInteger)
-};
+static const InventorFieldDef g_fieldStartIndex = {"startIndex",
+						   INVENTOR_FIELD_INTEGER,
+						   NULL,
+						   &g_defaultIntegerRecord,
+						   &g_defaultInteger,
+						   sizeof(g_defaultInteger)};
 // GLOBAL: XVT 0x51B158
 static const InventorFieldDef g_fieldVerticesPerRow = {
-	"verticesPerRow",        INVENTOR_FIELD_INTEGER, NULL,
-	&g_defaultIntegerRecord, &g_defaultInteger,      sizeof(g_defaultInteger)
-};
+	"verticesPerRow",
+	INVENTOR_FIELD_INTEGER,
+	NULL,
+	&g_defaultIntegerRecord,
+	&g_defaultInteger,
+	sizeof(g_defaultInteger)};
 // GLOBAL: XVT 0x51B170
 static const InventorFieldDef g_fieldVerticesPerColumn = {
-	"verticesPerColumn",     INVENTOR_FIELD_INTEGER, NULL,
-	&g_defaultIntegerRecord, &g_defaultInteger,      sizeof(g_defaultInteger)
-};
+	"verticesPerColumn",
+	INVENTOR_FIELD_INTEGER,
+	NULL,
+	&g_defaultIntegerRecord,
+	&g_defaultInteger,
+	sizeof(g_defaultInteger)};
 // GLOBAL: XVT 0x51B1A0
-static const InventorFieldDef g_fieldPoint2 = {
-	"point",           INVENTOR_FIELD_VECTOR2_LIST, NULL, &g_defaultVector2ListRecord,
-	&g_defaultVector2, sizeof(g_defaultVector2)
-};
+static const InventorFieldDef g_fieldPoint2 = {"point",
+					       INVENTOR_FIELD_VECTOR2_LIST,
+					       NULL,
+					       &g_defaultVector2ListRecord,
+					       &g_defaultVector2,
+					       sizeof(g_defaultVector2)};
 // GLOBAL: XVT 0x51B1B8
-static const InventorFieldDef g_fieldPoint3 = { "point",
-												INVENTOR_FIELD_VECTOR3_LIST,
-												NULL,
-												&g_defaultVector3ListRecord,
-												&g_defaultZeroVector,
-												sizeof(g_defaultZeroVector) };
+static const InventorFieldDef g_fieldPoint3 = {"point",
+					       INVENTOR_FIELD_VECTOR3_LIST,
+					       NULL,
+					       &g_defaultVector3ListRecord,
+					       &g_defaultZeroVector,
+					       sizeof(g_defaultZeroVector)};
 // GLOBAL: XVT 0x51B1D0
-static const InventorFieldDef g_fieldVector = { "vector",
-												INVENTOR_FIELD_VECTOR3_LIST,
-												NULL,
-												&g_defaultVector3ListRecord,
-												&g_defaultZeroVector,
-												sizeof(g_defaultZeroVector) };
+static const InventorFieldDef g_fieldVector = {"vector",
+					       INVENTOR_FIELD_VECTOR3_LIST,
+					       NULL,
+					       &g_defaultVector3ListRecord,
+					       &g_defaultZeroVector,
+					       sizeof(g_defaultZeroVector)};
 // GLOBAL: XVT 0x51B1E8
 static const InventorFieldDef g_fieldTranslation = {
-	"translation",           INVENTOR_FIELD_VECTOR3,     NULL,
-	&g_defaultVector3Record, &g_defaultZeroScalarVector, sizeof(g_defaultZeroScalarVector)
-};
+	"translation",
+	INVENTOR_FIELD_VECTOR3,
+	NULL,
+	&g_defaultVector3Record,
+	&g_defaultZeroScalarVector,
+	sizeof(g_defaultZeroScalarVector)};
 // GLOBAL: XVT 0x51B200
 static const InventorFieldDef g_fieldScaleFactor = {
-	"scaleFactor",           INVENTOR_FIELD_VECTOR3, NULL,
-	&g_defaultVector3Record, &g_defaultUnitVector,   sizeof(g_defaultUnitVector)
-};
+	"scaleFactor",
+	INVENTOR_FIELD_VECTOR3,
+	NULL,
+	&g_defaultVector3Record,
+	&g_defaultUnitVector,
+	sizeof(g_defaultUnitVector)};
 // GLOBAL: XVT 0x51B218
-static const InventorFieldDef g_fieldCenter = { "center",
-												INVENTOR_FIELD_VECTOR3,
-												NULL,
-												&g_defaultVector3Record,
-												&g_defaultZeroScalarVector,
-												sizeof(g_defaultZeroScalarVector) };
+static const InventorFieldDef g_fieldCenter = {
+	"center",
+	INVENTOR_FIELD_VECTOR3,
+	NULL,
+	&g_defaultVector3Record,
+	&g_defaultZeroScalarVector,
+	sizeof(g_defaultZeroScalarVector)};
 // GLOBAL: XVT 0x51B230
-static const InventorFieldDef g_fieldRotation = {
-	"rotation",         INVENTOR_FIELD_ROTATION,  NULL, &g_defaultRotationRecord,
-	&g_defaultRotation, sizeof(g_defaultRotation)
-};
+static const InventorFieldDef g_fieldRotation = {"rotation",
+						 INVENTOR_FIELD_ROTATION,
+						 NULL,
+						 &g_defaultRotationRecord,
+						 &g_defaultRotation,
+						 sizeof(g_defaultRotation)};
 // GLOBAL: XVT 0x51B248
 static const InventorFieldDef g_fieldScaleOrientation = {
-	"scaleOrientation",       INVENTOR_FIELD_ROTATION, NULL,
-	&g_defaultRotationRecord, &g_defaultRotation,      sizeof(g_defaultRotation)
-};
+	"scaleOrientation",
+	INVENTOR_FIELD_ROTATION,
+	NULL,
+	&g_defaultRotationRecord,
+	&g_defaultRotation,
+	sizeof(g_defaultRotation)};
 // GLOBAL: XVT 0x51B260
 static const InventorFieldDef g_fieldAmbientColor = {
-	"ambientColor",         INVENTOR_FIELD_COLOR_LIST,    NULL, &g_defaultColorListRecord,
-	&g_defaultAmbientColor, sizeof(g_defaultAmbientColor)
-};
+	"ambientColor",
+	INVENTOR_FIELD_COLOR_LIST,
+	NULL,
+	&g_defaultColorListRecord,
+	&g_defaultAmbientColor,
+	sizeof(g_defaultAmbientColor)};
 // GLOBAL: XVT 0x51B278
 static const InventorFieldDef g_fieldDiffuseColor = {
-	"diffuseColor",         INVENTOR_FIELD_COLOR_LIST,    NULL, &g_defaultColorListRecord,
-	&g_defaultDiffuseColor, sizeof(g_defaultDiffuseColor)
-};
+	"diffuseColor",
+	INVENTOR_FIELD_COLOR_LIST,
+	NULL,
+	&g_defaultColorListRecord,
+	&g_defaultDiffuseColor,
+	sizeof(g_defaultDiffuseColor)};
 // GLOBAL: XVT 0x51B290
 static const InventorFieldDef g_fieldSpecularColor = {
-	"specularColor",           INVENTOR_FIELD_COLOR_LIST, NULL,
-	&g_defaultColorListRecord, &g_defaultBlackColor,      sizeof(g_defaultBlackColor)
-};
+	"specularColor",
+	INVENTOR_FIELD_COLOR_LIST,
+	NULL,
+	&g_defaultColorListRecord,
+	&g_defaultBlackColor,
+	sizeof(g_defaultBlackColor)};
 // GLOBAL: XVT 0x51B2A8
 static const InventorFieldDef g_fieldEmissiveColor = {
-	"emissiveColor",           INVENTOR_FIELD_COLOR_LIST, NULL,
-	&g_defaultColorListRecord, &g_defaultBlackColor,      sizeof(g_defaultBlackColor)
-};
+	"emissiveColor",
+	INVENTOR_FIELD_COLOR_LIST,
+	NULL,
+	&g_defaultColorListRecord,
+	&g_defaultBlackColor,
+	sizeof(g_defaultBlackColor)};
 // GLOBAL: XVT 0x51B2C0
-static const InventorFieldDef g_fieldRgb = {
-	"rgb", INVENTOR_FIELD_COLOR, NULL, &g_defaultColorRecord, &g_defaultRgbColor, sizeof(g_defaultRgbColor)
-};
+static const InventorFieldDef g_fieldRgb = {"rgb",
+					    INVENTOR_FIELD_COLOR,
+					    NULL,
+					    &g_defaultColorRecord,
+					    &g_defaultRgbColor,
+					    sizeof(g_defaultRgbColor)};
 // GLOBAL: XVT 0x51B2D8
-static const InventorFieldDef g_fieldScreenArea = {
-	"screenArea",          INVENTOR_FIELD_FLOAT, NULL,
-	&g_defaultFloatRecord, &g_defaultZeroFloat,  sizeof(g_defaultZeroFloat)
-};
+static const InventorFieldDef g_fieldScreenArea = {"screenArea",
+						   INVENTOR_FIELD_FLOAT,
+						   NULL,
+						   &g_defaultFloatRecord,
+						   &g_defaultZeroFloat,
+						   sizeof(g_defaultZeroFloat)};
 // GLOBAL: XVT 0x51B2F0
-static const InventorFieldDef g_fieldShininess = {
-	"shininess",           INVENTOR_FIELD_FLOAT, NULL,
-	&g_defaultFloatRecord, &g_defaultShininess,  sizeof(g_defaultShininess)
-};
+static const InventorFieldDef g_fieldShininess = {"shininess",
+						  INVENTOR_FIELD_FLOAT,
+						  NULL,
+						  &g_defaultFloatRecord,
+						  &g_defaultShininess,
+						  sizeof(g_defaultShininess)};
 // GLOBAL: XVT 0x51B308
 static const InventorFieldDef g_fieldTransparency = {
-	"transparency",        INVENTOR_FIELD_FLOAT, NULL,
-	&g_defaultFloatRecord, &g_defaultZeroFloat,  sizeof(g_defaultZeroFloat)
-};
+	"transparency",
+	INVENTOR_FIELD_FLOAT,
+	NULL,
+	&g_defaultFloatRecord,
+	&g_defaultZeroFloat,
+	sizeof(g_defaultZeroFloat)};
 // GLOBAL: XVT 0x51B380
-static const InventorFieldDef g_fieldBindingValue = { "value",        INVENTOR_FIELD_ENUM,
-													  &g_bindingEnum, &g_defaultEnumRecord,
-													  &g_defaultEnum, sizeof(g_defaultEnum) };
+static const InventorFieldDef g_fieldBindingValue = {
+	"value",	INVENTOR_FIELD_ENUM,
+	&g_bindingEnum, &g_defaultEnumRecord,
+	&g_defaultEnum, sizeof(g_defaultEnum)};
 // GLOBAL: XVT 0x51B3E8
 static const InventorFieldDef g_fieldFilename = {
-	"filename", INVENTOR_FIELD_STRING, NULL, &g_defaultStringRecord, &g_defaultString, sizeof(g_defaultString)
-};
+	"filename",	  INVENTOR_FIELD_STRING,  NULL, &g_defaultStringRecord,
+	&g_defaultString, sizeof(g_defaultString)};
 // GLOBAL: XVT 0x51B420
-static const InventorFieldDef g_fieldWrapS = { "wrapS",        INVENTOR_FIELD_ENUM,
-											   &g_wrapEnum,    &g_defaultEnumRecord,
-											   &g_defaultEnum, sizeof(g_defaultEnum) };
+static const InventorFieldDef g_fieldWrapS = {
+	"wrapS",	INVENTOR_FIELD_ENUM,  &g_wrapEnum, &g_defaultEnumRecord,
+	&g_defaultEnum, sizeof(g_defaultEnum)};
 // GLOBAL: XVT 0x51B448
-static const InventorFieldDef g_fieldWrapT = { "wrapT",        INVENTOR_FIELD_ENUM,
-											   &g_wrapEnum,    &g_defaultEnumRecord,
-											   &g_defaultEnum, sizeof(g_defaultEnum) };
+static const InventorFieldDef g_fieldWrapT = {
+	"wrapT",	INVENTOR_FIELD_ENUM,  &g_wrapEnum, &g_defaultEnumRecord,
+	&g_defaultEnum, sizeof(g_defaultEnum)};
 // GLOBAL: XVT 0x51B490
-static const InventorFieldDef g_fieldTextureModel = {
-	"model",        INVENTOR_FIELD_ENUM,  &g_textureModelEnum, &g_defaultEnumRecord,
-	&g_defaultEnum, sizeof(g_defaultEnum)
-};
+static const InventorFieldDef g_fieldTextureModel = {"model",
+						     INVENTOR_FIELD_ENUM,
+						     &g_textureModelEnum,
+						     &g_defaultEnumRecord,
+						     &g_defaultEnum,
+						     sizeof(g_defaultEnum)};
 // GLOBAL: XVT 0x51B4A8
 static const InventorFieldDef g_fieldBlendColor = {
-	"blendColor",          INVENTOR_FIELD_COLOR, NULL,
-	&g_defaultColorRecord, &g_defaultRgbColor,   sizeof(g_defaultRgbColor)
-};
+	"blendColor",	       INVENTOR_FIELD_COLOR, NULL,
+	&g_defaultColorRecord, &g_defaultRgbColor,   sizeof(g_defaultRgbColor)};
 // GLOBAL: XVT 0x51B8B0
-static const InventorFieldDef g_fieldComponentType = {
-	"type",         INVENTOR_FIELD_ENUM,  &g_componentTypeEnum, &g_defaultEnumRecord,
-	&g_defaultEnum, sizeof(g_defaultEnum)
-};
+static const InventorFieldDef g_fieldComponentType = {"type",
+						      INVENTOR_FIELD_ENUM,
+						      &g_componentTypeEnum,
+						      &g_defaultEnumRecord,
+						      &g_defaultEnum,
+						      sizeof(g_defaultEnum)};
 // GLOBAL: XVT 0x51B8C8
-static const InventorFieldDef g_fieldSize = { "size",
-											  INVENTOR_FIELD_VECTOR3,
-											  NULL,
-											  &g_defaultVector3Record,
-											  &g_defaultZeroScalarVector,
-											  sizeof(g_defaultZeroScalarVector) };
+static const InventorFieldDef g_fieldSize = {"size",
+					     INVENTOR_FIELD_VECTOR3,
+					     NULL,
+					     &g_defaultVector3Record,
+					     &g_defaultZeroScalarVector,
+					     sizeof(g_defaultZeroScalarVector)};
 // GLOBAL: XVT 0x51B8E0
-static const InventorFieldDef g_fieldMinVector = { "minvector",
-												   INVENTOR_FIELD_VECTOR3,
-												   NULL,
-												   &g_defaultVector3Record,
-												   &g_defaultZeroScalarVector,
-												   sizeof(g_defaultZeroScalarVector) };
+static const InventorFieldDef g_fieldMinVector = {
+	"minvector",
+	INVENTOR_FIELD_VECTOR3,
+	NULL,
+	&g_defaultVector3Record,
+	&g_defaultZeroScalarVector,
+	sizeof(g_defaultZeroScalarVector)};
 // GLOBAL: XVT 0x51B8F8
-static const InventorFieldDef g_fieldMaxVector = { "maxvector",
-												   INVENTOR_FIELD_VECTOR3,
-												   NULL,
-												   &g_defaultVector3Record,
-												   &g_defaultZeroScalarVector,
-												   sizeof(g_defaultZeroScalarVector) };
+static const InventorFieldDef g_fieldMaxVector = {
+	"maxvector",
+	INVENTOR_FIELD_VECTOR3,
+	NULL,
+	&g_defaultVector3Record,
+	&g_defaultZeroScalarVector,
+	sizeof(g_defaultZeroScalarVector)};
 // GLOBAL: XVT 0x51B910
 static const InventorFieldDef g_fieldGroupCenter = {
-	"groupcenter",           INVENTOR_FIELD_VECTOR3,     NULL,
-	&g_defaultVector3Record, &g_defaultZeroScalarVector, sizeof(g_defaultZeroScalarVector)
-};
+	"groupcenter",
+	INVENTOR_FIELD_VECTOR3,
+	NULL,
+	&g_defaultVector3Record,
+	&g_defaultZeroScalarVector,
+	sizeof(g_defaultZeroScalarVector)};
 // GLOBAL: XVT 0x51B928
-static const InventorFieldDef g_fieldFlags = {
-	"flags",           INVENTOR_FIELD_INTEGER,  NULL, &g_defaultIntegerRecord,
-	&g_defaultInteger, sizeof(g_defaultInteger)
-};
+static const InventorFieldDef g_fieldFlags = {"flags",
+					      INVENTOR_FIELD_INTEGER,
+					      NULL,
+					      &g_defaultIntegerRecord,
+					      &g_defaultInteger,
+					      sizeof(g_defaultInteger)};
 // GLOBAL: XVT 0x51B940
-static const InventorFieldDef g_fieldGroupId = {
-	"groupid",         INVENTOR_FIELD_INTEGER,  NULL, &g_defaultIntegerRecord,
-	&g_defaultInteger, sizeof(g_defaultInteger)
-};
+static const InventorFieldDef g_fieldGroupId = {"groupid",
+						INVENTOR_FIELD_INTEGER,
+						NULL,
+						&g_defaultIntegerRecord,
+						&g_defaultInteger,
+						sizeof(g_defaultInteger)};
 // GLOBAL: XVT 0x51BA68
-static const InventorFieldDef g_fieldHardpointType = {
-	"type",         INVENTOR_FIELD_ENUM,  &g_hardpointTypeEnum, &g_defaultEnumRecord,
-	&g_defaultEnum, sizeof(g_defaultEnum)
-};
+static const InventorFieldDef g_fieldHardpointType = {"type",
+						      INVENTOR_FIELD_ENUM,
+						      &g_hardpointTypeEnum,
+						      &g_defaultEnumRecord,
+						      &g_defaultEnum,
+						      sizeof(g_defaultEnum)};
 // GLOBAL: XVT 0x51BA80
-static const InventorFieldDef g_fieldAxis1 = { "axis1",
-											   INVENTOR_FIELD_VECTOR3,
-											   NULL,
-											   &g_defaultVector3Record,
-											   &g_defaultZeroScalarVector,
-											   sizeof(g_defaultZeroScalarVector) };
+static const InventorFieldDef g_fieldAxis1 = {
+	"axis1",
+	INVENTOR_FIELD_VECTOR3,
+	NULL,
+	&g_defaultVector3Record,
+	&g_defaultZeroScalarVector,
+	sizeof(g_defaultZeroScalarVector)};
 // GLOBAL: XVT 0x51BA98
-static const InventorFieldDef g_fieldAxis2 = { "axis2",
-											   INVENTOR_FIELD_VECTOR3,
-											   NULL,
-											   &g_defaultVector3Record,
-											   &g_defaultZeroScalarVector,
-											   sizeof(g_defaultZeroScalarVector) };
+static const InventorFieldDef g_fieldAxis2 = {
+	"axis2",
+	INVENTOR_FIELD_VECTOR3,
+	NULL,
+	&g_defaultVector3Record,
+	&g_defaultZeroScalarVector,
+	sizeof(g_defaultZeroScalarVector)};
 // GLOBAL: XVT 0x51BAB0
-static const InventorFieldDef g_fieldAxis3 = { "axis3",
-											   INVENTOR_FIELD_VECTOR3,
-											   NULL,
-											   &g_defaultVector3Record,
-											   &g_defaultZeroScalarVector,
-											   sizeof(g_defaultZeroScalarVector) };
+static const InventorFieldDef g_fieldAxis3 = {
+	"axis3",
+	INVENTOR_FIELD_VECTOR3,
+	NULL,
+	&g_defaultVector3Record,
+	&g_defaultZeroScalarVector,
+	sizeof(g_defaultZeroScalarVector)};
 
 // GLOBAL: XVT 0x51BAD8
-static const InventorFieldDef* const g_fieldsIndexedFaceSet[] = { &g_fieldCoordIndex, &g_fieldMaterialIndex,
-																  &g_fieldNormalIndex,
-																  &g_fieldTextureCoordIndex };
+static const InventorFieldDef *const g_fieldsIndexedFaceSet[] = {
+	&g_fieldCoordIndex, &g_fieldMaterialIndex, &g_fieldNormalIndex,
+	&g_fieldTextureCoordIndex};
 // GLOBAL: XVT 0x51BAF8
-static const InventorFieldDef* const g_fieldsTransform[] = { &g_fieldTranslation, &g_fieldRotation,
-															 &g_fieldScaleFactor, &g_fieldScaleOrientation,
-															 &g_fieldCenter };
+static const InventorFieldDef *const g_fieldsTransform[] = {
+	&g_fieldTranslation, &g_fieldRotation, &g_fieldScaleFactor,
+	&g_fieldScaleOrientation, &g_fieldCenter};
 // GLOBAL: XVT 0x51BB1C
-static const InventorFieldDef* const g_fieldsCoordinate3[] = { &g_fieldPoint3 };
+static const InventorFieldDef *const g_fieldsCoordinate3[] = {&g_fieldPoint3};
 // GLOBAL: XVT 0x51BB2C
-static const InventorFieldDef* const g_fieldsTranslation[] = { &g_fieldTranslation };
+static const InventorFieldDef *const g_fieldsTranslation[] = {
+	&g_fieldTranslation};
 // GLOBAL: XVT 0x51BB3C
-static const InventorFieldDef* const g_fieldsRotation[] = { &g_fieldRotation };
+static const InventorFieldDef *const g_fieldsRotation[] = {&g_fieldRotation};
 // GLOBAL: XVT 0x51BB4C
-static const InventorFieldDef* const g_fieldsScale[] = { &g_fieldScaleFactor };
+static const InventorFieldDef *const g_fieldsScale[] = {&g_fieldScaleFactor};
 // GLOBAL: XVT 0x51BB5C
-static const InventorFieldDef* const g_fieldsUse[] = { &g_fieldFilename };
+static const InventorFieldDef *const g_fieldsUse[] = {&g_fieldFilename};
 // GLOBAL: XVT 0x51BB80
-static const InventorFieldDef* const g_fieldsMaterial[] = { &g_fieldAmbientColor,  &g_fieldDiffuseColor,
-															&g_fieldSpecularColor, &g_fieldEmissiveColor,
-															&g_fieldShininess,     &g_fieldTransparency };
+static const InventorFieldDef *const g_fieldsMaterial[] = {
+	&g_fieldAmbientColor,  &g_fieldDiffuseColor, &g_fieldSpecularColor,
+	&g_fieldEmissiveColor, &g_fieldShininess,    &g_fieldTransparency};
 // GLOBAL: XVT 0x51BBA4
-static const InventorFieldDef* const g_fieldsBinding[] = { &g_fieldBindingValue };
+static const InventorFieldDef *const g_fieldsBinding[] = {&g_fieldBindingValue};
 // GLOBAL: XVT 0x51BBB4
-static const InventorFieldDef* const g_fieldsNormal[] = { &g_fieldVector };
+static const InventorFieldDef *const g_fieldsNormal[] = {&g_fieldVector};
 // GLOBAL: XVT 0x51BBD4
-static const InventorFieldDef* const g_fieldsTextureCoordinate2[] = { &g_fieldPoint2 };
+static const InventorFieldDef *const g_fieldsTextureCoordinate2[] = {
+	&g_fieldPoint2};
 // GLOBAL: XVT 0x51BBF8
-static const InventorFieldDef* const g_fieldsQuadMesh[] = { &g_fieldStartIndex, &g_fieldVerticesPerRow,
-															&g_fieldVerticesPerColumn };
+static const InventorFieldDef *const g_fieldsQuadMesh[] = {
+	&g_fieldStartIndex, &g_fieldVerticesPerRow, &g_fieldVerticesPerColumn};
 // GLOBAL: XVT 0x51BC14
-static const InventorFieldDef* const g_fieldsFaceSet[] = { &g_fieldNumVertices };
+static const InventorFieldDef *const g_fieldsFaceSet[] = {&g_fieldNumVertices};
 // GLOBAL: XVT 0x51BC44
-static const InventorFieldDef* const g_fieldsBaseColor[] = { &g_fieldRgb };
+static const InventorFieldDef *const g_fieldsBaseColor[] = {&g_fieldRgb};
 // GLOBAL: XVT 0x51BC58
-static const InventorFieldDef* const g_fieldsTexture2[] = { &g_fieldFilename, &g_fieldWrapS, &g_fieldWrapT,
-															&g_fieldTextureModel, &g_fieldBlendColor };
+static const InventorFieldDef *const g_fieldsTexture2[] = {
+	&g_fieldFilename, &g_fieldWrapS, &g_fieldWrapT, &g_fieldTextureModel,
+	&g_fieldBlendColor};
 // GLOBAL: XVT 0x51BC7C
-static const InventorFieldDef* const g_fieldsLevelOfDetail[] = { &g_fieldScreenArea };
+static const InventorFieldDef *const g_fieldsLevelOfDetail[] = {
+	&g_fieldScreenArea};
 // GLOBAL: XVT 0x51BC90
-static const InventorFieldDef* const g_fieldsHardpoint[] = { &g_fieldHardpointType, &g_fieldPoint3 };
+static const InventorFieldDef *const g_fieldsHardpoint[] = {
+	&g_fieldHardpointType, &g_fieldPoint3};
 // GLOBAL: XVT 0x51BCA8
-static const InventorFieldDef* const g_fieldsPivot[] = { &g_fieldCenter, &g_fieldAxis1, &g_fieldAxis2,
-														 &g_fieldAxis3 };
+static const InventorFieldDef *const g_fieldsPivot[] = {
+	&g_fieldCenter, &g_fieldAxis1, &g_fieldAxis2, &g_fieldAxis3};
 // GLOBAL: XVT 0x51BCD8
-static const InventorFieldDef* const g_fieldsComponentInfo[] = {
-	&g_fieldComponentType, &g_fieldFlags,     &g_fieldSize,    &g_fieldCenter,
-	&g_fieldMinVector,     &g_fieldMaxVector, &g_fieldGroupId, &g_fieldGroupCenter,
+static const InventorFieldDef *const g_fieldsComponentInfo[] = {
+	&g_fieldComponentType, &g_fieldFlags,	    &g_fieldSize,
+	&g_fieldCenter,	       &g_fieldMinVector,   &g_fieldMaxVector,
+	&g_fieldGroupId,       &g_fieldGroupCenter,
 };
 
 // GLOBAL: XVT 0x51BAC8
 static const InventorNodeDef g_inventorNodeDefData[26] = {
-	{ "separator", 0, NULL },
-	{ "indexedFaceSet", 4, g_fieldsIndexedFaceSet },
-	{ "transform", 5, g_fieldsTransform },
-	{ "coordinate3", 1, g_fieldsCoordinate3 },
-	{ "translation", 1, g_fieldsTranslation },
-	{ "rotation", 1, g_fieldsRotation },
-	{ "scale", 1, g_fieldsScale },
-	{ "use", 1, g_fieldsUse },
-	{ "def", 0, NULL },
-	{ "material", 6, g_fieldsMaterial },
-	{ "materialBinding", 1, g_fieldsBinding },
-	{ "normal", 1, g_fieldsNormal },
-	{ "normalBinding", 1, g_fieldsBinding },
-	{ "textureCoordinate2", 1, g_fieldsTextureCoordinate2 },
-	{ "textureCoordinateBinding", 1, g_fieldsBinding },
-	{ "quadMesh", 3, g_fieldsQuadMesh },
-	{ "faceSet", 1, g_fieldsFaceSet },
-	{ "triangleStripSet", 1, g_fieldsFaceSet },
-	{ "group", 0, NULL },
-	{ "baseColor", 1, g_fieldsBaseColor },
-	{ "texture2", 5, g_fieldsTexture2 },
-	{ "levelofdetail", 1, g_fieldsLevelOfDetail },
-	{ "hardpoint", 2, g_fieldsHardpoint },
-	{ "pivot", 4, g_fieldsPivot },
-	{ "camoswitch", 0, NULL },
-	{ "componentInfo", 8, g_fieldsComponentInfo },
+	{"separator", 0, NULL},
+	{"indexedFaceSet", 4, g_fieldsIndexedFaceSet},
+	{"transform", 5, g_fieldsTransform},
+	{"coordinate3", 1, g_fieldsCoordinate3},
+	{"translation", 1, g_fieldsTranslation},
+	{"rotation", 1, g_fieldsRotation},
+	{"scale", 1, g_fieldsScale},
+	{"use", 1, g_fieldsUse},
+	{"def", 0, NULL},
+	{"material", 6, g_fieldsMaterial},
+	{"materialBinding", 1, g_fieldsBinding},
+	{"normal", 1, g_fieldsNormal},
+	{"normalBinding", 1, g_fieldsBinding},
+	{"textureCoordinate2", 1, g_fieldsTextureCoordinate2},
+	{"textureCoordinateBinding", 1, g_fieldsBinding},
+	{"quadMesh", 3, g_fieldsQuadMesh},
+	{"faceSet", 1, g_fieldsFaceSet},
+	{"triangleStripSet", 1, g_fieldsFaceSet},
+	{"group", 0, NULL},
+	{"baseColor", 1, g_fieldsBaseColor},
+	{"texture2", 5, g_fieldsTexture2},
+	{"levelofdetail", 1, g_fieldsLevelOfDetail},
+	{"hardpoint", 2, g_fieldsHardpoint},
+	{"pivot", 4, g_fieldsPivot},
+	{"camoswitch", 0, NULL},
+	{"componentInfo", 8, g_fieldsComponentInfo},
 };
 
 // GLOBAL: XVT 0x51BD08
-const InventorNodeDef* const g_inventorNodeDefs[26] = {
-	&g_inventorNodeDefData[0],  &g_inventorNodeDefData[1],  &g_inventorNodeDefData[2],
-	&g_inventorNodeDefData[3],  &g_inventorNodeDefData[4],  &g_inventorNodeDefData[5],
-	&g_inventorNodeDefData[6],  &g_inventorNodeDefData[7],  &g_inventorNodeDefData[8],
-	&g_inventorNodeDefData[9],  &g_inventorNodeDefData[10], &g_inventorNodeDefData[11],
-	&g_inventorNodeDefData[12], &g_inventorNodeDefData[13], &g_inventorNodeDefData[14],
-	&g_inventorNodeDefData[15], &g_inventorNodeDefData[16], &g_inventorNodeDefData[17],
-	&g_inventorNodeDefData[18], &g_inventorNodeDefData[19], &g_inventorNodeDefData[20],
-	&g_inventorNodeDefData[21], &g_inventorNodeDefData[22], &g_inventorNodeDefData[23],
+const InventorNodeDef *const g_inventorNodeDefs[26] = {
+	&g_inventorNodeDefData[0],  &g_inventorNodeDefData[1],
+	&g_inventorNodeDefData[2],  &g_inventorNodeDefData[3],
+	&g_inventorNodeDefData[4],  &g_inventorNodeDefData[5],
+	&g_inventorNodeDefData[6],  &g_inventorNodeDefData[7],
+	&g_inventorNodeDefData[8],  &g_inventorNodeDefData[9],
+	&g_inventorNodeDefData[10], &g_inventorNodeDefData[11],
+	&g_inventorNodeDefData[12], &g_inventorNodeDefData[13],
+	&g_inventorNodeDefData[14], &g_inventorNodeDefData[15],
+	&g_inventorNodeDefData[16], &g_inventorNodeDefData[17],
+	&g_inventorNodeDefData[18], &g_inventorNodeDefData[19],
+	&g_inventorNodeDefData[20], &g_inventorNodeDefData[21],
+	&g_inventorNodeDefData[22], &g_inventorNodeDefData[23],
 	&g_inventorNodeDefData[24], &g_inventorNodeDefData[25],
 };
 
 // GLOBAL: XVT 0x5505F8
-uint8_t g_inventorFieldSeen[256] = { 0 };
+uint8_t g_inventorFieldSeen[256] = {0};
 // GLOBAL: XVT 0x5506F8
-char g_optModelLoadScratchBuffer[257] = { 0 };
+char g_optModelLoadScratchBuffer[257] = {0};
 #endif
 
 // GLOBAL: XVT 0x51C560
@@ -561,19 +670,23 @@ const char g_extTex[4] = "tex";
 #endif
 // GLOBAL: XVT 0x5270B8
 const float g_sw3dSpanLengthReciprocal[70] = {
-	1.0f,         1.0f,         1.0f / 2.0f,  1.0f / 3.0f,  1.0f / 4.0f,  1.0f / 5.0f,  1.0f / 6.0f,
-	1.0f / 7.0f,  1.0f / 8.0f,  1.0f / 9.0f,  1.0f / 10.0f, 1.0f / 11.0f, 1.0f / 12.0f, 1.0f / 13.0f,
-	1.0f / 14.0f, 1.0f / 15.0f, 1.0f / 16.0f, 1.0f / 17.0f, 1.0f / 18.0f, 1.0f / 19.0f, 1.0f / 20.0f,
-	1.0f / 21.0f, 1.0f / 22.0f, 1.0f / 23.0f, 1.0f / 24.0f, 1.0f / 25.0f, 1.0f / 26.0f, 1.0f / 27.0f,
-	1.0f / 28.0f, 1.0f / 29.0f, 1.0f / 30.0f, 1.0f / 31.0f, 1.0f / 32.0f, 1.0f / 33.0f, 1.0f / 34.0f,
-	1.0f / 35.0f, 1.0f / 36.0f, 1.0f / 37.0f, 1.0f / 38.0f, 1.0f / 39.0f, 1.0f / 40.0f, 1.0f / 41.0f,
-	1.0f / 42.0f, 1.0f / 43.0f, 1.0f / 44.0f, 1.0f / 45.0f, 1.0f / 46.0f, 1.0f / 47.0f, 1.0f / 48.0f,
-	1.0f / 49.0f, 1.0f / 50.0f, 1.0f / 51.0f, 1.0f / 52.0f, 1.0f / 53.0f, 1.0f / 54.0f, 1.0f / 55.0f,
-	1.0f / 56.0f, 1.0f / 57.0f, 1.0f / 58.0f, 1.0f / 59.0f, 1.0f / 60.0f, 1.0f / 61.0f, 1.0f / 62.0f,
-	1.0f / 63.0f, 1.0f / 64.0f, 1.0f / 65.0f, 1.0f / 66.0f, 1.0f / 67.0f, 1.0f / 68.0f, 1.0f / 69.0f,
+	1.0f,	      1.0f,	    1.0f / 2.0f,  1.0f / 3.0f,	1.0f / 4.0f,
+	1.0f / 5.0f,  1.0f / 6.0f,  1.0f / 7.0f,  1.0f / 8.0f,	1.0f / 9.0f,
+	1.0f / 10.0f, 1.0f / 11.0f, 1.0f / 12.0f, 1.0f / 13.0f, 1.0f / 14.0f,
+	1.0f / 15.0f, 1.0f / 16.0f, 1.0f / 17.0f, 1.0f / 18.0f, 1.0f / 19.0f,
+	1.0f / 20.0f, 1.0f / 21.0f, 1.0f / 22.0f, 1.0f / 23.0f, 1.0f / 24.0f,
+	1.0f / 25.0f, 1.0f / 26.0f, 1.0f / 27.0f, 1.0f / 28.0f, 1.0f / 29.0f,
+	1.0f / 30.0f, 1.0f / 31.0f, 1.0f / 32.0f, 1.0f / 33.0f, 1.0f / 34.0f,
+	1.0f / 35.0f, 1.0f / 36.0f, 1.0f / 37.0f, 1.0f / 38.0f, 1.0f / 39.0f,
+	1.0f / 40.0f, 1.0f / 41.0f, 1.0f / 42.0f, 1.0f / 43.0f, 1.0f / 44.0f,
+	1.0f / 45.0f, 1.0f / 46.0f, 1.0f / 47.0f, 1.0f / 48.0f, 1.0f / 49.0f,
+	1.0f / 50.0f, 1.0f / 51.0f, 1.0f / 52.0f, 1.0f / 53.0f, 1.0f / 54.0f,
+	1.0f / 55.0f, 1.0f / 56.0f, 1.0f / 57.0f, 1.0f / 58.0f, 1.0f / 59.0f,
+	1.0f / 60.0f, 1.0f / 61.0f, 1.0f / 62.0f, 1.0f / 63.0f, 1.0f / 64.0f,
+	1.0f / 65.0f, 1.0f / 66.0f, 1.0f / 67.0f, 1.0f / 68.0f, 1.0f / 69.0f,
 };
 // GLOBAL: XVT 0x9A7ED0
-uint16_t g_loadedModels[201] = { 0 };
+uint16_t g_loadedModels[201] = {0};
 // GLOBAL: XVT 0x60F1E4
 int g_optConvertVectorSearchCursor = 0;
 // GLOBAL: XVT 0x60F1FC
@@ -589,20 +702,20 @@ unsigned int g_optConvertSourceBufSize = 0;
 // GLOBAL: XVT 0x60F204
 int g_curVertexCount = 0;
 // GLOBAL: XVT 0x60F1C0
-void* g_curMeshVertices = NULL;
+void *g_curMeshVertices = NULL;
 // GLOBAL: XVT 0x60F1D8
-void* g_curMeshMaterials = NULL;
+void *g_curMeshMaterials = NULL;
 // GLOBAL: XVT 0x60F1E8
-void* g_curMeshTexCoords = NULL;
+void *g_curMeshTexCoords = NULL;
 // GLOBAL: XVT 0x60F1F0
-void* g_modelNodeWalkUnusedScratch2 = NULL;
+void *g_modelNodeWalkUnusedScratch2 = NULL;
 // GLOBAL: XVT 0x60F208
-OptVector* g_curVertNormals = NULL;
+OptVector *g_curVertNormals = NULL;
 #ifndef XVT_MODERN
 // GLOBAL: XVT 0x5272C0
 int g_optImportScratchVectorCount = 0;
 // GLOBAL: XVT 0x5272C4
-OptVector* g_optImportScratchVectors = NULL;
+OptVector *g_optImportScratchVectors = NULL;
 // GLOBAL: XVT 0x5271D0
 int g_optModelInvertFaceNormals = 0;
 // GLOBAL: XVT 0x60F1D4
@@ -611,32 +724,35 @@ int g_generatedVertexNormalCount = 0;
 // GLOBAL: XVT 0x5272BC
 static int g_optConvertTargetFaceFound = 0;
 // GLOBAL: XVT 0x60F1C8
-OptNode* g_optConvertSourceMeshNode = NULL;
+OptNode *g_optConvertSourceMeshNode = NULL;
 // GLOBAL: XVT 0x60F1CC
-OptNode* g_optConvertVertexNormalNode = NULL;
+OptNode *g_optConvertVertexNormalNode = NULL;
 // GLOBAL: XVT 0x60F1DC
-OptNode* g_optConvertSourceTextureNode = NULL;
+OptNode *g_optConvertSourceTextureNode = NULL;
 // GLOBAL: XVT 0x60F1F4
-OptNode* g_optConvertTexCoordNode = NULL;
+OptNode *g_optConvertTexCoordNode = NULL;
 // GLOBAL: XVT 0x60F1F8
-OptNode* g_optConvertFaceTextureNode = NULL;
+OptNode *g_optConvertFaceTextureNode = NULL;
 // GLOBAL: XVT 0x60F200
-OptNode* g_optConvertVertexNode = NULL;
+OptNode *g_optConvertVertexNode = NULL;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x411E00
-uint16_t OptModel_LoadHandle(const char* modelFilename) {
+uint16_t OptModel_LoadHandle(const char *modelFilename)
+{
 #ifdef XVT_MODERN
 	char fileName[257];
 	uint16_t fileHandle;
 	uint16_t runtimeHandle;
 
-	if (!modelFilename || strlen(modelFilename) >= sizeof(fileName))
+	if (!modelFilename || strlen(modelFilename) >= sizeof(fileName)) {
 		return 0;
+	}
 	strcpy(fileName, modelFilename);
 	fileHandle = OptModel_LoadFileToHandle(fileName);
-	if (!fileHandle)
+	if (!fileHandle) {
 		return 0;
+	}
 	FlightLoading_PulseAndDrawProgressScreen();
 	runtimeHandle = OptModel_CreateRuntimeHandle(fileHandle);
 	XvtRenderAssets_RegisterOpt(runtimeHandle, modelFilename);
@@ -645,45 +761,59 @@ uint16_t OptModel_LoadHandle(const char* modelFilename) {
 #else
 	int extensionIndex;
 	uint16_t importedHandle;
-	XvtFile* stream;
+	XvtFile *stream;
 	uint16_t packedHandle;
 	uint16_t fileHandle;
 	uint16_t runtimeHandle;
 	int compareResult;
 
 	strcpy(g_optModelLoadScratchBuffer, modelFilename);
-	FeDiskIo_OpenGlobalStream(g_optModelLoadScratchBuffer, g_fileModeReadBinary, 0, 0);
+	FeDiskIo_OpenGlobalStream(g_optModelLoadScratchBuffer,
+				  g_fileModeReadBinary, 0, 0);
 	if (g_stream == NULL) {
-		for (extensionIndex = 0; g_optModelLoadScratchBuffer[extensionIndex] != '.'; ++extensionIndex) {
+		for (extensionIndex = 0;
+		     g_optModelLoadScratchBuffer[extensionIndex] != '.';
+		     ++extensionIndex) {
 		}
 		g_optModelLoadScratchBuffer[extensionIndex] = '\0';
 		strcat(g_optModelLoadScratchBuffer, ".iv");
-		FeDiskIo_OpenGlobalStream(g_optModelLoadScratchBuffer, g_fileModeReadBinary, 1, 0);
-		stream = (XvtFile*)g_stream;
+		FeDiskIo_OpenGlobalStream(g_optModelLoadScratchBuffer,
+					  g_fileModeReadBinary, 1, 0);
+		stream = (XvtFile *)g_stream;
 		if (stream == NULL) {
 			return 0;
 		}
-		if (File_Scanf(stream, "%256s", g_optModelLoadScratchBuffer) != 1) {
+		if (File_Scanf(stream, "%256s", g_optModelLoadScratchBuffer) !=
+		    1) {
 			return 0;
 		}
-		compareResult = _strnicmp(g_optModelLoadScratchBuffer, "#inventor", sizeof("#inventor") - 1);
+		compareResult = _strnicmp(g_optModelLoadScratchBuffer,
+					  "#inventor", sizeof("#inventor") - 1);
 		if (compareResult != 0) {
 			return 0;
 		}
-		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
+		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) !=
+		    1) {
 			return 0;
 		}
-		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
+		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) !=
+		    1) {
 			return 0;
 		}
 
-		compareResult = _strnicmp(g_optModelLoadScratchBuffer, "ascii", sizeof("ascii") - 1);
+		compareResult = _strnicmp(g_optModelLoadScratchBuffer, "ascii",
+					  sizeof("ascii") - 1);
 		if (compareResult == 0) {
-			importedHandle = OptModel_LoadInventorAsciiToHandle(stream);
+			importedHandle =
+				OptModel_LoadInventorAsciiToHandle(stream);
 		} else {
-			compareResult = _strnicmp(g_optModelLoadScratchBuffer, "binary", sizeof("binary") - 1);
+			compareResult =
+				_strnicmp(g_optModelLoadScratchBuffer, "binary",
+					  sizeof("binary") - 1);
 			if (compareResult == 0) {
-				importedHandle = OptModel_LoadInventorBinaryToHandle(stream);
+				importedHandle =
+					OptModel_LoadInventorBinaryToHandle(
+						stream);
 			} else {
 				File_RawClose(stream);
 				return 0;
@@ -691,13 +821,15 @@ uint16_t OptModel_LoadHandle(const char* modelFilename) {
 		}
 
 		File_RawClose(stream);
-		packedHandle = OptModel_ConvertImportedHandleToPacked(importedHandle);
+		packedHandle =
+			OptModel_ConvertImportedHandleToPacked(importedHandle);
 		strcpy(g_optModelLoadScratchBuffer, modelFilename);
-		OptModel_SaveHandleToFile(g_optModelLoadScratchBuffer, packedHandle);
+		OptModel_SaveHandleToFile(g_optModelLoadScratchBuffer,
+					  packedHandle);
 		return OptModel_CreateRuntimeHandle(packedHandle);
 	}
 
-	File_RawClose((XvtFile*)g_stream);
+	File_RawClose((XvtFile *)g_stream);
 	fileHandle = OptModel_LoadFileToHandle(g_optModelLoadScratchBuffer);
 	FlightLoading_PulseAndDrawProgressScreen();
 	runtimeHandle = OptModel_CreateRuntimeHandle(fileHandle);
@@ -708,14 +840,16 @@ uint16_t OptModel_LoadHandle(const char* modelFilename) {
 
 #ifndef XVT_MODERN
 // FUNCTION: XVT 0x412030
-uint16_t OptModel_LoadInventorBinaryToHandle(XvtFile* stream) {
+uint16_t OptModel_LoadInventorBinaryToHandle(XvtFile *stream)
+{
 	(void)stream;
 
 	return 0;
 }
 
 // FUNCTION: XVT 0x412040
-uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile* stream) {
+uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream)
+{
 
 	int rootNodeCount;
 	int rootPointerOffset;
@@ -724,14 +858,15 @@ uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile* stream) {
 	int parsedNodeSize;
 	int parsedRootCount;
 	uint16_t handle;
-	OptimizedPolyObject* model;
-	char* nodeWriteCursor;
+	OptimizedPolyObject *model;
+	char *nodeWriteCursor;
 
 	streamStartOffset = File_RawTell(stream);
 	rootNodeCount = 0;
 	nodePayloadSize = 0;
 	while (1) {
-		parsedNodeSize = OptModel_ParseInventorAsciiNode(stream, NULL, NULL);
+		parsedNodeSize =
+			OptModel_ParseInventorAsciiNode(stream, NULL, NULL);
 		if (parsedNodeSize == -1) {
 			break;
 		}
@@ -743,21 +878,26 @@ uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile* stream) {
 
 	rootPointerOffset = 0;
 	File_RawSeek(stream, streamStartOffset, SEEK_SET);
-	handle = Memory_AllocHandle(sizeof(*model) + rootNodeCount * sizeof(OptNode*) + nodePayloadSize, 0);
-	model = (OptimizedPolyObject*)Memory_LockHandle(handle);
-	nodeWriteCursor = (char*)model + sizeof(*model);
+	handle = Memory_AllocHandle(sizeof(*model) +
+					    rootNodeCount * sizeof(OptNode *) +
+					    nodePayloadSize,
+				    0);
+	model = (OptimizedPolyObject *)Memory_LockHandle(handle);
+	nodeWriteCursor = (char *)model + sizeof(*model);
 	model->rootNodeCount = rootNodeCount;
 	parsedRootCount = 0;
 	model->selfMarker = model;
 	model->reserved = handle;
-	model->rootNodes = (OptNode**)nodeWriteCursor;
-	nodeWriteCursor += rootNodeCount * sizeof(OptNode*);
+	model->rootNodes = (OptNode **)nodeWriteCursor;
+	nodeWriteCursor += rootNodeCount * sizeof(OptNode *);
 
 	for (; parsedRootCount < rootNodeCount;) {
 		parsedNodeSize = OptModel_ParseInventorAsciiNode(
-			stream, nodeWriteCursor, (OptNode**)((char*)model->rootNodes + rootPointerOffset));
+			stream, nodeWriteCursor,
+			(OptNode **)((char *)model->rootNodes +
+				     rootPointerOffset));
 		if (parsedNodeSize != 0) {
-			rootPointerOffset += sizeof(OptNode*);
+			rootPointerOffset += sizeof(OptNode *);
 			nodeWriteCursor += parsedNodeSize;
 			++parsedRootCount;
 		}
@@ -768,12 +908,14 @@ uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x412120
-int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode** outNode) {
-	char* cursor;
-	char* nodeName;
-	OptNode* node;
-	InventorFieldRecord* fieldRecords;
-	const InventorNodeDef* const* nodeDefSlot;
+int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
+				    OptNode **outNode)
+{
+	char *cursor;
+	char *nodeName;
+	OptNode *node;
+	InventorFieldRecord *fieldRecords;
+	const InventorNodeDef *const *nodeDefSlot;
 	int nodeType;
 	int totalSize;
 	int fieldScanIndex;
@@ -795,7 +937,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 
 	cursor = nodeStorage;
 	if (cursor != NULL) {
-		*outNode = (OptNode*)cursor;
+		*outNode = (OptNode *)cursor;
 	}
 	totalSize = 0;
 	if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
@@ -806,11 +948,13 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 		InventorAscii_SkipToEndOfLine(stream);
 	}
 
-	for (nodeType = 0; nodeType < (int)(sizeof(g_inventorNodeDefs) / sizeof(g_inventorNodeDefs[0]));
-		 ++nodeType) {
+	for (nodeType = 0; nodeType < (int)(sizeof(g_inventorNodeDefs) /
+					    sizeof(g_inventorNodeDefs[0]));
+	     ++nodeType) {
 		nodeDefSlot = &g_inventorNodeDefs[nodeType];
-		compareResult = _strnicmp(g_optModelLoadScratchBuffer, (*nodeDefSlot)->nodeName,
-								  strlen(g_optModelLoadScratchBuffer));
+		compareResult = _strnicmp(g_optModelLoadScratchBuffer,
+					  (*nodeDefSlot)->nodeName,
+					  strlen(g_optModelLoadScratchBuffer));
 		if (compareResult == 0) {
 			break;
 		}
@@ -818,7 +962,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 
 	nodeName = NULL;
 	if (nodeType == OPT_DEF) {
-		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
+		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) !=
+		    1) {
 			printf("READ NODE ERROR!\n");
 			return 0;
 		}
@@ -828,27 +973,33 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 			strcpy(cursor, g_optModelLoadScratchBuffer);
 			nodeName = cursor;
 			cursor += parsedSize;
-			*outNode = (OptNode*)cursor;
+			*outNode = (OptNode *)cursor;
 		}
-		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
+		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) !=
+		    1) {
 			printf("READ NODE ERROR!\n");
 			return parsedSize;
 		}
-		for (nodeType = 0; nodeType < (int)(sizeof(g_inventorNodeDefs) / sizeof(g_inventorNodeDefs[0]));
-			 ++nodeType) {
+		for (nodeType = 0;
+		     nodeType < (int)(sizeof(g_inventorNodeDefs) /
+				      sizeof(g_inventorNodeDefs[0]));
+		     ++nodeType) {
 			nodeDefSlot = &g_inventorNodeDefs[nodeType];
-			compareResult = _strnicmp(g_optModelLoadScratchBuffer, (*nodeDefSlot)->nodeName,
-									  strlen(g_optModelLoadScratchBuffer));
+			compareResult =
+				_strnicmp(g_optModelLoadScratchBuffer,
+					  (*nodeDefSlot)->nodeName,
+					  strlen(g_optModelLoadScratchBuffer));
 			if (compareResult == 0) {
 				break;
 			}
 		}
 	}
 
-	if (nodeType < (int)(sizeof(g_inventorNodeDefs) / sizeof(g_inventorNodeDefs[0]))) {
+	if (nodeType <
+	    (int)(sizeof(g_inventorNodeDefs) / sizeof(g_inventorNodeDefs[0]))) {
 		fieldRecords = NULL;
 		if (cursor != NULL) {
-			node = (OptNode*)cursor;
+			node = (OptNode *)cursor;
 			node->pName = nodeName;
 			node->nodeType = (OptNodeType)nodeType;
 			cursor += sizeof(*node);
@@ -856,734 +1007,1172 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 		}
 		totalSize += sizeof(OptNode);
 		if (cursor != NULL) {
-			fieldRecords = (InventorFieldRecord*)cursor;
+			fieldRecords = (InventorFieldRecord *)cursor;
 			node->payload = fieldRecords;
-			cursor += (*nodeDefSlot)->fieldCount * sizeof(*fieldRecords);
+			cursor += (*nodeDefSlot)->fieldCount *
+				  sizeof(*fieldRecords);
 		}
-		totalSize += (*nodeDefSlot)->fieldCount * sizeof(InventorFieldRecord);
+		totalSize += (*nodeDefSlot)->fieldCount *
+			     sizeof(InventorFieldRecord);
 
 		if (nodeType != OPT_NODEREF) {
 			InventorAscii_SkipPastOpenBrace(stream);
-			for (fieldIndex = 0; fieldIndex < (*nodeDefSlot)->fieldCount; ++fieldIndex) {
+			for (fieldIndex = 0;
+			     fieldIndex < (*nodeDefSlot)->fieldCount;
+			     ++fieldIndex) {
 				g_inventorFieldSeen[fieldIndex] = 0;
 			}
 
-			for (fieldScanIndex = 0; fieldScanIndex < (*nodeDefSlot)->fieldCount; ++fieldScanIndex) {
-				InventorFieldRecord* fieldRecord;
+			for (fieldScanIndex = 0;
+			     fieldScanIndex < (*nodeDefSlot)->fieldCount;
+			     ++fieldScanIndex) {
+				InventorFieldRecord *fieldRecord;
 
-				if (InventorAscii_PeekNextIsCloseBrace(stream) != 0) {
+				if (InventorAscii_PeekNextIsCloseBrace(
+					    stream) != 0) {
 					break;
 				}
 				rewindPosition = File_RawTell(stream);
-				if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
+				if (File_Scanf(stream, " %256s",
+					       g_optModelLoadScratchBuffer) !=
+				    1) {
 					printf("READ NODE ERROR!\n");
 					return totalSize;
 				}
-				for (fieldIndex = 0; fieldIndex < (*nodeDefSlot)->fieldCount; ++fieldIndex) {
-					compareResult = _strnicmp(g_optModelLoadScratchBuffer,
-											  (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldName,
-											  strlen(g_optModelLoadScratchBuffer));
+				for (fieldIndex = 0;
+				     fieldIndex < (*nodeDefSlot)->fieldCount;
+				     ++fieldIndex) {
+					compareResult = _strnicmp(
+						g_optModelLoadScratchBuffer,
+						(*nodeDefSlot)
+							->fieldDefs[fieldIndex]
+							->fieldName,
+						strlen(g_optModelLoadScratchBuffer));
 					if (compareResult == 0) {
 						break;
 					}
 				}
 				if (fieldIndex == (*nodeDefSlot)->fieldCount) {
-					File_RawSeek(stream, rewindPosition, SEEK_SET);
+					File_RawSeek(stream, rewindPosition,
+						     SEEK_SET);
 					break;
 				}
 
 				g_inventorFieldSeen[fieldIndex] = 1;
-				fieldRecord = fieldRecords != NULL ? &fieldRecords[fieldIndex] : NULL;
-				switch ((*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType) {
-					case INVENTOR_FIELD_STRING:
-						if (InventorAscii_PeekNextIsQuote(stream) != 0) {
-							InventorAscii_SkipPastQuote(stream);
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-								fieldRecord->itemCount = 1;
-								fieldRecord->fieldType = INVENTOR_FIELD_STRING;
-							}
-							while (1) {
-								character = (char)File_Getc(stream);
-								if (character == (char)EOF) {
-									printf("READ NODE ERROR!\n");
-									return totalSize;
-								}
-								++totalSize;
-								if (character == '"') {
-									break;
-								}
-								if (cursor != NULL) {
-									*cursor++ = character;
-								}
-							}
-							if (cursor != NULL) {
-								*cursor++ = '\0';
-							}
-						} else if (cursor != NULL) {
-							fieldRecord->data = cursor;
-							fieldRecord->itemCount = 1;
-							fieldRecord->fieldType = INVENTOR_FIELD_STRING;
-							if (File_Scanf(stream, " %s", cursor) != 1) {
-								printf("READ NODE ERROR!\n");
-								return totalSize;
-							}
-							parsedSize = strlen(cursor) + 1;
-							cursor += parsedSize;
-							totalSize += parsedSize;
-						} else {
-							if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
-								printf("READ NODE ERROR!\n");
-								return totalSize;
-							}
-							totalSize += strlen(g_optModelLoadScratchBuffer) + 1;
-						}
-						break;
-
-					case INVENTOR_FIELD_NODE:
+				fieldRecord =
+					fieldRecords != NULL
+						? &fieldRecords[fieldIndex]
+						: NULL;
+				switch ((*nodeDefSlot)
+						->fieldDefs[fieldIndex]
+						->fieldType) {
+				case INVENTOR_FIELD_STRING:
+					if (InventorAscii_PeekNextIsQuote(
+						    stream) != 0) {
+						InventorAscii_SkipPastQuote(
+							stream);
 						if (cursor != NULL) {
-							parsedSize = OptModel_ParseInventorAsciiNode(stream, cursor,
-																		 (OptNode**)&fieldRecord->data);
-							cursor += parsedSize;
-							fieldRecord->itemCount = 1;
-							fieldRecord->fieldType = INVENTOR_FIELD_NODE;
-							totalSize += parsedSize;
-						} else {
-							totalSize += OptModel_ParseInventorAsciiNode(stream, NULL, NULL);
+							fieldRecord->data =
+								cursor;
+							fieldRecord->itemCount =
+								1;
+							fieldRecord->fieldType =
+								INVENTOR_FIELD_STRING;
 						}
-						break;
-
-					case INVENTOR_FIELD_NODE_LIST:
-						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipPastOpenBracket(stream);
-							rewindPosition = File_RawTell(stream);
-							itemCount = 0;
-							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-								parsedSize = OptModel_ParseInventorAsciiNode(stream, NULL, NULL);
-								if (parsedSize != 0) {
-									++itemCount;
-									InventorAscii_SkipListSeparator(stream);
-								}
+						while (1) {
+							character =
+								(char)File_Getc(
+									stream);
+							if (character ==
+							    (char)EOF) {
+								printf("READ NODE ERROR!\n");
+								return totalSize;
 							}
-							File_RawSeek(stream, rewindPosition, SEEK_SET);
-							totalSize += itemCount * sizeof(OptNode*);
+							++totalSize;
+							if (character == '"') {
+								break;
+							}
 							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-								cursor += itemCount * sizeof(OptNode*);
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = INVENTOR_FIELD_NODE_LIST;
-							}
-							itemIndex = 0;
-							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-								if (cursor != NULL) {
-									parsedSize = OptModel_ParseInventorAsciiNode(
-										stream, cursor, &((OptNode**)fieldRecord->data)[itemIndex]);
-									if (parsedSize != 0) {
-										cursor += parsedSize;
-										++itemIndex;
-										totalSize += parsedSize;
-										InventorAscii_SkipListSeparator(stream);
-									}
-								} else {
-									parsedSize = OptModel_ParseInventorAsciiNode(stream, NULL, NULL);
-									if (parsedSize != 0) {
-										totalSize += parsedSize;
-										InventorAscii_SkipListSeparator(stream);
-									}
-								}
-							}
-							InventorAscii_SkipPastCloseBracket(stream);
-						} else {
-							totalSize += sizeof(OptNode*);
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-								cursor += sizeof(OptNode*);
-								fieldRecord->itemCount = 1;
-								fieldRecord->fieldType = INVENTOR_FIELD_NODE_LIST;
-								parsedSize = OptModel_ParseInventorAsciiNode(
-									stream, cursor, &((OptNode**)fieldRecord->data)[0]);
-								cursor += parsedSize;
-								totalSize += parsedSize;
-							} else {
-								totalSize += OptModel_ParseInventorAsciiNode(stream, NULL, NULL);
+								*cursor++ =
+									character;
 							}
 						}
-						break;
-
-					case INVENTOR_FIELD_INTEGER:
-						parsedSize = File_Scanf(stream, " %li", &integerValue);
-						if (parsedSize != 1) {
+						if (cursor != NULL) {
+							*cursor++ = '\0';
+						}
+					} else if (cursor != NULL) {
+						fieldRecord->data = cursor;
+						fieldRecord->itemCount = 1;
+						fieldRecord->fieldType =
+							INVENTOR_FIELD_STRING;
+						if (File_Scanf(stream, " %s",
+							       cursor) != 1) {
 							printf("READ NODE ERROR!\n");
 							return totalSize;
 						}
-						if (cursor != NULL) {
-							fieldRecord->data = cursor;
-							*(int*)cursor = integerValue;
-							cursor += sizeof(integerValue);
-							fieldRecord->itemCount = 1;
-							fieldRecord->fieldType = INVENTOR_FIELD_INTEGER;
+						parsedSize = strlen(cursor) + 1;
+						cursor += parsedSize;
+						totalSize += parsedSize;
+					} else {
+						if (File_Scanf(
+							    stream, " %256s",
+							    g_optModelLoadScratchBuffer) !=
+						    1) {
+							printf("READ NODE ERROR!\n");
+							return totalSize;
 						}
-						totalSize += sizeof(integerValue);
-						break;
+						totalSize +=
+							strlen(g_optModelLoadScratchBuffer) +
+							1;
+					}
+					break;
 
-					case INVENTOR_FIELD_INTEGER_LIST:
-						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipPastOpenBracket(stream);
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							itemCount = 0;
-							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-								parsedSize = File_Scanf(stream, " %li", &integerValue);
-								if (parsedSize != 1) {
-									printf("READ NODE ERROR!\n");
-									return totalSize;
-								}
-								if (cursor != NULL) {
-									*(int*)cursor = integerValue;
-									cursor += sizeof(integerValue);
-								}
+				case INVENTOR_FIELD_NODE:
+					if (cursor != NULL) {
+						parsedSize =
+							OptModel_ParseInventorAsciiNode(
+								stream, cursor,
+								(OptNode *
+									 *)&fieldRecord
+									->data);
+						cursor += parsedSize;
+						fieldRecord->itemCount = 1;
+						fieldRecord->fieldType =
+							INVENTOR_FIELD_NODE;
+						totalSize += parsedSize;
+					} else {
+						totalSize +=
+							OptModel_ParseInventorAsciiNode(
+								stream, NULL,
+								NULL);
+					}
+					break;
+
+				case INVENTOR_FIELD_NODE_LIST:
+					if (InventorAscii_PeekNextIsOpenBracket(
+						    stream) != 0) {
+						InventorAscii_SkipPastOpenBracket(
+							stream);
+						rewindPosition =
+							File_RawTell(stream);
+						itemCount = 0;
+						while (InventorAscii_PeekNextIsCloseBracket(
+							       stream) == 0) {
+							parsedSize =
+								OptModel_ParseInventorAsciiNode(
+									stream,
+									NULL,
+									NULL);
+							if (parsedSize != 0) {
 								++itemCount;
-								totalSize += sizeof(integerValue);
-								InventorAscii_SkipListSeparator(stream);
+								InventorAscii_SkipListSeparator(
+									stream);
 							}
+						}
+						File_RawSeek(stream,
+							     rewindPosition,
+							     SEEK_SET);
+						totalSize += itemCount *
+							     sizeof(OptNode *);
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+							cursor +=
+								itemCount *
+								sizeof(OptNode *);
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								INVENTOR_FIELD_NODE_LIST;
+						}
+						itemIndex = 0;
+						while (InventorAscii_PeekNextIsCloseBracket(
+							       stream) == 0) {
 							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = INVENTOR_FIELD_INTEGER_LIST;
+								parsedSize = OptModel_ParseInventorAsciiNode(
+									stream,
+									cursor,
+									&((OptNode *
+										   *)fieldRecord
+										  ->data)
+										[itemIndex]);
+								if (parsedSize !=
+								    0) {
+									cursor +=
+										parsedSize;
+									++itemIndex;
+									totalSize +=
+										parsedSize;
+									InventorAscii_SkipListSeparator(
+										stream);
+								}
+							} else {
+								parsedSize = OptModel_ParseInventorAsciiNode(
+									stream,
+									NULL,
+									NULL);
+								if (parsedSize !=
+								    0) {
+									totalSize +=
+										parsedSize;
+									InventorAscii_SkipListSeparator(
+										stream);
+								}
 							}
-							InventorAscii_SkipPastCloseBracket(stream);
+						}
+						InventorAscii_SkipPastCloseBracket(
+							stream);
+					} else {
+						totalSize += sizeof(OptNode *);
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+							cursor += sizeof(
+								OptNode *);
+							fieldRecord->itemCount =
+								1;
+							fieldRecord->fieldType =
+								INVENTOR_FIELD_NODE_LIST;
+							parsedSize = OptModel_ParseInventorAsciiNode(
+								stream, cursor,
+								&((OptNode *
+									   *)fieldRecord
+									  ->data)
+									[0]);
+							cursor += parsedSize;
+							totalSize += parsedSize;
 						} else {
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							parsedSize = File_Scanf(stream, " %li", &integerValue);
+							totalSize +=
+								OptModel_ParseInventorAsciiNode(
+									stream,
+									NULL,
+									NULL);
+						}
+					}
+					break;
+
+				case INVENTOR_FIELD_INTEGER:
+					parsedSize = File_Scanf(stream, " %li",
+								&integerValue);
+					if (parsedSize != 1) {
+						printf("READ NODE ERROR!\n");
+						return totalSize;
+					}
+					if (cursor != NULL) {
+						fieldRecord->data = cursor;
+						*(int *)cursor = integerValue;
+						cursor += sizeof(integerValue);
+						fieldRecord->itemCount = 1;
+						fieldRecord->fieldType =
+							INVENTOR_FIELD_INTEGER;
+					}
+					totalSize += sizeof(integerValue);
+					break;
+
+				case INVENTOR_FIELD_INTEGER_LIST:
+					if (InventorAscii_PeekNextIsOpenBracket(
+						    stream) != 0) {
+						InventorAscii_SkipPastOpenBracket(
+							stream);
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						itemCount = 0;
+						while (InventorAscii_PeekNextIsCloseBracket(
+							       stream) == 0) {
+							parsedSize = File_Scanf(
+								stream, " %li",
+								&integerValue);
 							if (parsedSize != 1) {
 								printf("READ NODE ERROR!\n");
 								return totalSize;
 							}
 							if (cursor != NULL) {
-								*(int*)cursor = integerValue;
-								cursor += sizeof(integerValue);
+								*(int *)cursor =
+									integerValue;
+								cursor += sizeof(
+									integerValue);
 							}
-							itemCount = 1;
-							totalSize += sizeof(integerValue);
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = INVENTOR_FIELD_INTEGER_LIST;
-							}
-						}
-						break;
-
-					case INVENTOR_FIELD_FLOAT_AS_INTEGER:
-						if (File_Scanf(stream, " %e", &floatValue) != 1) {
-							printf("READ NODE WARNING!\n");
+							++itemCount;
+							totalSize += sizeof(
+								integerValue);
+							InventorAscii_SkipListSeparator(
+								stream);
 						}
 						if (cursor != NULL) {
-							fieldRecord->data = cursor;
-							*(float*)cursor = floatValue;
-							cursor += sizeof(floatValue);
-							fieldRecord->itemCount = 0;
-							fieldRecord->fieldType = INVENTOR_FIELD_INTEGER;
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								INVENTOR_FIELD_INTEGER_LIST;
 						}
-						totalSize += sizeof(floatValue);
-						break;
-
-					case INVENTOR_FIELD_FLOAT:
-						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipPastOpenBracket(stream);
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							itemCount = 0;
-							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-								if (File_Scanf(stream, " %e", &floatValue) != 1) {
-									printf("READ NODE WARNING!\n");
-								}
-								if (cursor != NULL) {
-									*(float*)cursor = floatValue;
-									cursor += sizeof(floatValue);
-								}
-								++itemCount;
-								totalSize += sizeof(floatValue);
-								InventorAscii_SkipListSeparator(stream);
-							}
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = INVENTOR_FIELD_FLOAT;
-							}
-							InventorAscii_SkipPastCloseBracket(stream);
-						} else {
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							if (File_Scanf(stream, " %e", &floatValue) != 1) {
-								printf("READ NODE WARNING!\n");
-							}
-							if (cursor != NULL) {
-								*(float*)cursor = floatValue;
-								cursor += sizeof(floatValue);
-							}
-							itemCount = 1;
-							totalSize += sizeof(floatValue);
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = INVENTOR_FIELD_FLOAT;
-							}
+						InventorAscii_SkipPastCloseBracket(
+							stream);
+					} else {
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
 						}
-						break;
-
-					case INVENTOR_FIELD_BOOLEAN:
-						if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
+						parsedSize = File_Scanf(
+							stream, " %li",
+							&integerValue);
+						if (parsedSize != 1) {
 							printf("READ NODE ERROR!\n");
 							return totalSize;
 						}
-						/* Here character holds the parsed truth value, 1 or 0, not a character. */
-						if (_strcmpi(g_optModelLoadScratchBuffer, "true") == 0 ||
-							_strcmpi(g_optModelLoadScratchBuffer, "1") == 0) {
-							character = 1;
-						} else if (_strcmpi(g_optModelLoadScratchBuffer, "false") == 0 ||
-								   _strcmpi(g_optModelLoadScratchBuffer, "0") == 0) {
-							character = 0;
-						} else {
-							printf("READ NODE ERROR!\n");
-							return totalSize;
-						}
-						++totalSize;
 						if (cursor != NULL) {
-							fieldRecord->data = cursor;
-							*cursor++ = character;
-							fieldRecord->itemCount = 1;
-							fieldRecord->fieldType = INVENTOR_FIELD_BOOLEAN;
+							*(int *)cursor =
+								integerValue;
+							cursor += sizeof(
+								integerValue);
 						}
-						break;
-
-					case INVENTOR_FIELD_VECTOR3:
-					case INVENTOR_FIELD_COLOR:
-						if (File_Scanf(stream, " %e %e %e", &component0, &component1, &component2) != 3) {
-							printf("READ NODE WARNING!\n");
-						}
+						itemCount = 1;
+						totalSize +=
+							sizeof(integerValue);
 						if (cursor != NULL) {
-							fieldRecord->data = cursor;
-							fieldRecord->itemCount = 1;
-							fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-							((float*)cursor)[0] = component0;
-							((float*)cursor)[1] = component1;
-							((float*)cursor)[2] = component2;
-							cursor += 3 * sizeof(float);
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								INVENTOR_FIELD_INTEGER_LIST;
 						}
-						totalSize += 3 * sizeof(float);
-						break;
-
-					case INVENTOR_FIELD_VECTOR3_LIST:
-					case INVENTOR_FIELD_COLOR_LIST:
-						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipPastOpenBracket(stream);
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							itemCount = 0;
-							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-								if (File_Scanf(stream, " %e %e %e", &component0, &component1, &component2) !=
-									3) {
-									printf("READ NODE WARNING!\n");
-								}
-								if (cursor != NULL) {
-									((float*)cursor)[0] = component0;
-									((float*)cursor)[1] = component1;
-									((float*)cursor)[2] = component2;
-									cursor += 3 * sizeof(float);
-								}
-								++itemCount;
-								totalSize += 3 * sizeof(float);
-								InventorAscii_SkipListSeparator(stream);
-							}
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-							}
-							InventorAscii_SkipPastCloseBracket(stream);
-						} else {
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							if (File_Scanf(stream, " %e %e %e", &component0, &component1, &component2) != 3) {
-								printf("READ NODE WARNING!\n");
-							}
-							if (cursor != NULL) {
-								((float*)cursor)[0] = component0;
-								((float*)cursor)[1] = component1;
-								((float*)cursor)[2] = component2;
-								cursor += 3 * sizeof(float);
-							}
-							itemCount = 1;
-							totalSize += 3 * sizeof(float);
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-							}
-						}
-						break;
-
-					case INVENTOR_FIELD_MATRIX:
-						if (cursor != NULL) {
-							fieldRecord->data = cursor;
-							fieldRecord->itemCount = 1;
-							fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-						}
-						totalSize += 16 * sizeof(float);
-						for (itemCount = 16; itemCount > 0; --itemCount) {
-							if (File_Scanf(stream, " %e", &floatValue) != 1) {
-								printf("READ NODE WARNING!\n");
-							}
-							if (cursor != NULL) {
-								*(float*)cursor = floatValue;
-								cursor += sizeof(floatValue);
-							}
-						}
-						break;
-
-					case INVENTOR_FIELD_MATRIX_LIST:
-						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipPastOpenBracket(stream);
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							itemCount = 0;
-							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-								for (integerValue = 0; integerValue < 16; ++integerValue) {
-									if (File_Scanf(stream, " %e", &floatValue) != 1) {
-										printf("READ NODE WARNING!\n");
-									}
-									if (cursor != NULL) {
-										*(float*)cursor = floatValue;
-										cursor += sizeof(floatValue);
-									}
-									totalSize += sizeof(floatValue);
-								}
-								++itemCount;
-								InventorAscii_SkipListSeparator(stream);
-							}
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-							}
-							InventorAscii_SkipPastCloseBracket(stream);
-						} else {
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							for (integerValue = 0; integerValue < 16; ++integerValue) {
-								if (File_Scanf(stream, " %e", &floatValue) != 1) {
-									printf("READ NODE WARNING!\n");
-								}
-								if (cursor != NULL) {
-									*(float*)cursor = floatValue;
-									cursor += sizeof(floatValue);
-								}
-								totalSize += sizeof(floatValue);
-							}
-							itemCount = 1;
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-							}
-						}
-						break;
-
-					case INVENTOR_FIELD_ROTATION:
-						if (cursor != NULL) {
-							fieldRecord->data = cursor;
-							fieldRecord->itemCount = 1;
-							fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-						}
-						totalSize += 4 * sizeof(float);
-						for (itemCount = 4; itemCount > 0; --itemCount) {
-							if (File_Scanf(stream, " %e", &floatValue) != 1) {
-								printf("READ NODE WARNING!\n");
-							}
-							if (cursor != NULL) {
-								*(float*)cursor = floatValue;
-								cursor += sizeof(floatValue);
-							}
-						}
-						break;
-
-					case INVENTOR_FIELD_ROTATION_LIST:
-						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipPastOpenBracket(stream);
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							itemCount = 0;
-							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-								for (integerValue = 0; integerValue < 4; ++integerValue) {
-									if (File_Scanf(stream, " %e", &floatValue) != 1) {
-										printf("READ NODE WARNING!\n");
-									}
-									if (cursor != NULL) {
-										*(float*)cursor = floatValue;
-										cursor += sizeof(floatValue);
-									}
-									totalSize += sizeof(floatValue);
-								}
-								++itemCount;
-								InventorAscii_SkipListSeparator(stream);
-							}
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-							}
-							InventorAscii_SkipPastCloseBracket(stream);
-						} else {
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							for (integerValue = 0; integerValue < 4; ++integerValue) {
-								if (File_Scanf(stream, " %e", &floatValue) != 1) {
-									printf("READ NODE WARNING!\n");
-								}
-								if (cursor != NULL) {
-									*(float*)cursor = floatValue;
-									cursor += sizeof(floatValue);
-								}
-								totalSize += sizeof(floatValue);
-							}
-							itemCount = 1;
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-							}
-						}
-						break;
-
-					case INVENTOR_FIELD_VECTOR2:
-						if (File_Scanf(stream, " %e %e", &component0, &component1) != 2) {
-							printf("READ NODE WARNING!\n");
-						}
-						if (cursor != NULL) {
-							fieldRecord->data = cursor;
-							fieldRecord->itemCount = 1;
-							fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-							((float*)cursor)[0] = component0;
-							((float*)cursor)[1] = component1;
-							cursor += 2 * sizeof(float);
-						}
-						totalSize += 2 * sizeof(float);
-						break;
-
-					case INVENTOR_FIELD_VECTOR2_LIST:
-						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipPastOpenBracket(stream);
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							itemCount = 0;
-							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-								if (File_Scanf(stream, " %e %e", &component0, &component1) != 2) {
-									printf("READ NODE WARNING!\n");
-								}
-								if (cursor != NULL) {
-									((float*)cursor)[0] = component0;
-									((float*)cursor)[1] = component1;
-									cursor += 2 * sizeof(float);
-								}
-								++itemCount;
-								totalSize += 2 * sizeof(float);
-								InventorAscii_SkipListSeparator(stream);
-							}
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-							}
-							InventorAscii_SkipPastCloseBracket(stream);
-						} else {
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							if (File_Scanf(stream, " %e %e", &component0, &component1) != 2) {
-								printf("READ NODE WARNING!\n");
-							}
-							if (cursor != NULL) {
-								((float*)cursor)[0] = component0;
-								((float*)cursor)[1] = component1;
-								cursor += 2 * sizeof(float);
-							}
-							itemCount = 1;
-							totalSize += 2 * sizeof(float);
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
-							}
-						}
-						break;
-
-					case INVENTOR_FIELD_ENUM: {
-						const InventorEnumDef* enumDef;
-						const char* const* enumValueNames;
-						const int* enumValues;
-
-						if (InventorAscii_PeekNextIsCloseBrace(stream) != 0) {
-							strcpy(g_optModelLoadScratchBuffer, "DEFAULT");
-						} else if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
-							printf("READ NODE ERROR!\n");
-							return totalSize;
-						}
-						enumDef = (*nodeDefSlot)->fieldDefs[fieldIndex]->enumDef;
-						enumValueNames = enumDef->valueNames;
-						enumValues = enumDef->values;
-						for (integerValue = 0; integerValue < enumDef->valueCount; ++integerValue) {
-							compareResult =
-								_strcmpi(g_optModelLoadScratchBuffer, enumValueNames[integerValue]);
-							if (compareResult == 0) {
-								break;
-							}
-						}
-						if (integerValue == enumDef->valueCount) {
-							integerValue = atoi(g_optModelLoadScratchBuffer);
-						} else {
-							integerValue = enumValues[integerValue];
-						}
-						if (cursor != NULL) {
-							fieldRecord->data = cursor;
-							*(int*)cursor = integerValue;
-							cursor += sizeof(integerValue);
-							fieldRecord->itemCount = 1;
-							fieldRecord->fieldType = INVENTOR_FIELD_ENUM;
-						}
-						totalSize += sizeof(integerValue);
-						break;
 					}
+					break;
 
-					case INVENTOR_FIELD_ENUM_LIST: {
-						const InventorEnumDef* enumDef;
-						const char* const* enumValueNames;
-						const int* enumValues;
+				case INVENTOR_FIELD_FLOAT_AS_INTEGER:
+					if (File_Scanf(stream, " %e",
+						       &floatValue) != 1) {
+						printf("READ NODE WARNING!\n");
+					}
+					if (cursor != NULL) {
+						fieldRecord->data = cursor;
+						*(float *)cursor = floatValue;
+						cursor += sizeof(floatValue);
+						fieldRecord->itemCount = 0;
+						fieldRecord->fieldType =
+							INVENTOR_FIELD_INTEGER;
+					}
+					totalSize += sizeof(floatValue);
+					break;
 
-						if (InventorAscii_PeekNextIsOpenBracket(stream) != 0) {
-							InventorAscii_SkipPastOpenBracket(stream);
-							if (cursor != NULL) {
-								fieldRecord->data = cursor;
-							}
-							itemCount = 0;
-							while (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-								if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
-									printf("READ NODE ERROR!\n");
-									return totalSize;
-								}
-								enumDef = (*nodeDefSlot)->fieldDefs[fieldIndex]->enumDef;
-								enumValueNames = enumDef->valueNames;
-								enumValues = enumDef->values;
-								for (integerValue = 0; integerValue < enumDef->valueCount; ++integerValue) {
-									compareResult =
-										_strcmpi(g_optModelLoadScratchBuffer, enumValueNames[integerValue]);
-									if (compareResult == 0) {
-										break;
-									}
-								}
-								if (integerValue == enumDef->valueCount) {
-									integerValue = atoi(g_optModelLoadScratchBuffer);
-								} else {
-									integerValue = enumValues[integerValue];
-								}
-								if (cursor != NULL) {
-									*(int*)cursor = integerValue;
-									cursor += sizeof(integerValue);
-								}
-								totalSize += sizeof(integerValue);
-								++itemCount;
-								InventorAscii_SkipListSeparator(stream);
+				case INVENTOR_FIELD_FLOAT:
+					if (InventorAscii_PeekNextIsOpenBracket(
+						    stream) != 0) {
+						InventorAscii_SkipPastOpenBracket(
+							stream);
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						itemCount = 0;
+						while (InventorAscii_PeekNextIsCloseBracket(
+							       stream) == 0) {
+							if (File_Scanf(
+								    stream,
+								    " %e",
+								    &floatValue) !=
+							    1) {
+								printf("READ NODE WARNING!\n");
 							}
 							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+								*(float *)
+									cursor =
+									floatValue;
+								cursor += sizeof(
+									floatValue);
 							}
-							InventorAscii_SkipPastCloseBracket(stream);
-						} else {
+							++itemCount;
+							totalSize += sizeof(
+								floatValue);
+							InventorAscii_SkipListSeparator(
+								stream);
+						}
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								INVENTOR_FIELD_FLOAT;
+						}
+						InventorAscii_SkipPastCloseBracket(
+							stream);
+					} else {
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						if (File_Scanf(stream, " %e",
+							       &floatValue) !=
+						    1) {
+							printf("READ NODE WARNING!\n");
+						}
+						if (cursor != NULL) {
+							*(float *)cursor =
+								floatValue;
+							cursor += sizeof(
+								floatValue);
+						}
+						itemCount = 1;
+						totalSize += sizeof(floatValue);
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								INVENTOR_FIELD_FLOAT;
+						}
+					}
+					break;
+
+				case INVENTOR_FIELD_BOOLEAN:
+					if (File_Scanf(
+						    stream, " %256s",
+						    g_optModelLoadScratchBuffer) !=
+					    1) {
+						printf("READ NODE ERROR!\n");
+						return totalSize;
+					}
+					/* Here character holds the parsed truth value, 1 or 0, not a character. */
+					if (_strcmpi(
+						    g_optModelLoadScratchBuffer,
+						    "true") == 0 ||
+					    _strcmpi(
+						    g_optModelLoadScratchBuffer,
+						    "1") == 0) {
+						character = 1;
+					} else if (
+						_strcmpi(
+							g_optModelLoadScratchBuffer,
+							"false") == 0 ||
+						_strcmpi(
+							g_optModelLoadScratchBuffer,
+							"0") == 0) {
+						character = 0;
+					} else {
+						printf("READ NODE ERROR!\n");
+						return totalSize;
+					}
+					++totalSize;
+					if (cursor != NULL) {
+						fieldRecord->data = cursor;
+						*cursor++ = character;
+						fieldRecord->itemCount = 1;
+						fieldRecord->fieldType =
+							INVENTOR_FIELD_BOOLEAN;
+					}
+					break;
+
+				case INVENTOR_FIELD_VECTOR3:
+				case INVENTOR_FIELD_COLOR:
+					if (File_Scanf(stream, " %e %e %e",
+						       &component0, &component1,
+						       &component2) != 3) {
+						printf("READ NODE WARNING!\n");
+					}
+					if (cursor != NULL) {
+						fieldRecord->data = cursor;
+						fieldRecord->itemCount = 1;
+						fieldRecord->fieldType =
+							(*nodeDefSlot)
+								->fieldDefs
+									[fieldIndex]
+								->fieldType;
+						((float *)cursor)[0] =
+							component0;
+						((float *)cursor)[1] =
+							component1;
+						((float *)cursor)[2] =
+							component2;
+						cursor += 3 * sizeof(float);
+					}
+					totalSize += 3 * sizeof(float);
+					break;
+
+				case INVENTOR_FIELD_VECTOR3_LIST:
+				case INVENTOR_FIELD_COLOR_LIST:
+					if (InventorAscii_PeekNextIsOpenBracket(
+						    stream) != 0) {
+						InventorAscii_SkipPastOpenBracket(
+							stream);
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						itemCount = 0;
+						while (InventorAscii_PeekNextIsCloseBracket(
+							       stream) == 0) {
+							if (File_Scanf(
+								    stream,
+								    " %e %e %e",
+								    &component0,
+								    &component1,
+								    &component2) !=
+							    3) {
+								printf("READ NODE WARNING!\n");
+							}
 							if (cursor != NULL) {
-								fieldRecord->data = cursor;
+								((float *)
+									 cursor)[0] =
+									component0;
+								((float *)
+									 cursor)[1] =
+									component1;
+								((float *)
+									 cursor)[2] =
+									component2;
+								cursor +=
+									3 *
+									sizeof(float);
 							}
-							if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
+							++itemCount;
+							totalSize +=
+								3 *
+								sizeof(float);
+							InventorAscii_SkipListSeparator(
+								stream);
+						}
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->fieldType;
+						}
+						InventorAscii_SkipPastCloseBracket(
+							stream);
+					} else {
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						if (File_Scanf(
+							    stream, " %e %e %e",
+							    &component0,
+							    &component1,
+							    &component2) != 3) {
+							printf("READ NODE WARNING!\n");
+						}
+						if (cursor != NULL) {
+							((float *)cursor)[0] =
+								component0;
+							((float *)cursor)[1] =
+								component1;
+							((float *)cursor)[2] =
+								component2;
+							cursor += 3 *
+								  sizeof(float);
+						}
+						itemCount = 1;
+						totalSize += 3 * sizeof(float);
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->fieldType;
+						}
+					}
+					break;
+
+				case INVENTOR_FIELD_MATRIX:
+					if (cursor != NULL) {
+						fieldRecord->data = cursor;
+						fieldRecord->itemCount = 1;
+						fieldRecord->fieldType =
+							(*nodeDefSlot)
+								->fieldDefs
+									[fieldIndex]
+								->fieldType;
+					}
+					totalSize += 16 * sizeof(float);
+					for (itemCount = 16; itemCount > 0;
+					     --itemCount) {
+						if (File_Scanf(stream, " %e",
+							       &floatValue) !=
+						    1) {
+							printf("READ NODE WARNING!\n");
+						}
+						if (cursor != NULL) {
+							*(float *)cursor =
+								floatValue;
+							cursor += sizeof(
+								floatValue);
+						}
+					}
+					break;
+
+				case INVENTOR_FIELD_MATRIX_LIST:
+					if (InventorAscii_PeekNextIsOpenBracket(
+						    stream) != 0) {
+						InventorAscii_SkipPastOpenBracket(
+							stream);
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						itemCount = 0;
+						while (InventorAscii_PeekNextIsCloseBracket(
+							       stream) == 0) {
+							for (integerValue = 0;
+							     integerValue < 16;
+							     ++integerValue) {
+								if (File_Scanf(
+									    stream,
+									    " %e",
+									    &floatValue) !=
+								    1) {
+									printf("READ NODE WARNING!\n");
+								}
+								if (cursor !=
+								    NULL) {
+									*(float *)
+										cursor =
+										floatValue;
+									cursor += sizeof(
+										floatValue);
+								}
+								totalSize += sizeof(
+									floatValue);
+							}
+							++itemCount;
+							InventorAscii_SkipListSeparator(
+								stream);
+						}
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->fieldType;
+						}
+						InventorAscii_SkipPastCloseBracket(
+							stream);
+					} else {
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						for (integerValue = 0;
+						     integerValue < 16;
+						     ++integerValue) {
+							if (File_Scanf(
+								    stream,
+								    " %e",
+								    &floatValue) !=
+							    1) {
+								printf("READ NODE WARNING!\n");
+							}
+							if (cursor != NULL) {
+								*(float *)
+									cursor =
+									floatValue;
+								cursor += sizeof(
+									floatValue);
+							}
+							totalSize += sizeof(
+								floatValue);
+						}
+						itemCount = 1;
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->fieldType;
+						}
+					}
+					break;
+
+				case INVENTOR_FIELD_ROTATION:
+					if (cursor != NULL) {
+						fieldRecord->data = cursor;
+						fieldRecord->itemCount = 1;
+						fieldRecord->fieldType =
+							(*nodeDefSlot)
+								->fieldDefs
+									[fieldIndex]
+								->fieldType;
+					}
+					totalSize += 4 * sizeof(float);
+					for (itemCount = 4; itemCount > 0;
+					     --itemCount) {
+						if (File_Scanf(stream, " %e",
+							       &floatValue) !=
+						    1) {
+							printf("READ NODE WARNING!\n");
+						}
+						if (cursor != NULL) {
+							*(float *)cursor =
+								floatValue;
+							cursor += sizeof(
+								floatValue);
+						}
+					}
+					break;
+
+				case INVENTOR_FIELD_ROTATION_LIST:
+					if (InventorAscii_PeekNextIsOpenBracket(
+						    stream) != 0) {
+						InventorAscii_SkipPastOpenBracket(
+							stream);
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						itemCount = 0;
+						while (InventorAscii_PeekNextIsCloseBracket(
+							       stream) == 0) {
+							for (integerValue = 0;
+							     integerValue < 4;
+							     ++integerValue) {
+								if (File_Scanf(
+									    stream,
+									    " %e",
+									    &floatValue) !=
+								    1) {
+									printf("READ NODE WARNING!\n");
+								}
+								if (cursor !=
+								    NULL) {
+									*(float *)
+										cursor =
+										floatValue;
+									cursor += sizeof(
+										floatValue);
+								}
+								totalSize += sizeof(
+									floatValue);
+							}
+							++itemCount;
+							InventorAscii_SkipListSeparator(
+								stream);
+						}
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->fieldType;
+						}
+						InventorAscii_SkipPastCloseBracket(
+							stream);
+					} else {
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						for (integerValue = 0;
+						     integerValue < 4;
+						     ++integerValue) {
+							if (File_Scanf(
+								    stream,
+								    " %e",
+								    &floatValue) !=
+							    1) {
+								printf("READ NODE WARNING!\n");
+							}
+							if (cursor != NULL) {
+								*(float *)
+									cursor =
+									floatValue;
+								cursor += sizeof(
+									floatValue);
+							}
+							totalSize += sizeof(
+								floatValue);
+						}
+						itemCount = 1;
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->fieldType;
+						}
+					}
+					break;
+
+				case INVENTOR_FIELD_VECTOR2:
+					if (File_Scanf(stream, " %e %e",
+						       &component0,
+						       &component1) != 2) {
+						printf("READ NODE WARNING!\n");
+					}
+					if (cursor != NULL) {
+						fieldRecord->data = cursor;
+						fieldRecord->itemCount = 1;
+						fieldRecord->fieldType =
+							(*nodeDefSlot)
+								->fieldDefs
+									[fieldIndex]
+								->fieldType;
+						((float *)cursor)[0] =
+							component0;
+						((float *)cursor)[1] =
+							component1;
+						cursor += 2 * sizeof(float);
+					}
+					totalSize += 2 * sizeof(float);
+					break;
+
+				case INVENTOR_FIELD_VECTOR2_LIST:
+					if (InventorAscii_PeekNextIsOpenBracket(
+						    stream) != 0) {
+						InventorAscii_SkipPastOpenBracket(
+							stream);
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						itemCount = 0;
+						while (InventorAscii_PeekNextIsCloseBracket(
+							       stream) == 0) {
+							if (File_Scanf(
+								    stream,
+								    " %e %e",
+								    &component0,
+								    &component1) !=
+							    2) {
+								printf("READ NODE WARNING!\n");
+							}
+							if (cursor != NULL) {
+								((float *)
+									 cursor)[0] =
+									component0;
+								((float *)
+									 cursor)[1] =
+									component1;
+								cursor +=
+									2 *
+									sizeof(float);
+							}
+							++itemCount;
+							totalSize +=
+								2 *
+								sizeof(float);
+							InventorAscii_SkipListSeparator(
+								stream);
+						}
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->fieldType;
+						}
+						InventorAscii_SkipPastCloseBracket(
+							stream);
+					} else {
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						if (File_Scanf(stream, " %e %e",
+							       &component0,
+							       &component1) !=
+						    2) {
+							printf("READ NODE WARNING!\n");
+						}
+						if (cursor != NULL) {
+							((float *)cursor)[0] =
+								component0;
+							((float *)cursor)[1] =
+								component1;
+							cursor += 2 *
+								  sizeof(float);
+						}
+						itemCount = 1;
+						totalSize += 2 * sizeof(float);
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->fieldType;
+						}
+					}
+					break;
+
+				case INVENTOR_FIELD_ENUM: {
+					const InventorEnumDef *enumDef;
+					const char *const *enumValueNames;
+					const int *enumValues;
+
+					if (InventorAscii_PeekNextIsCloseBrace(
+						    stream) != 0) {
+						strcpy(g_optModelLoadScratchBuffer,
+						       "DEFAULT");
+					} else if (
+						File_Scanf(
+							stream, " %256s",
+							g_optModelLoadScratchBuffer) !=
+						1) {
+						printf("READ NODE ERROR!\n");
+						return totalSize;
+					}
+					enumDef =
+						(*nodeDefSlot)
+							->fieldDefs[fieldIndex]
+							->enumDef;
+					enumValueNames = enumDef->valueNames;
+					enumValues = enumDef->values;
+					for (integerValue = 0;
+					     integerValue < enumDef->valueCount;
+					     ++integerValue) {
+						compareResult = _strcmpi(
+							g_optModelLoadScratchBuffer,
+							enumValueNames
+								[integerValue]);
+						if (compareResult == 0) {
+							break;
+						}
+					}
+					if (integerValue ==
+					    enumDef->valueCount) {
+						integerValue = atoi(
+							g_optModelLoadScratchBuffer);
+					} else {
+						integerValue = enumValues
+							[integerValue];
+					}
+					if (cursor != NULL) {
+						fieldRecord->data = cursor;
+						*(int *)cursor = integerValue;
+						cursor += sizeof(integerValue);
+						fieldRecord->itemCount = 1;
+						fieldRecord->fieldType =
+							INVENTOR_FIELD_ENUM;
+					}
+					totalSize += sizeof(integerValue);
+					break;
+				}
+
+				case INVENTOR_FIELD_ENUM_LIST: {
+					const InventorEnumDef *enumDef;
+					const char *const *enumValueNames;
+					const int *enumValues;
+
+					if (InventorAscii_PeekNextIsOpenBracket(
+						    stream) != 0) {
+						InventorAscii_SkipPastOpenBracket(
+							stream);
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						itemCount = 0;
+						while (InventorAscii_PeekNextIsCloseBracket(
+							       stream) == 0) {
+							if (File_Scanf(
+								    stream,
+								    " %256s",
+								    g_optModelLoadScratchBuffer) !=
+							    1) {
 								printf("READ NODE ERROR!\n");
 								return totalSize;
 							}
-							enumDef = (*nodeDefSlot)->fieldDefs[fieldIndex]->enumDef;
-							enumValueNames = enumDef->valueNames;
-							enumValues = enumDef->values;
-							for (integerValue = 0; integerValue < enumDef->valueCount; ++integerValue) {
-								compareResult =
-									_strcmpi(g_optModelLoadScratchBuffer, enumValueNames[integerValue]);
-								if (compareResult == 0) {
+							enumDef =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->enumDef;
+							enumValueNames =
+								enumDef->valueNames;
+							enumValues =
+								enumDef->values;
+							for (integerValue = 0;
+							     integerValue <
+							     enumDef->valueCount;
+							     ++integerValue) {
+								compareResult = _strcmpi(
+									g_optModelLoadScratchBuffer,
+									enumValueNames
+										[integerValue]);
+								if (compareResult ==
+								    0) {
 									break;
 								}
 							}
-							if (integerValue == enumDef->valueCount) {
-								integerValue = atoi(g_optModelLoadScratchBuffer);
+							if (integerValue ==
+							    enumDef->valueCount) {
+								integerValue = atoi(
+									g_optModelLoadScratchBuffer);
 							} else {
-								integerValue = enumValues[integerValue];
+								integerValue = enumValues
+									[integerValue];
 							}
 							if (cursor != NULL) {
-								*(int*)cursor = integerValue;
-								cursor += sizeof(integerValue);
+								*(int *)cursor =
+									integerValue;
+								cursor += sizeof(
+									integerValue);
 							}
-							itemCount = 1;
-							totalSize += sizeof(integerValue);
-							if (cursor != NULL) {
-								fieldRecord->itemCount = itemCount;
-								fieldRecord->fieldType = (*nodeDefSlot)->fieldDefs[fieldIndex]->fieldType;
+							totalSize += sizeof(
+								integerValue);
+							++itemCount;
+							InventorAscii_SkipListSeparator(
+								stream);
+						}
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->fieldType;
+						}
+						InventorAscii_SkipPastCloseBracket(
+							stream);
+					} else {
+						if (cursor != NULL) {
+							fieldRecord->data =
+								cursor;
+						}
+						if (File_Scanf(
+							    stream, " %256s",
+							    g_optModelLoadScratchBuffer) !=
+						    1) {
+							printf("READ NODE ERROR!\n");
+							return totalSize;
+						}
+						enumDef =
+							(*nodeDefSlot)
+								->fieldDefs
+									[fieldIndex]
+								->enumDef;
+						enumValueNames =
+							enumDef->valueNames;
+						enumValues = enumDef->values;
+						for (integerValue = 0;
+						     integerValue <
+						     enumDef->valueCount;
+						     ++integerValue) {
+							compareResult = _strcmpi(
+								g_optModelLoadScratchBuffer,
+								enumValueNames
+									[integerValue]);
+							if (compareResult ==
+							    0) {
+								break;
 							}
 						}
-						break;
+						if (integerValue ==
+						    enumDef->valueCount) {
+							integerValue = atoi(
+								g_optModelLoadScratchBuffer);
+						} else {
+							integerValue = enumValues
+								[integerValue];
+						}
+						if (cursor != NULL) {
+							*(int *)cursor =
+								integerValue;
+							cursor += sizeof(
+								integerValue);
+						}
+						itemCount = 1;
+						totalSize +=
+							sizeof(integerValue);
+						if (cursor != NULL) {
+							fieldRecord->itemCount =
+								itemCount;
+							fieldRecord->fieldType =
+								(*nodeDefSlot)
+									->fieldDefs
+										[fieldIndex]
+									->fieldType;
+						}
 					}
+					break;
+				}
 
-					default:
-						break;
+				default:
+					break;
 				}
 			}
 
-			for (fieldIndex = 0; fieldIndex < (*nodeDefSlot)->fieldCount; ++fieldIndex) {
+			for (fieldIndex = 0;
+			     fieldIndex < (*nodeDefSlot)->fieldCount;
+			     ++fieldIndex) {
 				if (g_inventorFieldSeen[fieldIndex] == 0) {
 					if (cursor != NULL) {
-						const InventorFieldDef* fieldDef;
+						const InventorFieldDef
+							*fieldDef;
 
-						fieldDef = (*nodeDefSlot)->fieldDefs[fieldIndex];
-						fieldRecords[fieldIndex] = *fieldDef->defaultRecord;
-						fieldRecords[fieldIndex].data = cursor;
-						memcpy(cursor, fieldDef->defaultData, fieldDef->defaultDataSize);
-						cursor += fieldDef->defaultDataSize;
+						fieldDef =
+							(*nodeDefSlot)
+								->fieldDefs
+									[fieldIndex];
+						fieldRecords[fieldIndex] =
+							*fieldDef->defaultRecord;
+						fieldRecords[fieldIndex].data =
+							cursor;
+						memcpy(cursor,
+						       fieldDef->defaultData,
+						       fieldDef->defaultDataSize);
+						cursor +=
+							fieldDef->defaultDataSize;
 					}
-					totalSize += (*nodeDefSlot)->fieldDefs[fieldIndex]->defaultDataSize;
+					totalSize +=
+						(*nodeDefSlot)
+							->fieldDefs[fieldIndex]
+							->defaultDataSize;
 				}
 			}
 
 			childCount = 0;
 			rewindPosition = File_RawTell(stream);
-			while (InventorAscii_PeekNextIsCloseBrace(stream) == 0) {
-				if (OptModel_ParseInventorAsciiNode(stream, NULL, NULL) != 0) {
+			while (InventorAscii_PeekNextIsCloseBrace(stream) ==
+			       0) {
+				if (OptModel_ParseInventorAsciiNode(
+					    stream, NULL, NULL) != 0) {
 					++childCount;
 				}
 			}
 			File_RawSeek(stream, rewindPosition, SEEK_SET);
 			if (childCount != 0) {
-				OptNode** childSlots;
+				OptNode **childSlots;
 
-				totalSize += childCount * sizeof(OptNode*);
+				totalSize += childCount * sizeof(OptNode *);
 				childSlots = NULL;
 				if (cursor != NULL) {
-					node->pChildren = (OptNode**)cursor;
+					node->pChildren = (OptNode **)cursor;
 					node->childCount = childCount;
 					childSlots = node->pChildren;
-					cursor += childCount * sizeof(OptNode*);
+					cursor +=
+						childCount * sizeof(OptNode *);
 				}
-				while (InventorAscii_PeekNextIsCloseBrace(stream) == 0) {
+				while (InventorAscii_PeekNextIsCloseBrace(
+					       stream) == 0) {
 					if (cursor != NULL) {
-						parsedSize = OptModel_ParseInventorAsciiNode(stream, cursor, childSlots);
+						parsedSize =
+							OptModel_ParseInventorAsciiNode(
+								stream, cursor,
+								childSlots);
 						if (parsedSize != 0) {
 							cursor += parsedSize;
 							++childSlots;
 							totalSize += parsedSize;
 						}
 					} else {
-						parsedSize = OptModel_ParseInventorAsciiNode(stream, NULL, NULL);
+						parsedSize =
+							OptModel_ParseInventorAsciiNode(
+								stream, NULL,
+								NULL);
 						if (parsedSize != 0) {
 							totalSize += parsedSize;
 						}
@@ -1601,7 +2190,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 				if (cursor != NULL) {
 					fieldRecords[0].data = cursor;
 					fieldRecords[0].itemCount = 1;
-					fieldRecords[0].fieldType = INVENTOR_FIELD_STRING;
+					fieldRecords[0].fieldType =
+						INVENTOR_FIELD_STRING;
 				}
 				while (1) {
 					character = (char)File_Getc(stream);
@@ -1624,17 +2214,22 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 				printf("READ NODE ERROR!\n");
 				return totalSize;
 			} else {
-				if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
+				if (File_Scanf(stream, " %256s",
+					       g_optModelLoadScratchBuffer) !=
+				    1) {
 					printf("READ NODE ERROR!\n");
 					return totalSize;
 				}
-				parsedSize = strlen(g_optModelLoadScratchBuffer) + 1;
+				parsedSize =
+					strlen(g_optModelLoadScratchBuffer) + 1;
 				if (cursor != NULL) {
-					strcpy(cursor, g_optModelLoadScratchBuffer);
+					strcpy(cursor,
+					       g_optModelLoadScratchBuffer);
 					fieldRecords[0].data = cursor;
 					cursor += parsedSize;
 					fieldRecords[0].itemCount = 1;
-					fieldRecords[0].fieldType = INVENTOR_FIELD_STRING;
+					fieldRecords[0].fieldType =
+						INVENTOR_FIELD_STRING;
 				}
 				totalSize += parsedSize;
 			}
@@ -1656,18 +2251,22 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 #endif
 
 // FUNCTION: XVT 0x42ABA0
-void OptModel_TranslateNodeVerticesRecursive(OptNode* node, OptimizedPolyObject* model,
-											 const float* translation) {
+void OptModel_TranslateNodeVerticesRecursive(OptNode *node,
+					     OptimizedPolyObject *model,
+					     const float *translation)
+{
 	int vertexCount;
-	float* vertex;
-	const float* delta;
+	float *vertex;
+	const float *delta;
 	int childIndex;
 
 	if (node != NULL) {
 		while (node->nodeType == OPT_NODEREF) {
-			node = OptModel_ResolveNodeRef(model, (const char*)node->payload);
-			if (node == NULL)
+			node = OptModel_ResolveNodeRef(
+				model, (const char *)node->payload);
+			if (node == NULL) {
 				return;
+			}
 		}
 
 		if (node->nodeType == OPT_MESHVERTS) {
@@ -1690,7 +2289,9 @@ void OptModel_TranslateNodeVerticesRecursive(OptNode* node, OptimizedPolyObject*
 		childIndex = 0;
 		if (node->childCount > 0) {
 			do {
-				OptModel_TranslateNodeVerticesRecursive(node->pChildren[childIndex], model, delta);
+				OptModel_TranslateNodeVerticesRecursive(
+					node->pChildren[childIndex], model,
+					delta);
 				++childIndex;
 			} while (node->childCount > childIndex);
 		}
@@ -1698,13 +2299,17 @@ void OptModel_TranslateNodeVerticesRecursive(OptNode* node, OptimizedPolyObject*
 }
 
 // FUNCTION: XVT 0x42ACD0
-void OptModel_TranslateVertices(OptimizedPolyObject* model, const float* translation) {
+void OptModel_TranslateVertices(OptimizedPolyObject *model,
+				const float *translation)
+{
 	int rootIndex;
 
 	rootIndex = 0;
 	if (model->rootNodeCount > 0) {
 		do {
-			OptModel_TranslateNodeVerticesRecursive(model->rootNodes[rootIndex], model, translation);
+			OptModel_TranslateNodeVerticesRecursive(
+				model->rootNodes[rootIndex], model,
+				translation);
 			++rootIndex;
 		} while (model->rootNodeCount > rootIndex);
 	}
@@ -1712,55 +2317,72 @@ void OptModel_TranslateVertices(OptimizedPolyObject* model, const float* transla
 
 #ifndef XVT_MODERN
 // FUNCTION: XVT 0x471F00
-void OptModel_RelocateLoadedPointers(OptimizedPolyObject* model) {
+void OptModel_RelocateLoadedPointers(OptimizedPolyObject *model)
+{
 
 	XvtOptValue relocationDelta;
 	int rootIndex;
 
-	relocationDelta = (uint8_t*)model - (uint8_t*)model->selfMarker;
-	model->selfMarker = (uint8_t*)model->selfMarker + relocationDelta;
+	relocationDelta = (uint8_t *)model - (uint8_t *)model->selfMarker;
+	model->selfMarker = (uint8_t *)model->selfMarker + relocationDelta;
 	if (model->rootNodes != NULL) {
-		model->rootNodes = (OptNode**)((uint8_t*)model->rootNodes + relocationDelta);
-		for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
-			OptNode** rootSlot;
+		model->rootNodes = (OptNode **)((uint8_t *)model->rootNodes +
+						relocationDelta);
+		for (rootIndex = 0; rootIndex < model->rootNodeCount;
+		     ++rootIndex) {
+			OptNode **rootSlot;
 
 			rootSlot = &model->rootNodes[rootIndex];
 			if (*rootSlot != NULL) {
-				*rootSlot = (OptNode*)((uint8_t*)*rootSlot + relocationDelta);
-				OptModel_RelocateNodePointersRecursive(model->rootNodes[rootIndex], relocationDelta);
+				*rootSlot = (OptNode *)((uint8_t *)*rootSlot +
+							relocationDelta);
+				OptModel_RelocateNodePointersRecursive(
+					model->rootNodes[rootIndex],
+					relocationDelta);
 			}
 		}
 	}
 }
 
 // FUNCTION: XVT 0x471F60
-void OptModel_RelocateNodePointersRecursive(OptNode* node, XvtOptValue relocationDelta) {
+void OptModel_RelocateNodePointersRecursive(OptNode *node,
+					    XvtOptValue relocationDelta)
+{
 
 	int paramIndex;
 	int childIndex;
 
-	if (node->pName != NULL)
+	if (node->pName != NULL) {
 		node->pName += relocationDelta;
+	}
 	if (node->payload != NULL) {
-		InventorFieldRecord* records;
+		InventorFieldRecord *records;
 
-		node->payload = (uint8_t*)node->payload + relocationDelta;
-		records = (InventorFieldRecord*)node->payload;
-		for (paramIndex = 0; paramIndex < node->payloadCount; ++paramIndex) {
-			if (records->data != NULL)
-				records->data = (uint8_t*)records->data + relocationDelta;
+		node->payload = (uint8_t *)node->payload + relocationDelta;
+		records = (InventorFieldRecord *)node->payload;
+		for (paramIndex = 0; paramIndex < node->payloadCount;
+		     ++paramIndex) {
+			if (records->data != NULL) {
+				records->data = (uint8_t *)records->data +
+						relocationDelta;
+			}
 			++records;
 		}
 	}
 	if (node->pChildren != NULL) {
-		node->pChildren = (OptNode**)((uint8_t*)node->pChildren + relocationDelta);
-		for (childIndex = 0; childIndex < node->childCount; ++childIndex) {
-			OptNode** childSlot;
+		node->pChildren = (OptNode **)((uint8_t *)node->pChildren +
+					       relocationDelta);
+		for (childIndex = 0; childIndex < node->childCount;
+		     ++childIndex) {
+			OptNode **childSlot;
 
 			childSlot = &node->pChildren[childIndex];
 			if (*childSlot != NULL) {
-				*childSlot = (OptNode*)((uint8_t*)*childSlot + relocationDelta);
-				OptModel_RelocateNodePointersRecursive(node->pChildren[childIndex], relocationDelta);
+				*childSlot = (OptNode *)((uint8_t *)*childSlot +
+							 relocationDelta);
+				OptModel_RelocateNodePointersRecursive(
+					node->pChildren[childIndex],
+					relocationDelta);
 			}
 		}
 	}
@@ -1768,7 +2390,8 @@ void OptModel_RelocateNodePointersRecursive(OptNode* node, XvtOptValue relocatio
 #endif
 
 // FUNCTION: XVT 0x471FF0
-void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject* model) {
+void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject *model)
+{
 #ifdef XVT_MODERN
 	XvtOpt_Relocate(model);
 #else
@@ -1776,17 +2399,22 @@ void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject* model) {
 	XvtOptValue relocationDelta;
 	int rootIndex;
 
-	relocationDelta = (uint8_t*)model - (uint8_t*)model->selfMarker;
-	model->selfMarker = (uint8_t*)model->selfMarker + relocationDelta;
+	relocationDelta = (uint8_t *)model - (uint8_t *)model->selfMarker;
+	model->selfMarker = (uint8_t *)model->selfMarker + relocationDelta;
 	if (model->rootNodes != NULL) {
-		model->rootNodes = (OptNode**)((uint8_t*)model->rootNodes + relocationDelta);
-		for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
-			OptNode** rootSlot;
+		model->rootNodes = (OptNode **)((uint8_t *)model->rootNodes +
+						relocationDelta);
+		for (rootIndex = 0; rootIndex < model->rootNodeCount;
+		     ++rootIndex) {
+			OptNode **rootSlot;
 
 			rootSlot = &model->rootNodes[rootIndex];
 			if (*rootSlot != NULL) {
-				*rootSlot = (OptNode*)((uint8_t*)*rootSlot + relocationDelta);
-				OptModel_AdjustOptimizedNodePointers(model->rootNodes[rootIndex], relocationDelta);
+				*rootSlot = (OptNode *)((uint8_t *)*rootSlot +
+							relocationDelta);
+				OptModel_AdjustOptimizedNodePointers(
+					model->rootNodes[rootIndex],
+					relocationDelta);
 			}
 		}
 	}
@@ -1795,33 +2423,45 @@ void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject* model) {
 }
 
 // FUNCTION: XVT 0x472050
-void OptModel_AdjustOptimizedNodePointers(OptNode* node, XvtOptValue relocationDelta) {
+void OptModel_AdjustOptimizedNodePointers(OptNode *node,
+					  XvtOptValue relocationDelta)
+{
 #ifdef XVT_MODERN
 	XvtOpt_RelocateNode(node, relocationDelta);
 #else
 
 	int childIndex;
 
-	if (node->pName != NULL)
+	if (node->pName != NULL) {
 		node->pName += relocationDelta;
-	if (node->payload != NULL)
-		node->payload = (uint8_t*)node->payload + relocationDelta;
+	}
+	if (node->payload != NULL) {
+		node->payload = (uint8_t *)node->payload + relocationDelta;
+	}
 	if (node->nodeType == OPT_TEXTURE) {
-		OptTextureData* textureData;
+		OptTextureData *textureData;
 
-		textureData = (OptTextureData*)node->payload;
-		if (textureData->inlinePaletteCount == 0)
-			textureData->palette = (uint16_t*)((uint8_t*)textureData->palette + relocationDelta);
+		textureData = (OptTextureData *)node->payload;
+		if (textureData->inlinePaletteCount == 0) {
+			textureData->palette =
+				(uint16_t *)((uint8_t *)textureData->palette +
+					     relocationDelta);
+		}
 	}
 	if (node->pChildren != NULL) {
-		node->pChildren = (OptNode**)((uint8_t*)node->pChildren + relocationDelta);
-		for (childIndex = 0; childIndex < node->childCount; ++childIndex) {
-			OptNode** childSlot;
+		node->pChildren = (OptNode **)((uint8_t *)node->pChildren +
+					       relocationDelta);
+		for (childIndex = 0; childIndex < node->childCount;
+		     ++childIndex) {
+			OptNode **childSlot;
 
 			childSlot = &node->pChildren[childIndex];
 			if (*childSlot != NULL) {
-				*childSlot = (OptNode*)((uint8_t*)*childSlot + relocationDelta);
-				OptModel_AdjustOptimizedNodePointers(node->pChildren[childIndex], relocationDelta);
+				*childSlot = (OptNode *)((uint8_t *)*childSlot +
+							 relocationDelta);
+				OptModel_AdjustOptimizedNodePointers(
+					node->pChildren[childIndex],
+					relocationDelta);
 			}
 		}
 	}
@@ -1830,27 +2470,30 @@ void OptModel_AdjustOptimizedNodePointers(OptNode* node, XvtOptValue relocationD
 }
 
 // FUNCTION: XVT 0x4742A0
-uint16_t OptModel_LoadFileToHandle(char* filename) {
+uint16_t OptModel_LoadFileToHandle(char *filename)
+{
 #ifdef XVT_MODERN
 	unsigned int nativeSize = 0;
 	int version = 0;
 	int rootIndex;
-	OptimizedPolyObject* model;
+	OptimizedPolyObject *model;
 	SceneMesh meshState;
 	uint16_t handle = XvtOpt_Load(filename, &version, &nativeSize);
 	if (!handle) {
 		XvtStorage_Fatal("Invalid required OPT model", 1);
 		return 0;
 	}
-	if (g_loadOptBufHandle)
+	if (g_loadOptBufHandle) {
 		Memory_FreeHandle(g_loadOptBufHandle);
+	}
 	g_loadOptBufHandle = handle;
 	g_loadOptBufSize = (int)nativeSize;
 	g_optSourceIsVersion0 = version == 0;
 	if (version < 2) {
 		nativeSize = OptModel_ConvertLegacyModelToOptimized(nativeSize);
-		if (!nativeSize)
+		if (!nativeSize) {
 			return 0;
+		}
 		handle = g_loadOptBufHandle;
 	}
 	model = Memory_LockHandle(handle);
@@ -1861,15 +2504,17 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
-	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex)
-		OptModel_MeasureNodeAndRaiseCapacities(model->rootNodes[rootIndex], &meshState);
+	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
+		OptModel_MeasureNodeAndRaiseCapacities(
+			model->rootNodes[rootIndex], &meshState);
+	}
 	Memory_UnlockHandle(handle);
 	return handle;
 #else
 
-	XvtFile* stream;
+	XvtFile *stream;
 	uint16_t handle;
-	OptimizedPolyObject* model;
+	OptimizedPolyObject *model;
 	char savedVersionChar;
 	int fileVersion;
 	size_t serializedSize;
@@ -1878,8 +2523,9 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 
 	FeDiskIo_OpenGlobalStream(filename, g_fileModeReadBinary, 1, 0);
 	stream = g_stream;
-	if (stream == NULL)
+	if (stream == NULL) {
 		return 0;
+	}
 	g_optSourceIsVersion0 = 0;
 	File_RawRead(&fileVersion, 1, sizeof(fileVersion), stream);
 	if (fileVersion > 0) {
@@ -1888,10 +2534,12 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 		g_optSourceIsVersion0 = 1;
 	} else {
 		fileVersion = -fileVersion;
-		if (fileVersion == 1)
+		if (fileVersion == 1) {
 			fileVersion = 0;
+		}
 		g_optSourceIsVersion0 = 0;
-		File_RawRead(&serializedSize, 1, sizeof(serializedSize), stream);
+		File_RawRead(&serializedSize, 1, sizeof(serializedSize),
+			     stream);
 	}
 	if ((int)serializedSize > g_loadOptBufSize && g_loadOptBufHandle != 0) {
 		unsigned int oldHandle;
@@ -1903,53 +2551,63 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 	}
 	if (g_loadOptBufHandle == 0) {
 		g_loadOptBufHandle = Memory_AllocHandle(serializedSize, 0);
-		if (g_loadOptBufHandle == 0)
+		if (g_loadOptBufHandle == 0) {
 			FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
+		}
 		g_loadOptBufSize = (int)serializedSize;
 	}
 	handle = g_loadOptBufHandle;
 	model = Memory_LockHandle(handle);
 	File_RawRead(model, 1, serializedSize, stream);
 	File_RawClose(stream);
-	if (model->selfMarker != model)
+	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	}
 
 	if (fileVersion == 0) {
 		savedVersionChar = filename[strlen(filename) - 1];
-		if (g_optSourceIsVersion0)
+		if (g_optSourceIsVersion0) {
 			filename[strlen(filename) - 1] = '0';
-		else
+		} else {
 			filename[strlen(filename) - 1] = '1';
+		}
 
 		FeDiskIo_OpenGlobalStream(filename, "wb", 0, 1);
 		stream = g_stream;
 		if (stream != NULL) {
 			if (!g_optSourceIsVersion0) {
 				fileVersion = -1;
-				File_RawWrite(&fileVersion, 1, sizeof(fileVersion), stream);
+				File_RawWrite(&fileVersion, 1,
+					      sizeof(fileVersion), stream);
 			}
-			File_RawWrite(&serializedSize, 1, sizeof(serializedSize), stream);
+			File_RawWrite(&serializedSize, 1,
+				      sizeof(serializedSize), stream);
 			File_RawWrite(model, 1, serializedSize, stream);
 			File_RawClose(stream);
 		}
 
 		filename[strlen(filename) - 1] = savedVersionChar;
 		Memory_UnlockHandle(handle);
-		serializedSize = OptModel_ConvertLegacyModelToOptimized((unsigned int)serializedSize);
+		serializedSize = OptModel_ConvertLegacyModelToOptimized(
+			(unsigned int)serializedSize);
 		handle = g_loadOptBufHandle;
 		model = Memory_LockHandle(handle);
-		if (model->selfMarker != model)
+		if (model->selfMarker != model) {
 			OptModel_AdjustOptimizedPolyObjectPointers(model);
+		}
 
 		fileVersion = -1;
-		if (!g_optSourceIsVersion0)
+		if (!g_optSourceIsVersion0) {
 			fileVersion = -2;
+		}
 		if (_access(filename, 2) == 0) {
 			FeDiskIo_OpenGlobalStream(filename, "wb", 0, 1);
 			stream = g_stream;
 			if (stream != NULL) {
-				File_RawWrite(&fileVersion, 1, sizeof(fileVersion), stream);
-				File_RawWrite(&serializedSize, 1, sizeof(serializedSize), stream);
+				File_RawWrite(&fileVersion, 1,
+					      sizeof(fileVersion), stream);
+				File_RawWrite(&serializedSize, 1,
+					      sizeof(serializedSize), stream);
 				File_RawWrite(model, 1, serializedSize, stream);
 				File_RawClose(stream);
 			}
@@ -1964,9 +2622,12 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
-	serializedSize = sizeof(*model) + sizeof(*model->rootNodes) * model->rootNodeCount;
-	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex)
-		serializedSize += OptModel_MeasureNodeAndRaiseCapacities(model->rootNodes[rootIndex], &meshState);
+	serializedSize = sizeof(*model) +
+			 sizeof(*model->rootNodes) * model->rootNodeCount;
+	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
+		serializedSize += OptModel_MeasureNodeAndRaiseCapacities(
+			model->rootNodes[rootIndex], &meshState);
+	}
 	Memory_UnlockHandle(handle);
 	return handle;
 
@@ -1974,32 +2635,37 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 }
 
 // FUNCTION: XVT 0x474610
-unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize) {
+unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
+{
 	/* Convert a legacy model stream into the optimized runtime representation. */
-	OptimizedPolyObject* sourceModel;
-	OptimizedPolyObject* destinationModel;
+	OptimizedPolyObject *sourceModel;
+	OptimizedPolyObject *destinationModel;
 	SceneMesh meshState;
-	uint8_t* destinationNode;
+	uint8_t *destinationNode;
 	unsigned int serializedSize;
 	int destinationCapacity;
 	int rootIndex;
 	int rootNodeCount;
 
-	if ((int)g_optConvertSourceBufSize < (int)sourceSize && g_optConvertSourceHandle != 0) {
+	if ((int)g_optConvertSourceBufSize < (int)sourceSize &&
+	    g_optConvertSourceHandle != 0) {
 		Memory_FreeHandle(g_optConvertSourceHandle);
 		g_optConvertSourceHandle = 0;
 		g_optConvertSourceBufSize = 0;
 	}
 	if (g_optConvertSourceHandle == 0) {
 		g_optConvertSourceHandle = Memory_AllocHandle(sourceSize, 0);
-		if (g_optConvertSourceHandle == 0)
+		if (g_optConvertSourceHandle == 0) {
 			FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
+		}
 		g_optConvertSourceBufSize = sourceSize;
 	}
-	sourceModel = (OptimizedPolyObject*)Memory_LockHandle(g_optConvertSourceHandle);
+	sourceModel = (OptimizedPolyObject *)Memory_LockHandle(
+		g_optConvertSourceHandle);
 	memcpy(sourceModel, Memory_LockHandle(g_loadOptBufHandle), sourceSize);
-	if (sourceModel->selfMarker != sourceModel)
+	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
+	}
 	Memory_UnlockHandle(g_loadOptBufHandle);
 	destinationCapacity = (int)(sourceSize * 2u);
 	if (destinationCapacity > g_loadOptBufSize && g_loadOptBufHandle != 0) {
@@ -2008,19 +2674,25 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize) {
 		g_loadOptBufSize = 0;
 	}
 	if (g_loadOptBufHandle == 0) {
-		g_loadOptBufHandle = Memory_AllocHandle((unsigned int)destinationCapacity, 0);
-		if (g_loadOptBufHandle == 0)
+		g_loadOptBufHandle = Memory_AllocHandle(
+			(unsigned int)destinationCapacity, 0);
+		if (g_loadOptBufHandle == 0) {
 			FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
+		}
 		g_loadOptBufSize = destinationCapacity;
 	}
-	destinationModel = (OptimizedPolyObject*)Memory_LockHandle(g_loadOptBufHandle);
+	destinationModel =
+		(OptimizedPolyObject *)Memory_LockHandle(g_loadOptBufHandle);
 	memcpy(destinationModel, sourceModel, sizeof(*destinationModel));
 	destinationModel->selfMarker = destinationModel;
-	destinationModel->rootNodes = (OptNode**)((uint8_t*)destinationModel + sizeof(*destinationModel));
+	destinationModel->rootNodes = (OptNode **)((uint8_t *)destinationModel +
+						   sizeof(*destinationModel));
 	rootNodeCount = sourceModel->rootNodeCount;
-	destinationNode = (uint8_t*)(destinationModel->rootNodes + rootNodeCount);
+	destinationNode =
+		(uint8_t *)(destinationModel->rootNodes + rootNodeCount);
 	serializedSize =
-		(unsigned int)(sizeof(*destinationModel) + sizeof(OptNode*) * (unsigned int)rootNodeCount);
+		(unsigned int)(sizeof(*destinationModel) +
+			       sizeof(OptNode *) * (unsigned int)rootNodeCount);
 	memset(&meshState, 0, sizeof(meshState));
 	g_curMeshVertices = NULL;
 	g_curMeshTexCoords = NULL;
@@ -2035,13 +2707,15 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize) {
 			unsigned int nodeSize;
 			++rootIndex;
 			++destinationModel->rootNodeCount;
-			destinationModel->rootNodes[rootIndex - 1] = (OptNode*)destinationNode;
+			destinationModel->rootNodes[rootIndex - 1] =
+				(OptNode *)destinationNode;
 			g_optConvertVertexNode = NULL;
 			g_optConvertTexCoordNode = NULL;
 			g_optConvertVertexNormalNode = NULL;
-			nodeSize =
-				OptModel_ConvertLegacyNodeToOptimized(destinationNode, sourceModel->rootNodes[rootIndex - 1],
-													  sourceModel, destinationModel, &meshState);
+			nodeSize = OptModel_ConvertLegacyNodeToOptimized(
+				destinationNode,
+				sourceModel->rootNodes[rootIndex - 1],
+				sourceModel, destinationModel, &meshState);
 			destinationNode += nodeSize;
 			serializedSize += nodeSize;
 		} while (rootNodeCount > rootIndex);
@@ -2050,38 +2724,45 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize) {
 }
 
 // FUNCTION: XVT 0x474830
-void* OptModel_FindSharedTextureDataInNodeBeforeTarget(const void* textureData, OptNode* node,
-													   const OptNode* stopNode) {
+void *OptModel_FindSharedTextureDataInNodeBeforeTarget(const void *textureData,
+						       OptNode *node,
+						       const OptNode *stopNode)
+{
 	int textureByteCount;
-	OptTextureData* nodeTexture;
-	uint8_t* nodeTextureData;
+	OptTextureData *nodeTexture;
+	uint8_t *nodeTextureData;
 	int childIndex;
 	int childOffset;
-	OptNode* child;
-	void* result;
+	OptNode *child;
+	void *result;
 
-	if (node == NULL)
+	if (node == NULL) {
 		return NULL;
+	}
 
 	if (node->nodeType == OPT_TEXTURE) {
 		nodeTexture = node->payload;
-		nodeTextureData = (uint8_t*)nodeTexture + sizeof(*nodeTexture);
+		nodeTextureData = (uint8_t *)nodeTexture + sizeof(*nodeTexture);
 		textureByteCount = nodeTexture->height;
 		textureByteCount *= nodeTexture->width;
-		if (nodeTexture->textureSize == textureByteCount)
+		if (nodeTexture->textureSize == textureByteCount) {
 			textureByteCount = nodeTexture->dataSize;
+		}
 		nodeTextureData += textureByteCount;
 		if (nodeTexture->inlinePaletteCount == 0) {
-			if (nodeTexture->palette == (uint16_t*)nodeTextureData) {
-				textureData = (const uint8_t*)textureData + 4096;
+			if (nodeTexture->palette ==
+			    (uint16_t *)nodeTextureData) {
+				textureData =
+					(const uint8_t *)textureData + 4096;
 				nodeTextureData += 4096;
-				if (memcmp(textureData, nodeTextureData, 8192) == 0) {
+				if (memcmp(textureData, nodeTextureData,
+					   8192) == 0) {
 					nodeTextureData -= 4096;
 					return nodeTextureData;
 				}
 			}
 		} else {
-			textureData = (const uint8_t*)textureData + 4096;
+			textureData = (const uint8_t *)textureData + 4096;
 			nodeTextureData += 4096;
 			if (memcmp(textureData, nodeTextureData, 8192) == 0) {
 				nodeTextureData -= 4096;
@@ -2094,12 +2775,17 @@ void* OptModel_FindSharedTextureDataInNodeBeforeTarget(const void* textureData, 
 	childIndex = 0;
 	if (node->childCount > 0) {
 		do {
-			child = *(OptNode**)((uint8_t*)node->pChildren + childOffset);
-			if (stopNode == child)
+			child = *(OptNode **)((uint8_t *)node->pChildren +
+					      childOffset);
+			if (stopNode == child) {
 				return NULL;
-			result = OptModel_FindSharedTextureDataInNodeBeforeTarget(textureData, child, stopNode);
-			if (result != NULL)
+			}
+			result =
+				OptModel_FindSharedTextureDataInNodeBeforeTarget(
+					textureData, child, stopNode);
+			if (result != NULL) {
 				return result;
+			}
 			childOffset += sizeof(*node->pChildren);
 			++childIndex;
 		} while (node->childCount > childIndex);
@@ -2109,25 +2795,32 @@ void* OptModel_FindSharedTextureDataInNodeBeforeTarget(const void* textureData, 
 }
 
 // FUNCTION: XVT 0x474910
-void* OptModel_FindEarlierSharedTextureData(const void* textureData, OptimizedPolyObject* model,
-											const OptNode* stopNode) {
-	OptimizedPolyObject* object;
+void *OptModel_FindEarlierSharedTextureData(const void *textureData,
+					    OptimizedPolyObject *model,
+					    const OptNode *stopNode)
+{
+	OptimizedPolyObject *object;
 	int rootIndex;
 	unsigned int rootOffset;
-	OptNode* rootNode;
-	void* result;
+	OptNode *rootNode;
+	void *result;
 
 	object = model;
 	rootIndex = 0;
 	rootOffset = 0;
 	if (object->rootNodeCount > 0) {
 		do {
-			rootNode = *(OptNode**)((uint8_t*)object->rootNodes + rootOffset);
-			if (stopNode == rootNode)
+			rootNode = *(OptNode **)((uint8_t *)object->rootNodes +
+						 rootOffset);
+			if (stopNode == rootNode) {
 				return NULL;
-			result = OptModel_FindSharedTextureDataInNodeBeforeTarget(textureData, rootNode, stopNode);
-			if (result != NULL)
+			}
+			result =
+				OptModel_FindSharedTextureDataInNodeBeforeTarget(
+					textureData, rootNode, stopNode);
+			if (result != NULL) {
 				return result;
+			}
 			rootOffset += sizeof(*object->rootNodes);
 			++rootIndex;
 		} while (object->rootNodeCount > rootIndex);
@@ -2137,12 +2830,13 @@ void* OptModel_FindEarlierSharedTextureData(const void* textureData, OptimizedPo
 }
 
 // FUNCTION: XVT 0x474960
-unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNode,
-												   OptimizedPolyObject* srcModel,
-												   OptimizedPolyObject* dstModel, SceneMesh* meshState) {
-	OptNode* destinationNode;
-	uint8_t* cursor;
-	OptNode** sourceNode;
+unsigned int OptModel_ConvertLegacyNodeToOptimized(
+	uint8_t *dst, OptNode *srcNode, OptimizedPolyObject *srcModel,
+	OptimizedPolyObject *dstModel, SceneMesh *meshState)
+{
+	OptNode *destinationNode;
+	uint8_t *cursor;
+	OptNode **sourceNode;
 	SceneMesh childMesh;
 	OptVector minimum;
 	OptVector maximum;
@@ -2151,8 +2845,9 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 	int firstChildIndex;
 	int childIndex;
 
-	if (srcNode == NULL)
+	if (srcNode == NULL) {
 		return 0;
+	}
 
 	cursor = dst;
 	sourceNode = &srcNode;
@@ -2161,470 +2856,246 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 	destinationNode = NULL;
 
 	switch ((*sourceNode)->nodeType) {
-		case OPT_FACEDATA:
-		case OPT_FACEDATA_QUAD_MESH:
-		case OPT_FACEDATA_FACE_SET:
-		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-			if (*(int*)(*sourceNode)->payload < 0) {
-				emitNode = 0;
-				break;
-			}
-#ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
-#endif
-			destinationNode = (OptNode*)cursor;
-			if (g_optConvertVertexNode != NULL) {
-				cursor += sizeof(*destinationNode);
-				destinationNode->nodeType = (*sourceNode)->nodeType;
-				if ((*sourceNode)->pName != NULL) {
-					destinationNode->pName = (char*)cursor;
-					strcpy((char*)cursor, (*sourceNode)->pName);
-					cursor += strlen((*sourceNode)->pName) + 1;
-				} else {
-					destinationNode->pName = NULL;
-				}
-				destinationNode->payloadCount = 0;
-#ifdef XVT_MODERN
-				cursor = XvtOpt_AlignPointer(cursor);
-#endif
-				destinationNode->payload = cursor;
-				*(int*)cursor = 0;
-				OptModel_AppendConvertedFacesForCurrentMesh(destinationNode, (*sourceNode), srcModel,
-															meshState);
-				emitNode = 0;
-				cursor += sizeof(int) + 100 * destinationNode->payloadCount;
-			} else {
-				unsigned int faceRecordSize;
-				unsigned int trailingSize;
-				uint8_t* sourceTrailingData;
-
-				cursor += sizeof(*destinationNode);
-				destinationNode->nodeType = (*sourceNode)->nodeType;
-				if ((*sourceNode)->pName != NULL) {
-					destinationNode->pName = (char*)cursor;
-					strcpy((char*)cursor, (*sourceNode)->pName);
-					cursor += strlen((*sourceNode)->pName) + 1;
-				} else {
-					destinationNode->pName = NULL;
-				}
-				destinationNode->payloadCount = (*sourceNode)->payloadCount;
-#ifdef XVT_MODERN
-				cursor = XvtOpt_AlignPointer(cursor);
-#endif
-				destinationNode->payload = cursor;
-				if (g_optSourceIsVersion0)
-					faceRecordSize = sizeof(int) + 48 * (*sourceNode)->payloadCount;
-				else
-					faceRecordSize = sizeof(int) + 64 * (*sourceNode)->payloadCount;
-				memcpy(cursor, (*sourceNode)->payload, faceRecordSize);
-				cursor += faceRecordSize;
-				trailingSize = 16 * (*sourceNode)->payloadCount;
-				memcpy(cursor, (*sourceNode)->payload, trailingSize);
-				cursor += trailingSize;
-				payloadSize = 36 * (*sourceNode)->payloadCount;
-				if (g_optSourceIsVersion0)
-					sourceTrailingData =
-						(uint8_t*)(*sourceNode)->payload + sizeof(int) + 48 * (*sourceNode)->payloadCount;
-				else
-					sourceTrailingData =
-						(uint8_t*)(*sourceNode)->payload + sizeof(int) + 64 * (*sourceNode)->payloadCount;
-				memcpy(cursor, sourceTrailingData, payloadSize);
-				cursor += payloadSize;
-				sourceTrailingData += payloadSize;
-				if (meshState->pVertNormals == NULL) {
-					payloadSize = sizeof(OptVector) * g_curVertexCount;
-					memcpy(cursor, sourceTrailingData, payloadSize);
-					cursor += payloadSize;
-				}
-				emitNode = 0;
-			}
-			break;
-
-		case OPT_TRANSFORM:
-			payloadSize = 48;
-			break;
-
-		case OPT_MESHVERTS:
-			g_curMeshVertices = (*sourceNode)->payload;
-			g_curVertexCount = (*sourceNode)->payloadCount;
-			if (g_optConvertVertexNode != NULL)
-				emitNode = 0;
-			else
-				payloadSize = sizeof(OptVector) * (*sourceNode)->payloadCount;
-			break;
-
-		case OPT_TRANSLATION:
-			payloadSize = 12;
-			break;
-
-		case OPT_ROTATION:
-			payloadSize = 36;
-			break;
-
-		case OPT_SCALE:
-			payloadSize = 12;
-			break;
-
-		case OPT_NODEREF:
-			destinationNode = (*sourceNode);
-			payloadSize = (unsigned int)strlen((const char*)(*sourceNode)->payload) + 1;
-			while (destinationNode->nodeType == OPT_NODEREF) {
-				destinationNode = OptModel_ResolveNodeRef(srcModel, (const char*)destinationNode->payload);
-				if (destinationNode == NULL)
-					break;
-			}
-			if (destinationNode != NULL && destinationNode->nodeType == OPT_TEXTURE)
-				g_optConvertSourceTextureNode = destinationNode;
-			break;
-
-		case OPT_MATERIAL:
-			payloadSize = 56 * (*sourceNode)->payloadCount;
-			g_curMeshMaterials = (*sourceNode)->payload;
-			break;
-
-		case OPT_VERTNORMALS:
-			g_curVertNormals = (OptVector*)(*sourceNode)->payload;
-			meshState->pVertNormals = g_curVertNormals;
-			if (g_optConvertVertexNormalNode != NULL)
-				emitNode = 0;
-			else
-				payloadSize = sizeof(OptVector) * (*sourceNode)->payloadCount;
-			break;
-
-		case OPT_TEXCOORDS:
-			g_curMeshTexCoords = (*sourceNode)->payload;
-			if (g_optConvertTexCoordNode != NULL)
-				emitNode = 0;
-			else
-				payloadSize = sizeof(OptTexCoord) * (*sourceNode)->payloadCount;
-			break;
-
-		case OPT_BASE_COLOR:
-			payloadSize = 12;
-			break;
-
-		case OPT_TEXTURE: {
-			OptTextureData* texture;
-			uint16_t* embeddedPalette;
-			int textureDataSize;
-
-			g_optConvertSourceTextureNode = (*sourceNode);
-			texture = (OptTextureData*)(*sourceNode)->payload;
-			textureDataSize = texture->width * texture->height;
-			if (textureDataSize == texture->textureSize)
-				payloadSize = sizeof(*texture) + texture->dataSize;
-			else
-				payloadSize = sizeof(*texture) + textureDataSize;
-			if (texture->inlinePaletteCount != 0) {
-				payloadSize += 768 * texture->inlinePaletteCount;
-			} else {
-				embeddedPalette = (uint16_t*)((uint8_t*)texture + sizeof(*texture));
-				if (textureDataSize == texture->textureSize)
-					textureDataSize = texture->dataSize;
-				embeddedPalette = (uint16_t*)((uint8_t*)embeddedPalette + textureDataSize);
-				if (texture->palette == embeddedPalette)
-					payloadSize += 12288;
-			}
-			break;
-		}
-
-		case OPT_FACEGROUP:
-#ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
-#endif
-			destinationNode = (OptNode*)cursor;
-			g_optConvertSourceMeshNode = (*sourceNode);
-			if (g_optConvertVertexNode == NULL) {
-				OptNode* vertexNode;
-				OptNode* texCoordNode;
-				OptNode* normalNode;
-				OptNode** generatedChildren;
-				OptVector* vectors;
-				OptVector* savedNormals;
-				int savedVertexCount;
-				int remaining;
-
-				destinationNode->nodeType = OPT_GROUP;
-				cursor += sizeof(*destinationNode);
-				if ((*sourceNode)->pName != NULL) {
-					destinationNode->pName = (char*)cursor;
-					strcpy((char*)cursor, (*sourceNode)->pName);
-					cursor += strlen((*sourceNode)->pName) + 1;
-				} else {
-					destinationNode->pName = NULL;
-				}
-				destinationNode->payload = NULL;
-				destinationNode->payloadCount = 0;
-				destinationNode->childCount = 4;
-#ifdef XVT_MODERN
-				cursor = XvtOpt_AlignPointer(cursor);
-#endif
-				destinationNode->pChildren = (OptNode**)cursor;
-				generatedChildren = destinationNode->pChildren;
-				cursor += sizeof(OptNode*) * 4;
-
-#ifdef XVT_MODERN
-				cursor = XvtOpt_AlignPointer(cursor);
-#endif
-				vertexNode = (OptNode*)cursor;
-				generatedChildren[0] = vertexNode;
-				vertexNode->nodeType = OPT_MESHVERTS;
-				cursor += sizeof(*vertexNode);
-				vertexNode->pName = NULL;
-				vertexNode->payload = cursor;
-				vertexNode->payloadCount = 0;
-				vertexNode->childCount = 0;
-				vertexNode->pChildren = NULL;
-				OptModel_CollectUniqueVertices(vertexNode, (*sourceNode), srcModel, meshState);
-				g_optConvertVertexNode = vertexNode;
-
-				vectors = (OptVector*)vertexNode->payload;
-				minimum.x = maximum.x = vectors->x;
-				minimum.y = maximum.y = vectors->y;
-				minimum.z = maximum.z = vectors->z;
-				remaining = vertexNode->payloadCount;
-				if (remaining > 0) {
-					do {
-						if (vectors->x < minimum.x)
-							minimum.x = vectors->x;
-						if (vectors->y < minimum.y)
-							minimum.y = vectors->y;
-						if (vectors->z < minimum.z)
-							minimum.z = vectors->z;
-						if (vectors->x > maximum.x)
-							maximum.x = vectors->x;
-						if (vectors->y > maximum.y)
-							maximum.y = vectors->y;
-						if (vectors->z > maximum.z)
-							maximum.z = vectors->z;
-						++vectors;
-						--remaining;
-					} while (remaining != 0);
-				}
-				vectors -= 2;
-				if (vectors[0].x != minimum.x || vectors[0].y != minimum.y || vectors[0].z != minimum.z ||
-					vectors[1].x != maximum.x || vectors[1].y != maximum.y || vectors[1].z != maximum.z) {
-					vectors += 2;
-					vectors[0].x = minimum.x;
-					vectors[0].y = minimum.y;
-					vectors[0].z = minimum.z;
-					++vectors;
-					vectors[0].x = maximum.x;
-					vectors[0].y = maximum.y;
-					vectors[0].z = maximum.z;
-					vertexNode->payloadCount += 2;
-				}
-				cursor += sizeof(OptVector) * vertexNode->payloadCount;
-
-#ifdef XVT_MODERN
-				cursor = XvtOpt_AlignPointer(cursor);
-#endif
-				texCoordNode = (OptNode*)cursor;
-				generatedChildren[1] = texCoordNode;
-				texCoordNode->nodeType = OPT_TEXCOORDS;
-				cursor += sizeof(*texCoordNode);
-				texCoordNode->pName = NULL;
-				texCoordNode->payload = cursor;
-				texCoordNode->payloadCount = 0;
-				texCoordNode->childCount = 0;
-				texCoordNode->pChildren = NULL;
-				OptModel_CollectUniqueTexCoords(texCoordNode, (*sourceNode), srcModel, meshState);
-				g_optConvertTexCoordNode = texCoordNode;
-				cursor += sizeof(OptTexCoord) * texCoordNode->payloadCount;
-
-#ifdef XVT_MODERN
-				cursor = XvtOpt_AlignPointer(cursor);
-#endif
-				normalNode = (OptNode*)cursor;
-				generatedChildren[2] = normalNode;
-				normalNode->nodeType = OPT_VERTNORMALS;
-				cursor += sizeof(*normalNode);
-				normalNode->pName = NULL;
-				normalNode->payload = cursor;
-				normalNode->payloadCount = 0;
-				normalNode->childCount = 0;
-				normalNode->pChildren = NULL;
-				savedNormals = meshState->pVertNormals;
-				savedVertexCount = g_curVertexCount;
-				meshState->pVertNormals = NULL;
-				OptModel_CollectUniqueVertexNormals(normalNode, (*sourceNode), srcModel, meshState);
-				meshState->pVertNormals = savedNormals;
-				g_optConvertVertexNormalNode = normalNode;
-				g_curVertexCount = savedVertexCount;
-				cursor += sizeof(OptVector) * normalNode->payloadCount;
-
-#ifdef XVT_MODERN
-				cursor = XvtOpt_AlignPointer(cursor);
-#endif
-				destinationNode = (OptNode*)cursor;
-				generatedChildren[3] = destinationNode;
-				destinationNode->nodeType = OPT_FACEGROUP;
-				cursor += sizeof(*destinationNode);
-				destinationNode->pName = NULL;
-#ifdef XVT_MODERN
-				cursor = XvtOpt_AlignPointer(cursor);
-#endif
-				destinationNode->payload = cursor;
-				destinationNode->payloadCount = (*sourceNode)->payloadCount;
-				memcpy(cursor, (*sourceNode)->payload, sizeof(int) * (*sourceNode)->payloadCount);
-				cursor += sizeof(int) * (*sourceNode)->payloadCount;
-				if ((*sourceNode)->childCount > (*sourceNode)->payloadCount) {
-					destinationNode->payloadCount = (*sourceNode)->childCount;
-					memset(cursor, 0,
-						   sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount));
-					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount);
-				} else if ((*sourceNode)->childCount < (*sourceNode)->payloadCount) {
-					destinationNode->payloadCount = (*sourceNode)->childCount;
-					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount);
-				}
-			} else {
-				destinationNode->nodeType = OPT_FACEGROUP;
-				cursor += sizeof(*destinationNode);
-				destinationNode->pName = NULL;
-#ifdef XVT_MODERN
-				cursor = XvtOpt_AlignPointer(cursor);
-#endif
-				destinationNode->payload = cursor;
-				destinationNode->payloadCount = (*sourceNode)->payloadCount;
-				memcpy(cursor, (*sourceNode)->payload, sizeof(int) * (*sourceNode)->payloadCount);
-				cursor += sizeof(int) * (*sourceNode)->payloadCount;
-				if ((*sourceNode)->childCount > (*sourceNode)->payloadCount) {
-					destinationNode->payloadCount = (*sourceNode)->childCount;
-					memset(cursor, 0,
-						   sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount));
-					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount);
-				} else if ((*sourceNode)->childCount < (*sourceNode)->payloadCount) {
-					destinationNode->payloadCount = (*sourceNode)->childCount;
-					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount);
-				}
-			}
+	case OPT_FACEDATA:
+	case OPT_FACEDATA_QUAD_MESH:
+	case OPT_FACEDATA_FACE_SET:
+	case OPT_FACEDATA_TRIANGLE_STRIP_SET:
+		if (*(int *)(*sourceNode)->payload < 0) {
 			emitNode = 0;
 			break;
-
-		case OPT_HARDPOINT:
-			payloadSize = 16;
-			break;
-
-		case OPT_ROTSCALE:
-			payloadSize = 48;
-			break;
-
-		case OPT_MESHDESC:
-			payloadSize = 72;
-			break;
-
-		default:
-			break;
-	}
-
-	if (emitNode == 1) {
-#ifdef XVT_MODERN
-		cursor = XvtOpt_AlignPointer(cursor);
-#endif
-		destinationNode = (OptNode*)cursor;
-		cursor += sizeof(*destinationNode);
-		destinationNode->nodeType = (*sourceNode)->nodeType;
-		if ((*sourceNode)->pName != NULL) {
-			destinationNode->pName = (char*)cursor;
-			strcpy((char*)cursor, (*sourceNode)->pName);
-			cursor += strlen((*sourceNode)->pName) + 1;
-		} else {
-			destinationNode->pName = NULL;
 		}
-		destinationNode->payloadCount = (*sourceNode)->payloadCount;
 #ifdef XVT_MODERN
 		cursor = XvtOpt_AlignPointer(cursor);
 #endif
-		destinationNode->payload = cursor;
-		memcpy(cursor, (*sourceNode)->payload, payloadSize);
-		cursor += payloadSize;
-		if ((*sourceNode)->nodeType == OPT_TEXTURE) {
-			OptTextureData* sourceTexture;
-			uint16_t* embeddedPalette;
-			int textureDataSize;
+		destinationNode = (OptNode *)cursor;
+		if (g_optConvertVertexNode != NULL) {
+			cursor += sizeof(*destinationNode);
+			destinationNode->nodeType = (*sourceNode)->nodeType;
+			if ((*sourceNode)->pName != NULL) {
+				destinationNode->pName = (char *)cursor;
+				strcpy((char *)cursor, (*sourceNode)->pName);
+				cursor += strlen((*sourceNode)->pName) + 1;
+			} else {
+				destinationNode->pName = NULL;
+			}
+			destinationNode->payloadCount = 0;
+#ifdef XVT_MODERN
+			cursor = XvtOpt_AlignPointer(cursor);
+#endif
+			destinationNode->payload = cursor;
+			*(int *)cursor = 0;
+			OptModel_AppendConvertedFacesForCurrentMesh(
+				destinationNode, (*sourceNode), srcModel,
+				meshState);
+			emitNode = 0;
+			cursor += sizeof(int) +
+				  100 * destinationNode->payloadCount;
+		} else {
+			unsigned int faceRecordSize;
+			unsigned int trailingSize;
+			uint8_t *sourceTrailingData;
 
-			sourceTexture = (OptTextureData*)(*sourceNode)->payload;
-			if (sourceTexture->inlinePaletteCount == 0) {
-				embeddedPalette = (uint16_t*)((uint8_t*)sourceTexture + sizeof(*sourceTexture));
-				textureDataSize = sourceTexture->width * sourceTexture->height;
-				if (sourceTexture->textureSize == textureDataSize)
-					textureDataSize = sourceTexture->dataSize;
-				embeddedPalette = (uint16_t*)((uint8_t*)embeddedPalette + textureDataSize);
-				if (sourceTexture->palette != embeddedPalette) {
-					void* sharedTextureData;
+			cursor += sizeof(*destinationNode);
+			destinationNode->nodeType = (*sourceNode)->nodeType;
+			if ((*sourceNode)->pName != NULL) {
+				destinationNode->pName = (char *)cursor;
+				strcpy((char *)cursor, (*sourceNode)->pName);
+				cursor += strlen((*sourceNode)->pName) + 1;
+			} else {
+				destinationNode->pName = NULL;
+			}
+			destinationNode->payloadCount =
+				(*sourceNode)->payloadCount;
+#ifdef XVT_MODERN
+			cursor = XvtOpt_AlignPointer(cursor);
+#endif
+			destinationNode->payload = cursor;
+			if (g_optSourceIsVersion0) {
+				faceRecordSize =
+					sizeof(int) +
+					48 * (*sourceNode)->payloadCount;
+			} else {
+				faceRecordSize =
+					sizeof(int) +
+					64 * (*sourceNode)->payloadCount;
+			}
+			memcpy(cursor, (*sourceNode)->payload, faceRecordSize);
+			cursor += faceRecordSize;
+			trailingSize = 16 * (*sourceNode)->payloadCount;
+			memcpy(cursor, (*sourceNode)->payload, trailingSize);
+			cursor += trailingSize;
+			payloadSize = 36 * (*sourceNode)->payloadCount;
+			if (g_optSourceIsVersion0) {
+				sourceTrailingData =
+					(uint8_t *)(*sourceNode)->payload +
+					sizeof(int) +
+					48 * (*sourceNode)->payloadCount;
+			} else {
+				sourceTrailingData =
+					(uint8_t *)(*sourceNode)->payload +
+					sizeof(int) +
+					64 * (*sourceNode)->payloadCount;
+			}
+			memcpy(cursor, sourceTrailingData, payloadSize);
+			cursor += payloadSize;
+			sourceTrailingData += payloadSize;
+			if (meshState->pVertNormals == NULL) {
+				payloadSize =
+					sizeof(OptVector) * g_curVertexCount;
+				memcpy(cursor, sourceTrailingData, payloadSize);
+				cursor += payloadSize;
+			}
+			emitNode = 0;
+		}
+		break;
 
-					sharedTextureData = OptModel_FindEarlierSharedTextureData(sourceTexture->palette,
-																			  dstModel, destinationNode);
-					if (sharedTextureData != NULL) {
-						OptTextureData* destinationTexture;
+	case OPT_TRANSFORM:
+		payloadSize = 48;
+		break;
 
-						destinationTexture = (OptTextureData*)destinationNode->payload;
-						destinationTexture->palette = sharedTextureData;
-					} else {
-						const void* sourcePalette;
-						OptTextureData* destinationTexture;
+	case OPT_MESHVERTS:
+		g_curMeshVertices = (*sourceNode)->payload;
+		g_curVertexCount = (*sourceNode)->payloadCount;
+		if (g_optConvertVertexNode != NULL) {
+			emitNode = 0;
+		} else {
+			payloadSize =
+				sizeof(OptVector) * (*sourceNode)->payloadCount;
+		}
+		break;
 
-						sourcePalette = sourceTexture->palette;
-						destinationTexture = (OptTextureData*)destinationNode->payload;
-						destinationTexture->palette = (uint16_t*)cursor;
-						memcpy(cursor, sourcePalette, 12288);
-						cursor += 12288;
-					}
-				} else {
-					OptTextureData* destinationTexture;
-					uint16_t* destinationPalette;
+	case OPT_TRANSLATION:
+		payloadSize = 12;
+		break;
 
-					destinationTexture = (OptTextureData*)destinationNode->payload;
-					destinationPalette =
-						(uint16_t*)((uint8_t*)destinationTexture + sizeof(*destinationTexture));
-					textureDataSize = destinationTexture->width * destinationTexture->height;
-					if (destinationTexture->textureSize == textureDataSize)
-						textureDataSize = destinationTexture->dataSize;
-					destinationPalette = (uint16_t*)((uint8_t*)destinationPalette + textureDataSize);
-					destinationTexture->palette = destinationPalette;
-				}
+	case OPT_ROTATION:
+		payloadSize = 36;
+		break;
+
+	case OPT_SCALE:
+		payloadSize = 12;
+		break;
+
+	case OPT_NODEREF:
+		destinationNode = (*sourceNode);
+		payloadSize = (unsigned int)strlen(
+				      (const char *)(*sourceNode)->payload) +
+			      1;
+		while (destinationNode->nodeType == OPT_NODEREF) {
+			destinationNode = OptModel_ResolveNodeRef(
+				srcModel,
+				(const char *)destinationNode->payload);
+			if (destinationNode == NULL) {
+				break;
 			}
 		}
+		if (destinationNode != NULL &&
+		    destinationNode->nodeType == OPT_TEXTURE) {
+			g_optConvertSourceTextureNode = destinationNode;
+		}
+		break;
+
+	case OPT_MATERIAL:
+		payloadSize = 56 * (*sourceNode)->payloadCount;
+		g_curMeshMaterials = (*sourceNode)->payload;
+		break;
+
+	case OPT_VERTNORMALS:
+		g_curVertNormals = (OptVector *)(*sourceNode)->payload;
+		meshState->pVertNormals = g_curVertNormals;
+		if (g_optConvertVertexNormalNode != NULL) {
+			emitNode = 0;
+		} else {
+			payloadSize =
+				sizeof(OptVector) * (*sourceNode)->payloadCount;
+		}
+		break;
+
+	case OPT_TEXCOORDS:
+		g_curMeshTexCoords = (*sourceNode)->payload;
+		if (g_optConvertTexCoordNode != NULL) {
+			emitNode = 0;
+		} else {
+			payloadSize = sizeof(OptTexCoord) *
+				      (*sourceNode)->payloadCount;
+		}
+		break;
+
+	case OPT_BASE_COLOR:
+		payloadSize = 12;
+		break;
+
+	case OPT_TEXTURE: {
+		OptTextureData *texture;
+		uint16_t *embeddedPalette;
+		int textureDataSize;
+
+		g_optConvertSourceTextureNode = (*sourceNode);
+		texture = (OptTextureData *)(*sourceNode)->payload;
+		textureDataSize = texture->width * texture->height;
+		if (textureDataSize == texture->textureSize) {
+			payloadSize = sizeof(*texture) + texture->dataSize;
+		} else {
+			payloadSize = sizeof(*texture) + textureDataSize;
+		}
+		if (texture->inlinePaletteCount != 0) {
+			payloadSize += 768 * texture->inlinePaletteCount;
+		} else {
+			embeddedPalette = (uint16_t *)((uint8_t *)texture +
+						       sizeof(*texture));
+			if (textureDataSize == texture->textureSize) {
+				textureDataSize = texture->dataSize;
+			}
+			embeddedPalette =
+				(uint16_t *)((uint8_t *)embeddedPalette +
+					     textureDataSize);
+			if (texture->palette == embeddedPalette) {
+				payloadSize += 12288;
+			}
+		}
+		break;
 	}
 
-	if (destinationNode == NULL) {
-		if ((*sourceNode)->childCount == 0)
-			return 0;
+	case OPT_FACEGROUP:
 #ifdef XVT_MODERN
 		cursor = XvtOpt_AlignPointer(cursor);
 #endif
-		destinationNode = (OptNode*)cursor;
-		cursor += sizeof(*destinationNode);
-		destinationNode->pName = NULL;
-		destinationNode->nodeType = OPT_GROUP;
-		destinationNode->payloadCount = 0;
-		destinationNode->payload = NULL;
-	}
-
-	destinationNode->childCount = 0;
-	destinationNode->pChildren = NULL;
-	if ((*sourceNode)->childCount != 0) {
+		destinationNode = (OptNode *)cursor;
+		g_optConvertSourceMeshNode = (*sourceNode);
 		if (g_optConvertVertexNode == NULL) {
-			OptNode* vertexNode;
-			OptNode* texCoordNode;
-			OptNode* normalNode;
-			OptVector* vectors;
-			OptVector* savedNormals;
+			OptNode *vertexNode;
+			OptNode *texCoordNode;
+			OptNode *normalNode;
+			OptNode **generatedChildren;
+			OptVector *vectors;
+			OptVector *savedNormals;
 			int savedVertexCount;
 			int remaining;
 
-			destinationNode->childCount = (*sourceNode)->childCount + 3;
+			destinationNode->nodeType = OPT_GROUP;
+			cursor += sizeof(*destinationNode);
+			if ((*sourceNode)->pName != NULL) {
+				destinationNode->pName = (char *)cursor;
+				strcpy((char *)cursor, (*sourceNode)->pName);
+				cursor += strlen((*sourceNode)->pName) + 1;
+			} else {
+				destinationNode->pName = NULL;
+			}
+			destinationNode->payload = NULL;
+			destinationNode->payloadCount = 0;
+			destinationNode->childCount = 4;
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			destinationNode->pChildren = (OptNode**)cursor;
-			cursor += sizeof(OptNode*) * destinationNode->childCount;
+			destinationNode->pChildren = (OptNode **)cursor;
+			generatedChildren = destinationNode->pChildren;
+			cursor += sizeof(OptNode *) * 4;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			vertexNode = (OptNode*)cursor;
-			destinationNode->pChildren[0] = vertexNode;
+			vertexNode = (OptNode *)cursor;
+			generatedChildren[0] = vertexNode;
 			vertexNode->nodeType = OPT_MESHVERTS;
 			cursor += sizeof(*vertexNode);
 			vertexNode->pName = NULL;
@@ -2632,35 +3103,46 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			vertexNode->payloadCount = 0;
 			vertexNode->childCount = 0;
 			vertexNode->pChildren = NULL;
-			OptModel_CollectUniqueVertices(vertexNode, (*sourceNode), srcModel, meshState);
+			OptModel_CollectUniqueVertices(
+				vertexNode, (*sourceNode), srcModel, meshState);
 			g_optConvertVertexNode = vertexNode;
 
-			vectors = (OptVector*)vertexNode->payload;
+			vectors = (OptVector *)vertexNode->payload;
 			minimum.x = maximum.x = vectors->x;
 			minimum.y = maximum.y = vectors->y;
 			minimum.z = maximum.z = vectors->z;
 			remaining = vertexNode->payloadCount;
 			if (remaining > 0) {
 				do {
-					if (vectors->x < minimum.x)
+					if (vectors->x < minimum.x) {
 						minimum.x = vectors->x;
-					if (vectors->y < minimum.y)
+					}
+					if (vectors->y < minimum.y) {
 						minimum.y = vectors->y;
-					if (vectors->z < minimum.z)
+					}
+					if (vectors->z < minimum.z) {
 						minimum.z = vectors->z;
-					if (vectors->x > maximum.x)
+					}
+					if (vectors->x > maximum.x) {
 						maximum.x = vectors->x;
-					if (vectors->y > maximum.y)
+					}
+					if (vectors->y > maximum.y) {
 						maximum.y = vectors->y;
-					if (vectors->z > maximum.z)
+					}
+					if (vectors->z > maximum.z) {
 						maximum.z = vectors->z;
+					}
 					++vectors;
 					--remaining;
 				} while (remaining != 0);
 			}
 			vectors -= 2;
-			if (vectors[0].x != minimum.x || vectors[0].y != minimum.y || vectors[0].z != minimum.z ||
-				vectors[1].x != maximum.x || vectors[1].y != maximum.y || vectors[1].z != maximum.z) {
+			if (vectors[0].x != minimum.x ||
+			    vectors[0].y != minimum.y ||
+			    vectors[0].z != minimum.z ||
+			    vectors[1].x != maximum.x ||
+			    vectors[1].y != maximum.y ||
+			    vectors[1].z != maximum.z) {
 				vectors += 2;
 				vectors[0].x = minimum.x;
 				vectors[0].y = minimum.y;
@@ -2676,7 +3158,348 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			texCoordNode = (OptNode*)cursor;
+			texCoordNode = (OptNode *)cursor;
+			generatedChildren[1] = texCoordNode;
+			texCoordNode->nodeType = OPT_TEXCOORDS;
+			cursor += sizeof(*texCoordNode);
+			texCoordNode->pName = NULL;
+			texCoordNode->payload = cursor;
+			texCoordNode->payloadCount = 0;
+			texCoordNode->childCount = 0;
+			texCoordNode->pChildren = NULL;
+			OptModel_CollectUniqueTexCoords(texCoordNode,
+							(*sourceNode), srcModel,
+							meshState);
+			g_optConvertTexCoordNode = texCoordNode;
+			cursor += sizeof(OptTexCoord) *
+				  texCoordNode->payloadCount;
+
+#ifdef XVT_MODERN
+			cursor = XvtOpt_AlignPointer(cursor);
+#endif
+			normalNode = (OptNode *)cursor;
+			generatedChildren[2] = normalNode;
+			normalNode->nodeType = OPT_VERTNORMALS;
+			cursor += sizeof(*normalNode);
+			normalNode->pName = NULL;
+			normalNode->payload = cursor;
+			normalNode->payloadCount = 0;
+			normalNode->childCount = 0;
+			normalNode->pChildren = NULL;
+			savedNormals = meshState->pVertNormals;
+			savedVertexCount = g_curVertexCount;
+			meshState->pVertNormals = NULL;
+			OptModel_CollectUniqueVertexNormals(
+				normalNode, (*sourceNode), srcModel, meshState);
+			meshState->pVertNormals = savedNormals;
+			g_optConvertVertexNormalNode = normalNode;
+			g_curVertexCount = savedVertexCount;
+			cursor += sizeof(OptVector) * normalNode->payloadCount;
+
+#ifdef XVT_MODERN
+			cursor = XvtOpt_AlignPointer(cursor);
+#endif
+			destinationNode = (OptNode *)cursor;
+			generatedChildren[3] = destinationNode;
+			destinationNode->nodeType = OPT_FACEGROUP;
+			cursor += sizeof(*destinationNode);
+			destinationNode->pName = NULL;
+#ifdef XVT_MODERN
+			cursor = XvtOpt_AlignPointer(cursor);
+#endif
+			destinationNode->payload = cursor;
+			destinationNode->payloadCount =
+				(*sourceNode)->payloadCount;
+			memcpy(cursor, (*sourceNode)->payload,
+			       sizeof(int) * (*sourceNode)->payloadCount);
+			cursor += sizeof(int) * (*sourceNode)->payloadCount;
+			if ((*sourceNode)->childCount >
+			    (*sourceNode)->payloadCount) {
+				destinationNode->payloadCount =
+					(*sourceNode)->childCount;
+				memset(cursor, 0,
+				       sizeof(int) *
+					       ((*sourceNode)->childCount -
+						(*sourceNode)->payloadCount));
+				cursor += sizeof(int) *
+					  ((*sourceNode)->childCount -
+					   (*sourceNode)->payloadCount);
+			} else if ((*sourceNode)->childCount <
+				   (*sourceNode)->payloadCount) {
+				destinationNode->payloadCount =
+					(*sourceNode)->childCount;
+				cursor += sizeof(int) *
+					  ((*sourceNode)->childCount -
+					   (*sourceNode)->payloadCount);
+			}
+		} else {
+			destinationNode->nodeType = OPT_FACEGROUP;
+			cursor += sizeof(*destinationNode);
+			destinationNode->pName = NULL;
+#ifdef XVT_MODERN
+			cursor = XvtOpt_AlignPointer(cursor);
+#endif
+			destinationNode->payload = cursor;
+			destinationNode->payloadCount =
+				(*sourceNode)->payloadCount;
+			memcpy(cursor, (*sourceNode)->payload,
+			       sizeof(int) * (*sourceNode)->payloadCount);
+			cursor += sizeof(int) * (*sourceNode)->payloadCount;
+			if ((*sourceNode)->childCount >
+			    (*sourceNode)->payloadCount) {
+				destinationNode->payloadCount =
+					(*sourceNode)->childCount;
+				memset(cursor, 0,
+				       sizeof(int) *
+					       ((*sourceNode)->childCount -
+						(*sourceNode)->payloadCount));
+				cursor += sizeof(int) *
+					  ((*sourceNode)->childCount -
+					   (*sourceNode)->payloadCount);
+			} else if ((*sourceNode)->childCount <
+				   (*sourceNode)->payloadCount) {
+				destinationNode->payloadCount =
+					(*sourceNode)->childCount;
+				cursor += sizeof(int) *
+					  ((*sourceNode)->childCount -
+					   (*sourceNode)->payloadCount);
+			}
+		}
+		emitNode = 0;
+		break;
+
+	case OPT_HARDPOINT:
+		payloadSize = 16;
+		break;
+
+	case OPT_ROTSCALE:
+		payloadSize = 48;
+		break;
+
+	case OPT_MESHDESC:
+		payloadSize = 72;
+		break;
+
+	default:
+		break;
+	}
+
+	if (emitNode == 1) {
+#ifdef XVT_MODERN
+		cursor = XvtOpt_AlignPointer(cursor);
+#endif
+		destinationNode = (OptNode *)cursor;
+		cursor += sizeof(*destinationNode);
+		destinationNode->nodeType = (*sourceNode)->nodeType;
+		if ((*sourceNode)->pName != NULL) {
+			destinationNode->pName = (char *)cursor;
+			strcpy((char *)cursor, (*sourceNode)->pName);
+			cursor += strlen((*sourceNode)->pName) + 1;
+		} else {
+			destinationNode->pName = NULL;
+		}
+		destinationNode->payloadCount = (*sourceNode)->payloadCount;
+#ifdef XVT_MODERN
+		cursor = XvtOpt_AlignPointer(cursor);
+#endif
+		destinationNode->payload = cursor;
+		memcpy(cursor, (*sourceNode)->payload, payloadSize);
+		cursor += payloadSize;
+		if ((*sourceNode)->nodeType == OPT_TEXTURE) {
+			OptTextureData *sourceTexture;
+			uint16_t *embeddedPalette;
+			int textureDataSize;
+
+			sourceTexture =
+				(OptTextureData *)(*sourceNode)->payload;
+			if (sourceTexture->inlinePaletteCount == 0) {
+				embeddedPalette =
+					(uint16_t *)((uint8_t *)sourceTexture +
+						     sizeof(*sourceTexture));
+				textureDataSize = sourceTexture->width *
+						  sourceTexture->height;
+				if (sourceTexture->textureSize ==
+				    textureDataSize) {
+					textureDataSize =
+						sourceTexture->dataSize;
+				}
+				embeddedPalette =
+					(uint16_t *)((uint8_t *)
+							     embeddedPalette +
+						     textureDataSize);
+				if (sourceTexture->palette != embeddedPalette) {
+					void *sharedTextureData;
+
+					sharedTextureData =
+						OptModel_FindEarlierSharedTextureData(
+							sourceTexture->palette,
+							dstModel,
+							destinationNode);
+					if (sharedTextureData != NULL) {
+						OptTextureData
+							*destinationTexture;
+
+						destinationTexture =
+							(OptTextureData
+								 *)destinationNode
+								->payload;
+						destinationTexture->palette =
+							sharedTextureData;
+					} else {
+						const void *sourcePalette;
+						OptTextureData
+							*destinationTexture;
+
+						sourcePalette =
+							sourceTexture->palette;
+						destinationTexture =
+							(OptTextureData
+								 *)destinationNode
+								->payload;
+						destinationTexture->palette =
+							(uint16_t *)cursor;
+						memcpy(cursor, sourcePalette,
+						       12288);
+						cursor += 12288;
+					}
+				} else {
+					OptTextureData *destinationTexture;
+					uint16_t *destinationPalette;
+
+					destinationTexture =
+						(OptTextureData *)
+							destinationNode
+								->payload;
+					destinationPalette =
+						(uint16_t
+							 *)((uint8_t *)
+								    destinationTexture +
+							    sizeof(*destinationTexture));
+					textureDataSize =
+						destinationTexture->width *
+						destinationTexture->height;
+					if (destinationTexture->textureSize ==
+					    textureDataSize) {
+						textureDataSize =
+							destinationTexture
+								->dataSize;
+					}
+					destinationPalette =
+						(uint16_t
+							 *)((uint8_t *)
+								    destinationPalette +
+							    textureDataSize);
+					destinationTexture->palette =
+						destinationPalette;
+				}
+			}
+		}
+	}
+
+	if (destinationNode == NULL) {
+		if ((*sourceNode)->childCount == 0) {
+			return 0;
+		}
+#ifdef XVT_MODERN
+		cursor = XvtOpt_AlignPointer(cursor);
+#endif
+		destinationNode = (OptNode *)cursor;
+		cursor += sizeof(*destinationNode);
+		destinationNode->pName = NULL;
+		destinationNode->nodeType = OPT_GROUP;
+		destinationNode->payloadCount = 0;
+		destinationNode->payload = NULL;
+	}
+
+	destinationNode->childCount = 0;
+	destinationNode->pChildren = NULL;
+	if ((*sourceNode)->childCount != 0) {
+		if (g_optConvertVertexNode == NULL) {
+			OptNode *vertexNode;
+			OptNode *texCoordNode;
+			OptNode *normalNode;
+			OptVector *vectors;
+			OptVector *savedNormals;
+			int savedVertexCount;
+			int remaining;
+
+			destinationNode->childCount =
+				(*sourceNode)->childCount + 3;
+#ifdef XVT_MODERN
+			cursor = XvtOpt_AlignPointer(cursor);
+#endif
+			destinationNode->pChildren = (OptNode **)cursor;
+			cursor +=
+				sizeof(OptNode *) * destinationNode->childCount;
+
+#ifdef XVT_MODERN
+			cursor = XvtOpt_AlignPointer(cursor);
+#endif
+			vertexNode = (OptNode *)cursor;
+			destinationNode->pChildren[0] = vertexNode;
+			vertexNode->nodeType = OPT_MESHVERTS;
+			cursor += sizeof(*vertexNode);
+			vertexNode->pName = NULL;
+			vertexNode->payload = cursor;
+			vertexNode->payloadCount = 0;
+			vertexNode->childCount = 0;
+			vertexNode->pChildren = NULL;
+			OptModel_CollectUniqueVertices(
+				vertexNode, (*sourceNode), srcModel, meshState);
+			g_optConvertVertexNode = vertexNode;
+
+			vectors = (OptVector *)vertexNode->payload;
+			minimum.x = maximum.x = vectors->x;
+			minimum.y = maximum.y = vectors->y;
+			minimum.z = maximum.z = vectors->z;
+			remaining = vertexNode->payloadCount;
+			if (remaining > 0) {
+				do {
+					if (vectors->x < minimum.x) {
+						minimum.x = vectors->x;
+					}
+					if (vectors->y < minimum.y) {
+						minimum.y = vectors->y;
+					}
+					if (vectors->z < minimum.z) {
+						minimum.z = vectors->z;
+					}
+					if (vectors->x > maximum.x) {
+						maximum.x = vectors->x;
+					}
+					if (vectors->y > maximum.y) {
+						maximum.y = vectors->y;
+					}
+					if (vectors->z > maximum.z) {
+						maximum.z = vectors->z;
+					}
+					++vectors;
+					--remaining;
+				} while (remaining != 0);
+			}
+			vectors -= 2;
+			if (vectors[0].x != minimum.x ||
+			    vectors[0].y != minimum.y ||
+			    vectors[0].z != minimum.z ||
+			    vectors[1].x != maximum.x ||
+			    vectors[1].y != maximum.y ||
+			    vectors[1].z != maximum.z) {
+				vectors += 2;
+				vectors[0].x = minimum.x;
+				vectors[0].y = minimum.y;
+				vectors[0].z = minimum.z;
+				++vectors;
+				vectors[0].x = maximum.x;
+				vectors[0].y = maximum.y;
+				vectors[0].z = maximum.z;
+				vertexNode->payloadCount += 2;
+			}
+			cursor += sizeof(OptVector) * vertexNode->payloadCount;
+
+#ifdef XVT_MODERN
+			cursor = XvtOpt_AlignPointer(cursor);
+#endif
+			texCoordNode = (OptNode *)cursor;
 			destinationNode->pChildren[1] = texCoordNode;
 			texCoordNode->nodeType = OPT_TEXCOORDS;
 			cursor += sizeof(*texCoordNode);
@@ -2685,14 +3508,17 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			texCoordNode->payloadCount = 0;
 			texCoordNode->childCount = 0;
 			texCoordNode->pChildren = NULL;
-			OptModel_CollectUniqueTexCoords(texCoordNode, (*sourceNode), srcModel, meshState);
+			OptModel_CollectUniqueTexCoords(texCoordNode,
+							(*sourceNode), srcModel,
+							meshState);
 			g_optConvertTexCoordNode = texCoordNode;
-			cursor += sizeof(OptTexCoord) * texCoordNode->payloadCount;
+			cursor += sizeof(OptTexCoord) *
+				  texCoordNode->payloadCount;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			normalNode = (OptNode*)cursor;
+			normalNode = (OptNode *)cursor;
 			destinationNode->pChildren[2] = normalNode;
 			normalNode->nodeType = OPT_VERTNORMALS;
 			cursor += sizeof(*normalNode);
@@ -2704,7 +3530,8 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			savedNormals = meshState->pVertNormals;
 			savedVertexCount = g_curVertexCount;
 			meshState->pVertNormals = NULL;
-			OptModel_CollectUniqueVertexNormals(normalNode, (*sourceNode), srcModel, meshState);
+			OptModel_CollectUniqueVertexNormals(
+				normalNode, (*sourceNode), srcModel, meshState);
 			meshState->pVertNormals = savedNormals;
 			g_optConvertVertexNormalNode = normalNode;
 			g_curVertexCount = savedVertexCount;
@@ -2716,22 +3543,29 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			destinationNode->pChildren = (OptNode**)cursor;
-			cursor += sizeof(OptNode*) * destinationNode->childCount;
+			destinationNode->pChildren = (OptNode **)cursor;
+			cursor +=
+				sizeof(OptNode *) * destinationNode->childCount;
 		}
 
 		childMesh = *meshState;
-		for (childIndex = 0; childIndex < (*sourceNode)->childCount; ++childIndex) {
+		for (childIndex = 0; childIndex < (*sourceNode)->childCount;
+		     ++childIndex) {
 			unsigned int childSize;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			destinationNode->pChildren[firstChildIndex + childIndex] = (OptNode*)cursor;
-			childSize = OptModel_ConvertLegacyNodeToOptimized(cursor, (*sourceNode)->pChildren[childIndex],
-															  srcModel, dstModel, &childMesh);
-			if (childSize == 0)
-				destinationNode->pChildren[firstChildIndex + childIndex] = NULL;
+			destinationNode
+				->pChildren[firstChildIndex + childIndex] =
+				(OptNode *)cursor;
+			childSize = OptModel_ConvertLegacyNodeToOptimized(
+				cursor, (*sourceNode)->pChildren[childIndex],
+				srcModel, dstModel, &childMesh);
+			if (childSize == 0) {
+				destinationNode->pChildren[firstChildIndex +
+							   childIndex] = NULL;
+			}
 			cursor += childSize;
 		}
 	}
@@ -2744,16 +3578,19 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 }
 
 // FUNCTION: XVT 0x475740
-void OptModel_CollectUniqueVertices(OptNode* dstVertexNode, OptNode* srcNode, OptimizedPolyObject* srcModel,
-									SceneMesh* meshState) {
-	float* sourceVertex;
+void OptModel_CollectUniqueVertices(OptNode *dstVertexNode, OptNode *srcNode,
+				    OptimizedPolyObject *srcModel,
+				    SceneMesh *meshState)
+{
+	float *sourceVertex;
 	int childIndex;
 
 	if (srcNode == NULL) {
 		return;
 	}
 	while (srcNode->nodeType == OPT_NODEREF) {
-		srcNode = OptModel_ResolveNodeRef(srcModel, (const char*)srcNode->payload);
+		srcNode = OptModel_ResolveNodeRef(
+			srcModel, (const char *)srcNode->payload);
 		if (srcNode == NULL) {
 			return;
 		}
@@ -2762,18 +3599,20 @@ void OptModel_CollectUniqueVertices(OptNode* dstVertexNode, OptNode* srcNode, Op
 	if (srcNode->nodeType == OPT_MESHVERTS) {
 		int sourceIndex;
 
-		sourceVertex = (float*)srcNode->payload;
-		for (sourceIndex = 0; sourceIndex < srcNode->payloadCount; ++sourceIndex) {
-			float* destinationVertex;
+		sourceVertex = (float *)srcNode->payload;
+		for (sourceIndex = 0; sourceIndex < srcNode->payloadCount;
+		     ++sourceIndex) {
+			float *destinationVertex;
 			int destinationCount;
 			int destinationIndex;
 
-			destinationVertex = (float*)dstVertexNode->payload;
+			destinationVertex = (float *)dstVertexNode->payload;
 			destinationIndex = 0;
 			destinationCount = dstVertexNode->payloadCount;
 			while (destinationIndex < destinationCount) {
-				if (sourceVertex[0] == destinationVertex[0] && sourceVertex[1] == destinationVertex[1] &&
-					sourceVertex[2] == destinationVertex[2]) {
+				if (sourceVertex[0] == destinationVertex[0] &&
+				    sourceVertex[1] == destinationVertex[1] &&
+				    sourceVertex[2] == destinationVertex[2]) {
 					break;
 				}
 				destinationVertex += 3;
@@ -2791,45 +3630,52 @@ void OptModel_CollectUniqueVertices(OptNode* dstVertexNode, OptNode* srcNode, Op
 
 	childIndex = 0;
 	while (srcNode->childCount > childIndex) {
-		OptModel_CollectUniqueVertices(dstVertexNode, srcNode->pChildren[childIndex], srcModel, meshState);
+		OptModel_CollectUniqueVertices(dstVertexNode,
+					       srcNode->pChildren[childIndex],
+					       srcModel, meshState);
 		++childIndex;
 	}
 }
 
 // FUNCTION: XVT 0x475850
-void OptModel_CollectUniqueTexCoords(OptNode* dstTexCoordNode, OptNode* srcNode,
-									 OptimizedPolyObject* srcModel, SceneMesh* meshState) {
-	OptNode* destinationNode;
+void OptModel_CollectUniqueTexCoords(OptNode *dstTexCoordNode, OptNode *srcNode,
+				     OptimizedPolyObject *srcModel,
+				     SceneMesh *meshState)
+{
+	OptNode *destinationNode;
 	int childIndex;
 
 	if (srcNode == NULL) {
 		return;
 	}
 	while (srcNode->nodeType == OPT_NODEREF) {
-		srcNode = OptModel_ResolveNodeRef(srcModel, (const char*)srcNode->payload);
+		srcNode = OptModel_ResolveNodeRef(
+			srcModel, (const char *)srcNode->payload);
 		if (srcNode == NULL) {
 			return;
 		}
 	}
 
 	if (srcNode->nodeType == OPT_TEXCOORDS) {
-		float* sourceTexCoord;
+		float *sourceTexCoord;
 		int sourceIndex;
 
-		sourceTexCoord = (float*)srcNode->payload;
+		sourceTexCoord = (float *)srcNode->payload;
 		destinationNode = dstTexCoordNode;
 		sourceIndex = 0;
 		while (sourceIndex < srcNode->payloadCount) {
-			float* destinationTexCoord;
+			float *destinationTexCoord;
 			int destinationIndex;
 			int destinationCount;
 
-			destinationTexCoord = (float*)destinationNode->payload;
+			destinationTexCoord = (float *)destinationNode->payload;
 			destinationIndex = 0;
 			destinationCount = destinationNode->payloadCount;
 			while (destinationIndex < destinationCount) {
-				if (sourceTexCoord[0] == destinationTexCoord[0] &&
-					sourceTexCoord[1] == destinationTexCoord[1]) {
+				if (sourceTexCoord[0] ==
+					    destinationTexCoord[0] &&
+				    sourceTexCoord[1] ==
+					    destinationTexCoord[1]) {
 					break;
 				}
 				destinationTexCoord += 2;
@@ -2849,17 +3695,22 @@ void OptModel_CollectUniqueTexCoords(OptNode* dstTexCoordNode, OptNode* srcNode,
 
 	childIndex = 0;
 	while (childIndex < srcNode->childCount) {
-		OptModel_CollectUniqueTexCoords(destinationNode, srcNode->pChildren[childIndex], srcModel, meshState);
+		OptModel_CollectUniqueTexCoords(destinationNode,
+						srcNode->pChildren[childIndex],
+						srcModel, meshState);
 		++childIndex;
 	}
 }
 
 // FUNCTION: XVT 0x475940
-void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNode,
-										 OptimizedPolyObject* srcModel, SceneMesh* meshState) {
-	OptNode* node;
-	OptNode* destinationNode;
-	OptVector* sourceNormal;
+void OptModel_CollectUniqueVertexNormals(OptNode *dstNormalNode,
+					 OptNode *srcNode,
+					 OptimizedPolyObject *srcModel,
+					 SceneMesh *meshState)
+{
+	OptNode *node;
+	OptNode *destinationNode;
+	OptVector *sourceNormal;
 	int sourceIndex;
 	int childIndex;
 
@@ -2868,7 +3719,8 @@ void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNod
 		return;
 	}
 	while (node->nodeType == OPT_NODEREF) {
-		node = OptModel_ResolveNodeRef(srcModel, (const char*)node->payload);
+		node = OptModel_ResolveNodeRef(srcModel,
+					       (const char *)node->payload);
 		if (node == NULL) {
 			return;
 		}
@@ -2876,98 +3728,127 @@ void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNod
 
 	destinationNode = dstNormalNode;
 	switch (node->nodeType) {
-		case OPT_FACEDATA:
-		case OPT_FACEDATA_QUAD_MESH:
-		case OPT_FACEDATA_FACE_SET:
-		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-			if (meshState->pVertNormals == NULL) {
-				OptLegacyFacePayload* faceData;
+	case OPT_FACEDATA:
+	case OPT_FACEDATA_QUAD_MESH:
+	case OPT_FACEDATA_FACE_SET:
+	case OPT_FACEDATA_TRIANGLE_STRIP_SET:
+		if (meshState->pVertNormals == NULL) {
+			OptLegacyFacePayload *faceData;
 
-				faceData = (OptLegacyFacePayload*)node->payload;
-				if (g_optSourceIsVersion0) {
-					sourceNormal =
-						(OptVector*)&((OptLegacyFacePayloadV0*)faceData)->storage[node->payloadCount];
-				} else {
-					sourceNormal = (OptVector*)&faceData->storage[node->payloadCount];
-				}
-				sourceIndex = 0;
-				if (g_curVertexCount > 0) {
-					do {
-						OptVector* destinationNormal;
-						int destinationCount;
-						int destinationIndex;
-
-						destinationNormal = (OptVector*)destinationNode->payload;
-						destinationIndex = 0;
-						destinationCount = destinationNode->payloadCount;
-						if (destinationIndex < destinationCount) {
-							do {
-								if (destinationNormal->x == sourceNormal->x) {
-									if (sourceNormal->y == destinationNormal->y &&
-										sourceNormal->z == destinationNormal->z) {
-										break;
-									}
-								}
-								++destinationNormal;
-								++destinationIndex;
-							} while (destinationIndex < destinationCount);
-						}
-						if (destinationIndex == destinationCount) {
-							destinationNormal->x = sourceNormal->x;
-							destinationNormal->y = sourceNormal->y;
-							destinationNormal->z = sourceNormal->z;
-							++destinationNode->payloadCount;
-						}
-						++sourceNormal;
-						++sourceIndex;
-					} while (sourceIndex < g_curVertexCount);
-				}
+			faceData = (OptLegacyFacePayload *)node->payload;
+			if (g_optSourceIsVersion0) {
+				sourceNormal =
+					(OptVector *)&(
+						(OptLegacyFacePayloadV0 *)
+							faceData)
+						->storage[node->payloadCount];
+			} else {
+				sourceNormal =
+					(OptVector *)&faceData
+						->storage[node->payloadCount];
 			}
-			break;
-
-		case OPT_MESHVERTS:
-			g_curVertexCount = node->payloadCount;
-			break;
-
-		case OPT_VERTNORMALS:
-			meshState->pVertNormals = (OptVector*)node->payload;
-			sourceNormal = (OptVector*)node->payload;
 			sourceIndex = 0;
-			if (node->payloadCount > 0) {
+			if (g_curVertexCount > 0) {
 				do {
-					OptVector* destinationNormal;
+					OptVector *destinationNormal;
 					int destinationCount;
 					int destinationIndex;
 
-					destinationNormal = (OptVector*)destinationNode->payload;
+					destinationNormal =
+						(OptVector *)destinationNode
+							->payload;
 					destinationIndex = 0;
-					destinationCount = destinationNode->payloadCount;
-					if (destinationIndex < destinationCount) {
+					destinationCount =
+						destinationNode->payloadCount;
+					if (destinationIndex <
+					    destinationCount) {
 						do {
-							if (destinationNormal->x == sourceNormal->x) {
-								if (sourceNormal->y == destinationNormal->y &&
-									destinationNormal->z == sourceNormal->z) {
+							if (destinationNormal
+								    ->x ==
+							    sourceNormal->x) {
+								if (sourceNormal->y ==
+									    destinationNormal
+										    ->y &&
+								    sourceNormal->z ==
+									    destinationNormal
+										    ->z) {
 									break;
 								}
 							}
 							++destinationNormal;
 							++destinationIndex;
-						} while (destinationIndex < destinationCount);
+						} while (destinationIndex <
+							 destinationCount);
 					}
-					if (destinationIndex == destinationCount) {
-						destinationNormal->x = sourceNormal->x;
-						destinationNormal->y = sourceNormal->y;
-						destinationNormal->z = sourceNormal->z;
+					if (destinationIndex ==
+					    destinationCount) {
+						destinationNormal->x =
+							sourceNormal->x;
+						destinationNormal->y =
+							sourceNormal->y;
+						destinationNormal->z =
+							sourceNormal->z;
 						++destinationNode->payloadCount;
 					}
 					++sourceNormal;
 					++sourceIndex;
-				} while (sourceIndex < node->payloadCount);
+				} while (sourceIndex < g_curVertexCount);
 			}
-			break;
+		}
+		break;
 
-		default:
-			break;
+	case OPT_MESHVERTS:
+		g_curVertexCount = node->payloadCount;
+		break;
+
+	case OPT_VERTNORMALS:
+		meshState->pVertNormals = (OptVector *)node->payload;
+		sourceNormal = (OptVector *)node->payload;
+		sourceIndex = 0;
+		if (node->payloadCount > 0) {
+			do {
+				OptVector *destinationNormal;
+				int destinationCount;
+				int destinationIndex;
+
+				destinationNormal =
+					(OptVector *)destinationNode->payload;
+				destinationIndex = 0;
+				destinationCount =
+					destinationNode->payloadCount;
+				if (destinationIndex < destinationCount) {
+					do {
+						if (destinationNormal->x ==
+						    sourceNormal->x) {
+							if (sourceNormal->y ==
+								    destinationNormal
+									    ->y &&
+							    destinationNormal
+									    ->z ==
+								    sourceNormal
+									    ->z) {
+								break;
+							}
+						}
+						++destinationNormal;
+						++destinationIndex;
+					} while (destinationIndex <
+						 destinationCount);
+				}
+				if (destinationIndex == destinationCount) {
+					destinationNormal->x = sourceNormal->x;
+					destinationNormal->y = sourceNormal->y;
+					destinationNormal->z = sourceNormal->z;
+					++destinationNode->payloadCount;
+				}
+				++sourceNormal;
+				++sourceIndex;
+			} while (sourceIndex < node->payloadCount);
+		}
+		break;
+
+	default:
+		break;
 	}
 
 	if (g_optSourceIsVersion0) {
@@ -2975,20 +3856,23 @@ void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNod
 	}
 	childIndex = 0;
 	while (childIndex < node->childCount) {
-		OptModel_CollectUniqueVertexNormals(destinationNode, node->pChildren[childIndex], srcModel,
-											meshState);
+		OptModel_CollectUniqueVertexNormals(destinationNode,
+						    node->pChildren[childIndex],
+						    srcModel, meshState);
 		++childIndex;
 	}
 }
 
 // FUNCTION: XVT 0x475B70
-int OptModel_RemapVectorIndex(const OptNode* uniqueVectorNode, const OptVector* sourceVectors,
-							  int sourceIndex) {
-	const float* uniqueVectors;
+int OptModel_RemapVectorIndex(const OptNode *uniqueVectorNode,
+			      const OptVector *sourceVectors, int sourceIndex)
+{
+	const float *uniqueVectors;
 	int cursor;
 
-	if (sourceIndex < 0)
+	if (sourceIndex < 0) {
 		return -1;
+	}
 
 	sourceVectors += sourceIndex;
 	uniqueVectors = uniqueVectorNode->payload;
@@ -3003,8 +3887,9 @@ int OptModel_RemapVectorIndex(const OptNode* uniqueVectorNode, const OptVector* 
 	uniqueVectors += 3 * g_optConvertVectorSearchCursor;
 	if (uniqueVectorNode->payloadCount > g_optConvertVectorSearchCursor) {
 		do {
-			if (uniqueVectors[0] != sourceVectors->x || uniqueVectors[1] != sourceVectors->y ||
-				sourceVectors->z != uniqueVectors[2]) {
+			if (uniqueVectors[0] != sourceVectors->x ||
+			    uniqueVectors[1] != sourceVectors->y ||
+			    sourceVectors->z != uniqueVectors[2]) {
 				uniqueVectors += 3;
 				cursor = g_optConvertVectorSearchCursor;
 				++cursor;
@@ -3012,15 +3897,17 @@ int OptModel_RemapVectorIndex(const OptNode* uniqueVectorNode, const OptVector* 
 			} else {
 				return g_optConvertVectorSearchCursor;
 			}
-		} while (uniqueVectorNode->payloadCount > g_optConvertVectorSearchCursor);
+		} while (uniqueVectorNode->payloadCount >
+			 g_optConvertVectorSearchCursor);
 	}
 
 	g_optConvertVectorSearchCursor = 0;
 	uniqueVectors = uniqueVectorNode->payload;
 	if (uniqueVectorNode->payloadCount > 0) {
 		do {
-			if (uniqueVectors[0] != sourceVectors->x || uniqueVectors[1] != sourceVectors->y ||
-				sourceVectors->z != uniqueVectors[2]) {
+			if (uniqueVectors[0] != sourceVectors->x ||
+			    uniqueVectors[1] != sourceVectors->y ||
+			    sourceVectors->z != uniqueVectors[2]) {
 				uniqueVectors += 3;
 				cursor = g_optConvertVectorSearchCursor;
 				++cursor;
@@ -3028,229 +3915,343 @@ int OptModel_RemapVectorIndex(const OptNode* uniqueVectorNode, const OptVector* 
 			} else {
 				return g_optConvertVectorSearchCursor;
 			}
-		} while (uniqueVectorNode->payloadCount > g_optConvertVectorSearchCursor);
+		} while (uniqueVectorNode->payloadCount >
+			 g_optConvertVectorSearchCursor);
 	}
 
 	return 0;
 }
 
 // FUNCTION: XVT 0x475C70
-int OptModel_RemapTexCoordIndex(const OptNode* uniqueTexCoordNode, const OptTexCoord* sourceTexCoords,
-								int sourceIndex) {
-	const float* uniqueTexCoords;
+int OptModel_RemapTexCoordIndex(const OptNode *uniqueTexCoordNode,
+				const OptTexCoord *sourceTexCoords,
+				int sourceIndex)
+{
+	const float *uniqueTexCoords;
 
-	if (sourceIndex < 0)
+	if (sourceIndex < 0) {
 		return -1;
+	}
 
 	sourceTexCoords += sourceIndex;
 	uniqueTexCoords = uniqueTexCoordNode->payload;
 	g_optConvertTexCoordSearchCursor -= sourceIndex >> 1;
 	if (g_optConvertTexCoordSearchCursor < 0 ||
-		uniqueTexCoordNode->payloadCount < g_optConvertTexCoordSearchCursor) {
+	    uniqueTexCoordNode->payloadCount <
+		    g_optConvertTexCoordSearchCursor) {
 		g_optConvertTexCoordSearchCursor = 0;
 	}
 
 	uniqueTexCoords += 2 * g_optConvertTexCoordSearchCursor;
-	if (uniqueTexCoordNode->payloadCount > g_optConvertTexCoordSearchCursor) {
+	if (uniqueTexCoordNode->payloadCount >
+	    g_optConvertTexCoordSearchCursor) {
 		do {
-			if (uniqueTexCoords[0] != sourceTexCoords->u || uniqueTexCoords[1] != sourceTexCoords->v) {
+			if (uniqueTexCoords[0] != sourceTexCoords->u ||
+			    uniqueTexCoords[1] != sourceTexCoords->v) {
 				uniqueTexCoords += 2;
 				++g_optConvertTexCoordSearchCursor;
 			} else {
 				return g_optConvertTexCoordSearchCursor;
 			}
-		} while (uniqueTexCoordNode->payloadCount > g_optConvertTexCoordSearchCursor);
+		} while (uniqueTexCoordNode->payloadCount >
+			 g_optConvertTexCoordSearchCursor);
 	}
 
 	g_optConvertTexCoordSearchCursor = 0;
 	uniqueTexCoords = uniqueTexCoordNode->payload;
 	if (uniqueTexCoordNode->payloadCount > 0) {
 		do {
-			if (uniqueTexCoords[0] != sourceTexCoords->u || uniqueTexCoords[1] != sourceTexCoords->v) {
+			if (uniqueTexCoords[0] != sourceTexCoords->u ||
+			    uniqueTexCoords[1] != sourceTexCoords->v) {
 				uniqueTexCoords += 2;
 				++g_optConvertTexCoordSearchCursor;
 			} else {
 				return g_optConvertTexCoordSearchCursor;
 			}
-		} while (uniqueTexCoordNode->payloadCount > g_optConvertTexCoordSearchCursor);
+		} while (uniqueTexCoordNode->payloadCount >
+			 g_optConvertTexCoordSearchCursor);
 	}
 
 	return 0;
 }
 
 // FUNCTION: XVT 0x475D50
-void OptModel_AppendConvertedFacesForNode(OptNode* dstFaceNode, OptNode* targetFaceNode, OptNode* node,
-										  OptimizedPolyObject* srcModel, SceneMesh* meshState) {
-	uint8_t* destinationBytes;
-	uint8_t* destinationTrailingBytes;
-	uint8_t* destinationData;
-	int* destinationCursor;
-	const int* sourceCursor;
-	const OptVector* sourceVectors;
-	const OptVector* sourceFaceNormals;
-	const OptVector* sourceTextureGradients;
-	OptVector* destinationFaceNormals;
-	OptVector* destinationTextureGradients;
+void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
+					  OptNode *targetFaceNode,
+					  OptNode *node,
+					  OptimizedPolyObject *srcModel,
+					  SceneMesh *meshState)
+{
+	uint8_t *destinationBytes;
+	uint8_t *destinationTrailingBytes;
+	uint8_t *destinationData;
+	int *destinationCursor;
+	const int *sourceCursor;
+	const OptVector *sourceVectors;
+	const OptVector *sourceFaceNormals;
+	const OptVector *sourceTextureGradients;
+	OptVector *destinationFaceNormals;
+	OptVector *destinationTextureGradients;
 	int destinationEdgeCount;
 	int faceIndex;
 	int childIndex;
-	if (node == NULL)
+	if (node == NULL) {
 		return;
-
-	while (node->nodeType == OPT_NODEREF) {
-		node = OptModel_ResolveNodeRef(srcModel, (const char*)node->payload);
-		if (node == NULL)
-			return;
 	}
 
-	if (g_optConvertTargetFaceFound == 0 && node == targetFaceNode)
+	while (node->nodeType == OPT_NODEREF) {
+		node = OptModel_ResolveNodeRef(srcModel,
+					       (const char *)node->payload);
+		if (node == NULL) {
+			return;
+		}
+	}
+
+	if (g_optConvertTargetFaceFound == 0 && node == targetFaceNode) {
 		g_optConvertTargetFaceFound = 1;
+	}
 
 	switch (node->nodeType) {
-		case OPT_FACEDATA:
-		case OPT_FACEDATA_QUAD_MESH:
-		case OPT_FACEDATA_FACE_SET:
-		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-			if (g_optConvertTargetFaceFound != 0 &&
-				g_optConvertFaceTextureNode == g_optConvertSourceTextureNode && *(int*)node->payload > 0) {
-				destinationData = dstFaceNode->payload;
-				destinationBytes = destinationData + sizeof(int);
-				destinationEdgeCount = *(int*)destinationData;
+	case OPT_FACEDATA:
+	case OPT_FACEDATA_QUAD_MESH:
+	case OPT_FACEDATA_FACE_SET:
+	case OPT_FACEDATA_TRIANGLE_STRIP_SET:
+		if (g_optConvertTargetFaceFound != 0 &&
+		    g_optConvertFaceTextureNode ==
+			    g_optConvertSourceTextureNode &&
+		    *(int *)node->payload > 0) {
+			destinationData = dstFaceNode->payload;
+			destinationBytes = destinationData + sizeof(int);
+			destinationEdgeCount = *(int *)destinationData;
 #ifdef XVT_MODERN
-				memmove(destinationBytes + 64 * node->payloadCount, destinationBytes,
-						100 * dstFaceNode->payloadCount);
+			memmove(destinationBytes + 64 * node->payloadCount,
+				destinationBytes,
+				100 * dstFaceNode->payloadCount);
 #else
-				memcpy(destinationBytes + 64 * node->payloadCount, destinationBytes,
-					   100 * dstFaceNode->payloadCount);
+			memcpy(destinationBytes + 64 * node->payloadCount,
+			       destinationBytes,
+			       100 * dstFaceNode->payloadCount);
 #endif
 
-				sourceCursor = (const int*)node->payload + 1;
-				sourceVectors = meshState->pVertNormals;
-				if (sourceVectors == NULL) {
-					if (g_optSourceIsVersion0)
-						sourceVectors = (const OptVector*)((const uint8_t*)sourceCursor +
-														   48 * node->payloadCount + 36 * node->payloadCount);
-					else
-						sourceVectors = (const OptVector*)((const uint8_t*)sourceCursor +
-														   64 * node->payloadCount + 36 * node->payloadCount);
+			sourceCursor = (const int *)node->payload + 1;
+			sourceVectors = meshState->pVertNormals;
+			if (sourceVectors == NULL) {
+				if (g_optSourceIsVersion0) {
+					sourceVectors =
+						(const OptVector
+							 *)((const uint8_t *)
+								    sourceCursor +
+							    48 * node->payloadCount +
+							    36 * node->payloadCount);
+				} else {
+					sourceVectors =
+						(const OptVector
+							 *)((const uint8_t *)
+								    sourceCursor +
+							    64 * node->payloadCount +
+							    36 * node->payloadCount);
 				}
-
-				destinationCursor = (int*)destinationBytes;
-				for (faceIndex = 0; faceIndex < node->payloadCount; ++faceIndex) {
-					int sourceEdgeIndex;
-
-					*destinationCursor++ = OptModel_RemapVectorIndex(
-						g_optConvertVertexNode, (const OptVector*)g_curMeshVertices, *sourceCursor++);
-					*destinationCursor++ = OptModel_RemapVectorIndex(
-						g_optConvertVertexNode, (const OptVector*)g_curMeshVertices, *sourceCursor++);
-					*destinationCursor++ = OptModel_RemapVectorIndex(
-						g_optConvertVertexNode, (const OptVector*)g_curMeshVertices, *sourceCursor++);
-					*destinationCursor++ = OptModel_RemapVectorIndex(
-						g_optConvertVertexNode, (const OptVector*)g_curMeshVertices, *sourceCursor++);
-
-					*destinationCursor++ = destinationEdgeCount + *sourceCursor++;
-					*destinationCursor++ = destinationEdgeCount + *sourceCursor++;
-					*destinationCursor++ = destinationEdgeCount + *sourceCursor++;
-					sourceEdgeIndex = *sourceCursor++;
-					if (sourceEdgeIndex == -1)
-						*destinationCursor++ = -1;
-					else
-						*destinationCursor++ = destinationEdgeCount + sourceEdgeIndex;
-
-					*destinationCursor++ = OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode, (const OptTexCoord*)g_curMeshTexCoords, *sourceCursor++);
-					*destinationCursor++ = OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode, (const OptTexCoord*)g_curMeshTexCoords, *sourceCursor++);
-					*destinationCursor++ = OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode, (const OptTexCoord*)g_curMeshTexCoords, *sourceCursor++);
-					*destinationCursor++ = OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode, (const OptTexCoord*)g_curMeshTexCoords, *sourceCursor++);
-
-					if (g_optSourceIsVersion0)
-						sourceCursor -= 12;
-					*destinationCursor++ = OptModel_RemapVectorIndex(g_optConvertVertexNormalNode,
-																	 sourceVectors, *sourceCursor++);
-					*destinationCursor++ = OptModel_RemapVectorIndex(g_optConvertVertexNormalNode,
-																	 sourceVectors, *sourceCursor++);
-					*destinationCursor++ = OptModel_RemapVectorIndex(g_optConvertVertexNormalNode,
-																	 sourceVectors, *sourceCursor++);
-					*destinationCursor++ = OptModel_RemapVectorIndex(g_optConvertVertexNormalNode,
-																	 sourceVectors, *sourceCursor++);
-					if (g_optSourceIsVersion0)
-						sourceCursor += 8;
-				}
-
-				destinationTrailingBytes =
-					destinationBytes + 64 * (node->payloadCount + dstFaceNode->payloadCount);
-				destinationFaceNormals = (OptVector*)destinationTrailingBytes;
-#ifdef XVT_MODERN
-				memmove(destinationTrailingBytes + 12 * node->payloadCount, destinationTrailingBytes,
-						36 * dstFaceNode->payloadCount);
-#else
-				memcpy(destinationTrailingBytes + 12 * node->payloadCount, destinationTrailingBytes,
-					   36 * dstFaceNode->payloadCount);
-#endif
-				if (g_optSourceIsVersion0)
-					sourceFaceNormals = (const OptVector*)((const uint8_t*)node->payload + sizeof(int) +
-														   48 * node->payloadCount);
-				else
-					sourceFaceNormals = (const OptVector*)((const uint8_t*)node->payload + sizeof(int) +
-														   64 * node->payloadCount);
-				for (faceIndex = 0; faceIndex < node->payloadCount; ++faceIndex)
-					destinationFaceNormals[faceIndex] = sourceFaceNormals[faceIndex];
-
-				destinationTrailingBytes =
-					(uint8_t*)&destinationFaceNormals[node->payloadCount + dstFaceNode->payloadCount];
-				destinationTextureGradients = (OptVector*)destinationTrailingBytes;
-#ifdef XVT_MODERN
-				memmove(destinationTrailingBytes + 24 * node->payloadCount, destinationTrailingBytes,
-						24 * dstFaceNode->payloadCount);
-#else
-				memcpy(destinationTrailingBytes + 24 * node->payloadCount, destinationTrailingBytes,
-					   24 * dstFaceNode->payloadCount);
-#endif
-				sourceTextureGradients = sourceFaceNormals + node->payloadCount;
-				for (faceIndex = 0; faceIndex < node->payloadCount; ++faceIndex) {
-					destinationTextureGradients[2 * faceIndex] = sourceTextureGradients[2 * faceIndex];
-					destinationTextureGradients[2 * faceIndex + 1] =
-						sourceTextureGradients[2 * faceIndex + 1];
-				}
-
-				dstFaceNode->payloadCount += node->payloadCount;
-				*(int*)destinationData += *(int*)node->payload;
-				*(int*)node->payload = -1;
 			}
-			break;
 
-		case OPT_MESHVERTS:
-			g_curMeshVertices = node->payload;
-			break;
+			destinationCursor = (int *)destinationBytes;
+			for (faceIndex = 0; faceIndex < node->payloadCount;
+			     ++faceIndex) {
+				int sourceEdgeIndex;
 
-		case OPT_VERTNORMALS:
-			meshState->pVertNormals = (OptVector*)node->payload;
-			break;
+				*destinationCursor++ =
+					OptModel_RemapVectorIndex(
+						g_optConvertVertexNode,
+						(const OptVector *)
+							g_curMeshVertices,
+						*sourceCursor++);
+				*destinationCursor++ =
+					OptModel_RemapVectorIndex(
+						g_optConvertVertexNode,
+						(const OptVector *)
+							g_curMeshVertices,
+						*sourceCursor++);
+				*destinationCursor++ =
+					OptModel_RemapVectorIndex(
+						g_optConvertVertexNode,
+						(const OptVector *)
+							g_curMeshVertices,
+						*sourceCursor++);
+				*destinationCursor++ =
+					OptModel_RemapVectorIndex(
+						g_optConvertVertexNode,
+						(const OptVector *)
+							g_curMeshVertices,
+						*sourceCursor++);
 
-		case OPT_TEXCOORDS:
-			g_curMeshTexCoords = node->payload;
-			break;
+				*destinationCursor++ =
+					destinationEdgeCount + *sourceCursor++;
+				*destinationCursor++ =
+					destinationEdgeCount + *sourceCursor++;
+				*destinationCursor++ =
+					destinationEdgeCount + *sourceCursor++;
+				sourceEdgeIndex = *sourceCursor++;
+				if (sourceEdgeIndex == -1) {
+					*destinationCursor++ = -1;
+				} else {
+					*destinationCursor++ =
+						destinationEdgeCount +
+						sourceEdgeIndex;
+				}
 
-		case OPT_TEXTURE:
-			g_optConvertFaceTextureNode = node;
-			break;
+				*destinationCursor++ =
+					OptModel_RemapTexCoordIndex(
+						g_optConvertTexCoordNode,
+						(const OptTexCoord *)
+							g_curMeshTexCoords,
+						*sourceCursor++);
+				*destinationCursor++ =
+					OptModel_RemapTexCoordIndex(
+						g_optConvertTexCoordNode,
+						(const OptTexCoord *)
+							g_curMeshTexCoords,
+						*sourceCursor++);
+				*destinationCursor++ =
+					OptModel_RemapTexCoordIndex(
+						g_optConvertTexCoordNode,
+						(const OptTexCoord *)
+							g_curMeshTexCoords,
+						*sourceCursor++);
+				*destinationCursor++ =
+					OptModel_RemapTexCoordIndex(
+						g_optConvertTexCoordNode,
+						(const OptTexCoord *)
+							g_curMeshTexCoords,
+						*sourceCursor++);
 
-		default:
-			break;
+				if (g_optSourceIsVersion0) {
+					sourceCursor -= 12;
+				}
+				*destinationCursor++ =
+					OptModel_RemapVectorIndex(
+						g_optConvertVertexNormalNode,
+						sourceVectors, *sourceCursor++);
+				*destinationCursor++ =
+					OptModel_RemapVectorIndex(
+						g_optConvertVertexNormalNode,
+						sourceVectors, *sourceCursor++);
+				*destinationCursor++ =
+					OptModel_RemapVectorIndex(
+						g_optConvertVertexNormalNode,
+						sourceVectors, *sourceCursor++);
+				*destinationCursor++ =
+					OptModel_RemapVectorIndex(
+						g_optConvertVertexNormalNode,
+						sourceVectors, *sourceCursor++);
+				if (g_optSourceIsVersion0) {
+					sourceCursor += 8;
+				}
+			}
+
+			destinationTrailingBytes =
+				destinationBytes +
+				64 * (node->payloadCount +
+				      dstFaceNode->payloadCount);
+			destinationFaceNormals =
+				(OptVector *)destinationTrailingBytes;
+#ifdef XVT_MODERN
+			memmove(destinationTrailingBytes +
+					12 * node->payloadCount,
+				destinationTrailingBytes,
+				36 * dstFaceNode->payloadCount);
+#else
+			memcpy(destinationTrailingBytes +
+				       12 * node->payloadCount,
+			       destinationTrailingBytes,
+			       36 * dstFaceNode->payloadCount);
+#endif
+			if (g_optSourceIsVersion0) {
+				sourceFaceNormals =
+					(const OptVector
+						 *)((const uint8_t *)
+							    node->payload +
+						    sizeof(int) +
+						    48 * node->payloadCount);
+			} else {
+				sourceFaceNormals =
+					(const OptVector
+						 *)((const uint8_t *)
+							    node->payload +
+						    sizeof(int) +
+						    64 * node->payloadCount);
+			}
+			for (faceIndex = 0; faceIndex < node->payloadCount;
+			     ++faceIndex) {
+				destinationFaceNormals[faceIndex] =
+					sourceFaceNormals[faceIndex];
+			}
+
+			destinationTrailingBytes =
+				(uint8_t *)&destinationFaceNormals
+					[node->payloadCount +
+					 dstFaceNode->payloadCount];
+			destinationTextureGradients =
+				(OptVector *)destinationTrailingBytes;
+#ifdef XVT_MODERN
+			memmove(destinationTrailingBytes +
+					24 * node->payloadCount,
+				destinationTrailingBytes,
+				24 * dstFaceNode->payloadCount);
+#else
+			memcpy(destinationTrailingBytes +
+				       24 * node->payloadCount,
+			       destinationTrailingBytes,
+			       24 * dstFaceNode->payloadCount);
+#endif
+			sourceTextureGradients =
+				sourceFaceNormals + node->payloadCount;
+			for (faceIndex = 0; faceIndex < node->payloadCount;
+			     ++faceIndex) {
+				destinationTextureGradients[2 * faceIndex] =
+					sourceTextureGradients[2 * faceIndex];
+				destinationTextureGradients[2 * faceIndex + 1] =
+					sourceTextureGradients[2 * faceIndex +
+							       1];
+			}
+
+			dstFaceNode->payloadCount += node->payloadCount;
+			*(int *)destinationData += *(int *)node->payload;
+			*(int *)node->payload = -1;
+		}
+		break;
+
+	case OPT_MESHVERTS:
+		g_curMeshVertices = node->payload;
+		break;
+
+	case OPT_VERTNORMALS:
+		meshState->pVertNormals = (OptVector *)node->payload;
+		break;
+
+	case OPT_TEXCOORDS:
+		g_curMeshTexCoords = node->payload;
+		break;
+
+	case OPT_TEXTURE:
+		g_optConvertFaceTextureNode = node;
+		break;
+
+	default:
+		break;
 	}
 
 	for (childIndex = 0; childIndex < node->childCount; ++childIndex) {
-		OptModel_AppendConvertedFacesForNode(dstFaceNode, targetFaceNode, node->pChildren[childIndex],
-											 srcModel, meshState);
+		OptModel_AppendConvertedFacesForNode(
+			dstFaceNode, targetFaceNode,
+			node->pChildren[childIndex], srcModel, meshState);
 	}
 }
 
 // FUNCTION: XVT 0x476280
-void OptModel_AppendConvertedFacesForCurrentMesh(OptNode* dstFaceNode, OptNode* targetFaceNode,
-												 OptimizedPolyObject* srcModel, SceneMesh* meshState) {
+void OptModel_AppendConvertedFacesForCurrentMesh(OptNode *dstFaceNode,
+						 OptNode *targetFaceNode,
+						 OptimizedPolyObject *srcModel,
+						 SceneMesh *meshState)
+{
 	int childOffset;
 	int childIndex;
 
@@ -3262,33 +4263,40 @@ void OptModel_AppendConvertedFacesForCurrentMesh(OptNode* dstFaceNode, OptNode* 
 		do {
 			OptModel_AppendConvertedFacesForNode(
 				dstFaceNode, targetFaceNode,
-				*(OptNode**)((uint8_t*)g_optConvertSourceMeshNode->pChildren + childOffset), srcModel,
-				meshState);
-			if (g_optConvertTargetFaceFound != 0)
+				*(OptNode **)((uint8_t *)
+						      g_optConvertSourceMeshNode
+							      ->pChildren +
+					      childOffset),
+				srcModel, meshState);
+			if (g_optConvertTargetFaceFound != 0) {
 				break;
-			childOffset += sizeof(OptNode*);
+			}
+			childOffset += sizeof(OptNode *);
 			++childIndex;
 		} while (g_optConvertSourceMeshNode->childCount > childIndex);
 	}
 }
 
 // FUNCTION: XVT 0x4762F0
-uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle) {
-	OptimizedPolyObject* sourceModel;
-	OptimizedPolyObject* runtimeModel;
+uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
+{
+	OptimizedPolyObject *sourceModel;
+	OptimizedPolyObject *runtimeModel;
 	SceneMesh meshState;
 	unsigned int serializedSize;
 	int rootIndex;
 	uint16_t runtimeHandle;
-	uint8_t* nodeStorage;
+	uint8_t *nodeStorage;
 
 #ifdef XVT_MODERN
-	if (!sourceHandle)
+	if (!sourceHandle) {
 		return 0;
+	}
 #endif
-	sourceModel = (OptimizedPolyObject*)Memory_LockHandle(sourceHandle);
-	if (sourceModel->selfMarker != sourceModel)
+	sourceModel = (OptimizedPolyObject *)Memory_LockHandle(sourceHandle);
+	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
+	}
 	memset(&meshState, 0, sizeof(meshState));
 	g_curMeshVertices = NULL;
 	g_curMeshTexCoords = NULL;
@@ -3297,10 +4305,15 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle) {
 	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 
-	serializedSize = sizeof(OptNode*) * (unsigned int)sourceModel->rootNodeCount + sizeof(*runtimeModel);
+	serializedSize =
+		sizeof(OptNode *) * (unsigned int)sourceModel->rootNodeCount +
+		sizeof(*runtimeModel);
 
-	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount; ++rootIndex)
-		serializedSize += OptModel_BuildRuntimeNode(sourceModel->rootNodes[rootIndex], &meshState, NULL);
+	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
+	     ++rootIndex) {
+		serializedSize += OptModel_BuildRuntimeNode(
+			sourceModel->rootNodes[rootIndex], &meshState, NULL);
+	}
 	Memory_UnlockHandle(sourceHandle);
 	runtimeHandle = Memory_AllocHandle(serializedSize, 0);
 	if (runtimeHandle == 0) {
@@ -3311,38 +4324,51 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle) {
 	}
 
 #ifdef XVT_MODERN
-	if (!sourceHandle)
+	if (!sourceHandle) {
 		return 0;
+	}
 #endif
-	sourceModel = (OptimizedPolyObject*)Memory_LockHandle(sourceHandle);
-	if (sourceModel->selfMarker != sourceModel)
+	sourceModel = (OptimizedPolyObject *)Memory_LockHandle(sourceHandle);
+	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
-	runtimeModel = (OptimizedPolyObject*)Memory_LockHandle(runtimeHandle);
+	}
+	runtimeModel = (OptimizedPolyObject *)Memory_LockHandle(runtimeHandle);
 	memcpy(runtimeModel, sourceModel, sizeof(*runtimeModel));
 	runtimeModel->selfMarker = runtimeModel;
-	runtimeModel->rootNodes = (OptNode**)((uint8_t*)runtimeModel + sizeof(*runtimeModel));
-	nodeStorage = (uint8_t*)(runtimeModel->rootNodes + sourceModel->rootNodeCount);
-	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount; ++rootIndex) {
-		runtimeModel->rootNodes[rootIndex] = (OptNode*)nodeStorage;
-		nodeStorage += OptModel_BuildRuntimeNode(sourceModel->rootNodes[rootIndex], &meshState, nodeStorage);
+	runtimeModel->rootNodes =
+		(OptNode **)((uint8_t *)runtimeModel + sizeof(*runtimeModel));
+	nodeStorage = (uint8_t *)(runtimeModel->rootNodes +
+				  sourceModel->rootNodeCount);
+	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
+	     ++rootIndex) {
+		runtimeModel->rootNodes[rootIndex] = (OptNode *)nodeStorage;
+		nodeStorage += OptModel_BuildRuntimeNode(
+			sourceModel->rootNodes[rootIndex], &meshState,
+			nodeStorage);
 	}
-	for (rootIndex = 0; rootIndex < runtimeModel->rootNodeCount; ++rootIndex)
-		OptModel_FixupRuntimeTexturePointers(runtimeModel->rootNodes[rootIndex], runtimeModel, sourceModel);
+	for (rootIndex = 0; rootIndex < runtimeModel->rootNodeCount;
+	     ++rootIndex) {
+		OptModel_FixupRuntimeTexturePointers(
+			runtimeModel->rootNodes[rootIndex], runtimeModel,
+			sourceModel);
+	}
 	Memory_UnlockHandle(runtimeHandle);
 	Memory_UnlockHandle(sourceHandle);
 	return runtimeHandle;
 }
 
 // FUNCTION: XVT 0x476490
-void OptModel_FixupRuntimeTexturePointers(OptNode* node, OptimizedPolyObject* dstModel,
-										  OptimizedPolyObject* srcModel) {
-	OptNode* currentNode;
-	OptTextureData* textureData;
-	uint8_t* palette;
+void OptModel_FixupRuntimeTexturePointers(OptNode *node,
+					  OptimizedPolyObject *dstModel,
+					  OptimizedPolyObject *srcModel)
+{
+	OptNode *currentNode;
+	OptTextureData *textureData;
+	uint8_t *palette;
 	int textureDataSize;
-	OptNode* correspondingNode;
-	OptTextureData* correspondingTextureData;
-	uint16_t* sourcePalette;
+	OptNode *correspondingNode;
+	OptTextureData *correspondingTextureData;
+	uint16_t *sourcePalette;
 	int childCount;
 	int childOffset;
 	int childIndex;
@@ -3350,46 +4376,77 @@ void OptModel_FixupRuntimeTexturePointers(OptNode* node, OptimizedPolyObject* ds
 	currentNode = node;
 	if (currentNode != NULL) {
 		while (currentNode->nodeType == OPT_NODEREF) {
-			currentNode = OptModel_ResolveNodeRef(dstModel, (const char*)currentNode->payload);
-			if (currentNode == NULL)
+			currentNode = OptModel_ResolveNodeRef(
+				dstModel, (const char *)currentNode->payload);
+			if (currentNode == NULL) {
 				return;
+			}
 		}
 
 		if (currentNode->nodeType == OPT_TEXTURE) {
-			textureData = (OptTextureData*)currentNode->payload;
+			textureData = (OptTextureData *)currentNode->payload;
 			if (textureData->inlinePaletteCount != 0) {
 				textureData->inlinePaletteCount = 0;
-				palette = (uint8_t*)textureData + sizeof(*textureData);
-				textureDataSize = textureData->width * textureData->height;
-				if (textureData->textureSize == textureDataSize)
+				palette = (uint8_t *)textureData +
+					  sizeof(*textureData);
+				textureDataSize = textureData->width *
+						  textureData->height;
+				if (textureData->textureSize ==
+				    textureDataSize) {
 					textureDataSize = textureData->dataSize;
+				}
 				palette += textureDataSize;
-				if (g_flightBytesPerPixel == 2)
+				if (g_flightBytesPerPixel == 2) {
 					palette -= 4096;
-				textureData->palette = (uint16_t*)palette;
+				}
+				textureData->palette = (uint16_t *)palette;
 			} else {
 				sourcePalette = textureData->palette;
-				palette = (uint8_t*)sourcePalette;
-				if (g_flightBytesPerPixel == 2)
+				palette = (uint8_t *)sourcePalette;
+				if (g_flightBytesPerPixel == 2) {
 					palette += 4096;
+				}
 				palette -= sizeof(*textureData);
-				textureDataSize = textureData->width * textureData->height;
-				if (textureData->textureSize == textureDataSize)
+				textureDataSize = textureData->width *
+						  textureData->height;
+				if (textureData->textureSize ==
+				    textureDataSize) {
 					textureDataSize = textureData->dataSize;
+				}
 				palette -= textureDataSize;
-				if (palette != (uint8_t*)textureData) {
+				if (palette != (uint8_t *)textureData) {
 					correspondingNode =
-						OptModel_FindCorrespondingTextureNodeInModel(dstModel, srcModel, sourcePalette);
+						OptModel_FindCorrespondingTextureNodeInModel(
+							dstModel, srcModel,
+							sourcePalette);
 					if (correspondingNode != NULL) {
-						correspondingTextureData = (OptTextureData*)correspondingNode->payload;
-						palette = (uint8_t*)correspondingTextureData + sizeof(*correspondingTextureData);
-						textureDataSize = correspondingTextureData->width * correspondingTextureData->height;
-						if (correspondingTextureData->textureSize == textureDataSize)
-							textureDataSize = correspondingTextureData->dataSize;
+						correspondingTextureData =
+							(OptTextureData *)
+								correspondingNode
+									->payload;
+						palette =
+							(uint8_t *)
+								correspondingTextureData +
+							sizeof(*correspondingTextureData);
+						textureDataSize =
+							correspondingTextureData
+								->width *
+							correspondingTextureData
+								->height;
+						if (correspondingTextureData
+							    ->textureSize ==
+						    textureDataSize) {
+							textureDataSize =
+								correspondingTextureData
+									->dataSize;
+						}
 						palette += textureDataSize;
-						if (g_flightBytesPerPixel == 2)
+						if (g_flightBytesPerPixel ==
+						    2) {
 							palette -= 4096;
-						textureData->palette = (uint16_t*)palette;
+						}
+						textureData->palette =
+							(uint16_t *)palette;
 					}
 				}
 			}
@@ -3400,7 +4457,10 @@ void OptModel_FixupRuntimeTexturePointers(OptNode* node, OptimizedPolyObject* ds
 		if (currentNode->childCount > childIndex) {
 			do {
 				OptModel_FixupRuntimeTexturePointers(
-					*(OptNode**)((uint8_t*)currentNode->pChildren + childOffset), dstModel, srcModel);
+					*(OptNode **)((uint8_t *)currentNode
+							      ->pChildren +
+						      childOffset),
+					dstModel, srcModel);
 				childOffset += sizeof(*currentNode->pChildren);
 				++childIndex;
 				childCount = currentNode->childCount;
@@ -3410,49 +4470,65 @@ void OptModel_FixupRuntimeTexturePointers(OptNode* node, OptimizedPolyObject* ds
 }
 
 // FUNCTION: XVT 0x4765B0
-OptNode* OptModel_FindCorrespondingTextureNode(OptNode* srcNode, OptNode* dstNode,
-											   const uint16_t* sourcePalette) {
-	OptNode* destination;
-	OptNode* source;
-	OptTextureData* textureData;
+OptNode *OptModel_FindCorrespondingTextureNode(OptNode *srcNode,
+					       OptNode *dstNode,
+					       const uint16_t *sourcePalette)
+{
+	OptNode *destination;
+	OptNode *source;
+	OptTextureData *textureData;
 	int textureDataSize;
-	uint16_t* embeddedPalette;
+	uint16_t *embeddedPalette;
 	int childOffset;
 	int childIndex;
-	OptNode* result;
+	OptNode *result;
 
 	source = srcNode;
-	if (source == NULL)
+	if (source == NULL) {
 		return NULL;
+	}
 	destination = dstNode;
-	if (destination == NULL)
+	if (destination == NULL) {
 		return NULL;
-	if (destination->nodeType != source->nodeType)
+	}
+	if (destination->nodeType != source->nodeType) {
 		return NULL;
-
-	if (source->nodeType == OPT_TEXTURE) {
-		textureData = (OptTextureData*)source->payload;
-		embeddedPalette = (uint16_t*)((uint8_t*)textureData + sizeof(*textureData));
-		textureDataSize = textureData->width * textureData->height;
-		if (textureData->textureSize == textureDataSize)
-			textureDataSize = textureData->dataSize;
-		embeddedPalette = (uint16_t*)((uint8_t*)embeddedPalette + textureDataSize);
-		if ((textureData->palette == embeddedPalette || textureData->inlinePaletteCount != 0) &&
-			sourcePalette == embeddedPalette)
-			return destination;
 	}
 
-	if (destination->childCount != source->childCount)
+	if (source->nodeType == OPT_TEXTURE) {
+		textureData = (OptTextureData *)source->payload;
+		embeddedPalette = (uint16_t *)((uint8_t *)textureData +
+					       sizeof(*textureData));
+		textureDataSize = textureData->width * textureData->height;
+		if (textureData->textureSize == textureDataSize) {
+			textureDataSize = textureData->dataSize;
+		}
+		embeddedPalette = (uint16_t *)((uint8_t *)embeddedPalette +
+					       textureDataSize);
+		if ((textureData->palette == embeddedPalette ||
+		     textureData->inlinePaletteCount != 0) &&
+		    sourcePalette == embeddedPalette) {
+			return destination;
+		}
+	}
+
+	if (destination->childCount != source->childCount) {
 		return NULL;
+	}
 	childIndex = 0;
 	childOffset = 0;
 	if (source->childCount > 0) {
 		do {
 			result = OptModel_FindCorrespondingTextureNode(
-				*(OptNode**)((uint8_t*)source->pChildren + childOffset),
-				*(OptNode**)((uint8_t*)destination->pChildren + childOffset), sourcePalette);
-			if (result != NULL)
+				*(OptNode **)((uint8_t *)source->pChildren +
+					      childOffset),
+				*(OptNode **)((uint8_t *)
+						      destination->pChildren +
+					      childOffset),
+				sourcePalette);
+			if (result != NULL) {
 				return result;
+			}
 			childOffset += sizeof(*source->pChildren);
 			++childIndex;
 		} while (source->childCount > childIndex);
@@ -3461,22 +4537,28 @@ OptNode* OptModel_FindCorrespondingTextureNode(OptNode* srcNode, OptNode* dstNod
 }
 
 // FUNCTION: XVT 0x476670
-OptNode* OptModel_FindCorrespondingTextureNodeInModel(OptimizedPolyObject* dstModel,
-													  OptimizedPolyObject* srcModel,
-													  const uint16_t* sourcePalette) {
+OptNode *
+OptModel_FindCorrespondingTextureNodeInModel(OptimizedPolyObject *dstModel,
+					     OptimizedPolyObject *srcModel,
+					     const uint16_t *sourcePalette)
+{
 	int rootOffset;
 	int rootIndex;
-	OptNode* result;
+	OptNode *result;
 
 	rootOffset = 0;
 	rootIndex = 0;
 	if (srcModel->rootNodeCount > 0) {
 		do {
 			result = OptModel_FindCorrespondingTextureNode(
-				*(OptNode**)((uint8_t*)srcModel->rootNodes + rootOffset),
-				*(OptNode**)((uint8_t*)dstModel->rootNodes + rootOffset), sourcePalette);
-			if (result != NULL)
+				*(OptNode **)((uint8_t *)srcModel->rootNodes +
+					      rootOffset),
+				*(OptNode **)((uint8_t *)dstModel->rootNodes +
+					      rootOffset),
+				sourcePalette);
+			if (result != NULL) {
 				return result;
+			}
 			rootOffset += sizeof(*srcModel->rootNodes);
 			++rootIndex;
 		} while (srcModel->rootNodeCount > rootIndex);
@@ -3486,9 +4568,10 @@ OptNode* OptModel_FindCorrespondingTextureNodeInModel(OptimizedPolyObject* dstMo
 
 #ifndef XVT_MODERN
 // FUNCTION: XVT 0x4766C0
-void OptModel_SaveHandleToFile(const char* filename, uint16_t handle) {
-	XvtFile* stream;
-	OptimizedPolyObject* model;
+void OptModel_SaveHandleToFile(const char *filename, uint16_t handle)
+{
+	XvtFile *stream;
+	OptimizedPolyObject *model;
 	int rootIndex;
 	int rootOffset;
 	int fileVersion;
@@ -3514,8 +4597,13 @@ void OptModel_SaveHandleToFile(const char* filename, uint16_t handle) {
 		if (model->rootNodeCount > 0) {
 			rootOffset = 0;
 			do {
-				serializedSize += OptModel_MeasureNodeAndRaiseCapacities(
-					*(OptNode**)((uint8_t*)model->rootNodes + rootOffset), &parentState);
+				serializedSize +=
+					OptModel_MeasureNodeAndRaiseCapacities(
+						*(OptNode *
+							  *)((uint8_t *)model
+								     ->rootNodes +
+							     rootOffset),
+						&parentState);
 				rootOffset += sizeof(*model->rootNodes);
 				++rootIndex;
 			} while (model->rootNodeCount > rootIndex);
@@ -3527,7 +4615,8 @@ void OptModel_SaveHandleToFile(const char* filename, uint16_t handle) {
 		fileVersion = -fileVersion;
 		File_RawWrite(&fileVersion, 1, sizeof(fileVersion), stream);
 		fileVersion = -fileVersion;
-		File_RawWrite(&serializedSize, 1, sizeof(serializedSize), stream);
+		File_RawWrite(&serializedSize, 1, sizeof(serializedSize),
+			      stream);
 		File_RawWrite(model, 1, serializedSize, stream);
 		File_RawClose(stream);
 		Memory_UnlockHandle(handle);
@@ -3536,164 +4625,186 @@ void OptModel_SaveHandleToFile(const char* filename, uint16_t handle) {
 #endif
 
 // FUNCTION: XVT 0x476810
-unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* parentState) {
+unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode *node,
+						    SceneMesh *parentState)
+{
 	unsigned int serializedSize;
-	int* paramData;
+	int *paramData;
 	OptNodeType nodeType;
 	int childIndex;
 	int childOffset;
 	SceneMesh childState;
 
-	if (node == NULL)
+	if (node == NULL) {
 		return 0;
+	}
 
 	serializedSize = sizeof(OptNode);
 
-	if (node->pName != NULL)
+	if (node->pName != NULL) {
 
-		serializedSize = (unsigned int)strlen(node->pName) + sizeof(OptNode) + 1;
+		serializedSize =
+			(unsigned int)strlen(node->pName) + sizeof(OptNode) + 1;
+	}
 
 	paramData = node->payload;
 	nodeType = node->nodeType;
 	if (paramData != NULL) {
 		switch (nodeType) {
-			case OPT_FACEDATA:
-			case OPT_FACEDATA_QUAD_MESH:
-			case OPT_FACEDATA_FACE_SET:
-			case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-				if (g_sceneEdgeFlagsCapacity < paramData[0])
-					g_sceneEdgeFlagsCapacity = paramData[0];
-				serializedSize += 4;
-				serializedSize += (unsigned int)node->payloadCount << 6;
-				serializedSize += 36 * node->payloadCount;
-				if (parentState->pVertNormals == NULL)
-					serializedSize += 12 * g_curVertexCount;
-				break;
-
-			case OPT_TRANSFORM:
-				serializedSize += 48;
-				break;
-
-			case OPT_MESHVERTS:
-				g_curVertexCount = node->payloadCount;
+		case OPT_FACEDATA:
+		case OPT_FACEDATA_QUAD_MESH:
+		case OPT_FACEDATA_FACE_SET:
+		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
+			if (g_sceneEdgeFlagsCapacity < paramData[0]) {
+				g_sceneEdgeFlagsCapacity = paramData[0];
+			}
+			serializedSize += 4;
+			serializedSize += (unsigned int)node->payloadCount << 6;
+			serializedSize += 36 * node->payloadCount;
+			if (parentState->pVertNormals == NULL) {
 				serializedSize += 12 * g_curVertexCount;
-				if (g_vertexRemapCapacity < node->payloadCount)
-					g_vertexRemapCapacity = node->payloadCount;
-				break;
-
-			case OPT_TRANSLATION:
-				serializedSize += 12;
-				break;
-
-			case OPT_ROTATION:
-				serializedSize += 36;
-				break;
-
-			case OPT_SCALE:
-				serializedSize += 12;
-				break;
-
-			case OPT_NODEREF:
-				serializedSize += (unsigned int)strlen((const char*)paramData) + 1;
-				break;
-
-			case OPT_MATERIAL: {
-				int recordCount;
-				int scaledRecordCount;
-
-				recordCount = node->payloadCount;
-				g_curMeshMaterials = node->payload;
-				scaledRecordCount = recordCount << 3;
-				scaledRecordCount -= recordCount;
-				serializedSize += scaledRecordCount << 3;
-				break;
 			}
+			break;
 
-			case OPT_VERTNORMALS: {
-				int vectorValueCount;
+		case OPT_TRANSFORM:
+			serializedSize += 48;
+			break;
 
-				vectorValueCount = 3 * node->payloadCount;
-				g_curVertNormals = node->payload;
-				serializedSize += 4 * vectorValueCount;
-				parentState->pVertNormals = (OptVector*)paramData;
-				break;
+		case OPT_MESHVERTS:
+			g_curVertexCount = node->payloadCount;
+			serializedSize += 12 * g_curVertexCount;
+			if (g_vertexRemapCapacity < node->payloadCount) {
+				g_vertexRemapCapacity = node->payloadCount;
 			}
+			break;
 
-			case OPT_TEXCOORDS:
-				serializedSize += 8 * node->payloadCount;
-				break;
+		case OPT_TRANSLATION:
+			serializedSize += 12;
+			break;
 
-			case OPT_BASE_COLOR:
-				serializedSize += 12;
-				break;
+		case OPT_ROTATION:
+			serializedSize += 36;
+			break;
 
-			case OPT_TEXTURE: {
-				OptTextureData* textureData;
-				int textureByteCount;
-				uint8_t* embeddedPalette;
+		case OPT_SCALE:
+			serializedSize += 12;
+			break;
 
-				textureData = node->payload;
-				serializedSize += sizeof(*textureData);
-				textureByteCount = textureData->height * textureData->width;
-				if (textureByteCount == textureData->textureSize)
-					serializedSize += textureData->dataSize;
-				else
-					serializedSize += textureByteCount;
-				if (textureData->inlinePaletteCount != 0) {
-					serializedSize += 768 * textureData->inlinePaletteCount;
+		case OPT_NODEREF:
+			serializedSize +=
+				(unsigned int)strlen((const char *)paramData) +
+				1;
+			break;
+
+		case OPT_MATERIAL: {
+			int recordCount;
+			int scaledRecordCount;
+
+			recordCount = node->payloadCount;
+			g_curMeshMaterials = node->payload;
+			scaledRecordCount = recordCount << 3;
+			scaledRecordCount -= recordCount;
+			serializedSize += scaledRecordCount << 3;
+			break;
+		}
+
+		case OPT_VERTNORMALS: {
+			int vectorValueCount;
+
+			vectorValueCount = 3 * node->payloadCount;
+			g_curVertNormals = node->payload;
+			serializedSize += 4 * vectorValueCount;
+			parentState->pVertNormals = (OptVector *)paramData;
+			break;
+		}
+
+		case OPT_TEXCOORDS:
+			serializedSize += 8 * node->payloadCount;
+			break;
+
+		case OPT_BASE_COLOR:
+			serializedSize += 12;
+			break;
+
+		case OPT_TEXTURE: {
+			OptTextureData *textureData;
+			int textureByteCount;
+			uint8_t *embeddedPalette;
+
+			textureData = node->payload;
+			serializedSize += sizeof(*textureData);
+			textureByteCount =
+				textureData->height * textureData->width;
+			if (textureByteCount == textureData->textureSize) {
+				serializedSize += textureData->dataSize;
+			} else {
+				serializedSize += textureByteCount;
+			}
+			if (textureData->inlinePaletteCount != 0) {
+				serializedSize +=
+					768 * textureData->inlinePaletteCount;
+			} else {
+				embeddedPalette = (uint8_t *)(textureData + 1);
+				if (textureByteCount ==
+				    textureData->textureSize) {
+					embeddedPalette +=
+						textureData->dataSize;
 				} else {
-					embeddedPalette = (uint8_t*)(textureData + 1);
-					if (textureByteCount == textureData->textureSize)
-						embeddedPalette += textureData->dataSize;
-					else
-						embeddedPalette += textureByteCount;
-					if ((uint8_t*)textureData->palette == embeddedPalette)
-						serializedSize += 12288;
+					embeddedPalette += textureByteCount;
 				}
-				break;
+				if ((uint8_t *)textureData->palette ==
+				    embeddedPalette) {
+					serializedSize += 12288;
+				}
 			}
+			break;
+		}
 
-			case OPT_FACEGROUP:
-				serializedSize += 4 * node->payloadCount;
-				break;
+		case OPT_FACEGROUP:
+			serializedSize += 4 * node->payloadCount;
+			break;
 
-			case OPT_HARDPOINT:
-				serializedSize += 16;
-				break;
+		case OPT_HARDPOINT:
+			serializedSize += 16;
+			break;
 
-			case OPT_ROTSCALE:
-				serializedSize += 48;
-				break;
+		case OPT_ROTSCALE:
+			serializedSize += 48;
+			break;
 
-			case OPT_MESHDESC:
-				serializedSize += 72;
-				break;
+		case OPT_MESHDESC:
+			serializedSize += 72;
+			break;
 
-			default:
-				break;
+		default:
+			break;
 		}
 	} else if (nodeType == OPT_TEXTURE) {
-		OptTextureData* textureData;
+		OptTextureData *textureData;
 		int textureByteCount;
-		uint8_t* embeddedPalette;
+		uint8_t *embeddedPalette;
 
 		textureData = node->payload;
 		serializedSize += sizeof(*textureData);
 		textureByteCount = textureData->height * textureData->width;
-		if (textureByteCount == textureData->textureSize)
+		if (textureByteCount == textureData->textureSize) {
 			serializedSize += textureData->dataSize;
-		else
+		} else {
 			serializedSize += textureByteCount;
+		}
 		if (textureData->inlinePaletteCount != 0) {
 			serializedSize += 768 * textureData->inlinePaletteCount;
 		} else {
-			embeddedPalette = (uint8_t*)(textureData + 1);
-			if (textureByteCount == textureData->textureSize)
+			embeddedPalette = (uint8_t *)(textureData + 1);
+			if (textureByteCount == textureData->textureSize) {
 				embeddedPalette += textureData->dataSize;
-			else
+			} else {
 				embeddedPalette += textureByteCount;
-			if ((uint8_t*)textureData->palette == embeddedPalette)
+			}
+			if ((uint8_t *)textureData->palette ==
+			    embeddedPalette) {
 				serializedSize += 12288;
+			}
 		}
 	}
 
@@ -3706,13 +4817,18 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* pa
 		g_curMeshMaterials = NULL;
 		childIndex = 0;
 
-		serializedSize += sizeof(OptNode*) * node->childCount;
+		serializedSize += sizeof(OptNode *) * node->childCount;
 
 		if (node->childCount > 0) {
 			childOffset = 0;
 			do {
-				serializedSize += OptModel_MeasureNodeAndRaiseCapacities(
-					*(OptNode**)((uint8_t*)node->pChildren + childOffset), &childState);
+				serializedSize +=
+					OptModel_MeasureNodeAndRaiseCapacities(
+						*(OptNode *
+							  *)((uint8_t *)node
+								     ->pChildren +
+							     childOffset),
+						&childState);
 				childOffset += sizeof(*node->pChildren);
 				++childIndex;
 			} while (node->childCount > childIndex);
@@ -3722,21 +4838,23 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* pa
 }
 
 // FUNCTION: XVT 0x476B90
-void OptModel_PrepareTexturePalette(uint16_t* palette, int entryCount) {
+void OptModel_PrepareTexturePalette(uint16_t *palette, int entryCount)
+{
 	RgbTriplet srcRgb[4096];
-	uint8_t* rgbCursor;
-	uint16_t* paletteEntry;
+	uint8_t *rgbCursor;
+	uint16_t *paletteEntry;
 	int entriesRemaining;
 	unsigned int packedColor;
 	uint8_t blue;
 	uint8_t green;
 	uint8_t red;
 
-	if (g_useHardware3D != 0)
+	if (g_useHardware3D != 0) {
 		ModelTexture_FilterHardwarePalette(palette);
+	}
 
 	if (entryCount > 0) {
-		rgbCursor = (uint8_t*)srcRgb;
+		rgbCursor = (uint8_t *)srcRgb;
 		paletteEntry = palette;
 		entriesRemaining = entryCount;
 		do {
@@ -3757,7 +4875,9 @@ void OptModel_PrepareTexturePalette(uint16_t* palette, int entryCount) {
 }
 
 // FUNCTION: XVT 0x476C20
-unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshState, uint8_t* dst) {
+unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
+				       SceneMesh *meshState, uint8_t *dst)
+{
 	enum {
 		OPT_TEXTURE_PALETTE_ENTRY_COUNT = 4096,
 		OPT_TEXTURE_SUBPALETTE_COUNT = 16,
@@ -3772,421 +4892,576 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 	unsigned int totalSize;
 	unsigned int payloadSize;
 	int childIndex;
-	void* sourcePayload;
+	void *sourcePayload;
 	SceneMesh childMesh;
-	OptNode* runtimeNode;
+	OptNode *runtimeNode;
 
-	if (srcNode == NULL)
+	if (srcNode == NULL) {
 		return 0;
+	}
 	if (dst != NULL) {
 		memcpy(dst, srcNode, sizeof(*srcNode));
-		runtimeNode = (OptNode*)dst;
+		runtimeNode = (OptNode *)dst;
 		dst += sizeof(*srcNode);
 	}
 	totalSize = sizeof(*srcNode);
 	if (srcNode->pName != NULL) {
 		if (dst != NULL) {
-			runtimeNode->pName = (char*)dst;
-			strcpy((char*)dst, srcNode->pName);
+			runtimeNode->pName = (char *)dst;
+			strcpy((char *)dst, srcNode->pName);
 			dst += strlen(srcNode->pName) + 1;
 		}
-		totalSize = (unsigned int)strlen(srcNode->pName) + sizeof(*srcNode) + 1;
+		totalSize = (unsigned int)strlen(srcNode->pName) +
+			    sizeof(*srcNode) + 1;
 	}
 #ifdef XVT_MODERN
 	totalSize = (unsigned int)XvtOpt_AlignSize(totalSize);
-	if (dst)
+	if (dst) {
 		dst = XvtOpt_AlignPointer(dst);
+	}
 #endif
 	if (srcNode->childCount != 0) {
 		if (dst != NULL) {
-			runtimeNode->pChildren = (OptNode**)dst;
-			dst += sizeof(*srcNode->pChildren) * (unsigned int)srcNode->childCount;
+			runtimeNode->pChildren = (OptNode **)dst;
+			dst += sizeof(*srcNode->pChildren) *
+			       (unsigned int)srcNode->childCount;
 		}
-		totalSize += sizeof(*srcNode->pChildren) * (unsigned int)srcNode->childCount;
+		totalSize += sizeof(*srcNode->pChildren) *
+			     (unsigned int)srcNode->childCount;
 	}
 
 	sourcePayload = srcNode->payload;
 	switch (srcNode->nodeType) {
-		case OPT_FACEDATA:
-		case OPT_FACEDATA_QUAD_MESH:
-		case OPT_FACEDATA_FACE_SET:
-		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-			if (g_sceneEdgeFlagsCapacity < *(const int*)sourcePayload)
-				g_sceneEdgeFlagsCapacity = *(const int*)sourcePayload;
-			payloadSize =
-				sizeof(int) + (unsigned int)srcNode->payloadCount * (sizeof(OptPackedFaceRecord) + 36u);
-			if (meshState->pVertNormals == NULL)
-				payloadSize += sizeof(OptVector) * (unsigned int)g_curVertexCount;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_TRANSFORM:
-			payloadSize = 48;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_MESHVERTS:
-			payloadSize = sizeof(OptVector) * (unsigned int)srcNode->payloadCount;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			g_curVertexCount = srcNode->payloadCount;
-			if (srcNode->payloadCount > g_vertexRemapCapacity)
-				g_vertexRemapCapacity = srcNode->payloadCount;
-			break;
-		case OPT_TRANSLATION:
-			payloadSize = 12;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_ROTATION:
-			payloadSize = 36;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_SCALE:
-			payloadSize = 12;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_NODEREF:
-			payloadSize = (unsigned int)strlen((const char*)sourcePayload) + 1;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_MATERIAL:
-			payloadSize = 56u * (unsigned int)srcNode->payloadCount;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			g_curMeshMaterials = sourcePayload;
-			totalSize += payloadSize;
-			break;
-		case OPT_VERTNORMALS:
-			payloadSize = sizeof(OptVector) * (unsigned int)srcNode->payloadCount;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			g_curVertNormals = (OptVector*)sourcePayload;
-			totalSize += payloadSize;
-			meshState->pVertNormals = (OptVector*)sourcePayload;
-			break;
-		case OPT_TEXCOORDS:
-			payloadSize = 8u * (unsigned int)srcNode->payloadCount;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_BASE_COLOR:
-			payloadSize = 12;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_TEXTURE: {
-			const OptTextureData* sourceTexture;
-			int paletteIndex;
-			const uint8_t* sourcePalette;
-			const uint16_t* sourcePalette16;
-			OptTextureData* runtimeTexture;
-			const uint8_t* sourceTexels;
-			const uint8_t* mipTopRow;
-			const uint8_t* mipBottomRow;
-			const uint8_t* topTexel;
-			const uint8_t* bottomTexel;
-			uint8_t* mipRow;
-			unsigned int texturePayloadSize;
-			unsigned int sourcePaletteOffset;
-			unsigned int paletteBytes;
-			int width;
-			int height;
-			int mipPixelCount;
-			int previousWidth;
-			int rowStep;
-			int mipX;
-			int mipY;
-			uint16_t packedColor;
-			int red;
-			int green;
-			int blue;
+	case OPT_FACEDATA:
+	case OPT_FACEDATA_QUAD_MESH:
+	case OPT_FACEDATA_FACE_SET:
+	case OPT_FACEDATA_TRIANGLE_STRIP_SET:
+		if (g_sceneEdgeFlagsCapacity < *(const int *)sourcePayload) {
+			g_sceneEdgeFlagsCapacity = *(const int *)sourcePayload;
+		}
+		payloadSize = sizeof(int) +
+			      (unsigned int)srcNode->payloadCount *
+				      (sizeof(OptPackedFaceRecord) + 36u);
+		if (meshState->pVertNormals == NULL) {
+			payloadSize += sizeof(OptVector) *
+				       (unsigned int)g_curVertexCount;
+		}
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_TRANSFORM:
+		payloadSize = 48;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_MESHVERTS:
+		payloadSize =
+			sizeof(OptVector) * (unsigned int)srcNode->payloadCount;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		g_curVertexCount = srcNode->payloadCount;
+		if (srcNode->payloadCount > g_vertexRemapCapacity) {
+			g_vertexRemapCapacity = srcNode->payloadCount;
+		}
+		break;
+	case OPT_TRANSLATION:
+		payloadSize = 12;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_ROTATION:
+		payloadSize = 36;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_SCALE:
+		payloadSize = 12;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_NODEREF:
+		payloadSize =
+			(unsigned int)strlen((const char *)sourcePayload) + 1;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_MATERIAL:
+		payloadSize = 56u * (unsigned int)srcNode->payloadCount;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		g_curMeshMaterials = sourcePayload;
+		totalSize += payloadSize;
+		break;
+	case OPT_VERTNORMALS:
+		payloadSize =
+			sizeof(OptVector) * (unsigned int)srcNode->payloadCount;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		g_curVertNormals = (OptVector *)sourcePayload;
+		totalSize += payloadSize;
+		meshState->pVertNormals = (OptVector *)sourcePayload;
+		break;
+	case OPT_TEXCOORDS:
+		payloadSize = 8u * (unsigned int)srcNode->payloadCount;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_BASE_COLOR:
+		payloadSize = 12;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_TEXTURE: {
+		const OptTextureData *sourceTexture;
+		int paletteIndex;
+		const uint8_t *sourcePalette;
+		const uint16_t *sourcePalette16;
+		OptTextureData *runtimeTexture;
+		const uint8_t *sourceTexels;
+		const uint8_t *mipTopRow;
+		const uint8_t *mipBottomRow;
+		const uint8_t *topTexel;
+		const uint8_t *bottomTexel;
+		uint8_t *mipRow;
+		unsigned int texturePayloadSize;
+		unsigned int sourcePaletteOffset;
+		unsigned int paletteBytes;
+		int width;
+		int height;
+		int mipPixelCount;
+		int previousWidth;
+		int rowStep;
+		int mipX;
+		int mipY;
+		uint16_t packedColor;
+		int red;
+		int green;
+		int blue;
 
-			sourceTexture = (const OptTextureData*)srcNode->payload;
-			if (dst != NULL && g_generateMissionPalette != 0 && g_flightBytesPerPixel == 1) {
-				sourceTexels = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
-				sourcePalette = sourceTexels + sourceTexture->height * sourceTexture->width;
-				if ((unsigned int)sourceTexture->textureSize ==
-					(unsigned int)(sourceTexture->height * sourceTexture->width))
-					sourcePalette = sourceTexels + sourceTexture->dataSize;
-				sourcePalette16 = (const uint16_t*)(sourcePalette + OPT_TEXTURE_PALETTE_ENTRY_COUNT);
-				for (paletteIndex = OPT_TEXTURE_SUBPALETTE_COUNT; paletteIndex != 0; --paletteIndex) {
-					ImageQuantizer_ClassifyIndexedRgb565Image(sourceTexels, sourcePalette16,
-															  (unsigned int)sourceTexture->width,
-															  (unsigned int)sourceTexture->height);
-					sourcePalette16 += OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
-				}
-			}
-
+		sourceTexture = (const OptTextureData *)srcNode->payload;
+		if (dst != NULL && g_generateMissionPalette != 0 &&
+		    g_flightBytesPerPixel == 1) {
+			sourceTexels = (const uint8_t *)sourceTexture +
+				       sizeof(*sourceTexture);
+			sourcePalette =
+				sourceTexels +
+				sourceTexture->height * sourceTexture->width;
 			if ((unsigned int)sourceTexture->textureSize ==
-				(unsigned int)(sourceTexture->height * sourceTexture->width)) {
-				if (dst != NULL) {
-					runtimeNode->payload = dst;
-					memcpy(dst, srcNode->payload, sizeof(*sourceTexture));
-					sourceTexels = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
-					dst += sizeof(*sourceTexture);
-					runtimeTexture = (OptTextureData*)runtimeNode->payload;
-					if (g_textureResolutionLevel == 0 &&
-						runtimeTexture->width > OPT_TEXTURE_FULL_RES_THRESHOLD &&
-						runtimeTexture->height > OPT_TEXTURE_FULL_RES_THRESHOLD) {
-						sourceTexels += runtimeTexture->height * runtimeTexture->width;
-						runtimeTexture->dataSize -= runtimeTexture->height * runtimeTexture->width;
-						runtimeTexture->width >>= 1;
-						runtimeTexture->height >>= 1;
-						runtimeTexture->textureSize = runtimeTexture->width * runtimeTexture->height;
-					}
-					memcpy(dst, sourceTexels, (unsigned int)runtimeTexture->dataSize);
-					dst += runtimeTexture->dataSize;
-					texturePayloadSize = (unsigned int)runtimeTexture->dataSize + sizeof(*sourceTexture);
-				} else {
-					texturePayloadSize = (unsigned int)sourceTexture->dataSize + sizeof(*sourceTexture);
-					if (g_textureResolutionLevel == 0 &&
-						sourceTexture->width > OPT_TEXTURE_FULL_RES_THRESHOLD &&
-						sourceTexture->height > OPT_TEXTURE_FULL_RES_THRESHOLD)
-						texturePayloadSize -= (unsigned int)(sourceTexture->height * sourceTexture->width);
+			    (unsigned int)(sourceTexture->height *
+					   sourceTexture->width)) {
+				sourcePalette =
+					sourceTexels + sourceTexture->dataSize;
+			}
+			sourcePalette16 =
+				(const uint16_t
+					 *)(sourcePalette +
+					    OPT_TEXTURE_PALETTE_ENTRY_COUNT);
+			for (paletteIndex = OPT_TEXTURE_SUBPALETTE_COUNT;
+			     paletteIndex != 0; --paletteIndex) {
+				ImageQuantizer_ClassifyIndexedRgb565Image(
+					sourceTexels, sourcePalette16,
+					(unsigned int)sourceTexture->width,
+					(unsigned int)sourceTexture->height);
+				sourcePalette16 +=
+					OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
+			}
+		}
+
+		if ((unsigned int)sourceTexture->textureSize ==
+		    (unsigned int)(sourceTexture->height *
+				   sourceTexture->width)) {
+			if (dst != NULL) {
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload,
+				       sizeof(*sourceTexture));
+				sourceTexels = (const uint8_t *)sourceTexture +
+					       sizeof(*sourceTexture);
+				dst += sizeof(*sourceTexture);
+				runtimeTexture =
+					(OptTextureData *)runtimeNode->payload;
+				if (g_textureResolutionLevel == 0 &&
+				    runtimeTexture->width >
+					    OPT_TEXTURE_FULL_RES_THRESHOLD &&
+				    runtimeTexture->height >
+					    OPT_TEXTURE_FULL_RES_THRESHOLD) {
+					sourceTexels += runtimeTexture->height *
+							runtimeTexture->width;
+					runtimeTexture->dataSize -=
+						runtimeTexture->height *
+						runtimeTexture->width;
+					runtimeTexture->width >>= 1;
+					runtimeTexture->height >>= 1;
+					runtimeTexture->textureSize =
+						runtimeTexture->width *
+						runtimeTexture->height;
 				}
+				memcpy(dst, sourceTexels,
+				       (unsigned int)runtimeTexture->dataSize);
+				dst += runtimeTexture->dataSize;
+				texturePayloadSize =
+					(unsigned int)runtimeTexture->dataSize +
+					sizeof(*sourceTexture);
 			} else {
 				texturePayloadSize =
-					(unsigned int)(sourceTexture->height * sourceTexture->width) + sizeof(*sourceTexture);
-				if (dst != NULL) {
-					runtimeNode->payload = dst;
-					memcpy(dst, srcNode->payload, texturePayloadSize);
-					dst += texturePayloadSize;
-					sourceTexels = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
-					if (sourceTexture->inlinePaletteCount == 0)
-						sourcePalette = (const uint8_t*)sourceTexture->palette;
-					else
-						sourcePalette = sourceTexels + sourceTexture->height * sourceTexture->width;
-					sourcePalette16 = (const uint16_t*)(sourcePalette + 2 * OPT_TEXTURE_PALETTE_ENTRY_COUNT);
-					width = sourceTexture->width;
-					height = sourceTexture->height;
-					runtimeTexture = (OptTextureData*)runtimeNode->payload;
-					runtimeTexture->textureSize = width * height;
-					runtimeTexture->dataSize = width * height;
-					while (width > 1 && height > 1) {
-						width >>= 1;
-						height >>= 1;
-						mipPixelCount = width * height;
-						runtimeTexture->dataSize += mipPixelCount;
-						if (g_mipmappingEnabled != 0 && height > 0) {
-							previousWidth = 2 * width;
-							rowStep = 4 * width;
-							mipRow = dst;
-							mipTopRow = sourceTexels;
-							mipBottomRow = sourceTexels + previousWidth;
-							for (mipY = 0; mipY < height; ++mipY) {
-								topTexel = mipTopRow;
-								bottomTexel = mipBottomRow;
-								for (mipX = 0; mipX < width; ++mipX) {
-									packedColor = sourcePalette16[topTexel[0]];
-									blue = packedColor & RGB565_RED_BLUE_MASK;
-									packedColor >>= RGB565_GREEN_SHIFT;
-									green = packedColor & RGB565_GREEN_MASK;
-									packedColor >>= RGB565_GREEN_BITS;
-									red = packedColor & RGB565_RED_BLUE_MASK;
-									packedColor = sourcePalette16[topTexel[1]];
-									blue += packedColor & RGB565_RED_BLUE_MASK;
-									packedColor >>= RGB565_GREEN_SHIFT;
-									green += packedColor & RGB565_GREEN_MASK;
-									packedColor >>= RGB565_GREEN_BITS;
-									red += packedColor & RGB565_RED_BLUE_MASK;
-									packedColor = sourcePalette16[bottomTexel[0]];
-									blue += packedColor & RGB565_RED_BLUE_MASK;
-									packedColor >>= RGB565_GREEN_SHIFT;
-									green += packedColor & RGB565_GREEN_MASK;
-									packedColor >>= RGB565_GREEN_BITS;
-									red += packedColor & RGB565_RED_BLUE_MASK;
-									packedColor = sourcePalette16[bottomTexel[1]];
-									blue += packedColor & RGB565_RED_BLUE_MASK;
-									packedColor >>= RGB565_GREEN_SHIFT;
-									green += packedColor & RGB565_GREEN_MASK;
-									packedColor >>= RGB565_GREEN_BITS;
-									red += packedColor & RGB565_RED_BLUE_MASK;
-									blue >>= 2;
-									green >>= 2;
-									red >>= 2;
-									mipRow[mipX] =
-										Color_FindNearestRgb565Index(sourcePalette16, red, green, blue, 0,
-																	 OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT);
-									topTexel += 2;
-									bottomTexel += 2;
-								}
-								mipRow += width;
-								mipTopRow += rowStep;
-								mipBottomRow += rowStep;
-							}
-						}
-						sourceTexels = dst;
-						dst += mipPixelCount;
-						texturePayloadSize += (unsigned int)mipPixelCount;
-					}
-				} else {
-					width = sourceTexture->width;
-					height = sourceTexture->height;
-					while (width > 1 && height > 1) {
-						width >>= 1;
-						height >>= 1;
-						texturePayloadSize += (unsigned int)(width * height);
-					}
+					(unsigned int)sourceTexture->dataSize +
+					sizeof(*sourceTexture);
+				if (g_textureResolutionLevel == 0 &&
+				    sourceTexture->width >
+					    OPT_TEXTURE_FULL_RES_THRESHOLD &&
+				    sourceTexture->height >
+					    OPT_TEXTURE_FULL_RES_THRESHOLD) {
+					texturePayloadSize -=
+						(unsigned int)(sourceTexture
+								       ->height *
+							       sourceTexture
+								       ->width);
 				}
 			}
+		} else {
+			texturePayloadSize =
+				(unsigned int)(sourceTexture->height *
+					       sourceTexture->width) +
+				sizeof(*sourceTexture);
+			if (dst != NULL) {
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload,
+				       texturePayloadSize);
+				dst += texturePayloadSize;
+				sourceTexels = (const uint8_t *)sourceTexture +
+					       sizeof(*sourceTexture);
+				if (sourceTexture->inlinePaletteCount == 0) {
+					sourcePalette =
+						(const uint8_t *)
+							sourceTexture->palette;
+				} else {
+					sourcePalette =
+						sourceTexels +
+						sourceTexture->height *
+							sourceTexture->width;
+				}
+				sourcePalette16 =
+					(const uint16_t
+						 *)(sourcePalette +
+						    2 * OPT_TEXTURE_PALETTE_ENTRY_COUNT);
+				width = sourceTexture->width;
+				height = sourceTexture->height;
+				runtimeTexture =
+					(OptTextureData *)runtimeNode->payload;
+				runtimeTexture->textureSize = width * height;
+				runtimeTexture->dataSize = width * height;
+				while (width > 1 && height > 1) {
+					width >>= 1;
+					height >>= 1;
+					mipPixelCount = width * height;
+					runtimeTexture->dataSize +=
+						mipPixelCount;
+					if (g_mipmappingEnabled != 0 &&
+					    height > 0) {
+						previousWidth = 2 * width;
+						rowStep = 4 * width;
+						mipRow = dst;
+						mipTopRow = sourceTexels;
+						mipBottomRow = sourceTexels +
+							       previousWidth;
+						for (mipY = 0; mipY < height;
+						     ++mipY) {
+							topTexel = mipTopRow;
+							bottomTexel =
+								mipBottomRow;
+							for (mipX = 0;
+							     mipX < width;
+							     ++mipX) {
+								packedColor = sourcePalette16
+									[topTexel[0]];
+								blue = packedColor &
+								       RGB565_RED_BLUE_MASK;
+								packedColor >>=
+									RGB565_GREEN_SHIFT;
+								green = packedColor &
+									RGB565_GREEN_MASK;
+								packedColor >>=
+									RGB565_GREEN_BITS;
+								red = packedColor &
+								      RGB565_RED_BLUE_MASK;
+								packedColor = sourcePalette16
+									[topTexel[1]];
+								blue += packedColor &
+									RGB565_RED_BLUE_MASK;
+								packedColor >>=
+									RGB565_GREEN_SHIFT;
+								green +=
+									packedColor &
+									RGB565_GREEN_MASK;
+								packedColor >>=
+									RGB565_GREEN_BITS;
+								red += packedColor &
+								       RGB565_RED_BLUE_MASK;
+								packedColor = sourcePalette16
+									[bottomTexel
+										 [0]];
+								blue += packedColor &
+									RGB565_RED_BLUE_MASK;
+								packedColor >>=
+									RGB565_GREEN_SHIFT;
+								green +=
+									packedColor &
+									RGB565_GREEN_MASK;
+								packedColor >>=
+									RGB565_GREEN_BITS;
+								red += packedColor &
+								       RGB565_RED_BLUE_MASK;
+								packedColor = sourcePalette16
+									[bottomTexel
+										 [1]];
+								blue += packedColor &
+									RGB565_RED_BLUE_MASK;
+								packedColor >>=
+									RGB565_GREEN_SHIFT;
+								green +=
+									packedColor &
+									RGB565_GREEN_MASK;
+								packedColor >>=
+									RGB565_GREEN_BITS;
+								red += packedColor &
+								       RGB565_RED_BLUE_MASK;
+								blue >>= 2;
+								green >>= 2;
+								red >>= 2;
+								mipRow[mipX] = Color_FindNearestRgb565Index(
+									sourcePalette16,
+									red,
+									green,
+									blue, 0,
+									OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT);
+								topTexel += 2;
+								bottomTexel +=
+									2;
+							}
+							mipRow += width;
+							mipTopRow += rowStep;
+							mipBottomRow += rowStep;
+						}
+					}
+					sourceTexels = dst;
+					dst += mipPixelCount;
+					texturePayloadSize +=
+						(unsigned int)mipPixelCount;
+				}
+			} else {
+				width = sourceTexture->width;
+				height = sourceTexture->height;
+				while (width > 1 && height > 1) {
+					width >>= 1;
+					height >>= 1;
+					texturePayloadSize +=
+						(unsigned int)(width * height);
+				}
+			}
+		}
 
-			sourceTexture = (const OptTextureData*)srcNode->payload;
-			if (sourceTexture->inlinePaletteCount != 0) {
-				texturePayloadSize +=
-					(unsigned int)(sourceTexture->inlinePaletteCount * g_flightBytesPerPixel) *
-					OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
+		sourceTexture = (const OptTextureData *)srcNode->payload;
+		if (sourceTexture->inlinePaletteCount != 0) {
+			texturePayloadSize +=
+				(unsigned int)(sourceTexture
+						       ->inlinePaletteCount *
+					       g_flightBytesPerPixel) *
+				OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
+			if (dst != NULL) {
+				sourcePalette = (const uint8_t *)sourceTexture +
+						sizeof(*sourceTexture);
+				sourcePaletteOffset =
+					(unsigned int)(sourceTexture->height *
+						       sourceTexture->width);
+				if ((unsigned int)sourceTexture->textureSize ==
+				    sourcePaletteOffset) {
+					sourcePaletteOffset =
+						(unsigned int)
+							sourceTexture->dataSize;
+				}
+				sourcePalette += sourcePaletteOffset;
+				if (g_flightBytesPerPixel == 2) {
+					sourcePalette +=
+						(unsigned int)sourceTexture
+							->inlinePaletteCount *
+						OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
+				}
+				if (g_flightBytesPerPixel == 1) {
+					sourcePalette16 =
+						(const uint16_t
+							 *)(sourcePalette +
+							    OPT_TEXTURE_PALETTE_ENTRY_COUNT);
+					for (paletteIndex = 0;
+					     paletteIndex <
+					     OPT_TEXTURE_PALETTE_ENTRY_COUNT;
+					     ++paletteIndex) {
+						dst[paletteIndex] = g_activeRgb565ToPaletteIndexLut
+							[sourcePalette16
+								 [paletteIndex]];
+					}
+				} else {
+					memcpy(dst, sourcePalette,
+					       (unsigned int)(g_flightBytesPerPixel *
+							      OPT_TEXTURE_PALETTE_ENTRY_COUNT));
+				}
+				if (g_flightBytesPerPixel == 2) {
+					if (srcNode->pName != NULL) {
+						DebugPrintf("%s:",
+							    srcNode->pName);
+					}
+					OptModel_PrepareTexturePalette(
+						(uint16_t *)dst,
+						OPT_TEXTURE_PALETTE_ENTRY_COUNT);
+				}
+				dst += (unsigned int)(sourceTexture
+							      ->inlinePaletteCount *
+						      g_flightBytesPerPixel) *
+				       OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
+			}
+		} else {
+			sourcePalette = (const uint8_t *)sourceTexture +
+					sizeof(*sourceTexture);
+			sourcePaletteOffset =
+				(unsigned int)(sourceTexture->height *
+					       sourceTexture->width);
+			if ((unsigned int)sourceTexture->textureSize ==
+			    sourcePaletteOffset) {
+				sourcePaletteOffset =
+					(unsigned int)sourceTexture->dataSize;
+			}
+			sourcePalette += sourcePaletteOffset;
+			if ((const uint8_t *)sourceTexture->palette ==
+			    sourcePalette) {
+				paletteBytes =
+					(unsigned int)g_flightBytesPerPixel *
+					OPT_TEXTURE_PALETTE_ENTRY_COUNT;
+				texturePayloadSize += paletteBytes;
 				if (dst != NULL) {
-					sourcePalette = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
-					sourcePaletteOffset = (unsigned int)(sourceTexture->height * sourceTexture->width);
-					if ((unsigned int)sourceTexture->textureSize == sourcePaletteOffset)
-						sourcePaletteOffset = (unsigned int)sourceTexture->dataSize;
-					sourcePalette += sourcePaletteOffset;
-					if (g_flightBytesPerPixel == 2)
-						sourcePalette += (unsigned int)sourceTexture->inlinePaletteCount *
-										 OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
+					if (g_flightBytesPerPixel == 2) {
+						sourcePalette +=
+							OPT_TEXTURE_PALETTE_ENTRY_COUNT;
+					}
 					if (g_flightBytesPerPixel == 1) {
-						sourcePalette16 = (const uint16_t*)(sourcePalette + OPT_TEXTURE_PALETTE_ENTRY_COUNT);
-						for (paletteIndex = 0; paletteIndex < OPT_TEXTURE_PALETTE_ENTRY_COUNT;
-							 ++paletteIndex) {
-							dst[paletteIndex] =
-								g_activeRgb565ToPaletteIndexLut[sourcePalette16[paletteIndex]];
+						sourcePalette16 =
+							(const uint16_t
+								 *)(sourcePalette +
+								    OPT_TEXTURE_PALETTE_ENTRY_COUNT);
+						for (paletteIndex = 0;
+						     paletteIndex <
+						     OPT_TEXTURE_PALETTE_ENTRY_COUNT;
+						     ++paletteIndex) {
+							dst[paletteIndex] = g_activeRgb565ToPaletteIndexLut
+								[sourcePalette16
+									 [paletteIndex]];
 						}
 					} else {
 						memcpy(dst, sourcePalette,
-							   (unsigned int)(g_flightBytesPerPixel * OPT_TEXTURE_PALETTE_ENTRY_COUNT));
+						       paletteBytes);
 					}
 					if (g_flightBytesPerPixel == 2) {
-						if (srcNode->pName != NULL)
-							DebugPrintf("%s:", srcNode->pName);
-						OptModel_PrepareTexturePalette((uint16_t*)dst, OPT_TEXTURE_PALETTE_ENTRY_COUNT);
-					}
-					dst += (unsigned int)(sourceTexture->inlinePaletteCount * g_flightBytesPerPixel) *
-						   OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
-				}
-			} else {
-				sourcePalette = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
-				sourcePaletteOffset = (unsigned int)(sourceTexture->height * sourceTexture->width);
-				if ((unsigned int)sourceTexture->textureSize == sourcePaletteOffset)
-					sourcePaletteOffset = (unsigned int)sourceTexture->dataSize;
-				sourcePalette += sourcePaletteOffset;
-				if ((const uint8_t*)sourceTexture->palette == sourcePalette) {
-					paletteBytes = (unsigned int)g_flightBytesPerPixel * OPT_TEXTURE_PALETTE_ENTRY_COUNT;
-					texturePayloadSize += paletteBytes;
-					if (dst != NULL) {
-						if (g_flightBytesPerPixel == 2)
-							sourcePalette += OPT_TEXTURE_PALETTE_ENTRY_COUNT;
-						if (g_flightBytesPerPixel == 1) {
-							sourcePalette16 =
-								(const uint16_t*)(sourcePalette + OPT_TEXTURE_PALETTE_ENTRY_COUNT);
-							for (paletteIndex = 0; paletteIndex < OPT_TEXTURE_PALETTE_ENTRY_COUNT;
-								 ++paletteIndex) {
-								dst[paletteIndex] =
-									g_activeRgb565ToPaletteIndexLut[sourcePalette16[paletteIndex]];
-							}
-						} else {
-							memcpy(dst, sourcePalette, paletteBytes);
+						if (srcNode->pName != NULL) {
+							DebugPrintf(
+								"%s:",
+								srcNode->pName);
 						}
-						if (g_flightBytesPerPixel == 2) {
-							if (srcNode->pName != NULL)
-								DebugPrintf("%s:", srcNode->pName);
-							OptModel_PrepareTexturePalette((uint16_t*)dst, OPT_TEXTURE_PALETTE_ENTRY_COUNT);
-						}
-						dst += (unsigned int)g_flightBytesPerPixel * OPT_TEXTURE_PALETTE_ENTRY_COUNT;
+						OptModel_PrepareTexturePalette(
+							(uint16_t *)dst,
+							OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 					}
+					dst += (unsigned int)
+						       g_flightBytesPerPixel *
+					       OPT_TEXTURE_PALETTE_ENTRY_COUNT;
 				}
 			}
-			totalSize += texturePayloadSize;
-			break;
 		}
-		case OPT_FACEGROUP:
-			payloadSize = 4u * (unsigned int)srcNode->payloadCount;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_HARDPOINT:
-			payloadSize = 16;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_ROTSCALE:
-			payloadSize = 48;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		case OPT_MESHDESC:
-			payloadSize = 72;
-			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload, payloadSize);
-				dst += payloadSize;
-			}
-			totalSize += payloadSize;
-			break;
-		default:
-			break;
+		totalSize += texturePayloadSize;
+		break;
+	}
+	case OPT_FACEGROUP:
+		payloadSize = 4u * (unsigned int)srcNode->payloadCount;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_HARDPOINT:
+		payloadSize = 16;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_ROTSCALE:
+		payloadSize = 48;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	case OPT_MESHDESC:
+		payloadSize = 72;
+		if (dst != NULL) {
+			runtimeNode->payload = dst;
+			memcpy(dst, srcNode->payload, payloadSize);
+			dst += payloadSize;
+		}
+		totalSize += payloadSize;
+		break;
+	default:
+		break;
 	}
 #ifdef XVT_MODERN
 	totalSize = (unsigned int)XvtOpt_AlignSize(totalSize);
-	if (dst)
+	if (dst) {
 		dst = XvtOpt_AlignPointer(dst);
+	}
 #endif
 	if (srcNode->childCount != 0) {
 		childMesh = *meshState;
@@ -4195,13 +5470,22 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
 		g_curMeshMaterials = NULL;
-		for (childIndex = 0; childIndex < srcNode->childCount; ++childIndex) {
-			if (dst != NULL)
-				((OptNode**)runtimeNode->pChildren)[childIndex] = (OptNode*)dst;
-			payloadSize = OptModel_BuildRuntimeNode(srcNode->pChildren[childIndex], &childMesh, dst);
+		for (childIndex = 0; childIndex < srcNode->childCount;
+		     ++childIndex) {
 			if (dst != NULL) {
-				if (payloadSize == 0)
-					((OptNode**)runtimeNode->pChildren)[childIndex] = NULL;
+				((OptNode **)
+					 runtimeNode->pChildren)[childIndex] =
+					(OptNode *)dst;
+			}
+			payloadSize = OptModel_BuildRuntimeNode(
+				srcNode->pChildren[childIndex], &childMesh,
+				dst);
+			if (dst != NULL) {
+				if (payloadSize == 0) {
+					((OptNode **)runtimeNode
+						 ->pChildren)[childIndex] =
+						NULL;
+				}
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
@@ -4216,12 +5500,13 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 
 #ifndef XVT_MODERN
 // FUNCTION: XVT 0x477950
-uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle) {
-	OptimizedPolyObject* sourceModel;
-	OptimizedPolyObject* packedModel;
-	OptimizedPolyObject* finalModel;
-	uint8_t* packedCursor;
-	void* packedStorage;
+uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
+{
+	OptimizedPolyObject *sourceModel;
+	OptimizedPolyObject *packedModel;
+	OptimizedPolyObject *finalModel;
+	uint8_t *packedCursor;
+	void *packedStorage;
 	uint16_t packedHandle;
 	uint16_t scratchHandle;
 	uint16_t finalHandle;
@@ -4250,8 +5535,9 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle) {
 	conversionState.viewToModelOrient[7] = 0.0f;
 	conversionState.viewToModelOrient[8] = 1.0f;
 	sourceModel = Memory_LockHandle(sourceHandle);
-	if (sourceModel->selfMarker != sourceModel)
+	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_RelocateLoadedPointers(sourceModel);
+	}
 	g_curMeshVertices = NULL;
 	g_curMeshTexCoords = NULL;
 	g_curVertNormals = NULL;
@@ -4259,27 +5545,38 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle) {
 	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 	g_optImportScratchVectorCount = 1;
-	allocatedSize = sizeof(*sourceModel) + sizeof(*sourceModel->rootNodes) * sourceModel->rootNodeCount;
-	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount; ++rootIndex) {
+	allocatedSize =
+		sizeof(*sourceModel) +
+		sizeof(*sourceModel->rootNodes) * sourceModel->rootNodeCount;
+	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
+	     ++rootIndex) {
 		allocatedSize += OptModel_CalculatePackedNodeSizeRecursive(
-			sourceModel, sourceModel->rootNodes[rootIndex], &conversionState);
+			sourceModel, sourceModel->rootNodes[rootIndex],
+			&conversionState);
 	}
 	Memory_UnlockHandle(sourceHandle);
 
 	packedHandle = Memory_AllocHandle(allocatedSize, 0);
-	scratchHandle = Memory_AllocHandle(sizeof(*g_optImportScratchVectors) * g_optImportScratchVectorCount, 0);
+	scratchHandle =
+		Memory_AllocHandle(sizeof(*g_optImportScratchVectors) *
+					   g_optImportScratchVectorCount,
+				   0);
 	sourceModel = Memory_LockHandle(sourceHandle);
-	if (sourceModel->selfMarker != sourceModel)
+	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_RelocateLoadedPointers(sourceModel);
+	}
 	packedModel = Memory_LockHandle(packedHandle);
 	g_optImportScratchVectors = Memory_LockHandle(scratchHandle);
 	packedModel->selfMarker = packedModel;
 	packedModel->reserved = packedHandle;
 	packedModel->rootNodeCount = sourceModel->rootNodeCount;
-	packedModel->rootNodes = (OptNode**)((uint8_t*)packedModel + sizeof(*packedModel));
-	packedCursor = (uint8_t*)packedModel + sizeof(*packedModel) +
-				   sizeof(*packedModel->rootNodes) * packedModel->rootNodeCount;
-	packedSize = sizeof(*packedModel) + sizeof(*packedModel->rootNodes) * packedModel->rootNodeCount;
+	packedModel->rootNodes =
+		(OptNode **)((uint8_t *)packedModel + sizeof(*packedModel));
+	packedCursor =
+		(uint8_t *)packedModel + sizeof(*packedModel) +
+		sizeof(*packedModel->rootNodes) * packedModel->rootNodeCount;
+	packedSize = sizeof(*packedModel) + sizeof(*packedModel->rootNodes) *
+						    packedModel->rootNodeCount;
 
 	memset(&conversionState, 0, sizeof(conversionState));
 	conversionState.viewOrient[0] = 1.0f;
@@ -4306,11 +5603,13 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle) {
 	g_modelNodeWalkUnusedScratch2 = NULL;
 	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
-	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount; ++rootIndex) {
+	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
+	     ++rootIndex) {
 		size_t nodeSize;
-		packedModel->rootNodes[rootIndex] = (OptNode*)packedCursor;
+		packedModel->rootNodes[rootIndex] = (OptNode *)packedCursor;
 		nodeSize = OptModel_ConvertImportedNodeToPackedRecursive(
-			sourceModel, sourceModel->rootNodes[rootIndex], &conversionState, packedCursor);
+			sourceModel, sourceModel->rootNodes[rootIndex],
+			&conversionState, packedCursor);
 		packedCursor += nodeSize;
 		packedSize += nodeSize;
 	}
@@ -4332,26 +5631,28 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle) {
 }
 
 // FUNCTION: XVT 0x477C80
-size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* sourceModel,
-													 const OptNode* sourceNode, void* conversionState,
-													 uint8_t* destBuffer) {
-	OptNode* packedNode;
-	InventorFieldRecord* params;
+size_t OptModel_ConvertImportedNodeToPackedRecursive(
+	const OptimizedPolyObject *sourceModel, const OptNode *sourceNode,
+	void *conversionState, uint8_t *destBuffer)
+{
+	OptNode *packedNode;
+	InventorFieldRecord *params;
 	OptNodeType nodeType;
-	uint8_t* dest;
+	uint8_t *dest;
 	int childIndex;
 	SceneMesh childState;
 
-	if (sourceNode == NULL)
+	if (sourceNode == NULL) {
 		return 0;
+	}
 
 	nodeType = sourceNode->nodeType;
-	packedNode = (OptNode*)destBuffer;
+	packedNode = (OptNode *)destBuffer;
 	dest = destBuffer + sizeof(*packedNode);
 	packedNode->nodeType = nodeType;
 	if (sourceNode->pName != NULL) {
-		packedNode->pName = (char*)dest;
-		strcpy((char*)dest, sourceNode->pName);
+		packedNode->pName = (char *)dest;
+		strcpy((char *)dest, sourceNode->pName);
 		dest += strlen(sourceNode->pName) + 1;
 	} else {
 		packedNode->pName = NULL;
@@ -4362,222 +5663,341 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 	packedNode->pChildren = NULL;
 
 	params = sourceNode->payload;
-	if (params != NULL && sourceNode->payloadCount != 0 && params->data != NULL) {
+	if (params != NULL && sourceNode->payloadCount != 0 &&
+	    params->data != NULL) {
 		switch (nodeType) {
-			case OPT_FACEDATA: {
-				OptPackedFaceNode* faceNode = (OptPackedFaceNode*)packedNode;
-				OptPackedFaceData* faceData = (OptPackedFaceData*)dest;
-				const int* vertexIndices = params[0].data;
-				const int* normalIndices = NULL;
-				const int* texCoordIndices = NULL;
-				int dataIndex = 0;
-				int edgeCount = 0;
+		case OPT_FACEDATA: {
+			OptPackedFaceNode *faceNode =
+				(OptPackedFaceNode *)packedNode;
+			OptPackedFaceData *faceData = (OptPackedFaceData *)dest;
+			const int *vertexIndices = params[0].data;
+			const int *normalIndices = NULL;
+			const int *texCoordIndices = NULL;
+			int dataIndex = 0;
+			int edgeCount = 0;
 
-				faceNode->faceCount = 0;
-				dest += sizeof(faceData->edgeCount);
-				if (params[3].itemCount == params[0].itemCount)
-					texCoordIndices = params[3].data;
-				if (params[2].itemCount == params[0].itemCount)
-					normalIndices = params[2].data;
-				while (dataIndex < params[0].itemCount) {
-					int polygonStart = dataIndex;
-					int scanIndex = dataIndex + 1;
-					while (1) {
-						OptPackedFaceRecord* face = &faceData->records[faceNode->faceCount];
-						int edgeIndex;
+			faceNode->faceCount = 0;
+			dest += sizeof(faceData->edgeCount);
+			if (params[3].itemCount == params[0].itemCount) {
+				texCoordIndices = params[3].data;
+			}
+			if (params[2].itemCount == params[0].itemCount) {
+				normalIndices = params[2].data;
+			}
+			while (dataIndex < params[0].itemCount) {
+				int polygonStart = dataIndex;
+				int scanIndex = dataIndex + 1;
+				while (1) {
+					OptPackedFaceRecord *face =
+						&faceData->records
+							 [faceNode->faceCount];
+					int edgeIndex;
 
-						scanIndex += 2;
-						face->vertexIndices[0] = vertexIndices[polygonStart];
-						face->vertexIndices[1] = vertexIndices[scanIndex - 2];
-						face->vertexIndices[2] = vertexIndices[scanIndex - 1];
-						face->vertexIndices[3] = vertexIndices[scanIndex];
-						if (texCoordIndices != NULL) {
-							face->texCoordIndices[0] = texCoordIndices[polygonStart];
-							face->texCoordIndices[1] = texCoordIndices[scanIndex - 2];
-							face->texCoordIndices[2] = texCoordIndices[scanIndex - 1];
-							face->texCoordIndices[3] = texCoordIndices[scanIndex];
-						} else {
-							face->texCoordIndices[0] = face->vertexIndices[0];
-							face->texCoordIndices[1] = face->vertexIndices[1];
-							face->texCoordIndices[2] = face->vertexIndices[2];
-							face->texCoordIndices[3] = face->vertexIndices[3];
-						}
-						if (normalIndices != NULL) {
-							face->normalIndices[0] = normalIndices[polygonStart];
-							face->normalIndices[1] = normalIndices[scanIndex - 2];
-							face->normalIndices[2] = normalIndices[scanIndex - 1];
-							face->normalIndices[3] = normalIndices[scanIndex];
-						} else {
-							face->normalIndices[0] = face->vertexIndices[0];
-							face->normalIndices[1] = face->vertexIndices[1];
-							face->normalIndices[2] = face->vertexIndices[2];
-							face->normalIndices[3] = face->vertexIndices[3];
-						}
+					scanIndex += 2;
+					face->vertexIndices[0] =
+						vertexIndices[polygonStart];
+					face->vertexIndices[1] =
+						vertexIndices[scanIndex - 2];
+					face->vertexIndices[2] =
+						vertexIndices[scanIndex - 1];
+					face->vertexIndices[3] =
+						vertexIndices[scanIndex];
+					if (texCoordIndices != NULL) {
+						face->texCoordIndices[0] =
+							texCoordIndices
+								[polygonStart];
+						face->texCoordIndices[1] =
+							texCoordIndices
+								[scanIndex - 2];
+						face->texCoordIndices[2] =
+							texCoordIndices
+								[scanIndex - 1];
+						face->texCoordIndices[3] =
+							texCoordIndices
+								[scanIndex];
+					} else {
+						face->texCoordIndices[0] =
+							face->vertexIndices[0];
+						face->texCoordIndices[1] =
+							face->vertexIndices[1];
+						face->texCoordIndices[2] =
+							face->vertexIndices[2];
+						face->texCoordIndices[3] =
+							face->vertexIndices[3];
+					}
+					if (normalIndices != NULL) {
+						face->normalIndices[0] =
+							normalIndices
+								[polygonStart];
+						face->normalIndices[1] =
+							normalIndices
+								[scanIndex - 2];
+						face->normalIndices[2] =
+							normalIndices
+								[scanIndex - 1];
+						face->normalIndices[3] =
+							normalIndices
+								[scanIndex];
+					} else {
+						face->normalIndices[0] =
+							face->vertexIndices[0];
+						face->normalIndices[1] =
+							face->vertexIndices[1];
+						face->normalIndices[2] =
+							face->vertexIndices[2];
+						face->normalIndices[3] =
+							face->vertexIndices[3];
+					}
 
-						edgeIndex = OptModel_FindUniqueEdgeIndex(faceNode, face->vertexIndices[0],
-																 face->vertexIndices[1]);
-						face->edgeIndices[0] = edgeIndex;
-						if (edgeIndex == -1)
-							face->edgeIndices[0] = edgeCount++;
-						edgeIndex = OptModel_FindUniqueEdgeIndex(faceNode, face->vertexIndices[1],
-																 face->vertexIndices[2]);
-						face->edgeIndices[1] = edgeIndex;
-						if (edgeIndex == -1)
-							face->edgeIndices[1] = edgeCount++;
-						if (face->vertexIndices[3] == -1) {
-							edgeIndex = OptModel_FindUniqueEdgeIndex(faceNode, face->vertexIndices[2],
-																	 face->vertexIndices[0]);
-							face->edgeIndices[2] = edgeIndex;
-							if (edgeIndex == -1)
-								face->edgeIndices[2] = edgeCount++;
-							face->edgeIndices[3] = -1;
-						} else {
-							edgeIndex = OptModel_FindUniqueEdgeIndex(faceNode, face->vertexIndices[2],
-																	 face->vertexIndices[3]);
-							face->edgeIndices[2] = edgeIndex;
-							if (edgeIndex == -1)
-								face->edgeIndices[2] = edgeCount++;
-							edgeIndex = OptModel_FindUniqueEdgeIndex(faceNode, face->vertexIndices[3],
-																	 face->vertexIndices[0]);
-							face->edgeIndices[3] = edgeIndex;
-							if (edgeIndex == -1)
-								face->edgeIndices[3] = edgeCount++;
+					edgeIndex =
+						OptModel_FindUniqueEdgeIndex(
+							faceNode,
+							face->vertexIndices[0],
+							face->vertexIndices[1]);
+					face->edgeIndices[0] = edgeIndex;
+					if (edgeIndex == -1) {
+						face->edgeIndices[0] =
+							edgeCount++;
+					}
+					edgeIndex =
+						OptModel_FindUniqueEdgeIndex(
+							faceNode,
+							face->vertexIndices[1],
+							face->vertexIndices[2]);
+					face->edgeIndices[1] = edgeIndex;
+					if (edgeIndex == -1) {
+						face->edgeIndices[1] =
+							edgeCount++;
+					}
+					if (face->vertexIndices[3] == -1) {
+						edgeIndex =
+							OptModel_FindUniqueEdgeIndex(
+								faceNode,
+								face->vertexIndices
+									[2],
+								face->vertexIndices
+									[0]);
+						face->edgeIndices[2] =
+							edgeIndex;
+						if (edgeIndex == -1) {
+							face->edgeIndices[2] =
+								edgeCount++;
 						}
-						++faceNode->faceCount;
-						if (vertexIndices[scanIndex] == -1) {
-							dataIndex = scanIndex + 1;
-							break;
+						face->edgeIndices[3] = -1;
+					} else {
+						edgeIndex =
+							OptModel_FindUniqueEdgeIndex(
+								faceNode,
+								face->vertexIndices
+									[2],
+								face->vertexIndices
+									[3]);
+						face->edgeIndices[2] =
+							edgeIndex;
+						if (edgeIndex == -1) {
+							face->edgeIndices[2] =
+								edgeCount++;
 						}
-						if (vertexIndices[scanIndex + 1] == -1) {
-							dataIndex = scanIndex + 2;
-							break;
+						edgeIndex =
+							OptModel_FindUniqueEdgeIndex(
+								faceNode,
+								face->vertexIndices
+									[3],
+								face->vertexIndices
+									[0]);
+						face->edgeIndices[3] =
+							edgeIndex;
+						if (edgeIndex == -1) {
+							face->edgeIndices[3] =
+								edgeCount++;
 						}
 					}
+					++faceNode->faceCount;
+					if (vertexIndices[scanIndex] == -1) {
+						dataIndex = scanIndex + 1;
+						break;
+					}
+					if (vertexIndices[scanIndex + 1] ==
+					    -1) {
+						dataIndex = scanIndex + 2;
+						break;
+					}
 				}
-				dest = (uint8_t*)OptModel_AppendPackedFaceDerivedData(faceNode, dest, conversionState);
-				faceData->edgeCount = edgeCount;
-				if (edgeCount > g_sceneEdgeFlagsCapacity)
-					g_sceneEdgeFlagsCapacity = edgeCount;
-				break;
 			}
+			dest = (uint8_t *)OptModel_AppendPackedFaceDerivedData(
+				faceNode, dest, conversionState);
+			faceData->edgeCount = edgeCount;
+			if (edgeCount > g_sceneEdgeFlagsCapacity) {
+				g_sceneEdgeFlagsCapacity = edgeCount;
+			}
+			break;
+		}
 
-			case OPT_TRANSFORM: {
-				float* transform = (float*)dest;
-				const OptVector* pivot = params[4].data;
-				float pivotX;
-				float pivotY;
-				float pivotZ;
-				dest += 12 * sizeof(float);
-				if (pivot != NULL) {
-					transform[0] = -pivot->x;
-					pivotX = transform[0];
-					transform[1] = -pivot->y;
-					pivotY = transform[1];
-					transform[2] = -pivot->z;
-					pivotZ = transform[2];
-					if (params[3].data != NULL) {
-						const OptVector* scale;
-						Math3D_BuildAxisAngleMatrix(&transform[3], params[3].data);
-						Math3D_RotateVec3(transform, &transform[3]);
-						transform[0] -= pivotX;
-						transform[1] -= pivotY;
-						transform[2] -= pivotZ;
-						scale = params[2].data;
-						if (scale != NULL) {
-							transform[3] *= scale->x;
-							transform[4] *= scale->y;
-							transform[5] *= scale->z;
-							transform[6] *= scale->x;
-							transform[7] *= scale->y;
-							transform[8] *= scale->z;
-							transform[9] *= scale->x;
-							transform[10] *= scale->y;
-							transform[11] *= scale->z;
-							transform[0] *= scale->x;
-							transform[1] *= scale->y;
-							transform[2] *= scale->z;
-							if (params[1].data != NULL) {
-								const OptVector* translation;
-								transform[0] += pivotX;
-								transform[1] += pivotY;
-								transform[2] += pivotZ;
-								Math3D_BuildAxisAngleMatrix(&transform[3], params[1].data);
-								Math3D_RotateVec3(transform, &transform[3]);
-								transform[0] -= pivotX;
-								transform[1] -= pivotY;
-								transform[2] -= pivotZ;
-								translation = params[0].data;
-								if (translation != NULL) {
-									transform[0] -= translation->x;
-									transform[1] -= translation->y;
-									transform[2] -= translation->z;
-								}
+		case OPT_TRANSFORM: {
+			float *transform = (float *)dest;
+			const OptVector *pivot = params[4].data;
+			float pivotX;
+			float pivotY;
+			float pivotZ;
+			dest += 12 * sizeof(float);
+			if (pivot != NULL) {
+				transform[0] = -pivot->x;
+				pivotX = transform[0];
+				transform[1] = -pivot->y;
+				pivotY = transform[1];
+				transform[2] = -pivot->z;
+				pivotZ = transform[2];
+				if (params[3].data != NULL) {
+					const OptVector *scale;
+					Math3D_BuildAxisAngleMatrix(
+						&transform[3], params[3].data);
+					Math3D_RotateVec3(transform,
+							  &transform[3]);
+					transform[0] -= pivotX;
+					transform[1] -= pivotY;
+					transform[2] -= pivotZ;
+					scale = params[2].data;
+					if (scale != NULL) {
+						transform[3] *= scale->x;
+						transform[4] *= scale->y;
+						transform[5] *= scale->z;
+						transform[6] *= scale->x;
+						transform[7] *= scale->y;
+						transform[8] *= scale->z;
+						transform[9] *= scale->x;
+						transform[10] *= scale->y;
+						transform[11] *= scale->z;
+						transform[0] *= scale->x;
+						transform[1] *= scale->y;
+						transform[2] *= scale->z;
+						if (params[1].data != NULL) {
+							const OptVector
+								*translation;
+							transform[0] += pivotX;
+							transform[1] += pivotY;
+							transform[2] += pivotZ;
+							Math3D_BuildAxisAngleMatrix(
+								&transform[3],
+								params[1].data);
+							Math3D_RotateVec3(
+								transform,
+								&transform[3]);
+							transform[0] -= pivotX;
+							transform[1] -= pivotY;
+							transform[2] -= pivotZ;
+							translation =
+								params[0].data;
+							if (translation !=
+							    NULL) {
+								transform[0] -=
+									translation
+										->x;
+								transform[1] -=
+									translation
+										->y;
+								transform[2] -=
+									translation
+										->z;
 							}
 						}
 					}
 				}
-				break;
 			}
+			break;
+		}
 
-			case OPT_MESHVERTS:
-				packedNode->payloadCount = params[0].itemCount;
-				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)packedNode->payloadCount);
-				g_curMeshVertices = dest;
-				g_curVertexCount = packedNode->payloadCount;
-				dest += sizeof(OptVector) * (size_t)g_curVertexCount;
-				if (packedNode->payloadCount > g_vertexRemapCapacity)
-					g_vertexRemapCapacity = packedNode->payloadCount;
-				break;
-
-			case OPT_TRANSLATION:
-				*(OptVector*)dest = *(const OptVector*)params[0].data;
-				dest += sizeof(OptVector);
-				break;
-
-			case OPT_ROTATION: {
-				float* matrix = (float*)dest;
-				dest += 9 * sizeof(float);
-				Math3D_BuildAxisAngleMatrix(matrix, params[0].data);
-				break;
+		case OPT_MESHVERTS:
+			packedNode->payloadCount = params[0].itemCount;
+			memcpy(dest, params[0].data,
+			       sizeof(OptVector) *
+				       (size_t)packedNode->payloadCount);
+			g_curMeshVertices = dest;
+			g_curVertexCount = packedNode->payloadCount;
+			dest += sizeof(OptVector) * (size_t)g_curVertexCount;
+			if (packedNode->payloadCount > g_vertexRemapCapacity) {
+				g_vertexRemapCapacity =
+					packedNode->payloadCount;
 			}
+			break;
 
-			case OPT_SCALE:
-				*(OptVector*)dest = *(const OptVector*)params[0].data;
-				dest += sizeof(OptVector);
-				break;
+		case OPT_TRANSLATION:
+			*(OptVector *)dest = *(const OptVector *)params[0].data;
+			dest += sizeof(OptVector);
+			break;
 
-			case OPT_NODEREF: {
-				const char* nodeName = params[0].data;
-				packedNode->payloadCount = 1;
-				packedNode->payload = dest;
-				strcpy((char*)dest, nodeName);
-				dest += strlen(nodeName) + 1;
-				break;
+		case OPT_ROTATION: {
+			float *matrix = (float *)dest;
+			dest += 9 * sizeof(float);
+			Math3D_BuildAxisAngleMatrix(matrix, params[0].data);
+			break;
+		}
+
+		case OPT_SCALE:
+			*(OptVector *)dest = *(const OptVector *)params[0].data;
+			dest += sizeof(OptVector);
+			break;
+
+		case OPT_NODEREF: {
+			const char *nodeName = params[0].data;
+			packedNode->payloadCount = 1;
+			packedNode->payload = dest;
+			strcpy((char *)dest, nodeName);
+			dest += strlen(nodeName) + 1;
+			break;
+		}
+
+		case OPT_MATERIAL: {
+			int maxRecordCount = params[0].itemCount;
+			const float *sourceValues;
+			float *destValues;
+			int fillCount;
+			if (maxRecordCount < params[1].itemCount) {
+				maxRecordCount = params[1].itemCount;
 			}
+			if (maxRecordCount < params[2].itemCount) {
+				maxRecordCount = params[2].itemCount;
+			}
+			if (maxRecordCount < params[3].itemCount) {
+				maxRecordCount = params[3].itemCount;
+			}
+			if (maxRecordCount < params[4].itemCount) {
+				maxRecordCount = params[4].itemCount;
+			}
+			if (maxRecordCount < params[5].itemCount) {
+				maxRecordCount = params[5].itemCount;
+			}
+			packedNode->payloadCount = maxRecordCount;
 
-			case OPT_MATERIAL: {
-				int maxRecordCount = params[0].itemCount;
-				const float* sourceValues;
-				float* destValues;
-				int fillCount;
-				if (maxRecordCount < params[1].itemCount)
-					maxRecordCount = params[1].itemCount;
-				if (maxRecordCount < params[2].itemCount)
-					maxRecordCount = params[2].itemCount;
-				if (maxRecordCount < params[3].itemCount)
-					maxRecordCount = params[3].itemCount;
-				if (maxRecordCount < params[4].itemCount)
-					maxRecordCount = params[4].itemCount;
-				if (maxRecordCount < params[5].itemCount)
-					maxRecordCount = params[5].itemCount;
-				packedNode->payloadCount = maxRecordCount;
-
-				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)params[0].itemCount);
-				destValues = (float*)dest + 3 * params[0].itemCount;
-				dest += sizeof(OptVector) * (size_t)maxRecordCount;
-				if (params[0].itemCount < maxRecordCount) {
-					sourceValues = (const float*)params[0].data + 3 * params[0].itemCount - 3;
-					fillCount = maxRecordCount - params[0].itemCount;
+			memcpy(dest, params[0].data,
+			       sizeof(OptVector) * (size_t)params[0].itemCount);
+			destValues = (float *)dest + 3 * params[0].itemCount;
+			dest += sizeof(OptVector) * (size_t)maxRecordCount;
+			if (params[0].itemCount < maxRecordCount) {
+				sourceValues = (const float *)params[0].data +
+					       3 * params[0].itemCount - 3;
+				fillCount =
+					maxRecordCount - params[0].itemCount;
+				do {
+					destValues[0] = sourceValues[0];
+					destValues[1] = sourceValues[1];
+					destValues[2] = sourceValues[2];
+					destValues += 3;
+				} while (--fillCount != 0);
+			}
+			if (params[1].data != NULL) {
+				memcpy(dest, params[1].data,
+				       sizeof(OptVector) *
+					       (size_t)params[1].itemCount);
+				destValues =
+					(float *)dest + 3 * params[1].itemCount;
+				dest += sizeof(OptVector) *
+					(size_t)maxRecordCount;
+				if (params[1].itemCount < maxRecordCount) {
+					sourceValues =
+						(const float *)params[1].data +
+						3 * params[1].itemCount - 3;
+					fillCount = maxRecordCount -
+						    params[1].itemCount;
 					do {
 						destValues[0] = sourceValues[0];
 						destValues[1] = sourceValues[1];
@@ -4585,360 +6005,576 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 						destValues += 3;
 					} while (--fillCount != 0);
 				}
-				if (params[1].data != NULL) {
-					memcpy(dest, params[1].data, sizeof(OptVector) * (size_t)params[1].itemCount);
-					destValues = (float*)dest + 3 * params[1].itemCount;
-					dest += sizeof(OptVector) * (size_t)maxRecordCount;
-					if (params[1].itemCount < maxRecordCount) {
-						sourceValues = (const float*)params[1].data + 3 * params[1].itemCount - 3;
-						fillCount = maxRecordCount - params[1].itemCount;
+				if (params[2].data != NULL) {
+					memcpy(dest, params[2].data,
+					       sizeof(OptVector) *
+						       (size_t)params[2]
+							       .itemCount);
+					destValues = (float *)dest +
+						     3 * params[2].itemCount;
+					dest += sizeof(OptVector) *
+						(size_t)maxRecordCount;
+					if (params[2].itemCount <
+					    maxRecordCount) {
+						sourceValues =
+							(const float *)params[2]
+								.data +
+							3 * params[2].itemCount -
+							3;
+						fillCount = maxRecordCount -
+							    params[2].itemCount;
 						do {
-							destValues[0] = sourceValues[0];
-							destValues[1] = sourceValues[1];
-							destValues[2] = sourceValues[2];
+							destValues[0] =
+								sourceValues[0];
+							destValues[1] =
+								sourceValues[1];
+							destValues[2] =
+								sourceValues[2];
 							destValues += 3;
 						} while (--fillCount != 0);
 					}
-					if (params[2].data != NULL) {
-						memcpy(dest, params[2].data, sizeof(OptVector) * (size_t)params[2].itemCount);
-						destValues = (float*)dest + 3 * params[2].itemCount;
-						dest += sizeof(OptVector) * (size_t)maxRecordCount;
-						if (params[2].itemCount < maxRecordCount) {
-							sourceValues = (const float*)params[2].data + 3 * params[2].itemCount - 3;
-							fillCount = maxRecordCount - params[2].itemCount;
+					if (params[3].data != NULL) {
+						memcpy(dest, params[3].data,
+						       sizeof(OptVector) *
+							       (size_t)params[3]
+								       .itemCount);
+						destValues =
+							(float *)dest +
+							3 * params[3].itemCount;
+						dest += sizeof(OptVector) *
+							(size_t)maxRecordCount;
+						if (params[3].itemCount <
+						    maxRecordCount) {
+							sourceValues =
+								(const float
+									 *)params[3]
+									.data +
+								3 * params[3].itemCount -
+								3;
+							fillCount =
+								maxRecordCount -
+								params[3]
+									.itemCount;
 							do {
-								destValues[0] = sourceValues[0];
-								destValues[1] = sourceValues[1];
-								destValues[2] = sourceValues[2];
+								destValues[0] = sourceValues
+									[0];
+								destValues[1] = sourceValues
+									[1];
+								destValues[2] = sourceValues
+									[2];
 								destValues += 3;
-							} while (--fillCount != 0);
+							} while (--fillCount !=
+								 0);
 						}
-						if (params[3].data != NULL) {
-							memcpy(dest, params[3].data, sizeof(OptVector) * (size_t)params[3].itemCount);
-							destValues = (float*)dest + 3 * params[3].itemCount;
-							dest += sizeof(OptVector) * (size_t)maxRecordCount;
-							if (params[3].itemCount < maxRecordCount) {
-								sourceValues = (const float*)params[3].data + 3 * params[3].itemCount - 3;
-								fillCount = maxRecordCount - params[3].itemCount;
+						if (params[4].data != NULL) {
+							memcpy(dest,
+							       params[4].data,
+							       sizeof(float) *
+								       (size_t)params[4]
+									       .itemCount);
+							destValues =
+								(float *)dest +
+								params[4]
+									.itemCount;
+							dest += sizeof(float) *
+								(size_t)maxRecordCount;
+							if (params[4]
+								    .itemCount <
+							    maxRecordCount) {
+								sourceValues =
+									(const float
+										 *)params
+										[4]
+											.data +
+									params[4]
+										.itemCount -
+									1;
+								fillCount =
+									maxRecordCount -
+									params[4]
+										.itemCount;
 								do {
-									destValues[0] = sourceValues[0];
-									destValues[1] = sourceValues[1];
-									destValues[2] = sourceValues[2];
-									destValues += 3;
-								} while (--fillCount != 0);
+									*destValues++ =
+										*sourceValues;
+								} while (
+									--fillCount !=
+									0);
 							}
-							if (params[4].data != NULL) {
-								memcpy(dest, params[4].data, sizeof(float) * (size_t)params[4].itemCount);
-								destValues = (float*)dest + params[4].itemCount;
-								dest += sizeof(float) * (size_t)maxRecordCount;
-								if (params[4].itemCount < maxRecordCount) {
-									sourceValues = (const float*)params[4].data + params[4].itemCount - 1;
-									fillCount = maxRecordCount - params[4].itemCount;
+							if (params[5].data !=
+							    NULL) {
+								memcpy(dest,
+								       params[5]
+									       .data,
+								       sizeof(float) *
+									       (size_t)params[5]
+										       .itemCount);
+								destValues =
+									(float *)
+										dest +
+									params[5]
+										.itemCount;
+								dest += sizeof(float) *
+									(size_t)maxRecordCount;
+								if (params[5]
+									    .itemCount <
+								    maxRecordCount) {
+									sourceValues =
+										(const float
+											 *)params
+											[5]
+												.data +
+										params[5]
+											.itemCount -
+										1;
+									fillCount =
+										maxRecordCount -
+										params[5]
+											.itemCount;
 									do {
-										*destValues++ = *sourceValues;
-									} while (--fillCount != 0);
-								}
-								if (params[5].data != NULL) {
-									memcpy(dest, params[5].data, sizeof(float) * (size_t)params[5].itemCount);
-									destValues = (float*)dest + params[5].itemCount;
-									dest += sizeof(float) * (size_t)maxRecordCount;
-									if (params[5].itemCount < maxRecordCount) {
-										sourceValues = (const float*)params[5].data + params[5].itemCount - 1;
-										fillCount = maxRecordCount - params[5].itemCount;
-										do {
-											*destValues++ = *sourceValues;
-										} while (--fillCount != 0);
-									}
+										*destValues++ =
+											*sourceValues;
+									} while (
+										--fillCount !=
+										0);
 								}
 							}
 						}
 					}
 				}
-				break;
 			}
+			break;
+		}
 
-			case OPT_MATERIAL_BINDING:
-			case OPT_TEXCOORD_BINDING:
-				packedNode->payloadCount = *(const int*)params[0].data;
-				break;
+		case OPT_MATERIAL_BINDING:
+		case OPT_TEXCOORD_BINDING:
+			packedNode->payloadCount = *(const int *)params[0].data;
+			break;
 
-			case OPT_VERTNORMALS:
-				packedNode->payloadCount = params[0].itemCount;
-				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)packedNode->payloadCount);
-				g_curVertNormals = (OptVector*)dest;
-				((SceneMesh*)conversionState)->pVertNormals = (OptVector*)dest;
-				dest += sizeof(OptVector) * (size_t)packedNode->payloadCount;
-				break;
+		case OPT_VERTNORMALS:
+			packedNode->payloadCount = params[0].itemCount;
+			memcpy(dest, params[0].data,
+			       sizeof(OptVector) *
+				       (size_t)packedNode->payloadCount);
+			g_curVertNormals = (OptVector *)dest;
+			((SceneMesh *)conversionState)->pVertNormals =
+				(OptVector *)dest;
+			dest += sizeof(OptVector) *
+				(size_t)packedNode->payloadCount;
+			break;
 
-			case OPT_TEXCOORDS:
-				packedNode->payloadCount = params[0].itemCount;
-				memcpy(dest, params[0].data, sizeof(OptTexCoord) * (size_t)packedNode->payloadCount);
-				g_curMeshTexCoords = dest;
-				dest += sizeof(OptTexCoord) * (size_t)packedNode->payloadCount;
-				break;
+		case OPT_TEXCOORDS:
+			packedNode->payloadCount = params[0].itemCount;
+			memcpy(dest, params[0].data,
+			       sizeof(OptTexCoord) *
+				       (size_t)packedNode->payloadCount);
+			g_curMeshTexCoords = dest;
+			dest += sizeof(OptTexCoord) *
+				(size_t)packedNode->payloadCount;
+			break;
 
-			case OPT_FACEDATA_QUAD_MESH: {
-				OptPackedFaceNode* faceNode = (OptPackedFaceNode*)packedNode;
-				OptPackedFaceData* faceData = (OptPackedFaceData*)dest;
-				const int* widthData = params[1].data;
-				const int* heightData = params[2].data;
-				int edgeCount = 0;
-				int rowIndex;
-				dest += sizeof(faceData->edgeCount);
-				if (widthData != NULL && heightData != NULL) {
-					int width = *widthData;
-					int height = *heightData;
-					int firstVertex = *(const int*)params[0].data;
-					for (rowIndex = 0; rowIndex < height - 1; ++rowIndex) {
-						int columnIndex;
-						for (columnIndex = 0; columnIndex < width - 1; ++columnIndex) {
-							OptPackedFaceRecord* face =
-								&faceData->records[rowIndex * (width - 1) + columnIndex];
-							face->vertexIndices[0] = firstVertex + rowIndex * width + columnIndex;
-							face->vertexIndices[1] = face->vertexIndices[0] + 1;
-							face->vertexIndices[2] = face->vertexIndices[1] + width;
-							face->vertexIndices[3] = face->vertexIndices[0] + width;
-							face->texCoordIndices[0] = face->vertexIndices[0];
-							face->texCoordIndices[1] = face->vertexIndices[1];
-							face->texCoordIndices[2] = face->vertexIndices[2];
-							face->texCoordIndices[3] = face->vertexIndices[3];
-							face->normalIndices[0] = face->vertexIndices[0];
-							face->normalIndices[1] = face->vertexIndices[1];
-							face->normalIndices[2] = face->vertexIndices[2];
-							face->normalIndices[3] = face->vertexIndices[3];
+		case OPT_FACEDATA_QUAD_MESH: {
+			OptPackedFaceNode *faceNode =
+				(OptPackedFaceNode *)packedNode;
+			OptPackedFaceData *faceData = (OptPackedFaceData *)dest;
+			const int *widthData = params[1].data;
+			const int *heightData = params[2].data;
+			int edgeCount = 0;
+			int rowIndex;
+			dest += sizeof(faceData->edgeCount);
+			if (widthData != NULL && heightData != NULL) {
+				int width = *widthData;
+				int height = *heightData;
+				int firstVertex = *(const int *)params[0].data;
+				for (rowIndex = 0; rowIndex < height - 1;
+				     ++rowIndex) {
+					int columnIndex;
+					for (columnIndex = 0;
+					     columnIndex < width - 1;
+					     ++columnIndex) {
+						OptPackedFaceRecord *face =
+							&faceData->records
+								 [rowIndex *
+									  (width -
+									   1) +
+								  columnIndex];
+						face->vertexIndices[0] =
+							firstVertex +
+							rowIndex * width +
+							columnIndex;
+						face->vertexIndices[1] =
+							face->vertexIndices[0] +
+							1;
+						face->vertexIndices[2] =
+							face->vertexIndices[1] +
+							width;
+						face->vertexIndices[3] =
+							face->vertexIndices[0] +
+							width;
+						face->texCoordIndices[0] =
+							face->vertexIndices[0];
+						face->texCoordIndices[1] =
+							face->vertexIndices[1];
+						face->texCoordIndices[2] =
+							face->vertexIndices[2];
+						face->texCoordIndices[3] =
+							face->vertexIndices[3];
+						face->normalIndices[0] =
+							face->vertexIndices[0];
+						face->normalIndices[1] =
+							face->vertexIndices[1];
+						face->normalIndices[2] =
+							face->vertexIndices[2];
+						face->normalIndices[3] =
+							face->vertexIndices[3];
+						if (rowIndex == 0) {
+							face->edgeIndices[0] =
+								edgeCount++;
+						} else if (rowIndex == 1) {
+							face->edgeIndices[0] =
+								columnIndex +
+								edgeCount -
+								3 * width + 4;
+						} else {
+							face->edgeIndices[0] =
+								edgeCount -
+								2 * width;
+						}
+						face->edgeIndices[1] =
+							edgeCount++;
+						face->edgeIndices[2] =
+							edgeCount++;
+						if (columnIndex == 0) {
+							face->edgeIndices[3] =
+								edgeCount++;
+						} else {
+							face->edgeIndices[3] =
+								edgeCount - 4;
 							if (rowIndex == 0) {
-								face->edgeIndices[0] = edgeCount++;
-							} else if (rowIndex == 1) {
-								face->edgeIndices[0] = columnIndex + edgeCount - 3 * width + 4;
-							} else {
-								face->edgeIndices[0] = edgeCount - 2 * width;
+								--face->edgeIndices
+									  [3];
 							}
-							face->edgeIndices[1] = edgeCount++;
-							face->edgeIndices[2] = edgeCount++;
-							if (columnIndex == 0) {
-								face->edgeIndices[3] = edgeCount++;
-							} else {
-								face->edgeIndices[3] = edgeCount - 4;
-								if (rowIndex == 0)
-									--face->edgeIndices[3];
-								if (columnIndex == 1)
-									--face->edgeIndices[3];
+							if (columnIndex == 1) {
+								--face->edgeIndices
+									  [3];
 							}
 						}
 					}
-					faceNode->faceCount = (height - 1) * (width - 1);
-					dest = (uint8_t*)OptModel_AppendPackedFaceDerivedData(faceNode, dest, conversionState);
-					faceData->edgeCount = edgeCount;
-					if (edgeCount > g_sceneEdgeFlagsCapacity)
-						g_sceneEdgeFlagsCapacity = edgeCount;
 				}
-				break;
+				faceNode->faceCount =
+					(height - 1) * (width - 1);
+				dest = (uint8_t *)
+					OptModel_AppendPackedFaceDerivedData(
+						faceNode, dest,
+						conversionState);
+				faceData->edgeCount = edgeCount;
+				if (edgeCount > g_sceneEdgeFlagsCapacity) {
+					g_sceneEdgeFlagsCapacity = edgeCount;
+				}
 			}
+			break;
+		}
 
-			case OPT_FACEDATA_FACE_SET: {
-				OptPackedFaceNode* faceNode = (OptPackedFaceNode*)packedNode;
-				OptPackedFaceData* faceData = (OptPackedFaceData*)dest;
-				const int* polygonVertexCounts = params[0].data;
-				int vertexCursor = 0;
-				int edgeCursor = 0;
-				int polygonIndex;
-				dest += sizeof(faceData->edgeCount);
-				faceNode->faceCount = 0;
-				for (polygonIndex = 0; polygonIndex < params[0].itemCount; ++polygonIndex) {
-					int polygonVertexCount = polygonVertexCounts[polygonIndex];
-					if (polygonVertexCount >= 3) {
-						int polygonStart = vertexCursor;
-						int firstEdge = edgeCursor;
-						++vertexCursor;
-						++edgeCursor;
-						while (vertexCursor - polygonStart < polygonVertexCount) {
-							OptPackedFaceRecord* face = &faceData->records[faceNode->faceCount];
-							++faceNode->faceCount;
-							face->vertexIndices[0] = polygonStart;
-							face->vertexIndices[1] = vertexCursor;
-							face->vertexIndices[2] = ++vertexCursor;
+		case OPT_FACEDATA_FACE_SET: {
+			OptPackedFaceNode *faceNode =
+				(OptPackedFaceNode *)packedNode;
+			OptPackedFaceData *faceData = (OptPackedFaceData *)dest;
+			const int *polygonVertexCounts = params[0].data;
+			int vertexCursor = 0;
+			int edgeCursor = 0;
+			int polygonIndex;
+			dest += sizeof(faceData->edgeCount);
+			faceNode->faceCount = 0;
+			for (polygonIndex = 0;
+			     polygonIndex < params[0].itemCount;
+			     ++polygonIndex) {
+				int polygonVertexCount =
+					polygonVertexCounts[polygonIndex];
+				if (polygonVertexCount >= 3) {
+					int polygonStart = vertexCursor;
+					int firstEdge = edgeCursor;
+					++vertexCursor;
+					++edgeCursor;
+					while (vertexCursor - polygonStart <
+					       polygonVertexCount) {
+						OptPackedFaceRecord *face =
+							&faceData->records
+								 [faceNode->faceCount];
+						++faceNode->faceCount;
+						face->vertexIndices[0] =
+							polygonStart;
+						face->vertexIndices[1] =
+							vertexCursor;
+						face->vertexIndices[2] =
 							++vertexCursor;
-							if (vertexCursor - polygonVertexCount == polygonStart) {
-								face->vertexIndices[3] = -1;
-								face->edgeIndices[0] = firstEdge;
-								face->edgeIndices[1] = edgeCursor;
-								face->edgeIndices[2] = ++edgeCursor;
+						++vertexCursor;
+						if (vertexCursor -
+							    polygonVertexCount ==
+						    polygonStart) {
+							face->vertexIndices[3] =
+								-1;
+							face->edgeIndices[0] =
+								firstEdge;
+							face->edgeIndices[1] =
+								edgeCursor;
+							face->edgeIndices[2] =
 								++edgeCursor;
-								face->edgeIndices[3] = -1;
-							} else {
-								face->vertexIndices[3] = vertexCursor;
-								if (++vertexCursor - polygonVertexCount != polygonStart)
-									--vertexCursor;
-								face->edgeIndices[0] = firstEdge;
-								face->edgeIndices[1] = edgeCursor;
-								face->edgeIndices[2] = ++edgeCursor;
-								firstEdge = ++edgeCursor;
-								face->edgeIndices[3] = firstEdge;
-								++edgeCursor;
-							}
-							face->texCoordIndices[0] = face->vertexIndices[0];
-							face->texCoordIndices[1] = face->vertexIndices[1];
-							face->texCoordIndices[2] = face->vertexIndices[2];
-							face->texCoordIndices[3] = face->vertexIndices[3];
-							face->normalIndices[0] = face->vertexIndices[0];
-							face->normalIndices[1] = face->vertexIndices[1];
-							face->normalIndices[2] = face->vertexIndices[2];
-							face->normalIndices[3] = face->vertexIndices[3];
-						}
-					}
-				}
-				dest = (uint8_t*)OptModel_AppendPackedFaceDerivedData(faceNode, dest, conversionState);
-				faceData->edgeCount = edgeCursor;
-				if (edgeCursor > g_sceneEdgeFlagsCapacity)
-					g_sceneEdgeFlagsCapacity = edgeCursor;
-				break;
-			}
-
-			case OPT_FACEDATA_TRIANGLE_STRIP_SET: {
-				OptPackedFaceNode* faceNode = (OptPackedFaceNode*)packedNode;
-				OptPackedFaceData* faceData = (OptPackedFaceData*)dest;
-				const int* stripVertexCounts = params[1].data;
-				int firstVertex = *(const int*)params[0].data;
-				int edgeCursor = *(const int*)conversionState;
-				int stripIndex;
-				dest += sizeof(faceData->edgeCount);
-				if (stripVertexCounts != NULL) {
-					faceNode->faceCount = 0;
-					for (stripIndex = 0; stripIndex < params[1].itemCount; ++stripIndex) {
-						int stripVertexCount = stripVertexCounts[stripIndex];
-						int vertexIndex;
-						for (vertexIndex = 2; vertexIndex < stripVertexCount; ++vertexIndex) {
-							OptPackedFaceRecord* face = &faceData->records[faceNode->faceCount];
-							int currentVertex = firstVertex + vertexIndex;
-							if ((vertexIndex & 1) != 0) {
-								face->vertexIndices[0] = currentVertex;
-								face->vertexIndices[1] = currentVertex - 1;
-								face->vertexIndices[2] = currentVertex - 2;
-								face->edgeIndices[0] = edgeCursor;
-								face->edgeIndices[1] = edgeCursor - 2;
-							} else {
-								face->vertexIndices[0] = currentVertex - 2;
-								face->vertexIndices[1] = currentVertex - 1;
-								face->vertexIndices[2] = currentVertex;
-								if (vertexIndex == 2)
-									face->edgeIndices[0] = edgeCursor++;
-								else
-									face->edgeIndices[0] = edgeCursor - 2;
-								face->edgeIndices[1] = edgeCursor;
-							}
-							face->vertexIndices[3] = -1;
-							face->edgeIndices[2] = ++edgeCursor;
 							++edgeCursor;
-							face->edgeIndices[3] = -1;
-							face->texCoordIndices[0] = face->vertexIndices[0];
-							face->texCoordIndices[1] = face->vertexIndices[1];
-							face->texCoordIndices[2] = face->vertexIndices[2];
-							face->texCoordIndices[3] = face->vertexIndices[3];
-							face->normalIndices[0] = face->vertexIndices[0];
-							face->normalIndices[1] = face->vertexIndices[1];
-							face->normalIndices[2] = face->vertexIndices[2];
-							face->normalIndices[3] = face->vertexIndices[3];
-							++faceNode->faceCount;
+							face->edgeIndices[3] =
+								-1;
+						} else {
+							face->vertexIndices[3] =
+								vertexCursor;
+							if (++vertexCursor -
+								    polygonVertexCount !=
+							    polygonStart) {
+								--vertexCursor;
+							}
+							face->edgeIndices[0] =
+								firstEdge;
+							face->edgeIndices[1] =
+								edgeCursor;
+							face->edgeIndices[2] =
+								++edgeCursor;
+							firstEdge =
+								++edgeCursor;
+							face->edgeIndices[3] =
+								firstEdge;
+							++edgeCursor;
 						}
-						firstVertex += stripVertexCount;
-					}
-					dest = (uint8_t*)OptModel_AppendPackedFaceDerivedData(faceNode, dest, conversionState);
-					faceData->edgeCount = edgeCursor;
-					if (edgeCursor > g_sceneEdgeFlagsCapacity)
-						g_sceneEdgeFlagsCapacity = edgeCursor;
-				}
-				break;
-			}
-
-			case OPT_TEXTURE:
-				packedNode->payload = dest;
-				dest += ModelTexture_LoadRgbOrTexFile(dest, params[0].data);
-				break;
-
-			case OPT_FACEGROUP: {
-				OptNode* mutableSourceNode = (OptNode*)sourceNode;
-				const float* sourceValues = params[0].data;
-				int sourceIndex;
-				packedNode->payloadCount = 0;
-				for (sourceIndex = 0; sourceIndex < params[0].itemCount; ++sourceIndex) {
-					if (mutableSourceNode->pChildren[sourceIndex] != NULL &&
-						(sourceIndex == 0 || sourceValues[sourceIndex - 1] != sourceValues[sourceIndex])) {
-						*(float*)dest = sourceValues[sourceIndex];
-						dest += sizeof(float);
-						mutableSourceNode->pChildren[packedNode->payloadCount] =
-							mutableSourceNode->pChildren[sourceIndex];
-						++packedNode->payloadCount;
+						face->texCoordIndices[0] =
+							face->vertexIndices[0];
+						face->texCoordIndices[1] =
+							face->vertexIndices[1];
+						face->texCoordIndices[2] =
+							face->vertexIndices[2];
+						face->texCoordIndices[3] =
+							face->vertexIndices[3];
+						face->normalIndices[0] =
+							face->vertexIndices[0];
+						face->normalIndices[1] =
+							face->vertexIndices[1];
+						face->normalIndices[2] =
+							face->vertexIndices[2];
+						face->normalIndices[3] =
+							face->vertexIndices[3];
 					}
 				}
-				mutableSourceNode->childCount = packedNode->payloadCount;
-				break;
 			}
-
-			case OPT_HARDPOINT: {
-				const OptVector* position = params[1].data;
-				OptHardpoint* hardpoint = (OptHardpoint*)dest;
-				hardpoint->hardpointType = *(const int*)params[0].data;
-				hardpoint->position = *position;
-				dest += sizeof(*hardpoint);
-				break;
+			dest = (uint8_t *)OptModel_AppendPackedFaceDerivedData(
+				faceNode, dest, conversionState);
+			faceData->edgeCount = edgeCursor;
+			if (edgeCursor > g_sceneEdgeFlagsCapacity) {
+				g_sceneEdgeFlagsCapacity = edgeCursor;
 			}
+			break;
+		}
 
-			case OPT_ROTSCALE: {
-				*(OptVector*)dest = *(const OptVector*)params[0].data;
-				dest += sizeof(OptVector);
-				*(OptVector*)dest = *(const OptVector*)params[1].data;
-				dest += sizeof(OptVector);
-				*(OptVector*)dest = *(const OptVector*)params[2].data;
-				dest += sizeof(OptVector);
-				*(OptVector*)dest = *(const OptVector*)params[3].data;
-				dest += sizeof(OptVector);
-				break;
+		case OPT_FACEDATA_TRIANGLE_STRIP_SET: {
+			OptPackedFaceNode *faceNode =
+				(OptPackedFaceNode *)packedNode;
+			OptPackedFaceData *faceData = (OptPackedFaceData *)dest;
+			const int *stripVertexCounts = params[1].data;
+			int firstVertex = *(const int *)params[0].data;
+			int edgeCursor = *(const int *)conversionState;
+			int stripIndex;
+			dest += sizeof(faceData->edgeCount);
+			if (stripVertexCounts != NULL) {
+				faceNode->faceCount = 0;
+				for (stripIndex = 0;
+				     stripIndex < params[1].itemCount;
+				     ++stripIndex) {
+					int stripVertexCount =
+						stripVertexCounts[stripIndex];
+					int vertexIndex;
+					for (vertexIndex = 2;
+					     vertexIndex < stripVertexCount;
+					     ++vertexIndex) {
+						OptPackedFaceRecord *face =
+							&faceData->records
+								 [faceNode->faceCount];
+						int currentVertex =
+							firstVertex +
+							vertexIndex;
+						if ((vertexIndex & 1) != 0) {
+							face->vertexIndices[0] =
+								currentVertex;
+							face->vertexIndices[1] =
+								currentVertex -
+								1;
+							face->vertexIndices[2] =
+								currentVertex -
+								2;
+							face->edgeIndices[0] =
+								edgeCursor;
+							face->edgeIndices[1] =
+								edgeCursor - 2;
+						} else {
+							face->vertexIndices[0] =
+								currentVertex -
+								2;
+							face->vertexIndices[1] =
+								currentVertex -
+								1;
+							face->vertexIndices[2] =
+								currentVertex;
+							if (vertexIndex == 2) {
+								face->edgeIndices
+									[0] =
+									edgeCursor++;
+							} else {
+								face->edgeIndices
+									[0] =
+									edgeCursor -
+									2;
+							}
+							face->edgeIndices[1] =
+								edgeCursor;
+						}
+						face->vertexIndices[3] = -1;
+						face->edgeIndices[2] =
+							++edgeCursor;
+						++edgeCursor;
+						face->edgeIndices[3] = -1;
+						face->texCoordIndices[0] =
+							face->vertexIndices[0];
+						face->texCoordIndices[1] =
+							face->vertexIndices[1];
+						face->texCoordIndices[2] =
+							face->vertexIndices[2];
+						face->texCoordIndices[3] =
+							face->vertexIndices[3];
+						face->normalIndices[0] =
+							face->vertexIndices[0];
+						face->normalIndices[1] =
+							face->vertexIndices[1];
+						face->normalIndices[2] =
+							face->vertexIndices[2];
+						face->normalIndices[3] =
+							face->vertexIndices[3];
+						++faceNode->faceCount;
+					}
+					firstVertex += stripVertexCount;
+				}
+				dest = (uint8_t *)
+					OptModel_AppendPackedFaceDerivedData(
+						faceNode, dest,
+						conversionState);
+				faceData->edgeCount = edgeCursor;
+				if (edgeCursor > g_sceneEdgeFlagsCapacity) {
+					g_sceneEdgeFlagsCapacity = edgeCursor;
+				}
 			}
+			break;
+		}
 
-			case OPT_MESHDESC: {
-				float* values = (float*)dest;
-				dest += 18 * sizeof(float);
-				values[0] = *(const float*)params[0].data;
-				((int*)values)[1] = *(const int*)params[1].data;
-				*(OptVector*)&values[2] = *(const OptVector*)params[2].data;
-				*(OptVector*)&values[5] = *(const OptVector*)params[3].data;
-				*(OptVector*)&values[8] = *(const OptVector*)params[4].data;
-				*(OptVector*)&values[11] = *(const OptVector*)params[5].data;
-				values[14] = *(const float*)params[6].data;
-				*(OptVector*)&values[15] = *(const OptVector*)params[7].data;
-				break;
+		case OPT_TEXTURE:
+			packedNode->payload = dest;
+			dest += ModelTexture_LoadRgbOrTexFile(dest,
+							      params[0].data);
+			break;
+
+		case OPT_FACEGROUP: {
+			OptNode *mutableSourceNode = (OptNode *)sourceNode;
+			const float *sourceValues = params[0].data;
+			int sourceIndex;
+			packedNode->payloadCount = 0;
+			for (sourceIndex = 0; sourceIndex < params[0].itemCount;
+			     ++sourceIndex) {
+				if (mutableSourceNode->pChildren[sourceIndex] !=
+					    NULL &&
+				    (sourceIndex == 0 ||
+				     sourceValues[sourceIndex - 1] !=
+					     sourceValues[sourceIndex])) {
+					*(float *)dest =
+						sourceValues[sourceIndex];
+					dest += sizeof(float);
+					mutableSourceNode->pChildren
+						[packedNode->payloadCount] =
+						mutableSourceNode->pChildren
+							[sourceIndex];
+					++packedNode->payloadCount;
+				}
 			}
+			mutableSourceNode->childCount =
+				packedNode->payloadCount;
+			break;
+		}
 
-			default:
-				break;
+		case OPT_HARDPOINT: {
+			const OptVector *position = params[1].data;
+			OptHardpoint *hardpoint = (OptHardpoint *)dest;
+			hardpoint->hardpointType = *(const int *)params[0].data;
+			hardpoint->position = *position;
+			dest += sizeof(*hardpoint);
+			break;
+		}
+
+		case OPT_ROTSCALE: {
+			*(OptVector *)dest = *(const OptVector *)params[0].data;
+			dest += sizeof(OptVector);
+			*(OptVector *)dest = *(const OptVector *)params[1].data;
+			dest += sizeof(OptVector);
+			*(OptVector *)dest = *(const OptVector *)params[2].data;
+			dest += sizeof(OptVector);
+			*(OptVector *)dest = *(const OptVector *)params[3].data;
+			dest += sizeof(OptVector);
+			break;
+		}
+
+		case OPT_MESHDESC: {
+			float *values = (float *)dest;
+			dest += 18 * sizeof(float);
+			values[0] = *(const float *)params[0].data;
+			((int *)values)[1] = *(const int *)params[1].data;
+			*(OptVector *)&values[2] =
+				*(const OptVector *)params[2].data;
+			*(OptVector *)&values[5] =
+				*(const OptVector *)params[3].data;
+			*(OptVector *)&values[8] =
+				*(const OptVector *)params[4].data;
+			*(OptVector *)&values[11] =
+				*(const OptVector *)params[5].data;
+			values[14] = *(const float *)params[6].data;
+			*(OptVector *)&values[15] =
+				*(const OptVector *)params[7].data;
+			break;
+		}
+
+		default:
+			break;
 		}
 	}
 
 	if (sourceNode->childCount != 0) {
-		childState = *(SceneMesh*)conversionState;
+		childState = *(SceneMesh *)conversionState;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
 		g_curMeshMaterials = NULL;
 		packedNode->childCount = sourceNode->childCount;
-		packedNode->pChildren = (OptNode**)dest;
-		dest += sizeof(*packedNode->pChildren) * (size_t)packedNode->childCount;
-		for (childIndex = 0; childIndex < sourceNode->childCount; ++childIndex) {
-			packedNode->pChildren[childIndex] = (OptNode*)dest;
+		packedNode->pChildren = (OptNode **)dest;
+		dest += sizeof(*packedNode->pChildren) *
+			(size_t)packedNode->childCount;
+		for (childIndex = 0; childIndex < sourceNode->childCount;
+		     ++childIndex) {
+			packedNode->pChildren[childIndex] = (OptNode *)dest;
 			dest += OptModel_ConvertImportedNodeToPackedRecursive(
-				sourceModel, sourceNode->pChildren[childIndex], &childState, dest);
+				sourceModel, sourceNode->pChildren[childIndex],
+				&childState, dest);
 		}
 	}
 	return (size_t)(dest - destBuffer);
 }
 
 // FUNCTION: XVT 0x478F50
-size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sourceModel,
-												 const OptNode* sourceNode, void* conversionState) {
+size_t OptModel_CalculatePackedNodeSizeRecursive(
+	const OptimizedPolyObject *sourceModel, const OptNode *sourceNode,
+	void *conversionState)
+{
 	size_t packedSize;
-	InventorFieldRecord* params;
+	InventorFieldRecord *params;
 	OptNodeType nodeType;
-	int* data;
-	int* scanData;
+	int *data;
+	int *scanData;
 	int faceCount;
 	int dataIndex;
 	int recordCount;
@@ -4962,137 +6598,166 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 		packedSize = strlen(sourceNode->pName) + 25;
 	}
 	params = sourceNode->payload;
-	if (params != NULL && sourceNode->payloadCount != 0 && params->data != NULL) {
+	if (params != NULL && sourceNode->payloadCount != 0 &&
+	    params->data != NULL) {
 		data = params->data;
 		switch (nodeType) {
-			case OPT_FACEDATA:
-				faceCount = 0;
-				dataIndex = 0;
-				recordCount = params->itemCount;
-				if (recordCount > 0) {
-					do {
-						scanData = &data[dataIndex + 1];
-						++dataIndex;
-						while (1) {
-							marker = scanData[2];
-							++faceCount;
-							scanData += 2;
+		case OPT_FACEDATA:
+			faceCount = 0;
+			dataIndex = 0;
+			recordCount = params->itemCount;
+			if (recordCount > 0) {
+				do {
+					scanData = &data[dataIndex + 1];
+					++dataIndex;
+					while (1) {
+						marker = scanData[2];
+						++faceCount;
+						scanData += 2;
+						dataIndex += 2;
+						if (marker == -1) {
+							++dataIndex;
+							break;
+						}
+						if (scanData[1] == -1) {
 							dataIndex += 2;
-							if (marker == -1) {
+							break;
+						}
+					}
+				} while (dataIndex < recordCount);
+			}
+			packedSize += 4;
+			packedSize += (unsigned int)faceCount << 6;
+			packedSize += 36 * faceCount;
+			packedSize += 12 * g_curVertexCount;
+			break;
+
+		case OPT_TRANSFORM:
+			packedSize += 48;
+			break;
+
+		case OPT_MESHVERTS:
+			g_curVertexCount = params->itemCount;
+			packedSize += 12 * g_curVertexCount;
+			break;
+
+		case OPT_TRANSLATION:
+			packedSize += 12;
+			break;
+
+		case OPT_ROTATION:
+			packedSize += 36;
+			break;
+
+		case OPT_SCALE:
+			packedSize += 12;
+			break;
+
+		case OPT_NODEREF:
+			packedSize += strlen((const char *)params->data) + 1;
+			break;
+
+		case OPT_MATERIAL:
+			maxRecordCount = params->itemCount;
+			marker = params[1].itemCount;
+			++params;
+			if (marker > maxRecordCount) {
+				maxRecordCount = marker;
+			}
+			marker = params[1].itemCount;
+			++params;
+			if (marker > maxRecordCount) {
+				maxRecordCount = marker;
+			}
+			marker = params[1].itemCount;
+			++params;
+			if (marker > maxRecordCount) {
+				maxRecordCount = marker;
+			}
+			marker = params[1].itemCount;
+			if (marker > maxRecordCount) {
+				maxRecordCount = marker;
+			}
+			packedSize += 48 * maxRecordCount;
+			packedSize += 8 * maxRecordCount;
+			break;
+
+		case OPT_VERTNORMALS:
+			recordCount = 3 * params->itemCount;
+			g_curVertNormals = (OptVector *)sourceNode->payload;
+			packedSize += 4 * recordCount;
+			((SceneMesh *)conversionState)->pVertNormals =
+				(OptVector *)params;
+			break;
+
+		case OPT_TEXCOORDS:
+			packedSize += 8 * params->itemCount;
+			break;
+
+		case OPT_FACEDATA_QUAD_MESH:
+			data = params[1].data;
+			++params;
+			if (data != NULL) {
+				recordCount = *data;
+				data = params[1].data;
+				if (data != NULL) {
+					faceCount =
+						(recordCount - 1) * (*data - 1);
+					packedSize += 4;
+					packedSize += (unsigned int)faceCount
+						      << 6;
+					packedSize += 36 * faceCount;
+					packedSize += 12 * g_curVertexCount;
+				}
+			}
+			break;
+
+		case OPT_FACEDATA_FACE_SET:
+			dataIndex = 0;
+			faceCount = 0;
+			recordCount = params->itemCount;
+			if (recordCount > 0) {
+				do {
+					polygonVertexCount = *data;
+					if (polygonVertexCount >= 3) {
+						polygonStart = dataIndex++;
+						while (dataIndex -
+							       polygonStart <
+						       polygonVertexCount) {
+							++faceCount;
+							dataIndex += 2;
+							if (dataIndex -
+								    polygonVertexCount !=
+							    polygonStart) {
 								++dataIndex;
-								break;
-							}
-							if (scanData[1] == -1) {
-								dataIndex += 2;
-								break;
+								if (dataIndex -
+									    polygonVertexCount ==
+								    polygonStart) {
+									break;
+								}
+								--dataIndex;
 							}
 						}
-					} while (dataIndex < recordCount);
-				}
-				packedSize += 4;
-				packedSize += (unsigned int)faceCount << 6;
-				packedSize += 36 * faceCount;
-				packedSize += 12 * g_curVertexCount;
-				break;
-
-			case OPT_TRANSFORM:
-				packedSize += 48;
-				break;
-
-			case OPT_MESHVERTS:
-				g_curVertexCount = params->itemCount;
-				packedSize += 12 * g_curVertexCount;
-				break;
-
-			case OPT_TRANSLATION:
-				packedSize += 12;
-				break;
-
-			case OPT_ROTATION:
-				packedSize += 36;
-				break;
-
-			case OPT_SCALE:
-				packedSize += 12;
-				break;
-
-			case OPT_NODEREF:
-				packedSize += strlen((const char*)params->data) + 1;
-				break;
-
-			case OPT_MATERIAL:
-				maxRecordCount = params->itemCount;
-				marker = params[1].itemCount;
-				++params;
-				if (marker > maxRecordCount) {
-					maxRecordCount = marker;
-				}
-				marker = params[1].itemCount;
-				++params;
-				if (marker > maxRecordCount) {
-					maxRecordCount = marker;
-				}
-				marker = params[1].itemCount;
-				++params;
-				if (marker > maxRecordCount) {
-					maxRecordCount = marker;
-				}
-				marker = params[1].itemCount;
-				if (marker > maxRecordCount) {
-					maxRecordCount = marker;
-				}
-				packedSize += 48 * maxRecordCount;
-				packedSize += 8 * maxRecordCount;
-				break;
-
-			case OPT_VERTNORMALS:
-				recordCount = 3 * params->itemCount;
-				g_curVertNormals = (OptVector*)sourceNode->payload;
-				packedSize += 4 * recordCount;
-				((SceneMesh*)conversionState)->pVertNormals = (OptVector*)params;
-				break;
-
-			case OPT_TEXCOORDS:
-				packedSize += 8 * params->itemCount;
-				break;
-
-			case OPT_FACEDATA_QUAD_MESH:
-				data = params[1].data;
-				++params;
-				if (data != NULL) {
-					recordCount = *data;
-					data = params[1].data;
-					if (data != NULL) {
-						faceCount = (recordCount - 1) * (*data - 1);
-						packedSize += 4;
-						packedSize += (unsigned int)faceCount << 6;
-						packedSize += 36 * faceCount;
-						packedSize += 12 * g_curVertexCount;
 					}
-				}
-				break;
+					++data;
+					--recordCount;
+				} while (recordCount != 0);
+			}
+			packedSize += 4;
+			packedSize += (unsigned int)faceCount << 6;
+			packedSize += 36 * faceCount;
+			packedSize += 12 * g_curVertexCount;
+			break;
 
-			case OPT_FACEDATA_FACE_SET:
-				dataIndex = 0;
+		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
+			data = params[1].data;
+			++params;
+			if (data != NULL) {
 				faceCount = 0;
 				recordCount = params->itemCount;
 				if (recordCount > 0) {
 					do {
-						polygonVertexCount = *data;
-						if (polygonVertexCount >= 3) {
-							polygonStart = dataIndex++;
-							while (dataIndex - polygonStart < polygonVertexCount) {
-								++faceCount;
-								dataIndex += 2;
-								if (dataIndex - polygonVertexCount != polygonStart) {
-									++dataIndex;
-									if (dataIndex - polygonVertexCount == polygonStart) {
-										break;
-									}
-									--dataIndex;
-								}
-							}
-						}
+						faceCount += *data - 2;
 						++data;
 						--recordCount;
 					} while (recordCount != 0);
@@ -5101,56 +6766,38 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 				packedSize += (unsigned int)faceCount << 6;
 				packedSize += 36 * faceCount;
 				packedSize += 12 * g_curVertexCount;
-				break;
+			}
+			break;
 
-			case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-				data = params[1].data;
-				++params;
-				if (data != NULL) {
-					faceCount = 0;
-					recordCount = params->itemCount;
-					if (recordCount > 0) {
-						do {
-							faceCount += *data - 2;
-							++data;
-							--recordCount;
-						} while (recordCount != 0);
-					}
-					packedSize += 4;
-					packedSize += (unsigned int)faceCount << 6;
-					packedSize += 36 * faceCount;
-					packedSize += 12 * g_curVertexCount;
-				}
-				break;
+		case OPT_TEXTURE:
+			packedSize += OptModel_GetExternalTextureSerializedSize(
+				(const char *)params->data);
+			break;
 
-			case OPT_TEXTURE:
-				packedSize += OptModel_GetExternalTextureSerializedSize((const char*)params->data);
-				break;
+		case OPT_FACEGROUP:
+			packedSize += 4 * params->itemCount;
+			break;
 
-			case OPT_FACEGROUP:
-				packedSize += 4 * params->itemCount;
-				break;
+		case OPT_HARDPOINT:
+			packedSize += 16;
+			break;
 
-			case OPT_HARDPOINT:
-				packedSize += 16;
-				break;
+		case OPT_ROTSCALE:
+			packedSize += 48;
+			break;
 
-			case OPT_ROTSCALE:
-				packedSize += 48;
-				break;
+		case OPT_MESHDESC:
+			packedSize += 72;
+			break;
 
-			case OPT_MESHDESC:
-				packedSize += 72;
-				break;
-
-			default:
-				break;
+		default:
+			break;
 		}
 	}
 
 	childOffset = 0;
 	if (sourceNode->childCount != 0) {
-		childState = *(SceneMesh*)conversionState;
+		childState = *(SceneMesh *)conversionState;
 		childIndex = 0;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
@@ -5160,8 +6807,14 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 
 		if (sourceNode->childCount > 0) {
 			do {
-				packedSize += OptModel_CalculatePackedNodeSizeRecursive(
-					sourceModel, *(OptNode**)((uint8_t*)sourceNode->pChildren + childOffset), &childState);
+				packedSize +=
+					OptModel_CalculatePackedNodeSizeRecursive(
+						sourceModel,
+						*(OptNode *
+							  *)((uint8_t *)sourceNode
+								     ->pChildren +
+							     childOffset),
+						&childState);
 				childOffset += sizeof(*sourceNode->pChildren);
 				++childIndex;
 			} while (sourceNode->childCount > childIndex);
@@ -5171,54 +6824,66 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 }
 
 // FUNCTION: XVT 0x4792F0
-int OptModel_FindUniqueEdgeIndex(const OptPackedFaceNode* faceNode, int vertexIndexA, int vertexIndexB) {
+int OptModel_FindUniqueEdgeIndex(const OptPackedFaceNode *faceNode,
+				 int vertexIndexA, int vertexIndexB)
+{
 	int result;
-	const OptPackedFaceRecord* face;
+	const OptPackedFaceRecord *face;
 	int faceIndex;
 
 	face = faceNode->faceData->records;
 	result = -1;
 	faceIndex = 0;
 	while (faceIndex < faceNode->faceCount) {
-		if (vertexIndexA == face->vertexIndices[0] && vertexIndexB == face->vertexIndices[1]) {
+		if (vertexIndexA == face->vertexIndices[0] &&
+		    vertexIndexB == face->vertexIndices[1]) {
 			result = face->edgeIndices[0];
 			break;
 		}
-		if (vertexIndexA == face->vertexIndices[1] && vertexIndexB == face->vertexIndices[0]) {
+		if (vertexIndexA == face->vertexIndices[1] &&
+		    vertexIndexB == face->vertexIndices[0]) {
 			result = face->edgeIndices[0];
 			break;
 		}
-		if (vertexIndexA == face->vertexIndices[1] && vertexIndexB == face->vertexIndices[2]) {
+		if (vertexIndexA == face->vertexIndices[1] &&
+		    vertexIndexB == face->vertexIndices[2]) {
 			result = face->edgeIndices[1];
 			break;
 		}
-		if (vertexIndexA == face->vertexIndices[2] && vertexIndexB == face->vertexIndices[1]) {
+		if (vertexIndexA == face->vertexIndices[2] &&
+		    vertexIndexB == face->vertexIndices[1]) {
 			result = face->edgeIndices[1];
 			break;
 		}
 		if (face->vertexIndices[3] == -1) {
-			if (vertexIndexA == face->vertexIndices[0] && vertexIndexB == face->vertexIndices[2]) {
+			if (vertexIndexA == face->vertexIndices[0] &&
+			    vertexIndexB == face->vertexIndices[2]) {
 				result = face->edgeIndices[2];
 				break;
 			}
-			if (vertexIndexA == face->vertexIndices[2] && vertexIndexB == face->vertexIndices[0]) {
+			if (vertexIndexA == face->vertexIndices[2] &&
+			    vertexIndexB == face->vertexIndices[0]) {
 				result = face->edgeIndices[2];
 				break;
 			}
 		} else {
-			if (vertexIndexA == face->vertexIndices[2] && vertexIndexB == face->vertexIndices[3]) {
+			if (vertexIndexA == face->vertexIndices[2] &&
+			    vertexIndexB == face->vertexIndices[3]) {
 				result = face->edgeIndices[2];
 				break;
 			}
-			if (vertexIndexA == face->vertexIndices[3] && vertexIndexB == face->vertexIndices[2]) {
+			if (vertexIndexA == face->vertexIndices[3] &&
+			    vertexIndexB == face->vertexIndices[2]) {
 				result = face->edgeIndices[2];
 				break;
 			}
-			if (vertexIndexA == face->vertexIndices[0] && vertexIndexB == face->vertexIndices[3]) {
+			if (vertexIndexA == face->vertexIndices[0] &&
+			    vertexIndexB == face->vertexIndices[3]) {
 				result = face->edgeIndices[3];
 				break;
 			}
-			if (vertexIndexA == face->vertexIndices[3] && vertexIndexB == face->vertexIndices[0]) {
+			if (vertexIndexA == face->vertexIndices[3] &&
+			    vertexIndexB == face->vertexIndices[0]) {
 				result = face->edgeIndices[3];
 				break;
 			}
@@ -5231,36 +6896,46 @@ int OptModel_FindUniqueEdgeIndex(const OptPackedFaceNode* faceNode, int vertexIn
 		face++;
 		faceIndex++;
 		while (faceIndex < faceNode->faceCount) {
-			if (vertexIndexA == face->vertexIndices[0] && vertexIndexB == face->vertexIndices[1]) {
+			if (vertexIndexA == face->vertexIndices[0] &&
+			    vertexIndexB == face->vertexIndices[1]) {
 				return -1;
 			}
-			if (vertexIndexA == face->vertexIndices[1] && vertexIndexB == face->vertexIndices[0]) {
+			if (vertexIndexA == face->vertexIndices[1] &&
+			    vertexIndexB == face->vertexIndices[0]) {
 				return -1;
 			}
-			if (vertexIndexA == face->vertexIndices[1] && vertexIndexB == face->vertexIndices[2]) {
+			if (vertexIndexA == face->vertexIndices[1] &&
+			    vertexIndexB == face->vertexIndices[2]) {
 				return -1;
 			}
-			if (vertexIndexA == face->vertexIndices[2] && vertexIndexB == face->vertexIndices[1]) {
+			if (vertexIndexA == face->vertexIndices[2] &&
+			    vertexIndexB == face->vertexIndices[1]) {
 				return -1;
 			}
 			if (face->vertexIndices[3] == -1) {
-				if (vertexIndexA == face->vertexIndices[0] && vertexIndexB == face->vertexIndices[2]) {
+				if (vertexIndexA == face->vertexIndices[0] &&
+				    vertexIndexB == face->vertexIndices[2]) {
 					return -1;
 				}
-				if (vertexIndexA == face->vertexIndices[2] && vertexIndexB == face->vertexIndices[0]) {
+				if (vertexIndexA == face->vertexIndices[2] &&
+				    vertexIndexB == face->vertexIndices[0]) {
 					return -1;
 				}
 			} else {
-				if (vertexIndexA == face->vertexIndices[2] && vertexIndexB == face->vertexIndices[3]) {
+				if (vertexIndexA == face->vertexIndices[2] &&
+				    vertexIndexB == face->vertexIndices[3]) {
 					return -1;
 				}
-				if (vertexIndexA == face->vertexIndices[3] && vertexIndexB == face->vertexIndices[2]) {
+				if (vertexIndexA == face->vertexIndices[3] &&
+				    vertexIndexB == face->vertexIndices[2]) {
 					return -1;
 				}
-				if (vertexIndexA == face->vertexIndices[0] && vertexIndexB == face->vertexIndices[3]) {
+				if (vertexIndexA == face->vertexIndices[0] &&
+				    vertexIndexB == face->vertexIndices[3]) {
 					return -1;
 				}
-				if (vertexIndexA == face->vertexIndices[3] && vertexIndexB == face->vertexIndices[0]) {
+				if (vertexIndexA == face->vertexIndices[3] &&
+				    vertexIndexB == face->vertexIndices[0]) {
 					return -1;
 				}
 			}
@@ -5272,20 +6947,26 @@ int OptModel_FindUniqueEdgeIndex(const OptPackedFaceNode* faceNode, int vertexIn
 }
 
 // FUNCTION: XVT 0x4794C0
-float* OptModel_AppendPackedFaceDerivedData(OptPackedFaceNode* faceNode, uint8_t* dest,
-											void* conversionState) {
+float *OptModel_AppendPackedFaceDerivedData(OptPackedFaceNode *faceNode,
+					    uint8_t *dest,
+					    void *conversionState)
+{
 	dest += sizeof(OptPackedFaceRecord) * faceNode->faceCount;
-	OptModel_BuildFaceNormalTangentData((float*)dest, faceNode->faceData, faceNode->faceCount,
-										conversionState);
+	OptModel_BuildFaceNormalTangentData((float *)dest, faceNode->faceData,
+					    faceNode->faceCount,
+					    conversionState);
 	dest += 3 * sizeof(OptVector) * faceNode->faceCount;
 	dest += 3 * sizeof(float) * g_generatedVertexNormalCount;
-	return (float*)dest;
+	return (float *)dest;
 }
 
 // FUNCTION: XVT 0x479510
-void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* faceData, int faceCount,
-										 const void* conversionState) {
-	const OptPackedFaceRecord* records;
+void OptModel_BuildFaceNormalTangentData(float *dest,
+					 const OptPackedFaceData *faceData,
+					 int faceCount,
+					 const void *conversionState)
+{
+	const OptPackedFaceRecord *records;
 	int faceIndex;
 	float edgeAx, edgeAy, edgeAz, edgeBx, edgeBy, edgeBz;
 	float duA, dvA, duB, dvB, determinant;
@@ -5296,51 +6977,130 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 	}
 	records = faceData->records;
 	if (faceCount > 0) {
-		const OptPackedFaceRecord* face = records;
+		const OptPackedFaceRecord *face = records;
 		for (faceIndex = 0; faceIndex < faceCount; ++faceIndex) {
-			edgeAx = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].x -
-					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].x;
-			edgeAy = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].y -
-					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].y;
-			edgeAz = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].z -
-					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].z;
-			edgeBx = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].x -
-					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].x;
-			edgeBy = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].y -
-					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].y;
-			edgeBz = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[1]].z -
-					 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].z;
+			edgeAx = ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[1]]
+						 .x -
+				 ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[0]]
+						 .x;
+			edgeAy = ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[1]]
+						 .y -
+				 ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[0]]
+						 .y;
+			edgeAz = ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[1]]
+						 .z -
+				 ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[0]]
+						 .z;
+			edgeBx = ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[1]]
+						 .x -
+				 ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[2]]
+						 .x;
+			edgeBy = ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[1]]
+						 .y -
+				 ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[2]]
+						 .y;
+			edgeBz = ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[1]]
+						 .z -
+				 ((const OptVector *)g_curMeshVertices)
+					 [face->vertexIndices[2]]
+						 .z;
 			dest[0] = edgeBz * edgeAy - edgeBy * edgeAz;
 			dest[1] = edgeBx * edgeAz - edgeBz * edgeAx;
 			dest[2] = edgeBy * edgeAx - edgeBx * edgeAy;
-			normalLengthSquared = dest[2] * dest[2] + dest[0] * dest[0] + dest[1] * dest[1];
+			normalLengthSquared = dest[2] * dest[2] +
+					      dest[0] * dest[0] +
+					      dest[1] * dest[1];
 			if (normalLengthSquared == g_sw3dZeroFloat) {
 				if (face->vertexIndices[3] != -1) {
-					edgeAx = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].x -
-							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].x;
-					edgeAy = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].y -
-							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].y;
-					edgeAz = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].z -
-							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[0]].z;
-					edgeBx = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].x -
-							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].x;
-					edgeBy = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].y -
-							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].y;
-					edgeBz = ((const OptVector*)g_curMeshVertices)[face->vertexIndices[3]].z -
-							 ((const OptVector*)g_curMeshVertices)[face->vertexIndices[2]].z;
-					dest[0] = edgeBz * edgeAy - edgeBy * edgeAz;
-					dest[1] = edgeBx * edgeAz - edgeBz * edgeAx;
-					dest[2] = edgeBy * edgeAx - edgeBx * edgeAy;
-					normalLengthSquared = dest[2] * dest[2] + dest[0] * dest[0] + dest[1] * dest[1];
-					if (normalLengthSquared != g_sw3dZeroFloat) {
-						const float scale = (float)(g_sw3dUnitFloat / sqrt(normalLengthSquared));
+					edgeAx =
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[3]]
+								.x -
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[0]]
+								.x;
+					edgeAy =
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[3]]
+								.y -
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[0]]
+								.y;
+					edgeAz =
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[3]]
+								.z -
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[0]]
+								.z;
+					edgeBx =
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[3]]
+								.x -
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[2]]
+								.x;
+					edgeBy =
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[3]]
+								.y -
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[2]]
+								.y;
+					edgeBz =
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[3]]
+								.z -
+						((const OptVector *)
+							 g_curMeshVertices)
+							[face->vertexIndices[2]]
+								.z;
+					dest[0] = edgeBz * edgeAy -
+						  edgeBy * edgeAz;
+					dest[1] = edgeBx * edgeAz -
+						  edgeBz * edgeAx;
+					dest[2] = edgeBy * edgeAx -
+						  edgeBx * edgeAy;
+					normalLengthSquared =
+						dest[2] * dest[2] +
+						dest[0] * dest[0] +
+						dest[1] * dest[1];
+					if (normalLengthSquared !=
+					    g_sw3dZeroFloat) {
+						const float scale =
+							(float)(g_sw3dUnitFloat /
+								sqrt(normalLengthSquared));
 						dest[0] *= scale;
 						dest[1] *= scale;
 						dest[2] *= scale;
 					}
 				}
 			} else {
-				const float scale = (float)(g_sw3dUnitFloat / sqrt(normalLengthSquared));
+				const float scale =
+					(float)(g_sw3dUnitFloat /
+						sqrt(normalLengthSquared));
 				dest[0] *= scale;
 				dest[1] *= scale;
 				dest[2] *= scale;
@@ -5357,103 +7117,346 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 	records = faceData->records;
 	if (g_curMeshTexCoords != NULL) {
 		int tangentFaceIndex;
-		if (faceCount > 0)
-			for (tangentFaceIndex = 0; tangentFaceIndex < faceCount; ++tangentFaceIndex) {
-				const OptPackedFaceRecord* face = records;
+		if (faceCount > 0) {
+			for (tangentFaceIndex = 0; tangentFaceIndex < faceCount;
+			     ++tangentFaceIndex) {
+				const OptPackedFaceRecord *face = records;
 				float lengthSquared;
-				const OptVector* vertices;
-				const OptTexCoord* texCoords;
-				vertices = (const OptVector*)g_curMeshVertices;
-				edgeAx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[1]].x;
-				edgeAy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[1]].y;
-				edgeAz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[1]].z;
-				edgeBx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[2]].x;
-				edgeBy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[2]].y;
-				edgeBz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[2]].z;
-				texCoords = (const OptTexCoord*)g_curMeshTexCoords;
-				duA = texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[1]].u;
-				dvA = texCoords[face->texCoordIndices[0]].v - texCoords[face->texCoordIndices[1]].v;
-				duB = texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[2]].u;
-				dvB = texCoords[face->texCoordIndices[0]].v - texCoords[face->texCoordIndices[2]].v;
+				const OptVector *vertices;
+				const OptTexCoord *texCoords;
+				vertices = (const OptVector *)g_curMeshVertices;
+				edgeAx = vertices[face->vertexIndices[0]].x -
+					 vertices[face->vertexIndices[1]].x;
+				edgeAy = vertices[face->vertexIndices[0]].y -
+					 vertices[face->vertexIndices[1]].y;
+				edgeAz = vertices[face->vertexIndices[0]].z -
+					 vertices[face->vertexIndices[1]].z;
+				edgeBx = vertices[face->vertexIndices[0]].x -
+					 vertices[face->vertexIndices[2]].x;
+				edgeBy = vertices[face->vertexIndices[0]].y -
+					 vertices[face->vertexIndices[2]].y;
+				edgeBz = vertices[face->vertexIndices[0]].z -
+					 vertices[face->vertexIndices[2]].z;
+				texCoords =
+					(const OptTexCoord *)g_curMeshTexCoords;
+				duA = texCoords[face->texCoordIndices[0]].u -
+				      texCoords[face->texCoordIndices[1]].u;
+				dvA = texCoords[face->texCoordIndices[0]].v -
+				      texCoords[face->texCoordIndices[1]].v;
+				duB = texCoords[face->texCoordIndices[0]].u -
+				      texCoords[face->texCoordIndices[2]].u;
+				dvB = texCoords[face->texCoordIndices[0]].v -
+				      texCoords[face->texCoordIndices[2]].v;
 				determinant = duB * dvA - duA * dvB;
 				dest[0] = edgeBx * dvA - dvB * edgeAx;
 				dest[1] = edgeBy * dvA - dvB * edgeAy;
 				dest[2] = edgeBz * dvA - dvB * edgeAz;
-				lengthSquared = dest[2] * dest[2] + dest[0] * dest[0] + dest[1] * dest[1];
-				if (determinant == 0.0f || lengthSquared == g_sw3dZeroFloat) {
+				lengthSquared = dest[2] * dest[2] +
+						dest[0] * dest[0] +
+						dest[1] * dest[1];
+				if (determinant == 0.0f ||
+				    lengthSquared == g_sw3dZeroFloat) {
 					if (face->vertexIndices[3] != -1) {
-						vertices = (const OptVector*)g_curMeshVertices;
-						edgeAx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[1]].x;
-						edgeAy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[1]].y;
-						edgeAz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[1]].z;
-						edgeBx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[3]].x;
-						edgeBy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[3]].y;
-						edgeBz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[3]].z;
-						texCoords = (const OptTexCoord*)g_curMeshTexCoords;
-						duA = texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[1]].u;
-						dvA = texCoords[face->texCoordIndices[0]].v - texCoords[face->texCoordIndices[1]].v;
-						duB = texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[3]].u;
-						dvB = texCoords[face->texCoordIndices[0]].v - texCoords[face->texCoordIndices[3]].v;
-						determinant = duB * dvA - duA * dvB;
-						dest[0] = edgeBx * dvA - dvB * edgeAx;
-						dest[1] = edgeBy * dvA - dvB * edgeAy;
-						dest[2] = edgeBz * dvA - dvB * edgeAz;
-						lengthSquared = dest[2] * dest[2] + dest[0] * dest[0] + dest[1] * dest[1];
-						if (determinant == 0.0f || lengthSquared == g_sw3dZeroFloat) {
-							vertices = (const OptVector*)g_curMeshVertices;
-							edgeAx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[2]].x;
-							edgeAy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[2]].y;
-							edgeAz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[2]].z;
-							edgeBx = vertices[face->vertexIndices[0]].x - vertices[face->vertexIndices[3]].x;
-							edgeBy = vertices[face->vertexIndices[0]].y - vertices[face->vertexIndices[3]].y;
-							edgeBz = vertices[face->vertexIndices[0]].z - vertices[face->vertexIndices[3]].z;
-							texCoords = (const OptTexCoord*)g_curMeshTexCoords;
-							duA =
-								texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[2]].u;
-							dvA =
-								texCoords[face->texCoordIndices[0]].v - texCoords[face->texCoordIndices[2]].v;
-							duB =
-								texCoords[face->texCoordIndices[0]].u - texCoords[face->texCoordIndices[3]].u;
-							dvB =
-								texCoords[face->texCoordIndices[0]].v - texCoords[face->texCoordIndices[3]].v;
-							determinant = duB * dvA - duA * dvB;
-							dest[0] = edgeBx * dvA - dvB * edgeAx;
-							dest[1] = edgeBy * dvA - dvB * edgeAy;
-							dest[2] = edgeBz * dvA - dvB * edgeAz;
-							lengthSquared = dest[2] * dest[2] + dest[0] * dest[0] + dest[1] * dest[1];
-							if (determinant == 0.0f || lengthSquared == g_sw3dZeroFloat) {
-								vertices = (const OptVector*)g_curMeshVertices;
+						vertices = (const OptVector *)
+							g_curMeshVertices;
+						edgeAx =
+							vertices[face->vertexIndices
+									 [0]]
+								.x -
+							vertices[face->vertexIndices
+									 [1]]
+								.x;
+						edgeAy =
+							vertices[face->vertexIndices
+									 [0]]
+								.y -
+							vertices[face->vertexIndices
+									 [1]]
+								.y;
+						edgeAz =
+							vertices[face->vertexIndices
+									 [0]]
+								.z -
+							vertices[face->vertexIndices
+									 [1]]
+								.z;
+						edgeBx =
+							vertices[face->vertexIndices
+									 [0]]
+								.x -
+							vertices[face->vertexIndices
+									 [3]]
+								.x;
+						edgeBy =
+							vertices[face->vertexIndices
+									 [0]]
+								.y -
+							vertices[face->vertexIndices
+									 [3]]
+								.y;
+						edgeBz =
+							vertices[face->vertexIndices
+									 [0]]
+								.z -
+							vertices[face->vertexIndices
+									 [3]]
+								.z;
+						texCoords = (const OptTexCoord
+								     *)
+							g_curMeshTexCoords;
+						duA = texCoords
+							      [face->texCoordIndices
+								       [0]]
+								      .u -
+						      texCoords
+							      [face->texCoordIndices
+								       [1]]
+								      .u;
+						dvA = texCoords
+							      [face->texCoordIndices
+								       [0]]
+								      .v -
+						      texCoords
+							      [face->texCoordIndices
+								       [1]]
+								      .v;
+						duB = texCoords
+							      [face->texCoordIndices
+								       [0]]
+								      .u -
+						      texCoords
+							      [face->texCoordIndices
+								       [3]]
+								      .u;
+						dvB = texCoords
+							      [face->texCoordIndices
+								       [0]]
+								      .v -
+						      texCoords
+							      [face->texCoordIndices
+								       [3]]
+								      .v;
+						determinant =
+							duB * dvA - duA * dvB;
+						dest[0] = edgeBx * dvA -
+							  dvB * edgeAx;
+						dest[1] = edgeBy * dvA -
+							  dvB * edgeAy;
+						dest[2] = edgeBz * dvA -
+							  dvB * edgeAz;
+						lengthSquared =
+							dest[2] * dest[2] +
+							dest[0] * dest[0] +
+							dest[1] * dest[1];
+						if (determinant == 0.0f ||
+						    lengthSquared ==
+							    g_sw3dZeroFloat) {
+							vertices = (const OptVector
+									    *)
+								g_curMeshVertices;
+							edgeAx =
+								vertices[face->vertexIndices
+										 [0]]
+									.x -
+								vertices[face->vertexIndices
+										 [2]]
+									.x;
+							edgeAy =
+								vertices[face->vertexIndices
+										 [0]]
+									.y -
+								vertices[face->vertexIndices
+										 [2]]
+									.y;
+							edgeAz =
+								vertices[face->vertexIndices
+										 [0]]
+									.z -
+								vertices[face->vertexIndices
+										 [2]]
+									.z;
+							edgeBx =
+								vertices[face->vertexIndices
+										 [0]]
+									.x -
+								vertices[face->vertexIndices
+										 [3]]
+									.x;
+							edgeBy =
+								vertices[face->vertexIndices
+										 [0]]
+									.y -
+								vertices[face->vertexIndices
+										 [3]]
+									.y;
+							edgeBz =
+								vertices[face->vertexIndices
+										 [0]]
+									.z -
+								vertices[face->vertexIndices
+										 [3]]
+									.z;
+							texCoords = (const OptTexCoord
+									     *)
+								g_curMeshTexCoords;
+							duA = texCoords
+								      [face->texCoordIndices
+									       [0]]
+									      .u -
+							      texCoords
+								      [face->texCoordIndices
+									       [2]]
+									      .u;
+							dvA = texCoords
+								      [face->texCoordIndices
+									       [0]]
+									      .v -
+							      texCoords
+								      [face->texCoordIndices
+									       [2]]
+									      .v;
+							duB = texCoords
+								      [face->texCoordIndices
+									       [0]]
+									      .u -
+							      texCoords
+								      [face->texCoordIndices
+									       [3]]
+									      .u;
+							dvB = texCoords
+								      [face->texCoordIndices
+									       [0]]
+									      .v -
+							      texCoords
+								      [face->texCoordIndices
+									       [3]]
+									      .v;
+							determinant =
+								duB * dvA -
+								duA * dvB;
+							dest[0] = edgeBx * dvA -
+								  dvB * edgeAx;
+							dest[1] = edgeBy * dvA -
+								  dvB * edgeAy;
+							dest[2] = edgeBz * dvA -
+								  dvB * edgeAz;
+							lengthSquared =
+								dest[2] *
+									dest[2] +
+								dest[0] *
+									dest[0] +
+								dest[1] *
+									dest[1];
+							if (determinant ==
+								    0.0f ||
+							    lengthSquared ==
+								    g_sw3dZeroFloat) {
+								vertices = (const OptVector
+										    *)
+									g_curMeshVertices;
 								edgeAx =
-									vertices[face->vertexIndices[1]].x - vertices[face->vertexIndices[2]].x;
+									vertices[face->vertexIndices
+											 [1]]
+										.x -
+									vertices[face->vertexIndices
+											 [2]]
+										.x;
 								edgeAy =
-									vertices[face->vertexIndices[1]].y - vertices[face->vertexIndices[2]].y;
+									vertices[face->vertexIndices
+											 [1]]
+										.y -
+									vertices[face->vertexIndices
+											 [2]]
+										.y;
 								edgeAz =
-									vertices[face->vertexIndices[1]].z - vertices[face->vertexIndices[2]].z;
+									vertices[face->vertexIndices
+											 [1]]
+										.z -
+									vertices[face->vertexIndices
+											 [2]]
+										.z;
 								edgeBx =
-									vertices[face->vertexIndices[1]].x - vertices[face->vertexIndices[3]].x;
+									vertices[face->vertexIndices
+											 [1]]
+										.x -
+									vertices[face->vertexIndices
+											 [3]]
+										.x;
 								edgeBy =
-									vertices[face->vertexIndices[1]].y - vertices[face->vertexIndices[3]].y;
+									vertices[face->vertexIndices
+											 [1]]
+										.y -
+									vertices[face->vertexIndices
+											 [3]]
+										.y;
 								edgeBz =
-									vertices[face->vertexIndices[1]].z - vertices[face->vertexIndices[3]].z;
-								texCoords = (const OptTexCoord*)g_curMeshTexCoords;
-								duA = texCoords[face->texCoordIndices[1]].u -
-									  texCoords[face->texCoordIndices[2]].u;
-								dvA = texCoords[face->texCoordIndices[1]].v -
-									  texCoords[face->texCoordIndices[2]].v;
-								duB = texCoords[face->texCoordIndices[1]].u -
-									  texCoords[face->texCoordIndices[3]].u;
-								dvB = texCoords[face->texCoordIndices[1]].v -
-									  texCoords[face->texCoordIndices[3]].v;
-								determinant = duB * dvA - duA * dvB;
-								dest[0] = edgeBx * dvA - dvB * edgeAx;
-								dest[1] = edgeBy * dvA - dvB * edgeAy;
-								dest[2] = edgeBz * dvA - dvB * edgeAz;
-								lengthSquared = dest[2] * dest[2] + dest[0] * dest[0] + dest[1] * dest[1];
-								if (determinant == 0.0f || lengthSquared == g_sw3dZeroFloat) {
-									dest[0] = edgeBx;
-									dest[1] = edgeBy;
-									dest[2] = edgeBz;
-									determinant = 1.0f;
+									vertices[face->vertexIndices
+											 [1]]
+										.z -
+									vertices[face->vertexIndices
+											 [3]]
+										.z;
+								texCoords = (const OptTexCoord
+										     *)
+									g_curMeshTexCoords;
+								duA = texCoords[face->texCoordIndices
+											[1]]
+									      .u -
+								      texCoords[face->texCoordIndices
+											[2]]
+									      .u;
+								dvA = texCoords[face->texCoordIndices
+											[1]]
+									      .v -
+								      texCoords[face->texCoordIndices
+											[2]]
+									      .v;
+								duB = texCoords[face->texCoordIndices
+											[1]]
+									      .u -
+								      texCoords[face->texCoordIndices
+											[3]]
+									      .u;
+								dvB = texCoords[face->texCoordIndices
+											[1]]
+									      .v -
+								      texCoords[face->texCoordIndices
+											[3]]
+									      .v;
+								determinant =
+									duB * dvA -
+									duA * dvB;
+								dest[0] =
+									edgeBx *
+										dvA -
+									dvB * edgeAx;
+								dest[1] =
+									edgeBy *
+										dvA -
+									dvB * edgeAy;
+								dest[2] =
+									edgeBz *
+										dvA -
+									dvB * edgeAz;
+								lengthSquared =
+									dest[2] *
+										dest[2] +
+									dest[0] *
+										dest[0] +
+									dest[1] *
+										dest[1];
+								if (determinant ==
+									    0.0f ||
+								    lengthSquared ==
+									    g_sw3dZeroFloat) {
+									dest[0] =
+										edgeBx;
+									dest[1] =
+										edgeBy;
+									dest[2] =
+										edgeBz;
+									determinant =
+										1.0f;
 									duA = 0.0f;
 									duB = 1.0f;
 								}
@@ -5469,14 +7472,21 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 					}
 				}
 				{
-					float reciprocal = g_sw3dUnitFloat / determinant;
+					float reciprocal =
+						g_sw3dUnitFloat / determinant;
 					dest[0] *= reciprocal;
 					dest[1] *= reciprocal;
 					dest[2] *= reciprocal;
 					reciprocal = -reciprocal;
-					dest[3] = (duA * edgeBx - duB * edgeAx) * reciprocal;
-					dest[4] = (duA * edgeBy - duB * edgeAy) * reciprocal;
-					dest[5] = (duA * edgeBz - duB * edgeAz) * reciprocal;
+					dest[3] =
+						(duA * edgeBx - duB * edgeAx) *
+						reciprocal;
+					dest[4] =
+						(duA * edgeBy - duB * edgeAy) *
+						reciprocal;
+					dest[5] =
+						(duA * edgeBz - duB * edgeAz) *
+						reciprocal;
 				}
 				if (duA == 0.0f) {
 					if (duB == 0.0f) {
@@ -5486,6 +7496,7 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 				dest += 6;
 				++records;
 			}
+		}
 	} else {
 #ifdef XVT_MODERN
 		// The packed buffer reserves two tangent vectors per face.
@@ -5494,7 +7505,7 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 		dest += 24 * faceCount;
 #endif
 	}
-	if (((const SceneMesh*)conversionState)->pVertNormals != NULL) {
+	if (((const SceneMesh *)conversionState)->pVertNormals != NULL) {
 		g_generatedVertexNormalCount = 0;
 	} else {
 		g_generatedVertexNormalCount = g_curVertexCount;
@@ -5503,11 +7514,14 @@ void OptModel_BuildFaceNormalTangentData(float* dest, const OptPackedFaceData* f
 }
 
 // FUNCTION: XVT 0x479CE0
-void OptModel_BuildVertexNormalsFromFaces(float* dest, const OptPackedFaceData* faceData, int faceCount) {
+void OptModel_BuildVertexNormalsFromFaces(float *dest,
+					  const OptPackedFaceData *faceData,
+					  int faceCount)
+{
 	int vertexIndex;
 	int incidentFaceCount;
-	const OptPackedFaceRecord* face;
-	const float* faceNormal;
+	const OptPackedFaceRecord *face;
+	const float *faceNormal;
 	int remainingFaces;
 	float scale;
 	int faceRecordBytes;
@@ -5520,21 +7534,28 @@ void OptModel_BuildVertexNormalsFromFaces(float* dest, const OptPackedFaceData* 
 	do {
 		incidentFaceCount = 0;
 		face = faceData->records;
-		faceNormal = (const float*)((const uint8_t*)faceData + sizeof(faceData->edgeCount) + faceRecordBytes);
+		faceNormal = (const float *)((const uint8_t *)faceData +
+					     sizeof(faceData->edgeCount) +
+					     faceRecordBytes);
 		remainingFaces = faceCount;
 		if (remainingFaces > 0) {
 			do {
-				if (face->vertexIndices[0] == vertexIndex || face->vertexIndices[1] == vertexIndex ||
-					face->vertexIndices[2] == vertexIndex || face->vertexIndices[3] == vertexIndex) {
+				if (face->vertexIndices[0] == vertexIndex ||
+				    face->vertexIndices[1] == vertexIndex ||
+				    face->vertexIndices[2] == vertexIndex ||
+				    face->vertexIndices[3] == vertexIndex) {
 					++incidentFaceCount;
 					if (incidentFaceCount == 1) {
 						dest[0] = faceNormal[0];
 						dest[1] = faceNormal[1];
 						dest[2] = faceNormal[2];
 					} else {
-						dest[0] = dest[0] + faceNormal[0];
-						dest[1] = faceNormal[1] + dest[1];
-						dest[2] = faceNormal[2] + dest[2];
+						dest[0] =
+							dest[0] + faceNormal[0];
+						dest[1] =
+							faceNormal[1] + dest[1];
+						dest[2] =
+							faceNormal[2] + dest[2];
 					}
 				}
 				++face;
@@ -5544,7 +7565,8 @@ void OptModel_BuildVertexNormalsFromFaces(float* dest, const OptPackedFaceData* 
 		}
 		if (incidentFaceCount > 1) {
 			if (incidentFaceCount < 65) {
-				scale = g_sw3dSpanLengthReciprocal[incidentFaceCount];
+				scale = g_sw3dSpanLengthReciprocal
+					[incidentFaceCount];
 			} else {
 				scale = g_sw3dUnitFloat / incidentFaceCount;
 			}
@@ -5559,12 +7581,15 @@ void OptModel_BuildVertexNormalsFromFaces(float* dest, const OptPackedFaceData* 
 #endif
 
 // FUNCTION: XVT 0x479DE0
-OptNode* OptModel_ResolveNodeRef(const OptimizedPolyObject* object, const char* name) {
-	OptNode* result;
+OptNode *OptModel_ResolveNodeRef(const OptimizedPolyObject *object,
+				 const char *name)
+{
+	OptNode *result;
 	int rootIndex;
 
 	for (rootIndex = 0; rootIndex < object->rootNodeCount; ++rootIndex) {
-		result = OptModel_FindNodeByName(object->rootNodes[rootIndex], name);
+		result = OptModel_FindNodeByName(object->rootNodes[rootIndex],
+						 name);
 		if (result != NULL) {
 			return result;
 		}
@@ -5574,8 +7599,9 @@ OptNode* OptModel_ResolveNodeRef(const OptimizedPolyObject* object, const char* 
 }
 
 // FUNCTION: XVT 0x479E20
-OptNode* OptModel_FindNodeByName(OptNode* node, const char* name) {
-	OptNode* result;
+OptNode *OptModel_FindNodeByName(OptNode *node, const char *name)
+{
+	OptNode *result;
 	int childIndex;
 	int nameCompare;
 
@@ -5594,7 +7620,8 @@ OptNode* OptModel_FindNodeByName(OptNode* node, const char* name) {
 	}
 
 	for (childIndex = 0; childIndex < node->childCount; ++childIndex) {
-		result = OptModel_FindNodeByName(node->pChildren[childIndex], name);
+		result = OptModel_FindNodeByName(node->pChildren[childIndex],
+						 name);
 		if (result != NULL) {
 			return result;
 		}
@@ -5605,9 +7632,10 @@ OptNode* OptModel_FindNodeByName(OptNode* node, const char* name) {
 
 #ifndef XVT_MODERN
 // FUNCTION: XVT 0x47A430
-int OptModel_GetExternalTextureSerializedSize(const char* sourceFileName) {
-	char* extension;
-	XvtFile* textureStream;
+int OptModel_GetExternalTextureSerializedSize(const char *sourceFileName)
+{
+	char *extension;
+	XvtFile *textureStream;
 	int pixelCount;
 	int payloadSize;
 	int serializedSize;
@@ -5627,12 +7655,16 @@ int OptModel_GetExternalTextureSerializedSize(const char* sourceFileName) {
 		extension[1] = 'g';
 		extension[2] = 'b';
 		if (textureStream == NULL) {
-			FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
+			FeDiskIo_OpenGlobalStream(fileName,
+						  g_fileModeReadBinary, 0, 0);
 			textureStream = g_stream;
 			if (textureStream != NULL) {
 				File_RawRead(rgbHeader, 16, 1, textureStream);
-				pixelCount = ((unsigned int)rgbHeader[6] << 8) + rgbHeader[7];
-				pixelCount *= ((unsigned int)rgbHeader[8] << 8) + rgbHeader[9];
+				pixelCount = ((unsigned int)rgbHeader[6] << 8) +
+					     rgbHeader[7];
+				pixelCount *=
+					((unsigned int)rgbHeader[8] << 8) +
+					rgbHeader[9];
 				File_RawClose(textureStream);
 				serializedSize = 3 * pixelCount + 13056;
 				return serializedSize;

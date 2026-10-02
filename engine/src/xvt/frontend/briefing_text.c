@@ -2,22 +2,24 @@
 #include <stdlib.h>
 
 // GLOBAL: XVT 0x669582
-char* g_briefingMapLabelTexts[32] = { 0 };
+char *g_briefingMapLabelTexts[32] = {0};
 // GLOBAL: XVT 0x669602
-char* g_briefingTextBlocks[32] = { 0 };
+char *g_briefingTextBlocks[32] = {0};
 // GLOBAL: XVT 0x669682
-char* g_briefingUnusedBuffers[20] = { 0 };
+char *g_briefingUnusedBuffers[20] = {0};
 // GLOBAL: XVT 0xAA6118
-char* g_missionText = NULL;
+char *g_missionText = NULL;
 
 // FUNCTION: XVT 0x4F68B0
-int16_t BriefingText_FreeAllocatedBuffersExit(void) {
+int16_t BriefingText_FreeAllocatedBuffersExit(void)
+{
 	BriefingText_FreeAllocatedBuffers();
 	return 1;
 }
 
 // FUNCTION: XVT 0x4F6B10
-void BriefingText_FreeAllocatedBuffers(void) {
+void BriefingText_FreeAllocatedBuffers(void)
+{
 	int16_t index;
 
 	for (index = 0; index < 32; ++index) {

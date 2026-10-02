@@ -20,7 +20,8 @@ typedef enum CDAudioSuspendState {
 } CDAudioSuspendState;
 
 int CDAudio_Initialize(void);
-int CDAudio_PlayTrackFromTime(int trackNumber, uint16_t startMinute, uint8_t startSecond);
+int CDAudio_PlayTrackFromTime(int trackNumber, uint16_t startMinute,
+			      uint8_t startSecond);
 int CDAudio_StopCurrentTrack(void);
 void CDAudio_CloseDevice(void);
 int CDAudio_IsPlaybackComplete(void);
@@ -31,7 +32,8 @@ int CDAudio_SuspendPlayback(void);
 int CDAudio_RequestResumePlayback(void);
 int CDAudio_ResumeSuspendedPlayback(void);
 int CDAudio_SetAuxVolume(unsigned int volume0To65535);
-int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume, int fadeDurationMs);
+int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume,
+			  int fadeDurationMs);
 
 #ifdef __cplusplus
 }

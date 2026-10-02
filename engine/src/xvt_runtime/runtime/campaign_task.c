@@ -43,7 +43,8 @@ static struct {
 	char rating_long_name[16];
 } g_campaign;
 
-int XvtCampaignTask_WaitPacket(int packet_type, int** packet) {
+int XvtCampaignTask_WaitPacket(int packet_type, int **packet)
+{
 	DPID sender;
 	uint32_t size;
 	int count;
@@ -55,13 +56,16 @@ int XvtCampaignTask_WaitPacket(int packet_type, int** packet) {
 	}
 	/* Ingress is serviced by the frontend host tick; consume a finite packet slice. */
 	for (count = 0; count < 32; ++count) {
-		int* candidate = Net_GetNextAppPacket(&sender, &size);
-		if (candidate && size >= 2 * sizeof(int) && candidate[0] == packet_type) {
-			size_t required = candidate[1] == 0
-								  ? 2 * sizeof(int)
-								  : 3 * sizeof(int) + (packet_type == NET_PACKET_BATTLE_CONTINUATION
-														   ? sizeof(BattleSequenceState)
-														   : sizeof(CampaignSequenceState));
+		int *candidate = Net_GetNextAppPacket(&sender, &size);
+		if (candidate && size >= 2 * sizeof(int) &&
+		    candidate[0] == packet_type) {
+			size_t required =
+				candidate[1] == 0
+					? 2 * sizeof(int)
+					: 3 * sizeof(int) +
+						  (packet_type == NET_PACKET_BATTLE_CONTINUATION
+							   ? sizeof(BattleSequenceState)
+							   : sizeof(CampaignSequenceState));
 			if (size >= required) {
 				*packet = candidate;
 				g_campaign.packet_type = NET_PACKET_NONE;
@@ -71,44 +75,61 @@ int XvtCampaignTask_WaitPacket(int packet_type, int** packet) {
 		/* Preserve the original expected-packet-before-timeout ordering and strict limit. */
 		if ((uint32_t)(now - g_campaign.wait_start) > 30000) {
 			g_campaign.packet_type = NET_PACKET_NONE;
-			XVT_LOG_WARN("campaign.packet_timeout type=%d", packet_type);
+			XVT_LOG_WARN("campaign.packet_timeout type=%d",
+				     packet_type);
 			return 0;
 		}
-		if (!candidate)
+		if (!candidate) {
 			break;
+		}
 	}
 	return XVT_CAMPAIGN_PENDING;
 }
 
-static int XvtCampaignTask_Finish(int result) {
+static int XvtCampaignTask_Finish(int result)
+{
 	g_campaign.phase = XVT_CAMPAIGN_IDLE;
 	g_campaign.pending = 0;
 	return result;
 }
 
-int XvtCampaignTask_EnterTeams(void) {
+int XvtCampaignTask_EnterTeams(void)
+{
 	int result;
 	if (g_campaign.phase == XVT_CAMPAIGN_IDLE) {
 		g_frontendChatTeamOnly = 0;
 		g_missionSetupShowDescriptionPanel = 0;
 		g_frontendFirstVisibleLine = 0;
-		if (!File_CheckGameCdPresent(g_skipMovieChecks))
-			XvtStorage_Fatal("Cannot load required flight/voice files", 1);
+		if (!File_CheckGameCdPresent(g_skipMovieChecks)) {
+			XvtStorage_Fatal(
+				"Cannot load required flight/voice files", 1);
+		}
 		Frontend_CheckHostCdPresent();
-		if (!g_hostCdAvailable && g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_NET_CLIENT)
-			XvtStorage_Fatal("Cannot load required training mission", 1);
+		if (!g_hostCdAvailable &&
+		    g_frontendMissionSessionMode !=
+			    FRONTEND_MISSION_SESSION_NET_CLIENT) {
+			XvtStorage_Fatal(
+				"Cannot load required training mission", 1);
+		}
 		if (g_frontendSkipScreenEntrySetup ||
-			g_missionSetupDebriefTransition == MISSION_SETUP_DEBRIEF_TRANSITION_ENTER_CURRENT_MISSION ||
-			g_pilotData.missionSequenceActive != 1)
+		    g_missionSetupDebriefTransition ==
+			    MISSION_SETUP_DEBRIEF_TRANSITION_ENTER_CURRENT_MISSION ||
+		    g_pilotData.missionSequenceActive != 1) {
 			return 1;
-		g_campaign.is_campaign = g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES;
-		if (!g_campaign.is_campaign && g_pilotData.missionDirectoryId != MISSION_DIRECTORY_COMBAT_ENGAGEMENTS)
+		}
+		g_campaign.is_campaign = g_pilotData.missionDirectoryId ==
+					 MISSION_DIRECTORY_TRAINING_EXERCISES;
+		if (!g_campaign.is_campaign &&
+		    g_pilotData.missionDirectoryId !=
+			    MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
 			return 1;
+		}
 		g_campaign.phase = XVT_CAMPAIGN_SEQUENCE;
 	}
 	if (g_campaign.phase == XVT_CAMPAIGN_SEQUENCE) {
-		result =
-			g_campaign.is_campaign ? MissionSetup_TryContinueCampaign() : MissionSetup_TryContinueBattle();
+		result = g_campaign.is_campaign
+				 ? MissionSetup_TryContinueCampaign()
+				 : MissionSetup_TryContinueBattle();
 		if (result == XVT_CAMPAIGN_PENDING) {
 			g_campaign.pending = 1;
 			return result;
@@ -120,8 +141,9 @@ int XvtCampaignTask_EnterTeams(void) {
 			g_remoteBattleRebelVictoryCount = 0;
 			g_remoteBattleImperialVictoryCount = 0;
 		}
-		if (!g_campaign.is_campaign)
+		if (!g_campaign.is_campaign) {
 			return XvtCampaignTask_Finish(1);
+		}
 		g_campaign.phase = XVT_CAMPAIGN_MOVIE;
 	}
 	result = Cutscene_PlayForCurrentMissionPhase(0);
@@ -129,26 +151,36 @@ int XvtCampaignTask_EnterTeams(void) {
 		g_campaign.pending = 1;
 		return XVT_CAMPAIGN_PENDING;
 	}
-	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER && result == 0) {
+	if (g_frontendMissionSessionMode !=
+		    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
+	    result == 0) {
 		g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
-		Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch, sizeof(int));
+		Net_SendPacketAndFlush(Net_GetHostPlayerId(),
+				       &g_frontendNetPacketScratch,
+				       sizeof(int));
 		Net_ShutdownDirectPlaySession();
-		FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen, FrontendMissionList_FreeScreenResources);
+		FrontendScreen_SetCallbacks(
+			FrontendNet_JoinGameScreen,
+			FrontendMissionList_FreeScreenResources);
 		return XvtCampaignTask_Finish(0);
 	}
 	return XvtCampaignTask_Finish(1);
 }
 
-int XvtCampaignTask_EnterDebrief(void) {
+int XvtCampaignTask_EnterDebrief(void)
+{
 	int result;
 	if (g_campaign.phase == XVT_CAMPAIGN_IDLE) {
 		FrontendCursor_Show();
 		Keyboard_FlushCharBuffer();
-		if (g_pilotData.missionDirectoryId != MISSION_DIRECTORY_TRAINING_EXERCISES ||
-			g_pilotData.missionSequenceActive != 1 || !g_pilotData.campaignSequenceState.lastMissionCompleted)
+		if (g_pilotData.missionDirectoryId !=
+			    MISSION_DIRECTORY_TRAINING_EXERCISES ||
+		    g_pilotData.missionSequenceActive != 1 ||
+		    !g_pilotData.campaignSequenceState.lastMissionCompleted) {
 			g_campaign.phase = XVT_CAMPAIGN_DEBRIEF_ROSTER;
-		else
+		} else {
 			g_campaign.phase = XVT_CAMPAIGN_DEBRIEF_MOVIE;
+		}
 	}
 	if (g_campaign.phase == XVT_CAMPAIGN_DEBRIEF_MOVIE) {
 		result = Cutscene_PlayForCurrentMissionPhase(1);
@@ -156,39 +188,56 @@ int XvtCampaignTask_EnterDebrief(void) {
 			g_campaign.pending = 1;
 			return XVT_CAMPAIGN_PENDING;
 		}
-		if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER && result == 0) {
-			g_frontendNetPacketScratch.packetType = NET_PACKET_PLAYER_LEFT;
-			Net_SendPacketAndFlush(Net_GetHostPlayerId(), &g_frontendNetPacketScratch, sizeof(int));
+		if (g_frontendMissionSessionMode !=
+			    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
+		    result == 0) {
+			g_frontendNetPacketScratch.packetType =
+				NET_PACKET_PLAYER_LEFT;
+			Net_SendPacketAndFlush(Net_GetHostPlayerId(),
+					       &g_frontendNetPacketScratch,
+					       sizeof(int));
 			Net_ShutdownDirectPlaySession();
-			FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
+			FrontendScreen_SetCallbacks(Concourse_Update,
+						    Concourse_Exit);
 			return XvtCampaignTask_Finish(0);
 		}
 		g_campaign.phase = XVT_CAMPAIGN_DEBRIEF_ROSTER;
 	}
 	if (g_campaign.phase == XVT_CAMPAIGN_DEBRIEF_ROSTER) {
-		if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES &&
-			g_pilotData.missionSequenceActive == 1)
+		if (g_pilotData.missionDirectoryId ==
+			    MISSION_DIRECTORY_TRAINING_EXERCISES &&
+		    g_pilotData.missionSequenceActive == 1) {
 			g_missionText = malloc(4096);
+		}
 		g_frontendChatTeamOnly = 0;
 		g_debriefDisconnectedFromNetGame = 0;
 		g_frontendFirstVisibleLine = 0;
 		for (int i = 0; i < 8; ++i) {
-			if (g_pilotData.networkPlayers[i].directPlayId && g_pilotData.networkPlayers[i].hasLeft) {
-				Net_ClearPlayerReadyFlagWithLockGuard(g_pilotData.networkPlayers[i].directPlayId);
-				if (Net_GetLocalPlayerId() == g_pilotData.networkPlayers[i].directPlayId)
+			if (g_pilotData.networkPlayers[i].directPlayId &&
+			    g_pilotData.networkPlayers[i].hasLeft) {
+				Net_ClearPlayerReadyFlagWithLockGuard(
+					g_pilotData.networkPlayers[i]
+						.directPlayId);
+				if (Net_GetLocalPlayerId() ==
+				    g_pilotData.networkPlayers[i]
+					    .directPlayId) {
 					g_debriefDisconnectedFromNetGame = 1;
+				}
 			}
 		}
 		Net_RefreshPlayerRosterWithLockGuard();
 		if (g_pilotData.promotionDelta == PILOT_PROMOTION_NONE ||
-			g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER)
+		    g_frontendMissionSessionMode ==
+			    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 			return XvtCampaignTask_Finish(1);
+		}
 		g_campaign.rating_long_name[0] = (char)(g_pilotData.rating + 1);
 		g_campaign.rating_long_name[1] = 0;
 		g_campaign.phase = XVT_CAMPAIGN_DEBRIEF_RENAME;
 	}
-	result =
-		Net_SetPlayerNameWithLockGuard(Net_GetLocalPlayerId(), g_campaign.rating_long_name, g_pilotData.name);
+	result = Net_SetPlayerNameWithLockGuard(Net_GetLocalPlayerId(),
+						g_campaign.rating_long_name,
+						g_pilotData.name);
 	if (result == XVT_CAMPAIGN_PENDING) {
 		g_campaign.pending = 1;
 		return result;
@@ -198,9 +247,13 @@ int XvtCampaignTask_EnterDebrief(void) {
 
 int XvtCampaignTask_IsPending(void) { return g_campaign.pending; }
 
-int XvtCampaignTask_ContinuesWithoutFocus(void) { return g_campaign.packet_type != 0; }
+int XvtCampaignTask_ContinuesWithoutFocus(void)
+{
+	return g_campaign.packet_type != 0;
+}
 
-void XvtCampaignTask_Reset(void) {
+void XvtCampaignTask_Reset(void)
+{
 	memset(&g_campaign, 0, sizeof(g_campaign));
 	XvtCutsceneTask_Reset();
 }

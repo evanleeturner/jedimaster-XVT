@@ -17,9 +17,11 @@ static uint64_t g_snapshotSerial;
 static XvtSceneKind g_sceneKind;
 static uint32_t g_drawOrder;
 
-void XvtRenderSnapshot_Init(void) {
-	if (g_initialized)
+void XvtRenderSnapshot_Init(void)
+{
+	if (g_initialized) {
 		return;
+	}
 	memset(g_slots, 0, sizeof(g_slots));
 	g_writeSlot = 0;
 	g_currentSlot = -1;
@@ -33,7 +35,8 @@ void XvtRenderSnapshot_Init(void) {
 	XvtRenderFrontend_Init();
 }
 
-void XvtRenderSnapshot_Shutdown(void) {
+void XvtRenderSnapshot_Shutdown(void)
+{
 	XvtRenderAssets_Shutdown();
 	XvtRenderCapture_Reset();
 	g_initialized = 0;
@@ -43,10 +46,12 @@ void XvtRenderSnapshot_Shutdown(void) {
 	g_sceneKind = XVT_SCENE_NONE;
 }
 
-void XvtRenderSnapshot_BeginFrame(void) {
-	XvtRenderSnapshot* snapshot;
-	if (!g_initialized || g_snapshotOpen)
+void XvtRenderSnapshot_BeginFrame(void)
+{
+	XvtRenderSnapshot *snapshot;
+	if (!g_initialized || g_snapshotOpen) {
 		return;
+	}
 	XvtRenderAssets_BeginFrame();
 	XvtRenderCapture_BeginFrame();
 	snapshot = &g_slots[g_writeSlot];
@@ -76,19 +81,24 @@ void XvtRenderSnapshot_BeginFrame(void) {
 	g_snapshotOpen = 1;
 }
 
-void XvtRenderSnapshot_SetSceneKind(XvtSceneKind kind) {
-	if (!g_initialized)
+void XvtRenderSnapshot_SetSceneKind(XvtSceneKind kind)
+{
+	if (!g_initialized) {
 		return;
+	}
 	g_sceneKind = kind;
-	if (g_snapshotOpen)
+	if (g_snapshotOpen) {
 		g_slots[g_writeSlot].scene_kind = kind;
+	}
 }
 
-void XvtRenderSnapshot_Commit(int32_t game_time_ticks, int focused, int paused) {
-	XvtRenderSnapshot* snapshot;
+void XvtRenderSnapshot_Commit(int32_t game_time_ticks, int focused, int paused)
+{
+	XvtRenderSnapshot *snapshot;
 	int slot;
-	if (!g_initialized || !g_snapshotOpen)
+	if (!g_initialized || !g_snapshotOpen) {
 		return;
+	}
 	snapshot = &g_slots[g_writeSlot];
 	snapshot->game_time_ticks = game_time_ticks;
 	snapshot->capture_host_us = Aeron_NowUs();
@@ -111,16 +121,22 @@ void XvtRenderSnapshot_Commit(int32_t game_time_ticks, int focused, int paused) 
 	g_snapshotOpen = 0;
 }
 
-const XvtRenderSnapshot* XvtRenderSnapshot_Current(void) {
+const XvtRenderSnapshot *XvtRenderSnapshot_Current(void)
+{
 	return g_currentSlot >= 0 ? &g_slots[g_currentSlot] : NULL;
 }
 
-XvtRenderSnapshot* XvtRenderSnapshot_Writer(void) {
+XvtRenderSnapshot *XvtRenderSnapshot_Writer(void)
+{
 	return g_initialized && g_snapshotOpen ? &g_slots[g_writeSlot] : NULL;
 }
 
-uint32_t XvtRenderSnapshot_NextOrder(void) { return g_snapshotOpen ? g_drawOrder++ : 0; }
+uint32_t XvtRenderSnapshot_NextOrder(void)
+{
+	return g_snapshotOpen ? g_drawOrder++ : 0;
+}
 
-const XvtRenderSnapshot* XvtRenderSnapshot_Previous(void) {
+const XvtRenderSnapshot *XvtRenderSnapshot_Previous(void)
+{
 	return g_previousSlot >= 0 ? &g_slots[g_previousSlot] : NULL;
 }

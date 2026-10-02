@@ -21,7 +21,8 @@ typedef int16_t (*AiCourseOrderManeuverProc)(void);
 
 typedef void (*AiManeuverInitProc)(void);
 
-extern AiCourseOrderManeuverProc g_aiCourseOrderManeuverTable[AI_MANEUVER_MODE_COUNT];
+extern AiCourseOrderManeuverProc
+	g_aiCourseOrderManeuverTable[AI_MANEUVER_MODE_COUNT];
 extern AiCourseOrderManeuverProc g_aiCurrentManeuverProc;
 extern uint16_t g_orderThrottleToCraftThrottleSpeed[12];
 /* The matching translation unit defines this before use; modern consumers need the declaration. */
@@ -73,7 +74,8 @@ void paiman_initescortmaneuver(void);
 int16_t paiman_escortmaneuver(void);
 void paiman_initboardmaneuver(void);
 int16_t paiman_boardmaneuver(void);
-void paiman_TransferObjectToAiTeam(unsigned int objectIdx, CraftData* craft, uint8_t ownerFlag);
+void paiman_TransferObjectToAiTeam(unsigned int objectIdx, CraftData *craft,
+				   uint8_t ownerFlag);
 void paiman_initawaitboardmaneuver(void);
 int16_t paiman_awaitboardmaneuver(void);
 void paiman_initheadtowardmaneuver(void);

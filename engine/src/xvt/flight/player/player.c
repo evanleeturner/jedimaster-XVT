@@ -41,12 +41,14 @@ int g_localPlayer;
 // GLOBAL: XVT 0x9E9670
 PlayerData g_players[8];
 // GLOBAL: XVT 0x9D7800
-char g_playerTauntText[8][4][70] = { { { 0 } } };
+char g_playerTauntText[8][4][70] = {{{0}}};
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x45A1E0
-int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int preferredObjectSignature,
-								int resetTargetingState) {
+int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx,
+				int preferredObjectSignature,
+				int resetTargetingState)
+{
 	enum {
 		OBJECT_TYPE_NONE = 0,
 		WEAPON_BANK_COUNT = 2,
@@ -61,7 +63,7 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 		DEFAULT_CAMERA_DISTANCE = 1024,
 	};
 
-	CraftData* craft;
+	CraftData *craft;
 	int selectedObjectIdx;
 	int objectsRemaining;
 	int foundCraft;
@@ -71,17 +73,28 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 	matchedPreferredSignature = 0;
 	if (preferredObjectSignature != 0) {
 		for (selectedObjectIdx = g_activeRegionObjectSlotStart;
-			 selectedObjectIdx < g_activeRegionCraftObjectSlotEnd; ++selectedObjectIdx) {
-			if (g_objectTable[selectedObjectIdx].objectType != OBJECT_TYPE_NONE) {
+		     selectedObjectIdx < g_activeRegionCraftObjectSlotEnd;
+		     ++selectedObjectIdx) {
+			if (g_objectTable[selectedObjectIdx].objectType !=
+			    OBJECT_TYPE_NONE) {
 				uint8_t objectKind;
 
-				objectKind = g_objectTable[selectedObjectIdx].mobj->pCraft->objectKind;
-				if (g_missionFlightGroups[g_objectTable[selectedObjectIdx].flightGroupIdx].playerOwnerIdx ==
-					playerIdx) {
-					if (objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
-						objectKind != CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
-						objectKind != CRAFT_OBJECT_KIND_EXPLODING &&
-						g_objectTable[selectedObjectIdx].objectSignature == preferredObjectSignature) {
+				objectKind = g_objectTable[selectedObjectIdx]
+						     .mobj->pCraft->objectKind;
+				if (g_missionFlightGroups
+					    [g_objectTable[selectedObjectIdx]
+						     .flightGroupIdx]
+						    .playerOwnerIdx ==
+				    playerIdx) {
+					if (objectKind !=
+						    CRAFT_OBJECT_KIND_BREAKING_UP &&
+					    objectKind !=
+						    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
+					    objectKind !=
+						    CRAFT_OBJECT_KIND_EXPLODING &&
+					    g_objectTable[selectedObjectIdx]
+							    .objectSignature ==
+						    preferredObjectSignature) {
 						foundCraft = 1;
 						matchedPreferredSignature = 1;
 						break;
@@ -93,28 +106,41 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 
 	if (foundCraft == 0) {
 		selectedObjectIdx = previousObjectIdx;
-		objectsRemaining = g_activeRegionCraftObjectSlotEnd - g_activeRegionObjectSlotStart;
+		objectsRemaining = g_activeRegionCraftObjectSlotEnd -
+				   g_activeRegionObjectSlotStart;
 		while (objectsRemaining != 0) {
 			uint8_t objectKind;
 
 			++selectedObjectIdx;
-			if (selectedObjectIdx >= g_activeRegionCraftObjectSlotEnd)
-				selectedObjectIdx = g_activeRegionObjectSlotStart;
-			if (g_objectTable[selectedObjectIdx].objectType != OBJECT_TYPE_NONE) {
-				objectKind = g_objectTable[selectedObjectIdx].mobj->pCraft->objectKind;
-				if (g_missionFlightGroups[g_objectTable[selectedObjectIdx].flightGroupIdx].playerOwnerIdx ==
-					playerIdx) {
-					if (objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
-						objectKind != CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
-						objectKind != CRAFT_OBJECT_KIND_EXPLODING) {
+			if (selectedObjectIdx >=
+			    g_activeRegionCraftObjectSlotEnd) {
+				selectedObjectIdx =
+					g_activeRegionObjectSlotStart;
+			}
+			if (g_objectTable[selectedObjectIdx].objectType !=
+			    OBJECT_TYPE_NONE) {
+				objectKind = g_objectTable[selectedObjectIdx]
+						     .mobj->pCraft->objectKind;
+				if (g_missionFlightGroups
+					    [g_objectTable[selectedObjectIdx]
+						     .flightGroupIdx]
+						    .playerOwnerIdx ==
+				    playerIdx) {
+					if (objectKind !=
+						    CRAFT_OBJECT_KIND_BREAKING_UP &&
+					    objectKind !=
+						    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
+					    objectKind !=
+						    CRAFT_OBJECT_KIND_EXPLODING) {
 						break;
 					}
 				}
 			}
 			--objectsRemaining;
 		}
-		if (objectsRemaining == 0)
+		if (objectsRemaining == 0) {
 			return 1;
+		}
 	}
 
 	g_objectTable[selectedObjectIdx].playerOwnerIdx = playerIdx;
@@ -125,40 +151,57 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 	{
 		int weaponBank;
 
-		for (weaponBank = 0; weaponBank < WEAPON_BANK_COUNT; ++weaponBank) {
+		for (weaponBank = 0; weaponBank < WEAPON_BANK_COUNT;
+		     ++weaponBank) {
 			ModelIndex modelIndex;
 
-			craft->laserState.linkMode[weaponBank] = LASER_LINK_DEFAULT;
+			craft->laserState.linkMode[weaponBank] =
+				LASER_LINK_DEFAULT;
 			craft->laserState.burstRemaining[weaponBank] = 0;
 			craft->laserState.nextSlot[weaponBank] = 0;
 			craft->laserState.fireCooldownTicks[weaponBank] = 0;
 			craft->laserState.nextFireTimestamp[weaponBank] = 0;
-			modelIndex = GetModelIndexFromType(g_objectTable[selectedObjectIdx].objectType);
-			if (craft->laserState.projectileTypeId[weaponBank] != 0 &&
-				g_modelDefs[modelIndex].laserGroupMountType[weaponBank] != GUNNER_LASER_MOUNT_TYPE) {
+			modelIndex = GetModelIndexFromType(
+				g_objectTable[selectedObjectIdx].objectType);
+			if (craft->laserState.projectileTypeId[weaponBank] !=
+				    0 &&
+			    g_modelDefs[modelIndex]
+					    .laserGroupMountType[weaponBank] !=
+				    GUNNER_LASER_MOUNT_TYPE) {
 				craft->laserState.nextSlot[weaponBank] =
-					g_modelDefs[modelIndex].laserGroupFirstSlot[weaponBank];
+					g_modelDefs[modelIndex]
+						.laserGroupFirstSlot
+							[weaponBank];
 			}
 		}
 	}
-	craft->laserState.linkMode[0] = g_players[playerIdx].savedCraftSettings.laserLinkMode[0];
-	craft->laserState.linkMode[1] = g_players[playerIdx].savedCraftSettings.laserLinkMode[1];
+	craft->laserState.linkMode[0] =
+		g_players[playerIdx].savedCraftSettings.laserLinkMode[0];
+	craft->laserState.linkMode[1] =
+		g_players[playerIdx].savedCraftSettings.laserLinkMode[1];
 	{
 		int launcherIndex;
 
-		for (launcherIndex = 0; launcherIndex < WEAPON_BANK_COUNT; ++launcherIndex) {
+		for (launcherIndex = 0; launcherIndex < WEAPON_BANK_COUNT;
+		     ++launcherIndex) {
 			craft->warheadLauncherFlags[launcherIndex] =
-				(int8_t)((craft->warheadLauncherFlags[launcherIndex] & WARHEAD_KEEP_SIDE_SELECT_MASK) |
-						 WARHEAD_LINK_DEFAULT);
+				(int8_t)((craft->warheadLauncherFlags
+						  [launcherIndex] &
+					  WARHEAD_KEEP_SIDE_SELECT_MASK) |
+					 WARHEAD_LINK_DEFAULT);
 			craft->warheadLauncherCooldownTicks[launcherIndex] = 0;
 		}
 	}
 	craft->warheadLauncherFlags[0] =
-		(int8_t)((craft->warheadLauncherFlags[0] & WARHEAD_SAVED_STATE_PRESERVE_MASK) |
-				 g_players[playerIdx].savedCraftSettings.warheadLauncherFlags[0]);
+		(int8_t)((craft->warheadLauncherFlags[0] &
+			  WARHEAD_SAVED_STATE_PRESERVE_MASK) |
+			 g_players[playerIdx]
+				 .savedCraftSettings.warheadLauncherFlags[0]);
 	craft->warheadLauncherFlags[1] =
-		(int8_t)((craft->warheadLauncherFlags[1] & WARHEAD_SAVED_STATE_PRESERVE_MASK) |
-				 g_players[playerIdx].savedCraftSettings.warheadLauncherFlags[1]);
+		(int8_t)((craft->warheadLauncherFlags[1] &
+			  WARHEAD_SAVED_STATE_PRESERVE_MASK) |
+			 g_players[playerIdx]
+				 .savedCraftSettings.warheadLauncherFlags[1]);
 	craft->warheadLockTicks = 0;
 	{
 		enum { FRONT_SHIELD = 0, REAR_SHIELD = 1 };
@@ -166,40 +209,59 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 		int maxShieldPerFace;
 		uint8_t shieldDistributionMode;
 
-		maxShieldPerFace = 2 * g_modelDefs[craft->modelIndex].shieldStrength;
-		shieldDistributionMode = g_players[playerIdx].savedCraftSettings.shieldDistribMode;
+		maxShieldPerFace =
+			2 * g_modelDefs[craft->modelIndex].shieldStrength;
+		shieldDistributionMode =
+			g_players[playerIdx]
+				.savedCraftSettings.shieldDistribMode;
 		craft->shieldDistribMode = shieldDistributionMode;
 		switch (shieldDistributionMode) {
-			case SHIELD_DISTRIBUTION_FULLY_FORWARD:
-				if (craft->shieldEnergy[FRONT_SHIELD] > maxShieldPerFace) {
-					craft->shieldEnergy[REAR_SHIELD] = craft->shieldEnergy[FRONT_SHIELD] - maxShieldPerFace;
-					craft->shieldEnergy[FRONT_SHIELD] = maxShieldPerFace;
-				}
-				break;
-			case SHIELD_DISTRIBUTION_EVEN:
-				craft->shieldEnergy[FRONT_SHIELD] >>= 1;
-				craft->shieldEnergy[REAR_SHIELD] = craft->shieldEnergy[FRONT_SHIELD];
-				break;
-			case SHIELD_DISTRIBUTION_FULLY_AFT:
-				craft->shieldEnergy[REAR_SHIELD] = craft->shieldEnergy[FRONT_SHIELD];
-				craft->shieldEnergy[FRONT_SHIELD] = 0;
-				if (craft->shieldEnergy[REAR_SHIELD] > maxShieldPerFace) {
-					craft->shieldEnergy[FRONT_SHIELD] = craft->shieldEnergy[REAR_SHIELD] - maxShieldPerFace;
-					craft->shieldEnergy[REAR_SHIELD] = maxShieldPerFace;
-				}
-				break;
+		case SHIELD_DISTRIBUTION_FULLY_FORWARD:
+			if (craft->shieldEnergy[FRONT_SHIELD] >
+			    maxShieldPerFace) {
+				craft->shieldEnergy[REAR_SHIELD] =
+					craft->shieldEnergy[FRONT_SHIELD] -
+					maxShieldPerFace;
+				craft->shieldEnergy[FRONT_SHIELD] =
+					maxShieldPerFace;
+			}
+			break;
+		case SHIELD_DISTRIBUTION_EVEN:
+			craft->shieldEnergy[FRONT_SHIELD] >>= 1;
+			craft->shieldEnergy[REAR_SHIELD] =
+				craft->shieldEnergy[FRONT_SHIELD];
+			break;
+		case SHIELD_DISTRIBUTION_FULLY_AFT:
+			craft->shieldEnergy[REAR_SHIELD] =
+				craft->shieldEnergy[FRONT_SHIELD];
+			craft->shieldEnergy[FRONT_SHIELD] = 0;
+			if (craft->shieldEnergy[REAR_SHIELD] >
+			    maxShieldPerFace) {
+				craft->shieldEnergy[FRONT_SHIELD] =
+					craft->shieldEnergy[REAR_SHIELD] -
+					maxShieldPerFace;
+				craft->shieldEnergy[REAR_SHIELD] =
+					maxShieldPerFace;
+			}
+			break;
 		}
 	}
-	craft->shieldRechargeLevel = g_players[playerIdx].savedCraftSettings.shieldRechargeLevel;
-	craft->laserRechargeLevel = g_players[playerIdx].savedCraftSettings.laserRechargeLevel;
-	craft->beamRechargeLevel = g_players[playerIdx].savedCraftSettings.beamLevel;
+	craft->shieldRechargeLevel =
+		g_players[playerIdx].savedCraftSettings.shieldRechargeLevel;
+	craft->laserRechargeLevel =
+		g_players[playerIdx].savedCraftSettings.laserRechargeLevel;
+	craft->beamRechargeLevel =
+		g_players[playerIdx].savedCraftSettings.beamLevel;
 
 	g_players[playerIdx].objectIndex = selectedObjectIdx;
-	g_players[playerIdx].boundObjectSignature = g_objectTable[selectedObjectIdx].objectSignature;
+	g_players[playerIdx].boundObjectSignature =
+		g_objectTable[selectedObjectIdx].objectSignature;
 	g_players[playerIdx].awaitingNewCraft = 0;
 	g_players[playerIdx].hyperspacePhase = 0;
-	if (matchedPreferredSignature != 0 || previousObjectIdx != UINT32_MAX)
-		craft->throttleSpeed = g_players[playerIdx].savedCraftSettings.throttleSpeed;
+	if (matchedPreferredSignature != 0 || previousObjectIdx != UINT32_MAX) {
+		craft->throttleSpeed =
+			g_players[playerIdx].savedCraftSettings.throttleSpeed;
+	}
 	if (matchedPreferredSignature == 0) {
 		g_players[playerIdx].selectedWeaponBank = 0;
 		g_players[playerIdx].selectedWeaponMode = 0;
@@ -208,28 +270,34 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 	g_players[playerIdx].targetingState = -1;
 	g_players[playerIdx].selectedTargetComponent = 0;
 	if (resetTargetingState == 1) {
-		int16_t* targetPresetSlots;
+		int16_t *targetPresetSlots;
 
 		g_players[playerIdx].targetBoxEnabled = 1;
 		g_players[playerIdx].currentTargetObjectIdx = -1;
 		targetPresetSlots = g_players[playerIdx].targetPresetSlot;
-		memset(targetPresetSlots, 0xFF, sizeof(g_players[playerIdx].targetPresetSlot));
+		memset(targetPresetSlots, 0xFF,
+		       sizeof(g_players[playerIdx].targetPresetSlot));
 	}
-	if (previousObjectIdx != UINT32_MAX && g_objectTable[previousObjectIdx].mobj != NULL) {
+	if (previousObjectIdx != UINT32_MAX &&
+	    g_objectTable[previousObjectIdx].mobj != NULL) {
 		uint16_t targetObjectIdx;
 
 		g_players[playerIdx].currentTargetObjectIdx = -1;
 		targetObjectIdx = craft->aiController.targetObjIdx;
 		if (targetObjectIdx < TARGET_OBJECT_INDEX_LIMIT) {
-			g_players[playerIdx].currentTargetObjectIdx = (int16_t)targetObjectIdx;
+			g_players[playerIdx].currentTargetObjectIdx =
+				(int16_t)targetObjectIdx;
 			g_players[playerIdx].selectedTargetComponent = 0;
 		}
 	}
-	if ((uint16_t)g_players[playerIdx].currentTargetObjectIdx == selectedObjectIdx)
+	if ((uint16_t)g_players[playerIdx].currentTargetObjectIdx ==
+	    selectedObjectIdx) {
 		g_players[playerIdx].currentTargetObjectIdx = -1;
+	}
 	Player_ValidateCurrentTargets(playerIdx);
 	g_players[playerIdx].missileLockState = 0;
-	craft->aiController.pendingPlanId = (uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
+	craft->aiController.pendingPlanId =
+		(uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
 	craft->aiController.targetObjIdx = UINT16_MAX;
 	g_players[playerIdx].pendingActionTimer = 0;
 	g_players[playerIdx].beamFireCooldownTimer = 0;
@@ -239,21 +307,28 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 	g_players[playerIdx].savedKeyMods = 0;
 	g_players[playerIdx].keyModsHoldTimer = 0;
 	g_players[playerIdx].engineWashSourceObjIdx = -1;
-	memset(&g_playerFlightTransientTimers[playerIdx], 0, sizeof(g_playerFlightTransientTimers[playerIdx]));
+	memset(&g_playerFlightTransientTimers[playerIdx], 0,
+	       sizeof(g_playerFlightTransientTimers[playerIdx]));
 	{
 		ModelIndex modelIndex;
 
-		modelIndex = GetModelIndexFromType(g_objectTable[g_players[playerIdx].objectIndex].objectType);
-		pai_calcrotatedpoint(&g_objectTable[g_players[playerIdx].objectIndex], 0,
-							 g_modelDefs[modelIndex].primaryHardpointZ,
-							 g_modelDefs[modelIndex].primaryHardpointY);
+		modelIndex = GetModelIndexFromType(
+			g_objectTable[g_players[playerIdx].objectIndex]
+				.objectType);
+		pai_calcrotatedpoint(
+			&g_objectTable[g_players[playerIdx].objectIndex], 0,
+			g_modelDefs[modelIndex].primaryHardpointZ,
+			g_modelDefs[modelIndex].primaryHardpointY);
 	}
 	g_players[playerIdx].hardpointWorldX = g_rotatedX;
 	g_players[playerIdx].hardpointWorldY = g_rotatedY;
 	g_players[playerIdx].hardpointWorldZ = g_rotatedZ;
-	g_players[playerIdx].prevHardpointWorldX = g_players[playerIdx].hardpointWorldX;
-	g_players[playerIdx].prevHardpointWorldY = g_players[playerIdx].hardpointWorldY;
-	g_players[playerIdx].prevHardpointWorldZ = g_players[playerIdx].hardpointWorldZ;
+	g_players[playerIdx].prevHardpointWorldX =
+		g_players[playerIdx].hardpointWorldX;
+	g_players[playerIdx].prevHardpointWorldY =
+		g_players[playerIdx].hardpointWorldY;
+	g_players[playerIdx].prevHardpointWorldZ =
+		g_players[playerIdx].hardpointWorldZ;
 	g_players[playerIdx].viewState.hudAimXSnapState = 0;
 	g_players[playerIdx].viewState.hudAimX = 0;
 	g_players[playerIdx].viewState.hudAimY = 0;
@@ -261,11 +336,13 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 	g_players[playerIdx].viewState.cameraDistance = DEFAULT_CAMERA_DISTANCE;
 	g_players[playerIdx].viewState.playerInputBlocked = 0;
 	g_players[playerIdx].viewState.transitionTimer = 0;
-	g_players[playerIdx].viewState.cameraFocusObjIdx = (uint16_t)g_players[playerIdx].objectIndex;
-	if (g_players[playerIdx].savedHudViewState == HUD_VIEW_HUD_ONLY)
+	g_players[playerIdx].viewState.cameraFocusObjIdx =
+		(uint16_t)g_players[playerIdx].objectIndex;
+	if (g_players[playerIdx].savedHudViewState == HUD_VIEW_HUD_ONLY) {
 		Hud_ForcePlayerViewState(HUD_VIEW_HUD_ONLY, playerIdx);
-	else
+	} else {
 		Hud_ForcePlayerViewState(HUD_VIEW_FORWARD, playerIdx);
+	}
 	if (playerIdx == g_localPlayer) {
 		Hud_DrawCraftNameFpsAndNetworkStatus();
 		fsfx_PlaySound(FLIGHT_SOUND_BOMB_1, -1, playerIdx);
@@ -275,7 +352,9 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 }
 
 // FUNCTION: XVT 0x45A850
-int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int assignAiPlan) {
+int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
+				  int assignAiPlan)
+{
 	enum {
 		MAX_OWNED_CRAFT_WITHOUT_REPLACEMENT = 1,
 		WEAPON_BANK_COUNT = 2,
@@ -287,7 +366,7 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int
 
 	int objectIdx;
 	int laserBank;
-	CraftData* craft;
+	CraftData *craft;
 	int launcherIndex;
 
 	if (requireMultipleCraft == 1) {
@@ -295,23 +374,34 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int
 		int objectSlot;
 
 		ownedCraftCount = 0;
-		for (objectSlot = g_activeRegionObjectSlotStart; objectSlot < g_activeRegionCraftObjectSlotEnd;
-			 ++objectSlot) {
+		for (objectSlot = g_activeRegionObjectSlotStart;
+		     objectSlot < g_activeRegionCraftObjectSlotEnd;
+		     ++objectSlot) {
 			if (g_objectTable[objectSlot].objectType != 0 &&
-				g_missionFlightGroups[g_objectTable[objectSlot].flightGroupIdx].playerOwnerIdx ==
-					playerIndex &&
-				g_objectTable[objectSlot].mobj->pCraft->objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
-				g_objectTable[objectSlot].mobj->pCraft->objectKind != CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
-				g_objectTable[objectSlot].mobj->pCraft->objectKind != CRAFT_OBJECT_KIND_EXPLODING)
+			    g_missionFlightGroups[g_objectTable[objectSlot]
+							  .flightGroupIdx]
+					    .playerOwnerIdx == playerIndex &&
+			    g_objectTable[objectSlot]
+					    .mobj->pCraft->objectKind !=
+				    CRAFT_OBJECT_KIND_BREAKING_UP &&
+			    g_objectTable[objectSlot]
+					    .mobj->pCraft->objectKind !=
+				    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
+			    g_objectTable[objectSlot]
+					    .mobj->pCraft->objectKind !=
+				    CRAFT_OBJECT_KIND_EXPLODING) {
 				++ownedCraftCount;
+			}
 		}
-		if (ownedCraftCount <= MAX_OWNED_CRAFT_WITHOUT_REPLACEMENT)
+		if (ownedCraftCount <= MAX_OWNED_CRAFT_WITHOUT_REPLACEMENT) {
 			return 0;
+		}
 	}
 
 	objectIdx = g_players[playerIndex].objectIndex;
-	if (objectIdx == -1)
+	if (objectIdx == -1) {
 		return 0;
+	}
 
 	g_objectTable[objectIdx].playerOwnerIdx = -1;
 	g_objectTable[objectIdx].mobj->orientMatrixDirty = 1;
@@ -328,10 +418,12 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int
 		craft->laserState.fireCooldownTicks[laserBank] = 0;
 		craft->laserState.nextFireTimestamp[laserBank] = 0;
 	}
-	for (launcherIndex = 0; launcherIndex < WEAPON_BANK_COUNT; ++launcherIndex) {
+	for (launcherIndex = 0; launcherIndex < WEAPON_BANK_COUNT;
+	     ++launcherIndex) {
 		craft->warheadLauncherFlags[launcherIndex] =
-			(int8_t)((craft->warheadLauncherFlags[launcherIndex] & WARHEAD_KEEP_SIDE_SELECT_MASK) |
-					 WARHEAD_LINK_DEFAULT);
+			(int8_t)((craft->warheadLauncherFlags[launcherIndex] &
+				  WARHEAD_KEEP_SIDE_SELECT_MASK) |
+				 WARHEAD_LINK_DEFAULT);
 		craft->warheadLauncherCooldownTicks[launcherIndex] = 0;
 	}
 	craft->warheadLockTicks = 0;
@@ -354,52 +446,74 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int
 	if (assignAiPlan != 0) {
 		uint16_t planId = g_builtinPlanIdByNameIndex
 			[g_orderLeaderBuiltinPlanNameIndex
-				 [g_missionFlightGroups[g_objectTable[objectIdx].flightGroupIdx].fg.orders[0].order]];
-		const char* planName;
+				 [g_missionFlightGroups[g_objectTable[objectIdx]
+								.flightGroupIdx]
+					  .fg.orders[0]
+					  .order]];
+		const char *planName;
 		uint16_t throttleSpeed;
 
 		g_curCraft->aiController.currentPlanId = planId;
 		g_curCraft->aiController.pendingPlanId = planId;
 		planName = g_planTable[planId].name;
-		if (strcmp(planName, "nullpln") == 0 || strcmp(planName, "stationaryldrpln") == 0 ||
-			strcmp(planName, "stationaryflwpln") == 0 || strcmp(planName, "disabledpln") == 0)
+		if (strcmp(planName, "nullpln") == 0 ||
+		    strcmp(planName, "stationaryldrpln") == 0 ||
+		    strcmp(planName, "stationaryflwpln") == 0 ||
+		    strcmp(planName, "disabledpln") == 0) {
 			throttleSpeed = 0;
-		else if (strcmp(planName, "escortldr1pln") == 0)
+		} else if (strcmp(planName, "escortldr1pln") == 0) {
 			throttleSpeed = ESCORT_THROTTLE_SPEED;
-		else
+		} else {
 			throttleSpeed = g_orderThrottleToCraftThrottleSpeed
-				[g_missionFlightGroups[g_objectTable[objectIdx].flightGroupIdx].fg.orders[0].throttle];
+				[g_missionFlightGroups[g_objectTable[objectIdx]
+							       .flightGroupIdx]
+					 .fg.orders[0]
+					 .throttle];
+		}
 		craft->throttleSpeed = throttleSpeed;
-		g_objectTable[objectIdx].mobj->speed =
-			(uint16_t)MATH2_fraction(g_modelDefs[craft->modelIndex].maxSpeed, throttleSpeed);
+		g_objectTable[objectIdx].mobj->speed = (uint16_t)MATH2_fraction(
+			g_modelDefs[craft->modelIndex].maxSpeed, throttleSpeed);
 		g_objectTable[objectIdx].mobj->speedRemainder = 0;
 		g_curCraft = craft;
 		pai_setupcraftcontext((uint16_t)objectIdx);
 		pai_ApplyPendingPlanTargetAndManeuver((unsigned int)objectIdx);
 
 		if (g_players[playerIndex].currentTargetObjectIdx != -1) {
-			int targetObjIdx = (uint16_t)g_players[playerIndex].currentTargetObjectIdx;
+			int targetObjIdx = (uint16_t)g_players[playerIndex]
+						   .currentTargetObjectIdx;
 			if (g_activeRegionCraftObjectSlotEnd > targetObjIdx ||
-				(g_regionMainObjectSlotEnd <= targetObjIdx &&
-				 g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount > targetObjIdx)) {
+			    (g_regionMainObjectSlotEnd <= targetObjIdx &&
+			     g_regionMainObjectSlotEnd +
+					     g_regionStaticObjectSlotCount >
+				     targetObjIdx)) {
 				unsigned int orderSlot;
 				int targetMatchesOrder;
 
 				targetMatchesOrder = 0;
-				for (orderSlot = 0; orderSlot < ORDER_SLOT_COUNT; ++orderSlot) {
-					g_paiContext.orderSlot = (uint16_t)orderSlot;
+				for (orderSlot = 0;
+				     orderSlot < ORDER_SLOT_COUNT;
+				     ++orderSlot) {
+					g_paiContext.orderSlot =
+						(uint16_t)orderSlot;
 					if (pai_CurrentOrderTargetsMatchObject(
-							(uint16_t)g_players[playerIndex].currentTargetObjectIdx) != 0)
+						    (uint16_t)g_players[playerIndex]
+							    .currentTargetObjectIdx) !=
+					    0) {
 						targetMatchesOrder = 1;
+					}
 				}
-				if (targetMatchesOrder != 0)
+				if (targetMatchesOrder != 0) {
 					craft->aiController.candidateTargetIdx =
-						(uint16_t)g_players[playerIndex].currentTargetObjectIdx;
+						(uint16_t)g_players[playerIndex]
+							.currentTargetObjectIdx;
+				}
 			}
 		}
 	} else {
-		g_curCraft->aiController.pendingPlanId = (uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
-		g_curCraft->aiController.currentPlanId = g_curCraft->aiController.pendingPlanId;
+		g_curCraft->aiController.pendingPlanId =
+			(uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
+		g_curCraft->aiController.currentPlanId =
+			g_curCraft->aiController.pendingPlanId;
 		g_curCraft = craft;
 		pai_setupcraftcontext((uint16_t)objectIdx);
 		pai_ApplyPendingPlanTargetAndManeuver((unsigned int)objectIdx);
@@ -413,17 +527,25 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int
 }
 
 // FUNCTION: XVT 0x45ACD0
-void Player_SaveCraftSettings(int playerIndex) {
-	CraftData* craft;
+void Player_SaveCraftSettings(int playerIndex)
+{
+	CraftData *craft;
 
 	craft = g_objectTable[g_players[playerIndex].objectIndex].mobj->pCraft;
-	g_players[playerIndex].savedCraftSettings.throttleSpeed = craft->throttleSpeed;
-	g_players[playerIndex].savedCraftSettings.laserRechargeLevel = craft->laserRechargeLevel;
-	g_players[playerIndex].savedCraftSettings.shieldRechargeLevel = craft->shieldRechargeLevel;
-	g_players[playerIndex].savedCraftSettings.beamLevel = craft->beamRechargeLevel;
-	g_players[playerIndex].savedCraftSettings.shieldDistribMode = craft->shieldDistribMode;
-	g_players[playerIndex].savedCraftSettings.laserLinkMode[0] = craft->laserState.linkMode[0];
-	g_players[playerIndex].savedCraftSettings.laserLinkMode[1] = craft->laserState.linkMode[1];
+	g_players[playerIndex].savedCraftSettings.throttleSpeed =
+		craft->throttleSpeed;
+	g_players[playerIndex].savedCraftSettings.laserRechargeLevel =
+		craft->laserRechargeLevel;
+	g_players[playerIndex].savedCraftSettings.shieldRechargeLevel =
+		craft->shieldRechargeLevel;
+	g_players[playerIndex].savedCraftSettings.beamLevel =
+		craft->beamRechargeLevel;
+	g_players[playerIndex].savedCraftSettings.shieldDistribMode =
+		craft->shieldDistribMode;
+	g_players[playerIndex].savedCraftSettings.laserLinkMode[0] =
+		craft->laserState.linkMode[0];
+	g_players[playerIndex].savedCraftSettings.laserLinkMode[1] =
+		craft->laserState.linkMode[1];
 	g_players[playerIndex].savedCraftSettings.warheadLauncherFlags[0] =
 		(uint8_t)(craft->warheadLauncherFlags[0] & 3);
 	g_players[playerIndex].savedCraftSettings.warheadLauncherFlags[1] =
@@ -431,7 +553,8 @@ void Player_SaveCraftSettings(int playerIndex) {
 }
 
 // FUNCTION: XVT 0x480570
-void Player_UpdateFlightControlsAndCamera(int playerIdx) {
+void Player_UpdateFlightControlsAndCamera(int playerIdx)
+{
 	enum {
 		BASE_THROTTLE_SCALE = 0x5555,
 		ROLL_RATE_SEGMENT = 0x3800,
@@ -462,9 +585,9 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 		CAMERA_WORLD_LIMIT = 0x1000000,
 	};
 
-	CraftData* craft;
-	MobileObject* mobileObject;
-	ObjectRecord* targetObject;
+	CraftData *craft;
+	MobileObject *mobileObject;
+	ObjectRecord *targetObject;
 	int16_t desiredYaw;
 #ifdef XVT_MODERN
 	int16_t independentRollStep;
@@ -479,7 +602,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 	int16_t smoothingStep;
 	int16_t absoluteYaw;
 	int16_t absolutePitch;
-	int16_t* cameraDistanceStep;
+	int16_t *cameraDistanceStep;
 	int16_t powerBalance;
 	int16_t rechargeLevelTotal;
 	int16_t laserRechargeLevel;
@@ -509,162 +632,284 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 #endif
 	FlightInput_ApplyDeadzone();
 	g_scaledInputPitch *= 2;
-	if (g_players[playerIdx].viewState.playerInputBlocked == 0 && g_players[playerIdx].mapCameraState == 0) {
+	if (g_players[playerIdx].viewState.playerInputBlocked == 0 &&
+	    g_players[playerIdx].mapCameraState == 0) {
 		if (g_players[playerIdx].hyperspacePhase == 0) {
-			mobileObject = g_objectTable[g_players[playerIdx].objectIndex].mobj;
+			mobileObject =
+				g_objectTable[g_players[playerIdx].objectIndex]
+					.mobj;
 			craft = mobileObject->pCraft;
 			throttleScale = craft->throttleSpeed;
-			if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_ENGINES) == 0)
+			if ((craft->workingSubsystems &
+			     CRAFT_SUBSYSTEM_FLAG_ENGINES) == 0) {
 				throttleScale = 0;
-			if (throttleScale < BASE_THROTTLE_SCALE)
-				throttleScale = (uint16_t)(2 * throttleScale + BASE_THROTTLE_SCALE);
-			else
-				throttleScale = (uint16_t)((BASE_THROTTLE_SCALE - throttleScale) / 2 - 1);
+			}
+			if (throttleScale < BASE_THROTTLE_SCALE) {
+				throttleScale = (uint16_t)(2 * throttleScale +
+							   BASE_THROTTLE_SCALE);
+			} else {
+				throttleScale =
+					(uint16_t)((BASE_THROTTLE_SCALE -
+						    throttleScale) /
+							   2 -
+						   1);
+			}
 
 			laserRechargeLevel = (uint8_t)craft->laserRechargeLevel;
-			if ((craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0)
-				rechargeLevelTotal = (int16_t)((uint8_t)craft->shieldRechargeLevel + laserRechargeLevel);
-			else
-				rechargeLevelTotal = (int16_t)(2 * laserRechargeLevel);
-			powerBalance = (int16_t)(POWER_RECHARGE_NEUTRAL_TOTAL - rechargeLevelTotal);
-			if (powerBalance < 0)
-				powerScale = (uint16_t)(-POWER_BALANCE_SCALE * powerBalance);
-			else
-				powerScale = (uint16_t)(POWER_BALANCE_SCALE * powerBalance);
-			rollRate = (uint16_t)MATH2_fraction(craft->aiFlight.rollRate, throttleScale);
-			if (powerBalance > 0)
-				rollRate = (uint16_t)(rollRate + MATH2_fraction(rollRate, powerScale));
-			else
-				rollRate = (uint16_t)(rollRate - MATH2_fraction(rollRate, powerScale));
+			if ((craft->systemFlags &
+			     CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
+				rechargeLevelTotal =
+					(int16_t)((uint8_t)craft
+							  ->shieldRechargeLevel +
+						  laserRechargeLevel);
+			} else {
+				rechargeLevelTotal =
+					(int16_t)(2 * laserRechargeLevel);
+			}
+			powerBalance = (int16_t)(POWER_RECHARGE_NEUTRAL_TOTAL -
+						 rechargeLevelTotal);
+			if (powerBalance < 0) {
+				powerScale = (uint16_t)(-POWER_BALANCE_SCALE *
+							powerBalance);
+			} else {
+				powerScale = (uint16_t)(POWER_BALANCE_SCALE *
+							powerBalance);
+			}
+			rollRate = (uint16_t)MATH2_fraction(
+				craft->aiFlight.rollRate, throttleScale);
+			if (powerBalance > 0) {
+				rollRate =
+					(uint16_t)(rollRate +
+						   MATH2_fraction(rollRate,
+								  powerScale));
+			} else {
+				rollRate =
+					(uint16_t)(rollRate -
+						   MATH2_fraction(rollRate,
+								  powerScale));
+			}
 			segmentCount = rollRate / ROLL_RATE_SEGMENT;
-			segmentFraction = (uint16_t)MATH2_ratioQ16(rollRate % ROLL_RATE_SEGMENT, ROLL_RATE_SEGMENT);
+			segmentFraction = (uint16_t)MATH2_ratioQ16(
+				rollRate % ROLL_RATE_SEGMENT,
+				ROLL_RATE_SEGMENT);
 			inputMagnitude = (uint16_t)g_scaledInputYaw;
-			if (inputMagnitude >= 0x8000u)
+			if (inputMagnitude >= 0x8000u) {
 				inputMagnitude = (uint16_t)-g_scaledInputYaw;
-			desiredYaw =
-				(int16_t)(MATH2_fraction(inputMagnitude, segmentFraction) + inputMagnitude * segmentCount);
-			if ((uint16_t)g_scaledInputYaw >= 0x8000u)
+			}
+			desiredYaw = (int16_t)(MATH2_fraction(inputMagnitude,
+							      segmentFraction) +
+					       inputMagnitude * segmentCount);
+			if ((uint16_t)g_scaledInputYaw >= 0x8000u) {
 				desiredYaw = (int16_t)-desiredYaw;
+			}
 			g_absScaledInputYaw = g_scaledInputYaw;
-			if ((uint16_t)g_scaledInputYaw >= 0x8000u)
-				g_absScaledInputYaw = (int16_t)-g_scaledInputYaw;
+			if ((uint16_t)g_scaledInputYaw >= 0x8000u) {
+				g_absScaledInputYaw =
+					(int16_t)-g_scaledInputYaw;
+			}
 
-			pitchRate = (uint16_t)MATH2_fraction(craft->aiFlight.pitchRate, throttleScale);
-			if (powerBalance > 0)
-				pitchRate = (uint16_t)(pitchRate + MATH2_fraction(pitchRate, powerScale));
-			else
-				pitchRate = (uint16_t)(pitchRate - MATH2_fraction(pitchRate, powerScale));
+			pitchRate = (uint16_t)MATH2_fraction(
+				craft->aiFlight.pitchRate, throttleScale);
+			if (powerBalance > 0) {
+				pitchRate =
+					(uint16_t)(pitchRate +
+						   MATH2_fraction(pitchRate,
+								  powerScale));
+			} else {
+				pitchRate =
+					(uint16_t)(pitchRate -
+						   MATH2_fraction(pitchRate,
+								  powerScale));
+			}
 			segmentCount = pitchRate / PITCH_RATE_SEGMENT;
-			segmentFraction = (uint16_t)MATH2_ratioQ16(pitchRate % PITCH_RATE_SEGMENT, PITCH_RATE_SEGMENT);
+			segmentFraction = (uint16_t)MATH2_ratioQ16(
+				pitchRate % PITCH_RATE_SEGMENT,
+				PITCH_RATE_SEGMENT);
 			inputMagnitude = (uint16_t)g_scaledInputPitch;
-			if (inputMagnitude >= 0x8000u)
+			if (inputMagnitude >= 0x8000u) {
 				inputMagnitude = (uint16_t)-g_scaledInputPitch;
+			}
 			desiredPitch =
-				(int16_t)(MATH2_fraction(inputMagnitude, segmentFraction) + inputMagnitude * segmentCount);
-			if ((uint16_t)g_scaledInputPitch >= 0x8000u)
+				(int16_t)(MATH2_fraction(inputMagnitude,
+							 segmentFraction) +
+					  inputMagnitude * segmentCount);
+			if ((uint16_t)g_scaledInputPitch >= 0x8000u) {
 				desiredPitch = (int16_t)-desiredPitch;
-			if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS) == 0 ||
-				(craft->beamEffectAccum[1] != 0 && craft->chaffActiveSeconds == 0)) {
+			}
+			if ((craft->workingSubsystems &
+			     CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS) == 0 ||
+			    (craft->beamEffectAccum[1] != 0 &&
+			     craft->chaffActiveSeconds == 0)) {
 				desiredYaw = 0;
 				desiredPitch = 0;
 			}
 
 			keyMode = 0;
-			if ((g_flightKeyMods & KEY_MODIFIER_MASK) == ROLL_CONTROL_MODIFIER)
+			if ((g_flightKeyMods & KEY_MODIFIER_MASK) ==
+			    ROLL_CONTROL_MODIFIER) {
 				keyMode = 1;
+			}
 			if (g_players[playerIdx].yawRollSwap == keyMode) {
-				smoothedInput = g_players[playerIdx].smoothedInputYaw;
-				inputDifference = (int16_t)((uint16_t)desiredYaw - (uint16_t)smoothedInput);
+				smoothedInput =
+					g_players[playerIdx].smoothedInputYaw;
+				inputDifference =
+					(int16_t)((uint16_t)desiredYaw -
+						  (uint16_t)smoothedInput);
 #ifdef XVT_MODERN
 				if (XvtFlightTiming_IsUnlocked()) {
 					g_players[playerIdx].smoothedInputYaw =
 						(int16_t)(smoothedInput +
-								  XvtPlayerTiming_Slew(playerIdx, XVT_PLAYER_SLEW_YAW, inputDifference));
+							  XvtPlayerTiming_Slew(
+								  playerIdx,
+								  XVT_PLAYER_SLEW_YAW,
+								  inputDifference));
 				} else
 #endif
 					if (inputDifference != 0) {
 					smoothingStep = inputDifference;
-					if (inputDifference < 0)
-						smoothingStep = (int16_t)-inputDifference;
-					if (smoothingStep < CONTROL_SMOOTHING_THRESHOLD) {
-						g_players[playerIdx].smoothedInputYaw = (int16_t)(smoothedInput + inputDifference);
+					if (inputDifference < 0) {
+						smoothingStep =
+							(int16_t)-inputDifference;
+					}
+					if (smoothingStep <
+					    CONTROL_SMOOTHING_THRESHOLD) {
+						g_players[playerIdx]
+							.smoothedInputYaw =
+							(int16_t)(smoothedInput +
+								  inputDifference);
 					} else {
-						if (g_simStepsPerSecond > CONTROL_SMOOTHING_BASE_STEP) {
-							smoothingStep = (int16_t)(smoothingStep / (int)g_simStepsPerSecond);
-							if (smoothingStep == 0)
-								smoothingStep = 1;
-							smoothingStep *= CONTROL_SMOOTHING_BASE_STEP;
+						if (g_simStepsPerSecond >
+						    CONTROL_SMOOTHING_BASE_STEP) {
+							smoothingStep =
+								(int16_t)(smoothingStep /
+									  (int)g_simStepsPerSecond);
+							if (smoothingStep ==
+							    0) {
+								smoothingStep =
+									1;
+							}
+							smoothingStep *=
+								CONTROL_SMOOTHING_BASE_STEP;
 						}
-						if (inputDifference < 0)
-							g_players[playerIdx].smoothedInputYaw -= smoothingStep;
-						else
-							g_players[playerIdx].smoothedInputYaw += smoothingStep;
+						if (inputDifference < 0) {
+							g_players[playerIdx]
+								.smoothedInputYaw -=
+								smoothingStep;
+						} else {
+							g_players[playerIdx]
+								.smoothedInputYaw +=
+								smoothingStep;
+						}
 					}
 				}
-				smoothedInput = g_players[playerIdx].smoothedInputPitch;
-				inputDifference = (int16_t)((uint16_t)desiredPitch - (uint16_t)smoothedInput);
+				smoothedInput =
+					g_players[playerIdx].smoothedInputPitch;
+				inputDifference =
+					(int16_t)((uint16_t)desiredPitch -
+						  (uint16_t)smoothedInput);
 #ifdef XVT_MODERN
 				if (XvtFlightTiming_IsUnlocked()) {
-					g_players[playerIdx].smoothedInputPitch =
+					g_players[playerIdx]
+						.smoothedInputPitch =
 						(int16_t)(smoothedInput +
-								  XvtPlayerTiming_Slew(playerIdx, XVT_PLAYER_SLEW_PITCH, inputDifference));
+							  XvtPlayerTiming_Slew(
+								  playerIdx,
+								  XVT_PLAYER_SLEW_PITCH,
+								  inputDifference));
 				} else
 #endif
 					if (inputDifference != 0) {
 					smoothingStep = inputDifference;
-					if (inputDifference < 0)
-						smoothingStep = (int16_t)-inputDifference;
-					if (smoothingStep < CONTROL_SMOOTHING_THRESHOLD) {
-						g_players[playerIdx].smoothedInputPitch = (int16_t)(smoothedInput + inputDifference);
+					if (inputDifference < 0) {
+						smoothingStep =
+							(int16_t)-inputDifference;
+					}
+					if (smoothingStep <
+					    CONTROL_SMOOTHING_THRESHOLD) {
+						g_players[playerIdx]
+							.smoothedInputPitch =
+							(int16_t)(smoothedInput +
+								  inputDifference);
 					} else {
-						if (g_simStepsPerSecond > CONTROL_SMOOTHING_BASE_STEP) {
-							smoothingStep = (int16_t)(smoothingStep / (int)g_simStepsPerSecond);
-							if (smoothingStep == 0)
-								smoothingStep = 1;
-							smoothingStep *= CONTROL_SMOOTHING_BASE_STEP;
+						if (g_simStepsPerSecond >
+						    CONTROL_SMOOTHING_BASE_STEP) {
+							smoothingStep =
+								(int16_t)(smoothingStep /
+									  (int)g_simStepsPerSecond);
+							if (smoothingStep ==
+							    0) {
+								smoothingStep =
+									1;
+							}
+							smoothingStep *=
+								CONTROL_SMOOTHING_BASE_STEP;
 						}
-						if (inputDifference < 0)
-							g_players[playerIdx].smoothedInputPitch -= smoothingStep;
-						else
-							g_players[playerIdx].smoothedInputPitch += smoothingStep;
+						if (inputDifference < 0) {
+							g_players[playerIdx]
+								.smoothedInputPitch -=
+								smoothingStep;
+						} else {
+							g_players[playerIdx]
+								.smoothedInputPitch +=
+								smoothingStep;
+						}
 					}
 				}
 			} else {
 				g_players[playerIdx].smoothedInputYaw = 0;
 				g_players[playerIdx].smoothedInputPitch = 0;
 #ifdef XVT_MODERN
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_SLEW_YAW);
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_SLEW_PITCH);
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_YAW);
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_PITCH);
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_SLEW_YAW);
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_SLEW_PITCH);
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_YAW);
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_PITCH);
 #endif
 			}
 			g_players[playerIdx].yawRollSwap = (int16_t)keyMode;
 			yawStep = (int16_t)
 #ifdef XVT_MODERN
 				(XvtFlightTiming_IsUnlocked()
-					 ? XvtPlayerTiming_Scale(playerIdx, XVT_PLAYER_YAW, g_players[playerIdx].smoothedInputYaw,
-											 g_elapsedTicks, 236)
-					 : Player_ScaleControlStepByElapsedTicks(g_players[playerIdx].smoothedInputYaw))
+					 ? XvtPlayerTiming_Scale(
+						   playerIdx, XVT_PLAYER_YAW,
+						   g_players[playerIdx]
+							   .smoothedInputYaw,
+						   g_elapsedTicks, 236)
+					 : Player_ScaleControlStepByElapsedTicks(
+						   g_players[playerIdx]
+							   .smoothedInputYaw))
 #else
-				Player_ScaleControlStepByElapsedTicks(g_players[playerIdx].smoothedInputYaw)
+				Player_ScaleControlStepByElapsedTicks(
+					g_players[playerIdx].smoothedInputYaw)
 #endif
 				;
 			pitchStep = (int16_t)
 #ifdef XVT_MODERN
 				(XvtFlightTiming_IsUnlocked()
-					 ? XvtPlayerTiming_Scale(playerIdx, XVT_PLAYER_PITCH,
-											 g_players[playerIdx].smoothedInputPitch, g_elapsedTicks, 236)
-					 : Player_ScaleControlStepByElapsedTicks(g_players[playerIdx].smoothedInputPitch))
+					 ? XvtPlayerTiming_Scale(
+						   playerIdx, XVT_PLAYER_PITCH,
+						   g_players[playerIdx]
+							   .smoothedInputPitch,
+						   g_elapsedTicks, 236)
+					 : Player_ScaleControlStepByElapsedTicks(
+						   g_players[playerIdx]
+							   .smoothedInputPitch))
 #else
-				Player_ScaleControlStepByElapsedTicks(g_players[playerIdx].smoothedInputPitch)
+				Player_ScaleControlStepByElapsedTicks(
+					g_players[playerIdx].smoothedInputPitch)
 #endif
 				;
 #ifdef XVT_MODERN
-			independentRollStep = XvtFlightControls_RollStep(playerIdx, rollRate, keyMode ? yawStep : 0);
+			independentRollStep = XvtFlightControls_RollStep(
+				playerIdx, rollRate, keyMode ? yawStep : 0);
 #endif
-			if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS) == 0 ||
-				(craft->beamEffectAccum[1] != 0 && craft->chaffActiveSeconds == 0)) {
+			if ((craft->workingSubsystems &
+			     CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS) == 0 ||
+			    (craft->beamEffectAccum[1] != 0 &&
+			     craft->chaffActiveSeconds == 0)) {
 				yawStep = 0;
 				pitchStep = 0;
 #ifdef XVT_MODERN
@@ -676,29 +921,62 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 				yawStep = independentRollStep;
 #endif
 				if (pitchStep != 0) {
-					USER_calcdeltapitch(pitchStep, 0, (uint16_t)g_players[playerIdx].objectIndex, craft);
-					g_objectTable[g_players[playerIdx].objectIndex].mobj->orientMatrixDirty = 1;
-					g_objectTable[g_players[playerIdx].objectIndex].mobj->moveVectorDirty =
-						g_objectTable[g_players[playerIdx].objectIndex].mobj->orientMatrixDirty;
+					USER_calcdeltapitch(
+						pitchStep, 0,
+						(uint16_t)g_players[playerIdx]
+							.objectIndex,
+						craft);
+					g_objectTable[g_players[playerIdx]
+							      .objectIndex]
+						.mobj->orientMatrixDirty = 1;
+					g_objectTable[g_players[playerIdx]
+							      .objectIndex]
+						.mobj->moveVectorDirty =
+						g_objectTable
+							[g_players[playerIdx]
+								 .objectIndex]
+								.mobj
+								->orientMatrixDirty;
 				}
 				if (yawStep != 0) {
-					g_objectTable[g_players[playerIdx].objectIndex].roll -= 2 * yawStep;
-					g_objectTable[g_players[playerIdx].objectIndex].mobj->orientMatrixDirty = 1;
-					g_objectTable[g_players[playerIdx].objectIndex].mobj->moveVectorDirty =
-						g_objectTable[g_players[playerIdx].objectIndex].mobj->orientMatrixDirty;
+					g_objectTable[g_players[playerIdx]
+							      .objectIndex]
+						.roll -= 2 * yawStep;
+					g_objectTable[g_players[playerIdx]
+							      .objectIndex]
+						.mobj->orientMatrixDirty = 1;
+					g_objectTable[g_players[playerIdx]
+							      .objectIndex]
+						.mobj->moveVectorDirty =
+						g_objectTable
+							[g_players[playerIdx]
+								 .objectIndex]
+								.mobj
+								->orientMatrixDirty;
 				}
 			} else if (pitchStep != 0 || yawStep != 0) {
-				USER_calcdeltapitch(pitchStep, (int16_t)-yawStep, (uint16_t)g_players[playerIdx].objectIndex,
-									craft);
-				g_objectTable[g_players[playerIdx].objectIndex].mobj->orientMatrixDirty = 1;
-				g_objectTable[g_players[playerIdx].objectIndex].mobj->moveVectorDirty =
-					g_objectTable[g_players[playerIdx].objectIndex].mobj->orientMatrixDirty;
-				if (yawStep != 0)
-					g_objectTable[g_players[playerIdx].objectIndex].roll -= yawStep;
+				USER_calcdeltapitch(
+					pitchStep, (int16_t)-yawStep,
+					(uint16_t)g_players[playerIdx]
+						.objectIndex,
+					craft);
+				g_objectTable[g_players[playerIdx].objectIndex]
+					.mobj->orientMatrixDirty = 1;
+				g_objectTable[g_players[playerIdx].objectIndex]
+					.mobj->moveVectorDirty =
+					g_objectTable[g_players[playerIdx]
+							      .objectIndex]
+						.mobj->orientMatrixDirty;
+				if (yawStep != 0) {
+					g_objectTable[g_players[playerIdx]
+							      .objectIndex]
+						.roll -= yawStep;
+				}
 			}
 #ifdef XVT_MODERN
 			if (!keyMode && independentRollStep) {
-				g_objectTable[g_players[playerIdx].objectIndex].roll -= 2 * independentRollStep;
+				g_objectTable[g_players[playerIdx].objectIndex]
+					.roll -= 2 * independentRollStep;
 				mobileObject->orientMatrixDirty = 1;
 				mobileObject->moveVectorDirty = 1;
 			}
@@ -710,205 +988,333 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 	cameraState = g_players[playerIdx].mapCameraState;
 	if (cameraState != 0) {
 		if ((cameraState & MAP_CAMERA_DIRECTION_BIT) != 0) {
-			transitionMagnitude = (int16_t)(cameraState & MAP_CAMERA_STATE_MASK);
+			transitionMagnitude =
+				(int16_t)(cameraState & MAP_CAMERA_STATE_MASK);
 			if (transitionMagnitude < MAP_CAMERA_MAX_TRANSITION) {
 				if (g_flightSimSideEffectsSuppressed == 0) {
-					if (transitionMagnitude + (uint16_t)g_elapsedTicks > MAP_CAMERA_MAX_TRANSITION)
-						transitionMagnitude = (int16_t)(MAP_CAMERA_MAX_TRANSITION - g_elapsedTicks);
-					transitionMagnitude = (int16_t)(transitionMagnitude + g_elapsedTicks);
-					transitionMagnitude |= MAP_CAMERA_DIRECTION_BIT;
-					g_players[playerIdx].mapCameraState = (uint8_t)transitionMagnitude;
+					if (transitionMagnitude +
+						    (uint16_t)g_elapsedTicks >
+					    MAP_CAMERA_MAX_TRANSITION) {
+						transitionMagnitude =
+							(int16_t)(MAP_CAMERA_MAX_TRANSITION -
+								  g_elapsedTicks);
+					}
+					transitionMagnitude =
+						(int16_t)(transitionMagnitude +
+							  g_elapsedTicks);
+					transitionMagnitude |=
+						MAP_CAMERA_DIRECTION_BIT;
+					g_players[playerIdx].mapCameraState =
+						(uint8_t)transitionMagnitude;
 				}
 			} else {
-				if (g_players[playerIdx].viewState.cameraFocusObjIdx != UINT16_MAX) {
-					g_players[playerIdx].viewState.cameraWorldX =
-						g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].world_x;
-					g_players[playerIdx].viewState.cameraWorldY =
-						g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].world_y;
-					g_players[playerIdx].viewState.cameraWorldZ =
-						g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].world_z;
-					g_players[playerIdx].viewState.cameraWorldZ +=
-						g_players[playerIdx].viewState.cameraDistance;
+				if (g_players[playerIdx]
+					    .viewState.cameraFocusObjIdx !=
+				    UINT16_MAX) {
+					g_players[playerIdx]
+						.viewState.cameraWorldX =
+						g_objectTable
+							[g_players[playerIdx]
+								 .viewState
+								 .cameraFocusObjIdx]
+								.world_x;
+					g_players[playerIdx]
+						.viewState.cameraWorldY =
+						g_objectTable
+							[g_players[playerIdx]
+								 .viewState
+								 .cameraFocusObjIdx]
+								.world_y;
+					g_players[playerIdx]
+						.viewState.cameraWorldZ =
+						g_objectTable
+							[g_players[playerIdx]
+								 .viewState
+								 .cameraFocusObjIdx]
+								.world_z;
+					g_players[playerIdx]
+						.viewState.cameraWorldZ +=
+						g_players[playerIdx]
+							.viewState
+							.cameraDistance;
 				}
-				g_players[playerIdx].viewState.cameraFocusObjIdx = UINT16_MAX;
+				g_players[playerIdx]
+					.viewState.cameraFocusObjIdx =
+					UINT16_MAX;
 			}
 		} else {
-			transitionMagnitude = (int16_t)(cameraState & MAP_CAMERA_STATE_MASK);
-			if (transitionMagnitude > 1 && g_flightSimSideEffectsSuppressed == 0) {
-				if (g_elapsedTicks >= transitionMagnitude)
-					transitionMagnitude = (int16_t)(g_elapsedTicks + 1);
-				transitionMagnitude = (int16_t)(transitionMagnitude - g_elapsedTicks);
-				g_players[playerIdx].mapCameraState = (uint8_t)transitionMagnitude;
+			transitionMagnitude =
+				(int16_t)(cameraState & MAP_CAMERA_STATE_MASK);
+			if (transitionMagnitude > 1 &&
+			    g_flightSimSideEffectsSuppressed == 0) {
+				if (g_elapsedTicks >= transitionMagnitude) {
+					transitionMagnitude =
+						(int16_t)(g_elapsedTicks + 1);
+				}
+				transitionMagnitude =
+					(int16_t)(transitionMagnitude -
+						  g_elapsedTicks);
+				g_players[playerIdx].mapCameraState =
+					(uint8_t)transitionMagnitude;
 			}
 		}
 		if (g_players[playerIdx].mapCameraState != 0) {
 			absoluteYaw = g_scaledInputYaw;
 			absolutePitch = g_scaledInputPitch;
-			if (absoluteYaw < 0)
+			if (absoluteYaw < 0) {
 				absoluteYaw = (int16_t)-absoluteYaw;
-			if (absolutePitch < 0)
+			}
+			if (absolutePitch < 0) {
 				absolutePitch = (int16_t)-absolutePitch;
-			if (absoluteYaw < MAP_CAMERA_YAW_DEADZONE)
+			}
+			if (absoluteYaw < MAP_CAMERA_YAW_DEADZONE) {
 				g_scaledInputYaw = 0;
-			if (absolutePitch < MAP_CAMERA_PITCH_DEADZONE)
+			}
+			if (absolutePitch < MAP_CAMERA_PITCH_DEADZONE) {
 				g_scaledInputPitch = 0;
+			}
 		}
 	}
 
 	yawStep = (int16_t)
 #ifdef XVT_MODERN
 		(XvtFlightTiming_IsUnlocked()
-			 ? XvtPlayerTiming_Scale(playerIdx, XVT_PLAYER_CAMERA_YAW, g_scaledInputYaw, g_elapsedTicks, 236)
-			 : Player_ScaleControlStepByElapsedTicks(g_scaledInputYaw))
+			 ? XvtPlayerTiming_Scale(
+				   playerIdx, XVT_PLAYER_CAMERA_YAW,
+				   g_scaledInputYaw, g_elapsedTicks, 236)
+			 : Player_ScaleControlStepByElapsedTicks(
+				   g_scaledInputYaw))
 #else
 		Player_ScaleControlStepByElapsedTicks(g_scaledInputYaw)
 #endif
 		;
 	pitchStep = (int16_t)
 #ifdef XVT_MODERN
-		(XvtFlightTiming_IsUnlocked() ? XvtPlayerTiming_Scale(playerIdx, XVT_PLAYER_CAMERA_PITCH,
-															  g_scaledInputPitch, g_elapsedTicks, 236)
-									  : Player_ScaleControlStepByElapsedTicks(g_scaledInputPitch))
+		(XvtFlightTiming_IsUnlocked()
+			 ? XvtPlayerTiming_Scale(
+				   playerIdx, XVT_PLAYER_CAMERA_PITCH,
+				   g_scaledInputPitch, g_elapsedTicks, 236)
+			 : Player_ScaleControlStepByElapsedTicks(
+				   g_scaledInputPitch))
 #else
 		Player_ScaleControlStepByElapsedTicks(g_scaledInputPitch)
 #endif
 		;
-	if ((g_players[playerIdx].mapCameraState & MAP_CAMERA_DIRECTION_BIT) != 0) {
+	if ((g_players[playerIdx].mapCameraState & MAP_CAMERA_DIRECTION_BIT) !=
+	    0) {
 		g_players[playerIdx].viewState.cameraWorldX +=
-			yawStep * ((g_players[playerIdx].viewState.cameraWorldZ >> CAMERA_DISTANCE_COORDINATE_SHIFT) + 1);
+			yawStep *
+			((g_players[playerIdx].viewState.cameraWorldZ >>
+			  CAMERA_DISTANCE_COORDINATE_SHIFT) +
+			 1);
 		g_players[playerIdx].viewState.cameraWorldY +=
 			pitchStep *
-			((g_players[playerIdx].viewState.cameraWorldZ >> CAMERA_DISTANCE_COORDINATE_SHIFT) + 1);
+			((g_players[playerIdx].viewState.cameraWorldZ >>
+			  CAMERA_DISTANCE_COORDINATE_SHIFT) +
+			 1);
 	} else {
-		if (g_players[playerIdx].viewState.cameraFocusObjIdx != UINT16_MAX) {
+		if (g_players[playerIdx].viewState.cameraFocusObjIdx !=
+		    UINT16_MAX) {
 			g_players[playerIdx].viewState.hudAimY += yawStep;
 			g_players[playerIdx].viewState.hudAimX += pitchStep;
 		} else {
-			if (pitchStep != 0 || yawStep != 0)
-				FlightView_RotateViewByInput(pitchStep, -yawStep, playerIdx);
+			if (pitchStep != 0 || yawStep != 0) {
+				FlightView_RotateViewByInput(
+					pitchStep, -yawStep, playerIdx);
+			}
 		}
 	}
 
 	cameraKeyMode = g_flightKeyMods & 0xF;
 #ifdef XVT_MODERN
-	previousDistanceStep = g_players[playerIdx].viewState.cameraDistanceStep;
+	previousDistanceStep =
+		g_players[playerIdx].viewState.cameraDistanceStep;
 #endif
 	if (cameraKeyMode != 1 && cameraKeyMode != 2) {
 		if (g_players[playerIdx].mapCameraState != 0) {
-			uint16_t currentDistanceStep = g_players[playerIdx].viewState.cameraDistanceStep;
+			uint16_t currentDistanceStep =
+				g_players[playerIdx]
+					.viewState.cameraDistanceStep;
 			if (currentDistanceStep > 0x100u) {
-				uint16_t decayedDistanceStep = currentDistanceStep;
-				currentDistanceStep >>= CAMERA_DISTANCE_DECAY_SHIFT;
+				uint16_t decayedDistanceStep =
+					currentDistanceStep;
+				currentDistanceStep >>=
+					CAMERA_DISTANCE_DECAY_SHIFT;
 				decayedDistanceStep -= currentDistanceStep;
-				decayedDistanceStep -= CAMERA_DISTANCE_DEFAULT_STEP;
+				decayedDistanceStep -=
+					CAMERA_DISTANCE_DEFAULT_STEP;
 
 #ifdef XVT_MODERN
-				g_players[playerIdx].viewState.cameraDistanceStep =
+				g_players[playerIdx]
+					.viewState.cameraDistanceStep =
 					XvtFlightTiming_IsUnlocked()
 						? (int16_t)(previousDistanceStep +
-									XvtPlayerTiming_Scale(playerIdx, XVT_PLAYER_ZOOM,
-														  (int)decayedDistanceStep -
-															  (uint16_t)previousDistanceStep,
-														  g_elapsedTicks, 8))
+							    XvtPlayerTiming_Scale(
+								    playerIdx,
+								    XVT_PLAYER_ZOOM,
+								    (int)decayedDistanceStep -
+									    (uint16_t)
+										    previousDistanceStep,
+								    g_elapsedTicks,
+								    8))
 						: (int16_t)decayedDistanceStep;
 #else
-				g_players[playerIdx].viewState.cameraDistanceStep = (int16_t)decayedDistanceStep;
+				g_players[playerIdx]
+					.viewState.cameraDistanceStep =
+					(int16_t)decayedDistanceStep;
 #endif
 
-			} else
-				g_players[playerIdx].viewState.cameraDistanceStep = CAMERA_DISTANCE_DEFAULT_STEP;
+			} else {
+				g_players[playerIdx]
+					.viewState.cameraDistanceStep =
+					CAMERA_DISTANCE_DEFAULT_STEP;
+			}
 		} else {
-			g_players[playerIdx].viewState.cameraDistanceStep = CAMERA_DISTANCE_DEFAULT_STEP;
+			g_players[playerIdx].viewState.cameraDistanceStep =
+				CAMERA_DISTANCE_DEFAULT_STEP;
 		}
 		return;
 	}
 
 	if (g_players[playerIdx].mapCameraState > 1) {
 		distance = g_players[playerIdx].viewState.cameraWorldZ;
-		cameraDistanceStep = &g_players[playerIdx].viewState.cameraDistanceStep;
-		if ((distance & ~1) > CAMERA_DISTANCE_LARGE_THRESHOLD)
+		cameraDistanceStep =
+			&g_players[playerIdx].viewState.cameraDistanceStep;
+		if ((distance & ~1) > CAMERA_DISTANCE_LARGE_THRESHOLD) {
 			*cameraDistanceStep = CAMERA_DISTANCE_LARGE_LIMIT;
-		else
+		} else {
 			*cameraDistanceStep = (int16_t)(distance >> 1);
-		if ((uint16_t)*cameraDistanceStep < CAMERA_DISTANCE_MAP_MIN_STEP)
+		}
+		if ((uint16_t)*cameraDistanceStep <
+		    CAMERA_DISTANCE_MAP_MIN_STEP) {
 			*cameraDistanceStep = CAMERA_DISTANCE_MAP_MIN_STEP;
+		}
 	} else if (g_players[playerIdx].mapCameraState == 1) {
-		if (g_players[playerIdx].viewState.cameraFocusObjIdx != UINT16_MAX) {
-			distance = g_players[playerIdx].viewState.cameraDistance;
-			cameraDistanceStep = &g_players[playerIdx].viewState.cameraDistanceStep;
-			if ((distance & ~1) > CAMERA_DISTANCE_LARGE_THRESHOLD)
-				*cameraDistanceStep = CAMERA_DISTANCE_LARGE_LIMIT;
-			else
-				*cameraDistanceStep = (int16_t)(distance >> 1);
-			if ((uint16_t)*cameraDistanceStep < CAMERA_DISTANCE_FOCUS_MIN_STEP)
-				*cameraDistanceStep = CAMERA_DISTANCE_FOCUS_MIN_STEP;
-		} else if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX) {
-			targetObject = &g_objectTable[g_players[playerIdx].viewState.aimTargetIdx];
-			cameraDistanceStep = &g_players[playerIdx].viewState.cameraDistanceStep;
+		if (g_players[playerIdx].viewState.cameraFocusObjIdx !=
+		    UINT16_MAX) {
 			distance =
-				collide_roughdistance3d(targetObject->world_x - g_players[playerIdx].viewState.cameraWorldX,
-										targetObject->world_y - g_players[playerIdx].viewState.cameraWorldY,
-										targetObject->world_z - g_players[playerIdx].viewState.cameraWorldZ);
-			if (distance <= CAMERA_DISTANCE_LARGE_LIMIT)
+				g_players[playerIdx].viewState.cameraDistance;
+			cameraDistanceStep =
+				&g_players[playerIdx]
+					 .viewState.cameraDistanceStep;
+			if ((distance & ~1) > CAMERA_DISTANCE_LARGE_THRESHOLD) {
+				*cameraDistanceStep =
+					CAMERA_DISTANCE_LARGE_LIMIT;
+			} else {
+				*cameraDistanceStep = (int16_t)(distance >> 1);
+			}
+			if ((uint16_t)*cameraDistanceStep <
+			    CAMERA_DISTANCE_FOCUS_MIN_STEP) {
+				*cameraDistanceStep =
+					CAMERA_DISTANCE_FOCUS_MIN_STEP;
+			}
+		} else if (g_players[playerIdx].viewState.aimTargetIdx !=
+			   UINT16_MAX) {
+			targetObject =
+				&g_objectTable[g_players[playerIdx]
+						       .viewState.aimTargetIdx];
+			cameraDistanceStep =
+				&g_players[playerIdx]
+					 .viewState.cameraDistanceStep;
+			distance = collide_roughdistance3d(
+				targetObject->world_x -
+					g_players[playerIdx]
+						.viewState.cameraWorldX,
+				targetObject->world_y -
+					g_players[playerIdx]
+						.viewState.cameraWorldY,
+				targetObject->world_z -
+					g_players[playerIdx]
+						.viewState.cameraWorldZ);
+			if (distance <= CAMERA_DISTANCE_LARGE_LIMIT) {
 				*cameraDistanceStep = (int16_t)distance;
-			else
-				*cameraDistanceStep = CAMERA_DISTANCE_LARGE_LIMIT;
-			if ((uint16_t)*cameraDistanceStep < CAMERA_DISTANCE_FREE_MIN_STEP)
+			} else {
+				*cameraDistanceStep =
+					CAMERA_DISTANCE_LARGE_LIMIT;
+			}
+			if ((uint16_t)*cameraDistanceStep <
+			    CAMERA_DISTANCE_FREE_MIN_STEP)
 #ifdef XVT_MODERN
 			{
-				*cameraDistanceStep = CAMERA_DISTANCE_FREE_MIN_STEP;
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_DISTANCE);
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_ZOOM);
+				*cameraDistanceStep =
+					CAMERA_DISTANCE_FREE_MIN_STEP;
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_DISTANCE);
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_ZOOM);
 			}
 #else
-				*cameraDistanceStep = CAMERA_DISTANCE_FREE_MIN_STEP;
+				*cameraDistanceStep =
+					CAMERA_DISTANCE_FREE_MIN_STEP;
 #endif
 		} else {
 			uint16_t currentDistanceStep;
-			cameraDistanceStep = &g_players[playerIdx].viewState.cameraDistanceStep;
+			cameraDistanceStep =
+				&g_players[playerIdx]
+					 .viewState.cameraDistanceStep;
 			currentDistanceStep =
-				(uint16_t)(g_players[playerIdx].viewState.cameraDistanceStep + CAMERA_DISTANCE_DEFAULT_STEP);
+				(uint16_t)(g_players[playerIdx]
+						   .viewState
+						   .cameraDistanceStep +
+					   CAMERA_DISTANCE_DEFAULT_STEP);
 			*cameraDistanceStep = (int16_t)currentDistanceStep;
 
 #ifdef XVT_MODERN
 			*cameraDistanceStep =
 				XvtFlightTiming_IsUnlocked()
 					? (int16_t)(previousDistanceStep +
-								XvtPlayerTiming_Scale(playerIdx, XVT_PLAYER_ZOOM,
-													  (currentDistanceStep + (currentDistanceStep >> 3)) -
-														  previousDistanceStep,
-													  g_elapsedTicks, 8))
-					: (int16_t)(currentDistanceStep + (currentDistanceStep >> 3));
+						    XvtPlayerTiming_Scale(
+							    playerIdx,
+							    XVT_PLAYER_ZOOM,
+							    (currentDistanceStep +
+							     (currentDistanceStep >>
+							      3)) - previousDistanceStep,
+							    g_elapsedTicks, 8))
+					: (int16_t)(currentDistanceStep +
+						    (currentDistanceStep >> 3));
 #else
-			*cameraDistanceStep = (int16_t)(currentDistanceStep + (currentDistanceStep >> 3));
+			*cameraDistanceStep =
+				(int16_t)(currentDistanceStep +
+					  (currentDistanceStep >> 3));
 #endif
 
-			if ((uint16_t)*cameraDistanceStep > CAMERA_DISTANCE_FREE_MAX_STEP)
+			if ((uint16_t)*cameraDistanceStep >
+			    CAMERA_DISTANCE_FREE_MAX_STEP)
 #ifdef XVT_MODERN
 			{
-				*cameraDistanceStep = CAMERA_DISTANCE_FREE_MAX_STEP;
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_DISTANCE);
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_ZOOM);
+				*cameraDistanceStep =
+					CAMERA_DISTANCE_FREE_MAX_STEP;
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_DISTANCE);
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_ZOOM);
 			}
 #else
-				*cameraDistanceStep = CAMERA_DISTANCE_FREE_MAX_STEP;
+				*cameraDistanceStep =
+					CAMERA_DISTANCE_FREE_MAX_STEP;
 #endif
 		}
 	} else {
-		cameraDistanceStep = &g_players[playerIdx].viewState.cameraDistanceStep;
+		cameraDistanceStep =
+			&g_players[playerIdx].viewState.cameraDistanceStep;
 
 #ifdef XVT_MODERN
 		*cameraDistanceStep =
 			XvtFlightTiming_IsUnlocked()
 				? (int16_t)(previousDistanceStep +
-							XvtPlayerTiming_Scale(playerIdx, XVT_PLAYER_ZOOM,
-												  (previousDistanceStep + CAMERA_DISTANCE_DEFAULT_STEP) -
-													  previousDistanceStep,
-												  g_elapsedTicks, 8))
-				: (int16_t)(previousDistanceStep + CAMERA_DISTANCE_DEFAULT_STEP);
+					    XvtPlayerTiming_Scale(
+						    playerIdx, XVT_PLAYER_ZOOM,
+						    (previousDistanceStep +
+						     CAMERA_DISTANCE_DEFAULT_STEP) -
+							    previousDistanceStep,
+						    g_elapsedTicks, 8))
+				: (int16_t)(previousDistanceStep +
+					    CAMERA_DISTANCE_DEFAULT_STEP);
 #else
 		*cameraDistanceStep =
-			(int16_t)(g_players[playerIdx].viewState.cameraDistanceStep + CAMERA_DISTANCE_DEFAULT_STEP);
+			(int16_t)(g_players[playerIdx]
+					  .viewState.cameraDistanceStep +
+				  CAMERA_DISTANCE_DEFAULT_STEP);
 #endif
 
 		if ((uint16_t)*cameraDistanceStep > 0x400u)
@@ -924,72 +1330,106 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 	}
 
 #ifdef XVT_MODERN
-	modernDistanceStep = XvtFlightTiming_IsUnlocked()
-							 ? (int16_t)XvtPlayerTiming_Scale(playerIdx, XVT_PLAYER_DISTANCE,
-															  *cameraDistanceStep, g_elapsedTicks, 236)
-							 : 0;
+	modernDistanceStep =
+		XvtFlightTiming_IsUnlocked()
+			? (int16_t)XvtPlayerTiming_Scale(
+				  playerIdx, XVT_PLAYER_DISTANCE,
+				  *cameraDistanceStep, g_elapsedTicks, 236)
+			: 0;
 #endif
 	if (cameraKeyMode == 1) {
 		if (g_players[playerIdx].mapCameraState == 0) {
-			g_players[playerIdx].viewState.cameraDistance -= (int16_t)
+			g_players[playerIdx]
+				.viewState.cameraDistance -= (int16_t)
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked() ? modernDistanceStep
-											  : Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep))
+				(XvtFlightTiming_IsUnlocked()
+					 ? modernDistanceStep
+					 : Player_ScaleControlStepByElapsedTicks(
+						   *cameraDistanceStep))
 #else
-				Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep)
+				Player_ScaleControlStepByElapsedTicks(
+					*cameraDistanceStep)
 #endif
 				;
-			if (g_players[playerIdx].viewState.cameraDistance < CAMERA_MINIMUM)
+			if (g_players[playerIdx].viewState.cameraDistance <
+			    CAMERA_MINIMUM)
 #ifdef XVT_MODERN
 			{
-				g_players[playerIdx].viewState.cameraDistance = CAMERA_MINIMUM;
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_DISTANCE);
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_ZOOM);
+				g_players[playerIdx].viewState.cameraDistance =
+					CAMERA_MINIMUM;
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_DISTANCE);
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_ZOOM);
 			}
 #else
-				g_players[playerIdx].viewState.cameraDistance = CAMERA_MINIMUM;
+				g_players[playerIdx].viewState.cameraDistance =
+					CAMERA_MINIMUM;
 #endif
 			return;
 		}
-		if (g_players[playerIdx].viewState.cameraFocusObjIdx != UINT16_MAX) {
-			g_players[playerIdx].viewState.cameraDistance -= (int16_t)
+		if (g_players[playerIdx].viewState.cameraFocusObjIdx !=
+		    UINT16_MAX) {
+			g_players[playerIdx]
+				.viewState.cameraDistance -= (int16_t)
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked() ? modernDistanceStep
-											  : Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep))
+				(XvtFlightTiming_IsUnlocked()
+					 ? modernDistanceStep
+					 : Player_ScaleControlStepByElapsedTicks(
+						   *cameraDistanceStep))
 #else
-				Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep)
+				Player_ScaleControlStepByElapsedTicks(
+					*cameraDistanceStep)
 #endif
 				;
 			targetClearance =
-				g_objectTypeTable[g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx].objectType]
-					.maxBoundsExtent +
+				g_objectTypeTable
+					[g_objectTable
+						 [g_players[playerIdx]
+							  .viewState
+							  .cameraFocusObjIdx]
+							 .objectType]
+						.maxBoundsExtent +
 				CAMERA_CLEARANCE;
-			if (g_players[playerIdx].viewState.cameraDistance < targetClearance)
+			if (g_players[playerIdx].viewState.cameraDistance <
+			    targetClearance)
 #ifdef XVT_MODERN
 			{
-				g_players[playerIdx].viewState.cameraDistance = targetClearance;
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_DISTANCE);
-				XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_ZOOM);
+				g_players[playerIdx].viewState.cameraDistance =
+					targetClearance;
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_DISTANCE);
+				XvtPlayerTiming_Clear(playerIdx,
+						      XVT_PLAYER_ZOOM);
 			}
 #else
-				g_players[playerIdx].viewState.cameraDistance = targetClearance;
+				g_players[playerIdx].viewState.cameraDistance =
+					targetClearance;
 #endif
 			return;
 		}
-		if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX)
-			FVIEW_BuildCameraOrient(0, g_players[playerIdx].viewState.viewPitch,
-									g_players[playerIdx].viewState.viewYaw, 0, 0, 0, NULL);
-		else
+		if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX) {
 			FVIEW_BuildCameraOrient(
-				0, g_players[playerIdx].viewState.viewPitch, g_players[playerIdx].viewState.viewYaw, 0,
-				g_players[playerIdx].viewState.hudAimX, g_players[playerIdx].viewState.hudAimY, NULL);
+				0, g_players[playerIdx].viewState.viewPitch,
+				g_players[playerIdx].viewState.viewYaw, 0, 0, 0,
+				NULL);
+		} else {
+			FVIEW_BuildCameraOrient(
+				0, g_players[playerIdx].viewState.viewPitch,
+				g_players[playerIdx].viewState.viewYaw, 0,
+				g_players[playerIdx].viewState.hudAimX,
+				g_players[playerIdx].viewState.hudAimY, NULL);
+		}
 		cameraScaleX = g_camMatR2_X;
 		cameraMovementX = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked() ? modernDistanceStep
-										  : Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep))
+			(XvtFlightTiming_IsUnlocked()
+				 ? modernDistanceStep
+				 : Player_ScaleControlStepByElapsedTicks(
+					   *cameraDistanceStep))
 #else
-			Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep)
+			Player_ScaleControlStepByElapsedTicks(
+				*cameraDistanceStep)
 #endif
 			;
 		cameraMovementX = Math_MulQ15(cameraMovementX, cameraScaleX);
@@ -997,10 +1437,13 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 		cameraScaleY = g_camMatR2_Y;
 		cameraMovementY = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked() ? modernDistanceStep
-										  : Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep))
+			(XvtFlightTiming_IsUnlocked()
+				 ? modernDistanceStep
+				 : Player_ScaleControlStepByElapsedTicks(
+					   *cameraDistanceStep))
 #else
-			Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep)
+			Player_ScaleControlStepByElapsedTicks(
+				*cameraDistanceStep)
 #endif
 			;
 		cameraMovementY = Math_MulQ15(cameraMovementY, cameraScaleY);
@@ -1008,96 +1451,162 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 		cameraScaleZ = g_camMatR2_Z;
 		cameraMovementZ = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked() ? modernDistanceStep
-										  : Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep))
+			(XvtFlightTiming_IsUnlocked()
+				 ? modernDistanceStep
+				 : Player_ScaleControlStepByElapsedTicks(
+					   *cameraDistanceStep))
 #else
-			Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep)
+			Player_ScaleControlStepByElapsedTicks(
+				*cameraDistanceStep)
 #endif
 			;
 		cameraMovementZ = Math_MulQ15(cameraMovementZ, cameraScaleZ);
 		g_players[playerIdx].viewState.cameraWorldZ += cameraMovementZ;
 		if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX) {
-			targetObject = &g_objectTable[g_players[playerIdx].viewState.aimTargetIdx];
-			distance =
-				collide_roughdistance3d(targetObject->world_x - g_players[playerIdx].viewState.cameraWorldX,
-										targetObject->world_y - g_players[playerIdx].viewState.cameraWorldY,
-										targetObject->world_z - g_players[playerIdx].viewState.cameraWorldZ);
+			targetObject =
+				&g_objectTable[g_players[playerIdx]
+						       .viewState.aimTargetIdx];
+			distance = collide_roughdistance3d(
+				targetObject->world_x -
+					g_players[playerIdx]
+						.viewState.cameraWorldX,
+				targetObject->world_y -
+					g_players[playerIdx]
+						.viewState.cameraWorldY,
+				targetObject->world_z -
+					g_players[playerIdx]
+						.viewState.cameraWorldZ);
 			targetClearance =
-				g_objectTypeTable[g_objectTable[g_players[playerIdx].viewState.aimTargetIdx].objectType]
-					.maxBoundsExtent +
+				g_objectTypeTable
+					[g_objectTable[g_players[playerIdx]
+							       .viewState
+							       .aimTargetIdx]
+						 .objectType]
+						.maxBoundsExtent +
 				CAMERA_CLEARANCE;
 			if (targetClearance > distance) {
 				targetClearance =
-					g_objectTypeTable[g_objectTable[g_players[playerIdx].viewState.cameraFocusObjIdx]
-										  .objectType]
-						.maxBoundsExtent +
+					g_objectTypeTable
+						[g_objectTable
+							 [g_players[playerIdx]
+								  .viewState
+								  .cameraFocusObjIdx]
+								 .objectType]
+							.maxBoundsExtent +
 					CAMERA_CLEARANCE;
 				movement = distance - targetClearance;
 				clearanceScaleX = g_camMatR2_X;
-				clearanceMovementX = Math_MulQ15(movement, clearanceScaleX);
-				g_players[playerIdx].viewState.cameraWorldX += clearanceMovementX;
+				clearanceMovementX =
+					Math_MulQ15(movement, clearanceScaleX);
+				g_players[playerIdx].viewState.cameraWorldX +=
+					clearanceMovementX;
 				clearanceScaleY = g_camMatR2_Y;
-				clearanceMovementY = Math_MulQ15(movement, clearanceScaleY);
-				g_players[playerIdx].viewState.cameraWorldY += clearanceMovementY;
+				clearanceMovementY =
+					Math_MulQ15(movement, clearanceScaleY);
+				g_players[playerIdx].viewState.cameraWorldY +=
+					clearanceMovementY;
 				clearanceScaleZ = g_camMatR2_Z;
-				clearanceMovementZ = Math_MulQ15(movement, clearanceScaleZ);
-				g_players[playerIdx].viewState.cameraWorldZ += clearanceMovementZ;
+				clearanceMovementZ =
+					Math_MulQ15(movement, clearanceScaleZ);
+				g_players[playerIdx].viewState.cameraWorldZ +=
+					clearanceMovementZ;
 			}
 		}
 		if (g_players[playerIdx].mapCameraState > 1 &&
-			g_players[playerIdx].viewState.cameraWorldZ < CAMERA_MINIMUM)
-			g_players[playerIdx].viewState.cameraWorldZ = CAMERA_MINIMUM;
-		if (g_players[playerIdx].viewState.cameraWorldX < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldX = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.cameraWorldX > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldX = CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.cameraWorldY < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldY = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.cameraWorldY > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldY = CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.cameraWorldZ < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldZ = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.cameraWorldZ > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldZ = CAMERA_WORLD_LIMIT;
+		    g_players[playerIdx].viewState.cameraWorldZ <
+			    CAMERA_MINIMUM) {
+			g_players[playerIdx].viewState.cameraWorldZ =
+				CAMERA_MINIMUM;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldX <
+		    -CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldX =
+				-CAMERA_WORLD_LIMIT;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldX >
+		    CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldX =
+				CAMERA_WORLD_LIMIT;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldY <
+		    -CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldY =
+				-CAMERA_WORLD_LIMIT;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldY >
+		    CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldY =
+				CAMERA_WORLD_LIMIT;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldZ <
+		    -CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldZ =
+				-CAMERA_WORLD_LIMIT;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldZ >
+		    CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldZ =
+				CAMERA_WORLD_LIMIT;
+		}
 	} else {
 		if (g_players[playerIdx].mapCameraState == 0) {
-			g_players[playerIdx].viewState.cameraDistance += (int16_t)
+			g_players[playerIdx]
+				.viewState.cameraDistance += (int16_t)
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked() ? modernDistanceStep
-											  : Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep))
+				(XvtFlightTiming_IsUnlocked()
+					 ? modernDistanceStep
+					 : Player_ScaleControlStepByElapsedTicks(
+						   *cameraDistanceStep))
 #else
-				Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep)
+				Player_ScaleControlStepByElapsedTicks(
+					*cameraDistanceStep)
 #endif
 				;
-			if (g_players[playerIdx].viewState.cameraDistance > CAMERA_DISTANCE_NORMAL_MAX)
-				g_players[playerIdx].viewState.cameraDistance = CAMERA_DISTANCE_NORMAL_MAX;
+			if (g_players[playerIdx].viewState.cameraDistance >
+			    CAMERA_DISTANCE_NORMAL_MAX) {
+				g_players[playerIdx].viewState.cameraDistance =
+					CAMERA_DISTANCE_NORMAL_MAX;
+			}
 			return;
 		}
-		if (g_players[playerIdx].viewState.cameraFocusObjIdx != UINT16_MAX) {
-			g_players[playerIdx].viewState.cameraDistance += (int16_t)
+		if (g_players[playerIdx].viewState.cameraFocusObjIdx !=
+		    UINT16_MAX) {
+			g_players[playerIdx]
+				.viewState.cameraDistance += (int16_t)
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked() ? modernDistanceStep
-											  : Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep))
+				(XvtFlightTiming_IsUnlocked()
+					 ? modernDistanceStep
+					 : Player_ScaleControlStepByElapsedTicks(
+						   *cameraDistanceStep))
 #else
-				Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep)
+				Player_ScaleControlStepByElapsedTicks(
+					*cameraDistanceStep)
 #endif
 				;
 			return;
 		}
-		if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX)
-			FVIEW_BuildCameraOrient(0, g_players[playerIdx].viewState.viewPitch,
-									g_players[playerIdx].viewState.viewYaw, 0, 0, 0, NULL);
-		else
+		if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX) {
 			FVIEW_BuildCameraOrient(
-				0, g_players[playerIdx].viewState.viewPitch, g_players[playerIdx].viewState.viewYaw, 0,
-				g_players[playerIdx].viewState.hudAimX, g_players[playerIdx].viewState.hudAimY, NULL);
+				0, g_players[playerIdx].viewState.viewPitch,
+				g_players[playerIdx].viewState.viewYaw, 0, 0, 0,
+				NULL);
+		} else {
+			FVIEW_BuildCameraOrient(
+				0, g_players[playerIdx].viewState.viewPitch,
+				g_players[playerIdx].viewState.viewYaw, 0,
+				g_players[playerIdx].viewState.hudAimX,
+				g_players[playerIdx].viewState.hudAimY, NULL);
+		}
 		reverseScaleX = g_camMatR2_X;
 		reverseMovementX = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked() ? modernDistanceStep
-										  : Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep))
+			(XvtFlightTiming_IsUnlocked()
+				 ? modernDistanceStep
+				 : Player_ScaleControlStepByElapsedTicks(
+					   *cameraDistanceStep))
 #else
-			Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep)
+			Player_ScaleControlStepByElapsedTicks(
+				*cameraDistanceStep)
 #endif
 			;
 		reverseMovementX = Math_MulQ15(reverseMovementX, reverseScaleX);
@@ -1105,10 +1614,13 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 		reverseScaleY = g_camMatR2_Y;
 		reverseMovementY = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked() ? modernDistanceStep
-										  : Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep))
+			(XvtFlightTiming_IsUnlocked()
+				 ? modernDistanceStep
+				 : Player_ScaleControlStepByElapsedTicks(
+					   *cameraDistanceStep))
 #else
-			Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep)
+			Player_ScaleControlStepByElapsedTicks(
+				*cameraDistanceStep)
 #endif
 			;
 		reverseMovementY = Math_MulQ15(reverseMovementY, reverseScaleY);
@@ -1116,167 +1628,218 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx) {
 		reverseScaleZ = g_camMatR2_Z;
 		reverseMovementZ = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked() ? modernDistanceStep
-										  : Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep))
+			(XvtFlightTiming_IsUnlocked()
+				 ? modernDistanceStep
+				 : Player_ScaleControlStepByElapsedTicks(
+					   *cameraDistanceStep))
 #else
-			Player_ScaleControlStepByElapsedTicks(*cameraDistanceStep)
+			Player_ScaleControlStepByElapsedTicks(
+				*cameraDistanceStep)
 #endif
 			;
 		reverseMovementZ = Math_MulQ15(reverseMovementZ, reverseScaleZ);
 		g_players[playerIdx].viewState.cameraWorldZ -= reverseMovementZ;
-		if (g_players[playerIdx].viewState.cameraWorldX < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldX = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.cameraWorldX > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldX = CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.cameraWorldY < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldY = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.cameraWorldY > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldY = CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.cameraWorldZ < -CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldZ = -CAMERA_WORLD_LIMIT;
-		if (g_players[playerIdx].viewState.cameraWorldZ > CAMERA_WORLD_LIMIT)
-			g_players[playerIdx].viewState.cameraWorldZ = CAMERA_WORLD_LIMIT;
+		if (g_players[playerIdx].viewState.cameraWorldX <
+		    -CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldX =
+				-CAMERA_WORLD_LIMIT;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldX >
+		    CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldX =
+				CAMERA_WORLD_LIMIT;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldY <
+		    -CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldY =
+				-CAMERA_WORLD_LIMIT;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldY >
+		    CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldY =
+				CAMERA_WORLD_LIMIT;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldZ <
+		    -CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldZ =
+				-CAMERA_WORLD_LIMIT;
+		}
+		if (g_players[playerIdx].viewState.cameraWorldZ >
+		    CAMERA_WORLD_LIMIT) {
+			g_players[playerIdx].viewState.cameraWorldZ =
+				CAMERA_WORLD_LIMIT;
+		}
 	}
 }
 
 // FUNCTION: XVT 0x481420
-void FlightChat_HandleInput(int playerIdx) {
-	PlayerData* player;
+void FlightChat_HandleInput(int playerIdx)
+{
+	PlayerData *player;
 	uint8_t messageLength;
 	int recipientIndex;
-	PlayerData* recipient;
+	PlayerData *recipient;
 	int shouldSend;
 	FlightChatRecipientMode recipientMode;
-	const char* tauntText;
+	const char *tauntText;
 
 	switch (g_currentActionKey) {
-		case 8:
-			player = &g_players[playerIdx];
+	case 8:
+		player = &g_players[playerIdx];
+		messageLength = player->msgLength;
+		if (messageLength != 0) {
+			--messageLength;
+			player->msgLength = messageLength;
+			player->msgText[messageLength] = '_';
+			player->msgText[messageLength + 1] = '\0';
+		}
+		msg_addMessagePtr(0, player->msgText);
+		msg_emitInFlightMessage(
+			(InFlightMessageId)((uint8_t)player->chatRecipientMode +
+					    IFMSG_374_FROM_ARG_ARG),
+			playerIdx);
+		return;
+
+	case 9:
+		player = &g_players[playerIdx];
+		++player->chatRecipientMode;
+		if ((uint8_t)player->chatRecipientMode >
+		    FLIGHT_CHAT_RECIPIENT_ALL) {
+			player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_TEAM;
+		}
+		msg_addMessagePtr(0, player->msgText);
+		msg_emitInFlightMessage(
+			(InFlightMessageId)((uint8_t)player->chatRecipientMode +
+					    IFMSG_374_FROM_ARG_ARG),
+			playerIdx);
+		return;
+
+	case 13:
+		player = &g_players[playerIdx];
+		player->msgText[player->msgLength] = '\0';
+		msg_addMessagePtr(0, NetSession_GetPlayerName(playerIdx));
+		msg_addMessagePtr(1, player->msgText);
+		for (recipientIndex = 0; recipientIndex < 8; ++recipientIndex) {
+			recipient = &g_players[recipientIndex];
+			if (recipient->participationState != 0) {
+				g_msgSenderIff = 3;
+				recipientMode = player->chatRecipientMode;
+				shouldSend = 0;
+				if (recipientMode ==
+				    FLIGHT_CHAT_RECIPIENT_TEAM) {
+					if (player->team == recipient->team) {
+						shouldSend = 1;
+					}
+				} else if (recipientMode ==
+					   FLIGHT_CHAT_RECIPIENT_ENEMY) {
+					if (recipient->team != player->team &&
+					    g_missionTeams[(uint16_t)recipient
+								   ->team]
+							    .allies[(uint16_t)player
+									    ->team] ==
+						    0) {
+						shouldSend = 1;
+					}
+				} else {
+					shouldSend = 1;
+				}
+				if (shouldSend != 0) {
+					msg_emitInFlightMessage(
+						IFMSG_374_FROM_ARG_ARG,
+						recipientIndex);
+				}
+			}
+		}
+		player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+		msg_emitInFlightMessage(IFMSG_378_MESSAGE_SENT, playerIdx);
+		return;
+
+	case 27:
+		player = &g_players[playerIdx];
+		player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+		msg_emitInFlightMessage(IFMSG_379_MESSAGE_ABORTED, playerIdx);
+		return;
+
+	case 155:
+	case 156:
+	case 157:
+	case 158:
+		player = &g_players[playerIdx];
+		player->msgText[player->msgLength] = '\0';
+		msg_addMessagePtr(0, NetSession_GetPlayerName(playerIdx));
+		tauntText =
+			g_playerTauntText[playerIdx][g_currentActionKey - 155];
+		msg_addMessagePtr(1, tauntText);
+		for (recipientIndex = 0; recipientIndex < 8; ++recipientIndex) {
+			recipient = &g_players[recipientIndex];
+			if (recipient->participationState != 0) {
+				g_msgSenderIff = 3;
+				recipientMode = player->chatRecipientMode;
+				shouldSend = 0;
+				if (recipientMode ==
+				    FLIGHT_CHAT_RECIPIENT_TEAM) {
+					if (player->team == recipient->team) {
+						shouldSend = 1;
+					}
+				} else if (recipientMode ==
+					   FLIGHT_CHAT_RECIPIENT_ENEMY) {
+					if (recipient->team != player->team &&
+					    g_missionTeams[(uint16_t)recipient
+								   ->team]
+							    .allies[(uint16_t)player
+									    ->team] ==
+						    0) {
+						shouldSend = 1;
+					}
+				} else {
+					shouldSend = 1;
+				}
+				if (shouldSend != 0) {
+					msg_emitInFlightMessage(
+						IFMSG_374_FROM_ARG_ARG,
+						recipientIndex);
+				}
+			}
+		}
+		player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+		msg_emitInFlightMessage(IFMSG_378_MESSAGE_SENT, playerIdx);
+		return;
+
+	default:
+		player = &g_players[playerIdx];
+		if (g_currentActionKey != 0) {
 			messageLength = player->msgLength;
-			if (messageLength != 0) {
-				--messageLength;
-				player->msgLength = messageLength;
-				player->msgText[messageLength] = '_';
-				player->msgText[messageLength + 1] = '\0';
+			if (messageLength < 48) {
+				player->msgText[messageLength] =
+					(char)g_currentActionKey;
+				player->msgText[messageLength + 1] = '_';
+				player->msgText[messageLength + 2] = '\0';
+				++player->msgLength;
 			}
 			msg_addMessagePtr(0, player->msgText);
 			msg_emitInFlightMessage(
-				(InFlightMessageId)((uint8_t)player->chatRecipientMode + IFMSG_374_FROM_ARG_ARG), playerIdx);
-			return;
-
-		case 9:
-			player = &g_players[playerIdx];
-			++player->chatRecipientMode;
-			if ((uint8_t)player->chatRecipientMode > FLIGHT_CHAT_RECIPIENT_ALL) {
-				player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_TEAM;
-			}
+				(InFlightMessageId)((uint8_t)player
+							    ->chatRecipientMode +
+						    IFMSG_374_FROM_ARG_ARG),
+				playerIdx);
+		} else if (playerIdx == g_localPlayer &&
+			   (int16_t)g_playerFlightTransientTimers[playerIdx]
+					   .flightGroupMessagePaneTimer <
+				   SIMULATION_TICKS_PER_SECOND) {
 			msg_addMessagePtr(0, player->msgText);
 			msg_emitInFlightMessage(
-				(InFlightMessageId)((uint8_t)player->chatRecipientMode + IFMSG_374_FROM_ARG_ARG), playerIdx);
-			return;
-
-		case 13:
-			player = &g_players[playerIdx];
-			player->msgText[player->msgLength] = '\0';
-			msg_addMessagePtr(0, NetSession_GetPlayerName(playerIdx));
-			msg_addMessagePtr(1, player->msgText);
-			for (recipientIndex = 0; recipientIndex < 8; ++recipientIndex) {
-				recipient = &g_players[recipientIndex];
-				if (recipient->participationState != 0) {
-					g_msgSenderIff = 3;
-					recipientMode = player->chatRecipientMode;
-					shouldSend = 0;
-					if (recipientMode == FLIGHT_CHAT_RECIPIENT_TEAM) {
-						if (player->team == recipient->team) {
-							shouldSend = 1;
-						}
-					} else if (recipientMode == FLIGHT_CHAT_RECIPIENT_ENEMY) {
-						if (recipient->team != player->team &&
-							g_missionTeams[(uint16_t)recipient->team].allies[(uint16_t)player->team] == 0) {
-							shouldSend = 1;
-						}
-					} else {
-						shouldSend = 1;
-					}
-					if (shouldSend != 0) {
-						msg_emitInFlightMessage(IFMSG_374_FROM_ARG_ARG, recipientIndex);
-					}
-				}
-			}
-			player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
-			msg_emitInFlightMessage(IFMSG_378_MESSAGE_SENT, playerIdx);
-			return;
-
-		case 27:
-			player = &g_players[playerIdx];
-			player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
-			msg_emitInFlightMessage(IFMSG_379_MESSAGE_ABORTED, playerIdx);
-			return;
-
-		case 155:
-		case 156:
-		case 157:
-		case 158:
-			player = &g_players[playerIdx];
-			player->msgText[player->msgLength] = '\0';
-			msg_addMessagePtr(0, NetSession_GetPlayerName(playerIdx));
-			tauntText = g_playerTauntText[playerIdx][g_currentActionKey - 155];
-			msg_addMessagePtr(1, tauntText);
-			for (recipientIndex = 0; recipientIndex < 8; ++recipientIndex) {
-				recipient = &g_players[recipientIndex];
-				if (recipient->participationState != 0) {
-					g_msgSenderIff = 3;
-					recipientMode = player->chatRecipientMode;
-					shouldSend = 0;
-					if (recipientMode == FLIGHT_CHAT_RECIPIENT_TEAM) {
-						if (player->team == recipient->team) {
-							shouldSend = 1;
-						}
-					} else if (recipientMode == FLIGHT_CHAT_RECIPIENT_ENEMY) {
-						if (recipient->team != player->team &&
-							g_missionTeams[(uint16_t)recipient->team].allies[(uint16_t)player->team] == 0) {
-							shouldSend = 1;
-						}
-					} else {
-						shouldSend = 1;
-					}
-					if (shouldSend != 0) {
-						msg_emitInFlightMessage(IFMSG_374_FROM_ARG_ARG, recipientIndex);
-					}
-				}
-			}
-			player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
-			msg_emitInFlightMessage(IFMSG_378_MESSAGE_SENT, playerIdx);
-			return;
-
-		default:
-			player = &g_players[playerIdx];
-			if (g_currentActionKey != 0) {
-				messageLength = player->msgLength;
-				if (messageLength < 48) {
-					player->msgText[messageLength] = (char)g_currentActionKey;
-					player->msgText[messageLength + 1] = '_';
-					player->msgText[messageLength + 2] = '\0';
-					++player->msgLength;
-				}
-				msg_addMessagePtr(0, player->msgText);
-				msg_emitInFlightMessage(
-					(InFlightMessageId)((uint8_t)player->chatRecipientMode + IFMSG_374_FROM_ARG_ARG),
-					playerIdx);
-			} else if (playerIdx == g_localPlayer &&
-					   (int16_t)g_playerFlightTransientTimers[playerIdx].flightGroupMessagePaneTimer <
-						   SIMULATION_TICKS_PER_SECOND) {
-				msg_addMessagePtr(0, player->msgText);
-				msg_emitInFlightMessage(
-					(InFlightMessageId)((uint8_t)player->chatRecipientMode + IFMSG_374_FROM_ARG_ARG),
-					playerIdx);
-			}
-			return;
+				(InFlightMessageId)((uint8_t)player
+							    ->chatRecipientMode +
+						    IFMSG_374_FROM_ARG_ARG),
+				playerIdx);
+		}
+		return;
 	}
 }
 
 // FUNCTION: XVT 0x481940
-int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
+int16_t Player_FindNearestObjective(int goalType, int playerIdx)
+{
 	enum {
 		FLIGHT_GROUP_GOAL_COUNT = 8,
 		GOAL_STATE_PENDING = 4,
@@ -1297,136 +1860,215 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 	bestObjectiveRange = UINT_MAX;
 
 	for (objectIdx = g_activeRegionObjectSlotStart;
-		 objectIdx < (unsigned int)g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
+	     objectIdx < (unsigned int)g_activeRegionCraftObjectSlotEnd;
+	     ++objectIdx) {
 		int flightGroupIdx;
 		int objective;
 		int triggerCondition;
 		unsigned int goalIndex;
-		FlightGroupGoal* goals;
-		uint8_t* enabledTeamGoals;
+		FlightGroupGoal *goals;
+		uint8_t *enabledTeamGoals;
 
 		if (g_objectTable[objectIdx].objectType == 0 ||
-			objectIdx == (unsigned int)g_players[playerIdx].objectIndex ||
-			g_objectTable[objectIdx].genusId == CRAFT_GENUS_EXPLOSION ||
-			Object_HasActiveDecoyBeam(objectIdx) != 0)
+		    objectIdx ==
+			    (unsigned int)g_players[playerIdx].objectIndex ||
+		    g_objectTable[objectIdx].genusId == CRAFT_GENUS_EXPLOSION ||
+		    Object_HasActiveDecoyBeam(objectIdx) != 0) {
 			continue;
+		}
 		flightGroupIdx = g_objectTable[objectIdx].flightGroupIdx;
-		if (g_missionFlightGroups[flightGroupIdx].fg.team == playerTeam)
+		if (g_missionFlightGroups[flightGroupIdx].fg.team ==
+		    playerTeam) {
 			continue;
+		}
 		goalIndex = 0;
 		goals = g_missionFlightGroups[flightGroupIdx].fg.goals;
 		objective = 0;
 		enabledTeamGoals = &goals[0].enabledTeams[playerTeam];
 		for (; goalIndex < FLIGHT_GROUP_GOAL_COUNT; ++goalIndex) {
-			FlightGroupGoal* goal = &goals[goalIndex];
-			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 && goal->goalKind == (uint8_t)goalType &&
-				goal->points >= 0 &&
-				g_missionFgStats[g_objectTable[objectIdx].flightGroupIdx]
-						.goalState[FLIGHT_GROUP_GOAL_COUNT * playerTeam + goalIndex] == GOAL_STATE_PENDING) {
+			FlightGroupGoal *goal = &goals[goalIndex];
+			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 &&
+			    goal->goalKind == (uint8_t)goalType &&
+			    goal->points >= 0 &&
+			    g_missionFgStats[g_objectTable[objectIdx]
+						     .flightGroupIdx]
+					    .goalState[FLIGHT_GROUP_GOAL_COUNT *
+							       playerTeam +
+						       goalIndex] ==
+				    GOAL_STATE_PENDING) {
 				objective = 1;
 			}
 		}
-		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].condition;
-		if (triggerCondition != MISSION_COND_NEVER && triggerCondition != MISSION_COND_ALWAYS_TRUE &&
-			Mission_ObjectMatchesTriggerVariable(
-				objectIdx,
-				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variableType,
-				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variable) != 0)
+		triggerCondition = g_missionGlobalGoals[playerTeam][goalType]
+					   .triggerPairs[0]
+					   .triggers[0]
+					   .condition;
+		if (triggerCondition != MISSION_COND_NEVER &&
+		    triggerCondition != MISSION_COND_ALWAYS_TRUE &&
+		    Mission_ObjectMatchesTriggerVariable(
+			    objectIdx,
+			    g_missionGlobalGoals[playerTeam][goalType]
+				    .triggerPairs[0]
+				    .triggers[0]
+				    .variableType,
+			    g_missionGlobalGoals[playerTeam][goalType]
+				    .triggerPairs[0]
+				    .triggers[0]
+				    .variable) != 0) {
 			objective = 1;
-		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[1].condition;
-		if (triggerCondition != MISSION_COND_NEVER && triggerCondition != MISSION_COND_ALWAYS_TRUE &&
-			Mission_ObjectMatchesTriggerVariable(
-				objectIdx,
-				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[1].variableType,
-				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[1].variable) != 0)
+		}
+		triggerCondition = g_missionGlobalGoals[playerTeam][goalType]
+					   .triggerPairs[0]
+					   .triggers[1]
+					   .condition;
+		if (triggerCondition != MISSION_COND_NEVER &&
+		    triggerCondition != MISSION_COND_ALWAYS_TRUE &&
+		    Mission_ObjectMatchesTriggerVariable(
+			    objectIdx,
+			    g_missionGlobalGoals[playerTeam][goalType]
+				    .triggerPairs[0]
+				    .triggers[1]
+				    .variableType,
+			    g_missionGlobalGoals[playerTeam][goalType]
+				    .triggerPairs[0]
+				    .triggers[1]
+				    .variable) != 0) {
 			objective = 1;
+		}
 		/* The original reads the second pair's condition but the first pair's variable. */
-		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[0].condition;
-		if (triggerCondition != MISSION_COND_NEVER && triggerCondition != MISSION_COND_ALWAYS_TRUE &&
-			Mission_ObjectMatchesTriggerVariable(
-				objectIdx,
-				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variableType,
-				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variable) != 0)
+		triggerCondition = g_missionGlobalGoals[playerTeam][goalType]
+					   .triggerPairs[1]
+					   .triggers[0]
+					   .condition;
+		if (triggerCondition != MISSION_COND_NEVER &&
+		    triggerCondition != MISSION_COND_ALWAYS_TRUE &&
+		    Mission_ObjectMatchesTriggerVariable(
+			    objectIdx,
+			    g_missionGlobalGoals[playerTeam][goalType]
+				    .triggerPairs[0]
+				    .triggers[0]
+				    .variableType,
+			    g_missionGlobalGoals[playerTeam][goalType]
+				    .triggerPairs[0]
+				    .triggers[0]
+				    .variable) != 0) {
 			objective = 1;
-		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[1].condition;
-		if (triggerCondition != MISSION_COND_NEVER && triggerCondition != MISSION_COND_ALWAYS_TRUE &&
-			Mission_ObjectMatchesTriggerVariable(
-				objectIdx,
-				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[1].variableType,
-				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[1].variable) != 0)
+		}
+		triggerCondition = g_missionGlobalGoals[playerTeam][goalType]
+					   .triggerPairs[1]
+					   .triggers[1]
+					   .condition;
+		if (triggerCondition != MISSION_COND_NEVER &&
+		    triggerCondition != MISSION_COND_ALWAYS_TRUE &&
+		    Mission_ObjectMatchesTriggerVariable(
+			    objectIdx,
+			    g_missionGlobalGoals[playerTeam][goalType]
+				    .triggerPairs[1]
+				    .triggers[1]
+				    .variableType,
+			    g_missionGlobalGoals[playerTeam][goalType]
+				    .triggerPairs[1]
+				    .triggers[1]
+				    .variable) != 0) {
 			objective = 1;
+		}
 		if (objective != 0 &&
-			(g_objectTable[objectIdx].mobj->pCraft->objectKind == CRAFT_OBJECT_KIND_ACTIVE ||
-			 g_objectTable[objectIdx].mobj->pCraft->objectKind ==
-				 CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE)) {
+		    (g_objectTable[objectIdx].mobj->pCraft->objectKind ==
+			     CRAFT_OBJECT_KIND_ACTIVE ||
+		     g_objectTable[objectIdx].mobj->pCraft->objectKind ==
+			     CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE)) {
 			int actionable;
 			Player_ComputePolarToObjectRef(playerIdx, objectIdx);
-			actionable = msg_BuildTargetDescription(objectIdx, playerIdx, 0, 1);
+			actionable = msg_BuildTargetDescription(
+				objectIdx, playerIdx, 0, 1);
 			if (actionable != 0) {
-				if (bestActionableRange > (unsigned int)trig2_polardistance) {
-					bestActionableRange = (unsigned int)trig2_polardistance;
+				if (bestActionableRange >
+				    (unsigned int)trig2_polardistance) {
+					bestActionableRange = (unsigned int)
+						trig2_polardistance;
 					bestActionableObject = objectIdx;
 				}
-			} else if (bestObjectiveRange > (unsigned int)trig2_polardistance) {
-				bestObjectiveRange = (unsigned int)trig2_polardistance;
+			} else if (bestObjectiveRange >
+				   (unsigned int)trig2_polardistance) {
+				bestObjectiveRange =
+					(unsigned int)trig2_polardistance;
 				bestObjectiveObject = objectIdx;
 			}
 		}
 	}
 
 	for (objectIdx = g_regionMainObjectSlotEnd;
-		 objectIdx < (unsigned int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount); ++objectIdx) {
+	     objectIdx < (unsigned int)(g_regionMainObjectSlotEnd +
+					g_regionStaticObjectSlotCount);
+	     ++objectIdx) {
 		int flightGroupIdx;
 		unsigned int goalIndex;
-		FlightGroupGoal* goals;
-		uint8_t* enabledTeamGoals;
+		FlightGroupGoal *goals;
+		uint8_t *enabledTeamGoals;
 
-		if (g_objectTable[objectIdx].objectType == 0)
+		if (g_objectTable[objectIdx].objectType == 0) {
 			continue;
+		}
 		flightGroupIdx = g_objectTable[objectIdx].flightGroupIdx;
-		if (g_missionFlightGroups[flightGroupIdx].fg.team == g_players[playerIdx].team)
+		if (g_missionFlightGroups[flightGroupIdx].fg.team ==
+		    g_players[playerIdx].team) {
 			continue;
+		}
 		goalIndex = 0;
 		goals = g_missionFlightGroups[flightGroupIdx].fg.goals;
 		enabledTeamGoals = &goals[0].enabledTeams[playerTeam];
 		for (; goalIndex < FLIGHT_GROUP_GOAL_COUNT; ++goalIndex) {
-			FlightGroupGoal* goal = &goals[goalIndex];
-			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 && goal->goalKind == (uint8_t)goalType &&
-				goal->points >= 0 &&
-				g_missionFgStats[flightGroupIdx]
-						.goalState[FLIGHT_GROUP_GOAL_COUNT * playerTeam + goalIndex] == GOAL_STATE_PENDING) {
-				Player_ComputePolarToObjectRef(playerIdx, objectIdx);
-				if (bestActionableRange > (unsigned int)trig2_polardistance) {
-					bestActionableRange = (unsigned int)trig2_polardistance;
+			FlightGroupGoal *goal = &goals[goalIndex];
+			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 &&
+			    goal->goalKind == (uint8_t)goalType &&
+			    goal->points >= 0 &&
+			    g_missionFgStats[flightGroupIdx]
+					    .goalState[FLIGHT_GROUP_GOAL_COUNT *
+							       playerTeam +
+						       goalIndex] ==
+				    GOAL_STATE_PENDING) {
+				Player_ComputePolarToObjectRef(playerIdx,
+							       objectIdx);
+				if (bestActionableRange >
+				    (unsigned int)trig2_polardistance) {
+					bestActionableRange = (unsigned int)
+						trig2_polardistance;
 					bestActionableObject = objectIdx;
 				}
 			}
 		}
 	}
 	selectedObject = (int16_t)bestActionableObject;
-	if (bestActionableObject == UINT16_MAX)
+	if (bestActionableObject == UINT16_MAX) {
 		selectedObject = (int16_t)bestObjectiveObject;
+	}
 	return selectedObject;
 }
 
 // FUNCTION: XVT 0x481D70
-int Player_ScaleControlStepByElapsedTicks(int16_t step) {
-	return MATH2_ABoverC32(step, g_elapsedTicks, SIMULATION_TICKS_PER_SECOND);
+int Player_ScaleControlStepByElapsedTicks(int16_t step)
+{
+	return MATH2_ABoverC32(step, g_elapsedTicks,
+			       SIMULATION_TICKS_PER_SECOND);
 }
 
 // FUNCTION: XVT 0x481EA0
-void Player_TransferShieldBankEnergy(uint16_t dstBank, uint16_t srcBank, int playerIdx) {
-	PlayerData* player;
-	CraftData* craft;
-	int* dstShieldEnergy;
+void Player_TransferShieldBankEnergy(uint16_t dstBank, uint16_t srcBank,
+				     int playerIdx)
+{
+	PlayerData *player;
+	CraftData *craft;
+	int *dstShieldEnergy;
 	int16_t objectMaxShield;
 	int dstEnergy;
 	int srcEnergy;
 	int16_t transferCapacity;
 
 	player = &g_players[playerIdx];
-	if (g_objectTable[player->objectIndex].mobj->pCraft->shieldEnergy[srcBank] > 0) {
-		objectMaxShield = (int16_t)Craft_GetObjectMaxShield(player->objectIndex);
+	if (g_objectTable[player->objectIndex]
+		    .mobj->pCraft->shieldEnergy[srcBank] > 0) {
+		objectMaxShield =
+			(int16_t)Craft_GetObjectMaxShield(player->objectIndex);
 		craft = g_objectTable[player->objectIndex].mobj->pCraft;
 		dstEnergy = craft->shieldEnergy[dstBank];
 		dstShieldEnergy = &craft->shieldEnergy[dstBank];
@@ -1435,17 +2077,22 @@ void Player_TransferShieldBankEnergy(uint16_t dstBank, uint16_t srcBank, int pla
 			srcEnergy = craft->shieldEnergy[srcBank];
 			if (srcEnergy > transferCapacity) {
 				*dstShieldEnergy = dstEnergy + transferCapacity;
-				g_objectTable[player->objectIndex].mobj->pCraft->shieldEnergy[srcBank] -= transferCapacity;
+				g_objectTable[player->objectIndex]
+					.mobj->pCraft->shieldEnergy[srcBank] -=
+					transferCapacity;
 			} else {
 				*dstShieldEnergy = dstEnergy + srcEnergy;
-				g_objectTable[player->objectIndex].mobj->pCraft->shieldEnergy[srcBank] = 0;
+				g_objectTable[player->objectIndex]
+					.mobj->pCraft->shieldEnergy[srcBank] =
+					0;
 			}
 		}
 	}
 }
 
 // FUNCTION: XVT 0x481FB0
-void Player_UpdateHudViewForCameraFocus(int playerIdx) {
+void Player_UpdateHudViewForCameraFocus(int playerIdx)
+{
 	enum {
 		CAMERA_HISTORY_SAMPLE_COUNT = 60,
 	};
@@ -1458,20 +2105,30 @@ void Player_UpdateHudViewForCameraFocus(int playerIdx) {
 		} else {
 			Hud_SetHudViewState(HUD_VIEW_FULL_SCREEN, playerIdx);
 		}
-		for (sampleIndex = 0; sampleIndex < CAMERA_HISTORY_SAMPLE_COUNT; ++sampleIndex) {
-			g_players[playerIdx].viewState.cameraRollHistory[sampleIndex] =
+		for (sampleIndex = 0; sampleIndex < CAMERA_HISTORY_SAMPLE_COUNT;
+		     ++sampleIndex) {
+			g_players[playerIdx]
+				.viewState.cameraRollHistory[sampleIndex] =
 				g_players[playerIdx].viewState.viewRoll;
-			g_players[playerIdx].viewState.cameraPitchHistory[sampleIndex] =
+			g_players[playerIdx]
+				.viewState.cameraPitchHistory[sampleIndex] =
 				g_players[playerIdx].viewState.viewPitch;
-			g_players[playerIdx].viewState.cameraYawHistory[sampleIndex] =
+			g_players[playerIdx]
+				.viewState.cameraYawHistory[sampleIndex] =
 				g_players[playerIdx].viewState.viewYaw;
 		}
 	} else {
 		g_players[playerIdx].viewState.playerInputBlocked = 0;
-		if (g_players[playerIdx].viewState.cameraFocusObjIdx == g_players[playerIdx].objectIndex) {
-			g_players[playerIdx].viewState.hudAimX = g_players[playerIdx].viewState.savedHudAimX;
-			g_players[playerIdx].viewState.hudAimY = g_players[playerIdx].viewState.savedHudAimY;
-			Hud_SetHudViewState(g_players[playerIdx].viewState.savedHudStateByte, playerIdx);
+		if (g_players[playerIdx].viewState.cameraFocusObjIdx ==
+		    g_players[playerIdx].objectIndex) {
+			g_players[playerIdx].viewState.hudAimX =
+				g_players[playerIdx].viewState.savedHudAimX;
+			g_players[playerIdx].viewState.hudAimY =
+				g_players[playerIdx].viewState.savedHudAimY;
+			Hud_SetHudViewState(
+				g_players[playerIdx]
+					.viewState.savedHudStateByte,
+				playerIdx);
 		} else {
 			g_players[playerIdx].viewState.hudAimX = 0;
 			g_players[playerIdx].viewState.hudAimY = 0;
@@ -1482,42 +2139,54 @@ void Player_UpdateHudViewForCameraFocus(int playerIdx) {
 }
 
 // FUNCTION: XVT 0x4820B0
-uint16_t Player_PickTargetInSight(int playerIdx) {
+uint16_t Player_PickTargetInSight(int playerIdx)
+{
 	uint16_t bestAngularTarget = UINT16_MAX;
 	uint16_t bestTarget = UINT16_MAX;
 	uint16_t bestAngle = UINT16_MAX;
 	unsigned int bestRange = UINT_MAX;
 	uint16_t objectIdx;
 
-	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart; objectIdx < g_regionMainObjectSlotEnd;
-		 ++objectIdx) {
-		if (g_objectTable[objectIdx].objectType != 0 && g_players[playerIdx].objectIndex != objectIdx &&
-			(g_objectTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0) {
+	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart;
+	     objectIdx < g_regionMainObjectSlotEnd; ++objectIdx) {
+		if (g_objectTable[objectIdx].objectType != 0 &&
+		    g_players[playerIdx].objectIndex != objectIdx &&
+		    (g_objectTypeTable[g_objectTable[objectIdx].objectType]
+			     .behaviorFlags &
+		     1) != 0) {
 			if (Targeting_TestAimCone(objectIdx, 1, playerIdx)) {
-				if (bestRange > (unsigned int)g_lastRoughDistance) {
+				if (bestRange >
+				    (unsigned int)g_lastRoughDistance) {
 					bestTarget = objectIdx;
 					bestRange = g_lastRoughDistance;
 				}
 			} else {
-				if (bestAngle <= g_targetAngleScore)
+				if (bestAngle <= g_targetAngleScore) {
 					continue;
+				}
 				bestAngle = g_targetAngleScore;
 				bestAngularTarget = objectIdx;
 			}
 		}
 	}
 	for (objectIdx = (uint16_t)g_regionMainObjectSlotEnd;
-		 objectIdx < g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd; ++objectIdx) {
+	     objectIdx <
+	     g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd;
+	     ++objectIdx) {
 		if (g_objectTable[objectIdx].objectType != 0 &&
-			(g_objectTypeTable[g_objectTable[objectIdx].objectType].behaviorFlags & 1) != 0) {
+		    (g_objectTypeTable[g_objectTable[objectIdx].objectType]
+			     .behaviorFlags &
+		     1) != 0) {
 			if (Targeting_TestAimCone(objectIdx, 1, playerIdx)) {
-				if (bestRange > (unsigned int)g_lastRoughDistance) {
+				if (bestRange >
+				    (unsigned int)g_lastRoughDistance) {
 					bestTarget = objectIdx;
 					bestRange = g_lastRoughDistance;
 				}
 			} else {
-				if (bestAngle <= g_targetAngleScore)
+				if (bestAngle <= g_targetAngleScore) {
 					continue;
+				}
 				bestAngle = g_targetAngleScore;
 				bestAngularTarget = objectIdx;
 			}
@@ -1525,26 +2194,32 @@ uint16_t Player_PickTargetInSight(int playerIdx) {
 	}
 	if (bestTarget == UINT16_MAX) {
 		if (g_players[playerIdx].mapCameraState != 0) {
-			if (bestAngle < 0xFA)
+			if (bestAngle < 0xFA) {
 				bestTarget = bestAngularTarget;
+			}
 		} else if (bestAngle < 0x32) {
 			bestTarget = bestAngularTarget;
 		}
 	}
-	if (g_players[playerIdx].mapCameraState == 0 && Object_HasActiveDecoyBeam(bestTarget) == 1) {
+	if (g_players[playerIdx].mapCameraState == 0 &&
+	    Object_HasActiveDecoyBeam(bestTarget) == 1) {
 		bestTarget = UINT16_MAX;
-		msg_emitInFlightMessage(IFMSG_257_TARGET_ACQUISITION_BLOCKED_BY_DECOY_BEAM, playerIdx);
+		msg_emitInFlightMessage(
+			IFMSG_257_TARGET_ACQUISITION_BLOCKED_BY_DECOY_BEAM,
+			playerIdx);
 	}
 	return bestTarget;
 }
 
 /* Besides picking the next target, this leaves g_curCraft pointing at the last craft it examined. */
 // FUNCTION: XVT 0x4822C0
-uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction, int playerIdx) {
+uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction,
+				  int playerIdx)
+{
 	int16_t remainingObjects;
 	int objectCount;
-	ObjectRecord* object;
-	MobileObject* mobileObject;
+	ObjectRecord *object;
+	MobileObject *mobileObject;
 	uint8_t objectKind;
 
 	objectCount = g_regionStaticObjectSlotCount;
@@ -1557,27 +2232,39 @@ uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction, int
 		currentObjIdx += direction;
 		objectCount = g_regionStaticObjectSlotCount;
 		if (currentObjIdx >= 0x8000u) {
-			currentObjIdx = (uint16_t)(objectCount + (int16_t)g_regionMainObjectSlotEnd - 1);
-		} else if (objectCount + g_regionMainObjectSlotEnd == currentObjIdx) {
+			currentObjIdx =
+				(uint16_t)(objectCount +
+					   (int16_t)g_regionMainObjectSlotEnd -
+					   1);
+		} else if (objectCount + g_regionMainObjectSlotEnd ==
+			   currentObjIdx) {
 			currentObjIdx = 0;
 		}
 
 		if (g_players[playerIdx].objectIndex != currentObjIdx) {
 			object = &g_objectTable[currentObjIdx];
-			if (object->objectType != 0 && (g_objectTypeTable[object->objectType].behaviorFlags & 1) != 0) {
+			if (object->objectType != 0 &&
+			    (g_objectTypeTable[object->objectType]
+				     .behaviorFlags &
+			     1) != 0) {
 				if (object->mobj == NULL) {
 					break;
 				}
 				if (object->genusId != CRAFT_GENUS_EXPLOSION &&
-					Object_HasActiveDecoyBeam(currentObjIdx) == 0) {
-					mobileObject = g_objectTable[currentObjIdx].mobj;
+				    Object_HasActiveDecoyBeam(currentObjIdx) ==
+					    0) {
+					mobileObject =
+						g_objectTable[currentObjIdx]
+							.mobj;
 					if (mobileObject->family != 0) {
 						break;
 					}
 					g_curCraft = mobileObject->pCraft;
 					objectKind = g_curCraft->objectKind;
-					if (objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
-						objectKind != CRAFT_OBJECT_KIND_EXPLODING) {
+					if (objectKind !=
+						    CRAFT_OBJECT_KIND_BREAKING_UP &&
+					    objectKind !=
+						    CRAFT_OBJECT_KIND_EXPLODING) {
 						break;
 					}
 				}
@@ -1589,10 +2276,11 @@ uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction, int
 
 /* Besides picking the next target, this leaves g_curCraft pointing at the last craft it examined. */
 // FUNCTION: XVT 0x4823E0
-uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playerIdx, int iffFilter,
-							int targetFlags) {
-	ObjectRecord* object;
-	MobileObject* mobileObject;
+uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
+			    int playerIdx, int iffFilter, int targetFlags)
+{
+	ObjectRecord *object;
+	MobileObject *mobileObject;
 	uint16_t objectIndex;
 	int16_t remainingObjects;
 	int objectCount;
@@ -1606,75 +2294,114 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 	remainingObjects = (int16_t)objectCount;
 	remainingObjects += (int16_t)g_regionMainObjectSlotEnd;
 	for (;;) {
-		if (remainingObjects-- == 0)
+		if (remainingObjects-- == 0) {
 			return UINT16_MAX;
+		}
 
 		objectIndex += direction;
 		objectCount = g_regionStaticObjectSlotCount;
 		if (objectIndex >= 0x8000u) {
-			objectIndex = (uint16_t)(objectCount + (int16_t)g_regionMainObjectSlotEnd - 1);
-		} else if (objectCount + g_regionMainObjectSlotEnd == objectIndex) {
+			objectIndex =
+				(uint16_t)(objectCount +
+					   (int16_t)g_regionMainObjectSlotEnd -
+					   1);
+		} else if (objectCount + g_regionMainObjectSlotEnd ==
+			   objectIndex) {
 			objectIndex = 0;
 		}
 
 		if (g_players[playerIdx].objectIndex != objectIndex &&
-			((targetFlags & 4) == 0 || g_projectileObjectSlotStart > objectIndex ||
-			 g_projectileObjectSlotEnd <= objectIndex) &&
-			((targetFlags & 2) == 0 || g_projectileObjectSlotEnd > objectIndex)) {
+		    ((targetFlags & 4) == 0 ||
+		     g_projectileObjectSlotStart > objectIndex ||
+		     g_projectileObjectSlotEnd <= objectIndex) &&
+		    ((targetFlags & 2) == 0 ||
+		     g_projectileObjectSlotEnd > objectIndex)) {
 			object = &g_objectTable[objectIndex];
 			objectType = object->objectType;
-			if (objectType != 0 && (g_objectTypeTable[objectType].behaviorFlags & 1) != 0 &&
-				((targetFlags & 1) == 0 || object->genusId != CRAFT_GENUS_MINE)) {
-				objectTeam = object->mobj == NULL ? g_missionFlightGroups[object->flightGroupIdx].fg.team
-												  : object->mobj->team;
+			if (objectType != 0 &&
+			    (g_objectTypeTable[objectType].behaviorFlags & 1) !=
+				    0 &&
+			    ((targetFlags & 1) == 0 ||
+			     object->genusId != CRAFT_GENUS_MINE)) {
+				objectTeam =
+					object->mobj == NULL
+						? g_missionFlightGroups
+							  [object->flightGroupIdx]
+								  .fg.team
+						: object->mobj->team;
 
 				/* Cases 2 and 3 overwrite the object's team with a 0/1 flag: 1 when hostile to the player. */
 				switch (iffFilter) {
-					case 1:
-						if ((uint16_t)g_players[playerIdx].team != objectTeam)
-							continue;
-						break;
+				case 1:
+					if ((uint16_t)g_players[playerIdx]
+						    .team != objectTeam) {
+						continue;
+					}
+					break;
 
-					case 2:
-						playerTeam = (uint16_t)g_players[playerIdx].team;
-						if (playerTeam == objectTeam)
-							objectTeam = 0;
-						else
-							objectTeam = g_missionTeams[playerTeam].allies[objectTeam] == 0;
-						if (objectTeam == 1)
-							continue;
-						break;
+				case 2:
+					playerTeam =
+						(uint16_t)g_players[playerIdx]
+							.team;
+					if (playerTeam == objectTeam) {
+						objectTeam = 0;
+					} else {
+						objectTeam =
+							g_missionTeams[playerTeam]
+								.allies[objectTeam] ==
+							0;
+					}
+					if (objectTeam == 1) {
+						continue;
+					}
+					break;
 
-					case 3:
-						playerTeam = (uint16_t)g_players[playerIdx].team;
-						if (playerTeam == objectTeam)
-							objectTeam = 0;
-						else
-							objectTeam = g_missionTeams[playerTeam].allies[objectTeam] == 0;
-						if (objectTeam == 0)
-							continue;
-						break;
+				case 3:
+					playerTeam =
+						(uint16_t)g_players[playerIdx]
+							.team;
+					if (playerTeam == objectTeam) {
+						objectTeam = 0;
+					} else {
+						objectTeam =
+							g_missionTeams[playerTeam]
+								.allies[objectTeam] ==
+							0;
+					}
+					if (objectTeam == 0) {
+						continue;
+					}
+					break;
 
-					case 4:
-						if (object->playerOwnerIdx == -1)
-							continue;
-						break;
+				case 4:
+					if (object->playerOwnerIdx == -1) {
+						continue;
+					}
+					break;
 
-					default:
-						break;
+				default:
+					break;
 				}
 
-				if (object->mobj == NULL)
+				if (object->mobj == NULL) {
 					break;
-				if (object->genusId != CRAFT_GENUS_EXPLOSION && Object_HasActiveDecoyBeam(objectIndex) == 0) {
-					mobileObject = g_objectTable[objectIndex].mobj;
-					if (mobileObject->family != 0)
+				}
+				if (object->genusId != CRAFT_GENUS_EXPLOSION &&
+				    Object_HasActiveDecoyBeam(objectIndex) ==
+					    0) {
+					mobileObject =
+						g_objectTable[objectIndex].mobj;
+					if (mobileObject->family != 0) {
 						break;
+					}
 					g_curCraft = mobileObject->pCraft;
 					objectKind = g_curCraft->objectKind;
-					if (objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
-						objectKind != CRAFT_OBJECT_KIND_EXPLODING)
+					if (objectKind !=
+						    CRAFT_OBJECT_KIND_BREAKING_UP &&
+					    objectKind !=
+						    CRAFT_OBJECT_KIND_EXPLODING) {
 						break;
+					}
 				}
 			}
 		}
@@ -1684,32 +2411,42 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 }
 
 // FUNCTION: XVT 0x4833D0
-void Player_SetTarget(int newTargetObjIdx, int playerIdx) {
+void Player_SetTarget(int newTargetObjIdx, int playerIdx)
+{
 	enum { OBJECT_TYPE_MESH_CACHE_COUNT = 73 };
 
 	int targetObjIdx;
 	int playerObjectIdx;
 	int canTarget;
 
-	if ((uint16_t)newTargetObjIdx == UINT16_MAX)
+	if ((uint16_t)newTargetObjIdx == UINT16_MAX) {
 		return;
+	}
 	targetObjIdx = (uint16_t)newTargetObjIdx;
-	if (g_objectTable[targetObjIdx].objectType == 0 || g_objectTable[targetObjIdx].genusId == 13)
+	if (g_objectTable[targetObjIdx].objectType == 0 ||
+	    g_objectTable[targetObjIdx].genusId == 13) {
 		return;
+	}
 	playerObjectIdx = g_players[playerIdx].objectIndex;
-	if (playerObjectIdx == targetObjIdx)
+	if (playerObjectIdx == targetObjIdx) {
 		return;
+	}
 	canTarget = 1;
 	if (playerObjectIdx != -1) {
-		if ((g_objectTable[playerObjectIdx].mobj->pCraft->workingSubsystems &
-			 CRAFT_SUBSYSTEM_FLAG_TARGETING_COMPUTER) == 0)
+		if ((g_objectTable[playerObjectIdx]
+			     .mobj->pCraft->workingSubsystems &
+		     CRAFT_SUBSYSTEM_FLAG_TARGETING_COMPUTER) == 0) {
 			canTarget = 0;
+		}
 	}
 	if (canTarget != 0) {
 		if ((uint16_t)newTargetObjIdx != UINT16_MAX &&
-			(uint16_t)g_players[playerIdx].currentTargetObjectIdx != (uint16_t)newTargetObjIdx) {
-			fsfx_PlaySound(FLIGHT_SOUND_TARGET_SELECTED, -1, playerIdx);
-			g_players[playerIdx].currentTargetObjectIdx = (uint16_t)newTargetObjIdx;
+		    (uint16_t)g_players[playerIdx].currentTargetObjectIdx !=
+			    (uint16_t)newTargetObjIdx) {
+			fsfx_PlaySound(FLIGHT_SOUND_TARGET_SELECTED, -1,
+				       playerIdx);
+			g_players[playerIdx].currentTargetObjectIdx =
+				(uint16_t)newTargetObjIdx;
 			g_players[playerIdx].selectedTargetComponent = 0;
 			if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
 				if (g_players[playerIdx].mapCameraState != 0) {
@@ -1718,51 +2455,97 @@ void Player_SetTarget(int newTargetObjIdx, int playerIdx) {
 					uint16_t meshIndex;
 
 					objectType =
-						g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx].objectType;
-					if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT)
-						meshCount = g_objectTypeMeshCache[objectType].meshCount;
-					else
-						meshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
-					for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
+						g_objectTable
+							[(uint16_t)g_players[playerIdx]
+								 .currentTargetObjectIdx]
+								.objectType;
+					if (objectType <
+					    OBJECT_TYPE_MESH_CACHE_COUNT) {
+						meshCount =
+							g_objectTypeMeshCache
+								[objectType]
+									.meshCount;
+					} else {
+						meshCount =
+							ModelMesh_GetObjectTypeMeshCount(
+								objectType);
+					}
+					for (meshIndex = 0;
+					     meshIndex < meshCount;
+					     ++meshIndex) {
 						int cachedMeshIndex;
 						int meshType;
 
 						cachedMeshIndex = meshIndex;
 						objectType =
-							g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx].objectType;
-						if (objectType < OBJECT_TYPE_MESH_CACHE_COUNT)
-							meshType = ModelMesh_GetCachedObjectTypeMeshType(objectType, cachedMeshIndex);
-						else
-							meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshIndex);
-						if (meshType == MESH_COMPONENT_01_MAIN_HULL ||
-							meshType == MESH_COMPONENT_03_FUSELAGE) {
-							g_players[playerIdx].selectedTargetComponent = meshIndex;
+							g_objectTable
+								[(uint16_t)g_players
+									 [playerIdx]
+										 .currentTargetObjectIdx]
+									.objectType;
+						if (objectType <
+						    OBJECT_TYPE_MESH_CACHE_COUNT) {
+							meshType = ModelMesh_GetCachedObjectTypeMeshType(
+								objectType,
+								cachedMeshIndex);
+						} else {
+							meshType = ModelMesh_GetObjectTypeMeshType(
+								objectType,
+								meshIndex);
+						}
+						if (meshType ==
+							    MESH_COMPONENT_01_MAIN_HULL ||
+						    meshType ==
+							    MESH_COMPONENT_03_FUSELAGE) {
+							g_players[playerIdx]
+								.selectedTargetComponent =
+								meshIndex;
 							break;
 						}
 					}
 				} else {
-					g_players[playerIdx].selectedTargetComponent =
-						Player_SelectTargetComponentMesh((uint16_t)newTargetObjIdx, playerIdx);
+					g_players[playerIdx]
+						.selectedTargetComponent =
+						Player_SelectTargetComponentMesh(
+							(uint16_t)
+								newTargetObjIdx,
+							playerIdx);
 				}
 			}
-			if (g_players[playerIdx].viewState.transitionTimer != 0)
-				g_players[playerIdx].viewState.cameraFocusObjIdx =
-					g_players[playerIdx].currentTargetObjectIdx;
+			if (g_players[playerIdx].viewState.transitionTimer !=
+			    0) {
+				g_players[playerIdx]
+					.viewState.cameraFocusObjIdx =
+					g_players[playerIdx]
+						.currentTargetObjectIdx;
+			}
 			g_players[playerIdx].missileLockState = 0;
 			playerObjectIdx = g_players[playerIdx].objectIndex;
-			if (playerObjectIdx != -1)
-				g_objectTable[playerObjectIdx].mobj->pCraft->warheadLockTicks = 0;
+			if (playerObjectIdx != -1) {
+				g_objectTable[playerObjectIdx]
+					.mobj->pCraft->warheadLockTicks = 0;
+			}
 			if (g_players[playerIdx].mapCameraState != 0) {
-				msg_BuildTargetDescription(newTargetObjIdx, playerIdx, 1, 0);
+				msg_BuildTargetDescription(newTargetObjIdx,
+							   playerIdx, 1, 0);
 				return;
 			}
 			playerObjectIdx = g_players[playerIdx].objectIndex;
-			if ((g_objectTable[playerObjectIdx].mobj->pCraft->damageStats.activeHudFeatureMask & 1) == 0)
+			if ((g_objectTable[playerObjectIdx]
+				     .mobj->pCraft->damageStats
+				     .activeHudFeatureMask &
+			     1) == 0) {
 				return;
-			if (g_players[playerIdx].viewState.hudStateLive == HUD_VIEW_HUD_ONLY ||
-				g_players[playerIdx].viewState.hudStateLive == HUD_VIEW_FORWARD ||
-				g_players[g_localPlayer].viewState.hudStateLive == HUD_VIEW_TARGET_CAMERA)
-				msg_BuildTargetDescription(newTargetObjIdx, playerIdx, 1, 0);
+			}
+			if (g_players[playerIdx].viewState.hudStateLive ==
+				    HUD_VIEW_HUD_ONLY ||
+			    g_players[playerIdx].viewState.hudStateLive ==
+				    HUD_VIEW_FORWARD ||
+			    g_players[g_localPlayer].viewState.hudStateLive ==
+				    HUD_VIEW_TARGET_CAMERA) {
+				msg_BuildTargetDescription(newTargetObjIdx,
+							   playerIdx, 1, 0);
+			}
 		}
 	} else {
 		g_msgArgTable[0] = IFMSG_096_TARGETING_COMPUTER;
@@ -1772,7 +2555,9 @@ void Player_SetTarget(int newTargetObjIdx, int playerIdx) {
 }
 
 // FUNCTION: XVT 0x483800
-uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int playerIdx) {
+uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx,
+					  unsigned int playerIdx)
+{
 	/* Prefer the nearest hull or fuselage component for capital ships. */
 	uint16_t genusId;
 	int objectType;
@@ -1786,26 +2571,38 @@ uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int pl
 	nearestDistance = 0x1000000;
 	genusId = g_objectTable[targetObjIdx].genusId;
 
-	if (genusId == CRAFT_GENUS_STARSHIP || genusId == CRAFT_GENUS_PLATFORM) {
+	if (genusId == CRAFT_GENUS_STARSHIP ||
+	    genusId == CRAFT_GENUS_PLATFORM) {
 		selectedMeshIdx = 0;
 		objectType = g_objectTable[targetObjIdx].objectType;
-		if (objectType < (int)(sizeof(g_objectTypeMeshCache) / sizeof(g_objectTypeMeshCache[0]))) {
+		if (objectType < (int)(sizeof(g_objectTypeMeshCache) /
+				       sizeof(g_objectTypeMeshCache[0]))) {
 			meshCount = g_objectTypeMeshCache[objectType].meshCount;
 		} else {
-			meshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
+			meshCount =
+				ModelMesh_GetObjectTypeMeshCount(objectType);
 		}
 
 		for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
 			meshTypeIndex = meshIndex;
 			objectType = g_objectTable[targetObjIdx].objectType;
-			if (objectType < (int)(sizeof(g_objectTypeMeshCache) / sizeof(g_objectTypeMeshCache[0]))) {
-				meshType = ModelMesh_GetCachedObjectTypeMeshType(objectType, meshTypeIndex);
+			if (objectType <
+			    (int)(sizeof(g_objectTypeMeshCache) /
+				  sizeof(g_objectTypeMeshCache[0]))) {
+				meshType =
+					ModelMesh_GetCachedObjectTypeMeshType(
+						objectType, meshTypeIndex);
 			} else {
-				meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshIndex);
+				meshType = ModelMesh_GetObjectTypeMeshType(
+					objectType, meshIndex);
 			}
-			if (meshType == MESH_COMPONENT_01_MAIN_HULL || meshType == MESH_COMPONENT_03_FUSELAGE) {
-				unsigned int distance = Object_DirectionAndDistanceToMeshCenter(
-					g_players[playerIdx].objectIndex, targetObjIdx, meshIndex);
+			if (meshType == MESH_COMPONENT_01_MAIN_HULL ||
+			    meshType == MESH_COMPONENT_03_FUSELAGE) {
+				unsigned int distance =
+					Object_DirectionAndDistanceToMeshCenter(
+						g_players[playerIdx]
+							.objectIndex,
+						targetObjIdx, meshIndex);
 				if (distance < nearestDistance) {
 					selectedMeshIdx = meshIndex;
 					nearestDistance = distance;
@@ -1816,7 +2613,8 @@ uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int pl
 	}
 
 	objectType = g_objectTable[targetObjIdx].objectType;
-	if (objectType < (int)(sizeof(g_objectTypeMeshCache) / sizeof(g_objectTypeMeshCache[0]))) {
+	if (objectType < (int)(sizeof(g_objectTypeMeshCache) /
+			       sizeof(g_objectTypeMeshCache[0]))) {
 		meshCount = g_objectTypeMeshCache[objectType].meshCount;
 	} else {
 		meshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
@@ -1825,12 +2623,16 @@ uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int pl
 	for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
 		meshTypeIndex = meshIndex;
 		objectType = g_objectTable[targetObjIdx].objectType;
-		if (objectType < (int)(sizeof(g_objectTypeMeshCache) / sizeof(g_objectTypeMeshCache[0]))) {
-			meshType = ModelMesh_GetCachedObjectTypeMeshType(objectType, meshTypeIndex);
+		if (objectType < (int)(sizeof(g_objectTypeMeshCache) /
+				       sizeof(g_objectTypeMeshCache[0]))) {
+			meshType = ModelMesh_GetCachedObjectTypeMeshType(
+				objectType, meshTypeIndex);
 		} else {
-			meshType = ModelMesh_GetObjectTypeMeshType(objectType, meshTypeIndex);
+			meshType = ModelMesh_GetObjectTypeMeshType(
+				objectType, meshTypeIndex);
 		}
-		if (meshType == MESH_COMPONENT_01_MAIN_HULL || meshType == MESH_COMPONENT_03_FUSELAGE) {
+		if (meshType == MESH_COMPONENT_01_MAIN_HULL ||
+		    meshType == MESH_COMPONENT_03_FUSELAGE) {
 			return meshIndex;
 		}
 	}
@@ -1838,13 +2640,16 @@ uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx, unsigned int pl
 }
 
 // FUNCTION: XVT 0x483A00
-int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16, uint16_t objectIndex,
-							CraftData* craft) {
+int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16,
+			    uint16_t objectIndex, CraftData *craft)
+{
 #ifdef XVT_MODERN
-	ObjectRecord* object = &g_objectTable[objectIndex];
-	XvtOrientationAngles current = { object->yaw, object->pitch, object->roll };
-	XvtOrientationAngles updated =
-		XvtOrientation_ApplyPitchYaw(current, pitchAngleQ16, (g_flightKeyMods & 0xE) == 2 ? 0 : yawAngleQ16);
+	ObjectRecord *object = &g_objectTable[objectIndex];
+	XvtOrientationAngles current = {object->yaw, object->pitch,
+					object->roll};
+	XvtOrientationAngles updated = XvtOrientation_ApplyPitchYaw(
+		current, pitchAngleQ16,
+		(g_flightKeyMods & 0xE) == 2 ? 0 : yawAngleQ16);
 	/* BoP also retains the commanded pitch in CraftData. Publish a coherent
 	 * orientation immediately, as XWA does, before the per-object step gate. */
 	craft->pitch = object->pitch = updated.pitch;
@@ -1870,9 +2675,11 @@ int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16, uint16_t
 	int16_t result;
 
 	if (g_objectTable[objectIndex].mobj->orientMatrixDirty != 0) {
-		FVIEW_calcrotatemove(g_objectTable[objectIndex].pitch, g_objectTable[objectIndex].yaw,
-							 &g_objectTable[objectIndex]);
-		FVIEW_calcrotateorient(g_objectTable[objectIndex].roll, 0, &g_objectTable[objectIndex]);
+		FVIEW_calcrotatemove(g_objectTable[objectIndex].pitch,
+				     g_objectTable[objectIndex].yaw,
+				     &g_objectTable[objectIndex]);
+		FVIEW_calcrotateorient(g_objectTable[objectIndex].roll, 0,
+				       &g_objectTable[objectIndex]);
 	}
 	g_curMatR2_X = -g_objectTable[objectIndex].mobj->cachedFwdX;
 	g_curMatR2_Y = -g_objectTable[objectIndex].mobj->cachedFwdY;
@@ -1883,9 +2690,12 @@ int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16, uint16_t
 	g_curMatR0_X = g_objectTable[objectIndex].mobj->cachedSideX;
 	g_curMatR0_Y = g_objectTable[objectIndex].mobj->cachedSideY;
 	g_curMatR0_Z = g_objectTable[objectIndex].mobj->cachedSideZ;
-	FVIEW_transformaxes(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, pitchAngleQ16);
-	if ((g_flightKeyMods & 0xE) != 2)
-		FVIEW_transformaxes(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, yawAngleQ16);
+	FVIEW_transformaxes(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z,
+			    pitchAngleQ16);
+	if ((g_flightKeyMods & 0xE) != 2) {
+		FVIEW_transformaxes(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
+				    yawAngleQ16);
+	}
 
 	pitch = trig2_w_arccos((int16_t)-g_curMatR2_Z);
 	craft->pitch = pitch;
@@ -1901,32 +2711,41 @@ int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16, uint16_t
 	negativeYawSin = (int16_t)-yawSin;
 	negativePitchSin = (int16_t)-pitchSin;
 
-	rotatedX =
-		(int16_t)Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, yawCos, negativeYawSin, 0);
-	rotatedY = (int16_t)Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, pitchCosYawSin,
-											pitchCosYawCos, negativePitchSin);
-	rotatedZ = (int16_t)Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, pitchSinYawSin,
-											pitchSinYawCos, pitchCos);
+	rotatedX = (int16_t)Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y,
+						g_curMatR0_Z, yawCos,
+						negativeYawSin, 0);
+	rotatedY = (int16_t)Math_Dot3Q15Wrapped(
+		g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, pitchCosYawSin,
+		pitchCosYawCos, negativePitchSin);
+	rotatedZ = (int16_t)Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y,
+						g_curMatR0_Z, pitchSinYawSin,
+						pitchSinYawCos, pitchCos);
 	g_curMatR0_X = rotatedX;
 	g_curMatR0_Y = rotatedY;
 	g_curMatR0_Z = rotatedZ;
 
-	rotatedX =
-		(int16_t)Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, yawCos, negativeYawSin, 0);
-	rotatedY = (int16_t)Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, pitchCosYawSin,
-											pitchCosYawCos, negativePitchSin);
-	rotatedZ = (int16_t)Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, pitchSinYawSin,
-											pitchSinYawCos, pitchCos);
+	rotatedX = (int16_t)Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y,
+						g_curMatR1_Z, yawCos,
+						negativeYawSin, 0);
+	rotatedY = (int16_t)Math_Dot3Q15Wrapped(
+		g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, pitchCosYawSin,
+		pitchCosYawCos, negativePitchSin);
+	rotatedZ = (int16_t)Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y,
+						g_curMatR1_Z, pitchSinYawSin,
+						pitchSinYawCos, pitchCos);
 	g_curMatR1_X = rotatedX;
 	g_curMatR1_Y = rotatedY;
 	g_curMatR1_Z = rotatedZ;
 
-	rotatedX =
-		(int16_t)Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z, yawCos, negativeYawSin, 0);
-	rotatedY = (int16_t)Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z, pitchCosYawSin,
-											pitchCosYawCos, negativePitchSin);
-	rotatedZ = (int16_t)Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z, pitchSinYawSin,
-											pitchSinYawCos, pitchCos);
+	rotatedX = (int16_t)Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y,
+						g_curMatR2_Z, yawCos,
+						negativeYawSin, 0);
+	rotatedY = (int16_t)Math_Dot3Q15Wrapped(
+		g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z, pitchCosYawSin,
+		pitchCosYawCos, negativePitchSin);
+	rotatedZ = (int16_t)Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y,
+						g_curMatR2_Z, pitchSinYawSin,
+						pitchSinYawCos, pitchCos);
 	g_curMatR2_X = rotatedX;
 	g_curMatR2_Y = rotatedY;
 	g_curMatR2_Z = rotatedZ;
@@ -1940,9 +2759,10 @@ int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16, uint16_t
 
 /* Besides answering, this leaves g_curCraft pointing at the targeted craft when no player flies it. */
 // FUNCTION: XVT 0x4841B0
-int16_t Player_CanRadioCommandCraft(int playerIdx) {
+int16_t Player_CanRadioCommandCraft(int playerIdx)
+{
 	int currentTargetObjectIdx;
-	ObjectRecord* targetObject;
+	ObjectRecord *targetObject;
 	int flightGroupIdx;
 	int boundFlightGroupIdx;
 	uint8_t radio;
@@ -1952,7 +2772,8 @@ int16_t Player_CanRadioCommandCraft(int playerIdx) {
 	if (g_players[playerIdx].currentTargetObjectIdx == -1) {
 		return 0;
 	}
-	currentTargetObjectIdx = (uint16_t)g_players[playerIdx].currentTargetObjectIdx;
+	currentTargetObjectIdx =
+		(uint16_t)g_players[playerIdx].currentTargetObjectIdx;
 	if (g_activeRegionCraftObjectSlotEnd <= currentTargetObjectIdx) {
 		return 0;
 	}
@@ -1968,7 +2789,8 @@ int16_t Player_CanRadioCommandCraft(int playerIdx) {
 		return 0;
 	}
 	flightGroupIdx = targetObject->flightGroupIdx;
-	boundFlightGroupIdx = (uint16_t)g_players[playerIdx].boundFlightGroupIdx;
+	boundFlightGroupIdx =
+		(uint16_t)g_players[playerIdx].boundFlightGroupIdx;
 	if (flightGroupIdx == boundFlightGroupIdx) {
 		return 1;
 	}
@@ -1981,29 +2803,40 @@ int16_t Player_CanRadioCommandCraft(int playerIdx) {
 		return 1;
 	}
 	globalUnit = g_missionFlightGroups[flightGroupIdx].fg.globalUnit;
-	if (globalUnit != 0 && g_missionFlightGroups[boundFlightGroupIdx].fg.globalUnit == globalUnit) {
+	if (globalUnit != 0 &&
+	    g_missionFlightGroups[boundFlightGroupIdx].fg.globalUnit ==
+		    globalUnit) {
 		return 1;
 	}
-	if (radio - g_missionFlightGroups[boundFlightGroupIdx].fg.playerNumber == 8) {
+	if (radio - g_missionFlightGroups[boundFlightGroupIdx]
+			    .fg.playerNumber ==
+	    8) {
 		return 1;
 	}
 	return radio - playerTeam == 1;
 }
 
 // FUNCTION: XVT 0x484320
-void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId, uint16_t responseIndex,
-									  int playerIdx) {
+void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
+				      uint16_t responseIndex, int playerIdx)
+{
 	uint16_t matchingWingmen;
 	uint16_t objectIndex;
 	uint16_t lastWingman;
 
 	if (targetObjIdx != UINT16_MAX) {
-		int targetTeam = g_missionFlightGroups[g_objectTable[targetObjIdx].flightGroupIdx].fg.team;
+		int targetTeam =
+			g_missionFlightGroups[g_objectTable[targetObjIdx]
+						      .flightGroupIdx]
+				.fg.team;
 		int targetIsHostile;
 		if (targetTeam == (uint16_t)g_players[playerIdx].team) {
 			targetIsHostile = 0;
 		} else {
-			targetIsHostile = !g_missionTeams[(uint16_t)g_players[playerIdx].team].allies[targetTeam];
+			targetIsHostile =
+				!g_missionTeams[(uint16_t)g_players[playerIdx]
+							.team]
+					 .allies[targetTeam];
 		}
 		if (!targetIsHostile) {
 			return;
@@ -2013,10 +2846,10 @@ void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 	matchingWingmen = 0;
 	lastWingman = UINT16_MAX;
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-		 objectIndex < g_activeRegionCraftObjectSlotEnd; objectIndex++) {
-		ObjectRecord* object;
-		AiController* ai;
-		CraftData* craft;
+	     objectIndex < g_activeRegionCraftObjectSlotEnd; objectIndex++) {
+		ObjectRecord *object;
+		AiController *ai;
+		CraftData *craft;
 		int flightGroupIdx;
 		int playerSlot;
 		uint16_t boundFlightGroupIdx;
@@ -2029,7 +2862,8 @@ void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 			continue;
 		}
 		flightGroupIdx = object->flightGroupIdx;
-		if (g_missionFlightGroups[flightGroupIdx].fg.team != (uint16_t)g_players[playerIdx].team) {
+		if (g_missionFlightGroups[flightGroupIdx].fg.team !=
+		    (uint16_t)g_players[playerIdx].team) {
 			continue;
 		}
 		craft = object->mobj->pCraft;
@@ -2037,33 +2871,50 @@ void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 			continue;
 		}
 		boundFlightGroupIdx = g_players[playerIdx].boundFlightGroupIdx;
-		playerSlot = g_missionFlightGroups[boundFlightGroupIdx].fg.playerNumber - 1;
+		playerSlot = g_missionFlightGroups[boundFlightGroupIdx]
+				     .fg.playerNumber -
+			     1;
 		if (flightGroupIdx != boundFlightGroupIdx) {
-			uint8_t globalUnit = g_missionFlightGroups[flightGroupIdx].fg.globalUnit;
-			if ((globalUnit == 0 || g_missionFlightGroups[boundFlightGroupIdx].fg.globalUnit != globalUnit) &&
-				g_missionFlightGroups[flightGroupIdx].fg.radio - playerSlot != 9) {
+			uint8_t globalUnit =
+				g_missionFlightGroups[flightGroupIdx]
+					.fg.globalUnit;
+			if ((globalUnit == 0 ||
+			     g_missionFlightGroups[boundFlightGroupIdx]
+					     .fg.globalUnit != globalUnit) &&
+			    g_missionFlightGroups[flightGroupIdx].fg.radio -
+					    playerSlot !=
+				    9) {
 				continue;
 			}
 		}
 		ai = &craft->aiController;
 		if (commandId != 155) {
-			const char* planName = g_planTable[ai->pendingPlanId].name;
-			if (strcmp(planName, "nullpln") == 0 || strcmp(planName, "stationaryldrpln") == 0 ||
-				strcmp(planName, "stationaryflwpln") == 0 || strcmp(planName, "formldr1pln") == 0 ||
-				strcmp(planName, "formflw1pln") == 0 || strcmp(planName, "formevadeldr1pln") == 0 ||
-				strcmp(planName, "formevadeflw1pln") == 0 || strcmp(planName, "flyhomeevadepln") == 0 ||
-				strcmp(planName, "intohyperspacepln") == 0 || strcmp(planName, "enterhangarpln") == 0) {
+			const char *planName =
+				g_planTable[ai->pendingPlanId].name;
+			if (strcmp(planName, "nullpln") == 0 ||
+			    strcmp(planName, "stationaryldrpln") == 0 ||
+			    strcmp(planName, "stationaryflwpln") == 0 ||
+			    strcmp(planName, "formldr1pln") == 0 ||
+			    strcmp(planName, "formflw1pln") == 0 ||
+			    strcmp(planName, "formevadeldr1pln") == 0 ||
+			    strcmp(planName, "formevadeflw1pln") == 0 ||
+			    strcmp(planName, "flyhomeevadepln") == 0 ||
+			    strcmp(planName, "intohyperspacepln") == 0 ||
+			    strcmp(planName, "enterhangarpln") == 0) {
 				continue;
 			}
 			if (strcmp(planName, "craftwaitforgopln") == 0) {
 				ai->pendingPlanId = ai->savedPlanId;
 				g_curCraft = craft;
 				pai_setupcraftcontext(objectIndex);
-				pai_ApplyPendingPlanTargetAndManeuver(objectIndex);
+				pai_ApplyPendingPlanTargetAndManeuver(
+					objectIndex);
 			}
 			ai->candidateTargetIdx = targetObjIdx;
-			if (craft->playerCommandAvoidTargetObjIdx == targetObjIdx) {
-				craft->playerCommandAvoidTargetObjIdx = UINT16_MAX;
+			if (craft->playerCommandAvoidTargetObjIdx ==
+			    targetObjIdx) {
+				craft->playerCommandAvoidTargetObjIdx =
+					UINT16_MAX;
 			}
 		} else {
 			craft->playerCommandAvoidTargetObjIdx = targetObjIdx;
@@ -2075,69 +2926,98 @@ void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 		lastWingman = objectIndex;
 	}
 	if (playerIdx == g_localPlayer && lastWingman != UINT16_MAX) {
-		uint8_t* wingmanCraft = (uint8_t*)g_objectTable[lastWingman].mobj->pCraft;
+		uint8_t *wingmanCraft =
+			(uint8_t *)g_objectTable[lastWingman].mobj->pCraft;
 		if (matchingWingmen == 1) {
-			msg_radioMessage(lastWingman, wingmanCraft, commandId, responseIndex, 0);
+			msg_radioMessage(lastWingman, wingmanCraft, commandId,
+					 responseIndex, 0);
 		} else {
-			msg_radioMessage(lastWingman, wingmanCraft, commandId, responseIndex, 1);
+			msg_radioMessage(lastWingman, wingmanCraft, commandId,
+					 responseIndex, 1);
 		}
 	}
 }
 
 // FUNCTION: XVT 0x4846F0
-int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx, int16_t excludedObjIdx) {
+int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx,
+				    int16_t excludedObjIdx)
+{
 	uint16_t nearest;
 	unsigned int nearestDistance;
 	uint16_t objectIdx;
 
-	if (targetObjIdx == UINT16_MAX)
+	if (targetObjIdx == UINT16_MAX) {
 		return -1;
+	}
 	nearestDistance = UINT_MAX;
 	nearest = UINT16_MAX;
-	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart; objectIdx < g_activeRegionCraftObjectSlotEnd;
-		 ++objectIdx) {
-		CraftData* craft;
+	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart;
+	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
+		CraftData *craft;
 		int qualifies;
-		if (g_objectTable[objectIdx].objectType == 0 || targetObjIdx == objectIdx ||
-			objectIdx == (uint16_t)excludedObjIdx ||
-			g_objectTable[objectIdx].genusId == CRAFT_GENUS_EXPLOSION)
+		if (g_objectTable[objectIdx].objectType == 0 ||
+		    targetObjIdx == objectIdx ||
+		    objectIdx == (uint16_t)excludedObjIdx ||
+		    g_objectTable[objectIdx].genusId == CRAFT_GENUS_EXPLOSION) {
 			continue;
+		}
 		craft = g_objectTable[objectIdx].mobj->pCraft;
 		qualifies = 0;
-		if (craft->workingSubsystems == 0 || craft->objectKind != CRAFT_OBJECT_KIND_ACTIVE ||
-			Object_HasActiveDecoyBeam(objectIdx))
+		if (craft->workingSubsystems == 0 ||
+		    craft->objectKind != CRAFT_OBJECT_KIND_ACTIVE ||
+		    Object_HasActiveDecoyBeam(objectIdx)) {
 			continue;
+		}
 		if (g_objectTable[objectIdx].playerOwnerIdx == -1) {
-			AiController* ai = &craft->aiController;
-			if (ai->targetObjIdx != targetObjIdx || (ai->maneuverMode != AI_MANEUVER_MODE_ATTACK &&
-													 ai->maneuverMode != AI_MANEUVER_MODE_ROCKET_ATTACK))
+			AiController *ai = &craft->aiController;
+			if (ai->targetObjIdx != targetObjIdx ||
+			    (ai->maneuverMode != AI_MANEUVER_MODE_ATTACK &&
+			     ai->maneuverMode !=
+				     AI_MANEUVER_MODE_ROCKET_ATTACK)) {
 				continue;
+			}
 			qualifies = 1;
 		} else {
 			int playerOwnerIdx;
 			if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
-				CraftData* targetCraft = g_objectTable[targetObjIdx].mobj->pCraft;
-				if (targetCraft->lastAttackerObjIdx == objectIdx &&
-					(g_objectTable[targetObjIdx].playerOwnerIdx == -1 ||
-					 (uint16_t)Mission_ClockToSeconds(g_missionElapsedClock.hours,
-													  g_missionElapsedClock.minutes,
-													  g_missionElapsedClock.seconds) -
-							 targetCraft->lastHitMissionSecond <
-						 5))
+				CraftData *targetCraft =
+					g_objectTable[targetObjIdx]
+						.mobj->pCraft;
+				if (targetCraft->lastAttackerObjIdx ==
+					    objectIdx &&
+				    (g_objectTable[targetObjIdx]
+						     .playerOwnerIdx == -1 ||
+				     (uint16_t)Mission_ClockToSeconds(
+					     g_missionElapsedClock.hours,
+					     g_missionElapsedClock.minutes,
+					     g_missionElapsedClock.seconds) -
+						     targetCraft
+							     ->lastHitMissionSecond <
+					     5)) {
 					qualifies = 1;
+				}
 			}
-			playerOwnerIdx = g_objectTable[objectIdx].playerOwnerIdx;
-			if ((uint16_t)g_players[playerOwnerIdx].currentTargetObjectIdx == targetObjIdx) {
-				pai_ObjectRefUpdateRoughDistance(objectIdx, targetObjIdx);
-				if (g_lastRoughDistance < 0x10000 && Targeting_TestAimCone(targetObjIdx, 0, playerOwnerIdx))
+			playerOwnerIdx =
+				g_objectTable[objectIdx].playerOwnerIdx;
+			if ((uint16_t)g_players[playerOwnerIdx]
+				    .currentTargetObjectIdx == targetObjIdx) {
+				pai_ObjectRefUpdateRoughDistance(objectIdx,
+								 targetObjIdx);
+				if (g_lastRoughDistance < 0x10000 &&
+				    Targeting_TestAimCone(targetObjIdx, 0,
+							  playerOwnerIdx)) {
 					qualifies = 1;
-				if (craft->warheadLockTicks != 0)
+				}
+				if (craft->warheadLockTicks != 0) {
 					qualifies = 1;
+				}
 			}
 		}
 		if (qualifies != 0) {
-			pai_ObjectRefDirectionToObjectRef(targetObjIdx, objectIdx);
-			if (nearestDistance > (unsigned int)trig2_polardistance) {
+			pai_ObjectRefDirectionToObjectRef(targetObjIdx,
+							  objectIdx);
+			if (nearestDistance >
+			    (unsigned int)trig2_polardistance) {
 				nearestDistance = trig2_polardistance;
 				nearest = objectIdx;
 			}
@@ -2147,7 +3027,10 @@ int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx, int16_t excludedObjId
 }
 
 // FUNCTION: XVT 0x484A30
-void Player_StartPostDestructionState(int playerIdx, unsigned int sourceObjectIndex, int sourcePlayerIdx) {
+void Player_StartPostDestructionState(int playerIdx,
+				      unsigned int sourceObjectIndex,
+				      int sourcePlayerIdx)
+{
 	enum {
 		KILL_MESSAGE_NAME_SIZE = 64,
 		OBJECT_DISPLAY_NAME_AND_TYPE = 3,
@@ -2159,47 +3042,70 @@ void Player_StartPostDestructionState(int playerIdx, unsigned int sourceObjectIn
 
 	g_players[playerIdx].hyperspacePhase = 0;
 	if (g_players[playerIdx].mapCameraState != 0) {
-		if (playerIdx == g_localPlayer)
+		if (playerIdx == g_localPlayer) {
 			Hud_ClearReadyMessageQueue();
+		}
 	} else {
 		g_players[playerIdx].viewState.cameraFocusObjIdx = UINT16_MAX;
 		g_players[playerIdx].viewState.cameraWorldX =
-			g_objectTable[g_players[playerIdx].objectIndex].mobj->prevWorldX;
+			g_objectTable[g_players[playerIdx].objectIndex]
+				.mobj->prevWorldX;
 		g_players[playerIdx].viewState.cameraWorldY =
-			g_objectTable[g_players[playerIdx].objectIndex].mobj->prevWorldY;
+			g_objectTable[g_players[playerIdx].objectIndex]
+				.mobj->prevWorldY;
 		localPlayer = g_localPlayer;
 		g_players[playerIdx].viewState.cameraWorldZ =
-			g_objectTable[g_players[playerIdx].objectIndex].mobj->prevWorldZ;
+			g_objectTable[g_players[playerIdx].objectIndex]
+				.mobj->prevWorldZ;
 		g_players[playerIdx].viewState.externalCameraActive = 1;
 		g_players[playerIdx].viewState.playerInputBlocked = 1;
 		g_players[playerIdx].viewState.hudAimY = 0;
 		g_players[playerIdx].viewState.hudAimX = 0;
-		if (playerIdx == localPlayer)
+		if (playerIdx == localPlayer) {
 			Hud_ClearReadyMessageQueue();
+		}
 
 		fsfx_UpdateBeamSystemLoop(0, playerIdx);
 		fsfx_UpdateIncomingMissileWarning(0);
 		fsfx_PlaySound(FLIGHT_SOUND_MISSILE_LOCK_3, -1, playerIdx);
 		Hud_SetHudViewState(HUD_VIEW_FULL_SCREEN, playerIdx);
-		if (playerIdx == g_localPlayer && sourceObjectIndex != UINT_MAX &&
-			sourceObjectIndex < (unsigned int)g_activeRegionCraftObjectSlotEnd) {
+		if (playerIdx == g_localPlayer &&
+		    sourceObjectIndex != UINT_MAX &&
+		    sourceObjectIndex <
+			    (unsigned int)g_activeRegionCraftObjectSlotEnd) {
 			if (g_activeFlightPlayerCount > 1) {
 				if (sourcePlayerIdx != -1 &&
-					g_objectTable[sourceObjectIndex].playerOwnerIdx != sourcePlayerIdx &&
-					g_players[sourcePlayerIdx].objectIndex != -1) {
-					Player_AppendKillMessageActorName(0, sourceName, (int)sourceObjectIndex);
-					Player_AppendKillMessageActorName(1, assistingPlayerName,
-													  g_players[sourcePlayerIdx].objectIndex);
-					msg_emitInFlightMessage(IFMSG_399_YOU_WERE_KILLED_BY_ARG_MOST_DAMAGE_WAS_DONE_BY_ARG,
-											g_localPlayer);
+				    g_objectTable[sourceObjectIndex]
+						    .playerOwnerIdx !=
+					    sourcePlayerIdx &&
+				    g_players[sourcePlayerIdx].objectIndex !=
+					    -1) {
+					Player_AppendKillMessageActorName(
+						0, sourceName,
+						(int)sourceObjectIndex);
+					Player_AppendKillMessageActorName(
+						1, assistingPlayerName,
+						g_players[sourcePlayerIdx]
+							.objectIndex);
+					msg_emitInFlightMessage(
+						IFMSG_399_YOU_WERE_KILLED_BY_ARG_MOST_DAMAGE_WAS_DONE_BY_ARG,
+						g_localPlayer);
 				} else {
-					Player_AppendKillMessageActorName(0, sourceName, (int)sourceObjectIndex);
-					msg_emitInFlightMessage(IFMSG_398_YOU_WERE_KILLED_BY_ARG, g_localPlayer);
+					Player_AppendKillMessageActorName(
+						0, sourceName,
+						(int)sourceObjectIndex);
+					msg_emitInFlightMessage(
+						IFMSG_398_YOU_WERE_KILLED_BY_ARG,
+						g_localPlayer);
 				}
 			} else {
-				Hud_AppendObjectDisplayName((uint16_t)sourceObjectIndex, OBJECT_DISPLAY_NAME_AND_TYPE);
+				Hud_AppendObjectDisplayName(
+					(uint16_t)sourceObjectIndex,
+					OBJECT_DISPLAY_NAME_AND_TYPE);
 				msg_addMessagePtr(0, g_flightTextScratchBuffer);
-				msg_emitInFlightMessage(IFMSG_398_YOU_WERE_KILLED_BY_ARG, g_localPlayer);
+				msg_emitInFlightMessage(
+					IFMSG_398_YOU_WERE_KILLED_BY_ARG,
+					g_localPlayer);
 			}
 		}
 	}
@@ -2207,28 +3113,34 @@ void Player_StartPostDestructionState(int playerIdx, unsigned int sourceObjectIn
 }
 
 // FUNCTION: XVT 0x484C50
-void Player_AppendKillMessageActorName(int slot, char* text, int objectIndex) {
-	ObjectRecord* object;
+void Player_AppendKillMessageActorName(int slot, char *text, int objectIndex)
+{
+	ObjectRecord *object;
 	int playerOwnerIdx;
-	CraftData* craft;
+	CraftData *craft;
 	int playerTeam;
 	int team;
 	int isEnemy;
-	char* playerName;
+	char *playerName;
 
 	object = &g_objectTable[objectIndex];
 	playerOwnerIdx = object->playerOwnerIdx;
 	craft = object->mobj->pCraft;
 	if (g_flightMissionState.locatePlayersEnabled != 0 ||
-		craft->identifiedOrderByTeam[(uint16_t)g_players[g_localPlayer].team] != 0) {
+	    craft->identifiedOrderByTeam[(uint16_t)g_players[g_localPlayer]
+						 .team] != 0) {
 		isEnemy = 0;
 	} else {
 		playerTeam = (uint16_t)g_players[g_localPlayer].team;
-		team = g_missionFlightGroups[g_objectTable[(uint16_t)objectIndex].flightGroupIdx].fg.team;
-		if (team == playerTeam)
+		team = g_missionFlightGroups
+			       [g_objectTable[(uint16_t)objectIndex]
+					.flightGroupIdx]
+				       .fg.team;
+		if (team == playerTeam) {
 			isEnemy = 0;
-		else
+		} else {
 			isEnemy = g_missionTeams[playerTeam].allies[team] == 0;
+		}
 	}
 	if (isEnemy == 1) {
 		if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
@@ -2249,7 +3161,8 @@ void Player_AppendKillMessageActorName(int slot, char* text, int objectIndex) {
 }
 
 // FUNCTION: XVT 0x485000
-void Player_ComputePolarToObjectRef(int playerIdx, unsigned int objectRef) {
+void Player_ComputePolarToObjectRef(int playerIdx, unsigned int objectRef)
+{
 	unsigned int objectIndex;
 	int deltaX;
 	int deltaY;
@@ -2271,7 +3184,8 @@ void Player_ComputePolarToObjectRef(int playerIdx, unsigned int objectRef) {
 }
 
 // FUNCTION: XVT 0x485080
-void Player_EndFlightParticipation(int playerIdx) {
+void Player_EndFlightParticipation(int playerIdx)
+{
 	enum {
 		PLAYER_CONNECTED = 1,
 		PLAYER_OUT_OF_MISSION = 2,
@@ -2284,29 +3198,43 @@ void Player_EndFlightParticipation(int playerIdx) {
 
 	g_players[playerIdx].participationState = PLAYER_OUT_OF_MISSION;
 	activePlayerCount = 0;
-	for (playerIndex = 0; playerIndex < sizeof(g_players) / sizeof(g_players[0]); ++playerIndex) {
-		if (g_players[playerIndex].participationState == PLAYER_CONNECTED)
+	for (playerIndex = 0;
+	     playerIndex < sizeof(g_players) / sizeof(g_players[0]);
+	     ++playerIndex) {
+		if (g_players[playerIndex].participationState ==
+		    PLAYER_CONNECTED) {
 			++activePlayerCount;
+		}
 	}
 	if (activePlayerCount != 0) {
 		g_players[playerIdx].mapCameraState = UINT8_MAX;
 		Hud_SetHudViewState(HUD_VIEW_CRAFT_LIST, playerIdx);
 		g_players[playerIdx].viewState.playerInputBlocked = 1;
 		g_players[playerIdx].viewState.externalCameraActive = 1;
-		g_players[playerIdx].viewState.cameraDistance = EXTERNAL_CAMERA_INITIAL_DISTANCE;
+		g_players[playerIdx].viewState.cameraDistance =
+			EXTERNAL_CAMERA_INITIAL_DISTANCE;
 		g_players[playerIdx].viewState.cameraFocusObjIdx = UINT16_MAX;
 		g_players[playerIdx].viewState.aimTargetIdx = UINT16_MAX;
-		g_players[playerIdx].viewState.cameraWorldZ = EXTERNAL_CAMERA_INITIAL_DISTANCE;
-		if ((uint16_t)g_players[playerIdx].currentTargetObjectIdx != UINT16_MAX) {
+		g_players[playerIdx].viewState.cameraWorldZ =
+			EXTERNAL_CAMERA_INITIAL_DISTANCE;
+		if ((uint16_t)g_players[playerIdx].currentTargetObjectIdx !=
+		    UINT16_MAX) {
 			g_players[playerIdx].viewState.cameraWorldX =
-				g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx].world_x;
+				g_objectTable[(uint16_t)g_players[playerIdx]
+						      .currentTargetObjectIdx]
+					.world_x;
 			g_players[playerIdx].viewState.cameraWorldY =
-				g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx].world_y;
+				g_objectTable[(uint16_t)g_players[playerIdx]
+						      .currentTargetObjectIdx]
+					.world_y;
 			g_players[playerIdx].viewState.cameraDistance =
 				CAMERA_TARGET_EXTENT_SCALE *
-				g_objectTypeTable[g_objectTable[(uint16_t)g_players[playerIdx].currentTargetObjectIdx]
-									  .objectType]
-					.maxBoundsExtent;
+				g_objectTypeTable
+					[g_objectTable
+						 [(uint16_t)g_players[playerIdx]
+							  .currentTargetObjectIdx]
+							 .objectType]
+						.maxBoundsExtent;
 		}
 		g_players[playerIdx].awaitingNewCraft = 0;
 		g_players[playerIdx].objectIndex = -1;
@@ -2321,13 +3249,16 @@ void Player_EndFlightParticipation(int playerIdx) {
 }
 
 // FUNCTION: XVT 0x4851D0
-void Player_EmitRemotePlayerDepartedMessages(int playerIdx) {
+void Player_EmitRemotePlayerDepartedMessages(int playerIdx)
+{
 	int connectedCount;
 	int playerIndex;
 
 	if (g_localPlayer != playerIdx) {
 		msg_addMessagePtr(0, NetSession_GetPlayerName(playerIdx));
-		msg_emitInFlightMessage(IFMSG_381_ARG_HAS_NO_MORE_CRAFT_AND_IS_OUT_OF_THE_MISSION, g_localPlayer);
+		msg_emitInFlightMessage(
+			IFMSG_381_ARG_HAS_NO_MORE_CRAFT_AND_IS_OUT_OF_THE_MISSION,
+			g_localPlayer);
 		connectedCount = 0;
 		for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
 			if (g_players[playerIndex].participationState == 1) {
@@ -2336,53 +3267,66 @@ void Player_EmitRemotePlayerDepartedMessages(int playerIdx) {
 		}
 		if (g_players[g_localPlayer].participationState == 1) {
 			if (connectedCount == 1) {
-				msg_emitInFlightMessage(IFMSG_383_YOU_ARE_THE_ONLY_PLAYER_LEFT, g_localPlayer);
+				msg_emitInFlightMessage(
+					IFMSG_383_YOU_ARE_THE_ONLY_PLAYER_LEFT,
+					g_localPlayer);
 			} else {
 				g_msgArgTable[0] = (uint16_t)connectedCount;
-				msg_emitInFlightMessage(IFMSG_382_THERE_ARE_ARG_PLAYERS_LEFT_INCLUDING_YOURSELF,
-										g_localPlayer);
+				msg_emitInFlightMessage(
+					IFMSG_382_THERE_ARE_ARG_PLAYERS_LEFT_INCLUDING_YOURSELF,
+					g_localPlayer);
 			}
 		}
 	}
 }
 
 // FUNCTION: XVT 0x485270
-void Player_ValidateCurrentTargets(int playerIdx) {
+void Player_ValidateCurrentTargets(int playerIdx)
+{
 	enum {
 		OBJECT_GENUS_EXPLOSION = 13,
 	};
 
 	uint16_t currentTargetObjectIdx;
-	ObjectRecord* targetObject;
+	ObjectRecord *targetObject;
 	int localPlayer;
 
-	currentTargetObjectIdx = (uint16_t)g_players[playerIdx].currentTargetObjectIdx;
-	if (currentTargetObjectIdx == UINT16_MAX)
+	currentTargetObjectIdx =
+		(uint16_t)g_players[playerIdx].currentTargetObjectIdx;
+	if (currentTargetObjectIdx == UINT16_MAX) {
 		return;
+	}
 
 	targetObject = &g_objectTable[currentTargetObjectIdx];
 	if (targetObject->mobj != NULL) {
-		if (targetObject->objectType == 0 || targetObject->genusId == OBJECT_GENUS_EXPLOSION ||
-			Object_HasActiveDecoyBeam(currentTargetObjectIdx) != 0) {
+		if (targetObject->objectType == 0 ||
+		    targetObject->genusId == OBJECT_GENUS_EXPLOSION ||
+		    Object_HasActiveDecoyBeam(currentTargetObjectIdx) != 0) {
 			g_players[playerIdx].currentTargetObjectIdx = -1;
 		}
-	} else if (targetObject->objectType == 0 || targetObject->genusId == OBJECT_GENUS_EXPLOSION) {
+	} else if (targetObject->objectType == 0 ||
+		   targetObject->genusId == OBJECT_GENUS_EXPLOSION) {
 		g_players[playerIdx].currentTargetObjectIdx = -1;
 	}
 
 	if (g_players[playerIdx].mapCameraState == 0 &&
-		(g_objectTable[g_players[playerIdx].objectIndex].mobj->pCraft->workingSubsystems &
-		 CRAFT_SUBSYSTEM_FLAG_TARGETING_COMPUTER) == 0) {
+	    (g_objectTable[g_players[playerIdx].objectIndex]
+		     .mobj->pCraft->workingSubsystems &
+	     CRAFT_SUBSYSTEM_FLAG_TARGETING_COMPUTER) == 0) {
 		g_players[playerIdx].currentTargetObjectIdx = -1;
 	}
-	if ((uint16_t)g_players[playerIdx].currentTargetObjectIdx == UINT16_MAX) {
-		g_players[playerIdx].targetCycleStart = (int16_t)currentTargetObjectIdx;
+	if ((uint16_t)g_players[playerIdx].currentTargetObjectIdx ==
+	    UINT16_MAX) {
+		g_players[playerIdx].targetCycleStart =
+			(int16_t)currentTargetObjectIdx;
 		g_players[playerIdx].targetingState = 0;
-		if (g_players[playerIdx].viewState.hudStateLive == HUD_VIEW_TARGET_CAMERA) {
+		if (g_players[playerIdx].viewState.hudStateLive ==
+		    HUD_VIEW_TARGET_CAMERA) {
 			g_players[playerIdx].viewState.externalCameraActive = 0;
 			localPlayer = g_localPlayer;
 			g_players[playerIdx].viewState.transitionTimer = 0;
-			g_players[playerIdx].viewState.cameraFocusObjIdx = (uint16_t)g_players[playerIdx].objectIndex;
+			g_players[playerIdx].viewState.cameraFocusObjIdx =
+				(uint16_t)g_players[playerIdx].objectIndex;
 			g_players[playerIdx].viewState.playerInputBlocked = 0;
 			if (playerIdx == localPlayer) {
 				g_hudCachedTargetObjectIdx = -2;
@@ -2391,31 +3335,39 @@ void Player_ValidateCurrentTargets(int playerIdx) {
 			Hud_SetHudViewState(HUD_VIEW_FORWARD, playerIdx);
 			g_players[playerIdx].viewState.hudAimX = 0;
 			g_players[playerIdx].viewState.hudAimY = 0;
-			msg_emitInFlightMessage(IFMSG_224_THREAT_DISPLAY_TARGET_NO_LONGER_AVAILABLE, playerIdx);
+			msg_emitInFlightMessage(
+				IFMSG_224_THREAT_DISPLAY_TARGET_NO_LONGER_AVAILABLE,
+				playerIdx);
 		}
 	}
 }
 
 // FUNCTION: XVT 0x4853C0
-void Player_ValidateAllCurrentTargets(void) {
+void Player_ValidateAllCurrentTargets(void)
+{
 	unsigned int playerIdx;
 
-	for (playerIdx = 0; playerIdx < sizeof(g_players) / sizeof(g_players[0]); ++playerIdx) {
-		if (g_players[playerIdx].participationState != 0)
+	for (playerIdx = 0;
+	     playerIdx < sizeof(g_players) / sizeof(g_players[0]);
+	     ++playerIdx) {
+		if (g_players[playerIdx].participationState != 0) {
 			Player_ValidateCurrentTargets((int)playerIdx);
+		}
 	}
 }
 
 // FUNCTION: XVT 0x4853F0
-int Player_HasAvailableOwnedCraft(int playerIdx) {
+int Player_HasAvailableOwnedCraft(int playerIdx)
+{
 	int objectIndex;
 	unsigned int remainingObjects;
-	ObjectRecord* object;
-	CraftData* craft;
+	ObjectRecord *object;
+	CraftData *craft;
 	uint8_t objectKind;
 
 	objectIndex = -1;
-	remainingObjects = g_activeRegionCraftObjectSlotEnd - g_activeRegionObjectSlotStart;
+	remainingObjects = g_activeRegionCraftObjectSlotEnd -
+			   g_activeRegionObjectSlotStart;
 	if (remainingObjects != 0) {
 		do {
 			++objectIndex;
@@ -2425,11 +3377,17 @@ int Player_HasAvailableOwnedCraft(int playerIdx) {
 			object = &g_objectTable[objectIndex];
 			if (object->objectType != 0) {
 				craft = object->mobj->pCraft;
-				if (g_missionFlightGroups[object->flightGroupIdx].playerOwnerIdx == playerIdx) {
+				if (g_missionFlightGroups
+					    [object->flightGroupIdx]
+						    .playerOwnerIdx ==
+				    playerIdx) {
 					objectKind = craft->objectKind;
-					if (objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
-						objectKind != CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
-						objectKind != CRAFT_OBJECT_KIND_EXPLODING) {
+					if (objectKind !=
+						    CRAFT_OBJECT_KIND_BREAKING_UP &&
+					    objectKind !=
+						    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
+					    objectKind !=
+						    CRAFT_OBJECT_KIND_EXPLODING) {
 						break;
 					}
 				}
@@ -2441,112 +3399,170 @@ int Player_HasAvailableOwnedCraft(int playerIdx) {
 }
 
 // FUNCTION: XVT 0x485490
-void Player_UpdateParticipationState(void) {
+void Player_UpdateParticipationState(void)
+{
 	enum {
 		PLAYER_OUT_OF_MISSION = 2,
 	};
 
 	unsigned int playerIdx;
 
-	for (playerIdx = 0; playerIdx < sizeof(g_players) / sizeof(g_players[0]); ++playerIdx) {
-		PlayerData* player;
+	for (playerIdx = 0;
+	     playerIdx < sizeof(g_players) / sizeof(g_players[0]);
+	     ++playerIdx) {
+		PlayerData *player;
 
 		player = &g_players[playerIdx];
 		if (player->participationState != 0) {
 			if (player->awaitingNewCraft != 0) {
-				if (g_flightSimSideEffectsSuppressed == 0 && player->objectIndex != -1) {
-					ObjectRecord* object;
+				if (g_flightSimSideEffectsSuppressed == 0 &&
+				    player->objectIndex != -1) {
+					ObjectRecord *object;
 
-					object = &g_objectTable[player->objectIndex];
-					if (object->objectType == 0 || player->boundObjectSignature != object->objectSignature) {
-						Mission_ProcessFlightGroupWaveCompletion(player->boundFlightGroupIdx);
-						if (Player_BindToAvailableCraft((int)playerIdx, UINT32_MAX, 0, 0) != 0) {
-							Player_EndFlightParticipation((int)playerIdx);
-							Player_EmitRemotePlayerDepartedMessages((int)playerIdx);
-						} else if (g_localPlayer == (int)playerIdx) {
+					object = &g_objectTable
+							 [player->objectIndex];
+					if (object->objectType == 0 ||
+					    player->boundObjectSignature !=
+						    object->objectSignature) {
+						Mission_ProcessFlightGroupWaveCompletion(
+							player->boundFlightGroupIdx);
+						if (Player_BindToAvailableCraft(
+							    (int)playerIdx,
+							    UINT32_MAX, 0,
+							    0) != 0) {
+							Player_EndFlightParticipation(
+								(int)playerIdx);
+							Player_EmitRemotePlayerDepartedMessages(
+								(int)playerIdx);
+						} else if (g_localPlayer ==
+							   (int)playerIdx) {
 							msg_emitLocalPlayerCraftMessage(
 								IFMSG_290_PREVIOUS_CRAFT_DESTROYED_NOW_PILOTING_ARG_ARG_ARG);
 						}
 					}
 				}
-			} else if (player->mapCameraState != 0 && player->participationState != PLAYER_OUT_OF_MISSION &&
-					   g_flightSimSideEffectsSuppressed == 0 &&
-					   Player_HasAvailableOwnedCraft((int)playerIdx) == 0) {
-				Mission_ProcessFlightGroupWaveCompletion(player->boundFlightGroupIdx);
-				if (Player_HasAvailableOwnedCraft((int)playerIdx) == 0) {
-					Player_EndFlightParticipation((int)playerIdx);
-					Player_EmitRemotePlayerDepartedMessages((int)playerIdx);
+			} else if (player->mapCameraState != 0 &&
+				   player->participationState !=
+					   PLAYER_OUT_OF_MISSION &&
+				   g_flightSimSideEffectsSuppressed == 0 &&
+				   Player_HasAvailableOwnedCraft(
+					   (int)playerIdx) == 0) {
+				Mission_ProcessFlightGroupWaveCompletion(
+					player->boundFlightGroupIdx);
+				if (Player_HasAvailableOwnedCraft(
+					    (int)playerIdx) == 0) {
+					Player_EndFlightParticipation(
+						(int)playerIdx);
+					Player_EmitRemotePlayerDepartedMessages(
+						(int)playerIdx);
 				}
 			}
 		}
 	}
 
 	if (g_flightSimSideEffectsSuppressed == 0) {
-		for (playerIdx = 0; playerIdx < sizeof(g_playerAbortFlags) / sizeof(g_playerAbortFlags[0]);
-			 ++playerIdx) {
-			if (g_playerAbortFlags[playerIdx] != 0 && g_players[playerIdx].participationState != 0) {
-				if (g_players[playerIdx].objectIndex != -1)
-					Player_UnbindFromCurrentCraft((int)playerIdx, 0, 1);
-				if (g_localPlayer == (int)playerIdx)
-					g_flightMissionState.missionEndPending = 1;
+		for (playerIdx = 0;
+		     playerIdx <
+		     sizeof(g_playerAbortFlags) / sizeof(g_playerAbortFlags[0]);
+		     ++playerIdx) {
+			if (g_playerAbortFlags[playerIdx] != 0 &&
+			    g_players[playerIdx].participationState != 0) {
+				if (g_players[playerIdx].objectIndex != -1) {
+					Player_UnbindFromCurrentCraft(
+						(int)playerIdx, 0, 1);
+				}
+				if (g_localPlayer == (int)playerIdx) {
+					g_flightMissionState.missionEndPending =
+						1;
+				}
 				g_players[playerIdx].participationState = 0;
 				Flight_UpdateActivePlayerCount();
-				if (NetSession_GetHostDplayId() != g_players[playerIdx].network.directPlayId)
-					FlightNet_MarkPilotNetworkPlayerLeft((int)playerIdx);
-				msg_addMessagePtr(0, NetSession_GetPlayerName((int)playerIdx));
-				msg_emitInFlightMessage(IFMSG_380_ARG_HAS_QUIT_THE_MISSION, g_localPlayer);
-				if (g_localPlayer == (int)playerIdx && NetSession_IsLocalHost() != 0)
+				if (NetSession_GetHostDplayId() !=
+				    g_players[playerIdx].network.directPlayId) {
+					FlightNet_MarkPilotNetworkPlayerLeft(
+						(int)playerIdx);
+				}
+				msg_addMessagePtr(0, NetSession_GetPlayerName(
+							     (int)playerIdx));
+				msg_emitInFlightMessage(
+					IFMSG_380_ARG_HAS_QUIT_THE_MISSION,
+					g_localPlayer);
+				if (g_localPlayer == (int)playerIdx &&
+				    NetSession_IsLocalHost() != 0) {
 					FlightNet_BroadcastHostSessionAbort();
+				}
 			}
 		}
 	}
 }
 
 // FUNCTION: XVT 0x485660
-int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx) {
+int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx)
+{
 	int16_t objectIdx;
 	int playerTeam;
 	int team;
 	uint8_t genusId;
-	CraftData* craft;
+	CraftData *craft;
 	uint8_t objectKind;
 	uint16_t staticObjectIdx;
-	ObjectRecord* staticObject;
+	ObjectRecord *staticObject;
 	int staticObjectTeam;
 	int staticPlayerTeam;
 	int isEnemy;
 	uint32_t nearestDistance;
-	ObjectRecord* object;
+	ObjectRecord *object;
 	int nearestObjectIdx;
 
 	nearestDistance = UINT32_MAX;
 	nearestObjectIdx = UINT16_MAX;
-	for (objectIdx = g_activeRegionObjectSlotStart; objectIdx < g_activeRegionCraftObjectSlotEnd;
-		 ++objectIdx) {
+	for (objectIdx = g_activeRegionObjectSlotStart;
+	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
 		object = &g_objectTable[objectIdx];
-		if (object->objectType != 0 && g_players[playerIdx].objectIndex != objectIdx &&
-			excludedObjectIdx != objectIdx) {
+		if (object->objectType != 0 &&
+		    g_players[playerIdx].objectIndex != objectIdx &&
+		    excludedObjectIdx != objectIdx) {
 			playerTeam = (uint16_t)g_players[playerIdx].team;
 			if (object->mobj->team != playerTeam) {
-				team = g_missionFlightGroups[g_objectTable[(uint16_t)objectIdx].flightGroupIdx].fg.team;
-				if (team == playerTeam)
+				team = g_missionFlightGroups
+					       [g_objectTable[(uint16_t)
+								      objectIdx]
+							.flightGroupIdx]
+						       .fg.team;
+				if (team == playerTeam) {
 					isEnemy = 0;
-				else
-					isEnemy = g_missionTeams[playerTeam].allies[team] == 0;
+				} else {
+					isEnemy = g_missionTeams[playerTeam]
+							  .allies[team] == 0;
+				}
 				if (isEnemy) {
 					genusId = object->genusId;
-					if (genusId != CRAFT_GENUS_EXPLOSION && genusId != CRAFT_GENUS_STARSHIP &&
-						genusId != CRAFT_GENUS_FREIGHTER && genusId != CRAFT_GENUS_PLATFORM &&
-						Object_HasActiveDecoyBeam(objectIdx) == 0) {
-						craft = g_objectTable[objectIdx].mobj->pCraft;
-						if (craft->workingSubsystems != 0) {
-							objectKind = craft->objectKind;
-							if (objectKind == CRAFT_OBJECT_KIND_ACTIVE ||
-								objectKind == CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE) {
-								Player_ComputePolarToObjectRef(playerIdx, objectIdx);
-								if ((uint32_t)trig2_polardistance < nearestDistance) {
-									nearestObjectIdx = objectIdx;
-									nearestDistance = trig2_polardistance;
+					if (genusId != CRAFT_GENUS_EXPLOSION &&
+					    genusId != CRAFT_GENUS_STARSHIP &&
+					    genusId != CRAFT_GENUS_FREIGHTER &&
+					    genusId != CRAFT_GENUS_PLATFORM &&
+					    Object_HasActiveDecoyBeam(
+						    objectIdx) == 0) {
+						craft = g_objectTable[objectIdx]
+								.mobj->pCraft;
+						if (craft->workingSubsystems !=
+						    0) {
+							objectKind =
+								craft->objectKind;
+							if (objectKind ==
+								    CRAFT_OBJECT_KIND_ACTIVE ||
+							    objectKind ==
+								    CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE) {
+								Player_ComputePolarToObjectRef(
+									playerIdx,
+									objectIdx);
+								if ((uint32_t)
+									    trig2_polardistance <
+								    nearestDistance) {
+									nearestObjectIdx =
+										objectIdx;
+									nearestDistance =
+										trig2_polardistance;
 								}
 							}
 						}
@@ -2557,21 +3573,34 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx) {
 	}
 
 	for (staticObjectIdx = g_regionMainObjectSlotEnd;
-		 (int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount) > (int16_t)staticObjectIdx;
-		 ++staticObjectIdx) {
+	     (int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount) >
+	     (int16_t)staticObjectIdx;
+	     ++staticObjectIdx) {
 		staticObject = &g_objectTable[(int16_t)staticObjectIdx];
-		if (staticObject->objectType != 0 && staticObject->genusId == CRAFT_GENUS_MINE &&
-			excludedObjectIdx != (int16_t)staticObjectIdx && staticObject->typeSpecificWord != 0) {
-			staticObjectTeam = g_missionFlightGroups[g_objectTable[staticObjectIdx].flightGroupIdx].fg.team;
+		if (staticObject->objectType != 0 &&
+		    staticObject->genusId == CRAFT_GENUS_MINE &&
+		    excludedObjectIdx != (int16_t)staticObjectIdx &&
+		    staticObject->typeSpecificWord != 0) {
+			staticObjectTeam =
+				g_missionFlightGroups
+					[g_objectTable[staticObjectIdx]
+						 .flightGroupIdx]
+						.fg.team;
 			staticPlayerTeam = (uint16_t)g_players[playerIdx].team;
-			if (staticPlayerTeam == staticObjectTeam)
+			if (staticPlayerTeam == staticObjectTeam) {
 				isEnemy = 0;
-			else
-				isEnemy = g_missionTeams[staticPlayerTeam].allies[staticObjectTeam] == 0;
+			} else {
+				isEnemy =
+					g_missionTeams[staticPlayerTeam]
+						.allies[staticObjectTeam] == 0;
+			}
 			if (isEnemy == 1) {
-				Player_ComputePolarToObjectRef(playerIdx, (int16_t)staticObjectIdx);
-				if ((uint32_t)trig2_polardistance < nearestDistance) {
-					nearestObjectIdx = (int16_t)staticObjectIdx;
+				Player_ComputePolarToObjectRef(
+					playerIdx, (int16_t)staticObjectIdx);
+				if ((uint32_t)trig2_polardistance <
+				    nearestDistance) {
+					nearestObjectIdx =
+						(int16_t)staticObjectIdx;
 					nearestDistance = trig2_polardistance;
 				}
 			}
@@ -2581,7 +3610,9 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx) {
 }
 
 // FUNCTION: XVT 0x485900
-void Player_HandleHyperspaceCommand(struct CraftData* craft, unsigned int playerIdx) {
+void Player_HandleHyperspaceCommand(struct CraftData *craft,
+				    unsigned int playerIdx)
+{
 	enum {
 		PLAYER_OUT_OF_MISSION = 2,
 		S_FOIL_CLOSING_MASK = 1,
@@ -2591,64 +3622,117 @@ void Player_HandleHyperspaceCommand(struct CraftData* craft, unsigned int player
 	};
 
 	if (g_flightSimSideEffectsSuppressed == 0) {
-		if ((craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0) {
-			if (g_flightMissionState.provingGroundsModeActive != 0) {
+		if ((craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) !=
+		    0) {
+			if (g_flightMissionState.provingGroundsModeActive !=
+			    0) {
 				g_flightMissionState.missionEndPending = 1;
-				g_players[playerIdx].participationState = PLAYER_OUT_OF_MISSION;
-			} else if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0) {
+				g_players[playerIdx].participationState =
+					PLAYER_OUT_OF_MISSION;
+			} else if ((craft->workingSubsystems &
+				    CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0) {
 				int16_t scanObjectIdx;
 				int16_t interdictorPresent;
 
 				interdictorPresent = 0;
-				for (scanObjectIdx = g_activeRegionObjectSlotStart;
-					 scanObjectIdx < g_activeRegionCraftObjectSlotEnd; ++scanObjectIdx) {
-					ObjectRecord* object = &g_objectTable[scanObjectIdx];
+				for (scanObjectIdx =
+					     g_activeRegionObjectSlotStart;
+				     scanObjectIdx <
+				     g_activeRegionCraftObjectSlotEnd;
+				     ++scanObjectIdx) {
+					ObjectRecord *object =
+						&g_objectTable[scanObjectIdx];
 
-					if ((object->objectType == CRAFT_SPECIES_INTERDICTOR ||
-						 object->objectType == CRAFT_SPECIES_MODIFIED_STRIKE_CRUISER) &&
-						(uint16_t)g_players[playerIdx].iff != (uint8_t)object->mobj->iff &&
-						object->mobj->pCraft->workingSubsystems != 0)
+					if ((object->objectType ==
+						     CRAFT_SPECIES_INTERDICTOR ||
+					     object->objectType ==
+						     CRAFT_SPECIES_MODIFIED_STRIKE_CRUISER) &&
+					    (uint16_t)g_players[playerIdx]
+							    .iff !=
+						    (uint8_t)
+							    object->mobj->iff &&
+					    object->mobj->pCraft
+							    ->workingSubsystems !=
+						    0) {
 						interdictorPresent = 1;
+					}
 				}
 
 				if (interdictorPresent != 0) {
-					msg_emitInFlightMessage(IFMSG_109_INTERDICTOR_PREVENTS_HYPERDRIVE_UNIT_FROM_FUNCTIONING,
-											playerIdx);
+					msg_emitInFlightMessage(
+						IFMSG_109_INTERDICTOR_PREVENTS_HYPERDRIVE_UNIT_FROM_FUNCTIONING,
+						playerIdx);
 				} else {
 					uint8_t objectType;
 
-					if (g_localPlayer == (int)playerIdx)
+					if (g_localPlayer == (int)playerIdx) {
 						Hud_ClearReadyMessageQueue();
-					msg_emitInFlightMessage(IFMSG_106_PREPARING_FOR_JUMP_TO_LIGHT_SPEED, playerIdx);
-					g_players[playerIdx].hyperspacePhase = 1;
-					g_players[playerIdx].hyperspaceRuntime.phaseElapsedTicks = 0;
-					g_players[playerIdx].viewState.transitionTimer = 0;
-					g_players[playerIdx].viewState.externalCameraActive = 0;
-					g_players[playerIdx].viewState.playerInputBlocked = 0;
-					g_players[playerIdx].viewState.cameraFocusObjIdx =
-						(uint16_t)g_players[playerIdx].objectIndex;
-					Hud_SetHudViewState(HUD_VIEW_FORWARD, playerIdx);
-					g_players[playerIdx].viewState.hudAimX = 0;
-					g_players[playerIdx].viewState.hudAimY = 0;
+					}
+					msg_emitInFlightMessage(
+						IFMSG_106_PREPARING_FOR_JUMP_TO_LIGHT_SPEED,
+						playerIdx);
+					g_players[playerIdx].hyperspacePhase =
+						1;
+					g_players[playerIdx]
+						.hyperspaceRuntime
+						.phaseElapsedTicks = 0;
+					g_players[playerIdx]
+						.viewState.transitionTimer = 0;
+					g_players[playerIdx]
+						.viewState
+						.externalCameraActive = 0;
+					g_players[playerIdx]
+						.viewState.playerInputBlocked =
+						0;
+					g_players[playerIdx]
+						.viewState.cameraFocusObjIdx =
+						(uint16_t)g_players[playerIdx]
+							.objectIndex;
+					Hud_SetHudViewState(HUD_VIEW_FORWARD,
+							    playerIdx);
+					g_players[playerIdx].viewState.hudAimX =
+						0;
+					g_players[playerIdx].viewState.hudAimY =
+						0;
 					craft->throttleSpeed = 0;
 
-					objectType = g_objectTable[g_players[playerIdx].objectIndex].objectType;
-					if ((objectType == CRAFT_SPECIES_X_WING || objectType == CRAFT_SPECIES_B_WING) &&
-						(craft->sFoilState & S_FOIL_CLOSED_MASK) == 0) {
-						craft->sFoilState |= S_FOIL_CLOSED_MASK;
-						craft->sFoilState |= S_FOIL_CLOSING_MASK;
-						fsfx_PlaySound(FLIGHT_SOUND_S_FOIL, -1, playerIdx);
+					objectType =
+						g_objectTable
+							[g_players[playerIdx]
+								 .objectIndex]
+								.objectType;
+					if ((objectType ==
+						     CRAFT_SPECIES_X_WING ||
+					     objectType ==
+						     CRAFT_SPECIES_B_WING) &&
+					    (craft->sFoilState &
+					     S_FOIL_CLOSED_MASK) == 0) {
+						craft->sFoilState |=
+							S_FOIL_CLOSED_MASK;
+						craft->sFoilState |=
+							S_FOIL_CLOSING_MASK;
+						fsfx_PlaySound(
+							FLIGHT_SOUND_S_FOIL, -1,
+							playerIdx);
 					}
 
 					if (g_localPlayer != (int)playerIdx) {
-						msg_addMessagePtr(0, NetSession_GetPlayerName((int)playerIdx));
-						msg_emitInFlightMessage(IFMSG_113_ARG_IS_INITIATING_HYPERJUMP, g_localPlayer);
+						msg_addMessagePtr(
+							0,
+							NetSession_GetPlayerName(
+								(int)playerIdx));
+						msg_emitInFlightMessage(
+							IFMSG_113_ARG_IS_INITIATING_HYPERJUMP,
+							g_localPlayer);
 					}
 				}
 			} else {
-				g_msgArgTable[0] = HYPERDRIVE_SYSTEM_NAME_MESSAGE_ARG;
-				g_msgArgTable[1] = DAMAGED_SYSTEM_STATE_MESSAGE_ARG;
-				msg_emitInFlightMessage(IFMSG_086_ARG_SYSTEM_IS_ARG, playerIdx);
+				g_msgArgTable[0] =
+					HYPERDRIVE_SYSTEM_NAME_MESSAGE_ARG;
+				g_msgArgTable[1] =
+					DAMAGED_SYSTEM_STATE_MESSAGE_ARG;
+				msg_emitInFlightMessage(
+					IFMSG_086_ARG_SYSTEM_IS_ARG, playerIdx);
 			}
 		} else {
 			uint16_t departureMothershipObjIdx;
@@ -2657,38 +3741,86 @@ void Player_HandleHyperspaceCommand(struct CraftData* craft, unsigned int player
 
 			departureMothershipObjIdx = UINT16_MAX;
 			alternateMothershipObjIdx = departureMothershipObjIdx;
-			for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart;
-				 objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-				if (g_missionFlightGroups[g_objectTable[g_players[playerIdx].objectIndex].flightGroupIdx]
-						.fg.departureMethod != 0) {
-					if (g_objectTable[objectIdx].objectType != CRAFT_SPECIES_UNKNOWN &&
-						g_missionFlightGroups[g_objectTable[g_players[playerIdx].objectIndex].flightGroupIdx]
-								.fg.departureMothership == g_objectTable[objectIdx].flightGroupIdx)
-						departureMothershipObjIdx = objectIdx;
+			for (objectIdx =
+				     (uint16_t)g_activeRegionObjectSlotStart;
+			     objectIdx < g_activeRegionCraftObjectSlotEnd;
+			     ++objectIdx) {
+				if (g_missionFlightGroups
+					    [g_objectTable[g_players[playerIdx]
+								   .objectIndex]
+						     .flightGroupIdx]
+						    .fg.departureMethod != 0) {
+					if (g_objectTable[objectIdx]
+							    .objectType !=
+						    CRAFT_SPECIES_UNKNOWN &&
+					    g_missionFlightGroups
+							    [g_objectTable
+								     [g_players[playerIdx]
+									      .objectIndex]
+									     .flightGroupIdx]
+								    .fg
+								    .departureMothership ==
+						    g_objectTable[objectIdx]
+							    .flightGroupIdx) {
+						departureMothershipObjIdx =
+							objectIdx;
+					}
 				}
-				if (g_missionFlightGroups[g_objectTable[g_players[playerIdx].objectIndex].flightGroupIdx]
-						.fg.alternateMothershipUsed != 0) {
-					if (g_objectTable[objectIdx].objectType != CRAFT_SPECIES_UNKNOWN &&
-						g_missionFlightGroups[g_objectTable[g_players[playerIdx].objectIndex].flightGroupIdx]
-								.fg.alternateMothership == g_objectTable[objectIdx].flightGroupIdx)
-						alternateMothershipObjIdx = objectIdx;
+				if (g_missionFlightGroups
+					    [g_objectTable[g_players[playerIdx]
+								   .objectIndex]
+						     .flightGroupIdx]
+						    .fg
+						    .alternateMothershipUsed !=
+				    0) {
+					if (g_objectTable[objectIdx]
+							    .objectType !=
+						    CRAFT_SPECIES_UNKNOWN &&
+					    g_missionFlightGroups
+							    [g_objectTable
+								     [g_players[playerIdx]
+									      .objectIndex]
+									     .flightGroupIdx]
+								    .fg
+								    .alternateMothership ==
+						    g_objectTable[objectIdx]
+							    .flightGroupIdx) {
+						alternateMothershipObjIdx =
+							objectIdx;
+					}
 				}
 			}
 
-			if (departureMothershipObjIdx != UINT16_MAX && alternateMothershipObjIdx != UINT16_MAX) {
-				msg_formatObjectName(departureMothershipObjIdx, 0, g_flightTextScratchBuffer);
+			if (departureMothershipObjIdx != UINT16_MAX &&
+			    alternateMothershipObjIdx != UINT16_MAX) {
+				msg_formatObjectName(departureMothershipObjIdx,
+						     0,
+						     g_flightTextScratchBuffer);
 				msg_addMessagePtr(0, g_flightTextScratchBuffer);
-				msg_formatObjectName(alternateMothershipObjIdx, 0, g_flightSecondaryObjectNameBuffer);
-				msg_addMessagePtr(1, g_flightSecondaryObjectNameBuffer);
-				msg_emitInFlightMessage(IFMSG_111_NO_HYPERDRIVE_RETURN_TO_ARG_OR_TO_ARG, playerIdx);
+				msg_formatObjectName(
+					alternateMothershipObjIdx, 0,
+					g_flightSecondaryObjectNameBuffer);
+				msg_addMessagePtr(
+					1, g_flightSecondaryObjectNameBuffer);
+				msg_emitInFlightMessage(
+					IFMSG_111_NO_HYPERDRIVE_RETURN_TO_ARG_OR_TO_ARG,
+					playerIdx);
 			} else if (departureMothershipObjIdx != UINT16_MAX) {
-				msg_formatObjectName(departureMothershipObjIdx, 0, g_flightTextScratchBuffer);
+				msg_formatObjectName(departureMothershipObjIdx,
+						     0,
+						     g_flightTextScratchBuffer);
 				msg_addMessagePtr(0, g_flightTextScratchBuffer);
-				msg_emitInFlightMessage(IFMSG_110_NO_HYPERDRIVE_RETURN_TO_ARG, playerIdx);
+				msg_emitInFlightMessage(
+					IFMSG_110_NO_HYPERDRIVE_RETURN_TO_ARG,
+					playerIdx);
 			} else if (alternateMothershipObjIdx != UINT16_MAX) {
-				msg_formatObjectName(alternateMothershipObjIdx, 0, g_flightTextScratchBuffer);
+				msg_formatObjectName(alternateMothershipObjIdx,
+						     0,
+						     g_flightTextScratchBuffer);
 				msg_addMessagePtr(0, g_flightTextScratchBuffer);
-				msg_emitInFlightMessage(IFMSG_110_NO_HYPERDRIVE_RETURN_TO_ARG, playerIdx);
+				msg_emitInFlightMessage(
+					IFMSG_110_NO_HYPERDRIVE_RETURN_TO_ARG,
+					playerIdx);
 			}
 		}
 	}

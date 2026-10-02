@@ -24,14 +24,17 @@ void XvtRenderFrontend_Suppress(int begin);
 /* Records an image draw. While the cursor is being drawn, the whole image goes to the cursor
  * sprite instead. A NULL or empty image is ignored; one with no registered asset counts as
  * dropped. */
-void XvtRenderFrontend_Image(const ImageResource* image, int sx, int sy, int x, int y, int width, int height,
-							 unsigned kind, unsigned tint);
+void XvtRenderFrontend_Image(const ImageResource *image, int sx, int sy, int x,
+			     int y, int width, int height, unsigned kind,
+			     unsigned tint);
 /* Records a glyph by finding it in an in-use font slot indexed by FontLoaded, matched by pixel
  * address and size; a glyph found in no slot counts as dropped. With remap at 16 bits per pixel
  * and a fade running, the color is faded. */
-void XvtRenderFrontend_Glyph(const ImageResource* glyph, int x, int y, unsigned color, int remap);
+void XvtRenderFrontend_Glyph(const ImageResource *glyph, int x, int y,
+			     unsigned color, int remap);
 /* Records a paint primitive; translucent paint at 16 bits per pixel gets half alpha. */
-void XvtRenderFrontend_Paint(unsigned kind, int x0, int y0, int x1, int y1, unsigned color);
+void XvtRenderFrontend_Paint(unsigned kind, int x0, int y0, int x1, int y1,
+			     unsigned color);
 /* Copy records a full 640x480 copy between targets; Clear records a clear of target. Either one
  * aimed at the back buffer hides the cursor, unless capture is suppressed. */
 void XvtRenderFrontend_Copy(unsigned source, unsigned target);
@@ -55,13 +58,13 @@ void XvtRenderFrontend_Cursor(int restore);
 void XvtRenderFrontend_EndCursor(void);
 /* Indexes the glyphs of font, if it is one of the 10 frontend font slots, and records its asset
  * id as registered now. Other fonts are ignored. */
-void XvtRenderFrontend_FontLoaded(const BitmapFont* font);
+void XvtRenderFrontend_FontLoaded(const BitmapFont *font);
 /* Begin selects the movie target and clears it; end presents it, records the movie scene and
  * selects the back buffer again. */
 void XvtRenderFrontend_Movie(int begin);
 /* Stamps snapshot with the presentation serial, presented scene and target, frontend generation,
  * released mark, and text entry (only in a frontend scene). */
-void XvtRenderFrontend_Commit(XvtRenderSnapshot* snapshot);
+void XvtRenderFrontend_Commit(XvtRenderSnapshot *snapshot);
 /* PresentedScene raises the presentation serial and sets the presented scene, with the flight,
  * movie or back-buffer target to match; FlightUiScene does the same but always targets flight. */
 void XvtRenderFrontend_PresentedScene(XvtSceneKind kind);

@@ -16,34 +16,37 @@
 // GLOBAL: XVT 0x5235F0
 int g_objectPointLightCount = 0;
 // GLOBAL: XVT 0x9FD3B0
-ObjectPointLight g_objectPointLights[10] = { { 0 } };
+ObjectPointLight g_objectPointLights[10] = {{0}};
 
 // GLOBAL: XVT 0x51C00C
-static ObjectRecord* g_swFaceLightCachedObject;
+static ObjectRecord *g_swFaceLightCachedObject;
 // GLOBAL: XVT 0x51C014
-static SceneFace* g_swFaceLightCachedFace;
+static SceneFace *g_swFaceLightCachedFace;
 // GLOBAL: XVT 0x51C010
 static int g_swFaceLightCachedPointLightCount = 0;
 // GLOBAL: XVT 0x550C10
-static OptVector g_swFaceLightPointPositions[10] = { { 0.0f, 0.0f, 0.0f } };
+static OptVector g_swFaceLightPointPositions[10] = {{0.0f, 0.0f, 0.0f}};
 // GLOBAL: XVT 0x550BE0
-static float g_swFaceLightPointIntensities[10] = { 0.0f };
+static float g_swFaceLightPointIntensities[10] = {0.0f};
 // GLOBAL: XVT 0x550C00
-static OptVector g_swFaceLightDir = { 0.0f, 0.0f, 0.0f };
+static OptVector g_swFaceLightDir = {0.0f, 0.0f, 0.0f};
 // GLOBAL: XVT 0x550C70
-static OptVector g_swFaceLightFaceNormal = { 0.0f, 0.0f, 0.0f };
+static OptVector g_swFaceLightFaceNormal = {0.0f, 0.0f, 0.0f};
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4206A0
-void FlightLight_ResetSoftwareFaceSampleCache(void) {
+void FlightLight_ResetSoftwareFaceSampleCache(void)
+{
 	g_swFaceLightCachedObject = 0;
 	g_swFaceLightCachedFace = 0;
 }
 
 // FUNCTION: XVT 0x4206B0
-float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screenX, int screenY,
-													 float reciprocalDepth) {
-	SceneMesh* mesh;
+float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace *face,
+						     int screenX, int screenY,
+						     float reciprocalDepth)
+{
+	SceneMesh *mesh;
 	OptVector normal;
 	OptVector vector;
 	float screenToViewScale;
@@ -72,8 +75,10 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 		FlightLight_SetupObjectLighting(mesh->pObject);
 		g_swFaceLightCachedPointLightCount = g_objectPointLightCount;
 		g_swFaceLightCachedObject = mesh->pObject;
-		for (lightIndex = 0; g_objectPointLightCount > lightIndex; ++lightIndex) {
-			OptVector* position = &g_swFaceLightPointPositions[lightIndex];
+		for (lightIndex = 0; g_objectPointLightCount > lightIndex;
+		     ++lightIndex) {
+			OptVector *position =
+				&g_swFaceLightPointPositions[lightIndex];
 
 			position->x = (float)g_objectPointLights[lightIndex].x;
 			position->y = (float)g_objectPointLights[lightIndex].y;
@@ -82,18 +87,24 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 			position->x += mesh->viewPosX;
 			position->y += mesh->viewPosY;
 			position->z += mesh->viewPosZ;
-			g_swFaceLightPointIntensities[lightIndex] = (float)g_objectPointLights[lightIndex].intensity;
+			g_swFaceLightPointIntensities[lightIndex] =
+				(float)g_objectPointLights[lightIndex]
+					.intensity;
 		}
-		g_swFaceLightDir.x = (float)g_objectLightDirectionX * g_renderLightDirectionUnitScale;
-		g_swFaceLightDir.y = (float)g_objectLightDirectionY * g_renderLightDirectionUnitScale;
-		g_swFaceLightDir.z = (float)g_objectLightDirectionZ * g_renderLightDirectionUnitScale;
+		g_swFaceLightDir.x = (float)g_objectLightDirectionX *
+				     g_renderLightDirectionUnitScale;
+		g_swFaceLightDir.y = (float)g_objectLightDirectionY *
+				     g_renderLightDirectionUnitScale;
+		g_swFaceLightDir.z = (float)g_objectLightDirectionZ *
+				     g_renderLightDirectionUnitScale;
 		Math3D_RotateVec3(&g_swFaceLightDir.x, mesh->viewOrient);
 	}
 
 	sampleZ = 1.0f / reciprocalDepth;
 	screenToViewScale = sampleZ * g_invProjScale;
 	sampleX = (float)(screenX - (g_flightVpWidth >> 1)) * screenToViewScale;
-	sampleY = (float)(screenY - (g_flightVpHeight >> 1) - g_projOffsetY) * screenToViewScale;
+	sampleY = (float)(screenY - (g_flightVpHeight >> 1) - g_projOffsetY) *
+		  screenToViewScale;
 	if (face != g_swFaceLightCachedFace) {
 		g_swFaceLightCachedFace = face;
 		vector = mesh->pFaceNormals[face->faceIndex];
@@ -124,18 +135,23 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 			componentZ = -vector.z;
 		}
 		if (componentY <= componentX && componentZ <= componentX) {
-			distance = componentX * 0.92640001f + (componentZ + componentY) * 0.3872f;
-		} else if (componentY >= componentX && componentZ <= componentY) {
-			distance = componentY * 0.92640001f + (componentZ + componentX) * 0.3872f;
+			distance = componentX * 0.92640001f +
+				   (componentZ + componentY) * 0.3872f;
+		} else if (componentY >= componentX &&
+			   componentZ <= componentY) {
+			distance = componentY * 0.92640001f +
+				   (componentZ + componentX) * 0.3872f;
 		} else {
-			distance = componentZ * 0.92640001f + (componentY + componentX) * 0.3872f;
+			distance = componentZ * 0.92640001f +
+				   (componentY + componentX) * 0.3872f;
 		}
 		reciprocal = 1.0f / distance;
 		vector.x *= reciprocal;
 		vector.y *= reciprocal;
 		vector.z *= reciprocal;
-		specular = (g_swFaceLightDir.x + vector.x) * normal.x + (g_swFaceLightDir.y + vector.y) * normal.y +
-				   (g_swFaceLightDir.z + vector.z) * normal.z;
+		specular = (g_swFaceLightDir.x + vector.x) * normal.x +
+			   (g_swFaceLightDir.y + vector.y) * normal.y +
+			   (g_swFaceLightDir.z + vector.z) * normal.z;
 		if (specular > g_renderZeroFloat) {
 			specular *= g_renderHalfFloat;
 			specular = specular * specular * specular;
@@ -155,8 +171,10 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 		}
 	}
 
-	for (lightIndex = 0; lightIndex < g_swFaceLightCachedPointLightCount; ++lightIndex) {
-		const OptVector* position = &g_swFaceLightPointPositions[lightIndex];
+	for (lightIndex = 0; lightIndex < g_swFaceLightCachedPointLightCount;
+	     ++lightIndex) {
+		const OptVector *position =
+			&g_swFaceLightPointPositions[lightIndex];
 
 		dx = position->x - sampleX;
 		dy = position->y - sampleY;
@@ -175,12 +193,20 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 			if (dz < 0.0f) {
 				componentZ = -dz;
 			}
-			if (componentY <= componentX && componentZ <= componentX) {
-				distance = componentX + (componentZ + componentY) * g_renderRoughDistanceScale;
-			} else if (componentY >= componentX && componentZ <= componentY) {
-				distance = componentY + (componentZ + componentX) * g_renderRoughDistanceScale;
+			if (componentY <= componentX &&
+			    componentZ <= componentX) {
+				distance = componentX +
+					   (componentZ + componentY) *
+						   g_renderRoughDistanceScale;
+			} else if (componentY >= componentX &&
+				   componentZ <= componentY) {
+				distance = componentY +
+					   (componentZ + componentX) *
+						   g_renderRoughDistanceScale;
 			} else {
-				distance = componentZ + (componentY + componentX) * g_renderRoughDistanceScale;
+				distance = componentZ +
+					   (componentY + componentX) *
+						   g_renderRoughDistanceScale;
 			}
 			lightDot = lightDot / (distance * distance);
 			if (g_specularEnabled != 0) {
@@ -190,7 +216,9 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 				dx -= sampleX;
 				dy -= sampleY;
 				dz -= sampleZ;
-				halfDot = (normal.x * dx + normal.y * dy + normal.z * dz) * g_renderHalfFloat;
+				halfDot = (normal.x * dx + normal.y * dy +
+					   normal.z * dz) *
+					  g_renderHalfFloat;
 				componentX = dx;
 				componentY = dy;
 				componentZ = dz;
@@ -203,15 +231,26 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 				if (dz < 0.0f) {
 					componentZ = -dz;
 				}
-				if (componentY <= componentX && componentZ <= componentX) {
-					distance = componentX * g_renderSpecularApproxMaxComponentScale +
-							   (componentZ + componentY) * g_renderSpecularApproxOtherComponentsScale;
-				} else if (componentY >= componentX && componentZ <= componentY) {
-					distance = componentY * g_renderSpecularApproxMaxComponentScale +
-							   (componentZ + componentX) * g_renderSpecularApproxOtherComponentsScale;
+				if (componentY <= componentX &&
+				    componentZ <= componentX) {
+					distance =
+						componentX *
+							g_renderSpecularApproxMaxComponentScale +
+						(componentZ + componentY) *
+							g_renderSpecularApproxOtherComponentsScale;
+				} else if (componentY >= componentX &&
+					   componentZ <= componentY) {
+					distance =
+						componentY *
+							g_renderSpecularApproxMaxComponentScale +
+						(componentZ + componentX) *
+							g_renderSpecularApproxOtherComponentsScale;
 				} else {
-					distance = componentZ * g_renderSpecularApproxMaxComponentScale +
-							   (componentY + componentX) * g_renderSpecularApproxOtherComponentsScale;
+					distance =
+						componentZ *
+							g_renderSpecularApproxMaxComponentScale +
+						(componentY + componentX) *
+							g_renderSpecularApproxOtherComponentsScale;
 				}
 				reciprocal = 1.0f / distance;
 				cosine = halfDot * reciprocal;
@@ -230,7 +269,9 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 			}
 			contribution = lightDot + specular;
 			if (contribution > g_renderZeroFloat) {
-				intensity += g_swFaceLightPointIntensities[lightIndex] * contribution;
+				intensity += g_swFaceLightPointIntensities
+						     [lightIndex] *
+					     contribution;
 				if (intensity >= 1.0f) {
 					intensity = 1.0f;
 					break;
@@ -242,19 +283,22 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 }
 
 // FUNCTION: XVT 0x44F880
-void FlightLight_SetupObjectLighting(ObjectRecord* object) {
+void FlightLight_SetupObjectLighting(ObjectRecord *object)
+{
 	int lightCount;
 	int objectIdx;
 	unsigned int maxDistance;
 	int worldX;
 	int worldY;
 	int worldZ;
-	ObjectRecord* lightObject;
+	ObjectRecord *lightObject;
 
 	g_objectPointLightCount = 0;
-	if (g_localLightsEnabled == 0)
+	if (g_localLightsEnabled == 0) {
 		return;
-	maxDistance = g_objectTypeTable[object->objectType].maxBoundsExtent + 0x4000;
+	}
+	maxDistance =
+		g_objectTypeTable[object->objectType].maxBoundsExtent + 0x4000;
 	worldX = object->world_x;
 	worldY = object->world_y;
 	worldZ = object->world_z;
@@ -267,97 +311,183 @@ void FlightLight_SetupObjectLighting(ObjectRecord* object) {
 			int deltaY;
 			int deltaZ;
 
-			if (lightObject->objectType != 0 && lightObject->genusId == CRAFT_GENUS_EXPLOSION) {
+			if (lightObject->objectType != 0 &&
+			    lightObject->genusId == CRAFT_GENUS_EXPLOSION) {
 				deltaX = lightObject->world_x - worldX;
 				deltaY = lightObject->world_y - worldY;
 				deltaZ = lightObject->world_z - worldZ;
-				if ((unsigned int)collide_roughdistance3d(deltaX, deltaY, deltaZ) < maxDistance) {
+				if ((unsigned int)collide_roughdistance3d(
+					    deltaX, deltaY, deltaZ) <
+				    maxDistance) {
 					if (object->mobj != NULL) {
-						g_objectPointLights[lightCount].x =
-							Math_Dot3Q15(deltaX, deltaY, deltaZ, object->mobj->cachedSideX,
-										 object->mobj->cachedSideY, object->mobj->cachedSideZ);
-						g_objectPointLights[lightCount].y =
-							-Math_Dot3Q15(deltaX, deltaY, deltaZ, object->mobj->cachedFwdX,
-										  object->mobj->cachedFwdY, object->mobj->cachedFwdZ);
-						g_objectPointLights[lightCount].z =
-							Math_Dot3Q15(deltaX, deltaY, deltaZ, object->mobj->cachedUpX,
-										 object->mobj->cachedUpY, object->mobj->cachedUpZ);
+						g_objectPointLights[lightCount]
+							.x = Math_Dot3Q15(
+							deltaX, deltaY, deltaZ,
+							object->mobj
+								->cachedSideX,
+							object->mobj
+								->cachedSideY,
+							object->mobj
+								->cachedSideZ);
+						g_objectPointLights[lightCount]
+							.y = -Math_Dot3Q15(
+							deltaX, deltaY, deltaZ,
+							object->mobj
+								->cachedFwdX,
+							object->mobj
+								->cachedFwdY,
+							object->mobj
+								->cachedFwdZ);
+						g_objectPointLights[lightCount]
+							.z = Math_Dot3Q15(
+							deltaX, deltaY, deltaZ,
+							object->mobj->cachedUpX,
+							object->mobj->cachedUpY,
+							object->mobj
+								->cachedUpZ);
 					} else {
-						FVIEW_SetObjectTransform(object->roll, object->pitch, object->yaw, 0, NULL);
-						g_objectPointLights[lightCount].x = Math_Dot3Q15(
-							deltaX, deltaY, deltaZ, g_fviewSideX_Q15, g_fviewSideY_Q15, g_fviewSideZ_Q15);
-						g_objectPointLights[lightCount].y =
-							-Math_Dot3Q15(deltaX, deltaY, deltaZ, g_fviewForwardX_Q15, g_fviewForwardY_Q15,
-										  g_fviewForwardZ_Q15);
-						g_objectPointLights[lightCount].z = Math_Dot3Q15(
-							deltaX, deltaY, deltaZ, g_fviewUpX_Q15, g_fviewUpY_Q15, g_fviewUpZ_Q15);
+						FVIEW_SetObjectTransform(
+							object->roll,
+							object->pitch,
+							object->yaw, 0, NULL);
+						g_objectPointLights[lightCount]
+							.x = Math_Dot3Q15(
+							deltaX, deltaY, deltaZ,
+							g_fviewSideX_Q15,
+							g_fviewSideY_Q15,
+							g_fviewSideZ_Q15);
+						g_objectPointLights[lightCount]
+							.y = -Math_Dot3Q15(
+							deltaX, deltaY, deltaZ,
+							g_fviewForwardX_Q15,
+							g_fviewForwardY_Q15,
+							g_fviewForwardZ_Q15);
+						g_objectPointLights[lightCount]
+							.z = Math_Dot3Q15(
+							deltaX, deltaY, deltaZ,
+							g_fviewUpX_Q15,
+							g_fviewUpY_Q15,
+							g_fviewUpZ_Q15);
 					}
 
-					g_objectPointLights[lightCount].intensity = 16;
+					g_objectPointLights[lightCount]
+						.intensity = 16;
 					switch (lightObject->objectType) {
-						case 127:
-						case 128:
-						case 129:
-						case 130:
-							switch (lightObject->typeSpecificByte[0]) {
-								case 2:
-									g_objectPointLights[lightCount].intensity = 192;
-									break;
-								case 3:
-									g_objectPointLights[lightCount].intensity = 320;
-									break;
-								case 4:
-									g_objectPointLights[lightCount].intensity = 480;
-									break;
-								case 5:
-								case 6:
-								case 7:
-								case 8:
-									g_objectPointLights[lightCount].intensity = 320;
-									break;
-								case 9:
-									g_objectPointLights[lightCount].intensity = 192;
-									break;
-								case 10:
-									g_objectPointLights[lightCount].intensity = 96;
-									break;
-								case 11:
-									g_objectPointLights[lightCount].intensity = 48;
-									break;
-								default:
-									break;
-							}
-							if (lightObject->mobj != NULL && lightObject->mobj->effectSize >= 4)
-								g_objectPointLights[lightCount].intensity *=
-									(lightObject->mobj->effectSize + 4) / 4;
+					case 127:
+					case 128:
+					case 129:
+					case 130:
+						switch (lightObject
+								->typeSpecificByte
+									[0]) {
+						case 2:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								192;
 							break;
-						case 131:
-						case 132:
-							switch (lightObject->typeSpecificByte[0]) {
-								case 2:
-									g_objectPointLights[lightCount].intensity = 48;
-									break;
-								case 3:
-									g_objectPointLights[lightCount].intensity = 96;
-									break;
-								case 4:
-									g_objectPointLights[lightCount].intensity = 64;
-									break;
-								case 5:
-									g_objectPointLights[lightCount].intensity = 32;
-									break;
-								default:
-									break;
-							}
+						case 3:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								320;
+							break;
+						case 4:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								480;
+							break;
+						case 5:
+						case 6:
+						case 7:
+						case 8:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								320;
+							break;
+						case 9:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								192;
+							break;
+						case 10:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								96;
+							break;
+						case 11:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								48;
 							break;
 						default:
-							g_objectPointLights[lightCount].intensity = g_flightBrightnessScaleQ8 - 256;
 							break;
-					}
-					g_objectPointLights[lightCount].intensity *= 8;
-					++lightCount;
-					if (lightCount == 8)
+						}
+						if (lightObject->mobj != NULL &&
+						    lightObject->mobj
+								    ->effectSize >=
+							    4) {
+							g_objectPointLights
+								[lightCount]
+									.intensity *=
+								(lightObject
+									 ->mobj
+									 ->effectSize +
+								 4) /
+								4;
+						}
 						break;
+					case 131:
+					case 132:
+						switch (lightObject
+								->typeSpecificByte
+									[0]) {
+						case 2:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								48;
+							break;
+						case 3:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								96;
+							break;
+						case 4:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								64;
+							break;
+						case 5:
+							g_objectPointLights
+								[lightCount]
+									.intensity =
+								32;
+							break;
+						default:
+							break;
+						}
+						break;
+					default:
+						g_objectPointLights[lightCount]
+							.intensity =
+							g_flightBrightnessScaleQ8 -
+							256;
+						break;
+					}
+					g_objectPointLights[lightCount]
+						.intensity *= 8;
+					++lightCount;
+					if (lightCount == 8) {
+						break;
+					}
 				}
 			}
 			++objectIdx;
@@ -368,9 +498,12 @@ void FlightLight_SetupObjectLighting(ObjectRecord* object) {
 }
 
 // FUNCTION: XVT 0x44FDF0
-void FlightLight_SetupObjectLightingByIndex(unsigned int objectIndex) {
+void FlightLight_SetupObjectLightingByIndex(unsigned int objectIndex)
+{
 	g_objectPointLightCount = 0;
 	if (g_localLightsEnabled != 0 &&
-		(unsigned int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount) > objectIndex)
+	    (unsigned int)(g_regionMainObjectSlotEnd +
+			   g_regionStaticObjectSlotCount) > objectIndex) {
 		FlightLight_SetupObjectLighting(&g_objectTable[objectIndex]);
+	}
 }

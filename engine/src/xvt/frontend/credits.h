@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 extern uint16_t g_creditsCurrentTextColor;
-extern XvtFile* g_frontendCreditsFile;
+extern XvtFile *g_frontendCreditsFile;
 extern int g_creditsLogoX[2];
 extern int g_creditsPrevLogoX[2];
 extern int g_creditsLogoY[2];
@@ -30,9 +30,10 @@ extern uint16_t g_creditsTextColors[2][32];
 extern int g_creditsExitPending;
 
 int Credits_LoadScreenResources(void);
-int Credits_ParseNextPage(unsigned int* outBufferIdx, int* outHasMorePages, int* outPageDurationFrames,
-						  int* outTextFadeFrames);
-int Credits_ParseTextLine(const char* line, unsigned int bufferIdx, unsigned int lineIdx);
+int Credits_ParseNextPage(unsigned int *outBufferIdx, int *outHasMorePages,
+			  int *outPageDurationFrames, int *outTextFadeFrames);
+int Credits_ParseTextLine(const char *line, unsigned int bufferIdx,
+			  unsigned int lineIdx);
 
 #ifdef __cplusplus
 }

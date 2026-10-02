@@ -14,20 +14,21 @@ extern "C" {
 /* Returns the number of whole elements read; a trailing partial element is consumed but not counted.
  * Returns 0 when size or count is 0. A size * count that overflows ends the program through
  * XvtStorage_Fatal. */
-size_t XvtFile_Read(void* data, size_t size, size_t count, AeronFile* file);
+size_t XvtFile_Read(void *data, size_t size, size_t count, AeronFile *file);
 /* Returns the number of whole elements written; otherwise as Read. */
-size_t XvtFile_Write(const void* data, size_t size, size_t count, AeronFile* file);
+size_t XvtFile_Write(const void *data, size_t size, size_t count,
+		     AeronFile *file);
 /* The next byte as 0..255, or EOF at end of file or on error. */
-int XvtFile_Getc(AeronFile* file);
+int XvtFile_Getc(AeronFile *file);
 /* Writes the low byte of value; returns that byte as 0..255, or EOF. */
-int XvtFile_Putc(int value, AeronFile* file);
+int XvtFile_Putc(int value, AeronFile *file);
 /* As fgets: reads at most capacity - 1 bytes, through the first newline, which is kept; a CR LF pair
  * read in the same call becomes one newline. Returns buffer, or NULL when capacity is not positive or
  * nothing was read. */
-char* XvtFile_Gets(char* buffer, int capacity, AeronFile* file);
+char *XvtFile_Gets(char *buffer, int capacity, AeronFile *file);
 /* Formats the whole text, of any length, then writes it. Returns the characters written, or -1 on a
  * format or allocation failure or a short write; a short write may have written part of the text. */
-int XvtFile_Printf(AeronFile* file, const char* format, ...);
+int XvtFile_Printf(AeronFile *file, const char *format, ...);
 /* A subset of fscanf. Whitespace in the format skips any whitespace in the input; any other literal
  * character must match the next byte, or the scan ends. The only conversions are %s, %d and %u, each with
  * an optional width; reaching any other, %% included, with input left ends the program through
@@ -35,17 +36,17 @@ int XvtFile_Printf(AeronFile* file, const char* format, ...);
  * %u read one whitespace-delimited token, no longer than the width or 511 bytes, then seek back so the
  * bytes the number did not use stay unread; a token that is not a number is left unread and ends the
  * scan. Returns the number of conversions assigned, or EOF when the input ended before the first one. */
-int XvtFile_Scanf(AeronFile* file, const char* format, ...);
+int XvtFile_Scanf(AeronFile *file, const char *format, ...);
 /* origin is SEEK_SET, SEEK_CUR or SEEK_END. Returns 0, or -1 on failure. Success clears the
  * end-of-file flag. */
-int XvtFile_Seek(AeronFile* file, long offset, int origin);
+int XvtFile_Seek(AeronFile *file, long offset, int origin);
 /* The current offset, or -1 on failure or when the offset does not fit in a long. */
-long XvtFile_Tell(AeronFile* file);
+long XvtFile_Tell(AeronFile *file);
 /* Closes and frees the handle. Returns 0, also for NULL, or EOF when the close failed; the handle is
  * freed either way. */
-int XvtFile_Close(AeronFile* file);
+int XvtFile_Close(AeronFile *file);
 /* Returns 0, or EOF when the flush failed. */
-int XvtFile_Flush(AeronFile* file);
+int XvtFile_Flush(AeronFile *file);
 #ifdef __cplusplus
 }
 #endif

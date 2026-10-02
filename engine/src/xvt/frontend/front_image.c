@@ -42,27 +42,34 @@ typedef struct FrontImageBmpInfoHeader {
 } FrontImageBmpInfoHeader;
 
 #pragma pack(pop)
-typedef char xvt_size_FrontImageBmpFileHeader[(sizeof(FrontImageBmpFileHeader) == 14) ? 1 : -1];
-typedef char xvt_size_FrontImageBmpInfoHeader[(sizeof(FrontImageBmpInfoHeader) == 40) ? 1 : -1];
+typedef char xvt_size_FrontImageBmpFileHeader
+	[(sizeof(FrontImageBmpFileHeader) == 14) ? 1 : -1];
+typedef char xvt_size_FrontImageBmpInfoHeader
+	[(sizeof(FrontImageBmpInfoHeader) == 40) ? 1 : -1];
 
 // GLOBAL: XVT 0x664C88
-static int16_t g_paletteRemapCache[256] = { 0 };
+static int16_t g_paletteRemapCache[256] = {0};
 
 // FUNCTION: XVT 0x4B4A60
-int FrontImage_RegisterResourceDefault(const char* fileName, const char* name) {
-	ImageResource* image;
+int FrontImage_RegisterResourceDefault(const char *fileName, const char *name)
+{
+	ImageResource *image;
 	FrontImageResourceRecord entry;
 
-	if (*fileName == '\0')
+	if (*fileName == '\0') {
 		return 0;
-	if (*name == '\0')
+	}
+	if (*name == '\0') {
 		return 0;
-	if (FrontImage_FindResourceByName(name) != -1)
+	}
+	if (FrontImage_FindResourceByName(name) != -1) {
 		return 0;
+	}
 
 	image = malloc(sizeof(*image));
-	if (image == NULL)
+	if (image == NULL) {
 		return 0;
+	}
 	memset(image, 0, sizeof(*image));
 	if (FrontImage_LoadBmpFile(fileName, image, 1, 1) == 0) {
 		free(image);
@@ -76,23 +83,29 @@ int FrontImage_RegisterResourceDefault(const char* fileName, const char* name) {
 }
 
 // FUNCTION: XVT 0x4B4B20
-int FrontImage_RegisterResource(const char* fileName, const char* name, int remapToDisplayPalette,
-								int compressRLE) {
-	ImageResource* image;
+int FrontImage_RegisterResource(const char *fileName, const char *name,
+				int remapToDisplayPalette, int compressRLE)
+{
+	ImageResource *image;
 	FrontImageResourceRecord entry;
 
-	if (*fileName == '\0')
+	if (*fileName == '\0') {
 		return 0;
-	if (*name == '\0')
+	}
+	if (*name == '\0') {
 		return 0;
-	if (FrontImage_FindResourceByName(name) != -1)
+	}
+	if (FrontImage_FindResourceByName(name) != -1) {
 		return 0;
+	}
 
 	image = malloc(sizeof(*image));
-	if (image == NULL)
+	if (image == NULL) {
 		return 0;
+	}
 	memset(image, 0, sizeof(*image));
-	if (FrontImage_LoadBmpFile(fileName, image, remapToDisplayPalette, compressRLE) == 0) {
+	if (FrontImage_LoadBmpFile(fileName, image, remapToDisplayPalette,
+				   compressRLE) == 0) {
 		free(image);
 		return 0;
 	}
@@ -104,20 +117,26 @@ int FrontImage_RegisterResource(const char* fileName, const char* name, int rema
 }
 
 // FUNCTION: XVT 0x4B4BF0
-void FrontImage_FreeResourceByName(const char* name) {
+void FrontImage_FreeResourceByName(const char *name)
+{
 	int resourceIndex;
 
 	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1)
+	if (resourceIndex == -1) {
 		return;
+	}
 
 	if (g_frontState.resourceTable[resourceIndex].image != NULL) {
 #ifdef XVT_MODERN
-		XvtRenderAssets_RetireImage(g_frontState.resourceTable[resourceIndex].image);
+		XvtRenderAssets_RetireImage(
+			g_frontState.resourceTable[resourceIndex].image);
 #endif
-		if (g_frontState.resourceTable[resourceIndex].image->pixels != NULL) {
-			free(g_frontState.resourceTable[resourceIndex].image->pixels);
-			g_frontState.resourceTable[resourceIndex].image->pixels = NULL;
+		if (g_frontState.resourceTable[resourceIndex].image->pixels !=
+		    NULL) {
+			free(g_frontState.resourceTable[resourceIndex]
+				     .image->pixels);
+			g_frontState.resourceTable[resourceIndex]
+				.image->pixels = NULL;
 		}
 		free(g_frontState.resourceTable[resourceIndex].image);
 		g_frontState.resourceTable[resourceIndex].image = NULL;
@@ -126,19 +145,23 @@ void FrontImage_FreeResourceByName(const char* name) {
 }
 
 // FUNCTION: XVT 0x4B4C70
-void FrontImage_FreeAllResources(void) {
+void FrontImage_FreeAllResources(void)
+{
 	int resourceIndex;
 
-	if (g_frontState.resourceTable == NULL)
+	if (g_frontState.resourceTable == NULL) {
 		return;
+	}
 
 	for (resourceIndex = 511; resourceIndex >= 0; --resourceIndex) {
-		FrontImage_FreeResourceByName(g_frontState.resourceTable[resourceIndex].name);
+		FrontImage_FreeResourceByName(
+			g_frontState.resourceTable[resourceIndex].name);
 	}
 }
 
 // FUNCTION: XVT 0x4B4CA0
-int FrontImage_ResourceExists(const char* name) {
+int FrontImage_ResourceExists(const char *name)
+{
 	if (*name == '\0') {
 		return 0;
 	}
@@ -147,7 +170,8 @@ int FrontImage_ResourceExists(const char* name) {
 }
 
 // FUNCTION: XVT 0x4B4CC0
-int FrontImage_GetResourceRect(const char* name, RECT* outRect) {
+int FrontImage_GetResourceRect(const char *name, RECT *outRect)
+{
 	int resourceIndex;
 
 	if (*name == '\0') {
@@ -161,29 +185,35 @@ int FrontImage_GetResourceRect(const char* name, RECT* outRect) {
 		return 0;
 	}
 
-	FrontendDraw_RectAssign(outRect, 0, 0, g_frontState.resourceTable[resourceIndex].image->width,
-							g_frontState.resourceTable[resourceIndex].image->height);
+	FrontendDraw_RectAssign(
+		outRect, 0, 0,
+		g_frontState.resourceTable[resourceIndex].image->width,
+		g_frontState.resourceTable[resourceIndex].image->height);
 	return 1;
 }
 
 // FUNCTION: XVT 0x4B4D40
-int FrontImage_DrawSpriteTranslucent(const char* name, int x, int y) {
+int FrontImage_DrawSpriteTranslucent(const char *name, int x, int y)
+{
 	int resourceIndex;
-	ImageResource* image;
+	ImageResource *image;
 
 	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1)
+	if (resourceIndex == -1) {
 		return 0;
+	}
 
 	image = g_frontState.resourceTable[resourceIndex].image;
-	if (image->isCompressed != 0)
+	if (image->isCompressed != 0) {
 		return 0;
+	}
 
 	return FrontImage_BlitTranslucent(image, x, y);
 }
 
 // FUNCTION: XVT 0x4B4D90
-int FrontImage_BlitTranslucent(ImageResource* image, int x, int y) {
+int FrontImage_BlitTranslucent(ImageResource *image, int x, int y)
+{
 	int clipOffsetX;
 	int clipOffsetY;
 	int imageWidth;
@@ -191,13 +221,14 @@ int FrontImage_BlitTranslucent(ImageResource* image, int x, int y) {
 	int visibleHeight;
 	int clipResult;
 	int displayBpp;
-	uint8_t* source;
-	uint8_t* destination;
+	uint8_t *source;
+	uint8_t *destination;
 	RECT clippedRect;
 	RECT unclippedRect;
 
-	if (image == NULL)
+	if (image == NULL) {
 		return 0;
+	}
 
 	{
 		clippedRect.left = x;
@@ -207,37 +238,54 @@ int FrontImage_BlitTranslucent(ImageResource* image, int x, int y) {
 		clippedRect.bottom = y + image->height - 1;
 		FrontendDraw_RectCopy(&unclippedRect, &clippedRect);
 		clipResult = FrontendDraw_RectClipToBounds(&clippedRect);
-		if (clippedRect.right >= clippedRect.left && clippedRect.bottom >= clippedRect.top) {
+		if (clippedRect.right >= clippedRect.left &&
+		    clippedRect.bottom >= clippedRect.top) {
 			clipOffsetX = clippedRect.left - unclippedRect.left;
 			clipOffsetY = clippedRect.top - unclippedRect.top;
 			imageWidth = image->width;
-			visibleWidth = image->width + clippedRect.right - clipOffsetX - unclippedRect.right;
-			visibleHeight = clippedRect.bottom + image->height - unclippedRect.bottom - clipOffsetY;
+			visibleWidth = image->width + clippedRect.right -
+				       clipOffsetX - unclippedRect.right;
+			visibleHeight = clippedRect.bottom + image->height -
+					unclippedRect.bottom - clipOffsetY;
 
 #ifdef XVT_MODERN
-			XvtRenderFrontend_Image(image, clipOffsetX, clipOffsetY, x + clipOffsetX, y + clipOffsetY,
-									visibleWidth, visibleHeight, XVT_SPRITE_FRONT_TRANSLUCENT, 0);
+			XvtRenderFrontend_Image(
+				image, clipOffsetX, clipOffsetY,
+				x + clipOffsetX, y + clipOffsetY, visibleWidth,
+				visibleHeight, XVT_SPRITE_FRONT_TRANSLUCENT, 0);
 #endif
 			displayBpp = g_frontState.displayBpp;
 			if (displayBpp == 8) {
 				int rowsRemaining;
 
-				source = &image->pixels[imageWidth * clipOffsetY + clipOffsetX];
+				source = &image->pixels[imageWidth *
+								clipOffsetY +
+							clipOffsetX];
 				destination =
-					&g_drawSurfacePtr[x + clipOffsetX + g_frontState.drawSurfacePitch * (y + clipOffsetY)];
+					&g_drawSurfacePtr
+						[x + clipOffsetX +
+						 g_frontState.drawSurfacePitch *
+							 (y + clipOffsetY)];
 				if (visibleHeight > 0) {
 					rowsRemaining = visibleHeight;
 					do {
 						int column;
 
-						for (column = 0; visibleWidth > column; ++column) {
+						for (column = 0;
+						     visibleWidth > column;
+						     ++column) {
 							uint8_t sourcePixel;
 
-							sourcePixel = source[column];
-							if (sourcePixel != 0)
-								destination[column] = sourcePixel;
+							sourcePixel =
+								source[column];
+							if (sourcePixel != 0) {
+								destination[column] =
+									sourcePixel;
+							}
 						}
-						destination += g_frontState.drawSurfacePitch;
+						destination +=
+							g_frontState
+								.drawSurfacePitch;
 						source += image->width;
 						--rowsRemaining;
 					} while (rowsRemaining != 0);
@@ -245,83 +293,163 @@ int FrontImage_BlitTranslucent(ImageResource* image, int x, int y) {
 			} else if (displayBpp == 16) {
 				int rowsRemaining;
 
-				source = &image->pixels[imageWidth * clipOffsetY + clipOffsetX];
-				destination = &g_drawSurfacePtr[2 * x + 2 * clipOffsetX +
-												g_frontState.drawSurfacePitch * (y + clipOffsetY)];
+				source = &image->pixels[imageWidth *
+								clipOffsetY +
+							clipOffsetX];
+				destination =
+					&g_drawSurfacePtr
+						[2 * x + 2 * clipOffsetX +
+						 g_frontState.drawSurfacePitch *
+							 (y + clipOffsetY)];
 				if (g_frontState.pixelFormat555 != 0) {
 					if (visibleHeight > 0) {
 						rowsRemaining =
-							clippedRect.bottom + image->height - unclippedRect.bottom - clipOffsetY;
+							clippedRect.bottom +
+							image->height -
+							unclippedRect.bottom -
+							clipOffsetY;
 						do {
 							int column;
-							uint8_t* destinationPixel;
+							uint8_t *
+								destinationPixel;
 
 							column = 0;
 							if (visibleWidth > 0) {
-								destinationPixel = destination;
+								destinationPixel =
+									destination;
 								do {
 									uint8_t sourcePixel;
 
-									sourcePixel = source[column];
-									if (sourcePixel != 0) {
+									sourcePixel = source
+										[column];
+									if (sourcePixel !=
+									    0) {
 										int sourceColor;
-										unsigned int blended;
+										unsigned int
+											blended;
 
-										sourceColor = image->colorLUT[sourcePixel];
-										blended = (((*(uint16_t*)destinationPixel & 0x1F) +
-													8 * ((*(uint16_t*)destinationPixel & 0x3E0) +
-														 8 * (*(uint16_t*)destinationPixel & 0x7C00u))) >>
-												   1) +
-												  (((sourceColor & 0x1F) + ((sourceColor & 0x7C00) << 6) +
-													8 * (sourceColor & 0x3E0u)) >>
-												   1);
-										*(uint16_t*)destinationPixel =
-											(uint16_t)((blended & 0x1F) + ((blended >> 6) & 0x7C00) +
-													   ((blended >> 3) & 0x3E0));
+										sourceColor =
+											image->colorLUT
+												[sourcePixel];
+										blended =
+											(((*(uint16_t
+												     *)
+												   destinationPixel &
+											   0x1F) +
+											  8 * ((*(uint16_t
+													  *)
+													destinationPixel &
+												0x3E0) +
+											       8 * (*(uint16_t
+													      *)
+													    destinationPixel &
+												    0x7C00u))) >>
+											 1) +
+											(((sourceColor &
+											   0x1F) +
+											  ((sourceColor &
+											    0x7C00)
+											   << 6) +
+											  8 * (sourceColor &
+											       0x3E0u)) >>
+											 1);
+										*(uint16_t
+											  *)
+											destinationPixel =
+											(uint16_t)((blended &
+												    0x1F) +
+												   ((blended >>
+												     6) &
+												    0x7C00) +
+												   ((blended >>
+												     3) &
+												    0x3E0));
 									}
-									destinationPixel += 2;
+									destinationPixel +=
+										2;
 									++column;
-								} while (column < visibleWidth);
+								} while (
+									column <
+									visibleWidth);
 							}
 							source += image->width;
-							destination += g_frontState.drawSurfacePitch & 0xFFFFFFFE;
+							destination +=
+								g_frontState
+									.drawSurfacePitch &
+								0xFFFFFFFE;
 							--rowsRemaining;
 						} while (rowsRemaining != 0);
 					}
 				} else if (visibleHeight > 0) {
-					rowsRemaining = clippedRect.bottom + image->height - unclippedRect.bottom - clipOffsetY;
+					rowsRemaining = clippedRect.bottom +
+							image->height -
+							unclippedRect.bottom -
+							clipOffsetY;
 					do {
 						int column;
-						uint8_t* destinationPixel;
+						uint8_t *destinationPixel;
 
 						column = 0;
 						if (visibleWidth > 0) {
-							destinationPixel = destination;
+							destinationPixel =
+								destination;
 							do {
 								uint8_t sourcePixel;
 
-								sourcePixel = source[column];
-								if (sourcePixel != 0) {
-									unsigned int blended;
+								sourcePixel = source
+									[column];
+								if (sourcePixel !=
+								    0) {
+									unsigned int
+										blended;
 
-									blended = (((*(uint16_t*)destinationPixel & 0x1F) +
-												8 * ((*(uint16_t*)destinationPixel & 0x7E0) +
-													 4 * (*(uint16_t*)destinationPixel & 0xF800u))) >>
-											   1) +
-											  (((image->colorLUT[sourcePixel] & 0x1F) +
-												32 * (image->colorLUT[sourcePixel] & 0xF800) +
-												8 * (image->colorLUT[sourcePixel] & 0x7E0u)) >>
-											   1);
-									*(uint16_t*)destinationPixel =
-										(uint16_t)((blended & 0x1F) + ((blended >> 3) & 0x7E0) +
-												   ((blended >> 5) & 0xF800));
+									blended =
+										(((*(uint16_t
+											     *)
+											   destinationPixel &
+										   0x1F) +
+										  8 * ((*(uint16_t
+												  *)
+												destinationPixel &
+											0x7E0) +
+										       4 * (*(uint16_t
+												      *)
+												    destinationPixel &
+											    0xF800u))) >>
+										 1) +
+										(((image->colorLUT
+											   [sourcePixel] &
+										   0x1F) +
+										  32 * (image->colorLUT
+												[sourcePixel] &
+											0xF800) +
+										  8 * (image->colorLUT
+											       [sourcePixel] &
+										       0x7E0u)) >>
+										 1);
+									*(uint16_t
+										  *)
+										destinationPixel =
+										(uint16_t)((blended &
+											    0x1F) +
+											   ((blended >>
+											     3) &
+											    0x7E0) +
+											   ((blended >>
+											     5) &
+											    0xF800));
 								}
-								destinationPixel += 2;
+								destinationPixel +=
+									2;
 								++column;
-							} while (column != visibleWidth);
+							} while (column !=
+								 visibleWidth);
 						}
 						source += image->width;
-						destination += g_frontState.drawSurfacePitch & 0xFFFFFFFE;
+						destination +=
+							g_frontState
+								.drawSurfacePitch &
+							0xFFFFFFFE;
 						--rowsRemaining;
 					} while (rowsRemaining != 0);
 				}
@@ -332,9 +460,11 @@ int FrontImage_BlitTranslucent(ImageResource* image, int x, int y) {
 }
 
 // FUNCTION: XVT 0x4B50B0
-int FrontImage_DrawSpriteRectTransparent(const char* name, RECT* srcRect, int dstX, int dstY) {
+int FrontImage_DrawSpriteRectTransparent(const char *name, RECT *srcRect,
+					 int dstX, int dstY)
+{
 	int resourceIndex;
-	ImageResource* image;
+	ImageResource *image;
 
 	resourceIndex = FrontImage_FindResourceByName(name);
 	if (resourceIndex == -1) {
@@ -348,7 +478,9 @@ int FrontImage_DrawSpriteRectTransparent(const char* name, RECT* srcRect, int ds
 }
 
 // FUNCTION: XVT 0x4B5100
-int FrontImage_BlitRectTransparent(ImageResource* image, RECT* srcRect, int dstX, int dstY) {
+int FrontImage_BlitRectTransparent(ImageResource *image, RECT *srcRect,
+				   int dstX, int dstY)
+{
 	int rowsRemaining;
 	int displayBpp;
 	int visibleHeight;
@@ -363,7 +495,8 @@ int FrontImage_BlitRectTransparent(ImageResource* image, RECT* srcRect, int dstX
 		return 0;
 	}
 	FrontendDraw_RectCopy(&destinationRect, srcRect);
-	FrontendDraw_RectOffsetXY(&destinationRect, dstX - srcRect->left, dstY - srcRect->top);
+	FrontendDraw_RectOffsetXY(&destinationRect, dstX - srcRect->left,
+				  dstY - srcRect->top);
 	FrontendDraw_RectCopy(&unclippedRect, &destinationRect);
 	clipResult = FrontendDraw_RectClipToBounds(&destinationRect);
 	if (destinationRect.right >= destinationRect.left) {
@@ -385,68 +518,100 @@ int FrontImage_BlitRectTransparent(ImageResource* image, RECT* srcRect, int dstX
 			visibleHeight -= unclippedRect.bottom;
 
 #ifdef XVT_MODERN
-			XvtRenderFrontend_Image(image, sourceLeft + clipOffsetX, sourceTop + clipOffsetY,
-									dstX + clipOffsetX, dstY + clipOffsetY, visibleWidth, visibleHeight,
-									XVT_SPRITE_FRONT_KEYED, 0);
+			XvtRenderFrontend_Image(
+				image, sourceLeft + clipOffsetX,
+				sourceTop + clipOffsetY, dstX + clipOffsetX,
+				dstY + clipOffsetY, visibleWidth, visibleHeight,
+				XVT_SPRITE_FRONT_KEYED, 0);
 #endif
 			displayBpp = g_frontState.displayBpp;
 			switch (displayBpp) {
-				case 8: {
-					uint8_t* source;
-					uint8_t* destination;
-					int column;
+			case 8: {
+				uint8_t *source;
+				uint8_t *destination;
+				int column;
 
-					source =
-						&image->pixels[image->width * (sourceTop + clipOffsetY) + sourceLeft + clipOffsetX];
-					destination = &g_drawSurfacePtr[dstX + clipOffsetX +
-													g_frontState.drawSurfacePitch * (dstY + clipOffsetY)];
-					if (visibleHeight > 0) {
-						rowsRemaining = visibleHeight;
-						do {
-							column = 0;
-							if (visibleWidth > 0) {
-								do {
-									if (source[column] != 0)
-										destination[column] = source[column];
-									++column;
-								} while (column - visibleWidth < 0);
-							}
-							source += image->width;
-							destination += g_frontState.drawSurfacePitch;
-							--rowsRemaining;
-						} while (rowsRemaining != 0);
-					}
-					break;
+				source = &image->pixels[image->width *
+								(sourceTop +
+								 clipOffsetY) +
+							sourceLeft +
+							clipOffsetX];
+				destination =
+					&g_drawSurfacePtr
+						[dstX + clipOffsetX +
+						 g_frontState.drawSurfacePitch *
+							 (dstY + clipOffsetY)];
+				if (visibleHeight > 0) {
+					rowsRemaining = visibleHeight;
+					do {
+						column = 0;
+						if (visibleWidth > 0) {
+							do {
+								if (source[column] !=
+								    0) {
+									destination[column] = source
+										[column];
+								}
+								++column;
+							} while (
+								column -
+									visibleWidth <
+								0);
+						}
+						source += image->width;
+						destination +=
+							g_frontState
+								.drawSurfacePitch;
+						--rowsRemaining;
+					} while (rowsRemaining != 0);
 				}
-				case 16: {
-					uint8_t* source;
-					uint8_t* destination;
-					int column;
+				break;
+			}
+			case 16: {
+				uint8_t *source;
+				uint8_t *destination;
+				int column;
 
-					source =
-						&image->pixels[image->width * (sourceTop + clipOffsetY) + sourceLeft + clipOffsetX];
-					destination = &g_drawSurfacePtr[2 * (dstX + clipOffsetX) +
-													g_frontState.drawSurfacePitch * (dstY + clipOffsetY)];
-					if (visibleHeight > 0) {
-						rowsRemaining = visibleHeight;
-						do {
-							column = 0;
-							if (visibleWidth > 0) {
-								do {
-									if (source[column] != 0) {
-										*(uint16_t*)&destination[2 * column] =
-											(uint16_t)image->colorLUT[source[column]];
-									}
-									++column;
-								} while (column < visibleWidth);
-							}
-							source += image->width;
-							destination += g_frontState.drawSurfacePitch & 0xFFFFFFFE;
-							--rowsRemaining;
-						} while (rowsRemaining != 0);
-					}
-					break;
+				source = &image->pixels[image->width *
+								(sourceTop +
+								 clipOffsetY) +
+							sourceLeft +
+							clipOffsetX];
+				destination =
+					&g_drawSurfacePtr
+						[2 * (dstX + clipOffsetX) +
+						 g_frontState.drawSurfacePitch *
+							 (dstY + clipOffsetY)];
+				if (visibleHeight > 0) {
+					rowsRemaining = visibleHeight;
+					do {
+						column = 0;
+						if (visibleWidth > 0) {
+							do {
+								if (source[column] !=
+								    0) {
+									*(uint16_t
+										  *)&destination
+										[2 *
+										 column] =
+										(uint16_t)image
+											->colorLUT
+												[source[column]];
+								}
+								++column;
+							} while (column <
+								 visibleWidth);
+						}
+						source += image->width;
+						destination +=
+							g_frontState
+								.drawSurfacePitch &
+							0xFFFFFFFE;
+						--rowsRemaining;
+					} while (rowsRemaining != 0);
 				}
+				break;
+			}
 			}
 		}
 	}
@@ -454,23 +619,27 @@ int FrontImage_BlitRectTransparent(ImageResource* image, RECT* srcRect, int dstX
 }
 
 // FUNCTION: XVT 0x4B52C0
-int FrontImage_DrawSpriteRectTinted(const char* name, RECT* srcRect, int dstX, int dstY,
-									unsigned int tintColor) {
+int FrontImage_DrawSpriteRectTinted(const char *name, RECT *srcRect, int dstX,
+				    int dstY, unsigned int tintColor)
+{
 	int resourceIndex;
-	ImageResource* image;
+	ImageResource *image;
 
 	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1)
+	if (resourceIndex == -1) {
 		return 0;
+	}
 	image = g_frontState.resourceTable[resourceIndex].image;
-	if (image->isCompressed != 0)
+	if (image->isCompressed != 0) {
 		return 0;
+	}
 	return FrontImage_BlitRectTinted(image, srcRect, dstX, dstY, tintColor);
 }
 
 // FUNCTION: XVT 0x4B5310
-int FrontImage_BlitRectTinted(ImageResource* image, const RECT* srcRect, int dstX, int dstY,
-							  unsigned int tintColor) {
+int FrontImage_BlitRectTinted(ImageResource *image, const RECT *srcRect,
+			      int dstX, int dstY, unsigned int tintColor)
+{
 	int visibleHeight;
 	int displayBpp;
 	int sourceTop;
@@ -480,12 +649,12 @@ int FrontImage_BlitRectTinted(ImageResource* image, const RECT* srcRect, int dst
 	int visibleWidth;
 	int clipResult;
 	RECT destinationRect;
-	uint8_t* source;
-	uint8_t* destination;
+	uint8_t *source;
+	uint8_t *destination;
 	int rowsRemaining;
 	RECT unclippedRect;
 	int column;
-	const RECT* sourceRect;
+	const RECT *sourceRect;
 	int destinationY;
 	uint8_t sourcePixel;
 	int intensity;
@@ -495,78 +664,124 @@ int FrontImage_BlitRectTinted(ImageResource* image, const RECT* srcRect, int dst
 	int green;
 	int blue;
 
-	if (image == NULL)
+	if (image == NULL) {
 		return 0;
+	}
 
 	sourceRect = srcRect;
 	destinationY = dstY;
 	FrontendDraw_RectCopy(&destinationRect, sourceRect);
-	FrontendDraw_RectOffsetXY(&destinationRect, dstX - sourceRect->left, destinationY - sourceRect->top);
+	FrontendDraw_RectOffsetXY(&destinationRect, dstX - sourceRect->left,
+				  destinationY - sourceRect->top);
 	FrontendDraw_RectCopy(&unclippedRect, &destinationRect);
 	clipResult = FrontendDraw_RectClipToBounds(&destinationRect);
 	if (destinationRect.right >= destinationRect.left) {
-		if (destinationRect.top > destinationRect.bottom)
+		if (destinationRect.top > destinationRect.bottom) {
 			return clipResult;
+		}
 
 		clipOffsetX = destinationRect.left - unclippedRect.left;
 		clipOffsetY = destinationRect.top - unclippedRect.top;
 		sourceLeft = sourceRect->left;
-		visibleWidth =
-			sourceRect->right - sourceLeft - clipOffsetX - unclippedRect.right + destinationRect.right + 1;
+		visibleWidth = sourceRect->right - sourceLeft - clipOffsetX -
+			       unclippedRect.right + destinationRect.right + 1;
 		sourceTop = sourceRect->top;
-		visibleHeight =
-			sourceRect->bottom - sourceTop - clipOffsetY - unclippedRect.bottom + destinationRect.bottom + 1;
+		visibleHeight = sourceRect->bottom - sourceTop - clipOffsetY -
+				unclippedRect.bottom + destinationRect.bottom +
+				1;
 
 #ifdef XVT_MODERN
-		XvtRenderFrontend_Image(image, sourceLeft + clipOffsetX, sourceTop + clipOffsetY, dstX + clipOffsetX,
-								dstY + clipOffsetY, visibleWidth, visibleHeight, XVT_SPRITE_FRONT_TINTED,
-								tintColor);
+		XvtRenderFrontend_Image(image, sourceLeft + clipOffsetX,
+					sourceTop + clipOffsetY,
+					dstX + clipOffsetX, dstY + clipOffsetY,
+					visibleWidth, visibleHeight,
+					XVT_SPRITE_FRONT_TINTED, tintColor);
 #endif
 		displayBpp = g_frontState.displayBpp;
 		if (displayBpp == 8) {
-			destination = &g_drawSurfacePtr[dstX + clipOffsetX +
-											g_frontState.drawSurfacePitch * (destinationY + clipOffsetY)];
-			source = &image->pixels[image->width * (sourceTop + clipOffsetY) + sourceLeft + clipOffsetX];
+			destination =
+				&g_drawSurfacePtr
+					[dstX + clipOffsetX +
+					 g_frontState.drawSurfacePitch *
+						 (destinationY + clipOffsetY)];
+			source = &image->pixels[image->width * (sourceTop +
+								clipOffsetY) +
+						sourceLeft + clipOffsetX];
 			if (visibleHeight > 0) {
 				do {
-					for (column = 0; column < visibleWidth; ++column) {
-						if (source[column] != 0)
-							destination[column] = (uint8_t)tintColor;
+					for (column = 0; column < visibleWidth;
+					     ++column) {
+						if (source[column] != 0) {
+							destination[column] =
+								(uint8_t)
+									tintColor;
+						}
 					}
-					destination += g_frontState.drawSurfacePitch;
+					destination +=
+						g_frontState.drawSurfacePitch;
 					source += image->width;
 					--visibleHeight;
 				} while (visibleHeight != 0);
 			}
 		} else if (displayBpp == 16) {
-			source = &image->pixels[image->width * (sourceTop + clipOffsetY) + sourceLeft + clipOffsetX];
-			destination = &g_drawSurfacePtr[2 * (dstX + clipOffsetX) +
-											g_frontState.drawSurfacePitch * (destinationY + clipOffsetY)];
+			source = &image->pixels[image->width * (sourceTop +
+								clipOffsetY) +
+						sourceLeft + clipOffsetX];
+			destination =
+				&g_drawSurfacePtr
+					[2 * (dstX + clipOffsetX) +
+					 g_frontState.drawSurfacePitch *
+						 (destinationY + clipOffsetY)];
 			if (visibleHeight > 0) {
-				for (rowsRemaining = visibleHeight; rowsRemaining != 0; --rowsRemaining) {
-					for (column = 0; column < visibleWidth; ++column) {
+				for (rowsRemaining = visibleHeight;
+				     rowsRemaining != 0; --rowsRemaining) {
+					for (column = 0; column < visibleWidth;
+					     ++column) {
 						sourcePixel = source[column];
-						if (sourcePixel == 0)
+						if (sourcePixel == 0) {
 							continue;
-						intensity = image->colorLUT[sourcePixel] & 0x1F;
-						if (g_frontState.pixelFormat555 != 0) {
-							tintRed = tintColor >> 10;
-							tintGreen = tintColor & 0x3E0;
-						} else {
-							tintRed = tintColor >> 11;
-							tintGreen = tintColor & 0x7E0;
 						}
-						red = intensity * (int)tintRed / 31;
-						green = intensity * (int)(tintGreen >> 5) / 31;
-						blue = intensity * (int)(tintColor & 0x1F) / 31;
-						if (g_frontState.pixelFormat555 != 0)
+						intensity =
+							image->colorLUT
+								[sourcePixel] &
+							0x1F;
+						if (g_frontState
+							    .pixelFormat555 !=
+						    0) {
+							tintRed =
+								tintColor >> 10;
+							tintGreen = tintColor &
+								    0x3E0;
+						} else {
+							tintRed =
+								tintColor >> 11;
+							tintGreen = tintColor &
+								    0x7E0;
+						}
+						red = intensity * (int)tintRed /
+						      31;
+						green = intensity *
+							(int)(tintGreen >> 5) /
+							31;
+						blue = intensity *
+						       (int)(tintColor & 0x1F) /
+						       31;
+						if (g_frontState
+							    .pixelFormat555 !=
+						    0) {
 							red <<= 5;
-						else
+						} else {
 							red <<= 6;
-						*(uint16_t*)&destination[2 * column] = ((red + green) << 5) + blue;
+						}
+						*(uint16_t *)&destination
+							[2 * column] =
+							((red + green) << 5) +
+							blue;
 					}
 					source += image->width;
-					destination += g_frontState.drawSurfacePitch & 0xFFFFFFFE;
+					destination +=
+						g_frontState.drawSurfacePitch &
+						0xFFFFFFFE;
 				}
 			}
 		}
@@ -576,18 +791,22 @@ int FrontImage_BlitRectTinted(ImageResource* image, const RECT* srcRect, int dst
 }
 
 // FUNCTION: XVT 0x4B5570
-int FrontImage_DrawSprite(const char* name, int x, int y) {
+int FrontImage_DrawSprite(const char *name, int x, int y)
+{
 	int resourceIndex;
 
 	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1)
+	if (resourceIndex == -1) {
 		return 0;
+	}
 
-	return FrontImage_BlitTransparent(g_frontState.resourceTable[resourceIndex].image, x, y);
+	return FrontImage_BlitTransparent(
+		g_frontState.resourceTable[resourceIndex].image, x, y);
 }
 
 // FUNCTION: XVT 0x4B55B0
-int FrontImage_BlitTransparent(ImageResource* image, int x, int y) {
+int FrontImage_BlitTransparent(ImageResource *image, int x, int y)
+{
 	RECT clippedRect;
 	RECT originalRect;
 	int clipResult;
@@ -597,14 +816,15 @@ int FrontImage_BlitTransparent(ImageResource* image, int x, int y) {
 	int visibleWidth;
 	int visibleHeight;
 	int displayBpp;
-	const uint8_t* source;
-	uint8_t* destination;
+	const uint8_t *source;
+	uint8_t *destination;
 	int row;
 	int column;
 	uint8_t pixel;
 
-	if (image == NULL)
+	if (image == NULL) {
 		return 0;
+	}
 
 	clippedRect.left = x;
 	clippedRect.top = y;
@@ -612,52 +832,80 @@ int FrontImage_BlitTransparent(ImageResource* image, int x, int y) {
 	clippedRect.bottom = y + image->height - 1;
 	FrontendDraw_RectCopy(&originalRect, &clippedRect);
 	clipResult = FrontendDraw_RectClipToBounds(&clippedRect);
-	if (clippedRect.right >= clippedRect.left && clippedRect.top <= clippedRect.bottom) {
+	if (clippedRect.right >= clippedRect.left &&
+	    clippedRect.top <= clippedRect.bottom) {
 		sourceX = clippedRect.left - originalRect.left;
 		sourceY = clippedRect.top - originalRect.top;
 		width = image->width;
-		visibleWidth = clippedRect.right - sourceX - originalRect.right + width;
-		visibleHeight = clippedRect.bottom + image->height - sourceY - originalRect.bottom;
+		visibleWidth = clippedRect.right - sourceX -
+			       originalRect.right + width;
+		visibleHeight = clippedRect.bottom + image->height - sourceY -
+				originalRect.bottom;
 
 #ifdef XVT_MODERN
-		XvtRenderFrontend_Image(image, sourceX, sourceY, x + sourceX, y + sourceY, visibleWidth,
-								visibleHeight, XVT_SPRITE_FRONT_KEYED, 0);
+		XvtRenderFrontend_Image(
+			image, sourceX, sourceY, x + sourceX, y + sourceY,
+			visibleWidth, visibleHeight, XVT_SPRITE_FRONT_KEYED, 0);
 #endif
 		displayBpp = g_frontState.displayBpp;
 		if (image->isCompressed == 0) {
 			if (displayBpp == 8) {
-				source = &image->pixels[sourceY * width + sourceX];
-				destination = &g_drawSurfacePtr[x + sourceX + g_frontState.drawSurfacePitch * (y + sourceY)];
-				for (row = visibleHeight; row > 0; --row) {
-					for (column = 0; column < visibleWidth; ++column) {
-						pixel = source[column];
-						if (pixel != 0)
-							destination[column] = pixel;
-					}
-					source += image->width;
-					destination += g_frontState.drawSurfacePitch;
-				}
-			} else if (displayBpp == 16) {
-				source = &image->pixels[sourceY * width + sourceX];
+				source = &image->pixels[sourceY * width +
+							sourceX];
 				destination =
-					&g_drawSurfacePtr[2 * (x + sourceX) + g_frontState.drawSurfacePitch * (y + sourceY)];
+					&g_drawSurfacePtr
+						[x + sourceX +
+						 g_frontState.drawSurfacePitch *
+							 (y + sourceY)];
 				for (row = visibleHeight; row > 0; --row) {
-					for (column = 0; column < visibleWidth; ++column) {
-						if (source[column] != 0) {
-							*(uint16_t*)&destination[2 * column] = image->colorLUT[source[column]];
+					for (column = 0; column < visibleWidth;
+					     ++column) {
+						pixel = source[column];
+						if (pixel != 0) {
+							destination[column] =
+								pixel;
 						}
 					}
 					source += image->width;
-					destination += g_frontState.drawSurfacePitch & ~1;
+					destination +=
+						g_frontState.drawSurfacePitch;
+				}
+			} else if (displayBpp == 16) {
+				source = &image->pixels[sourceY * width +
+							sourceX];
+				destination =
+					&g_drawSurfacePtr
+						[2 * (x + sourceX) +
+						 g_frontState.drawSurfacePitch *
+							 (y + sourceY)];
+				for (row = visibleHeight; row > 0; --row) {
+					for (column = 0; column < visibleWidth;
+					     ++column) {
+						if (source[column] != 0) {
+							*(uint16_t
+								  *)&destination
+								[2 * column] =
+								image->colorLUT
+									[source[column]];
+						}
+					}
+					source += image->width;
+					destination +=
+						g_frontState.drawSurfacePitch &
+						~1;
 				}
 			}
 		} else {
 			if (displayBpp == 8) {
-				FrontImage_BlitRLE8(image, x + sourceX, y + sourceY, sourceX, sourceY, visibleWidth,
-									visibleHeight);
+				FrontImage_BlitRLE8(image, x + sourceX,
+						    y + sourceY, sourceX,
+						    sourceY, visibleWidth,
+						    visibleHeight);
 			} else if (displayBpp == 16) {
-				FrontImage_BlitRLE16(image, x + sourceX, y + sourceY, sourceX, sourceY, visibleWidth,
-									 visibleHeight);
+				FrontImage_BlitRLE16(image, x + sourceX,
+						     y + sourceY, sourceX,
+						     sourceY, visibleWidth,
+						     visibleHeight);
 			}
 		}
 	}
@@ -666,11 +914,13 @@ int FrontImage_BlitTransparent(ImageResource* image, int x, int y) {
 }
 
 // FUNCTION: XVT 0x4B5770
-void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft, int srcTop,
-						 int visibleWidth, int visibleHeight) {
-	const uint8_t* row;
-	const uint8_t* rowStart;
-	uint8_t* destination;
+void FrontImage_BlitRLE8(ImageResource *image, int destX, int destY,
+			 int srcLeft, int srcTop, int visibleWidth,
+			 int visibleHeight)
+{
+	const uint8_t *row;
+	const uint8_t *rowStart;
+	uint8_t *destination;
 	int rowLength;
 	int tokenOffset;
 	int destinationOffset;
@@ -685,19 +935,22 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 		int fastRowsRemaining;
 
 		row = image->pixels;
-		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY + destX];
+		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch *
+							destY +
+						destX];
 		while (srcTop > 0) {
 #ifdef XVT_MODERN
 			memcpy(&rowLength, row, sizeof(rowLength));
 #else
-			rowLength = *(const int*)row;
+			rowLength = *(const int *)row;
 #endif
 			row += rowLength;
 			--srcTop;
 		}
 
-		if (visibleHeight <= 0)
+		if (visibleHeight <= 0) {
 			return;
+		}
 
 		fastRowsRemaining = visibleHeight;
 		do {
@@ -707,12 +960,15 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 			row += sizeof(rowLength);
 			for (;;) {
 				token = *row++;
-				if (token == 0x80)
+				if (token == 0x80) {
 					break;
+				}
 
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
-					memcpy(destination + fastDestinationOffset, row, token);
+					memcpy(destination +
+						       fastDestinationOffset,
+					       row, token);
 					fastDestinationOffset += token;
 					row += token;
 					continue;
@@ -724,7 +980,8 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 				}
 
 				value = *row++;
-				memset(destination + fastDestinationOffset, value, token);
+				memset(destination + fastDestinationOffset,
+				       value, token);
 				fastDestinationOffset += token;
 			}
 
@@ -735,19 +992,21 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 	}
 
 	row = image->pixels;
-	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY + destX];
+	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY +
+					destX];
 	while (srcTop > 0) {
 #ifdef XVT_MODERN
 		memcpy(&rowLength, row, sizeof(rowLength));
 #else
-		rowLength = *(const int*)row;
+		rowLength = *(const int *)row;
 #endif
 		row += rowLength;
 		--srcTop;
 	}
 
-	if (visibleHeight <= 0)
+	if (visibleHeight <= 0) {
 		return;
+	}
 
 	rowsRemaining = visibleHeight;
 	do {
@@ -757,7 +1016,7 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 #ifdef XVT_MODERN
 		memcpy(&rowLength, rowStart, sizeof(rowLength));
 #else
-		rowLength = *(const int*)rowStart;
+		rowLength = *(const int *)rowStart;
 #endif
 		started = 0;
 
@@ -766,21 +1025,24 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
 			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
 			if (!started) {
-				if (token == 0x80)
+				if (token == 0x80) {
 					break;
+				}
 
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
 					count = token;
 					endOffset = destinationOffset + count;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						tokenOffset += count;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token != 0)
+						if (token != 0) {
 							token |= 0x80;
+						}
 					} else {
 						destinationOffset = endOffset;
 						tokenOffset += count;
@@ -790,12 +1052,14 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 					count = token;
 					endOffset = destinationOffset + token;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token != 0)
+						if (token != 0) {
 							token |= 0x40;
+						}
 					} else {
 						destinationOffset += count;
 					}
@@ -803,12 +1067,14 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 					count = token;
 					endOffset = destinationOffset + token;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token == 0)
+						if (token == 0) {
 							++tokenOffset;
+						}
 					} else {
 						++tokenOffset;
 						destinationOffset += count;
@@ -816,39 +1082,48 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 				}
 			}
 
-			if (started != 1 || token == 0)
+			if (started != 1 || token == 0) {
 				continue;
-			if (token == 0x80)
+			}
+			if (token == 0x80) {
 				break;
+			}
 
 			if ((token & 0x80u) != 0) {
 				token &= 0x7F;
 				endOffset = destinationOffset + token;
 				if (endOffset >= visibleWidth) {
-					token = (uint8_t)(visibleWidth - destinationOffset);
-					memcpy(destination + destinationOffset, rowStart + tokenOffset, token);
+					token = (uint8_t)(visibleWidth -
+							  destinationOffset);
+					memcpy(destination + destinationOffset,
+					       rowStart + tokenOffset, token);
 					break;
 				}
 
-				memcpy(destination + destinationOffset, rowStart + tokenOffset, token);
+				memcpy(destination + destinationOffset,
+				       rowStart + tokenOffset, token);
 				destinationOffset = endOffset;
 				tokenOffset += token;
 			} else if ((token & 0x40u) != 0) {
 				token &= 0x3F;
 				destinationOffset += token;
-				if (destinationOffset >= visibleWidth)
+				if (destinationOffset >= visibleWidth) {
 					break;
+				}
 			} else {
 				value = rowStart[tokenOffset++];
 				count = token;
 				endOffset = destinationOffset + count;
 				if (endOffset >= visibleWidth) {
-					token = (uint8_t)(visibleWidth - destinationOffset);
-					memset(destination + destinationOffset, value, token);
+					token = (uint8_t)(visibleWidth -
+							  destinationOffset);
+					memset(destination + destinationOffset,
+					       value, token);
 					break;
 				}
 
-				memset(destination + destinationOffset, value, count);
+				memset(destination + destinationOffset, value,
+				       count);
 				destinationOffset = endOffset;
 			}
 		}
@@ -860,11 +1135,13 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 }
 
 // FUNCTION: XVT 0x4B5A80
-void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLeft, int srcTop,
-						  int visibleWidth, int visibleHeight) {
-	const uint8_t* row;
-	const uint8_t* rowStart;
-	uint8_t* destination;
+void FrontImage_BlitRLE16(ImageResource *image, int destX, int destY,
+			  int srcLeft, int srcTop, int visibleWidth,
+			  int visibleHeight)
+{
+	const uint8_t *row;
+	const uint8_t *rowStart;
+	uint8_t *destination;
 	int rowLength;
 	int tokenOffset;
 	int destinationOffset;
@@ -875,26 +1152,29 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 	int rowsRemaining;
 	int color;
 	int pixelIndex;
-	uint16_t* fillDestination;
+	uint16_t *fillDestination;
 	int fillCount;
 
 	if (visibleWidth == image->width) {
 		int fastRowsRemaining;
 
 		row = image->pixels;
-		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY + 2 * destX];
+		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch *
+							destY +
+						2 * destX];
 		while (srcTop > 0) {
 #ifdef XVT_MODERN
 			memcpy(&rowLength, row, sizeof(rowLength));
 #else
-			rowLength = *(const int*)row;
+			rowLength = *(const int *)row;
 #endif
 			row += rowLength;
 			--srcTop;
 		}
 
-		if (visibleHeight <= 0)
+		if (visibleHeight <= 0) {
 			return;
+		}
 
 		fastRowsRemaining = visibleHeight;
 		do {
@@ -904,14 +1184,20 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 			row += sizeof(rowLength);
 			for (;;) {
 				token = *row++;
-				if (token == 0x80)
+				if (token == 0x80) {
 					break;
+				}
 
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
-					for (pixelIndex = 0; pixelIndex < token; ++pixelIndex) {
-						*(uint16_t*)&destination[2 * (fastDestinationOffset + pixelIndex)] =
-							image->colorLUT[row[pixelIndex]];
+					for (pixelIndex = 0; pixelIndex < token;
+					     ++pixelIndex) {
+						*(uint16_t *)&destination
+							[2 *
+							 (fastDestinationOffset +
+							  pixelIndex)] =
+							image->colorLUT
+								[row[pixelIndex]];
 					}
 					fastDestinationOffset += token;
 					row += token;
@@ -920,9 +1206,15 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 				} else {
 					color = image->colorLUT[*row++];
 					if (token != 0) {
-						fillDestination = (uint16_t*)&destination[2 * fastDestinationOffset];
-						for (fillCount = token; fillCount != 0; --fillCount) {
-							*fillDestination++ = (uint16_t)color;
+						fillDestination = (uint16_t
+									   *)&destination
+							[2 *
+							 fastDestinationOffset];
+						for (fillCount = token;
+						     fillCount != 0;
+						     --fillCount) {
+							*fillDestination++ =
+								(uint16_t)color;
 						}
 					}
 					fastDestinationOffset += token;
@@ -936,19 +1228,21 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 	}
 
 	row = image->pixels;
-	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY + 2 * destX];
+	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY +
+					2 * destX];
 	while (srcTop > 0) {
 #ifdef XVT_MODERN
 		memcpy(&rowLength, row, sizeof(rowLength));
 #else
-		rowLength = *(const int*)row;
+		rowLength = *(const int *)row;
 #endif
 		row += rowLength;
 		--srcTop;
 	}
 
-	if (visibleHeight <= 0)
+	if (visibleHeight <= 0) {
 		return;
+	}
 
 	rowsRemaining = visibleHeight;
 	do {
@@ -958,7 +1252,7 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 #ifdef XVT_MODERN
 		memcpy(&rowLength, rowStart, sizeof(rowLength));
 #else
-		rowLength = *(const int*)rowStart;
+		rowLength = *(const int *)rowStart;
 #endif
 		started = 0;
 
@@ -967,20 +1261,23 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
 			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
 			if (!started) {
-				if (token == 0x80)
+				if (token == 0x80) {
 					break;
+				}
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
 					count = token;
 					endOffset = destinationOffset + count;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						tokenOffset += count;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token != 0)
+						if (token != 0) {
 							token |= 0x80;
+						}
 					} else {
 						destinationOffset = endOffset;
 						tokenOffset += count;
@@ -990,12 +1287,14 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 					count = token;
 					endOffset = destinationOffset + token;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token != 0)
+						if (token != 0) {
 							token |= 0x40;
+						}
 					} else {
 						destinationOffset += count;
 					}
@@ -1003,12 +1302,14 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 					count = token;
 					endOffset = destinationOffset + token;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token == 0)
+						if (token == 0) {
 							++tokenOffset;
+						}
 					} else {
 						++tokenOffset;
 						destinationOffset += count;
@@ -1016,21 +1317,30 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 				}
 			}
 
-			if (started != 1 || token == 0)
+			if (started != 1 || token == 0) {
 				continue;
-			if (token == 0x80)
+			}
+			if (token == 0x80) {
 				break;
+			}
 
 			if ((token & 0x80u) != 0) {
 				token &= 0x7F;
 				endOffset = destinationOffset + token;
 				if (endOffset >= visibleWidth) {
-					count = (uint8_t)(visibleWidth - destinationOffset);
+					count = (uint8_t)(visibleWidth -
+							  destinationOffset);
 					if (count != 0) {
 						pixelIndex = 0;
 						do {
-							*(uint16_t*)&destination[2 * (destinationOffset + pixelIndex)] =
-								image->colorLUT[rowStart[tokenOffset + pixelIndex]];
+							*(uint16_t
+								  *)&destination
+								[2 *
+								 (destinationOffset +
+								  pixelIndex)] =
+								image->colorLUT
+									[rowStart[tokenOffset +
+										  pixelIndex]];
 							++pixelIndex;
 						} while (pixelIndex < count);
 					}
@@ -1040,8 +1350,13 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 				pixelIndex = 0;
 				if (token != 0) {
 					do {
-						*(uint16_t*)&destination[2 * (destinationOffset + pixelIndex)] =
-							image->colorLUT[rowStart[tokenOffset + pixelIndex]];
+						*(uint16_t *)&destination
+							[2 *
+							 (destinationOffset +
+							  pixelIndex)] =
+							image->colorLUT
+								[rowStart[tokenOffset +
+									  pixelIndex]];
 						++pixelIndex;
 					} while (pixelIndex < token);
 				}
@@ -1050,26 +1365,38 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 			} else if ((token & 0x40u) != 0) {
 				token &= 0x3F;
 				destinationOffset += token;
-				if (destinationOffset >= visibleWidth)
+				if (destinationOffset >= visibleWidth) {
 					break;
+				}
 			} else {
-				color = image->colorLUT[rowStart[tokenOffset++]];
+				color = image->colorLUT
+						[rowStart[tokenOffset++]];
 				endOffset = destinationOffset + token;
 				if (endOffset >= visibleWidth) {
-					count = (uint8_t)(visibleWidth - destinationOffset);
+					count = (uint8_t)(visibleWidth -
+							  destinationOffset);
 					if (count != 0) {
-						fillDestination = (uint16_t*)&destination[2 * destinationOffset];
-						for (fillCount = count; fillCount != 0; --fillCount) {
-							*fillDestination++ = (uint16_t)color;
+						fillDestination = (uint16_t
+									   *)&destination
+							[2 * destinationOffset];
+						for (fillCount = count;
+						     fillCount != 0;
+						     --fillCount) {
+							*fillDestination++ =
+								(uint16_t)color;
 						}
 					}
 					break;
 				}
 
 				if (token != 0) {
-					fillDestination = (uint16_t*)&destination[2 * destinationOffset];
-					for (fillCount = token; fillCount != 0; --fillCount) {
-						*fillDestination++ = (uint16_t)color;
+					fillDestination =
+						(uint16_t *)&destination
+							[2 * destinationOffset];
+					for (fillCount = token; fillCount != 0;
+					     --fillCount) {
+						*fillDestination++ =
+							(uint16_t)color;
 					}
 				}
 				destinationOffset = endOffset;
@@ -1083,18 +1410,22 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 }
 
 // FUNCTION: XVT 0x4B5DE0
-int FrontImage_DrawSpriteOpaque(const char* name, int x, int y) {
+int FrontImage_DrawSpriteOpaque(const char *name, int x, int y)
+{
 	int resourceIndex;
 
 	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1)
+	if (resourceIndex == -1) {
 		return 0;
+	}
 
-	return FrontImage_BlitOpaque(g_frontState.resourceTable[resourceIndex].image, x, y);
+	return FrontImage_BlitOpaque(
+		g_frontState.resourceTable[resourceIndex].image, x, y);
 }
 
 // FUNCTION: XVT 0x4B5E20
-int FrontImage_BlitOpaque(ImageResource* image, int x, int y) {
+int FrontImage_BlitOpaque(ImageResource *image, int x, int y)
+{
 	int clipResult;
 	RECT clippedRect;
 	RECT originalRect;
@@ -1104,12 +1435,13 @@ int FrontImage_BlitOpaque(ImageResource* image, int x, int y) {
 	int visibleWidth;
 	int visibleHeight;
 	int displayBpp;
-	const uint8_t* source;
-	uint8_t* destination;
+	const uint8_t *source;
+	uint8_t *destination;
 	int column;
 
-	if (image == NULL)
+	if (image == NULL) {
 		return 0;
+	}
 
 	clippedRect.left = x;
 	clippedRect.top = y;
@@ -1117,51 +1449,83 @@ int FrontImage_BlitOpaque(ImageResource* image, int x, int y) {
 	clippedRect.bottom = y + image->height - 1;
 	FrontendDraw_RectCopy(&originalRect, &clippedRect);
 	clipResult = FrontendDraw_RectClipToBounds(&clippedRect);
-	if (clippedRect.right >= clippedRect.left && clippedRect.top <= clippedRect.bottom) {
+	if (clippedRect.right >= clippedRect.left &&
+	    clippedRect.top <= clippedRect.bottom) {
 		sourceX = clippedRect.left - originalRect.left;
 		sourceY = clippedRect.top - originalRect.top;
 		width = image->width;
-		visibleWidth = clippedRect.right - sourceX - originalRect.right + width;
-		visibleHeight = clippedRect.bottom + image->height - sourceY - originalRect.bottom;
+		visibleWidth = clippedRect.right - sourceX -
+			       originalRect.right + width;
+		visibleHeight = clippedRect.bottom + image->height - sourceY -
+				originalRect.bottom;
 
 #ifdef XVT_MODERN
-		XvtRenderFrontend_Image(image, sourceX, sourceY, x + sourceX, y + sourceY, visibleWidth,
-								visibleHeight, XVT_SPRITE_FRONT_OPAQUE, 0);
+		XvtRenderFrontend_Image(image, sourceX, sourceY, x + sourceX,
+					y + sourceY, visibleWidth,
+					visibleHeight, XVT_SPRITE_FRONT_OPAQUE,
+					0);
 #endif
 		displayBpp = g_frontState.displayBpp;
 		if (image->isCompressed == 0) {
 			if (displayBpp == 8) {
-				source = &image->pixels[sourceY * width + sourceX];
-				destination = &g_drawSurfacePtr[x + sourceX + g_frontState.drawSurfacePitch * (y + sourceY)];
+				source = &image->pixels[sourceY * width +
+							sourceX];
+				destination =
+					&g_drawSurfacePtr
+						[x + sourceX +
+						 g_frontState.drawSurfacePitch *
+							 (y + sourceY)];
 				if (visibleHeight > 0) {
 					do {
-						for (column = 0; column < visibleWidth; ++column)
-							destination[column] = source[column];
+						for (column = 0;
+						     column < visibleWidth;
+						     ++column) {
+							destination[column] =
+								source[column];
+						}
 						source += image->width;
-						destination += g_frontState.drawSurfacePitch;
+						destination +=
+							g_frontState
+								.drawSurfacePitch;
 						--visibleHeight;
 					} while (visibleHeight != 0);
 				}
 			} else if (displayBpp == 16) {
-				source = &image->pixels[sourceY * width + sourceX];
+				source = &image->pixels[sourceY * width +
+							sourceX];
 				destination =
-					&g_drawSurfacePtr[2 * (x + sourceX) + g_frontState.drawSurfacePitch * (y + sourceY)];
+					&g_drawSurfacePtr
+						[2 * (x + sourceX) +
+						 g_frontState.drawSurfacePitch *
+							 (y + sourceY)];
 				if (visibleHeight > 0) {
 					do {
-						for (column = 0; column < visibleWidth; ++column)
-							*(uint16_t*)&destination[2 * column] = image->colorLUT[source[column]];
+						for (column = 0;
+						     column < visibleWidth;
+						     ++column) {
+							*(uint16_t
+								  *)&destination
+								[2 * column] =
+								image->colorLUT
+									[source[column]];
+						}
 						source += image->width;
-						destination += g_frontState.drawSurfacePitch & 0xFFFFFFFE;
+						destination +=
+							g_frontState
+								.drawSurfacePitch &
+							0xFFFFFFFE;
 						--visibleHeight;
 					} while (visibleHeight != 0);
 				}
 			}
 		} else if (displayBpp == 8) {
-			FrontImage_BlitRLE8Opaque(image, x + sourceX, y + sourceY, sourceX, sourceY, visibleWidth,
-									  visibleHeight);
+			FrontImage_BlitRLE8Opaque(image, x + sourceX,
+						  y + sourceY, sourceX, sourceY,
+						  visibleWidth, visibleHeight);
 		} else if (displayBpp == 16) {
-			FrontImage_BlitRLE16Opaque(image, x + sourceX, y + sourceY, sourceX, sourceY, visibleWidth,
-									   visibleHeight);
+			FrontImage_BlitRLE16Opaque(
+				image, x + sourceX, y + sourceY, sourceX,
+				sourceY, visibleWidth, visibleHeight);
 		}
 	}
 
@@ -1169,11 +1533,13 @@ int FrontImage_BlitOpaque(ImageResource* image, int x, int y) {
 }
 
 // FUNCTION: XVT 0x4B5FE0
-void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int srcLeft, int srcTop,
-							   int visibleWidth, int visibleHeight) {
-	const uint8_t* row;
-	const uint8_t* rowStart;
-	uint8_t* destination;
+void FrontImage_BlitRLE8Opaque(ImageResource *image, int destX, int destY,
+			       int srcLeft, int srcTop, int visibleWidth,
+			       int visibleHeight)
+{
+	const uint8_t *row;
+	const uint8_t *rowStart;
+	uint8_t *destination;
 	int rowLength;
 	int tokenOffset;
 	int destinationOffset;
@@ -1188,19 +1554,22 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 	if (visibleWidth == image->width) {
 		int fastRowsRemaining;
 
-		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY + destX];
+		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch *
+							destY +
+						destX];
 		while (srcTop > 0) {
 #ifdef XVT_MODERN
 			memcpy(&rowLength, row, sizeof(rowLength));
 #else
-			rowLength = *(const int*)row;
+			rowLength = *(const int *)row;
 #endif
 			row += rowLength;
 			--srcTop;
 		}
 
-		if (visibleHeight <= 0)
+		if (visibleHeight <= 0) {
 			return;
+		}
 
 		fastRowsRemaining = visibleHeight;
 		do {
@@ -1210,12 +1579,15 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 			row += sizeof(rowLength);
 			for (;;) {
 				token = *row++;
-				if (token == 0x80)
+				if (token == 0x80) {
 					break;
+				}
 
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
-					memcpy(destination + fastDestinationOffset, row, token);
+					memcpy(destination +
+						       fastDestinationOffset,
+					       row, token);
 					fastDestinationOffset += token;
 					row += token;
 					continue;
@@ -1223,13 +1595,16 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 
 				if ((token & 0x40u) != 0) {
 					token &= 0x3F;
-					memset(destination + fastDestinationOffset, 0, token);
+					memset(destination +
+						       fastDestinationOffset,
+					       0, token);
 					fastDestinationOffset += token;
 					continue;
 				}
 
 				value = *row++;
-				memset(destination + fastDestinationOffset, value, token);
+				memset(destination + fastDestinationOffset,
+				       value, token);
 				fastDestinationOffset += token;
 			}
 
@@ -1239,19 +1614,21 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 		return;
 	}
 
-	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY + destX];
+	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY +
+					destX];
 	while (srcTop > 0) {
 #ifdef XVT_MODERN
 		memcpy(&rowLength, row, sizeof(rowLength));
 #else
-		rowLength = *(const int*)row;
+		rowLength = *(const int *)row;
 #endif
 		row += rowLength;
 		--srcTop;
 	}
 
-	if (visibleHeight <= 0)
+	if (visibleHeight <= 0) {
 		return;
+	}
 
 	rowsRemaining = visibleHeight;
 	do {
@@ -1261,7 +1638,7 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 #ifdef XVT_MODERN
 		memcpy(&rowLength, rowStart, sizeof(rowLength));
 #else
-		rowLength = *(const int*)rowStart;
+		rowLength = *(const int *)rowStart;
 #endif
 		started = 0;
 
@@ -1270,21 +1647,24 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
 			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
 			if (!started) {
-				if (token == 0x80)
+				if (token == 0x80) {
 					break;
+				}
 
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
 					count = token;
 					endOffset = destinationOffset + count;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						tokenOffset += count;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token != 0)
+						if (token != 0) {
 							token |= 0x80;
+						}
 					} else {
 						destinationOffset = endOffset;
 						tokenOffset += count;
@@ -1294,12 +1674,14 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 					count = token;
 					endOffset = destinationOffset + token;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token != 0)
+						if (token != 0) {
 							token |= 0x40;
+						}
 					} else {
 						destinationOffset += count;
 					}
@@ -1307,12 +1689,14 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 					count = token;
 					endOffset = destinationOffset + token;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token == 0)
+						if (token == 0) {
 							++tokenOffset;
+						}
 					} else {
 						++tokenOffset;
 						destinationOffset += count;
@@ -1320,45 +1704,56 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 				}
 			}
 
-			if (started != 1 || token == 0)
+			if (started != 1 || token == 0) {
 				continue;
-			if (token == 0x80)
+			}
+			if (token == 0x80) {
 				break;
+			}
 
 			if ((token & 0x80u) != 0) {
 				token &= 0x7F;
 				endOffset = destinationOffset + token;
 				if (endOffset >= visibleWidth) {
-					token = (uint8_t)(visibleWidth - destinationOffset);
-					memcpy(destination + destinationOffset, rowStart + tokenOffset, token);
+					token = (uint8_t)(visibleWidth -
+							  destinationOffset);
+					memcpy(destination + destinationOffset,
+					       rowStart + tokenOffset, token);
 					break;
 				}
 
-				memcpy(destination + destinationOffset, rowStart + tokenOffset, token);
+				memcpy(destination + destinationOffset,
+				       rowStart + tokenOffset, token);
 				destinationOffset = endOffset;
 				tokenOffset += token;
 			} else if ((token & 0x40u) != 0) {
 				token &= 0x3F;
 				endOffset = destinationOffset + token;
 				if (endOffset >= visibleWidth) {
-					token = (uint8_t)(visibleWidth - destinationOffset);
-					memset(destination + destinationOffset, 0, token);
+					token = (uint8_t)(visibleWidth -
+							  destinationOffset);
+					memset(destination + destinationOffset,
+					       0, token);
 					break;
 				}
 
-				memset(destination + destinationOffset, 0, token);
+				memset(destination + destinationOffset, 0,
+				       token);
 				destinationOffset = endOffset;
 			} else {
 				value = rowStart[tokenOffset++];
 				count = token;
 				endOffset = destinationOffset + count;
 				if (endOffset >= visibleWidth) {
-					token = (uint8_t)(visibleWidth - destinationOffset);
-					memset(destination + destinationOffset, value, token);
+					token = (uint8_t)(visibleWidth -
+							  destinationOffset);
+					memset(destination + destinationOffset,
+					       value, token);
 					break;
 				}
 
-				memset(destination + destinationOffset, value, count);
+				memset(destination + destinationOffset, value,
+				       count);
 				destinationOffset = endOffset;
 			}
 		}
@@ -1373,11 +1768,13 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 #pragma optimize("y", off)
 #endif
 // FUNCTION: XVT 0x4B6340
-void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int srcLeft, int srcTop,
-								int visibleWidth, int visibleHeight) {
-	const uint8_t* row;
-	const uint8_t* rowStart;
-	uint8_t* destination;
+void FrontImage_BlitRLE16Opaque(ImageResource *image, int destX, int destY,
+				int srcLeft, int srcTop, int visibleWidth,
+				int visibleHeight)
+{
+	const uint8_t *row;
+	const uint8_t *rowStart;
+	uint8_t *destination;
 	int rowLength;
 	int tokenOffset;
 	int destinationOffset;
@@ -1388,7 +1785,7 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 	int rowsRemaining;
 	int color;
 	int pixelIndex;
-	uint16_t* fillDestination;
+	uint16_t *fillDestination;
 	int fillCount;
 	int sourceRowsToSkip;
 
@@ -1396,22 +1793,25 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 		int fastRowsRemaining;
 
 		row = image->pixels;
-		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY + 2 * destX];
+		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch *
+							destY +
+						2 * destX];
 		sourceRowsToSkip = srcTop;
 		if (sourceRowsToSkip > 0) {
 			do {
 #ifdef XVT_MODERN
 				memcpy(&rowLength, row, sizeof(rowLength));
 #else
-				rowLength = *(const int*)row;
+				rowLength = *(const int *)row;
 #endif
 				row += rowLength;
 				--sourceRowsToSkip;
 			} while (sourceRowsToSkip != 0);
 		}
 
-		if (visibleHeight <= 0)
+		if (visibleHeight <= 0) {
 			return;
+		}
 
 		fastRowsRemaining = visibleHeight;
 		do {
@@ -1421,14 +1821,20 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 			row += sizeof(rowLength);
 			for (;;) {
 				token = *row++;
-				if (token == 0x80)
+				if (token == 0x80) {
 					break;
+				}
 
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
-					for (pixelIndex = 0; pixelIndex < token; ++pixelIndex) {
-						*(uint16_t*)&destination[2 * (fastDestinationOffset + pixelIndex)] =
-							image->colorLUT[row[pixelIndex]];
+					for (pixelIndex = 0; pixelIndex < token;
+					     ++pixelIndex) {
+						*(uint16_t *)&destination
+							[2 *
+							 (fastDestinationOffset +
+							  pixelIndex)] =
+							image->colorLUT
+								[row[pixelIndex]];
 					}
 					fastDestinationOffset += token;
 					row += token;
@@ -1436,18 +1842,30 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 					token &= 0x3F;
 					color = image->colorLUT[0];
 					if (token != 0) {
-						fillDestination = (uint16_t*)&destination[2 * fastDestinationOffset];
-						for (fillCount = token; fillCount != 0; --fillCount) {
-							*fillDestination++ = (uint16_t)color;
+						fillDestination = (uint16_t
+									   *)&destination
+							[2 *
+							 fastDestinationOffset];
+						for (fillCount = token;
+						     fillCount != 0;
+						     --fillCount) {
+							*fillDestination++ =
+								(uint16_t)color;
 						}
 					}
 					fastDestinationOffset += token;
 				} else {
 					color = image->colorLUT[*row++];
 					if (token != 0) {
-						fillDestination = (uint16_t*)&destination[2 * fastDestinationOffset];
-						for (fillCount = token; fillCount != 0; --fillCount) {
-							*fillDestination++ = (uint16_t)color;
+						fillDestination = (uint16_t
+									   *)&destination
+							[2 *
+							 fastDestinationOffset];
+						for (fillCount = token;
+						     fillCount != 0;
+						     --fillCount) {
+							*fillDestination++ =
+								(uint16_t)color;
 						}
 					}
 					fastDestinationOffset += token;
@@ -1461,22 +1879,24 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 	}
 
 	row = image->pixels;
-	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY + 2 * destX];
+	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY +
+					2 * destX];
 	sourceRowsToSkip = srcTop;
 	if (sourceRowsToSkip > 0) {
 		do {
 #ifdef XVT_MODERN
 			memcpy(&rowLength, row, sizeof(rowLength));
 #else
-			rowLength = *(const int*)row;
+			rowLength = *(const int *)row;
 #endif
 			--sourceRowsToSkip;
 			row += rowLength;
 		} while (sourceRowsToSkip != 0);
 	}
 
-	if (visibleHeight <= 0)
+	if (visibleHeight <= 0) {
 		return;
+	}
 
 	rowsRemaining = visibleHeight;
 	do {
@@ -1486,7 +1906,7 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 #ifdef XVT_MODERN
 		memcpy(&rowLength, rowStart, sizeof(rowLength));
 #else
-		rowLength = *(const int*)rowStart;
+		rowLength = *(const int *)rowStart;
 #endif
 		started = 0;
 
@@ -1495,20 +1915,23 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
 			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
 			if (started == 0) {
-				if (token == 0x80)
+				if (token == 0x80) {
 					break;
+				}
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
 					count = token;
 					endOffset = destinationOffset + count;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						tokenOffset += count;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token != 0)
+						if (token != 0) {
 							token |= 0x80;
+						}
 					} else {
 						destinationOffset = endOffset;
 						tokenOffset += count;
@@ -1518,12 +1941,14 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 					count = token;
 					endOffset = destinationOffset + token;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token != 0)
+						if (token != 0) {
 							token |= 0x40;
+						}
 					} else {
 						destinationOffset += count;
 					}
@@ -1531,12 +1956,14 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 					count = token;
 					endOffset = destinationOffset + token;
 					if (endOffset >= srcLeft) {
-						count = srcLeft - destinationOffset;
+						count = srcLeft -
+							destinationOffset;
 						started = 1;
 						token -= count;
 						destinationOffset = 0;
-						if (token == 0)
+						if (token == 0) {
 							++tokenOffset;
+						}
 					} else {
 						++tokenOffset;
 						destinationOffset += count;
@@ -1544,26 +1971,40 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 				}
 			}
 
-			if (started != 1 || token == 0)
+			if (started != 1 || token == 0) {
 				continue;
-			if (token == 0x80)
+			}
+			if (token == 0x80) {
 				break;
+			}
 
 			if ((token & 0x80u) != 0) {
 				token &= 0x7F;
 				endOffset = destinationOffset + token;
 				if (endOffset >= visibleWidth) {
-					count = (uint8_t)(visibleWidth - destinationOffset);
-					for (pixelIndex = 0; pixelIndex < count; ++pixelIndex) {
-						*(uint16_t*)&destination[2 * (destinationOffset + pixelIndex)] =
-							image->colorLUT[rowStart[tokenOffset + pixelIndex]];
+					count = (uint8_t)(visibleWidth -
+							  destinationOffset);
+					for (pixelIndex = 0; pixelIndex < count;
+					     ++pixelIndex) {
+						*(uint16_t *)&destination
+							[2 *
+							 (destinationOffset +
+							  pixelIndex)] =
+							image->colorLUT
+								[rowStart[tokenOffset +
+									  pixelIndex]];
 					}
 					break;
 				}
 
-				for (pixelIndex = 0; pixelIndex < token; ++pixelIndex) {
-					*(uint16_t*)&destination[2 * (destinationOffset + pixelIndex)] =
-						image->colorLUT[rowStart[tokenOffset + pixelIndex]];
+				for (pixelIndex = 0; pixelIndex < token;
+				     ++pixelIndex) {
+					*(uint16_t *)&destination
+						[2 * (destinationOffset +
+						      pixelIndex)] =
+						image->colorLUT
+							[rowStart[tokenOffset +
+								  pixelIndex]];
 				}
 				destinationOffset = endOffset;
 				tokenOffset += token;
@@ -1572,33 +2013,48 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 				endOffset = destinationOffset + token;
 				color = image->colorLUT[0];
 				if (endOffset >= visibleWidth) {
-					count = (uint8_t)(visibleWidth - destinationOffset);
-					fillDestination = (uint16_t*)&destination[2 * destinationOffset];
-					for (fillCount = count; fillCount != 0; --fillCount) {
-						*fillDestination++ = (uint16_t)color;
+					count = (uint8_t)(visibleWidth -
+							  destinationOffset);
+					fillDestination =
+						(uint16_t *)&destination
+							[2 * destinationOffset];
+					for (fillCount = count; fillCount != 0;
+					     --fillCount) {
+						*fillDestination++ =
+							(uint16_t)color;
 					}
 					break;
 				}
 
-				fillDestination = (uint16_t*)&destination[2 * destinationOffset];
-				for (fillCount = token; fillCount != 0; --fillCount) {
+				fillDestination = (uint16_t *)&destination
+					[2 * destinationOffset];
+				for (fillCount = token; fillCount != 0;
+				     --fillCount) {
 					*fillDestination++ = (uint16_t)color;
 				}
 				destinationOffset = endOffset;
 			} else {
-				color = image->colorLUT[rowStart[tokenOffset++]];
+				color = image->colorLUT
+						[rowStart[tokenOffset++]];
 				endOffset = destinationOffset + token;
 				if (endOffset >= visibleWidth) {
-					count = (uint8_t)(visibleWidth - destinationOffset);
-					fillDestination = (uint16_t*)&destination[2 * destinationOffset];
-					for (fillCount = count; fillCount != 0; --fillCount) {
-						*fillDestination++ = (uint16_t)color;
+					count = (uint8_t)(visibleWidth -
+							  destinationOffset);
+					fillDestination =
+						(uint16_t *)&destination
+							[2 * destinationOffset];
+					for (fillCount = count; fillCount != 0;
+					     --fillCount) {
+						*fillDestination++ =
+							(uint16_t)color;
 					}
 					break;
 				}
 
-				fillDestination = (uint16_t*)&destination[2 * destinationOffset];
-				for (fillCount = token; fillCount != 0; --fillCount) {
+				fillDestination = (uint16_t *)&destination
+					[2 * destinationOffset];
+				for (fillCount = token; fillCount != 0;
+				     --fillCount) {
 					*fillDestination++ = (uint16_t)color;
 				}
 				destinationOffset = endOffset;
@@ -1615,13 +2071,16 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 #endif
 
 // FUNCTION: XVT 0x4B6780
-int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color, int applyTextFade) {
+int FrontImage_DrawGlyph(ImageResource *glyph, int x, int y, unsigned int color,
+			 int applyTextFade)
+{
 	int clipResult;
 	RECT clippedRect;
 	RECT originalRect;
 
-	if (glyph == NULL)
+	if (glyph == NULL) {
 		return 0;
+	}
 
 	clippedRect.left = x;
 	clippedRect.top = y;
@@ -1629,10 +2088,12 @@ int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color,
 	clippedRect.bottom = y + glyph->height - 1;
 	FrontendDraw_RectCopy(&originalRect, &clippedRect);
 	clipResult = FrontendDraw_RectClipToBounds(&clippedRect);
-	if (clippedRect.right < clippedRect.left)
+	if (clippedRect.right < clippedRect.left) {
 		return clipResult;
-	if (clippedRect.bottom < clippedRect.top)
+	}
+	if (clippedRect.bottom < clippedRect.top) {
 		return clipResult;
+	}
 
 #ifdef XVT_MODERN
 	XvtRenderFrontend_Glyph(glyph, x, y, color, applyTextFade);
@@ -1646,76 +2107,121 @@ int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color,
 
 		clipLeftSkip = clippedRect.left - originalRect.left;
 		clipTopSkip = clippedRect.top - originalRect.top;
-		visibleWidth = clippedRect.right - clipLeftSkip - originalRect.right + glyph->width;
-		visibleRows = clippedRect.bottom + glyph->height - originalRect.bottom - clipTopSkip;
+		visibleWidth = clippedRect.right - clipLeftSkip -
+			       originalRect.right + glyph->width;
+		visibleRows = clippedRect.bottom + glyph->height -
+			      originalRect.bottom - clipTopSkip;
 		displayBpp = g_frontState.displayBpp;
 		if (glyph->isCompressed == 0) {
 			switch (displayBpp) {
-				case 8: {
-					uint8_t* source;
-					uint8_t* destination;
+			case 8: {
+				uint8_t *source;
+				uint8_t *destination;
 
-					source = &glyph->pixels[glyph->width * clipTopSkip + clipLeftSkip];
-					destination = &g_drawSurfacePtr[x + clipLeftSkip +
-													g_frontState.drawSurfacePitch * (y + clipTopSkip)];
-					if (visibleRows > 0) {
-						do {
-							int column;
+				source = &glyph->pixels[glyph->width *
+								clipTopSkip +
+							clipLeftSkip];
+				destination =
+					&g_drawSurfacePtr
+						[x + clipLeftSkip +
+						 g_frontState.drawSurfacePitch *
+							 (y + clipTopSkip)];
+				if (visibleRows > 0) {
+					do {
+						int column;
 
-							for (column = 0; column < visibleWidth; ++column) {
-								if (source[column] != 0)
-									destination[column] = (uint8_t)color;
+						for (column = 0;
+						     column < visibleWidth;
+						     ++column) {
+							if (source[column] !=
+							    0) {
+								destination[column] =
+									(uint8_t)
+										color;
 							}
-							source += glyph->width;
-							destination += g_frontState.drawSurfacePitch;
-							--visibleRows;
-						} while (visibleRows != 0);
-					}
-					break;
+						}
+						source += glyph->width;
+						destination +=
+							g_frontState
+								.drawSurfacePitch;
+						--visibleRows;
+					} while (visibleRows != 0);
 				}
-				case 16: {
-					uint8_t* source;
-					uint8_t* destination;
-					uint16_t drawColor;
+				break;
+			}
+			case 16: {
+				uint8_t *source;
+				uint8_t *destination;
+				uint16_t drawColor;
 
-					drawColor = (uint16_t)color;
-					if (applyTextFade != 0 && g_frontState.textFadeFramesLeft != 0)
-						drawColor = (uint16_t)FrontImage_GetFadedGlyphColor16(color);
-					source = &glyph->pixels[glyph->width * clipTopSkip + clipLeftSkip];
-					destination = &g_drawSurfacePtr[2 * (x + clipLeftSkip) +
-													g_frontState.drawSurfacePitch * (y + clipTopSkip)];
-					if (visibleRows > 0) {
-						do {
-							int column;
+				drawColor = (uint16_t)color;
+				if (applyTextFade != 0 &&
+				    g_frontState.textFadeFramesLeft != 0) {
+					drawColor = (uint16_t)
+						FrontImage_GetFadedGlyphColor16(
+							color);
+				}
+				source = &glyph->pixels[glyph->width *
+								clipTopSkip +
+							clipLeftSkip];
+				destination =
+					&g_drawSurfacePtr
+						[2 * (x + clipLeftSkip) +
+						 g_frontState.drawSurfacePitch *
+							 (y + clipTopSkip)];
+				if (visibleRows > 0) {
+					do {
+						int column;
 
-							for (column = 0; column < visibleWidth; ++column) {
-								if (source[column] != 0)
-									*(uint16_t*)&destination[2 * column] = drawColor;
+						for (column = 0;
+						     column < visibleWidth;
+						     ++column) {
+							if (source[column] !=
+							    0) {
+								*(uint16_t
+									  *)&destination
+									[2 *
+									 column] =
+									drawColor;
 							}
-							source += glyph->width;
-							destination += g_frontState.drawSurfacePitch & 0xFFFFFFFE;
-							--visibleRows;
-						} while (visibleRows != 0);
-					}
-					break;
+						}
+						source += glyph->width;
+						destination +=
+							g_frontState
+								.drawSurfacePitch &
+							0xFFFFFFFE;
+						--visibleRows;
+					} while (visibleRows != 0);
 				}
+				break;
+			}
 			}
 		} else {
 			switch (displayBpp) {
-				case 8:
-					FrontImage_BlitGlyphRLE_8bpp(glyph, x + clipLeftSkip, y + clipTopSkip, clipLeftSkip,
-												 clipTopSkip, visibleWidth, visibleRows, (uint8_t)color);
-					break;
-				case 16: {
-					unsigned int drawColor;
+			case 8:
+				FrontImage_BlitGlyphRLE_8bpp(
+					glyph, x + clipLeftSkip,
+					y + clipTopSkip, clipLeftSkip,
+					clipTopSkip, visibleWidth, visibleRows,
+					(uint8_t)color);
+				break;
+			case 16: {
+				unsigned int drawColor;
 
-					drawColor = color;
-					if (applyTextFade != 0 && g_frontState.textFadeFramesLeft != 0)
-						drawColor = FrontImage_GetFadedGlyphColor16(color);
-					FrontImage_BlitGlyphRLE_16bpp(glyph, x + clipLeftSkip, y + clipTopSkip, clipLeftSkip,
-												  clipTopSkip, visibleWidth, visibleRows, drawColor);
-					break;
+				drawColor = color;
+				if (applyTextFade != 0 &&
+				    g_frontState.textFadeFramesLeft != 0) {
+					drawColor =
+						FrontImage_GetFadedGlyphColor16(
+							color);
 				}
+				FrontImage_BlitGlyphRLE_16bpp(
+					glyph, x + clipLeftSkip,
+					y + clipTopSkip, clipLeftSkip,
+					clipTopSkip, visibleWidth, visibleRows,
+					drawColor);
+				break;
+			}
 			}
 		}
 	}
@@ -1723,30 +2229,36 @@ int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color,
 }
 
 // FUNCTION: XVT 0x4B69B0
-void FrontImage_BlitGlyphRLE_8bpp(ImageResource* glyph, int destX, int destY, int clipLeftSkip,
-								  int clipTopSkip, int visibleWidth, int visibleRows, uint8_t color) {
-	const uint8_t* row;
-	uint8_t* destination;
+void FrontImage_BlitGlyphRLE_8bpp(ImageResource *glyph, int destX, int destY,
+				  int clipLeftSkip, int clipTopSkip,
+				  int visibleWidth, int visibleRows,
+				  uint8_t color)
+{
+	const uint8_t *row;
+	uint8_t *destination;
 	uint8_t token;
 	int destinationOffset;
 	int y;
 
 	if (visibleWidth == glyph->width) {
 		row = glyph->pixels;
-		destination = &g_drawSurfacePtr[destX + g_frontState.drawSurfacePitch * destY];
+		destination = &g_drawSurfacePtr[destX +
+						g_frontState.drawSurfacePitch *
+							destY];
 		for (y = 0; y < clipTopSkip; ++y) {
 			int rowLength;
 
 #ifdef XVT_MODERN
 			memcpy(&rowLength, row, sizeof(rowLength));
 #else
-			rowLength = *(const int*)row;
+			rowLength = *(const int *)row;
 #endif
 			row += rowLength;
 		}
 
-		if (visibleRows <= 0)
+		if (visibleRows <= 0) {
 			return;
+		}
 
 		y = visibleRows;
 		destinationOffset = 0;
@@ -1759,7 +2271,8 @@ void FrontImage_BlitGlyphRLE_8bpp(ImageResource* glyph, int destX, int destY, in
 				if ((token & 0x80) != 0) {
 					token &= 0x7F;
 					count = token;
-					memset(destination + destinationOffset, color, count);
+					memset(destination + destinationOffset,
+					       color, count);
 					destinationOffset += count;
 					row += count;
 					continue;
@@ -1772,28 +2285,31 @@ void FrontImage_BlitGlyphRLE_8bpp(ImageResource* glyph, int destX, int destY, in
 
 				count = token;
 				++row;
-				memset(destination + destinationOffset, color, count);
+				memset(destination + destinationOffset, color,
+				       count);
 				destinationOffset += count;
 				continue;
 			}
 
 			destination += g_frontState.drawSurfacePitch;
-			if (--y == 0)
+			if (--y == 0) {
 				return;
+			}
 			destinationOffset = 0;
 			row += 4;
 		}
 	}
 
 	row = glyph->pixels;
-	destination = &g_drawSurfacePtr[destX + g_frontState.drawSurfacePitch * destY];
+	destination = &g_drawSurfacePtr[destX +
+					g_frontState.drawSurfacePitch * destY];
 	for (y = 0; y < clipTopSkip; ++y) {
 		int rowLength;
 
 #ifdef XVT_MODERN
 		memcpy(&rowLength, row, sizeof(rowLength));
 #else
-		rowLength = *(const int*)row;
+		rowLength = *(const int *)row;
 #endif
 		row += rowLength;
 	}
@@ -1809,7 +2325,7 @@ void FrontImage_BlitGlyphRLE_8bpp(ImageResource* glyph, int destX, int destY, in
 #ifdef XVT_MODERN
 		memcpy(&rowLength, row, sizeof(rowLength));
 #else
-		rowLength = *(const int*)row;
+		rowLength = *(const int *)row;
 #endif
 		for (;;) {
 			token = row[tokenOffset++];
@@ -1817,49 +2333,59 @@ void FrontImage_BlitGlyphRLE_8bpp(ImageResource* glyph, int destX, int destY, in
 			 * clipLeftSkip; when the row reaches clipLeftSkip it is reset to 0 and from then on it is the
 			 * destination column. */
 			if (started == 0) {
-				if (token == 0x80)
+				if (token == 0x80) {
 					break;
+				}
 
 				if ((token & 0x80) != 0) {
 					token &= 0x7F;
-					if (clipLeftSkip <= destinationOffset + token) {
+					if (clipLeftSkip <=
+					    destinationOffset + token) {
 						int skip;
 
-						skip = clipLeftSkip - destinationOffset;
+						skip = clipLeftSkip -
+						       destinationOffset;
 						started = 1;
 						destinationOffset = 0;
 						tokenOffset += skip;
 						token -= (uint8_t)skip;
-						if (token != 0)
+						if (token != 0) {
 							token |= 0x80;
+						}
 					} else {
 						destinationOffset += token;
 						tokenOffset += token;
 					}
 				} else if ((token & 0x40) != 0) {
 					token &= 0x3F;
-					if (clipLeftSkip <= destinationOffset + token) {
+					if (clipLeftSkip <=
+					    destinationOffset + token) {
 						int skip;
 
-						skip = clipLeftSkip - destinationOffset;
+						skip = clipLeftSkip -
+						       destinationOffset;
 						started = 1;
 						destinationOffset = 0;
 						token -= (uint8_t)skip;
-						if (token != 0)
+						if (token != 0) {
 							token |= 0x40;
+						}
 					} else {
 						destinationOffset += token;
 					}
 				} else {
-					if (clipLeftSkip <= destinationOffset + token) {
+					if (clipLeftSkip <=
+					    destinationOffset + token) {
 						int skip;
 
-						skip = clipLeftSkip - destinationOffset;
+						skip = clipLeftSkip -
+						       destinationOffset;
 						started = 1;
 						destinationOffset = 0;
 						token -= (uint8_t)skip;
-						if (token == 0)
+						if (token == 0) {
 							++tokenOffset;
+						}
 					} else {
 						++tokenOffset;
 						destinationOffset += token;
@@ -1867,35 +2393,44 @@ void FrontImage_BlitGlyphRLE_8bpp(ImageResource* glyph, int destX, int destY, in
 				}
 			}
 
-			if (started != 1 || token == 0)
+			if (started != 1 || token == 0) {
 				continue;
-			if (token == 0x80)
+			}
+			if (token == 0x80) {
 				break;
+			}
 
 			if ((token & 0x80) != 0) {
 				token &= 0x7F;
 				if (destinationOffset + token >= visibleWidth) {
-					token = (uint8_t)(visibleWidth - destinationOffset);
-					memset(destination + destinationOffset, color, token);
+					token = (uint8_t)(visibleWidth -
+							  destinationOffset);
+					memset(destination + destinationOffset,
+					       color, token);
 					break;
 				}
 
-				memset(destination + destinationOffset, color, token);
+				memset(destination + destinationOffset, color,
+				       token);
 				destinationOffset += token;
 				tokenOffset += token;
 			} else if ((token & 0x40) != 0) {
 				destinationOffset += token & 0x3F;
-				if (destinationOffset >= visibleWidth)
+				if (destinationOffset >= visibleWidth) {
 					break;
+				}
 			} else {
 				++tokenOffset;
 				if (destinationOffset + token >= visibleWidth) {
-					token = (uint8_t)(visibleWidth - destinationOffset);
-					memset(destination + destinationOffset, color, token);
+					token = (uint8_t)(visibleWidth -
+							  destinationOffset);
+					memset(destination + destinationOffset,
+					       color, token);
 					break;
 				}
 
-				memset(destination + destinationOffset, color, token);
+				memset(destination + destinationOffset, color,
+				       token);
 				destinationOffset += token;
 			}
 		}
@@ -1906,10 +2441,13 @@ void FrontImage_BlitGlyphRLE_8bpp(ImageResource* glyph, int destX, int destY, in
 }
 
 // FUNCTION: XVT 0x4B6CA0
-void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, int clipLeftSkip,
-								   int clipTopSkip, int visibleWidth, int visibleRows, unsigned int color) {
-	const uint8_t* row;
-	uint8_t* destination;
+void FrontImage_BlitGlyphRLE_16bpp(ImageResource *glyph, int destX, int destY,
+				   int clipLeftSkip, int clipTopSkip,
+				   int visibleWidth, int visibleRows,
+				   unsigned int color)
+{
+	const uint8_t *row;
+	uint8_t *destination;
 	uint8_t token;
 	int destinationOffset;
 	int y;
@@ -1918,21 +2456,24 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, i
 		unsigned int destinationPitch;
 
 		row = glyph->pixels;
-		destination = &g_drawSurfacePtr[2 * destX + g_frontState.drawSurfacePitch * destY];
+		destination = &g_drawSurfacePtr[2 * destX +
+						g_frontState.drawSurfacePitch *
+							destY];
 		for (y = clipTopSkip; y > 0; --y) {
 			int rowLength;
 
 #ifdef XVT_MODERN
 			memcpy(&rowLength, row, sizeof(rowLength));
 #else
-			rowLength = *(const int*)row;
+			rowLength = *(const int *)row;
 #endif
 			row += rowLength;
 		}
 
 		if (visibleRows > 0) {
 			y = visibleRows;
-			destinationPitch = g_frontState.drawSurfacePitch & 0xFFFFFFFE;
+			destinationPitch =
+				g_frontState.drawSurfacePitch & 0xFFFFFFFE;
 			do {
 				destinationOffset = 0;
 				row += 4;
@@ -1940,35 +2481,43 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, i
 					int count;
 
 					token = *row++;
-					if (token == 0x80)
+					if (token == 0x80) {
 						break;
+					}
 
 					if ((token & 0x80) != 0) {
-						uint16_t* fillDestination;
+						uint16_t *fillDestination;
 						int fillCount;
 
 						count = token & 0x7F;
-						fillDestination = (uint16_t*)&destination[2 * destinationOffset];
+						fillDestination = (uint16_t
+									   *)&destination
+							[2 * destinationOffset];
 						fillCount = count;
 						while (fillCount > 0) {
-							*fillDestination = (uint16_t)color;
+							*fillDestination =
+								(uint16_t)color;
 							++fillDestination;
 							--fillCount;
 						}
 						destinationOffset += count;
 						row += count;
 					} else if ((token & 0x40) != 0) {
-						destinationOffset += token & 0x3F;
+						destinationOffset +=
+							token & 0x3F;
 					} else {
-						uint16_t* fillDestination;
+						uint16_t *fillDestination;
 						int fillCount;
 
 						count = token;
 						++row;
-						fillDestination = (uint16_t*)&destination[2 * destinationOffset];
+						fillDestination = (uint16_t
+									   *)&destination
+							[2 * destinationOffset];
 						fillCount = count;
 						while (fillCount > 0) {
-							*fillDestination = (uint16_t)color;
+							*fillDestination =
+								(uint16_t)color;
 							++fillDestination;
 							--fillCount;
 						}
@@ -1983,14 +2532,15 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, i
 	}
 
 	row = glyph->pixels;
-	destination = &g_drawSurfacePtr[2 * destX + g_frontState.drawSurfacePitch * destY];
+	destination = &g_drawSurfacePtr[2 * destX +
+					g_frontState.drawSurfacePitch * destY];
 	for (y = clipTopSkip; y > 0; --y) {
 		int rowLength;
 
 #ifdef XVT_MODERN
 		memcpy(&rowLength, row, sizeof(rowLength));
 #else
-		rowLength = *(const int*)row;
+		rowLength = *(const int *)row;
 #endif
 		row += rowLength;
 	}
@@ -2011,7 +2561,7 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, i
 #ifdef XVT_MODERN
 			memcpy(&rowLength, row, sizeof(rowLength));
 #else
-			rowLength = *(const int*)row;
+			rowLength = *(const int *)row;
 #endif
 			for (;;) {
 				token = row[tokenOffset++];
@@ -2019,82 +2569,105 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, i
 				 * clipLeftSkip; when the row reaches clipLeftSkip it is reset to 0 and from then on it is
 				 * the destination column. */
 				if (started == 0) {
-					if (token == 0x80)
+					if (token == 0x80) {
 						break;
+					}
 
 					if ((token & 0x80) != 0) {
 						token &= 0x7F;
-						if (clipLeftSkip <= destinationOffset + token) {
+						if (clipLeftSkip <=
+						    destinationOffset + token) {
 							int skip;
 
-							skip = clipLeftSkip - destinationOffset;
+							skip = clipLeftSkip -
+							       destinationOffset;
 							started = 1;
 							destinationOffset = 0;
 							tokenOffset += skip;
 							token -= (uint8_t)skip;
-							if (token != 0)
+							if (token != 0) {
 								token |= 0x80;
+							}
 						} else {
-							destinationOffset += token;
+							destinationOffset +=
+								token;
 							tokenOffset += token;
 						}
 					} else if ((token & 0x40) != 0) {
 						token &= 0x3F;
-						if (clipLeftSkip <= destinationOffset + token) {
+						if (clipLeftSkip <=
+						    destinationOffset + token) {
 							int skip;
 
-							skip = clipLeftSkip - destinationOffset;
+							skip = clipLeftSkip -
+							       destinationOffset;
 							started = 1;
 							destinationOffset = 0;
 							token -= (uint8_t)skip;
-							if (token != 0)
+							if (token != 0) {
 								token |= 0x40;
+							}
 						} else {
-							destinationOffset += token;
+							destinationOffset +=
+								token;
 						}
 					} else {
-						if (clipLeftSkip <= destinationOffset + token) {
+						if (clipLeftSkip <=
+						    destinationOffset + token) {
 							int skip;
 
-							skip = clipLeftSkip - destinationOffset;
+							skip = clipLeftSkip -
+							       destinationOffset;
 							started = 1;
 							destinationOffset = 0;
 							token -= (uint8_t)skip;
-							if (token == 0)
+							if (token == 0) {
 								++tokenOffset;
+							}
 						} else {
 							++tokenOffset;
-							destinationOffset += token;
+							destinationOffset +=
+								token;
 						}
 					}
 				}
 
-				if (started != 1 || token == 0)
+				if (started != 1 || token == 0) {
 					continue;
-				if (token == 0x80)
+				}
+				if (token == 0x80) {
 					break;
+				}
 
 				if ((token & 0x80) != 0) {
 					int count;
-					uint16_t* fillDestination;
+					uint16_t *fillDestination;
 					int fillCount;
 
 					count = token & 0x7F;
-					if (destinationOffset + count >= visibleWidth) {
-						count = (uint8_t)(visibleWidth - destinationOffset);
-						fillDestination = (uint16_t*)&destination[2 * destinationOffset];
+					if (destinationOffset + count >=
+					    visibleWidth) {
+						count = (uint8_t)(visibleWidth -
+								  destinationOffset);
+						fillDestination = (uint16_t
+									   *)&destination
+							[2 * destinationOffset];
 						fillCount = count;
 						while (fillCount > 0) {
-							*fillDestination = (uint16_t)color;
+							*fillDestination =
+								(uint16_t)color;
 							++fillDestination;
 							--fillCount;
 						}
 						break;
 					}
-					fillDestination = (uint16_t*)&destination[2 * destinationOffset];
+					fillDestination =
+						(uint16_t *)&destination
+							[2 * destinationOffset];
 					fillCount = count;
 					while (fillCount > 0) {
-						*fillDestination = (uint16_t)color;
+						*fillDestination =
+							(uint16_t)color;
 						++fillDestination;
 						--fillCount;
 					}
@@ -2102,30 +2675,39 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, i
 					tokenOffset += count;
 				} else if ((token & 0x40) != 0) {
 					destinationOffset += token & 0x3F;
-					if (destinationOffset >= visibleWidth)
+					if (destinationOffset >= visibleWidth) {
 						break;
+					}
 				} else {
 					int count;
-					uint16_t* fillDestination;
+					uint16_t *fillDestination;
 					int fillCount;
 
 					++tokenOffset;
 					count = token;
-					if (destinationOffset + count >= visibleWidth) {
-						count = (uint8_t)(visibleWidth - destinationOffset);
-						fillDestination = (uint16_t*)&destination[2 * destinationOffset];
+					if (destinationOffset + count >=
+					    visibleWidth) {
+						count = (uint8_t)(visibleWidth -
+								  destinationOffset);
+						fillDestination = (uint16_t
+									   *)&destination
+							[2 * destinationOffset];
 						fillCount = count;
 						while (fillCount > 0) {
-							*fillDestination = (uint16_t)color;
+							*fillDestination =
+								(uint16_t)color;
 							++fillDestination;
 							--fillCount;
 						}
 						break;
 					}
-					fillDestination = (uint16_t*)&destination[2 * destinationOffset];
+					fillDestination =
+						(uint16_t *)&destination
+							[2 * destinationOffset];
 					fillCount = count;
 					while (fillCount > 0) {
-						*fillDestination = (uint16_t)color;
+						*fillDestination =
+							(uint16_t)color;
 						++fillDestination;
 						--fillCount;
 					}
@@ -2141,10 +2723,11 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, i
 }
 
 // FUNCTION: XVT 0x4B6FB0
-int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int remapToDisplayPalette,
-						   int compressRLE) {
-	uint8_t* pixels;
-	XvtFile* stream;
+int FrontImage_LoadBmpFile(const char *fileName, ImageResource *image,
+			   int remapToDisplayPalette, int compressRLE)
+{
+	uint8_t *pixels;
+	XvtFile *stream;
 	int result;
 	BITMAPINFOHEADER infoHeader;
 	BITMAPFILEHEADER fileHeader;
@@ -2161,74 +2744,116 @@ int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int remap
 
 			File_ReadBytes(stream, &infoHeader, sizeof(infoHeader));
 			rowPadding = infoHeader.biWidth % 4;
-			if (rowPadding != 0)
+			if (rowPadding != 0) {
 				rowPadding = 4 - rowPadding;
-			pixels = malloc(rowPadding + infoHeader.biHeight * infoHeader.biWidth);
+			}
+			pixels =
+				malloc(rowPadding + infoHeader.biHeight *
+							    infoHeader.biWidth);
 			if (pixels != NULL) {
-				memset(pixels, 0, rowPadding + infoHeader.biHeight * infoHeader.biWidth);
+				memset(pixels, 0,
+				       rowPadding + infoHeader.biHeight *
+							    infoHeader.biWidth);
 				if (infoHeader.biPlanes == 1) {
 					unsigned int bitsPerPixel;
 					int displayBpp;
 
 					bitsPerPixel = infoHeader.biBitCount;
 					switch (bitsPerPixel) {
-						case 4:
-							FrontImage_ReadBmpPalette(stream, palette, 16);
-							result = FrontImage_DecodeBmp4bpp(stream, pixels, &fileHeader, &infoHeader);
-							break;
-						case 8:
-							FrontImage_ReadBmpPalette(stream, palette, 256);
-							result = FrontImage_DecodeBmp8bpp(stream, pixels, &fileHeader, &infoHeader);
-							break;
+					case 4:
+						FrontImage_ReadBmpPalette(
+							stream, palette, 16);
+						result =
+							FrontImage_DecodeBmp4bpp(
+								stream, pixels,
+								&fileHeader,
+								&infoHeader);
+						break;
+					case 8:
+						FrontImage_ReadBmpPalette(
+							stream, palette, 256);
+						result =
+							FrontImage_DecodeBmp8bpp(
+								stream, pixels,
+								&fileHeader,
+								&infoHeader);
+						break;
 					}
 
 					displayBpp = g_frontState.displayBpp;
 					switch (displayBpp) {
-						case 8:
-							if (result == 1 && remapToDisplayPalette == 1)
-								FrontImage_RemapPalette(pixels, palette, &infoHeader);
-							break;
-
-						case 16: {
-							int* colorEntry;
-							uint8_t* paletteEntry;
-
-							paletteEntry = palette;
-							colorEntry = image->colorLUT;
-							do {
-								if (g_frontState.pixelFormat555 != 0) {
-									int green;
-									int red;
-									int blue;
-									int color;
-
-									green = paletteEntry[1] >> 3;
-									color = green;
-									red = paletteEntry[0] >> 3;
-									red <<= 5;
-									color += red;
-									blue = paletteEntry[2] >> 3;
-									color <<= 5;
-									*colorEntry = color + blue;
-								} else {
-									int red;
-									int green;
-									int blue;
-									int color;
-
-									red = paletteEntry[0] >> 3;
-									color = red << 6;
-									green = paletteEntry[1] >> 2;
-									color += green;
-									blue = paletteEntry[2] >> 3;
-									color <<= 5;
-									*colorEntry = color + blue;
-								}
-								paletteEntry += 4;
-								++colorEntry;
-							} while (paletteEntry < palette + sizeof(palette));
-							break;
+					case 8:
+						if (result == 1 &&
+						    remapToDisplayPalette ==
+							    1) {
+							FrontImage_RemapPalette(
+								pixels, palette,
+								&infoHeader);
 						}
+						break;
+
+					case 16: {
+						int *colorEntry;
+						uint8_t *paletteEntry;
+
+						paletteEntry = palette;
+						colorEntry = image->colorLUT;
+						do {
+							if (g_frontState
+								    .pixelFormat555 !=
+							    0) {
+								int green;
+								int red;
+								int blue;
+								int color;
+
+								green = paletteEntry
+										[1] >>
+									3;
+								color = green;
+								red = paletteEntry
+									      [0] >>
+								      3;
+								red <<= 5;
+								color += red;
+								blue = paletteEntry
+									       [2] >>
+								       3;
+								color <<= 5;
+								*colorEntry =
+									color +
+									blue;
+							} else {
+								int red;
+								int green;
+								int blue;
+								int color;
+
+								red = paletteEntry
+									      [0] >>
+								      3;
+								color = red
+									<< 6;
+								green = paletteEntry
+										[1] >>
+									2;
+								color += green;
+								blue = paletteEntry
+									       [2] >>
+								       3;
+								color <<= 5;
+								*colorEntry =
+									color +
+									blue;
+							}
+							paletteEntry += 4;
+							++colorEntry;
+						} while (
+							paletteEntry <
+							palette +
+								sizeof(palette));
+						break;
+					}
 					}
 				}
 			}
@@ -2237,8 +2862,9 @@ int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int remap
 	}
 
 	if (result != 1) {
-		if (pixels != NULL)
+		if (pixels != NULL) {
 			free(pixels);
+		}
 		return 0;
 	}
 
@@ -2251,26 +2877,31 @@ int FrontImage_LoadBmpFile(const char* fileName, ImageResource* image, int remap
 		image->pixels = pixels;
 		image->isCompressed = 0;
 		image->pixelDataBytes = image->height * infoHeader.biWidth;
-		if (compressRLE == 1)
+		if (compressRLE == 1) {
 			FrontImage_CompressRLE(image);
+		}
 	}
 #ifdef XVT_MODERN
-	XvtRenderAssets_RegisterFrontendImage(image, fileName, remapToDisplayPalette,
-										  g_frontState.pixelFormat555);
+	XvtRenderAssets_RegisterFrontendImage(image, fileName,
+					      remapToDisplayPalette,
+					      g_frontState.pixelFormat555);
 #endif
 	return 1;
 }
 
 // FUNCTION: XVT 0x4B7240
-int FrontImage_DecodeBmp4bpp(XvtFile* stream, void* dstPixels, const BITMAPFILEHEADER* fileHeader,
-							 const BITMAPINFOHEADER* infoHeader) {
+int FrontImage_DecodeBmp4bpp(XvtFile *stream, void *dstPixels,
+			     const BITMAPFILEHEADER *fileHeader,
+			     const BITMAPINFOHEADER *infoHeader)
+{
 	size_t dataSize;
-	uint8_t* data;
+	uint8_t *data;
 
 	dataSize = fileHeader->bfSize - fileHeader->bfOffBits;
 	data = malloc(dataSize);
-	if (data == NULL)
+	if (data == NULL) {
 		return 0;
+	}
 
 	if (infoHeader->biCompression == 0) {
 		int srcOffset;
@@ -2282,20 +2913,31 @@ int FrontImage_DecodeBmp4bpp(XvtFile* stream, void* dstPixels, const BITMAPFILEH
 			int16_t column;
 			int dstRowOffset;
 
-			dstRowOffset = infoHeader->biWidth * (infoHeader->biHeight - row - 1);
-			for (column = 0; column < infoHeader->biWidth; ++column) {
+			dstRowOffset = infoHeader->biWidth *
+				       (infoHeader->biHeight - row - 1);
+			for (column = 0; column < infoHeader->biWidth;
+			     ++column) {
 				if ((column & 1) != 0) {
-					((uint8_t*)dstPixels)[dstRowOffset + column] = data[srcOffset] & 0x0F;
+					((uint8_t *)dstPixels)[dstRowOffset +
+							       column] =
+						data[srcOffset] & 0x0F;
 					++srcOffset;
 				} else {
-					((uint8_t*)dstPixels)[dstRowOffset + column] = data[srcOffset] >> 4;
+					((uint8_t *)dstPixels)[dstRowOffset +
+							       column] =
+						data[srcOffset] >> 4;
 				}
 			}
 
-			if ((infoHeader->biWidth & 1) != 0)
+			if ((infoHeader->biWidth & 1) != 0) {
 				++srcOffset;
-			if ((infoHeader->biWidth & 6) != 0)
-				srcOffset += (int16_t)(4 - ((infoHeader->biWidth >> 1) & 3));
+			}
+			if ((infoHeader->biWidth & 6) != 0) {
+				srcOffset +=
+					(int16_t)(4 -
+						  ((infoHeader->biWidth >> 1) &
+						   3));
+			}
 		}
 	}
 
@@ -2304,10 +2946,12 @@ int FrontImage_DecodeBmp4bpp(XvtFile* stream, void* dstPixels, const BITMAPFILEH
 }
 
 // FUNCTION: XVT 0x4B7320
-int FrontImage_DecodeBmp8bpp(XvtFile* stream, void* dstPixels, const BITMAPFILEHEADER* fileHeader,
-							 const BITMAPINFOHEADER* infoHeader) {
+int FrontImage_DecodeBmp8bpp(XvtFile *stream, void *dstPixels,
+			     const BITMAPFILEHEADER *fileHeader,
+			     const BITMAPINFOHEADER *infoHeader)
+{
 	int rowPadding;
-	uint8_t* data;
+	uint8_t *data;
 	int sourceOffset;
 	int destinationOffset;
 	uint8_t paddingBuffer[4];
@@ -2315,107 +2959,128 @@ int FrontImage_DecodeBmp8bpp(XvtFile* stream, void* dstPixels, const BITMAPFILEH
 	(void)fileHeader;
 
 	rowPadding = infoHeader->biWidth % 4;
-	if (rowPadding != 0)
+	if (rowPadding != 0) {
 		rowPadding = 4 - rowPadding;
+	}
 
 	data = NULL;
 	if (infoHeader->biCompression != 0) {
 		data = malloc(infoHeader->biSizeImage);
-		if (data == NULL)
+		if (data == NULL) {
 			return 0;
+		}
 	}
 
 	switch (infoHeader->biCompression) {
-		case 0: {
-			int16_t row;
+	case 0: {
+		int16_t row;
 
-			for (row = 0; row < infoHeader->biHeight; ++row) {
-				File_ReadBytes(stream,
-							   (uint8_t*)dstPixels + infoHeader->biWidth * (infoHeader->biHeight - row - 1),
-							   infoHeader->biWidth);
-				File_ReadBytes(stream, paddingBuffer, rowPadding);
-			}
-			break;
+		for (row = 0; row < infoHeader->biHeight; ++row) {
+			File_ReadBytes(stream,
+				       (uint8_t *)dstPixels +
+					       infoHeader->biWidth *
+						       (infoHeader->biHeight -
+							row - 1),
+				       infoHeader->biWidth);
+			File_ReadBytes(stream, paddingBuffer, rowPadding);
 		}
-		case 1: {
-			int rowStartOffset;
-			int16_t decodeComplete;
+		break;
+	}
+	case 1: {
+		int rowStartOffset;
+		int16_t decodeComplete;
 
-			File_ReadBytes(stream, data, infoHeader->biSizeImage);
-			sourceOffset = 0;
-			decodeComplete = 0;
-			destinationOffset = infoHeader->biWidth * (infoHeader->biHeight - 1);
-			rowStartOffset = destinationOffset;
-			do {
-				uint8_t runLength;
+		File_ReadBytes(stream, data, infoHeader->biSizeImage);
+		sourceOffset = 0;
+		decodeComplete = 0;
+		destinationOffset =
+			infoHeader->biWidth * (infoHeader->biHeight - 1);
+		rowStartOffset = destinationOffset;
+		do {
+			uint8_t runLength;
 
-				runLength = data[sourceOffset];
+			runLength = data[sourceOffset];
+			++sourceOffset;
+			if (runLength == 0) {
+				uint8_t escapeCode;
+
+				escapeCode = data[sourceOffset];
 				++sourceOffset;
-				if (runLength == 0) {
-					uint8_t escapeCode;
+				switch (escapeCode) {
+				case 0:
+					rowStartOffset -= infoHeader->biWidth;
+					destinationOffset = rowStartOffset;
+					break;
+				case 1:
+					decodeComplete = 1;
+					break;
+				case 2: {
+					uint8_t deltaX;
+					uint8_t deltaY;
+					int columnOffset;
 
-					escapeCode = data[sourceOffset];
+					deltaX = data[sourceOffset];
 					++sourceOffset;
-					switch (escapeCode) {
-						case 0:
-							rowStartOffset -= infoHeader->biWidth;
-							destinationOffset = rowStartOffset;
-							break;
-						case 1:
-							decodeComplete = 1;
-							break;
-						case 2: {
-							uint8_t deltaX;
-							uint8_t deltaY;
-							int columnOffset;
-
-							deltaX = data[sourceOffset];
-							++sourceOffset;
-							deltaY = data[sourceOffset];
-							++sourceOffset;
-							columnOffset = destinationOffset - rowStartOffset;
-							rowStartOffset -= deltaY * infoHeader->biWidth;
-							destinationOffset = deltaX + rowStartOffset + columnOffset;
-							break;
-						}
-						default: {
-							int16_t runIndex;
-
-							for (runIndex = 0; runIndex < escapeCode; ++runIndex) {
-								((uint8_t*)dstPixels)[destinationOffset] = data[sourceOffset];
-								++sourceOffset;
-								++destinationOffset;
-							}
-							if ((escapeCode & 1) != 0)
-								++sourceOffset;
-							break;
-						}
-					}
-				} else {
-					uint8_t runValue;
+					deltaY = data[sourceOffset];
+					++sourceOffset;
+					columnOffset = destinationOffset -
+						       rowStartOffset;
+					rowStartOffset -=
+						deltaY * infoHeader->biWidth;
+					destinationOffset = deltaX +
+							    rowStartOffset +
+							    columnOffset;
+					break;
+				}
+				default: {
 					int16_t runIndex;
 
-					runValue = data[sourceOffset];
-					++sourceOffset;
-					for (runIndex = 0; runIndex < runLength; ++runIndex) {
-						((uint8_t*)dstPixels)[destinationOffset] = runValue;
+					for (runIndex = 0;
+					     runIndex < escapeCode;
+					     ++runIndex) {
+						((uint8_t *)dstPixels)
+							[destinationOffset] = data
+								[sourceOffset];
+						++sourceOffset;
 						++destinationOffset;
 					}
+					if ((escapeCode & 1) != 0) {
+						++sourceOffset;
+					}
+					break;
 				}
-			} while (decodeComplete == 0);
-			break;
-		}
-		default:
-			break;
+				}
+			} else {
+				uint8_t runValue;
+				int16_t runIndex;
+
+				runValue = data[sourceOffset];
+				++sourceOffset;
+				for (runIndex = 0; runIndex < runLength;
+				     ++runIndex) {
+					((uint8_t *)
+						 dstPixels)[destinationOffset] =
+						runValue;
+					++destinationOffset;
+				}
+			}
+		} while (decodeComplete == 0);
+		break;
+	}
+	default:
+		break;
 	}
 
-	if (data != NULL)
+	if (data != NULL) {
 		free(data);
+	}
 	return 1;
 }
 
 // FUNCTION: XVT 0x4B7510
-void FrontImage_RemapPalette(uint8_t* pixels, const uint8_t* srcPalette, const BITMAPINFOHEADER* infoHeader) {
+void FrontImage_RemapPalette(uint8_t *pixels, const uint8_t *srcPalette,
+			     const BITMAPINFOHEADER *infoHeader)
+{
 	int width;
 	int height;
 	int i;
@@ -2439,7 +3104,9 @@ void FrontImage_RemapPalette(uint8_t* pixels, const uint8_t* srcPalette, const B
 					uint8_t srcIndex;
 
 					srcIndex = *pixels;
-					*pixels = FrontImage_RemapPaletteIndex(&srcPalette[4 * srcIndex], srcIndex);
+					*pixels = FrontImage_RemapPaletteIndex(
+						&srcPalette[4 * srcIndex],
+						srcIndex);
 					++pixels;
 					--x;
 				} while (x != 0);
@@ -2451,8 +3118,9 @@ void FrontImage_RemapPalette(uint8_t* pixels, const uint8_t* srcPalette, const B
 }
 
 // FUNCTION: XVT 0x4B7570
-char FrontImage_RemapPaletteIndex(const uint8_t* srcRgb, int srcIndex) {
-	int16_t* cachedIndex;
+char FrontImage_RemapPaletteIndex(const uint8_t *srcRgb, int srcIndex)
+{
+	int16_t *cachedIndex;
 	int value;
 
 	cachedIndex = &g_paletteRemapCache[srcIndex];
@@ -2469,15 +3137,16 @@ char FrontImage_RemapPaletteIndex(const uint8_t* srcRgb, int srcIndex) {
 }
 
 // FUNCTION: XVT 0x4B75B0
-int FrontImage_CompressRLE(ImageResource* image) {
-	uint8_t* lastToken;
-	uint8_t* compressedPixels;
+int FrontImage_CompressRLE(ImageResource *image)
+{
+	uint8_t *lastToken;
+	uint8_t *compressedPixels;
 	int compressedSize;
-	uint8_t* sourceRow;
+	uint8_t *sourceRow;
 	int encodedWidth;
 	uint8_t runLengthByte;
 	int sourceSize;
-	uint8_t* compressedWrite;
+	uint8_t *compressedWrite;
 	int row;
 
 	sourceSize = image->width * image->height;
@@ -2491,14 +3160,15 @@ int FrontImage_CompressRLE(ImageResource* image) {
 	compressedWrite = compressedPixels;
 	sourceRow = image->pixels;
 	encodedWidth = 640;
-	if (image->width <= encodedWidth)
+	if (image->width <= encodedWidth) {
 		encodedWidth = image->width;
+	}
 
 	row = 0;
 	if (image->height > 0) {
 		do {
-			uint8_t* source;
-			uint8_t* tokenWrite;
+			uint8_t *source;
+			uint8_t *tokenWrite;
 			uint8_t value;
 			int encodedBytes;
 			int consumed;
@@ -2517,53 +3187,93 @@ int FrontImage_CompressRLE(ImageResource* image) {
 				for (;;) {
 					int runLength;
 
-					for (runLength = 0; runLength < 63; ++runLength) {
-						if (consumed >= encodedWidth)
+					for (runLength = 0; runLength < 63;
+					     ++runLength) {
+						if (consumed >= encodedWidth) {
 							break;
-						if (source[runLength] != value)
+						}
+						if (source[runLength] !=
+						    value) {
 							break;
+						}
 						++consumed;
 					}
 
 					if (value != 0) {
 						if (runLength > 2) {
-							*tokenWrite = (uint8_t)runLength;
+							*tokenWrite = (uint8_t)
+								runLength;
 							encodedBytes += 2;
 							lastToken = tokenWrite;
 							tokenWrite[1] = value;
 							tokenWrite += 2;
 						} else {
-							if ((*lastToken & 0x80u) == 0) {
+							if ((*lastToken &
+							     0x80u) == 0) {
 								++encodedBytes;
-								*tokenWrite = (uint8_t)(runLength | 0x80);
-								lastToken = tokenWrite++;
-								for (copyIndex = 0; copyIndex < runLength; ++copyIndex)
-									tokenWrite[copyIndex] = source[copyIndex];
+								*tokenWrite =
+									(uint8_t)(runLength |
+										  0x80);
+								lastToken =
+									tokenWrite++;
+								for (copyIndex =
+									     0;
+								     copyIndex <
+								     runLength;
+								     ++copyIndex) {
+									tokenWrite[copyIndex] = source
+										[copyIndex];
+								}
 							} else {
-								runLengthByte = (uint8_t)(runLength + (*lastToken & 0x7f));
-								if (runLengthByte < 0x80) {
-									*lastToken = (uint8_t)(runLengthByte | 0x80);
-									for (copyIndex = 0; copyIndex < runLength; ++copyIndex)
-										tokenWrite[copyIndex] = source[copyIndex];
+								runLengthByte =
+									(uint8_t)(runLength +
+										  (*lastToken &
+										   0x7f));
+								if (runLengthByte <
+								    0x80) {
+									*lastToken =
+										(uint8_t)(runLengthByte |
+											  0x80);
+									for (copyIndex =
+										     0;
+									     copyIndex <
+									     runLength;
+									     ++copyIndex) {
+										tokenWrite[copyIndex] = source
+											[copyIndex];
+									}
 								} else {
 									++encodedBytes;
-									*tokenWrite = (uint8_t)(runLength | 0x80);
-									lastToken = tokenWrite++;
-									for (copyIndex = 0; copyIndex < runLength; ++copyIndex)
-										tokenWrite[copyIndex] = source[copyIndex];
+									*tokenWrite =
+										(uint8_t)(runLength |
+											  0x80);
+									lastToken =
+										tokenWrite++;
+									for (copyIndex =
+										     0;
+									     copyIndex <
+									     runLength;
+									     ++copyIndex) {
+										tokenWrite[copyIndex] = source
+											[copyIndex];
+									}
 								}
 							}
 							tokenWrite += runLength;
-							encodedBytes += runLength;
+							encodedBytes +=
+								runLength;
 						}
 					} else {
 						++encodedBytes;
 						lastToken = tokenWrite;
-						*tokenWrite++ = (uint8_t)(runLength | 0x40);
+						*tokenWrite++ =
+							(uint8_t)(runLength |
+								  0x40);
 					}
 
-					if (consumed >= encodedWidth)
+					if (consumed >= encodedWidth) {
 						break;
+					}
 					source += runLength;
 					value = *source;
 				}
@@ -2579,10 +3289,12 @@ int FrontImage_CompressRLE(ImageResource* image) {
 
 			if (sourceSize < compressedSize + rowSize) {
 				free(compressedPixels);
-				compressedSize = image->width * image->height + 1;
+				compressedSize =
+					image->width * image->height + 1;
 				break;
 			}
-			memcpy(compressedWrite, &g_frontState.rleRowBuffer, rowSize);
+			memcpy(compressedWrite, &g_frontState.rleRowBuffer,
+			       rowSize);
 			compressedWrite += rowSize;
 			compressedSize += rowSize;
 			++row;
@@ -2590,11 +3302,12 @@ int FrontImage_CompressRLE(ImageResource* image) {
 		} while (row < image->height);
 	}
 
-	if (image->width * image->height < compressedSize)
+	if (image->width * image->height < compressedSize) {
 		return 0;
+	}
 
 	{
-		uint8_t* resizedPixels;
+		uint8_t *resizedPixels;
 
 		resizedPixels = realloc(compressedPixels, compressedSize);
 		if (compressedPixels == NULL) {
@@ -2611,10 +3324,12 @@ int FrontImage_CompressRLE(ImageResource* image) {
 }
 
 // FUNCTION: XVT 0x4B7840
-int FrontImage_EncodeGlyphRow(FrontImageRleRowBuffer* rowBuffer, const uint8_t* srcPixels, int width) {
-	uint8_t* tokenWrite;
-	uint8_t* lastToken;
-	const uint8_t* source;
+int FrontImage_EncodeGlyphRow(FrontImageRleRowBuffer *rowBuffer,
+			      const uint8_t *srcPixels, int width)
+{
+	uint8_t *tokenWrite;
+	uint8_t *lastToken;
+	const uint8_t *source;
 	uint8_t value;
 	uint8_t runLengthByte;
 	int encodedBytes;
@@ -2640,10 +3355,12 @@ int FrontImage_EncodeGlyphRow(FrontImageRleRowBuffer* rowBuffer, const uint8_t* 
 		int runLength;
 
 		for (runLength = 0; runLength < 63; ++runLength) {
-			if (consumed >= width)
+			if (consumed >= width) {
 				break;
-			if (source[runLength] != value)
+			}
+			if (source[runLength] != value) {
 				break;
+			}
 			++consumed;
 		}
 
@@ -2663,28 +3380,43 @@ int FrontImage_EncodeGlyphRow(FrontImageRleRowBuffer* rowBuffer, const uint8_t* 
 				*tokenWrite = (uint8_t)(runLength | 0x80);
 				++encodedBytes;
 				lastToken = tokenWrite++;
-				for (copyIndex = 0; copyIndex < runLength; ++copyIndex)
-					tokenWrite[copyIndex] = source[copyIndex];
+				for (copyIndex = 0; copyIndex < runLength;
+				     ++copyIndex) {
+					tokenWrite[copyIndex] =
+						source[copyIndex];
+				}
 			} else {
-				runLengthByte = (uint8_t)(runLength + (*lastToken & 0x7f));
+				runLengthByte = (uint8_t)(runLength +
+							  (*lastToken & 0x7f));
 				if (runLengthByte < 0x80) {
-					*lastToken = (uint8_t)(runLengthByte | 0x80);
-					for (copyIndex = 0; copyIndex < runLength; ++copyIndex)
-						tokenWrite[copyIndex] = source[copyIndex];
+					*lastToken =
+						(uint8_t)(runLengthByte | 0x80);
+					for (copyIndex = 0;
+					     copyIndex < runLength;
+					     ++copyIndex) {
+						tokenWrite[copyIndex] =
+							source[copyIndex];
+					}
 				} else {
-					*tokenWrite = (uint8_t)(runLength | 0x80);
+					*tokenWrite =
+						(uint8_t)(runLength | 0x80);
 					++encodedBytes;
 					lastToken = tokenWrite++;
-					for (copyIndex = 0; copyIndex < runLength; ++copyIndex)
-						tokenWrite[copyIndex] = source[copyIndex];
+					for (copyIndex = 0;
+					     copyIndex < runLength;
+					     ++copyIndex) {
+						tokenWrite[copyIndex] =
+							source[copyIndex];
+					}
 				}
 			}
 			tokenWrite += runLength;
 			encodedBytes += runLength;
 		}
 
-		if (consumed >= width)
+		if (consumed >= width) {
 			break;
+		}
 		source += runLength;
 		value = *source;
 	}
@@ -2696,14 +3428,17 @@ int FrontImage_EncodeGlyphRow(FrontImageRleRowBuffer* rowBuffer, const uint8_t* 
 }
 
 // FUNCTION: XVT 0x4B7970
-void FrontImage_InsertResourceSorted(const FrontImageResourceRecord* entry) {
+void FrontImage_InsertResourceSorted(const FrontImageResourceRecord *entry)
+{
 	int insertIndex;
 	int entriesToShift;
 	int destinationIndex;
 
 	insertIndex = 0;
 	while (g_frontState.resourceCount > insertIndex) {
-		if (strncmp(entry->name, g_frontState.resourceTable[insertIndex].name, sizeof(entry->name)) < 0) {
+		if (strncmp(entry->name,
+			    g_frontState.resourceTable[insertIndex].name,
+			    sizeof(entry->name)) < 0) {
 			break;
 		}
 		++insertIndex;
@@ -2713,7 +3448,9 @@ void FrontImage_InsertResourceSorted(const FrontImageResourceRecord* entry) {
 		entriesToShift = g_frontState.resourceCount - insertIndex;
 		destinationIndex = g_frontState.resourceCount;
 		do {
-			g_frontState.resourceTable[destinationIndex] = g_frontState.resourceTable[destinationIndex - 1];
+			g_frontState.resourceTable[destinationIndex] =
+				g_frontState
+					.resourceTable[destinationIndex - 1];
 			--destinationIndex;
 			--entriesToShift;
 		} while (entriesToShift != 0);
@@ -2723,10 +3460,11 @@ void FrontImage_InsertResourceSorted(const FrontImageResourceRecord* entry) {
 }
 
 // FUNCTION: XVT 0x4B7A10
-void FrontImage_RemoveResourceAt(int index) {
+void FrontImage_RemoveResourceAt(int index)
+{
 	int destinationIndex;
 	int currentIndex;
-	FrontImageResourceRecord* resource;
+	FrontImageResourceRecord *resource;
 
 	currentIndex = index;
 	if (index < 0) {
@@ -2738,7 +3476,8 @@ void FrontImage_RemoveResourceAt(int index) {
 	if (g_frontState.resourceCount - 1 > index) {
 		destinationIndex = index;
 		do {
-			resource = &g_frontState.resourceTable[destinationIndex];
+			resource =
+				&g_frontState.resourceTable[destinationIndex];
 			*resource = resource[1];
 			++currentIndex;
 			++destinationIndex;
@@ -2748,21 +3487,25 @@ void FrontImage_RemoveResourceAt(int index) {
 }
 
 // FUNCTION: XVT 0x4B7A70
-int FrontImage_FindResourceByName(const char* name) {
+int FrontImage_FindResourceByName(const char *name)
+{
 	if (name == NULL) {
 		return -1;
 	}
 
-	return FrontImage_BSearchResource(g_frontState.resourceTable, g_frontState.resourceCount - 1, name);
+	return FrontImage_BSearchResource(g_frontState.resourceTable,
+					  g_frontState.resourceCount - 1, name);
 }
 
 // FUNCTION: XVT 0x4B7AA0
-int FrontImage_BSearchResource(const FrontImageResourceRecord* table, int hi, const char* key) {
+int FrontImage_BSearchResource(const FrontImageResourceRecord *table, int hi,
+			       const char *key)
+{
 	int baseIndex;
 	int searchHi;
 	int middle;
 	int comparison;
-	const FrontImageResourceRecord* middleEntry;
+	const FrontImageResourceRecord *middleEntry;
 
 	baseIndex = 0;
 	searchHi = hi;
@@ -2772,7 +3515,8 @@ int FrontImage_BSearchResource(const FrontImageResourceRecord* table, int hi, co
 		}
 		middle = searchHi >> 1;
 		middleEntry = &table[middle];
-		comparison = strncmp(middleEntry->name, key, sizeof(middleEntry->name));
+		comparison = strncmp(middleEntry->name, key,
+				     sizeof(middleEntry->name));
 		if (comparison == 0) {
 			return middle + baseIndex;
 		}
@@ -2790,18 +3534,20 @@ int FrontImage_BSearchResource(const FrontImageResourceRecord* table, int hi, co
 }
 
 // FUNCTION: XVT 0x4B7B10
-int FrontImage_SaveBmpFile(char* fileName, const void* pixels, int width, int height, int pitch, int bpp,
-						   int is555, const void* palette) {
+int FrontImage_SaveBmpFile(char *fileName, const void *pixels, int width,
+			   int height, int pitch, int bpp, int is555,
+			   const void *palette)
+{
 	int y;
 	int x;
 	FrontImageBmpInfoHeader infoHeader;
 	FrontImageBmpFileHeader fileHeader;
-	const uint8_t* colorTable;
-	XvtFile* stream;
+	const uint8_t *colorTable;
+	XvtFile *stream;
 	int fileSize;
 	int ok;
 
-	colorTable = (const uint8_t*)palette;
+	colorTable = (const uint8_t *)palette;
 	if (bpp == 8 && colorTable == NULL) {
 		return 0;
 	}
@@ -2815,118 +3561,124 @@ int FrontImage_SaveBmpFile(char* fileName, const void* pixels, int width, int he
 	fileSize = 54;
 
 	switch (bpp) {
-		case 8:
-			for (y = height - 1; y >= 0; y--) {
-				const uint8_t* row = (const uint8_t*)pixels + y * pitch;
+	case 8:
+		for (y = height - 1; y >= 0; y--) {
+			const uint8_t *row =
+				(const uint8_t *)pixels + y * pitch;
 
-				for (x = 0; x < width; x++) {
-					ok = File_WriteByte(stream, colorTable[4 * *row]);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					ok = File_WriteByte(stream, colorTable[4 * *row + 1]);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					ok = File_WriteByte(stream, colorTable[4 * *row + 2]);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					fileSize++;
-					fileSize++;
-					fileSize++;
-					row++;
+			for (x = 0; x < width; x++) {
+				ok = File_WriteByte(stream,
+						    colorTable[4 * *row]);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
 				}
-
-				if ((x & 1) != 0) {
-					ok = File_WriteByte(stream, 0);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					ok = File_WriteByte(stream, 0);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					ok = File_WriteByte(stream, 0);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					fileSize++;
-					fileSize++;
-					fileSize++;
+				ok = File_WriteByte(stream,
+						    colorTable[4 * *row + 1]);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
 				}
+				ok = File_WriteByte(stream,
+						    colorTable[4 * *row + 2]);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
+				}
+				fileSize++;
+				fileSize++;
+				fileSize++;
+				row++;
 			}
-			break;
 
-		case 16:
-			for (y = height - 1; y >= 0; y--) {
-				const uint16_t* row = (const uint16_t*)((const uint8_t*)pixels + y * pitch);
-
-				for (x = 0; x < width; x++) {
-					uint16_t value;
-					uint16_t greenRed;
-					uint16_t green;
-					uint16_t red;
-
-					value = *row;
-					greenRed = value >> 5;
-					if (is555) {
-						green = 8 * greenRed;
-						red = greenRed >> 5;
-					} else {
-						green = 4 * greenRed;
-						red = greenRed >> 6;
-					}
-
-					ok = File_WriteByte(stream, 8 * value);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					ok = File_WriteByte(stream, green);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					ok = File_WriteByte(stream, 8 * red);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					fileSize++;
-					fileSize++;
-					fileSize++;
-					row++;
+			if ((x & 1) != 0) {
+				ok = File_WriteByte(stream, 0);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
 				}
-
-				if ((x & 1) != 0) {
-					ok = File_WriteByte(stream, 0);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					ok = File_WriteByte(stream, 0);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					ok = File_WriteByte(stream, 0);
-					if (ok == 0) {
-						File_Close(stream);
-						return 0;
-					}
-					fileSize++;
-					fileSize++;
-					fileSize++;
+				ok = File_WriteByte(stream, 0);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
 				}
+				ok = File_WriteByte(stream, 0);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
+				}
+				fileSize++;
+				fileSize++;
+				fileSize++;
 			}
-			break;
+		}
+		break;
+
+	case 16:
+		for (y = height - 1; y >= 0; y--) {
+			const uint16_t *row =
+				(const uint16_t *)((const uint8_t *)pixels +
+						   y * pitch);
+
+			for (x = 0; x < width; x++) {
+				uint16_t value;
+				uint16_t greenRed;
+				uint16_t green;
+				uint16_t red;
+
+				value = *row;
+				greenRed = value >> 5;
+				if (is555) {
+					green = 8 * greenRed;
+					red = greenRed >> 5;
+				} else {
+					green = 4 * greenRed;
+					red = greenRed >> 6;
+				}
+
+				ok = File_WriteByte(stream, 8 * value);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
+				}
+				ok = File_WriteByte(stream, green);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
+				}
+				ok = File_WriteByte(stream, 8 * red);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
+				}
+				fileSize++;
+				fileSize++;
+				fileSize++;
+				row++;
+			}
+
+			if ((x & 1) != 0) {
+				ok = File_WriteByte(stream, 0);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
+				}
+				ok = File_WriteByte(stream, 0);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
+				}
+				ok = File_WriteByte(stream, 0);
+				if (ok == 0) {
+					File_Close(stream);
+					return 0;
+				}
+				fileSize++;
+				fileSize++;
+				fileSize++;
+			}
+		}
+		break;
 	}
 
 	File_Seek(stream, 0, SEEK_SET);
@@ -2966,8 +3718,9 @@ int FrontImage_SaveBmpFile(char* fileName, const void* pixels, int width, int he
 }
 
 // FUNCTION: XVT 0x4D6D30
-int FrontImage_LoadBmpPaletteFile(const char* fileName, uint8_t* destRgba) {
-	XvtFile* stream;
+int FrontImage_LoadBmpPaletteFile(const char *fileName, uint8_t *destRgba)
+{
+	XvtFile *stream;
 	int result;
 	unsigned int bitsPerPixel;
 	FrontImageBmpFileHeader fileHeader;
@@ -2986,14 +3739,16 @@ int FrontImage_LoadBmpPaletteFile(const char* fileName, uint8_t* destRgba) {
 			if (infoHeader.planes == 1) {
 				bitsPerPixel = infoHeader.bitsPerPixel;
 				switch (bitsPerPixel) {
-					case 4:
-						FrontImage_ReadBmpPalette(stream, destRgba, 16);
-						result = 1;
-						break;
-					case 8:
-						FrontImage_ReadBmpPalette(stream, destRgba, 256);
-						result = 1;
-						break;
+				case 4:
+					FrontImage_ReadBmpPalette(stream,
+								  destRgba, 16);
+					result = 1;
+					break;
+				case 8:
+					FrontImage_ReadBmpPalette(
+						stream, destRgba, 256);
+					result = 1;
+					break;
 				}
 			}
 		}
@@ -3003,7 +3758,8 @@ int FrontImage_LoadBmpPaletteFile(const char* fileName, uint8_t* destRgba) {
 }
 
 // FUNCTION: XVT 0x4D6DD0
-void FrontImage_ReadBmpPalette(XvtFile* stream, uint8_t* dest, int count) {
+void FrontImage_ReadBmpPalette(XvtFile *stream, uint8_t *dest, int count)
+{
 	uint8_t entry[4];
 	uint8_t blue;
 	uint8_t green;
@@ -3024,11 +3780,12 @@ void FrontImage_ReadBmpPalette(XvtFile* stream, uint8_t* dest, int count) {
 }
 
 // FUNCTION: XVT 0x4D6F50
-unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16) {
+unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16)
+{
 	unsigned int green;
 	unsigned int blue;
 	unsigned int color;
-	uint16_t* cacheEntry;
+	uint16_t *cacheEntry;
 	uint16_t cachedColor;
 	unsigned int result;
 	unsigned int fadeMultiplier;
@@ -3059,10 +3816,14 @@ unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16) {
 		color >>= 11;
 	}
 
-	fadeMultiplier = g_frontState.textFadeFrameCount - g_frontState.textFadeFramesLeft;
-	blue = fadeMultiplier * blue / (unsigned int)g_frontState.textFadeFrameCount;
-	green = fadeMultiplier * green / (unsigned int)g_frontState.textFadeFrameCount;
-	color = fadeMultiplier * color / (unsigned int)g_frontState.textFadeFrameCount;
+	fadeMultiplier = g_frontState.textFadeFrameCount -
+			 g_frontState.textFadeFramesLeft;
+	blue = fadeMultiplier * blue /
+	       (unsigned int)g_frontState.textFadeFrameCount;
+	green = fadeMultiplier * green /
+		(unsigned int)g_frontState.textFadeFrameCount;
+	color = fadeMultiplier * color /
+		(unsigned int)g_frontState.textFadeFrameCount;
 	if (g_frontState.pixelFormat555 != 0) {
 		color = (color & 0x1F) << 5;
 		green &= 0x1F;
@@ -3082,11 +3843,12 @@ unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16) {
 }
 
 // FUNCTION: XVT 0x4DF880
-int FrontImage_LoadResourceList(char* fileName) {
+int FrontImage_LoadResourceList(char *fileName)
+{
 	int compressRLE;
 	char resourceFileName[256];
 	char resourceName[256];
-	XvtFile* stream;
+	XvtFile *stream;
 	int fieldCount;
 
 	stream = File_Open(fileName, "r");
@@ -3100,9 +3862,12 @@ int FrontImage_LoadResourceList(char* fileName) {
 
 	for (;;) {
 #ifdef XVT_MODERN
-		fieldCount = File_Scanf(stream, "%255s %255s %d\n", resourceFileName, resourceName, &compressRLE);
+		fieldCount =
+			File_Scanf(stream, "%255s %255s %d\n", resourceFileName,
+				   resourceName, &compressRLE);
 #else
-		fieldCount = File_Scanf(stream, "%s %s %d\n", resourceFileName, resourceName, &compressRLE);
+		fieldCount = File_Scanf(stream, "%s %s %d\n", resourceFileName,
+					resourceName, &compressRLE);
 #endif
 		if (fieldCount == EOF) {
 			File_Close(stream);
@@ -3112,16 +3877,18 @@ int FrontImage_LoadResourceList(char* fileName) {
 			File_Close(stream);
 			return 0;
 		}
-		FrontImage_RegisterResource(resourceFileName, resourceName, 0, compressRLE);
+		FrontImage_RegisterResource(resourceFileName, resourceName, 0,
+					    compressRLE);
 	}
 }
 
 // FUNCTION: XVT 0x4DF950
-int FrontImage_UnloadResourceList(char* fileName) {
+int FrontImage_UnloadResourceList(char *fileName)
+{
 	int ignoredFlags;
 	char resourceFileName[256];
 	char resourceName[256];
-	XvtFile* stream;
+	XvtFile *stream;
 	int fieldCount;
 
 	stream = File_Open(fileName, "r");
@@ -3135,9 +3902,12 @@ int FrontImage_UnloadResourceList(char* fileName) {
 
 	for (;;) {
 #ifdef XVT_MODERN
-		fieldCount = File_Scanf(stream, "%255s %255s %d\n", resourceFileName, resourceName, &ignoredFlags);
+		fieldCount =
+			File_Scanf(stream, "%255s %255s %d\n", resourceFileName,
+				   resourceName, &ignoredFlags);
 #else
-		fieldCount = File_Scanf(stream, "%s %s %d\n", resourceFileName, resourceName, &ignoredFlags);
+		fieldCount = File_Scanf(stream, "%s %s %d\n", resourceFileName,
+					resourceName, &ignoredFlags);
 #endif
 		if (fieldCount == EOF) {
 			File_Close(stream);

@@ -35,7 +35,7 @@
  * CalculateSize() is 0, or capacity is below CalculateSize().
  * Does not check the bytes written against capacity; it relies on CalculateSize()
  * being large enough. */
-size_t XvtSnapshot_Encode(uint8_t* image, size_t capacity);
+size_t XvtSnapshot_Encode(uint8_t *image, size_t capacity);
 
 /* Returns 1 when image has the layout of an image this world would write, else 0: image is
  * not NULL, size is at most CalculateSize(), every block fits, the object and mobile records' pool links are
@@ -44,13 +44,13 @@ size_t XvtSnapshot_Encode(uint8_t* image, size_t capacity);
  * exact. In the network profile it also checks the footer, the timing extension's CRC, and that its records
  * agree with the image's slots. Does not check any other value; the craft record's object links are not
  * checked. Writes nothing. */
-int XvtSnapshot_Validate(const uint8_t* image, size_t size);
+int XvtSnapshot_Validate(const uint8_t *image, size_t size);
 
 /* Validates as XvtSnapshot_Validate, then overwrites the live world from image.
  * Returns 1 on success; 0 when validation fails, with the world untouched. In the network
  * profile it also installs the timing extension (XvtFlightCheckpoint_Restore).
  * A slot whose type byte is 0 is cleared but keeps its pool links. */
-int XvtSnapshot_Decode(const uint8_t* image, size_t size);
+int XvtSnapshot_Decode(const uint8_t *image, size_t size);
 
 /* Validates as XvtSnapshot_Validate, then fills 16 regional byte sums of the world part and
  * each region's byte length. Returns 1 on success; 0 when validation fails, with both
@@ -62,8 +62,8 @@ int XvtSnapshot_Decode(const uint8_t* image, size_t size);
  * timing extension and footer, and the world part ends in entry 14.
  * Does not cover every byte: outside the network profile, a tail no longer than one
  * region target is summed but never stored. */
-int XvtSnapshot_ChecksumImage(const uint8_t* image, size_t size, unsigned checksums[16],
-							  unsigned lengths[16]);
+int XvtSnapshot_ChecksumImage(const uint8_t *image, size_t size,
+			      unsigned checksums[16], unsigned lengths[16]);
 
 /* Encodes the live world into g_worldStateBuffer and sets g_worldStateSize (0 on failure).
  * Assumes the buffer holds CalculateSize() bytes; does not check it. */
@@ -91,7 +91,7 @@ void XvtSnapshot_Checksum(int unusedArg0, int unusedArg1);
  * packed as one byte 0x80 | length (1 to 126). Returns the bytes written.
  * worldState must start at the image's first type byte; it is read, never written.
  * Does not validate the image or bound outMap: the worst case is 4 bytes plus one per slot. */
-int XvtSnapshot_BuildPresenceMap(uint8_t* outMap, uint8_t* worldState);
+int XvtSnapshot_BuildPresenceMap(uint8_t *outMap, uint8_t *worldState);
 
 /* Reshapes g_worldStateDupBuffer in place so each slot's blocks match presenceMap: a block
  * the map lacks is removed, a block the map has is inserted zero-filled. Updates
@@ -100,7 +100,7 @@ int XvtSnapshot_BuildPresenceMap(uint8_t* outMap, uint8_t* worldState);
  * that record alone.
  * Does not rewrite type bytes or pool-reference fields, so afterwards they may disagree
  * with the blocks. Does not check that the buffer has room to grow. */
-void XvtSnapshot_ApplyPresenceMap(const uint8_t* presenceMap);
+void XvtSnapshot_ApplyPresenceMap(const uint8_t *presenceMap);
 
 /* Returns a rotate-and-xor checksum of the live world, not of an image. Besides what the
  * image carries it covers the mission messages, the 10 global goals, the plan order data,

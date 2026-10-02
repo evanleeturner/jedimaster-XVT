@@ -21,27 +21,34 @@ extern const char g_flightMapIcons320x240ResourcePath[22];
 extern const char g_flightMapIcons480x360ResourcePath[22];
 extern const char g_flightIcons640x480ResourcePath[22];
 extern int g_flightIconFrameCount;
-extern const char* g_flightIconResourcePath;
-extern uint8_t** g_flightIconFrames;
+extern const char *g_flightIconResourcePath;
+extern uint8_t **g_flightIconFrames;
 
-static __inline int FlightMap_ComputeAimStep(int delta) {
+static __inline int FlightMap_ComputeAimStep(int delta)
+{
 	int step;
 
 	step = delta / 2;
 	if (step > 0) {
-		if (step > 4096)
+		if (step > 4096) {
 			step = 4096;
-		if (step < 16)
+		}
+		if (step < 16) {
 			step = 16;
-		if (step > delta)
+		}
+		if (step > delta) {
 			step = delta;
+		}
 	} else {
-		if (step < -4096)
+		if (step < -4096) {
 			step = -4096;
-		if (step > -16)
+		}
+		if (step > -16) {
 			step = -16;
-		if (step < delta)
+		}
+		if (step < delta) {
 			step = delta;
+		}
 	}
 	return step;
 }
@@ -75,8 +82,10 @@ void FlightMap_BuildRenderList(void);
 void FlightMap_DrawObjectPass(int drawAboveGridPlane);
 void FlightMap_DrawOtherPlayerObjectBox(int objectIdx);
 void FlightMap_DrawObjectOverlay(int objectIdx);
-void FlightMap_DrawObjectIconAtViewPos(int objectIdx, int viewX, int viewY, int viewZ);
-void FlightMap_DrawObjectBoxCorners(int x, int y, int width, int height, unsigned int colorIndex);
+void FlightMap_DrawObjectIconAtViewPos(int objectIdx, int viewX, int viewY,
+				       int viewZ);
+void FlightMap_DrawObjectBoxCorners(int x, int y, int width, int height,
+				    unsigned int colorIndex);
 void FlightMap_DrawGrid(void);
 void FlightMap_RenderViewEndStub(void);
 int FlightMap_PickObjectNearestScreenCenter(int playerIdx);

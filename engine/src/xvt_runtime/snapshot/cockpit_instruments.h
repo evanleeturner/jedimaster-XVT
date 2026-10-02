@@ -16,12 +16,14 @@ void XvtCockpitInstruments_BeginUpdate(int player);
 /* Records a slot's laser lock state; slots from XVT_HUD_WEAPON_SLOTS up are ignored. */
 void XvtCockpitInstruments_RecordLaserLock(unsigned slot, unsigned state);
 /* Records the attack, laser, beam and warhead threat levels. */
-void XvtCockpitInstruments_RecordThreats(unsigned attack, unsigned laser, unsigned beam, unsigned warhead);
+void XvtCockpitInstruments_RecordThreats(unsigned attack, unsigned laser,
+					 unsigned beam, unsigned warhead);
 /* Records blip index (0 to 47) on the fore or aft scope, relative to that scope's anchor; a
  * blip on the local player's current target also sets the target marker. The scope's count
  * becomes index + 1, except that index 47 leaves it at 47, so a 48th blip is stored but not
  * counted. Other indices are ignored; object is not range-checked. */
-void XvtCockpitInstruments_RecordRadar(int object, int front, int index, int x, int y, int color);
+void XvtCockpitInstruments_RecordRadar(int object, int front, int index, int x,
+				       int y, int color);
 /* Sets each counted blip's coverage from the drawn radar points: the low two color bits at one
  * byte per pixel, otherwise whether the point was drawn. */
 void XvtCockpitInstruments_CompleteRadar(void);
@@ -31,7 +33,7 @@ void XvtCockpitInstruments_CompleteRadar(void);
  * view, the feature covers are built whether or not instruments are visible; the rest only
  * while they are, and all but the warnings only in those views with the map closed. Also sets
  * view's rebel_fighter and laser_slots. Reads state->view, which must be filled first. */
-void XvtCockpitInstruments_Build(XvtCockpitState* state);
+void XvtCockpitInstruments_Build(XvtCockpitState *state);
 #ifdef __cplusplus
 }
 #endif

@@ -63,12 +63,12 @@ struct MpRosterEntry {
 	char name[14];
 	int playerId;
 	PilotRating pilotRating;
-	int craftTypeOverride;  ///< Nonzero exact craft type; zero selects the assigned flight group's base or
-							///< optional craft.
-	int craftOptionIndex;   ///< Optional craft index; values above 9 fall back to the assigned flight group's
-							///< base craft.
+	int craftTypeOverride; ///< Nonzero exact craft type; zero selects the assigned flight group's base or
+	///< optional craft.
+	int craftOptionIndex; ///< Optional craft index; values above 9 fall back to the assigned flight group's
+			      ///< base craft.
 	int warheadOptionIndex; ///< Warhead loadout option index; zero uses the mission default.
-	int beamOptionIndex;    ///< Beam loadout option index; zero uses the mission default.
+	int beamOptionIndex; ///< Beam loadout option index; zero uses the mission default.
 	int countermeasureOptionIndex; ///< Countermeasure loadout option index; zero uses the mission default.
 };
 
@@ -136,27 +136,29 @@ struct BattleSequenceState {
 
 struct CampaignSequenceState {
 	int32_t unused00; ///< Unresolved campaign-sequence field; cleared and persisted with the full state.
-	int32_t currentMissionIndex;  ///< Zero-based position of the current campaign mission.
-	int32_t missionCount;         ///< Mission count read from the selected campaign descriptor.
+	int32_t currentMissionIndex; ///< Zero-based position of the current campaign mission.
+	int32_t missionCount; ///< Mission count read from the selected campaign descriptor.
 	int32_t lastMissionCompleted; ///< Whether the just-finished campaign mission completed successfully.
-	int32_t humanPlayerCount;     ///< Human players participating in the campaign mission.
-	int32_t cumulativeScore;      ///< Campaign score accumulated across completed missions.
+	int32_t humanPlayerCount; ///< Human players participating in the campaign mission.
+	int32_t cumulativeScore; ///< Campaign score accumulated across completed missions.
 };
 
 struct BattleContinuation {
-	int32_t unused00;          ///< Unresolved persisted battle-continuation field.
-	uint32_t randomSeed;       ///< Random seed used to reproduce mission selection.
-	int32_t isActive;          ///< Continuation slot contains an unfinished battle.
+	int32_t unused00; ///< Unresolved persisted battle-continuation field.
+	uint32_t
+		randomSeed; ///< Random seed used to reproduce mission selection.
+	int32_t isActive; ///< Continuation slot contains an unfinished battle.
 	int32_t battleLengthIndex; ///< Configured battle-length selector.
-	int32_t randomSetup;       ///< Configured sequential, random, or player-choice selection mode.
+	int32_t randomSetup; ///< Configured sequential, random, or player-choice selection mode.
 	BattleSequenceState sequenceState; ///< Saved battle sequence state.
 };
 
 struct CampaignContinuation {
-	int32_t unused00;            ///< Unresolved persisted campaign-continuation field.
-	uint32_t randomSeed;         ///< Random seed used to reproduce mission selection.
-	int32_t isActive;            ///< Continuation slot contains an unfinished campaign.
-	int32_t randomSetup;         ///< Configured sequential, random, or player-choice selection mode.
+	int32_t unused00; ///< Unresolved persisted campaign-continuation field.
+	uint32_t
+		randomSeed; ///< Random seed used to reproduce mission selection.
+	int32_t isActive; ///< Continuation slot contains an unfinished campaign.
+	int32_t randomSetup; ///< Configured sequential, random, or player-choice selection mode.
 	CampaignSequenceState sequenceState; ///< Saved campaign sequence state.
 };
 
@@ -174,7 +176,7 @@ extern int g_missionSetupLastBroadcastCountdownSecond;
 extern int g_missionSetupPlayerFlightGroupIndices[80];
 extern int g_textShadeRamps[5][8];
 extern MissionSetupPlayerAssignments g_missionSetupPlayerAssignments;
-extern ShipListEntry* g_shipList;
+extern ShipListEntry *g_shipList;
 extern int g_shipTypeToShipListIndex[18];
 extern int g_shipCount;
 extern int g_missionSetupSelectedFlightGroupIndex;
@@ -195,17 +197,17 @@ extern const int g_presetCraftTypes[11];
 extern const uint8_t g_craftIffCounterpart[20];
 extern unsigned int g_missionCount;
 extern int g_selectedMissionListIndex;
-extern MissionListEntry* g_missionList;
+extern MissionListEntry *g_missionList;
 extern int g_frontendGameSessionInProgress;
 extern int g_missionSetupIsHost;
 extern int g_missionSetupRosterAuthoritative;
 extern int g_missionSetupBeginButtonLockoutFrames;
 extern int g_frontendSkipScreenEntrySetup;
-extern const char* g_missionDirectoryNames[6];
+extern const char *g_missionDirectoryNames[6];
 extern MpRosterEntry g_mpRoster[8];
 extern int g_mpRosterReadyFlags[8];
 extern int g_battleMissionListCount;
-extern MissionListEntry* g_battleMissionList;
+extern MissionListEntry *g_battleMissionList;
 extern int g_battleChoiceClockMs;
 extern int g_battleChoiceScrollOffset;
 extern int g_battleChoiceRemainingMs;
@@ -232,7 +234,7 @@ int MissionSetup_Exit(int frameCounter);
 int MissionSetup_Update(int frameCounter);
 int MissionSetup_DrawMissionTypeControls(void);
 void MissionSetup_LoadMissionList(int missionDirectoryId);
-void MissionSetup_LoadMissionDescText(char* outText4096);
+void MissionSetup_LoadMissionDescText(char *outText4096);
 int MissionSetup_DrawMissionDescription(void);
 int MissionSetup_DrawPlayerRoster(int frameCounter);
 int MissionSetup_BroadcastLobbySelection(void);
@@ -241,7 +243,7 @@ int MissionSetup_BroadcastReadyRoster(int toPlayerId);
 int MissionSetup_DrawMissionList(int frameCounter);
 int MissionSetup_SelectFirstSequenceMission(void);
 int MissionSetup_DrawGameSettings(void);
-int MissionSetup_CountMissionListEntries(XvtFile* stream);
+int MissionSetup_CountMissionListEntries(XvtFile *stream);
 int MissionSetup_DrawBackground(void);
 int MissionSetup_UseRebelBackground(void);
 void MissionSetup_DrawCraftLoadout(void);

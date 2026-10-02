@@ -10,9 +10,11 @@ typedef struct XvtFontGlyph {
 
 typedef struct XvtFontAtlas {
 	AeronFontAtlas atlas;
-	XvtFontGlyph* glyphs; /* Owned classic metrics, indexed like atlas.glyphs. */
+	XvtFontGlyph
+		*glyphs; /* Owned classic metrics, indexed like atlas.glyphs. */
 	uint16_t cell_height;
-	float white_uv[2]; /* Opaque atlas sample for batched text backgrounds. */
+	float white_uv
+		[2]; /* Opaque atlas sample for batched text backgrounds. */
 } XvtFontAtlas;
 
 #endif

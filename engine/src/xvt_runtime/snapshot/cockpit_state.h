@@ -22,8 +22,9 @@ enum {
 	XVT_HUD_MESSAGE_GLYPHS = 128,
 	XVT_HUD_ALERT_LINE_GLYPHS = 256,
 	XVT_HUD_LOADING_GLYPHS = 5 * 256,
-	XVT_HUD_OVERLAY_GLYPHS =
-		3 * XVT_HUD_MESSAGE_GLYPHS + 3 * XVT_HUD_ALERT_LINE_GLYPHS + XVT_HUD_LOADING_GLYPHS
+	XVT_HUD_OVERLAY_GLYPHS = 3 * XVT_HUD_MESSAGE_GLYPHS +
+				 3 * XVT_HUD_ALERT_LINE_GLYPHS +
+				 XVT_HUD_LOADING_GLYPHS
 };
 
 typedef enum XvtCockpitPhase {
@@ -155,9 +156,11 @@ typedef enum XvtCockpitNumberId {
 	XVT_COCKPIT_NUMBER_CLOCK_SECONDS,
 	XVT_COCKPIT_NUMBER_COUNTERMEASURES,
 	XVT_COCKPIT_NUMBER_LAUNCHER_FIRST,
-	XVT_COCKPIT_NUMBER_LAUNCHER_LAST = XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 3,
+	XVT_COCKPIT_NUMBER_LAUNCHER_LAST =
+		XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 3,
 	XVT_COCKPIT_NUMBER_LASER_FIRST,
-	XVT_COCKPIT_NUMBER_LASER_LAST = XVT_COCKPIT_NUMBER_LASER_FIRST + XVT_HUD_WEAPON_SLOTS - 1,
+	XVT_COCKPIT_NUMBER_LASER_LAST =
+		XVT_COCKPIT_NUMBER_LASER_FIRST + XVT_HUD_WEAPON_SLOTS - 1,
 	XVT_COCKPIT_NUMBER_TARGET_SYSTEMS,
 	XVT_COCKPIT_NUMBER_TARGET_SHIELDS,
 	XVT_COCKPIT_NUMBER_TARGET_HULL,
@@ -219,19 +222,24 @@ typedef enum XvtCockpitTextFieldId {
 	XVT_COCKPIT_TEXT_THROTTLE_LABEL,
 	XVT_COCKPIT_TEXT_SPEED_LABEL,
 	XVT_COCKPIT_TEXT_POWER_LABEL_FIRST,
-	XVT_COCKPIT_TEXT_POWER_LABEL_LAST = XVT_COCKPIT_TEXT_POWER_LABEL_FIRST + 3,
+	XVT_COCKPIT_TEXT_POWER_LABEL_LAST =
+		XVT_COCKPIT_TEXT_POWER_LABEL_FIRST + 3,
 	XVT_COCKPIT_TEXT_SHIELD_LABEL_FIRST,
-	XVT_COCKPIT_TEXT_SHIELD_LABEL_LAST = XVT_COCKPIT_TEXT_SHIELD_LABEL_FIRST + 1,
+	XVT_COCKPIT_TEXT_SHIELD_LABEL_LAST =
+		XVT_COCKPIT_TEXT_SHIELD_LABEL_FIRST + 1,
 	XVT_COCKPIT_TEXT_TARGET_SYSTEM_LABEL,
 	XVT_COCKPIT_TEXT_TARGET_RANGE_LABEL,
 	XVT_COCKPIT_TEXT_TARGET_SHIELD_LABEL,
 	XVT_COCKPIT_TEXT_TARGET_HULL_LABEL,
 	XVT_COCKPIT_TEXT_CMD_HEADER_FIRST,
-	XVT_COCKPIT_TEXT_CMD_HEADER_LAST = XVT_COCKPIT_TEXT_CMD_HEADER_FIRST + 3,
+	XVT_COCKPIT_TEXT_CMD_HEADER_LAST =
+		XVT_COCKPIT_TEXT_CMD_HEADER_FIRST + 3,
 	XVT_COCKPIT_TEXT_ARMAMENT_LABEL_FIRST,
-	XVT_COCKPIT_TEXT_ARMAMENT_LABEL_LAST = XVT_COCKPIT_TEXT_ARMAMENT_LABEL_FIRST + 3,
+	XVT_COCKPIT_TEXT_ARMAMENT_LABEL_LAST =
+		XVT_COCKPIT_TEXT_ARMAMENT_LABEL_FIRST + 3,
 	XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST,
-	XVT_COCKPIT_TEXT_COURSE_LABEL_LAST = XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST + 4,
+	XVT_COCKPIT_TEXT_COURSE_LABEL_LAST =
+		XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST + 4,
 	XVT_COCKPIT_TEXT_CLOCK_SEPARATOR,
 	XVT_COCKPIT_TEXT_THROTTLE_PERCENT,
 	XVT_COCKPIT_TEXT_TARGET_RANGE_SEPARATOR,
@@ -258,12 +266,16 @@ typedef struct XvtCockpitTextField {
 } XvtCockpitTextField;
 
 typedef struct XvtCockpitSystems {
-	uint32_t installed, working, active_hud_features, installed_hud_features;
+	uint32_t installed, working, active_hud_features,
+		installed_hud_features;
 	XvtCockpitShield shields[2];
-	XvtCockpitPowerGauge engine_power, laser_power, shield_power, beam_power;
-	XvtCockpitIndicator beam_enabled, sfoils, shield_distribution, countermeasure_active;
+	XvtCockpitPowerGauge engine_power, laser_power, shield_power,
+		beam_power;
+	XvtCockpitIndicator beam_enabled, sfoils, shield_distribution,
+		countermeasure_active;
 	XvtCockpitIndicator threats[4], critical_warning, hull_indicator;
-	XvtCockpitIndicator feature_covers[13], unavailable_shields, unavailable_beam[2];
+	XvtCockpitIndicator feature_covers[13], unavailable_shields,
+		unavailable_beam[2];
 	XvtCockpitNumber countermeasure_count;
 	uint8_t beam_visible, beam_segments[9];
 } XvtCockpitSystems;
@@ -301,7 +313,8 @@ typedef struct XvtCockpitTarget {
 	uint8_t panel_cover, labels_visible, cmd_mode;
 	uint16_t cover_binding;
 	XvtCockpitIndicator armament[4];
-	XvtCockpitNumber order_distance, order_distance_fraction, order_minutes, order_seconds;
+	XvtCockpitNumber order_distance, order_distance_fraction, order_minutes,
+		order_seconds;
 } XvtCockpitTarget;
 
 typedef struct XvtCockpitRadar {

@@ -14,7 +14,8 @@ extern "C" {
  * target also sets map->target and, when it resolves, the order endpoint.
  * count must not exceed XVT_SNAP_OBJECTS and the local player index must be valid; neither is
  * checked. */
-void XvtRenderMap_Capture(XvtSnapMap* map, const XvtSnapObject* objects, unsigned count);
+void XvtRenderMap_Capture(XvtSnapMap *map, const XvtSnapObject *objects,
+			  unsigned count);
 #ifdef __cplusplus
 }
 #endif

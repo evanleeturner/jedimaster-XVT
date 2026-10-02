@@ -21,28 +21,32 @@
 
 static XvtTestAssets g_assets;
 
-static void Fresh(void) {
+static void Fresh(void)
+{
 	XvtMovieTask_Shutdown();
 	memset(&g_frontState, 0, sizeof g_frontState);
 	g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
 }
 
 /* Binds storage to a fresh asset folder holding an empty movies/<name>.smk. */
-static void Movies(const char* name) {
+static void Movies(const char *name)
+{
 	char path[XVT_TEST_PATH_CAPACITY];
 	XvtTest_OpenAssets(&g_assets);
 	snprintf(path, sizeof path, "movies/%s.smk", name);
 	XvtTest_AddAsset(&g_assets, path);
 }
 
-static void EndMovies(void) {
+static void EndMovies(void)
+{
 	XvtMovieTask_Shutdown();
 	XvtTest_CloseAssets(&g_assets);
 }
 
 /* Ticks the movie until it completes; the decoder reports an empty file from its own thread. */
-static void TickUntilComplete(void) {
-	struct timespec pause = { 0, 1000000 };
+static void TickUntilComplete(void)
+{
+	struct timespec pause = {0, 1000000};
 	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
 		XvtMovieTask_Update();
 		nanosleep(&pause, NULL);
@@ -50,7 +54,8 @@ static void TickUntilComplete(void) {
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
 }
 
-static void CheckIdle(void) {
+static void CheckIdle(void)
+{
 	Fresh();
 	int result = 77;
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
@@ -67,7 +72,8 @@ static void CheckIdle(void) {
 	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
 }
 
-static void CheckBeginRefusals(void) {
+static void CheckBeginRefusals(void)
+{
 	char long_name[300];
 	memset(long_name, 'm', sizeof long_name - 1);
 	long_name[sizeof long_name - 1] = 0;
@@ -87,7 +93,8 @@ static void CheckBeginRefusals(void) {
 	EndMovies();
 }
 
-static void CheckLifecycle(void) {
+static void CheckLifecycle(void)
+{
 	Fresh();
 	Movies("intro");
 	g_frontState.frontendDisplayWndProcMode = 3;
@@ -123,7 +130,8 @@ static void CheckLifecycle(void) {
 	EndMovies();
 }
 
-static void CheckStop(void) {
+static void CheckStop(void)
+{
 	Fresh();
 	Movies("intro");
 	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), XVT_MOVIE_PENDING);
@@ -139,7 +147,8 @@ static void CheckStop(void) {
 	EndMovies();
 }
 
-static void CheckNetworkFallback(void) {
+static void CheckNetworkFallback(void)
+{
 	/* In a network session, a synchronized movie that is missing falls back to Flyby1a. */
 	Fresh();
 	Movies("Flyby1a");
@@ -159,7 +168,8 @@ static void CheckNetworkFallback(void) {
 	EndMovies();
 }
 
-static void CheckShutdownForgets(void) {
+static void CheckShutdownForgets(void)
+{
 	Fresh();
 	Movies("intro");
 	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), XVT_MOVIE_PENDING);
@@ -180,7 +190,8 @@ static void CheckShutdownForgets(void) {
 	EndMovies();
 }
 
-int main(void) {
+int main(void)
+{
 	CheckIdle();
 	CheckBeginRefusals();
 	CheckLifecycle();

@@ -7,11 +7,12 @@
  * and keyboard drafts, the installation page and the video options, then saves the user file; a failure
  * shows the error and keeps the menu open. While open, input is captured from the game and the port
  * pauses unless the network requires progress. One static menu; not thread-safe. */
-typedef void (*XvtSettingsPageFn)(AeronUiContext* ui, const AeronInputSnapshot* input);
+typedef void (*XvtSettingsPageFn)(AeronUiContext *ui,
+				  const AeronInputSnapshot *input);
 /* Zeroes the menu, takes ui's context, installs the five page drawers, configures the video options with
  * the modern renderer's apply function and creates the installation page's picker. Returns the picker's
  * success; nothing else can fail. */
-bool XvtSettingsMenu_Init(XvtAppUi* ui, char* error, size_t capacity);
+bool XvtSettingsMenu_Init(XvtAppUi *ui, char *error, size_t capacity);
 /* Destroys the installation picker, cancels any keyboard or controller capture and zeroes the menu. */
 void XvtSettingsMenu_Shutdown(void);
 /* Nothing before a successful Init or after Shutdown. Flushes the video options as exiting (the
@@ -42,7 +43,7 @@ bool XvtSettingsMenu_CloseRequested(void);
  * the settings are closed. */
 void XvtSettingsMenu_CompleteClose(void);
 /* Shows error in the window until the next Show, and cancels a pending close so the menu stays open. */
-void XvtSettingsMenu_ReportError(const char* error);
+void XvtSettingsMenu_ReportError(const char *error);
 /* Once per frame, before the port ticks. While open, adds newly connected gamepads to the controller
  * draft. Installs pending controller options and applies pending video options (a failure is reported).
  * A requested close flushes the video options, commits the controller and keyboard drafts, flushes the
@@ -55,7 +56,7 @@ void XvtSettingsMenu_ReportError(const char* error);
  * (captured while the menu was or is open, or without focus) and updates the controller mapping. On the
  * frame the menu closed, the host cursor is hidden when a flight is active and shown otherwise. Returns
  * true when the menu opened this frame. */
-bool XvtSettingsMenu_BeginFrame(const AeronInputSnapshot* input);
+bool XvtSettingsMenu_BeginFrame(const AeronInputSnapshot *input);
 /* Takes the port's settings request, if any, and shows the menu; true only when that opened it. */
 bool XvtSettingsMenu_ConsumeRuntimeRequest(void);
 /* Draws an open menu in a UI frame of input and seconds: the "OpenXvT SETTINGS" window with the page tabs
@@ -64,5 +65,5 @@ bool XvtSettingsMenu_ConsumeRuntimeRequest(void);
  * before requesting quit), the Controller or Keyboard page's modals, then the installation picker.
  * Records whether the UI captured the whole frame; an unconsumed cancel requests a close. Submits the UI
  * layer. Nothing when closed or input is NULL. */
-void XvtSettingsMenu_Frame(const AeronInputSnapshot* input, float seconds);
+void XvtSettingsMenu_Frame(const AeronInputSnapshot *input, float seconds);
 #endif

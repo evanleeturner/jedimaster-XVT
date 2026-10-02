@@ -48,11 +48,11 @@ typedef enum DiskIoStringId {
 } DiskIoStringId;
 
 extern char g_fileName[256];
-extern char* g_strDiskIoMessages[32];
-extern uint8_t* g_flightScratchScreenBuffer;
-extern uint8_t* g_flightAuxBufferMirror;
+extern char *g_strDiskIoMessages[32];
+extern uint8_t *g_flightScratchScreenBuffer;
+extern uint8_t *g_flightAuxBufferMirror;
 extern uint16_t g_fileReadAbortFlag;
-extern XvtFile* g_stream;
+extern XvtFile *g_stream;
 extern unsigned int g_paletteGenerationEnabled;
 extern char g_flightPaletteResourceFileName[12];
 extern uint8_t g_rgb565ToPaletteIndexLut[UINT16_MAX + 1u];
@@ -76,7 +76,7 @@ extern const int g_missionAwardWinThresholds[5];
 extern const int g_missionAwardScoreThresholds[3];
 
 int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2);
-uint16_t FeDiskIo_ReadAllBytesOrFatal(const char* fileName, void* dst);
+uint16_t FeDiskIo_ReadAllBytesOrFatal(const char *fileName, void *dst);
 void FeDiskIo_InitGlobalBuffers(void);
 void FeDiskIo_UnlockGlobalBuffers(void);
 void FeDiskIo_LockGlobalBuffers(void);
@@ -86,13 +86,15 @@ unsigned int FeDiskIo_InitResources(void);
 void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType);
 #ifndef XVT_MODERN
 char FeDiskIo_ShowRetryFailPrompt(void);
-int FeDiskIo_ShowFatalErrorMessageAndWaitKey(const char* message);
+int FeDiskIo_ShowFatalErrorMessageAndWaitKey(const char *message);
 #endif
-int FeDiskIo_OpenGlobalStream(const char* fileName, const char* mode, int promptOnFail, int locationMode);
+int FeDiskIo_OpenGlobalStream(const char *fileName, const char *mode,
+			      int promptOnFail, int locationMode);
 int16_t FeDiskIo_CloseGlobalStream(int16_t removeFileOnError);
-size_t FeDiskIo_ReadWithRetryPrompt(void* dst, size_t elemSize, size_t elemCount, XvtFile* stream);
+size_t FeDiskIo_ReadWithRetryPrompt(void *dst, size_t elemSize,
+				    size_t elemCount, XvtFile *stream);
 void FeDiskIo_FatalError(FileErrorStringId errorCode);
-void File_PrintFatalMessageAndExit(const char* message, int exitCode);
+void File_PrintFatalMessageAndExit(const char *message, int exitCode);
 
 #ifdef __cplusplus
 }

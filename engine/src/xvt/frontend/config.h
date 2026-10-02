@@ -109,22 +109,30 @@ void Config_DrawSpecularOptionRow(int configIndex);
 void Config_DrawDiffuseLightingOptionRow(int configIndex);
 void Config_DrawUse3dHardwareOptionRow(int configIndex);
 void Config_DrawBilinearOptionRow(int configIndex);
-void Config_DrawOptionCycleDimmed(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
-void Config_DrawTwoChoiceOption(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
-void Config_DrawTwoChoiceOptionReadOnly(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
-void Config_DrawTwoChoiceOptionImpl(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId,
-									int translucentSelection, int disableInput);
-void Config_DrawThreeChoiceOption(uint8_t* value, const RECT* rect, FrontendStringId valueBaseStrId);
-void Config_DrawOptionSlider(uint8_t* value, RECT* rect, int valueCount, FrontendStringId rangeLabelId,
-							 int playSoundOnChange);
+void Config_DrawOptionCycleDimmed(uint8_t *value, const RECT *rect,
+				  FrontendStringId valueBaseStrId);
+void Config_DrawTwoChoiceOption(uint8_t *value, const RECT *rect,
+				FrontendStringId valueBaseStrId);
+void Config_DrawTwoChoiceOptionReadOnly(uint8_t *value, const RECT *rect,
+					FrontendStringId valueBaseStrId);
+void Config_DrawTwoChoiceOptionImpl(uint8_t *value, const RECT *rect,
+				    FrontendStringId valueBaseStrId,
+				    int translucentSelection, int disableInput);
+void Config_DrawThreeChoiceOption(uint8_t *value, const RECT *rect,
+				  FrontendStringId valueBaseStrId);
+void Config_DrawOptionSlider(uint8_t *value, RECT *rect, int valueCount,
+			     FrontendStringId rangeLabelId,
+			     int playSoundOnChange);
 void Config_Load(void);
 void Config_Write(void);
 int Config_UpdateNavigationAndRestoreDefaults(void);
 void Config_NetworkOptionsScreen(void);
-void Config_DrawNetworkOptionCycleDisabled(const uint8_t* value, const RECT* rect,
-										   FrontendStringId valueBaseStrId);
-void Config_DrawThreeChoiceOptionReadOnly(const uint8_t* selectedOption, const RECT* barRect,
-										  FrontendStringId firstOptionStringId);
+void Config_DrawNetworkOptionCycleDisabled(const uint8_t *value,
+					   const RECT *rect,
+					   FrontendStringId valueBaseStrId);
+void Config_DrawThreeChoiceOptionReadOnly(const uint8_t *selectedOption,
+					  const RECT *barRect,
+					  FrontendStringId firstOptionStringId);
 void Config_SoundOptionsScreen(void);
 void Config_JoystickRemapScreen(void);
 int Config_LoadJoystickActionDictionary(void);

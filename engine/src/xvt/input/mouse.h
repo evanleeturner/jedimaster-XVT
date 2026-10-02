@@ -8,8 +8,8 @@
 extern "C" {
 #endif
 
-int Mouse_ReadPositionAndButtons(int16_t* x, int16_t* y);
-void Mouse_ReadDelta(int16_t* deltaX, int16_t* deltaY);
+int Mouse_ReadPositionAndButtons(int16_t *x, int16_t *y);
+void Mouse_ReadDelta(int16_t *deltaX, int16_t *deltaY);
 int Mouse_SetPosition(int16_t x, int16_t y);
 void Mouse_SetHorizontalBounds(int16_t minX, int16_t maxX);
 void Mouse_SetVerticalBounds(int16_t minY, int16_t maxY);

@@ -17,11 +17,13 @@ void XvtCockpitReadouts_BeginUpdate(void);
  * field width and digits the minimum digit count. Values keep 16 bits, except the course score.
  * A 16-bit value of 0xFFFF is drawn in the '@' color with no shadow. Out-of-range ids are
  * ignored. */
-void XvtCockpitReadouts_RecordNumber(XvtCockpitNumberId id, unsigned value, unsigned width, unsigned digits);
+void XvtCockpitReadouts_RecordNumber(XvtCockpitNumberId id, unsigned value,
+				     unsigned width, unsigned digits);
 /* RecordNumber for the readout at HUD element binding (speed, throttle, or the target's
  * systems, range, range fraction, shields or hull), with the element's selector as the field
  * width and the background cleared. Other bindings are ignored. */
-void XvtCockpitReadouts_RecordCachedNumber(unsigned binding, unsigned value, unsigned digits);
+void XvtCockpitReadouts_RecordCachedNumber(unsigned binding, unsigned value,
+					   unsigned digits);
 /* Starts the target panel for the local player's current target, in command mode when cmd is
  * set. A change of target or mode first clears the target, its numbers from TARGET_SYSTEMS
  * through ORDER_SECONDS and its text fields; with cmd set, such a change also resets HUD cache
@@ -39,7 +41,8 @@ void XvtCockpitReadouts_ClearOrderRange(void);
 void XvtCockpitReadouts_ClearOrderTime(void);
 /* Hide, or copy out, the count of launcher 0 to 3; other launchers are ignored. */
 void XvtCockpitReadouts_ClearLauncher(unsigned launcher);
-void XvtCockpitReadouts_CopyLauncher(XvtCockpitNumber* number, unsigned launcher);
+void XvtCockpitReadouts_CopyLauncher(XvtCockpitNumber *number,
+				     unsigned launcher);
 /* Shows the proving-grounds course panel at these bounds for this update. */
 void XvtCockpitReadouts_RecordCourse(int x, int y, int width, int height);
 /* Copies the course, readouts, countermeasures, launcher and laser counts and the target panel
@@ -48,7 +51,7 @@ void XvtCockpitReadouts_RecordCourse(int x, int y, int width, int height);
  * when updated since BeginUpdate and instruments are visible. Its values need the panel
  * uncovered; range and systems show only outside command mode, order range and time only in it. Reads the
  * visibility flags XvtCockpitInstruments_Build sets, so it runs after Build. */
-void XvtCockpitReadouts_CopyState(XvtCockpitState* state);
+void XvtCockpitReadouts_CopyState(XvtCockpitState *state);
 #ifdef __cplusplus
 }
 #endif

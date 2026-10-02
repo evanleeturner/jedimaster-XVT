@@ -20,12 +20,14 @@ extern "C" {
 
 typedef struct XvtModelSettings {
 	float smooth_angle_degrees;
-	float opt_emissive_strength, opt_projectile_emissive_strength, engine_emissive_strength;
+	float opt_emissive_strength, opt_projectile_emissive_strength,
+		engine_emissive_strength;
 } XvtModelSettings;
 
 typedef struct XvtPointLightSettings {
 	int enabled, clustered, cluster_depth_slices, cluster_debug;
-	float scale, range_scale, min_distance, spec_weight, diffuse_wrap, contrib_cap;
+	float scale, range_scale, min_distance, spec_weight, diffuse_wrap,
+		contrib_cap;
 } XvtPointLightSettings;
 
 typedef struct XvtLightingSettings {
@@ -43,14 +45,17 @@ typedef struct XvtSkySettings {
 } XvtSkySettings;
 
 typedef struct XvtHyperspaceSettings {
-	float travel_speed, rotation_speed, noise_scale, brightness, highlight_strength;
+	float travel_speed, rotation_speed, noise_scale, brightness,
+		highlight_strength;
 	float focal_length, twist, cap_radius, cap_falloff;
-	float mesh_ambient_strength, mesh_environment_roughness, mesh_key_strength;
+	float mesh_ambient_strength, mesh_environment_roughness,
+		mesh_key_strength;
 	float dark_color[3], body_color[3], highlight_color[3], cap_color[3];
 } XvtHyperspaceSettings;
 
 typedef struct XvtMotionBlurSettings {
-	int quality, camera_blur, pause_keep_blur, velocity_viz, fsr_direct_motion;
+	int quality, camera_blur, pause_keep_blur, velocity_viz,
+		fsr_direct_motion;
 	float shutter;
 } XvtMotionBlurSettings;
 
@@ -108,14 +113,16 @@ typedef struct XvtSettings {
  * keyboard, controllers, gamepad defaults and mouse. msaa_samples must be 1, 2, 4 or 8, and the cube
  * sky mode needs a path. skybox.mode "procedural" is accepted and read as stars. Returns 1; or 0 with
  * *out unchanged and the first problem in error. */
-int XvtSettings_Parse(const AeronConfigFile* document, const XvtSceneSettings* scene_defaults,
-					  XvtSettings* out, char* error, size_t capacity);
+int XvtSettings_Parse(const AeronConfigFile *document,
+		      const XvtSceneSettings *scene_defaults, XvtSettings *out,
+		      char *error, size_t capacity);
 /* Writes "ROOT/file:line:column: path: message" for the node at path, or for the document root when
  * path is absent, into error. Returns 0. */
-int XvtSettings_NodeError(const AeronConfigFile* document, const char* path, const char* message, char* error,
-						  size_t capacity);
+int XvtSettings_NodeError(const AeronConfigFile *document, const char *path,
+			  const char *message, char *error, size_t capacity);
 /* Writes "ROOT/file:line:column: message" from detail into error. Returns 0. */
-int XvtSettings_FileError(const AeronConfigError* detail, char* error, size_t capacity);
+int XvtSettings_FileError(const AeronConfigError *detail, char *error,
+			  size_t capacity);
 
 #ifdef __cplusplus
 }

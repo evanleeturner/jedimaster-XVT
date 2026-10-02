@@ -30,50 +30,69 @@ struct ImageQuantizerNode {
 	double redSum;
 	double greenSum;
 	double blueSum;
-	struct ImageQuantizerNode* parent;
-	struct ImageQuantizerNode* children[8];
+	struct ImageQuantizerNode *parent;
+	struct ImageQuantizerNode *children[8];
 };
 
 #pragma pack(pop)
-typedef char xvt_size_ImageQuantizerPaletteEntry[(sizeof(ImageQuantizerPaletteEntry) == 9) ? 1 : -1];
+typedef char xvt_size_ImageQuantizerPaletteEntry
+	[(sizeof(ImageQuantizerPaletteEntry) == 9) ? 1 : -1];
 #if defined(_MSC_VER) && !defined(XVT_MODERN)
-typedef char xvt_size_ImageQuantizerNode[(sizeof(ImageQuantizerNode) == 82) ? 1 : -1];
+typedef char xvt_size_ImageQuantizerNode[(sizeof(ImageQuantizerNode) == 82)
+						 ? 1
+						 : -1];
 #else
-typedef char xvt_size_ImageQuantizerNode[(sizeof(ImageQuantizerNode) == 118) ? 1 : -1];
+typedef char xvt_size_ImageQuantizerNode[(sizeof(ImageQuantizerNode) == 118)
+						 ? 1
+						 : -1];
 #endif
 
 extern unsigned int g_imageQuantizerNodeCount;
 extern const double g_imageQuantizerMaxSquaredRgbErrorPerPixel;
 
-void ImageQuantizer_ReportProgress(const char* stage, unsigned int completed, unsigned int total);
-void ImageQuantizer_FatalAllocationError(const char* context, const char* message);
-void* ImageQuantizer_AllocateImage(void);
-void ImageQuantizer_CompressPixelRuns(unsigned int* image);
-void ImageQuantizer_DestroyImage(void* image);
-int ImageQuantizer_ExpandPixelRuns(uint32_t* image);
-void ImageQuantizer_QuantizeImage(unsigned int* image, unsigned int paletteSize, int treeDepth, int dither,
-								  int colorspace);
-unsigned int ImageQuantizer_AssignPaletteColors(uint32_t* image, unsigned int paletteSize, int dither,
-												int colorspace);
-void ImageQuantizer_ClassifyImageColors(unsigned int* image);
-void ImageQuantizer_FindNearestPaletteEntryRecursive(ImageQuantizerNode* node);
-void ImageQuantizer_BuildPaletteEntriesRecursive(ImageQuantizerNode* node);
-int ImageQuantizer_DitherImageToPalette(uint32_t* image);
+void ImageQuantizer_ReportProgress(const char *stage, unsigned int completed,
+				   unsigned int total);
+void ImageQuantizer_FatalAllocationError(const char *context,
+					 const char *message);
+void *ImageQuantizer_AllocateImage(void);
+void ImageQuantizer_CompressPixelRuns(unsigned int *image);
+void ImageQuantizer_DestroyImage(void *image);
+int ImageQuantizer_ExpandPixelRuns(uint32_t *image);
+void ImageQuantizer_QuantizeImage(unsigned int *image, unsigned int paletteSize,
+				  int treeDepth, int dither, int colorspace);
+unsigned int ImageQuantizer_AssignPaletteColors(uint32_t *image,
+						unsigned int paletteSize,
+						int dither, int colorspace);
+void ImageQuantizer_ClassifyImageColors(unsigned int *image);
+void ImageQuantizer_FindNearestPaletteEntryRecursive(ImageQuantizerNode *node);
+void ImageQuantizer_BuildPaletteEntriesRecursive(ImageQuantizerNode *node);
+int ImageQuantizer_DitherImageToPalette(uint32_t *image);
 int ImageQuantizer_InitializeColorTree(int treeDepth);
-ImageQuantizerNode* ImageQuantizer_AllocateNode(int childIndex, int level, ImageQuantizerNode* parent,
-												int midpointRed, int midpointGreen, int midpointBlue);
-void ImageQuantizer_CollapseDeepestLevelRecursive(ImageQuantizerNode* node);
-unsigned int ImageQuantizer_MergeNodeIntoParent(ImageQuantizerNode* node);
+ImageQuantizerNode *ImageQuantizer_AllocateNode(int childIndex, int level,
+						ImageQuantizerNode *parent,
+						int midpointRed,
+						int midpointGreen,
+						int midpointBlue);
+void ImageQuantizer_CollapseDeepestLevelRecursive(ImageQuantizerNode *node);
+unsigned int ImageQuantizer_MergeNodeIntoParent(ImageQuantizerNode *node);
 void ImageQuantizer_ReduceColorTree(unsigned int targetColorCount);
-void ImageQuantizer_ReduceColorTreePassRecursive(ImageQuantizerNode* node);
-void ImageQuantizer_QuantizeImageLists(unsigned int** imageListHeads, unsigned int listCount,
-									   unsigned int paletteSize, int treeDepth, int dither, int colorspace);
+void ImageQuantizer_ReduceColorTreePassRecursive(ImageQuantizerNode *node);
+void ImageQuantizer_QuantizeImageLists(unsigned int **imageListHeads,
+				       unsigned int listCount,
+				       unsigned int paletteSize, int treeDepth,
+				       int dither, int colorspace);
 int ImageQuantizer_BeginPaletteCollection(int targetColorCount, int treeDepth);
-void ImageQuantizer_ExportPalette6BitAndDestroy(int colorCount, int treeDepth, uint8_t* paletteRgb);
-void ImageQuantizer_ClassifyIndexedRgb565Image(const uint8_t* indexedPixels, const uint16_t* palette16,
-											   unsigned int width, unsigned int height);
-void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t* encodedImage, const uint8_t* paletteRgba,
-												 unsigned int width, unsigned int height, int packingMode);
+void ImageQuantizer_ExportPalette6BitAndDestroy(int colorCount, int treeDepth,
+						uint8_t *paletteRgb);
+void ImageQuantizer_ClassifyIndexedRgb565Image(const uint8_t *indexedPixels,
+					       const uint16_t *palette16,
+					       unsigned int width,
+					       unsigned int height);
+void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t *encodedImage,
+						 const uint8_t *paletteRgba,
+						 unsigned int width,
+						 unsigned int height,
+						 int packingMode);
 
 #ifdef __cplusplus
 }

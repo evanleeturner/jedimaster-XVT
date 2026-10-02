@@ -26,18 +26,22 @@ int g_paiSkipToOrder4Checked = 0;
 // GLOBAL: XVT 0x9A1FF8
 int g_lastRoughDistance = 0;
 // GLOBAL: XVT 0x524100
-uint16_t g_aiSkillValueQ16ByLevel[8] = { 0x0000, 0x4000, 0x8000, 0xC000, 0xFFFF, 0xFFFF, 0x0000, 0x0000 };
+uint16_t g_aiSkillValueQ16ByLevel[8] = {0x0000, 0x4000, 0x8000, 0xC000,
+					0xFFFF, 0xFFFF, 0x0000, 0x0000};
 // GLOBAL: XVT 0x524110
-const uint16_t g_aiThinkIntervalBySkill[8] = { 708, 472, SIMULATION_TICKS_PER_SECOND, 118, 59, 29, 0, 0 };
+const uint16_t g_aiThinkIntervalBySkill[8] = {
+	708, 472, SIMULATION_TICKS_PER_SECOND, 118, 59, 29, 0, 0};
 // GLOBAL: XVT 0x5272F8
 const uint8_t g_planReportMessageIdByPlanId[PAI_PLAN_REPORT_MESSAGE_COUNT] = {
-	159, 159, 159, 183, 178, 186, 183, 178, 183, 178, 183, 178, 162, 164, 166, 163, 162, 165, 165,
-	167, 164, 166, 165, 165, 168, 169, 164, 166, 165, 169, 164, 166, 165, 170, 173, 170, 170, 171,
-	170, 172, 170, 174, 189, 189, 174, 175, 174, 176, 177, 187, 181, 179, 180, 182, 181, 159, 178,
-	183, 183, 184, 185, 161, 161, 183, 183, 187, 188, 190, 170, 162, 191, 191, 191, 0,
+	159, 159, 159, 183, 178, 186, 183, 178, 183, 178, 183, 178, 162,
+	164, 166, 163, 162, 165, 165, 167, 164, 166, 165, 165, 168, 169,
+	164, 166, 165, 169, 164, 166, 165, 170, 173, 170, 170, 171, 170,
+	172, 170, 174, 189, 189, 174, 175, 174, 176, 177, 187, 181, 179,
+	180, 182, 181, 159, 178, 183, 183, 184, 185, 161, 161, 183, 183,
+	187, 188, 190, 170, 162, 191, 191, 191, 0,
 };
 // GLOBAL: XVT 0x525150
-const char* const g_builtinPlanNameTable[76] = {
+const char *const g_builtinPlanNameTable[76] = {
 	"nullpln",
 	"stationaryldrpln",
 	"stationaryflwpln",
@@ -116,149 +120,156 @@ const char* const g_builtinPlanNameTable[76] = {
 };
 // GLOBAL: XVT 0x525280
 struct PaiPlanTokenDef g_paiTargetTokenDefs[10] = {
-	{ "LOCATARGET", 249 },
-	{ "LOCBTARGET", 250 },
-	{ "ABORTTARGET", AI_TARGET_ABORT },
-	{ "NORMALTARGET", 252 },
-	{ "PRIMARYTARGET", 253 },
-	{ "HOMETARGET", 254 },
-	{ "NULLTARGET", 255 },
-	{ "NOTARGET", -1 },
-	{ "0x80", 128 },
-	{ "", 0 },
+	{"LOCATARGET", 249},
+	{"LOCBTARGET", 250},
+	{"ABORTTARGET", AI_TARGET_ABORT},
+	{"NORMALTARGET", 252},
+	{"PRIMARYTARGET", 253},
+	{"HOMETARGET", 254},
+	{"NULLTARGET", 255},
+	{"NOTARGET", -1},
+	{"0x80", 128},
+	{"", 0},
 };
 // GLOBAL: XVT 0x5255B8
 struct PaiPlanTokenDef g_paiManeuverTokenDefs[33] = {
-	{ "NULLMANR", AI_MANEUVER_MODE_NULL },
-	{ "TURNINSIDEMANR", AI_MANEUVER_MODE_TURN_INSIDE },
-	{ "SPLITSMANR", AI_MANEUVER_MODE_SPLITS },
-	{ "IMMELMANNMANR", AI_MANEUVER_MODE_IMMELMANN },
-	{ "SCISSORSMANR", AI_MANEUVER_MODE_SCISSORS },
-	{ "RENDEZVOUSMANR", AI_MANEUVER_MODE_RENDEZVOUS },
-	{ "CRUISEMANR", AI_MANEUVER_MODE_CRUISE },
-	{ "HEADTOWARDFULLMANR", AI_MANEUVER_MODE_HEAD_TOWARD_FULL },
-	{ "RUNAWAYMANR", AI_MANEUVER_MODE_RUN_AWAY },
-	{ "HEADONATTACKMANR", AI_MANEUVER_MODE_HEAD_ON_ATTACK },
-	{ "FOLLOWLEADERMANR", AI_MANEUVER_MODE_FOLLOW_LEADER },
-	{ "SETUPATTACKMANR", AI_MANEUVER_MODE_SETUP_ATTACK },
-	{ "ATTACKMANR", AI_MANEUVER_MODE_ATTACK },
-	{ "ZOOMMANR", AI_MANEUVER_MODE_ZOOM },
-	{ "DIVEMANR", AI_MANEUVER_MODE_DIVE },
-	{ "SPLITSDIVEMANR", AI_MANEUVER_MODE_SPLITS_DIVE },
-	{ "SPEEDAWAYMANR", AI_MANEUVER_MODE_SPEED_AWAY },
-	{ "ESCORTMANR", AI_MANEUVER_MODE_ESCORT },
-	{ "BOARDMANR", AI_MANEUVER_MODE_BOARD },
-	{ "AWAITBOARDMANR", AI_MANEUVER_MODE_AWAIT_BOARD },
-	{ "HEADTOWARDMANR", AI_MANEUVER_MODE_HEAD_TOWARD },
-	{ "INTOHYPERSPACEMANR", AI_MANEUVER_MODE_INTO_HYPERSPACE },
-	{ "OUTOFHYPERSPACEMANR", AI_MANEUVER_MODE_OUT_OF_HYPERSPACE },
-	{ "ROCKETATTACKMANR", AI_MANEUVER_MODE_ROCKET_ATTACK },
-	{ "TURNAWAYMANR", AI_MANEUVER_MODE_TURN_AWAY },
-	{ "STOPMANR", AI_MANEUVER_MODE_STOP },
-	{ "OUTOFHANGARMANR", AI_MANEUVER_MODE_OUT_OF_HANGAR },
-	{ "EVASIVEMANR", AI_MANEUVER_MODE_EVASIVE },
-	{ "AVOIDSTARSHIPMANR", AI_MANEUVER_MODE_AVOID_STARSHIP },
-	{ "WAITMANR", AI_MANEUVER_MODE_WAIT },
-	{ "DROPOFFMANR", AI_MANEUVER_MODE_DROPOFF },
-	{ "KAMIKAZEMANR", AI_MANEUVER_MODE_KAMIKAZE },
-	{ "", 0 },
+	{"NULLMANR", AI_MANEUVER_MODE_NULL},
+	{"TURNINSIDEMANR", AI_MANEUVER_MODE_TURN_INSIDE},
+	{"SPLITSMANR", AI_MANEUVER_MODE_SPLITS},
+	{"IMMELMANNMANR", AI_MANEUVER_MODE_IMMELMANN},
+	{"SCISSORSMANR", AI_MANEUVER_MODE_SCISSORS},
+	{"RENDEZVOUSMANR", AI_MANEUVER_MODE_RENDEZVOUS},
+	{"CRUISEMANR", AI_MANEUVER_MODE_CRUISE},
+	{"HEADTOWARDFULLMANR", AI_MANEUVER_MODE_HEAD_TOWARD_FULL},
+	{"RUNAWAYMANR", AI_MANEUVER_MODE_RUN_AWAY},
+	{"HEADONATTACKMANR", AI_MANEUVER_MODE_HEAD_ON_ATTACK},
+	{"FOLLOWLEADERMANR", AI_MANEUVER_MODE_FOLLOW_LEADER},
+	{"SETUPATTACKMANR", AI_MANEUVER_MODE_SETUP_ATTACK},
+	{"ATTACKMANR", AI_MANEUVER_MODE_ATTACK},
+	{"ZOOMMANR", AI_MANEUVER_MODE_ZOOM},
+	{"DIVEMANR", AI_MANEUVER_MODE_DIVE},
+	{"SPLITSDIVEMANR", AI_MANEUVER_MODE_SPLITS_DIVE},
+	{"SPEEDAWAYMANR", AI_MANEUVER_MODE_SPEED_AWAY},
+	{"ESCORTMANR", AI_MANEUVER_MODE_ESCORT},
+	{"BOARDMANR", AI_MANEUVER_MODE_BOARD},
+	{"AWAITBOARDMANR", AI_MANEUVER_MODE_AWAIT_BOARD},
+	{"HEADTOWARDMANR", AI_MANEUVER_MODE_HEAD_TOWARD},
+	{"INTOHYPERSPACEMANR", AI_MANEUVER_MODE_INTO_HYPERSPACE},
+	{"OUTOFHYPERSPACEMANR", AI_MANEUVER_MODE_OUT_OF_HYPERSPACE},
+	{"ROCKETATTACKMANR", AI_MANEUVER_MODE_ROCKET_ATTACK},
+	{"TURNAWAYMANR", AI_MANEUVER_MODE_TURN_AWAY},
+	{"STOPMANR", AI_MANEUVER_MODE_STOP},
+	{"OUTOFHANGARMANR", AI_MANEUVER_MODE_OUT_OF_HANGAR},
+	{"EVASIVEMANR", AI_MANEUVER_MODE_EVASIVE},
+	{"AVOIDSTARSHIPMANR", AI_MANEUVER_MODE_AVOID_STARSHIP},
+	{"WAITMANR", AI_MANEUVER_MODE_WAIT},
+	{"DROPOFFMANR", AI_MANEUVER_MODE_DROPOFF},
+	{"KAMIKAZEMANR", AI_MANEUVER_MODE_KAMIKAZE},
+	{"", 0},
 };
 // GLOBAL: XVT 0x526050
 struct PaiPlanTokenDef g_paiOrderTokenDefs[49] = {
-	{ "NULLORDR", 0 },
-	{ "UPDATECOURSEORDR", 1 },
-	{ "UNDERATTACKORDR", 2 },
-	{ "STILLATTACKORDR", 3 },
-	{ "FLYHOMEORDR", 4 },
-	{ "FIGHTERSHOOTORDR", 5 },
-	{ "GUNNERSELFDEFENSEORDR", 6 },
-	{ "GUNNEROFFENSEORDR", 7 },
-	{ "MISSILEDEFENSEORDR", 8 },
-	{ "SCANFORTARGETORDR", 9 },
-	{ "WAITRUNORDR", 10 },
-	{ "BREAKOFFORDR", 11 },
-	{ "LEADERDEADORDR", 12 },
-	{ "COVERLEADERORDR", 13 },
-	{ "FOLLOWLEADATKORDR", 14 },
-	{ "ABORTATKORDR", 15 },
-	{ "ONTAILORDR", 16 },
-	{ "ALWAYSORDR", 17 },
-	{ "CHECKESCORTORDR", 18 },
-	{ "LEADERGOHOMEORDR", 19 },
-	{ "HYPERSPACEORDR", 20 },
-	{ "ENTERHANGARORDR", 21 },
-	{ "MOTHERSHIPORDR", 22 },
-	{ "ESCORTTARGETORDR", 23 },
-	{ "LOOKFORDISABLEORDR", 24 },
-	{ "ABORTBOARDORDR", 25 },
-	{ "RETURNBOARDORDR", 26 },
-	{ "AWAITBOARDORDR", 27 },
-	{ "MAKEDISABLEDORDR", 28 },
-	{ "NEARTARGETORDR", 29 },
-	{ "ROCKETSONBOARDORDR", 30 },
-	{ "AVOIDHITORDR", 31 },
-	{ "WAITFORALLRETURNORDR", 32 },
-	{ "WAITFORALLCREATEORDR", 33 },
-	{ "EVASIVEORDR", 34 },
-	{ "NEWTARGETORDR", 35 },
-	{ "AVOIDSTARSHIPORDR", 36 },
-	{ "CHECKHYPERORDR", 37 },
-	{ "STOPGOHOMEORDR", 38 },
-	{ "COMPLETEGOHOMEORDR", 39 },
-	{ "COMPLETEGOOTHERORDR", 40 },
-	{ "COMPLETEFOLLOWORDR", 41 },
-	{ "WAITGOOTHERORDR", 42 },
-	{ "ORDERSWITCHORDR", 43 },
-	{ "KILLSELFORDR", 44 },
-	{ "DROPOFFDESTORDR", 45 },
-	{ "ABORTMOTHERWAITORDR", 46 },
-	{ "PLAYERINPUTORDR", 47 },
-	{ "", 0 },
+	{"NULLORDR", 0},
+	{"UPDATECOURSEORDR", 1},
+	{"UNDERATTACKORDR", 2},
+	{"STILLATTACKORDR", 3},
+	{"FLYHOMEORDR", 4},
+	{"FIGHTERSHOOTORDR", 5},
+	{"GUNNERSELFDEFENSEORDR", 6},
+	{"GUNNEROFFENSEORDR", 7},
+	{"MISSILEDEFENSEORDR", 8},
+	{"SCANFORTARGETORDR", 9},
+	{"WAITRUNORDR", 10},
+	{"BREAKOFFORDR", 11},
+	{"LEADERDEADORDR", 12},
+	{"COVERLEADERORDR", 13},
+	{"FOLLOWLEADATKORDR", 14},
+	{"ABORTATKORDR", 15},
+	{"ONTAILORDR", 16},
+	{"ALWAYSORDR", 17},
+	{"CHECKESCORTORDR", 18},
+	{"LEADERGOHOMEORDR", 19},
+	{"HYPERSPACEORDR", 20},
+	{"ENTERHANGARORDR", 21},
+	{"MOTHERSHIPORDR", 22},
+	{"ESCORTTARGETORDR", 23},
+	{"LOOKFORDISABLEORDR", 24},
+	{"ABORTBOARDORDR", 25},
+	{"RETURNBOARDORDR", 26},
+	{"AWAITBOARDORDR", 27},
+	{"MAKEDISABLEDORDR", 28},
+	{"NEARTARGETORDR", 29},
+	{"ROCKETSONBOARDORDR", 30},
+	{"AVOIDHITORDR", 31},
+	{"WAITFORALLRETURNORDR", 32},
+	{"WAITFORALLCREATEORDR", 33},
+	{"EVASIVEORDR", 34},
+	{"NEWTARGETORDR", 35},
+	{"AVOIDSTARSHIPORDR", 36},
+	{"CHECKHYPERORDR", 37},
+	{"STOPGOHOMEORDR", 38},
+	{"COMPLETEGOHOMEORDR", 39},
+	{"COMPLETEGOOTHERORDR", 40},
+	{"COMPLETEFOLLOWORDR", 41},
+	{"WAITGOOTHERORDR", 42},
+	{"ORDERSWITCHORDR", 43},
+	{"KILLSELFORDR", 44},
+	{"DROPOFFDESTORDR", 45},
+	{"ABORTMOTHERWAITORDR", 46},
+	{"PLAYERINPUTORDR", 47},
+	{"", 0},
 };
 // GLOBAL: XVT 0xA07CF0
-uint8_t* g_planDataPtrs[256];
+uint8_t *g_planDataPtrs[256];
 // GLOBAL: XVT 0x9A8E40
-uint8_t g_planOrderData[0x20000] = { 0 };
+uint8_t g_planOrderData[0x20000] = {0};
 // GLOBAL: XVT 0x9A8068
 int g_planCount = 0;
 // GLOBAL: XVT 0x9A7A40
-uint8_t g_builtinPlanIdByNameIndex[256] = { 0 };
+uint8_t g_builtinPlanIdByNameIndex[256] = {0};
 // GLOBAL: XVT 0x524120
 uint8_t g_orderLeaderBuiltinPlanNameIndex[40] = {
-	0x01, 0x2f, 0x03, 0x05, 0x27, 0x2a, 0x2b, 0x45, 0x08, 0x09, 0x14, 0x13, 0x1c, 0x1d,
-	0x1e, 0x1f, 0x20, 0x21, 0x25, 0x42, 0x42, 0x38, 0x3a, 0x3b, 0x3c, 0x3c, 0x3e, 0x3f,
-	0x01, 0x35, 0x01, 0x22, 0x44, 0x01, 0x01, 0x01, 0x43, 0x46, 0x01, 0x00,
+	0x01, 0x2f, 0x03, 0x05, 0x27, 0x2a, 0x2b, 0x45, 0x08, 0x09,
+	0x14, 0x13, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x25, 0x42,
+	0x42, 0x38, 0x3a, 0x3b, 0x3c, 0x3c, 0x3e, 0x3f, 0x01, 0x35,
+	0x01, 0x22, 0x44, 0x01, 0x01, 0x01, 0x43, 0x46, 0x01, 0x00,
 };
 // GLOBAL: XVT 0x524148
 const uint8_t g_orderFollowerBuiltinPlanNameIndex[40] = {
-	0x02, 0x30, 0x04, 0x06, 0x29, 0x2a, 0x2b, 0x0e, 0x0e, 0x0e, 0x18, 0x0e, 0x1c, 0x1d,
-	0x1e, 0x1f, 0x20, 0x21, 0x04, 0x42, 0x42, 0x39, 0x3a, 0x3b, 0x39, 0x39, 0x39, 0x39,
-	0x02, 0x36, 0x02, 0x22, 0x44, 0x01, 0x01, 0x01, 0x43, 0x46, 0x01, 0x00,
+	0x02, 0x30, 0x04, 0x06, 0x29, 0x2a, 0x2b, 0x0e, 0x0e, 0x0e,
+	0x18, 0x0e, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x04, 0x42,
+	0x42, 0x39, 0x3a, 0x3b, 0x39, 0x39, 0x39, 0x39, 0x02, 0x36,
+	0x02, 0x22, 0x44, 0x01, 0x01, 0x01, 0x43, 0x46, 0x01, 0x00,
 };
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4028A0
-void pai_UpdateAllCraftAI(void) {
+void pai_UpdateAllCraftAI(void)
+{
 	uint16_t objectIndex;
 	int16_t savedRandState;
 
 	savedRandState = g_gameRandFeedbackState;
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-		 objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
-		ObjectRecord* object = &g_objectTable[objectIndex];
-		MobileObject* mobileObject;
-		AiController* controller;
+	     objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
+		ObjectRecord *object = &g_objectTable[objectIndex];
+		MobileObject *mobileObject;
+		AiController *controller;
 
-		if (object->objectType == 0)
+		if (object->objectType == 0) {
 			continue;
+		}
 		mobileObject = object->mobj;
-		if (mobileObject->family != 0)
+		if (mobileObject->family != 0) {
 			continue;
+		}
 		g_curCraft = mobileObject->pCraft;
 		controller = &g_curCraft->aiController;
 		if (g_curCraft->objectKind == CRAFT_OBJECT_KIND_BREAKING_UP ||
-			g_curCraft->objectKind == CRAFT_OBJECT_KIND_EXPLODING || controller->thinkTimer > 0)
+		    g_curCraft->objectKind == CRAFT_OBJECT_KIND_EXPLODING ||
+		    controller->thinkTimer > 0) {
 			continue;
+		}
 		if (object->playerOwnerIdx == -1) {
 			pai_setupcraftcontext(objectIndex);
 			g_gameRandFeedbackState = controller->savedRandSeed;
@@ -271,9 +282,10 @@ void pai_UpdateAllCraftAI(void) {
 }
 
 // FUNCTION: XVT 0x402970
-void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx) {
-	AiController* controller;
-	uint8_t* planData;
+void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx)
+{
+	AiController *controller;
+	uint8_t *planData;
 	uint16_t targetToken;
 	uint8_t maneuverToken;
 
@@ -283,19 +295,31 @@ void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx) {
 
 	if (targetToken != 0xFFu) {
 		if (targetToken == 0xFDu) {
-			if (g_missionFlightGroups[g_objectTable[g_paiContext.objectIndex].flightGroupIdx]
-					.fg.missionPointEnabled[12] != 0) {
+			if (g_missionFlightGroups
+				    [g_objectTable[g_paiContext.objectIndex]
+					     .flightGroupIdx]
+					    .fg.missionPointEnabled[12] != 0) {
 				controller->targetObjIdx = 0x800Cu;
 			} else {
 				controller->targetObjIdx = 0x8000u;
 			}
 		} else if (targetToken == 0xFEu) {
 			if (g_curCraft->capturedByFlightGroup != 0 &&
-				g_missionFlightGroups[g_objectTable[g_paiContext.objectIndex].flightGroupIdx]
-						.fg.missionPointEnabled[12] != 0) {
+			    g_missionFlightGroups
+					    [g_objectTable[g_paiContext
+								   .objectIndex]
+						     .flightGroupIdx]
+						    .fg
+						    .missionPointEnabled[12] !=
+				    0) {
 				controller->targetObjIdx = 0x800Cu;
-			} else if (g_missionFlightGroups[g_objectTable[g_paiContext.objectIndex].flightGroupIdx]
-						   .fg.missionPointEnabled[13] != 0) {
+			} else if (g_missionFlightGroups
+					   [g_objectTable[g_paiContext
+								  .objectIndex]
+						    .flightGroupIdx]
+						   .fg
+						   .missionPointEnabled[13] !=
+				   0) {
 				controller->targetObjIdx = 0x800Du;
 			} else {
 				controller->targetObjIdx = 0x8000u;
@@ -303,9 +327,16 @@ void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx) {
 		} else if (targetToken == 0xF9u) {
 			controller->targetObjIdx = 0x800Cu;
 		} else {
-			if (g_missionFlightGroups[g_objectTable[g_paiContext.objectIndex].flightGroupIdx]
-					.fg.missionPointEnabled[controller->waypointIndex] != 0) {
-				controller->targetObjIdx = (uint16_t)(0x8000u + controller->waypointIndex);
+			if (g_missionFlightGroups
+				    [g_objectTable[g_paiContext.objectIndex]
+					     .flightGroupIdx]
+					    .fg.missionPointEnabled
+						    [controller
+							     ->waypointIndex] !=
+			    0) {
+				controller->targetObjIdx =
+					(uint16_t)(0x8000u +
+						   controller->waypointIndex);
 			} else {
 				controller->targetObjIdx = 0x8000u;
 			}
@@ -313,8 +344,9 @@ void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx) {
 
 		controller->targetSignature = 0;
 		controller->hasLiveTarget = 0;
-		if (controller->targetObjIdx != UINT16_MAX)
+		if (controller->targetObjIdx != UINT16_MAX) {
 			pai_UpdateAimPointFromOrderTarget();
+		}
 	}
 
 	controller->secondaryManeuverTimer = 0;
@@ -327,78 +359,95 @@ void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx) {
 	g_curCraft->lastAttackerObjIdx = UINT16_MAX;
 	g_curCraft->lastHitMissionSecond = 0;
 	g_curCraft->aiFlight.threatObjIdx = UINT16_MAX;
-	controller->thinkTimer = ((objectIdx & 7) * controller->thinkInterval) >> 3;
+	controller->thinkTimer =
+		((objectIdx & 7) * controller->thinkInterval) >> 3;
 }
 
 // FUNCTION: XVT 0x402B60
-void pai_ProcessPlan(void) {
-	AiController* controller;
+void pai_ProcessPlan(void)
+{
+	AiController *controller;
 	uint8_t orderId;
 
 	controller = &g_curCraft->aiController;
 	if (g_objectTable[g_paiContext.objectIndex].playerOwnerIdx != -1 &&
-		strcmp(g_planTable[controller->currentPlanId].name, "escortldr1pln") == 0) {
+	    strcmp(g_planTable[controller->currentPlanId].name,
+		   "escortldr1pln") == 0) {
 		paifight_checkescortorder();
 	}
 
 	g_paiSkipToOrder4Checked = 0;
 	orderId = *g_paiContext.planCursor++;
-	if (orderId == 0)
+	if (orderId == 0) {
 		return;
-
-	while (g_orderTable[orderId]() == 0 ||
-		   strcmp(g_planTable[*g_paiContext.planCursor].name, "nullpln") == 0) {
-		++g_paiContext.planCursor;
-		orderId = *g_paiContext.planCursor++;
-		if (orderId == 0)
-			return;
 	}
 
-	if (strcmp(g_planTable[*g_paiContext.planCursor].name, "variablepln") == 0)
+	while (g_orderTable[orderId]() == 0 ||
+	       strcmp(g_planTable[*g_paiContext.planCursor].name, "nullpln") ==
+		       0) {
+		++g_paiContext.planCursor;
+		orderId = *g_paiContext.planCursor++;
+		if (orderId == 0) {
+			return;
+		}
+	}
+
+	if (strcmp(g_planTable[*g_paiContext.planCursor].name, "variablepln") ==
+	    0) {
 		controller->pendingPlanId = g_paiContext.nullPlanId;
-	else
+	} else {
 		controller->pendingPlanId = *g_paiContext.planCursor;
+	}
 
 	pai_setupcraftcontext(g_paiContext.objectIndex);
 	pai_ApplyPendingPlanTargetAndManeuver(g_paiContext.objectIndex);
-	if (g_paiSkipToOrder4Checked == 1)
+	if (g_paiSkipToOrder4Checked == 1) {
 		g_paiSkipToOrder4Checked = 0;
+	}
 }
 
 // FUNCTION: XVT 0x402CB0
-void pai_setupcraftcontext(uint16_t objectIdx) {
-	AiController* controller;
-	CraftData* leaderOrSelfCraft;
-	ObjectRecord* object;
+void pai_setupcraftcontext(uint16_t objectIdx)
+{
+	AiController *controller;
+	CraftData *leaderOrSelfCraft;
+	ObjectRecord *object;
 
 	g_paiContext.objectIndex = objectIdx;
 	object = &g_objectTable[objectIdx];
 	g_paiContext.craft = object->mobj->pCraft;
-	g_paiContext.leaderObjectIndex = (uint8_t)g_paiContext.craft->leader_obj_idx;
+	g_paiContext.leaderObjectIndex =
+		(uint8_t)g_paiContext.craft->leader_obj_idx;
 	controller = &g_paiContext.craft->aiController;
 	g_paiContext.controller = controller;
 	if (g_paiContext.leaderObjectIndex == UINT8_MAX) {
 		leaderOrSelfCraft = object->mobj->pCraft;
 	} else {
-		leaderOrSelfCraft = g_objectTable[g_paiContext.leaderObjectIndex].mobj->pCraft;
+		leaderOrSelfCraft =
+			g_objectTable[g_paiContext.leaderObjectIndex]
+				.mobj->pCraft;
 	}
 	g_paiContext.leaderOrSelfCraft = leaderOrSelfCraft;
 	g_paiContext.craftFlightGroupIndex = object->flightGroupIdx;
 	g_paiContext.orderSlot = controller->currentOrderSlot;
-	Mission_ResolveObjectOrMissionPointWorldLoc(objectIdx, g_paiContext.craftFlightGroupIndex);
+	Mission_ResolveObjectOrMissionPointWorldLoc(
+		objectIdx, g_paiContext.craftFlightGroupIndex);
 	g_paiContext.craftPositionX = g_worldLocX;
 	g_paiContext.craftPositionY = g_worldLocY;
 	g_paiContext.craftPositionZ = g_worldLocZ;
-	g_paiContext.skillTier = pai_SkillValueToTier(pai_GetEffectiveSkillValue(g_paiContext.craft));
+	g_paiContext.skillTier = pai_SkillValueToTier(
+		pai_GetEffectiveSkillValue(g_paiContext.craft));
 	g_paiContext.planCursor = g_planDataPtrs[controller->pendingPlanId];
 	++g_paiContext.planCursor;
 	g_paiContext.initialManeuverId = *g_paiContext.planCursor++;
 	g_paiContext.requireUndisabledTarget = 0;
-	g_paiContext.nullPlanId = (uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
+	g_paiContext.nullPlanId =
+		(uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
 }
 
 // FUNCTION: XVT 0x402E00
-int pai_SkillValueToTier(uint16_t skillValue) {
+int pai_SkillValueToTier(uint16_t skillValue)
+{
 	if (skillValue < 0x8000) {
 		return 0;
 	}
@@ -406,10 +455,11 @@ int pai_SkillValueToTier(uint16_t skillValue) {
 }
 
 // FUNCTION: XVT 0x402E20
-uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx) {
+uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx)
+{
 	uint16_t objectIndex;
-	CraftData* craft;
-	ObjectRecord* object;
+	CraftData *craft;
+	ObjectRecord *object;
 	uint8_t objectKind;
 
 	objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
@@ -418,9 +468,11 @@ uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx) {
 		if (object->objectType != 0) {
 			craft = object->mobj->pCraft;
 			objectKind = craft->objectKind;
-			if (objectKind != CRAFT_OBJECT_KIND_EXPLODING && objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
-				object->flightGroupIdx == (uint16_t)mothershipFlightGroupIdx &&
-				(uint8_t)craft->leader_obj_idx == UINT8_MAX) {
+			if (objectKind != CRAFT_OBJECT_KIND_EXPLODING &&
+			    objectKind != CRAFT_OBJECT_KIND_BREAKING_UP &&
+			    object->flightGroupIdx ==
+				    (uint16_t)mothershipFlightGroupIdx &&
+			    (uint8_t)craft->leader_obj_idx == UINT8_MAX) {
 				return objectIndex;
 			}
 		}
@@ -432,7 +484,9 @@ uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx) {
 }
 
 // FUNCTION: XVT 0x402EC0
-int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx, int expandRange) {
+int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx,
+				    int expandRange)
+{
 	int targetable;
 	int maxRangeScore;
 
@@ -441,59 +495,92 @@ int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx, int expandR
 
 	if (targetable) {
 		maxRangeScore =
-			(uint16_t)MATH2_fraction(0x500u, g_aiSkillValueQ16ByLevel[g_paiContext.skillTier]) + 2560;
-		if (expandRange != 0)
-			maxRangeScore += (uint16_t)MATH2_fraction((unsigned int)maxRangeScore, 0x5555u);
-		if (pai_IsObjectWithinRangeOfCraft(objIdx, (unsigned int)(maxRangeScore << 8)) == 1)
+			(uint16_t)MATH2_fraction(
+				0x500u,
+				g_aiSkillValueQ16ByLevel[g_paiContext
+								 .skillTier]) +
+			2560;
+		if (expandRange != 0) {
+			maxRangeScore += (uint16_t)MATH2_fraction(
+				(unsigned int)maxRangeScore, 0x5555u);
+		}
+		if (pai_IsObjectWithinRangeOfCraft(
+			    objIdx, (unsigned int)(maxRangeScore << 8)) == 1) {
 			return 1;
+		}
 	}
 	return 0;
 }
 
 // FUNCTION: XVT 0x403070
-int16_t pai_IsObjectWithinSkillRangeOfCraft(uint16_t objIdx) {
+int16_t pai_IsObjectWithinSkillRangeOfCraft(uint16_t objIdx)
+{
 	uint16_t skillRange;
 
-	skillRange = (uint16_t)MATH2_fraction(0x500, g_aiSkillValueQ16ByLevel[g_paiContext.skillTier]);
-	return pai_IsObjectWithinRangeOfCraft(objIdx, (skillRange + 0xA00) << 8) == 1;
+	skillRange = (uint16_t)MATH2_fraction(
+		0x500, g_aiSkillValueQ16ByLevel[g_paiContext.skillTier]);
+	return pai_IsObjectWithinRangeOfCraft(objIdx, (skillRange + 0xA00)
+							      << 8) == 1;
 }
 
 // FUNCTION: XVT 0x403250
-int16_t pai_OrderSlotCanBoardTarget(uint16_t orderSlot) {
+int16_t pai_OrderSlotCanBoardTarget(uint16_t orderSlot)
+{
 	return pai_FindBoardingTargetFromOrder(orderSlot) != -1;
 }
 
 // FUNCTION: XVT 0x403270
-int16_t pai_FindBoardingTargetFromOrder(uint16_t orderSlot) {
+int16_t pai_FindBoardingTargetFromOrder(uint16_t orderSlot)
+{
 	int16_t result;
 
 	result = pai_FindNearestBoardingTarget(
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1OrTarget2,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target2Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target2);
-	if (result == -1)
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderSlot]
+			.target1Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderSlot]
+			.target1,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderSlot]
+			.target1OrTarget2,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderSlot]
+			.target2Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[orderSlot]
+			.target2);
+	if (result == -1) {
 		result = pai_FindNearestBoardingTarget(
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargetTypes[0],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargets[0],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target3OrTarget4,
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
+				.fg.orders[orderSlot]
+				.target3OrTarget4,
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargetTypes[1],
-			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext
+						      .craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargets[1]);
+	}
 	return result;
 }
 
 // FUNCTION: XVT 0x403360
-int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx, unsigned int maxRoughDistance) {
-	ObjectRecord* object;
+int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx,
+				   unsigned int maxRoughDistance)
+{
+	ObjectRecord *object;
 	int deltaX;
 	int deltaY;
 	int deltaZ;
@@ -502,47 +589,58 @@ int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx, unsigned int maxRoughDis
 	deltaX = g_paiContext.craftPositionX - object->world_x;
 	deltaY = g_paiContext.craftPositionY - object->world_y;
 	deltaZ = g_paiContext.craftPositionZ - object->world_z;
-	if (deltaX < 0)
+	if (deltaX < 0) {
 		deltaX = (int)(0u - (unsigned int)deltaX);
-	if (deltaY < 0)
+	}
+	if (deltaY < 0) {
 		deltaY = (int)(0u - (unsigned int)deltaY);
-	if (deltaZ < 0)
+	}
+	if (deltaZ < 0) {
 		deltaZ = (int)(0u - (unsigned int)deltaZ);
+	}
 
-	if (deltaY < deltaX)
+	if (deltaY < deltaX) {
 		g_lastRoughDistance = deltaX + (deltaY >> 1);
-	else
+	} else {
 		g_lastRoughDistance = deltaY + (deltaX >> 1);
+	}
 
-	if (g_lastRoughDistance > deltaZ)
+	if (g_lastRoughDistance > deltaZ) {
 		deltaZ >>= 1;
-	else
+	} else {
 		g_lastRoughDistance >>= 1;
+	}
 	g_lastRoughDistance += deltaZ;
 
 	return g_lastRoughDistance < (int)maxRoughDistance;
 }
 
 // FUNCTION: XVT 0x403400
-void pai_UpdateAimPointFromOrderTarget(void) {
-	Mission_ResolveObjectOrMissionPointWorldLoc(g_paiContext.controller->targetObjIdx,
-												g_objectTable[g_paiContext.objectIndex].flightGroupIdx);
+void pai_UpdateAimPointFromOrderTarget(void)
+{
+	Mission_ResolveObjectOrMissionPointWorldLoc(
+		g_paiContext.controller->targetObjIdx,
+		g_objectTable[g_paiContext.objectIndex].flightGroupIdx);
 	g_paiContext.controller->aimPointX = g_worldLocX;
 	g_paiContext.controller->aimPointY = g_worldLocY;
 	g_paiContext.controller->aimPointZ = g_worldLocZ;
 }
 
 // FUNCTION: XVT 0x403470
-void pai_SetFlightGroupFormation(unsigned int flightGroupIdx, unsigned int formationType,
-								 unsigned int formationSpacing) {
+void pai_SetFlightGroupFormation(unsigned int flightGroupIdx,
+				 unsigned int formationType,
+				 unsigned int formationSpacing)
+{
 	unsigned int objectIndex;
-	ObjectRecord* object;
-	CraftData* craft;
+	ObjectRecord *object;
+	CraftData *craft;
 
 	for (objectIndex = (unsigned int)g_activeRegionObjectSlotStart;
-		 objectIndex < (unsigned int)g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
+	     objectIndex < (unsigned int)g_activeRegionCraftObjectSlotEnd;
+	     ++objectIndex) {
 		object = &g_objectTable[objectIndex];
-		if (object->objectType != 0 && object->flightGroupIdx == flightGroupIdx) {
+		if (object->objectType != 0 &&
+		    object->flightGroupIdx == flightGroupIdx) {
 			craft = object->mobj->pCraft;
 			craft->aiFlight.formationType = formationType;
 			craft->aiFlight.separation = formationSpacing;
@@ -551,7 +649,8 @@ void pai_SetFlightGroupFormation(unsigned int flightGroupIdx, unsigned int forma
 }
 
 // FUNCTION: XVT 0x4034E0
-void pai_ObjectRefDirectionToObjectRef(unsigned int fromRef, unsigned int toRef) {
+void pai_ObjectRefDirectionToObjectRef(unsigned int fromRef, unsigned int toRef)
+{
 	int targetX;
 	int targetY;
 	int targetZ;
@@ -569,7 +668,8 @@ void pai_ObjectRefDirectionToObjectRef(unsigned int fromRef, unsigned int toRef)
 }
 
 // FUNCTION: XVT 0x403540
-void pai_ObjectRefUpdateRoughDistance(unsigned int fromRef, unsigned int toRef) {
+void pai_ObjectRefUpdateRoughDistance(unsigned int fromRef, unsigned int toRef)
+{
 	int deltaX;
 	int deltaY;
 	int deltaZ;
@@ -585,17 +685,21 @@ void pai_ObjectRefUpdateRoughDistance(unsigned int fromRef, unsigned int toRef) 
 	deltaY -= g_worldLocY;
 	deltaZ -= g_worldLocZ;
 
-	if (deltaX < 0)
+	if (deltaX < 0) {
 		deltaX = -deltaX;
-	if (deltaY < 0)
+	}
+	if (deltaY < 0) {
 		deltaY = -deltaY;
-	if (deltaZ < 0)
+	}
+	if (deltaZ < 0) {
 		deltaZ = -deltaZ;
+	}
 
-	if (deltaX > deltaY)
+	if (deltaX > deltaY) {
 		xyScore = deltaX + (deltaY >> 1);
-	else
+	} else {
 		xyScore = deltaY + (deltaX >> 1);
+	}
 
 	if (xyScore > deltaZ) {
 		g_lastRoughDistance = xyScore + (deltaZ >> 1);
@@ -607,7 +711,9 @@ void pai_ObjectRefUpdateRoughDistance(unsigned int fromRef, unsigned int toRef) 
 }
 
 // FUNCTION: XVT 0x4035D0
-void pai_calcrotatedpoint(ObjectRecord* obj, int16_t sideArg, int16_t upArg, int16_t fwdArg) {
+void pai_calcrotatedpoint(ObjectRecord *obj, int16_t sideArg, int16_t upArg,
+			  int16_t fwdArg)
+{
 	int result;
 
 	/* Rotate local coordinates through the cached Q15 orientation basis. */
@@ -629,11 +735,14 @@ void pai_calcrotatedpoint(ObjectRecord* obj, int16_t sideArg, int16_t upArg, int
 }
 
 // FUNCTION: XVT 0x4037B0
-void pai_RotateLocalVectorToWorldScratch(ObjectRecord* objRecord, int localSide, int localUp, int localFwd) {
+void pai_RotateLocalVectorToWorldScratch(ObjectRecord *objRecord, int localSide,
+					 int localUp, int localFwd)
+{
 	int result;
 
 	if (objRecord->mobj->orientMatrixDirty != 0) {
-		FVIEW_calcrotatemove(objRecord->pitch, objRecord->yaw, objRecord);
+		FVIEW_calcrotatemove(objRecord->pitch, objRecord->yaw,
+				     objRecord);
 		FVIEW_calcrotateorient(objRecord->roll, 0, objRecord);
 	}
 
@@ -650,42 +759,50 @@ void pai_RotateLocalVectorToWorldScratch(ObjectRecord* objRecord, int localSide,
 }
 
 // FUNCTION: XVT 0x403990
-void pai_CalcAnglesToAimPoint(void) {
-	ObjectRecord* object;
+void pai_CalcAnglesToAimPoint(void)
+{
+	ObjectRecord *object;
 
 	object = &g_objectTable[g_paiContext.objectIndex];
 	trig2_ctop(g_paiContext.controller->aimPointX - object->world_x,
-			   g_paiContext.controller->aimPointY - object->world_y,
-			   g_paiContext.controller->aimPointZ - object->world_z);
+		   g_paiContext.controller->aimPointY - object->world_y,
+		   g_paiContext.controller->aimPointZ - object->world_z);
 }
 
 // FUNCTION: XVT 0x4039E0
-int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, int16_t targetOrMode,
-									  uint16_t target2Type, uint16_t target2) {
+int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1,
+				      int16_t targetOrMode,
+				      uint16_t target2Type, uint16_t target2)
+{
 	uint16_t objectIdx;
 	uint16_t nearestObject = UINT16_MAX;
 	unsigned int nearestRange = UINT_MAX;
 
-	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart; objectIdx < g_activeRegionCraftObjectSlotEnd;
-		 ++objectIdx) {
+	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart;
+	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
 		int16_t firstMatch;
 		int16_t secondMatch;
 		int16_t craftReservedCount;
-		CraftData* craft;
-		ObjectRecord* object;
-		AiController* controller;
-		const char* planName;
+		CraftData *craft;
+		ObjectRecord *object;
+		AiController *controller;
+		const char *planName;
 
-		if (g_objectTable[objectIdx].objectType == 0)
+		if (g_objectTable[objectIdx].objectType == 0) {
 			continue;
-		firstMatch = Mission_ObjectMatchesTriggerVariable(objectIdx, target1Type, target1);
-		secondMatch = Mission_ObjectMatchesTriggerVariable(objectIdx, target2Type, target2);
-		if (targetOrMode == 1)
+		}
+		firstMatch = Mission_ObjectMatchesTriggerVariable(
+			objectIdx, target1Type, target1);
+		secondMatch = Mission_ObjectMatchesTriggerVariable(
+			objectIdx, target2Type, target2);
+		if (targetOrMode == 1) {
 			firstMatch |= secondMatch;
-		else
+		} else {
 			firstMatch &= secondMatch;
-		if (firstMatch == 0)
+		}
+		if (firstMatch == 0) {
 			continue;
+		}
 
 		/* Until the reset that starts the count, this local is a 0/1 flag: 1 when the craft can be boarded
 		 * now (parked, a platform, disabled, stopped, or waiting to be boarded). */
@@ -694,18 +811,26 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 		craft = g_objectTable[objectIdx].mobj->pCraft;
 		controller = &craft->aiController;
 		planName = g_planTable[controller->currentPlanId].name;
-		if (strcmp(planName, "nullpln") == 0 || strcmp(planName, "stationaryldrpln") == 0 ||
-			strcmp(planName, "stationaryflwpln") == 0 || object->genusId == CRAFT_GENUS_PLATFORM) {
+		if (strcmp(planName, "nullpln") == 0 ||
+		    strcmp(planName, "stationaryldrpln") == 0 ||
+		    strcmp(planName, "stationaryflwpln") == 0 ||
+		    object->genusId == CRAFT_GENUS_PLATFORM) {
 			craftReservedCount = 1;
-		} else if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "boardtocapturepln") ==
-					   0 ||
-				   strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "boardtodestroypln") ==
-					   0) {
-			if (craft->workingSubsystems == 0)
+		} else if (strcmp(g_planTable[g_paiContext.controller
+						      ->currentPlanId]
+					  .name,
+				  "boardtocapturepln") == 0 ||
+			   strcmp(g_planTable[g_paiContext.controller
+						      ->currentPlanId]
+					  .name,
+				  "boardtodestroypln") == 0) {
+			if (craft->workingSubsystems == 0) {
 				craftReservedCount = 1;
+			}
 		} else if (craft->workingSubsystems == 0 ||
-				   controller->maneuverMode == AI_MANEUVER_MODE_AWAIT_BOARD ||
-				   controller->maneuverMode == AI_MANEUVER_MODE_STOP) {
+			   controller->maneuverMode ==
+				   AI_MANEUVER_MODE_AWAIT_BOARD ||
+			   controller->maneuverMode == AI_MANEUVER_MODE_STOP) {
 			craftReservedCount = 1;
 		}
 
@@ -715,38 +840,73 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 
 			craftReservedCount = 0;
 			for (otherIdx = (uint16_t)g_activeRegionObjectSlotStart;
-				 otherIdx < g_activeRegionCraftObjectSlotEnd; ++otherIdx) {
-				ObjectRecord* other = &g_objectTable[otherIdx];
-				if (other->objectType != 0 && otherIdx != g_paiContext.objectIndex) {
-					CraftData* otherCraft;
-					AiController* otherController;
+			     otherIdx < g_activeRegionCraftObjectSlotEnd;
+			     ++otherIdx) {
+				ObjectRecord *other = &g_objectTable[otherIdx];
+				if (other->objectType != 0 &&
+				    otherIdx != g_paiContext.objectIndex) {
+					CraftData *otherCraft;
+					AiController *otherController;
 					int currentPlanId;
 
 					otherCraft = other->mobj->pCraft;
-					currentPlanId = otherCraft->aiController.currentPlanId;
-					otherController = &otherCraft->aiController;
-					if (strcmp(g_planTable[currentPlanId].name, "boardtogivepln") == 0 ||
-						strcmp(g_planTable[currentPlanId].name, "boardtotakepln") == 0 ||
-						strcmp(g_planTable[currentPlanId].name, "boardtoexchangepln") == 0 ||
-						strcmp(g_planTable[currentPlanId].name, "boardtocapturepln") == 0 ||
-						strcmp(g_planTable[currentPlanId].name, "boardtodestroypln") == 0 ||
-						strcmp(g_planTable[currentPlanId].name, "boardtopickuppln") == 0 ||
-						strcmp(g_planTable[currentPlanId].name, "boardtocontactpln") == 0 ||
-						strcmp(g_planTable[currentPlanId].name, "boardtorepairpln") == 0) {
-						if (otherController->targetObjIdx == objectIdx)
+					currentPlanId = otherCraft->aiController
+								.currentPlanId;
+					otherController =
+						&otherCraft->aiController;
+					if (strcmp(g_planTable[currentPlanId]
+							   .name,
+						   "boardtogivepln") == 0 ||
+					    strcmp(g_planTable[currentPlanId]
+							   .name,
+						   "boardtotakepln") == 0 ||
+					    strcmp(g_planTable[currentPlanId]
+							   .name,
+						   "boardtoexchangepln") == 0 ||
+					    strcmp(g_planTable[currentPlanId]
+							   .name,
+						   "boardtocapturepln") == 0 ||
+					    strcmp(g_planTable[currentPlanId]
+							   .name,
+						   "boardtodestroypln") == 0 ||
+					    strcmp(g_planTable[currentPlanId]
+							   .name,
+						   "boardtopickuppln") == 0 ||
+					    strcmp(g_planTable[currentPlanId]
+							   .name,
+						   "boardtocontactpln") == 0 ||
+					    strcmp(g_planTable[currentPlanId]
+							   .name,
+						   "boardtorepairpln") == 0) {
+						if (otherController
+							    ->targetObjIdx ==
+						    objectIdx) {
 							++craftReservedCount;
-						else if (otherCraft->carriedObjectIndex == objectIdx)
+						} else if (
+							otherCraft
+								->carriedObjectIndex ==
+							objectIdx) {
 							++craftReservedCount;
+						}
 					}
 				}
 			}
-			for (sigIdx = 0; sigIdx < g_curCraft->aiFlight.dockedTargetCount; ++sigIdx)
-				if (g_curCraft->aiFlight.dockedTargetSignatures[sigIdx] == object->objectSignature)
+			for (sigIdx = 0;
+			     sigIdx < g_curCraft->aiFlight.dockedTargetCount;
+			     ++sigIdx) {
+				if (g_curCraft->aiFlight
+					    .dockedTargetSignatures[sigIdx] ==
+				    object->objectSignature) {
 					++craftReservedCount;
+				}
+			}
 			if (craftReservedCount == 0) {
-				pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIdx);
-				if ((unsigned int)g_lastRoughDistance >= nearestRange)
+				pai_ObjectRefUpdateRoughDistance(
+					g_paiContext.objectIndex, objectIdx);
+				if ((unsigned int)g_lastRoughDistance >=
+				    nearestRange) {
 					continue;
+				}
 				nearestRange = g_lastRoughDistance;
 				nearestObject = objectIdx;
 			}
@@ -754,64 +914,119 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 	}
 
 	for (objectIdx = (uint16_t)g_regionMainObjectSlotEnd;
-		 (int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount) > objectIdx; ++objectIdx) {
+	     (int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount) >
+	     objectIdx;
+	     ++objectIdx) {
 		int16_t firstMatch;
 		int16_t secondMatch;
-		ObjectRecord* object = &g_objectTable[objectIdx];
+		ObjectRecord *object = &g_objectTable[objectIdx];
 		uint16_t objectType = object->objectType;
 
-		if (objectType != 0 && (g_objectTypeTable[objectType].behaviorFlags & 2) != 0) {
-			firstMatch =
-				Mission_FlightGroupMatchesTriggerVariable(object->flightGroupIdx, target1Type, target1);
-			secondMatch = Mission_FlightGroupMatchesTriggerVariable(g_objectTable[objectIdx].flightGroupIdx,
-																	target2Type, target2);
-			if (targetOrMode == 1)
+		if (objectType != 0 &&
+		    (g_objectTypeTable[objectType].behaviorFlags & 2) != 0) {
+			firstMatch = Mission_FlightGroupMatchesTriggerVariable(
+				object->flightGroupIdx, target1Type, target1);
+			secondMatch = Mission_FlightGroupMatchesTriggerVariable(
+				g_objectTable[objectIdx].flightGroupIdx,
+				target2Type, target2);
+			if (targetOrMode == 1) {
 				firstMatch |= secondMatch;
-			else
+			} else {
 				firstMatch &= secondMatch;
+			}
 			if (firstMatch != 0) {
 				int16_t reservedCount = 0;
 				uint16_t otherIdx;
 				uint16_t sigIdx;
 
-				for (otherIdx = (uint16_t)g_activeRegionObjectSlotStart;
-					 otherIdx < g_activeRegionCraftObjectSlotEnd; ++otherIdx) {
-					ObjectRecord* other = &g_objectTable[otherIdx];
-					if (other->objectType != 0 && otherIdx != g_paiContext.objectIndex) {
+				for (otherIdx = (uint16_t)
+					     g_activeRegionObjectSlotStart;
+				     otherIdx <
+				     g_activeRegionCraftObjectSlotEnd;
+				     ++otherIdx) {
+					ObjectRecord *other =
+						&g_objectTable[otherIdx];
+					if (other->objectType != 0 &&
+					    otherIdx !=
+						    g_paiContext.objectIndex) {
 						int currentPlanId;
-						AiController* otherController;
+						AiController *otherController;
 
-						otherController = &other->mobj->pCraft->aiController;
-						currentPlanId = otherController->currentPlanId;
-						if ((strcmp(g_planTable[currentPlanId].name, "boardtogivepln") == 0 ||
-							 strcmp(g_planTable[currentPlanId].name, "boardtotakepln") == 0 ||
-							 strcmp(g_planTable[currentPlanId].name, "boardtoexchangepln") == 0 ||
-							 strcmp(g_planTable[currentPlanId].name, "boardtocapturepln") == 0 ||
-							 strcmp(g_planTable[currentPlanId].name, "boardtodestroypln") == 0 ||
-							 strcmp(g_planTable[currentPlanId].name, "boardtocontactpln") == 0 ||
-							 strcmp(g_planTable[currentPlanId].name, "boardtorepairpln") == 0) &&
-							otherController->targetObjIdx == objectIdx)
+						otherController =
+							&other->mobj->pCraft
+								 ->aiController;
+						currentPlanId =
+							otherController
+								->currentPlanId;
+						if ((strcmp(g_planTable
+								    [currentPlanId]
+									    .name,
+							    "boardtogivepln") ==
+							     0 ||
+						     strcmp(g_planTable
+								    [currentPlanId]
+									    .name,
+							    "boardtotakepln") ==
+							     0 ||
+						     strcmp(g_planTable
+								    [currentPlanId]
+									    .name,
+							    "boardtoexchangepln") ==
+							     0 ||
+						     strcmp(g_planTable
+								    [currentPlanId]
+									    .name,
+							    "boardtocapturepln") ==
+							     0 ||
+						     strcmp(g_planTable
+								    [currentPlanId]
+									    .name,
+							    "boardtodestroypln") ==
+							     0 ||
+						     strcmp(g_planTable
+								    [currentPlanId]
+									    .name,
+							    "boardtocontactpln") ==
+							     0 ||
+						     strcmp(g_planTable
+								    [currentPlanId]
+									    .name,
+							    "boardtorepairpln") ==
+							     0) &&
+						    otherController->targetObjIdx ==
+							    objectIdx) {
 							++reservedCount;
+						}
 					}
 				}
 				{
 					uint8_t signatureCount;
 
 					sigIdx = 0;
-					signatureCount = g_curCraft->aiFlight.dockedTargetCount;
+					signatureCount =
+						g_curCraft->aiFlight
+							.dockedTargetCount;
 					if (signatureCount != 0) {
 						do {
-							if (g_curCraft->aiFlight.dockedTargetSignatures[sigIdx] ==
-								g_objectTable[objectIdx].objectSignature)
+							if (g_curCraft->aiFlight.dockedTargetSignatures
+								    [sigIdx] ==
+							    g_objectTable[objectIdx]
+								    .objectSignature) {
 								++reservedCount;
+							}
 							++sigIdx;
-						} while (sigIdx < signatureCount);
+						} while (sigIdx <
+							 signatureCount);
 					}
 				}
 				if (reservedCount == 0) {
-					pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIdx);
-					if ((unsigned int)g_lastRoughDistance >= nearestRange)
+					pai_ObjectRefUpdateRoughDistance(
+						g_paiContext.objectIndex,
+						objectIdx);
+					if ((unsigned int)g_lastRoughDistance >=
+					    nearestRange) {
 						continue;
+					}
 					nearestRange = g_lastRoughDistance;
 					nearestObject = objectIdx;
 				}
@@ -822,89 +1037,108 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 }
 
 // FUNCTION: XVT 0x403FE0
-int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot) {
+int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot)
+{
 	int16_t result;
 
 	result = 0;
 	if (strcmp(g_planTable[planId].name, "formldr1pln") == 0 ||
-		strcmp(g_planTable[planId].name, "formevadeldr1pln") == 0 ||
-		strcmp(g_planTable[planId].name, "starshipformpln") == 0 ||
-		strcmp(g_planTable[planId].name, "rendezvous1pln") == 0 ||
-		strcmp(g_planTable[planId].name, "disabledpln") == 0 ||
-		strcmp(g_planTable[planId].name, "waitforboardpln") == 0) {
-		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].variable1 <=
-			g_paiContext.controller->orderProgress.goalProgress[orderSlot]) {
+	    strcmp(g_planTable[planId].name, "formevadeldr1pln") == 0 ||
+	    strcmp(g_planTable[planId].name, "starshipformpln") == 0 ||
+	    strcmp(g_planTable[planId].name, "rendezvous1pln") == 0 ||
+	    strcmp(g_planTable[planId].name, "disabledpln") == 0 ||
+	    strcmp(g_planTable[planId].name, "waitforboardpln") == 0) {
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[orderSlot]
+			    .variable1 <= g_paiContext.controller->orderProgress
+						  .goalProgress[orderSlot]) {
 			result = 1;
 		}
 	} else if (strcmp(g_planTable[planId].name, "capfreeldr1pln") == 0 ||
-			   strcmp(g_planTable[planId].name, "capescortersldr1pln") == 0 ||
-			   strcmp(g_planTable[planId].name, "caprespondldr1pln") == 0 ||
-			   strcmp(g_planTable[planId].name, "escortldr1pln") == 0 ||
-			   strcmp(g_planTable[planId].name, "disableldr1pln") == 0 ||
-			   strcmp(g_planTable[planId].name, "starshipprotectpln") == 0 ||
-			   strcmp(g_planTable[planId].name, "starshipattackpln") == 0 ||
-			   strcmp(g_planTable[planId].name, "starshipdisablepln") == 0) {
+		   strcmp(g_planTable[planId].name, "capescortersldr1pln") ==
+			   0 ||
+		   strcmp(g_planTable[planId].name, "caprespondldr1pln") == 0 ||
+		   strcmp(g_planTable[planId].name, "escortldr1pln") == 0 ||
+		   strcmp(g_planTable[planId].name, "disableldr1pln") == 0 ||
+		   strcmp(g_planTable[planId].name, "starshipprotectpln") ==
+			   0 ||
+		   strcmp(g_planTable[planId].name, "starshipattackpln") == 0 ||
+		   strcmp(g_planTable[planId].name, "starshipdisablepln") ==
+			   0) {
 		if (paifight_SearchOrderSlotRemainingTargets(orderSlot) == 0 &&
-			paifight_OrderSlotHasFutureTargets(orderSlot) == 0) {
+		    paifight_OrderSlotHasFutureTargets(orderSlot) == 0) {
 			result = 1;
 		}
 	} else if (strcmp(g_planTable[planId].name, "boardtogivepln") == 0 ||
-			   strcmp(g_planTable[planId].name, "boardtotakepln") == 0 ||
-			   strcmp(g_planTable[planId].name, "boardtoexchangepln") == 0 ||
-			   strcmp(g_planTable[planId].name, "boardtocapturepln") == 0 ||
-			   strcmp(g_planTable[planId].name, "boardtodestroypln") == 0 ||
-			   strcmp(g_planTable[planId].name, "boardtopickuppln") == 0 ||
-			   strcmp(g_planTable[planId].name, "boardtocontactpln") == 0 ||
-			   strcmp(g_planTable[planId].name, "boardtorepairpln") == 0) {
-		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].variable2 <=
-			g_paiContext.controller->orderProgress.goalProgress[orderSlot]) {
+		   strcmp(g_planTable[planId].name, "boardtotakepln") == 0 ||
+		   strcmp(g_planTable[planId].name, "boardtoexchangepln") ==
+			   0 ||
+		   strcmp(g_planTable[planId].name, "boardtocapturepln") == 0 ||
+		   strcmp(g_planTable[planId].name, "boardtodestroypln") == 0 ||
+		   strcmp(g_planTable[planId].name, "boardtopickuppln") == 0 ||
+		   strcmp(g_planTable[planId].name, "boardtocontactpln") == 0 ||
+		   strcmp(g_planTable[planId].name, "boardtorepairpln") == 0) {
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			    .fg.orders[orderSlot]
+			    .variable2 <= g_paiContext.controller->orderProgress
+						  .goalProgress[orderSlot]) {
 			result = 1;
 		}
 	} else if (strcmp(g_planTable[planId].name, "dropoffldr1pln") == 0) {
-		if ((unsigned int)
-				g_missionFgStats[(uint16_t)(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-												.fg.orders[orderSlot]
-												.variable2 -
-											1)]
-					.outcomeCount[FLIGHT_GROUP_OUTCOME_TOTAL] <=
-			g_paiContext.controller->orderProgress.goalProgress[orderSlot]) {
+		if ((unsigned int)g_missionFgStats
+			    [(uint16_t)(g_missionFlightGroups
+						[g_paiContext
+							 .craftFlightGroupIndex]
+							.fg.orders[orderSlot]
+							.variable2 -
+					1)]
+				    .outcomeCount[FLIGHT_GROUP_OUTCOME_TOTAL] <=
+		    g_paiContext.controller->orderProgress
+			    .goalProgress[orderSlot]) {
 			result = 1;
 		}
 	} else if (strcmp(g_planTable[planId].name, "waitpln") == 0) {
-		if (g_paiContext.controller->maneuverTimer == 0)
+		if (g_paiContext.controller->maneuverTimer == 0) {
 			result = 1;
-	} else if (strcmp(g_planTable[planId].name, "starshipwaitreturnpln") == 0) {
-		if (paiorder_waitforallreturnorder() != 0)
+		}
+	} else if (strcmp(g_planTable[planId].name, "starshipwaitreturnpln") ==
+		   0) {
+		if (paiorder_waitforallreturnorder() != 0) {
 			result = 1;
-	} else if (strcmp(g_planTable[planId].name, "starshipwaitcreatepln") == 0 &&
-			   paiorder_waitforallcreateorder() != 0) {
+		}
+	} else if (strcmp(g_planTable[planId].name, "starshipwaitcreatepln") ==
+			   0 &&
+		   paiorder_waitforallcreateorder() != 0) {
 		result = 1;
 	}
 	return result;
 }
 
 // FUNCTION: XVT 0x404380
-int16_t pai_IsBoardingPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot) {
+int16_t pai_IsBoardingPlanCompleteForOrderSlot(uint16_t planId,
+					       uint16_t orderSlot)
+{
 	int16_t result;
 
 	result = 0;
 	if ((strcmp(g_planTable[planId].name, "boardtogivepln") == 0 ||
-		 strcmp(g_planTable[planId].name, "boardtotakepln") == 0 ||
-		 strcmp(g_planTable[planId].name, "boardtoexchangepln") == 0 ||
-		 strcmp(g_planTable[planId].name, "boardtocapturepln") == 0 ||
-		 strcmp(g_planTable[planId].name, "boardtodestroypln") == 0 ||
-		 strcmp(g_planTable[planId].name, "boardtopickuppln") == 0 ||
-		 strcmp(g_planTable[planId].name, "boardtocontactpln") == 0 ||
-		 strcmp(g_planTable[planId].name, "boardtorepairpln") == 0) &&
-		paifight_SearchOrderSlotRemainingTargets(orderSlot) == 0 &&
-		paifight_OrderSlotHasFutureTargets(orderSlot) == 0) {
+	     strcmp(g_planTable[planId].name, "boardtotakepln") == 0 ||
+	     strcmp(g_planTable[planId].name, "boardtoexchangepln") == 0 ||
+	     strcmp(g_planTable[planId].name, "boardtocapturepln") == 0 ||
+	     strcmp(g_planTable[planId].name, "boardtodestroypln") == 0 ||
+	     strcmp(g_planTable[planId].name, "boardtopickuppln") == 0 ||
+	     strcmp(g_planTable[planId].name, "boardtocontactpln") == 0 ||
+	     strcmp(g_planTable[planId].name, "boardtorepairpln") == 0) &&
+	    paifight_SearchOrderSlotRemainingTargets(orderSlot) == 0 &&
+	    paifight_OrderSlotHasFutureTargets(orderSlot) == 0) {
 		result = 1;
 	}
 	return result;
 }
 
 // FUNCTION: XVT 0x404450
-int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx) {
+int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx)
+{
 	int16_t primaryMatch;
 	int16_t secondaryMatch;
 	int16_t match;
@@ -914,55 +1148,64 @@ int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx) {
 		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 			.fg.orders[g_paiContext.orderSlot]
 			.target1Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[g_paiContext.orderSlot].target1);
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[g_paiContext.orderSlot]
+			.target1);
 	match = Mission_ObjectMatchesTriggerVariable(
 		objectIdx,
 		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 			.fg.orders[g_paiContext.orderSlot]
 			.target2Type,
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[g_paiContext.orderSlot].target2);
-	if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 			.fg.orders[g_paiContext.orderSlot]
-			.target1OrTarget2 == 1)
+			.target2);
+	if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+		    .fg.orders[g_paiContext.orderSlot]
+		    .target1OrTarget2 == 1) {
 		primaryMatch |= match;
-	else
+	} else {
 		primaryMatch &= match;
+	}
 
-	secondaryMatch =
-		Mission_ObjectMatchesTriggerVariable(objectIdx,
-											 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-												 .fg.orders[g_paiContext.orderSlot]
-												 .secondaryTargetTypes[0],
-											 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-												 .fg.orders[g_paiContext.orderSlot]
-												 .secondaryTargets[0]);
-	match = Mission_ObjectMatchesTriggerVariable(objectIdx,
-												 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													 .fg.orders[g_paiContext.orderSlot]
-													 .secondaryTargetTypes[1],
-												 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-													 .fg.orders[g_paiContext.orderSlot]
-													 .secondaryTargets[1]);
-	if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+	secondaryMatch = Mission_ObjectMatchesTriggerVariable(
+		objectIdx,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 			.fg.orders[g_paiContext.orderSlot]
-			.target3OrTarget4 == 1)
+			.secondaryTargetTypes[0],
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[g_paiContext.orderSlot]
+			.secondaryTargets[0]);
+	match = Mission_ObjectMatchesTriggerVariable(
+		objectIdx,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[g_paiContext.orderSlot]
+			.secondaryTargetTypes[1],
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+			.fg.orders[g_paiContext.orderSlot]
+			.secondaryTargets[1]);
+	if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
+		    .fg.orders[g_paiContext.orderSlot]
+		    .target3OrTarget4 == 1) {
 		secondaryMatch |= match;
-	else
+	} else {
 		secondaryMatch &= match;
+	}
 
 	return primaryMatch || secondaryMatch;
 }
 
 // FUNCTION: XVT 0x404620
-uint16_t pai_GetEffectiveSkillValue(CraftData* craft) {
-	ObjectRecord* linkedObject;
+uint16_t pai_GetEffectiveSkillValue(CraftData *craft)
+{
+	ObjectRecord *linkedObject;
 
 	linkedObject = craft->effectiveAiObjectLink;
 	if (linkedObject == 0) {
 		return craft->aiSkill;
 	}
 
-	if (linkedObject->objectSignature != craft->effectiveAiObjectSignature) {
+	if (linkedObject->objectSignature !=
+	    craft->effectiveAiObjectSignature) {
 		craft->effectiveAiObjectLink = 0;
 		return craft->aiSkill;
 	}
@@ -978,27 +1221,37 @@ uint16_t pai_GetEffectiveSkillValue(CraftData* craft) {
 }
 
 // FUNCTION: XVT 0x404670
-int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx, int leaderPlanNameIndex, int targetObjIdx) {
+int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx,
+					     int leaderPlanNameIndex,
+					     int targetObjIdx)
+{
 	unsigned int orderSlot;
 
-	if (objectIdx == -1)
+	if (objectIdx == -1) {
 		return 0;
+	}
 	pai_setupcraftcontext(objectIdx);
 	for (orderSlot = 0; orderSlot < 3; ++orderSlot) {
-		uint8_t order =
-			g_missionFlightGroups[g_objectTable[objectIdx].flightGroupIdx].fg.orders[orderSlot].order;
-		if (g_orderLeaderBuiltinPlanNameIndex[order] == leaderPlanNameIndex) {
+		uint8_t order = g_missionFlightGroups[g_objectTable[objectIdx]
+							      .flightGroupIdx]
+					.fg.orders[orderSlot]
+					.order;
+		if (g_orderLeaderBuiltinPlanNameIndex[order] ==
+		    leaderPlanNameIndex) {
 			g_paiContext.orderSlot = (uint16_t)orderSlot;
-			if (pai_CurrentOrderTargetsMatchObject(targetObjIdx) != 0)
+			if (pai_CurrentOrderTargetsMatchObject(targetObjIdx) !=
+			    0) {
 				return 1;
+			}
 		}
 	}
 	return 0;
 }
 
 // FUNCTION: XVT 0x46AC80
-int pai_FindPlanTableIndexByName(const char* planName) {
-	const PaiPlanRecord* plan = g_planTable;
+int pai_FindPlanTableIndexByName(const char *planName)
+{
+	const PaiPlanRecord *plan = g_planTable;
 	unsigned int planIndex;
 
 	for (planIndex = 0; planIndex < 256; ++plan, ++planIndex) {
@@ -1010,7 +1263,8 @@ int pai_FindPlanTableIndexByName(const char* planName) {
 }
 
 // FUNCTION: XVT 0x46ACB0
-int pai_FindFreePlanTableIndex(void) {
+int pai_FindFreePlanTableIndex(void)
+{
 	int planIndex;
 
 	for (planIndex = 0; planIndex < 256; ++planIndex) {
@@ -1022,11 +1276,12 @@ int pai_FindFreePlanTableIndex(void) {
 }
 
 // FUNCTION: XVT 0x46ACD0
-int pai_FindTargetTokenIndex(const char* token) {
+int pai_FindTargetTokenIndex(const char *token)
+{
 	int tokenIndex = 0;
 
 	if (g_paiTargetTokenDefs[0].name[0] != '\0') {
-		struct PaiPlanTokenDef* tokenDef = g_paiTargetTokenDefs;
+		struct PaiPlanTokenDef *tokenDef = g_paiTargetTokenDefs;
 
 		do {
 			if (strcmp(tokenDef->name, token) == 0) {
@@ -1041,11 +1296,12 @@ int pai_FindTargetTokenIndex(const char* token) {
 }
 
 // FUNCTION: XVT 0x46AD30
-int pai_FindManeuverTokenIndex(const char* token) {
+int pai_FindManeuverTokenIndex(const char *token)
+{
 	int tokenIndex = 0;
 
 	if (g_paiManeuverTokenDefs[0].name[0] != '\0') {
-		struct PaiPlanTokenDef* tokenDef = g_paiManeuverTokenDefs;
+		struct PaiPlanTokenDef *tokenDef = g_paiManeuverTokenDefs;
 
 		do {
 			if (strcmp(tokenDef->name, token) == 0) {
@@ -1060,11 +1316,12 @@ int pai_FindManeuverTokenIndex(const char* token) {
 }
 
 // FUNCTION: XVT 0x46AD90
-int pai_FindOrderTokenIndex(const char* token) {
+int pai_FindOrderTokenIndex(const char *token)
+{
 	int tokenIndex = 0;
 
 	if (g_paiOrderTokenDefs[0].name[0] != '\0') {
-		struct PaiPlanTokenDef* tokenDef = g_paiOrderTokenDefs;
+		struct PaiPlanTokenDef *tokenDef = g_paiOrderTokenDefs;
 
 		do {
 			if (strcmp(tokenDef->name, token) == 0) {
@@ -1079,24 +1336,29 @@ int pai_FindOrderTokenIndex(const char* token) {
 }
 
 // FUNCTION: XVT 0x46ADF0
-int pai_ReadPlanTextToken(char* token, XvtFile* stream) {
+int pai_ReadPlanTextToken(char *token, XvtFile *stream)
+{
 	int tokenLength = 1;
 	char readChar;
 
 	*token = '\0';
 	for (;;) {
 		do {
-			if (File_RawRead(&readChar, 1, 1, stream) != 1)
+			if (File_RawRead(&readChar, 1, 1, stream) != 1) {
 				return 1;
-		} while (readChar == ' ' || readChar == '\t' || readChar == '\n' || readChar == ',' ||
-				 readChar == '\n');
+			}
+		} while (readChar == ' ' || readChar == '\t' ||
+			 readChar == '\n' || readChar == ',' ||
+			 readChar == '\n');
 
-		if (readChar != ';')
+		if (readChar != ';') {
 			break;
+		}
 
 		do {
-			if (File_RawRead(&readChar, 1, 1, stream) != 1)
+			if (File_RawRead(&readChar, 1, 1, stream) != 1) {
 				return 1;
+			}
 		} while (readChar != '\n');
 	}
 
@@ -1106,8 +1368,10 @@ int pai_ReadPlanTextToken(char* token, XvtFile* stream) {
 			token[tokenLength] = '\0';
 			return 1;
 		}
-		if (readChar == ',' || readChar == '\n' || readChar == ' ' || readChar == '\t' || readChar == '\n')
+		if (readChar == ',' || readChar == '\n' || readChar == ' ' ||
+		    readChar == '\t' || readChar == '\n') {
 			break;
+		}
 		token[tokenLength] = readChar;
 		++tokenLength;
 	}
@@ -1116,19 +1380,21 @@ int pai_ReadPlanTextToken(char* token, XvtFile* stream) {
 }
 
 // FUNCTION: XVT 0x46AED0
-int pai_CompilePlansFromText(const char* baseName) {
+int pai_CompilePlansFromText(const char *baseName)
+{
 	char fileName[256];
 	char token[256];
-	XvtFile* stream;
-	uint8_t* cursor;
+	XvtFile *stream;
+	uint8_t *cursor;
 	int planIndex;
 
 	strcpy(fileName, baseName);
 	strcat(fileName, ".pln");
 	FeDiskIo_OpenGlobalStream(fileName, "r", 0, 0);
-	stream = (XvtFile*)g_stream;
-	if (stream == NULL)
+	stream = (XvtFile *)g_stream;
+	if (stream == NULL) {
 		return 0;
+	}
 
 	cursor = g_planOrderData;
 	for (;;) {
@@ -1139,8 +1405,9 @@ int pai_CompilePlansFromText(const char* baseName) {
 			File_RawClose(stream);
 			return 0;
 		}
-		if (token[0] == '*')
+		if (token[0] == '*') {
 			break;
+		}
 
 		planIndex = pai_FindPlanTableIndexByName(token);
 		if (planIndex != 256) {
@@ -1156,10 +1423,12 @@ int pai_CompilePlansFromText(const char* baseName) {
 			}
 		}
 
-		strncpy(g_planTable[planIndex].name, token, sizeof(g_planTable[planIndex].name));
+		strncpy(g_planTable[planIndex].name, token,
+			sizeof(g_planTable[planIndex].name));
 		g_planTable[planIndex].name[79] = '\0';
 		g_planTable[planIndex].isDefined = 1;
-		g_planTable[planIndex].dataOffset = (uint32_t)(cursor - g_planOrderData);
+		g_planTable[planIndex].dataOffset =
+			(uint32_t)(cursor - g_planOrderData);
 		g_planDataPtrs[planIndex] = cursor;
 
 		if (pai_ReadPlanTextToken(token, stream) == 0) {
@@ -1182,7 +1451,8 @@ int pai_CompilePlansFromText(const char* baseName) {
 			File_RawClose(stream);
 			return 0;
 		}
-		*cursor++ = (uint8_t)g_paiManeuverTokenDefs[maneuverIndex].value;
+		*cursor++ =
+			(uint8_t)g_paiManeuverTokenDefs[maneuverIndex].value;
 
 		for (;;) {
 			int orderIndex;
@@ -1199,7 +1469,8 @@ int pai_CompilePlansFromText(const char* baseName) {
 				return 0;
 			}
 
-			*cursor++ = (uint8_t)g_paiOrderTokenDefs[orderIndex].value;
+			*cursor++ =
+				(uint8_t)g_paiOrderTokenDefs[orderIndex].value;
 			if (orderIndex == 0) {
 				++g_planCount;
 				break;
@@ -1220,7 +1491,8 @@ int pai_CompilePlansFromText(const char* baseName) {
 				File_RawClose(stream);
 				return 0;
 			}
-			strncpy(g_planTable[freePlanId].name, token, sizeof(g_planTable[freePlanId].name));
+			strncpy(g_planTable[freePlanId].name, token,
+				sizeof(g_planTable[freePlanId].name));
 			g_planTable[freePlanId].name[79] = '\0';
 			g_planTable[freePlanId].isDefined = 0;
 			*cursor++ = (uint8_t)freePlanId;
@@ -1229,14 +1501,16 @@ int pai_CompilePlansFromText(const char* baseName) {
 
 	File_RawClose(stream);
 	for (planIndex = 0; planIndex < 256; ++planIndex) {
-		if (g_planTable[planIndex].name[0] != '\0' && g_planTable[planIndex].isDefined != 1)
+		if (g_planTable[planIndex].name[0] != '\0' &&
+		    g_planTable[planIndex].isDefined != 1) {
 			return 0;
+		}
 	}
 
 	strcpy(fileName, baseName);
 	strcat(fileName, ".plo");
 	FeDiskIo_OpenGlobalStream(fileName, "wb", 0, 1);
-	stream = (XvtFile*)g_stream;
+	stream = (XvtFile *)g_stream;
 	if (stream != NULL) {
 		/* From here the same local holds the byte size of each section of the .plo file; each size is written
 		 * just before its section. */
@@ -1253,10 +1527,11 @@ int pai_CompilePlansFromText(const char* baseName) {
 }
 
 // FUNCTION: XVT 0x46B3D0
-int pai_loadplans(char* baseName) {
+int pai_loadplans(char *baseName)
+{
 	char fileName[256];
 	uint32_t bufferSize;
-	XvtFile* stream;
+	XvtFile *stream;
 	int planIndex;
 	int planCount;
 
@@ -1266,9 +1541,10 @@ int pai_loadplans(char* baseName) {
 	g_planCount = 0;
 	memset(g_planDataPtrs, 0, 0x100);
 	FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 1);
-	stream = (XvtFile*)g_stream;
-	if (stream == NULL)
+	stream = (XvtFile *)g_stream;
+	if (stream == NULL) {
 		return pai_CompilePlansFromText(baseName);
+	}
 
 	if (File_RawRead(&bufferSize, sizeof(bufferSize), 1, stream) != 1) {
 		File_RawClose(stream);
@@ -1293,7 +1569,9 @@ int pai_loadplans(char* baseName) {
 	do {
 		if (g_planTable[planIndex].name[0] != '\0') {
 			++planCount;
-			g_planDataPtrs[planIndex] = &g_planOrderData[g_planTable[planIndex].dataOffset];
+			g_planDataPtrs[planIndex] =
+				&g_planOrderData[g_planTable[planIndex]
+							 .dataOffset];
 		}
 		g_planCount = planCount;
 		++planIndex;
@@ -1303,10 +1581,11 @@ int pai_loadplans(char* baseName) {
 }
 
 // FUNCTION: XVT 0x46B5B0
-void pai_cacheBuiltinPlanIds(void) {
+void pai_cacheBuiltinPlanIds(void)
+{
 	int planNameOrdinal;
-	const char* const* planNameCursor;
-	const char* planName;
+	const char *const *planNameCursor;
+	const char *planName;
 
 	planName = g_builtinPlanNameTable[0];
 	planNameOrdinal = 0;
@@ -1314,23 +1593,27 @@ void pai_cacheBuiltinPlanIds(void) {
 		planNameCursor = g_builtinPlanNameTable;
 		do {
 			planNameCursor++;
-			g_builtinPlanIdByNameIndex[planNameOrdinal++] = (uint8_t)pai_FindPlanTableIndexByName(planName);
+			g_builtinPlanIdByNameIndex[planNameOrdinal++] =
+				(uint8_t)pai_FindPlanTableIndexByName(planName);
 			planName = *planNameCursor;
 		} while (*planName != '\0');
 	}
 }
 
 // FUNCTION: XVT 0x46B5F0
-uint8_t* pai_getplandataptrbyname(const char* planName) {
+uint8_t *pai_getplandataptrbyname(const char *planName)
+{
 	return g_planDataPtrs[pai_FindPlanTableIndexByName(planName)];
 }
 
 // FUNCTION: XVT 0x46B610
-int pai_FindPlanIdByNameOrZero(const char* planName) {
+int pai_FindPlanIdByNameOrZero(const char *planName)
+{
 	int planIndex;
 
 	for (planIndex = 0; planIndex < 256; ++planIndex) {
-		if (strncmp(g_planTable[planIndex].name, planName, sizeof(g_planTable[planIndex].name)) == 0) {
+		if (strncmp(g_planTable[planIndex].name, planName,
+			    sizeof(g_planTable[planIndex].name)) == 0) {
 			return planIndex;
 		}
 	}

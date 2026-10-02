@@ -27,17 +27,21 @@ enum { TABLE_HANDLE = 5 };
 
 static ObjectRecord g_testObjects[4];
 
-static void UseObjects(ObjectRecord* objects, size_t count, int main_end, int static_count) {
+static void UseObjects(ObjectRecord *objects, size_t count, int main_end,
+		       int static_count)
+{
 	g_objectTable = objects;
 	g_objectTableHandle = TABLE_HANDLE;
 	g_handleTables.ptrTable[TABLE_HANDLE - 1] = objects;
-	g_handleTables.sizeTable[TABLE_HANDLE - 1] = count * sizeof(ObjectRecord);
+	g_handleTables.sizeTable[TABLE_HANDLE - 1] =
+		count * sizeof(ObjectRecord);
 	g_regionMainObjectSlotEnd = main_end;
 	g_regionStaticObjectSlotCount = static_count;
 }
 
 /* A fresh snapshot and capture, capture inactive, timing native, no tick open. */
-static void Fresh(void) {
+static void Fresh(void)
+{
 	XvtRenderSnapshot_Shutdown();
 	XvtFlightTiming_EndSession();
 	memset(g_testObjects, 0, sizeof g_testObjects);
@@ -64,49 +68,59 @@ static void Fresh(void) {
 }
 
 /* Fresh, with capture active and a tick open. */
-static void FreshMission(void) {
+static void FreshMission(void)
+{
 	Fresh();
 	XvtRenderCapture_BeginMission();
 	XvtRenderSnapshot_BeginFrame();
 }
 
-static XvtRenderSnapshot* Writer(void) { return XvtRenderSnapshot_Writer(); }
+static XvtRenderSnapshot *Writer(void) { return XvtRenderSnapshot_Writer(); }
 
 /* Commits the open tick; returns the snapshot just committed. */
-static const XvtRenderSnapshot* Commit(void) {
+static const XvtRenderSnapshot *Commit(void)
+{
 	XvtRenderSnapshot_Commit(g_gameTime, 1, 0);
 	return XvtRenderSnapshot_Current();
 }
 
 /* Commits the open tick and opens the next; returns the snapshot just committed. */
-static const XvtRenderSnapshot* NextTick(void) {
-	const XvtRenderSnapshot* committed = Commit();
+static const XvtRenderSnapshot *NextTick(void)
+{
+	const XvtRenderSnapshot *committed = Commit();
 	XvtRenderSnapshot_BeginFrame();
 	return committed;
 }
 
 /* One classic frame whose flip succeeds. */
-static void PublishView(void) {
+static void PublishView(void)
+{
 	XvtRenderCapture_CaptureView();
 	XvtRenderCapture_SealView();
 	XvtRenderCapture_Presented(1);
 }
 
-static int HasObject(const XvtRenderSnapshot* s, unsigned slot, uint16_t signature) {
-	for (uint32_t i = 0; i < s->object_count; ++i)
-		if (s->objects[i].id.slot == slot && s->objects[i].id.signature == signature)
+static int HasObject(const XvtRenderSnapshot *s, unsigned slot,
+		     uint16_t signature)
+{
+	for (uint32_t i = 0; i < s->object_count; ++i) {
+		if (s->objects[i].id.slot == slot &&
+		    s->objects[i].id.signature == signature) {
 			return 1;
+		}
+	}
 	return 0;
 }
 
 /* After Init there is no last view, and while capture is inactive no flight view is published. */
-static void CheckInactive(void) {
+static void CheckInactive(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtRenderCapture_LastViewTick(), -1);
 	XvtRenderSnapshot_BeginFrame();
 	PublishView();
 	XVT_ASSERT_INT_EQ(Writer()->flight_valid, 0);
-	const XvtRenderSnapshot* s = Commit();
+	const XvtRenderSnapshot *s = Commit();
 	XVT_ASSERT_INT_EQ(s->flight_valid, 0);
 	XVT_ASSERT_INT_EQ(s->camera.valid, 0);
 	XVT_ASSERT_INT_EQ(s->object_count, 0);
@@ -115,11 +129,12 @@ static void CheckInactive(void) {
 
 /* A sealed view presented by a successful flip reaches the writer: each occupied slot, a valid camera,
  * and a raised flight frame serial; its game time becomes the last view tick. */
-static void CheckPublishedView(void) {
+static void CheckPublishedView(void)
+{
 	FreshMission();
 	PublishView();
 	XVT_ASSERT_INT_EQ(Writer()->flight_valid, 1);
-	const XvtRenderSnapshot* s = NextTick();
+	const XvtRenderSnapshot *s = NextTick();
 	XVT_ASSERT_INT_EQ(s->flight_valid, 1);
 	XVT_ASSERT_INT_EQ(s->camera.valid, 1);
 	XVT_ASSERT_INT_EQ(s->object_count, 3);
@@ -137,7 +152,8 @@ static void CheckPublishedView(void) {
 }
 
 /* Slots past the object table's capacity are not captured. */
-static void CheckTableCapacity(void) {
+static void CheckTableCapacity(void)
+{
 	FreshMission();
 	g_handleTables.sizeTable[TABLE_HANDLE - 1] = 3 * sizeof(ObjectRecord);
 	PublishView();
@@ -146,7 +162,8 @@ static void CheckTableCapacity(void) {
 }
 
 /* Returns 1 when one classic frame publishes a flight view into the writer. */
-static int Publishes(void) {
+static int Publishes(void)
+{
 	Writer()->flight_valid = 0;
 	PublishView();
 	return Writer()->flight_valid;
@@ -154,7 +171,8 @@ static int Publishes(void) {
 
 /* The view is left invalid when the table is missing or stale, a slot range is negative, the local player
  * index is out of range, or a viewport or screen size is 0. */
-static void CheckRefusedViews(void) {
+static void CheckRefusedViews(void)
+{
 	FreshMission();
 	XVT_ASSERT_TRUE(Publishes());
 	g_objectTable = NULL;
@@ -177,14 +195,14 @@ static void CheckRefusedViews(void) {
 	g_localPlayer = 0;
 	XVT_ASSERT_TRUE(Publishes());
 
-	uint16_t* sizes16[2] = { &g_flightVpWidth, &g_flightVpHeight };
+	uint16_t *sizes16[2] = {&g_flightVpWidth, &g_flightVpHeight};
 	for (int i = 0; i < 2; ++i) {
 		uint16_t kept = *sizes16[i];
 		*sizes16[i] = 0;
 		XVT_ASSERT_TRUE(!Publishes());
 		*sizes16[i] = kept;
 	}
-	unsigned* sizes[2] = { &g_screenWidth, &g_screenHeight };
+	unsigned *sizes[2] = {&g_screenWidth, &g_screenHeight};
 	for (int i = 0; i < 2; ++i) {
 		unsigned kept = *sizes[i];
 		*sizes[i] = 0;
@@ -195,7 +213,8 @@ static void CheckRefusedViews(void) {
 }
 
 /* CaptureView sets the draw scope to world, or to map when the local player's map is open. */
-static void CheckDrawScope(void) {
+static void CheckDrawScope(void)
+{
 	FreshMission();
 	XvtRenderDraw_Scope(XVT_SCOPE_COCKPIT);
 	XvtRenderCapture_CaptureView();
@@ -207,14 +226,15 @@ static void CheckDrawScope(void) {
 
 /* Objects past XVT_SNAP_OBJECTS and model types with an unsupported frame sequence or palette count as
  * dropped records in the writer when the view is presented. */
-static void CheckDroppedRecords(void) {
+static void CheckDroppedRecords(void)
+{
 	FreshMission();
 	PublishView();
 	uint32_t baseline = Writer()->dropped_records;
 	NextTick();
 
 	size_t count = XVT_SNAP_OBJECTS + 36;
-	ObjectRecord* objects = calloc(count, sizeof *objects);
+	ObjectRecord *objects = calloc(count, sizeof *objects);
 	XVT_ASSERT_TRUE(objects != NULL);
 	for (size_t i = 0; i < count; ++i) {
 		objects[i].objectType = 1;
@@ -228,11 +248,14 @@ static void CheckDroppedRecords(void) {
 
 	/* Two model types with neither a frame sequence nor a palette get ones the capture does not know. */
 	unsigned plain[2], found = 0;
-	for (unsigned t = 0; t < XVT_SNAP_TYPES && found < 2; ++t)
-		if (!g_objectTypeTable[t].textureFrameSequence && !g_objectTypeTable[t].palette)
+	for (unsigned t = 0; t < XVT_SNAP_TYPES && found < 2; ++t) {
+		if (!g_objectTypeTable[t].textureFrameSequence &&
+		    !g_objectTypeTable[t].palette) {
 			plain[found++] = t;
+		}
+	}
 	XVT_ASSERT_INT_EQ(found, 2);
-	static int16_t sequence[3] = { 1, 2, 3 };
+	static int16_t sequence[3] = {1, 2, 3};
 	static uint8_t palette[16];
 	g_objectTypeTable[plain[0]].textureFrameSequence = sequence;
 	g_objectTypeTable[plain[1]].palette = palette;
@@ -247,7 +270,8 @@ static void CheckDroppedRecords(void) {
 
 /* A failed flip publishes nothing and leaves the sealed view for a later successful one; a later
  * successful flip in the same tick replaces the view, a failed one does not. */
-static void CheckFlips(void) {
+static void CheckFlips(void)
+{
 	FreshMission();
 	XvtRenderCapture_CaptureView();
 	XvtRenderCapture_SealView();
@@ -270,7 +294,8 @@ static void CheckFlips(void) {
 }
 
 /* EndPresentation discards the pending view, sealed or not, and so does BeginFrame. */
-static void CheckDiscardedViews(void) {
+static void CheckDiscardedViews(void)
+{
 	FreshMission();
 	XvtRenderCapture_CaptureView();
 	XvtRenderCapture_SealView();
@@ -287,7 +312,8 @@ static void CheckDiscardedViews(void) {
 
 /* A presented view carries the HUD's target boxes into the writer; BeginClassicFrame begins a new HUD
  * frame, which clears them. */
-static void CheckHudBoxes(void) {
+static void CheckHudBoxes(void)
+{
 	FreshMission();
 	XvtRenderCapture_CaptureView();
 	XvtRenderHud_TargetBox(0, 1, 100, 5);
@@ -302,15 +328,16 @@ static void CheckHudBoxes(void) {
 
 /* Hyperspace copies the streaks into the pending view, and nothing when there are more than
  * XVT_SNAP_STREAKS. */
-static void CheckHyperspace(void) {
+static void CheckHyperspace(void)
+{
 	FreshMission();
-	const int x[3] = { 1, 2, 3 }, y[3] = { -4, -5, -6 }, z[3] = { 70, 80, 90 };
-	const int width[3] = { 9, 8, 7 }, roll[3] = { 100, 200, 300 };
+	const int x[3] = {1, 2, 3}, y[3] = {-4, -5, -6}, z[3] = {70, 80, 90};
+	const int width[3] = {9, 8, 7}, roll[3] = {100, 200, 300};
 	XvtRenderCapture_CaptureView();
 	XvtRenderCapture_Hyperspace(3, x, y, z, width, roll);
 	XvtRenderCapture_SealView();
 	XvtRenderCapture_Presented(1);
-	const XvtSnapHyperspace* h = &Writer()->hyperspace;
+	const XvtSnapHyperspace *h = &Writer()->hyperspace;
 	XVT_ASSERT_INT_EQ(h->count, 3);
 	for (int i = 0; i < 3; ++i) {
 		XVT_ASSERT_INT_EQ(h->streaks[i].offset[0], x[i]);
@@ -329,17 +356,18 @@ static void CheckHyperspace(void) {
 
 /* With no view published in a tick, Commit carries the previous snapshot's view forward when it has the
  * same mission and world generation; otherwise the snapshot has no flight view. */
-static void CheckCarryForward(void) {
+static void CheckCarryForward(void)
+{
 	FreshMission();
 	XvtRenderCapture_CaptureView();
 	XvtRenderHud_TargetBox(2, 0, 50, 1);
 	XvtRenderCapture_SealView();
 	XvtRenderCapture_Presented(1);
-	const XvtRenderSnapshot* published = NextTick();
+	const XvtRenderSnapshot *published = NextTick();
 	uint64_t mission = published->mission_generation;
 	uint64_t world = published->world_generation;
 
-	const XvtRenderSnapshot* carried = NextTick();
+	const XvtRenderSnapshot *carried = NextTick();
 	XVT_ASSERT_INT_EQ(carried->flight_valid, 1);
 	XVT_ASSERT_INT_EQ(carried->object_count, 3);
 	XVT_ASSERT_TRUE(HasObject(carried, 2, 0x0A02));
@@ -348,7 +376,7 @@ static void CheckCarryForward(void) {
 	XVT_ASSERT_INT_EQ(carried->world_generation, world);
 
 	XvtRenderCapture_WorldChanged();
-	const XvtRenderSnapshot* after = NextTick();
+	const XvtRenderSnapshot *after = NextTick();
 	XVT_ASSERT_INT_EQ(after->flight_valid, 0);
 	XVT_ASSERT_TRUE(after->world_generation > world);
 
@@ -356,7 +384,7 @@ static void CheckCarryForward(void) {
 	PublishView();
 	NextTick();
 	XvtRenderCapture_EndMission();
-	const XvtRenderSnapshot* ended = NextTick();
+	const XvtRenderSnapshot *ended = NextTick();
 	XVT_ASSERT_INT_EQ(ended->flight_valid, 0);
 	XVT_ASSERT_INT_EQ(ended->camera.valid, 0);
 }
@@ -364,9 +392,10 @@ static void CheckCarryForward(void) {
 /* The mission generation rises on BeginMission; the world generation on every world change and on a view
  * whose game time went backward. WorldChanged forgets the last view time and clears the writer's flight
  * and camera validity. */
-static void CheckGenerations(void) {
+static void CheckGenerations(void)
+{
 	FreshMission();
-	const XvtRenderSnapshot* s = NextTick();
+	const XvtRenderSnapshot *s = NextTick();
 	uint64_t mission = s->mission_generation;
 	uint64_t world = s->world_generation;
 
@@ -405,13 +434,14 @@ static void CheckGenerations(void) {
 
 /* Network profile: a slot's pose that changed at the authoritative tick flags a correction, which
  * CompleteNetworkWorld applies as a world change. */
-static void CheckNetworkCorrection(void) {
+static void CheckNetworkCorrection(void)
+{
 	FreshMission();
 	XvtFlightTiming_BeginSession(XVT_FLIGHT_TIMING_NETWORK_125);
 	g_gameTime = 10;
 	XvtRenderCapture_CompleteNetworkWorld();
 	PublishView();
-	const XvtRenderSnapshot* s = NextTick();
+	const XvtRenderSnapshot *s = NextTick();
 	uint64_t world = s->world_generation;
 
 	/* Nothing moved: no correction. */
@@ -444,12 +474,13 @@ static void CheckNetworkCorrection(void) {
 }
 
 /* Outside the network profile neither call changes the world. */
-static void CheckNetworkOnly(void) {
+static void CheckNetworkOnly(void)
+{
 	FreshMission();
 	g_gameTime = 10;
 	XvtRenderCapture_CompleteNetworkWorld();
 	PublishView();
-	const XvtRenderSnapshot* s = NextTick();
+	const XvtRenderSnapshot *s = NextTick();
 	uint64_t world = s->world_generation;
 	g_testObjects[2].world_x += 5;
 	XvtRenderCapture_CheckNetworkCorrection();
@@ -460,7 +491,8 @@ static void CheckNetworkOnly(void) {
 }
 
 /* A local transient slot is left out of the comparison. */
-static void CheckNetworkSkipsLocalSlots(void) {
+static void CheckNetworkSkipsLocalSlots(void)
+{
 	FreshMission();
 	XvtFlightTiming_BeginSession(XVT_FLIGHT_TIMING_NETWORK_125);
 	g_localTransientSlotStart = 1;
@@ -479,7 +511,8 @@ static void CheckNetworkSkipsLocalSlots(void) {
 }
 
 /* Init does not reset the network pose history: a pose recorded before it still flags a correction. */
-static void CheckInitKeepsPoseHistory(void) {
+static void CheckInitKeepsPoseHistory(void)
+{
 	FreshMission();
 	XvtFlightTiming_BeginSession(XVT_FLIGHT_TIMING_NETWORK_125);
 	g_gameTime = 10;
@@ -497,7 +530,8 @@ static void CheckInitKeepsPoseHistory(void) {
 
 /* Inside an overlay, a successful flip without a sealed view presents the flight scene; outside one it
  * does nothing. End never drops below zero. */
-static void CheckOverlay(void) {
+static void CheckOverlay(void)
+{
 	FreshMission();
 	uint64_t serial = NextTick()->presentation_serial;
 	XvtRenderCapture_Presented(1);
@@ -507,7 +541,7 @@ static void CheckOverlay(void) {
 	XvtRenderCapture_BeginOverlay();
 	XvtRenderCapture_EndOverlay();
 	XvtRenderCapture_Presented(1);
-	const XvtRenderSnapshot* s = NextTick();
+	const XvtRenderSnapshot *s = NextTick();
 	XVT_ASSERT_TRUE(s->presentation_serial > serial);
 	XVT_ASSERT_INT_EQ(s->presented_scene, XVT_SCENE_FLIGHT);
 	serial = s->presentation_serial;
@@ -536,14 +570,16 @@ static void CheckOverlay(void) {
 /* FrontendPreview appends straight to the writer with a 640x480 camera; it is valid only when its handle
  * has an asset id. An empty rectangle or a bad local player index adds nothing; a full list counts a
  * dropped record. */
-static void CheckFrontendPreview(void) {
+static void CheckFrontendPreview(void)
+{
 	Fresh();
 	XvtRenderSnapshot_BeginFrame();
-	const float position[3] = { 1.5f, -2.5f, 300.0f };
-	const float orientation[9] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
-	XvtRenderCapture_FrontendPreview(9, position, orientation, 2.5f, 3, 10, 20, 100, 80);
+	const float position[3] = {1.5f, -2.5f, 300.0f};
+	const float orientation[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+	XvtRenderCapture_FrontendPreview(9, position, orientation, 2.5f, 3, 10,
+					 20, 100, 80);
 	XVT_ASSERT_INT_EQ(Writer()->preview_count, 1);
-	const XvtSnapPreview* p = &Writer()->previews[0];
+	const XvtSnapPreview *p = &Writer()->previews[0];
 	XVT_ASSERT_INT_EQ(p->valid, 0);
 	XVT_ASSERT_INT_EQ(p->camera.screen_width, 640);
 	XVT_ASSERT_INT_EQ(p->camera.screen_height, 480);
@@ -552,35 +588,47 @@ static void CheckFrontendPreview(void) {
 	XVT_ASSERT_INT_EQ(p->destination.width, 100);
 	XVT_ASSERT_INT_EQ(p->destination.height, 80);
 	XVT_ASSERT_INT_EQ(p->node_switch, 3);
-	for (int i = 0; i < 3; ++i)
-		XVT_ASSERT_CLOSE(p->view_pos[i], position[i], 0, "a float copied as it is");
-	for (int i = 0; i < 9; ++i)
-		XVT_ASSERT_CLOSE(p->view_orient[i], orientation[i], 0, "a float copied as it is");
+	for (int i = 0; i < 3; ++i) {
+		XVT_ASSERT_CLOSE(p->view_pos[i], position[i], 0,
+				 "a float copied as it is");
+	}
+	for (int i = 0; i < 9; ++i) {
+		XVT_ASSERT_CLOSE(p->view_orient[i], orientation[i], 0,
+				 "a float copied as it is");
+	}
 	XVT_ASSERT_CLOSE(p->model_scale, 2.5, 0, "a float copied as it is");
 
-	XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0, 0, 80);
-	XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0, 100, -1);
+	XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0,
+					 0, 80);
+	XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0,
+					 100, -1);
 	g_localPlayer = 8;
-	XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0, 100, 80);
+	XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0,
+					 100, 80);
 	g_localPlayer = 0;
 	XVT_ASSERT_INT_EQ(Writer()->preview_count, 1);
 	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 0);
 
-	for (int i = 1; i < XVT_SNAP_PREVIEWS; ++i)
-		XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0, 100, 80);
+	for (int i = 1; i < XVT_SNAP_PREVIEWS; ++i) {
+		XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0,
+						 0, 0, 100, 80);
+	}
 	XVT_ASSERT_INT_EQ(Writer()->preview_count, XVT_SNAP_PREVIEWS);
-	XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0, 100, 80);
+	XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0,
+					 100, 80);
 	XVT_ASSERT_INT_EQ(Writer()->preview_count, XVT_SNAP_PREVIEWS);
 	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 1);
 
 	/* Without an open tick nothing is added. */
-	const XvtRenderSnapshot* s = Commit();
-	XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0, 100, 80);
+	const XvtRenderSnapshot *s = Commit();
+	XvtRenderCapture_FrontendPreview(9, position, orientation, 1, 0, 0, 0,
+					 100, 80);
 	XVT_ASSERT_INT_EQ(s->preview_count, XVT_SNAP_PREVIEWS);
 	XVT_ASSERT_INT_EQ(s->dropped_records, 1);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckInactive();
 	CheckPublishedView();
 	CheckTableCapacity();

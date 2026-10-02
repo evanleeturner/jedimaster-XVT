@@ -54,11 +54,12 @@ struct PilotDataSelection {
 	int totalScore;
 	int localPlayerId;
 	int launchSessionMarker; ///< Persisted marker set to 1 when launch/debrief session state is captured; no
-							 ///< XVT reader is identified.
+	///< XVT reader is identified.
 	int isHost;
 	unsigned int numHumanPlayersLastMission;
 	int sessionMode;
-	uint8_t xvtRecordPayload[672]; ///< Opaque 672-byte payload from the XvT-compatible pilot-record prefix.
+	uint8_t xvtRecordPayload
+		[672]; ///< Opaque 672-byte payload from the XvT-compatible pilot-record prefix.
 	int team;
 	MissionDirectoryId missionDirectoryId;
 	int missionDescriptionIds[5];
@@ -74,13 +75,13 @@ enum {
 };
 
 int Pilot_DeleteCurrent(void);
-int Pilot_CreateNew(const char* pilotName);
+int Pilot_CreateNew(const char *pilotName);
 int Pilot_Save(int useTemporaryFile);
-int Pilot_FindAndLoadByName(const char* pilotName);
-int Pilot_ParseCommandLine(const char* cmdLine);
-int Pilot_LoadXvtRecord(XvtFile* stream);
-int Pilot_LoadFromPath(const char* basePilotPath);
-int Pilot_WriteXvtRecord(const char* fileName, XvtFile* stream);
+int Pilot_FindAndLoadByName(const char *pilotName);
+int Pilot_ParseCommandLine(const char *cmdLine);
+int Pilot_LoadXvtRecord(XvtFile *stream);
+int Pilot_LoadFromPath(const char *basePilotPath);
+int Pilot_WriteXvtRecord(const char *fileName, XvtFile *stream);
 
 #ifdef __cplusplus
 }

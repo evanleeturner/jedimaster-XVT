@@ -88,13 +88,18 @@ uint16_t laser_GetProjectileLifetimeTicks(int projectileObjectType);
 void laser_fireplayerweapon(int playerIdx);
 void laser_firelasersystem(int objectIndex, int laserSystemIndex);
 void laser_firewarheadsystem(int objectIndex, unsigned int launcherIndex);
-int laser_firemissile(int objectIndex, int weaponSlotIndex, int projectileTypeId, unsigned int launcherIndex);
-int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex, int projectileObjectType);
-uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx, uint16_t targetObjIdx);
-int laser_createcountermeasureprojectile(unsigned int ownerObjIdx, int projectileObjectType);
+int laser_firemissile(int objectIndex, int weaponSlotIndex,
+		      int projectileTypeId, unsigned int launcherIndex);
+int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex,
+			   int projectileObjectType);
+uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx,
+					  uint16_t targetObjIdx);
+int laser_createcountermeasureprojectile(unsigned int ownerObjIdx,
+					 int projectileObjectType);
 void laser_warnplayer(uint16_t projectileGuidanceIdx);
 void laser_UpdateMineWeaponFire(uint16_t mineObjIdx);
-void laser_fireturretslot(uint16_t sourceObjIdx, uint16_t weaponSlotIdx, uint16_t targetRef);
+void laser_fireturretslot(uint16_t sourceObjIdx, uint16_t weaponSlotIdx,
+			  uint16_t targetRef);
 
 #ifdef __cplusplus
 }

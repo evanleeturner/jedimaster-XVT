@@ -19,8 +19,9 @@ extern "C" {
  * record's two signed 3-bit offsets on the other axes, normalized) has positive view depth, at
  * distance 65536, sized from its type's atlas frame as an angle at the camera's focal length and
  * aspect; a record whose type has no committed atlas is skipped. Returns 1. */
-int XvtSky_Prepare(AeronCommandBuffer* cmd, AeronScene3D* scene, const XvtRenderSnapshot* snapshot,
-				   const XvtRenderView* view);
+int XvtSky_Prepare(AeronCommandBuffer *cmd, AeronScene3D *scene,
+		   const XvtRenderSnapshot *snapshot,
+		   const XvtRenderView *view);
 /* Destroys the starfield, the cubemap and the hyperspace. */
 void XvtSky_Shutdown(void);
 #ifdef __cplusplus

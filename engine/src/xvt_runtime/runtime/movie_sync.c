@@ -12,75 +12,102 @@
 
 #include <stdio.h>
 
-void XvtMovieSync_Begin(void) {
+void XvtMovieSync_Begin(void)
+{
 	unsigned int count = Net_CountReadyPlayers();
 	unsigned int index;
 	for (index = 0; index < 8; ++index) {
-		g_movieMultiplayerSyncPlayers[index].playerId = index < count ? g_mpRoster[index].playerId : 0;
+		g_movieMultiplayerSyncPlayers[index].playerId =
+			index < count ? g_mpRoster[index].playerId : 0;
 		g_movieMultiplayerSyncPlayers[index].isWaiting = 0;
 	}
 	g_moviePlaybackCompletionState = 0;
 	g_movieMultiplayerSyncDeadlineMs = 0;
 }
 
-void XvtMovieSync_ReportFinished(void) {
-	int packet[2] = { NET_PACKET_MOVIE_SYNC, 0 };
+void XvtMovieSync_ReportFinished(void)
+{
+	int packet[2] = {NET_PACKET_MOVIE_SYNC, 0};
 	int index;
-	if (g_moviePlaybackCompletionState)
+	if (g_moviePlaybackCompletionState) {
 		return;
+	}
 	g_moviePlaybackCompletionState = 1;
-	for (index = 0; index < 8; ++index)
-		if (g_movieMultiplayerSyncPlayers[index].playerId == Net_GetLocalPlayerId())
+	for (index = 0; index < 8; ++index) {
+		if (g_movieMultiplayerSyncPlayers[index].playerId ==
+		    Net_GetLocalPlayerId()) {
 			g_movieMultiplayerSyncPlayers[index].isWaiting = 1;
+		}
+	}
 	Net_SendPacketAndFlush(0, packet, sizeof(packet));
-	g_movieMultiplayerSyncDeadlineMs = GetTickCount() + (Net_IsHost() ? 5000 : 20000);
+	g_movieMultiplayerSyncDeadlineMs =
+		GetTickCount() + (Net_IsHost() ? 5000 : 20000);
 }
 
-int XvtMovieSync_Update(void) {
+int XvtMovieSync_Update(void)
+{
 	int index;
 	int still_watching = 0;
 	FrontendNet_ProcessNetworkPackets();
-	for (index = 0; index < 8; ++index)
-		if (g_movieMultiplayerSyncPlayers[index].playerId && !g_movieMultiplayerSyncPlayers[index].isWaiting)
+	for (index = 0; index < 8; ++index) {
+		if (g_movieMultiplayerSyncPlayers[index].playerId &&
+		    !g_movieMultiplayerSyncPlayers[index].isWaiting) {
 			++still_watching;
+		}
+	}
 	if (g_moviePlaybackCompletionState == 1 &&
-		(int32_t)(GetTickCount() - g_movieMultiplayerSyncDeadlineMs) > 0)
+	    (int32_t)(GetTickCount() - g_movieMultiplayerSyncDeadlineMs) > 0) {
 		g_moviePlaybackCompletionState = 2;
+	}
 	return still_watching == 0;
 }
 
-void XvtMovieSync_Draw(int top_margin, int bottom_margin) {
+void XvtMovieSync_Draw(int top_margin, int bottom_margin)
+{
 	int index;
 	int roster_index;
 	int count = Net_CountReadyPlayers();
 	RECT rect;
 	char text[128];
-	if (!g_moviePlaybackCompletionState)
+	if (!g_moviePlaybackCompletionState) {
 		return;
+	}
 	for (index = 0; index < 8; ++index) {
-		if (!g_movieMultiplayerSyncPlayers[index].playerId)
+		if (!g_movieMultiplayerSyncPlayers[index].playerId) {
 			continue;
+		}
 		text[0] = 0;
-		for (roster_index = 0; roster_index < count && roster_index < 8; ++roster_index) {
-			if (g_mpRoster[roster_index].playerId == g_movieMultiplayerSyncPlayers[index].playerId) {
-				snprintf(text, sizeof(text), "%s%s", g_mpRoster[roster_index].name,
-						 FrontendString_Get(g_movieMultiplayerSyncPlayers[index].isWaiting
-												? FRONTSTR_805_WAITING
-												: FRONTSTR_804_WATCHING));
+		for (roster_index = 0; roster_index < count && roster_index < 8;
+		     ++roster_index) {
+			if (g_mpRoster[roster_index].playerId ==
+			    g_movieMultiplayerSyncPlayers[index].playerId) {
+				snprintf(
+					text, sizeof(text), "%s%s",
+					g_mpRoster[roster_index].name,
+					FrontendString_Get(
+						g_movieMultiplayerSyncPlayers
+								[index]
+									.isWaiting
+							? FRONTSTR_805_WAITING
+							: FRONTSTR_804_WATCHING));
 				break;
 			}
 		}
-		rect = (RECT) { 32 + 144 * (index & 3), top_margin / 2 * (index >> 2), 32 + 144 * ((index & 3) + 1),
-						top_margin / 2 * ((index >> 2) + 1) };
+		rect = (RECT){32 + 144 * (index & 3),
+			      top_margin / 2 * (index >> 2),
+			      32 + 144 * ((index & 3) + 1),
+			      top_margin / 2 * ((index >> 2) + 1)};
 		FrontendText_DrawCentered(12, text, &rect, 0xffff);
 	}
 	if (g_moviePlaybackCompletionState == 2 && bottom_margin > 0) {
-		rect = (RECT) { 0, 480 - bottom_margin, 639, 479 };
+		rect = (RECT){0, 480 - bottom_margin, 639, 479};
 		FrontendDraw_Rect(&rect, 0, 0, 0, -1);
 		FrontendText_DrawCentered(
 			12,
-			FrontendString_Get(Net_IsHost() ? FRONTSTR_807_STILL_WAITING_FOR_OTHERS_HIT_C_TO_CONTINUE_THE_GAME
-											: FRONTSTR_806_STILL_WAITING_FOR_OTHERS_HIT_E_TO_EXIT_THE_GAME),
+			FrontendString_Get(
+				Net_IsHost()
+					? FRONTSTR_807_STILL_WAITING_FOR_OTHERS_HIT_C_TO_CONTINUE_THE_GAME
+					: FRONTSTR_806_STILL_WAITING_FOR_OTHERS_HIT_E_TO_EXIT_THE_GAME),
 			&rect, 0xffff);
 	}
 }

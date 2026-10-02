@@ -20,10 +20,13 @@ static AeronLogLevel g_lastLevel;
 static char g_lastCategory[64];
 static char g_lastMessage[256];
 
-void Aeron_LogMessageV(AeronLogLevel level, const char* category, const char* fmt, va_list args) {
+void Aeron_LogMessageV(AeronLogLevel level, const char *category,
+		       const char *fmt, va_list args)
+{
 	g_calls++;
 	g_lastLevel = level;
-	snprintf(g_lastCategory, sizeof g_lastCategory, "%s", category ? category : "");
+	snprintf(g_lastCategory, sizeof g_lastCategory, "%s",
+		 category ? category : "");
 	vsnprintf(g_lastMessage, sizeof g_lastMessage, fmt ? fmt : "", args);
 }
 
@@ -31,7 +34,8 @@ static int g_evaluated;
 
 static int Count(void) { return ++g_evaluated; }
 
-static void CheckGate(void) {
+static void CheckGate(void)
+{
 	XVT_ASSERT_INT_EQ(XvtLog_Level(), AERON_LOG_INFO);
 	XVT_LOG_DEBUG("test.off n=%d", Count());
 	XVT_ASSERT_INT_EQ(g_evaluated, 0);
@@ -61,7 +65,8 @@ static void CheckGate(void) {
 	XVT_ASSERT_TRUE(!strcmp(g_lastMessage, "test.error"));
 }
 
-static void CheckParse(void) {
+static void CheckParse(void)
+{
 	AeronLogLevel level = AERON_LOG_CRITICAL;
 	XVT_ASSERT_TRUE(XvtLog_ParseLevel("debug", &level));
 	XVT_ASSERT_INT_EQ(level, AERON_LOG_DEBUG);
@@ -78,17 +83,19 @@ static void CheckParse(void) {
 	XVT_ASSERT_INT_EQ(level, AERON_LOG_ERROR);
 }
 
-static void CheckSplit(void) {
-	const char* event;
+static void CheckSplit(void)
+{
+	const char *event;
 	size_t length;
-	const char* fields;
-	const char* message = "xvt: input.queue_full queue=mouse";
+	const char *fields;
+	const char *message = "xvt: input.queue_full queue=mouse";
 	XVT_ASSERT_TRUE(XvtLog_SplitMessage(message, &event, &length, &fields));
 	XVT_ASSERT_INT_EQ(length, 16);
 	XVT_ASSERT_TRUE(!strncmp(event, "input.queue_full", 16));
 	XVT_ASSERT_TRUE(!strcmp(fields, "queue=mouse"));
 
-	XVT_ASSERT_TRUE(XvtLog_SplitMessage("xvt: app.ready", &event, &length, &fields));
+	XVT_ASSERT_TRUE(XvtLog_SplitMessage("xvt: app.ready", &event, &length,
+					    &fields));
 	XVT_ASSERT_INT_EQ(length, 9);
 	XVT_ASSERT_TRUE(!strncmp(event, "app.ready", 9));
 	XVT_ASSERT_TRUE(!strcmp(fields, ""));
@@ -100,41 +107,52 @@ static void CheckSplit(void) {
 	XVT_ASSERT_TRUE(!strcmp(fields, "loaded 3 meshes: ok"));
 
 	message = "[flight_gltf] missing: atlas";
-	XVT_ASSERT_TRUE(!XvtLog_SplitMessage(message, &event, &length, &fields));
+	XVT_ASSERT_TRUE(
+		!XvtLog_SplitMessage(message, &event, &length, &fields));
 	XVT_ASSERT_TRUE(event == NULL);
 	XVT_ASSERT_INT_EQ(length, 0);
 	XVT_ASSERT_TRUE(fields == message);
 
 	message = "no colon here";
-	XVT_ASSERT_TRUE(!XvtLog_SplitMessage(message, &event, &length, &fields));
+	XVT_ASSERT_TRUE(
+		!XvtLog_SplitMessage(message, &event, &length, &fields));
 	XVT_ASSERT_TRUE(fields == message);
 
-	XVT_ASSERT_TRUE(!XvtLog_SplitMessage(": leading", &event, &length, &fields));
-	XVT_ASSERT_TRUE(!XvtLog_SplitMessage("xvt: ", &event, &length, &fields));
+	XVT_ASSERT_TRUE(
+		!XvtLog_SplitMessage(": leading", &event, &length, &fields));
+	XVT_ASSERT_TRUE(
+		!XvtLog_SplitMessage("xvt: ", &event, &length, &fields));
 	XVT_ASSERT_TRUE(!XvtLog_SplitMessage(NULL, &event, &length, &fields));
 	XVT_ASSERT_TRUE(!strcmp(fields, ""));
 }
 
-static void CheckFormat(void) {
+static void CheckFormat(void)
+{
 	char line[64];
-	size_t written = XvtLog_FormatLine(line, sizeof line, 45296789u, 'I', "app.start", 9, "version=\"1.0\"");
-	XVT_ASSERT_TRUE(!strcmp(line, "12:34:56.789 I app.start version=\"1.0\"\n"));
+	size_t written = XvtLog_FormatLine(line, sizeof line, 45296789u, 'I',
+					   "app.start", 9, "version=\"1.0\"");
+	XVT_ASSERT_TRUE(
+		!strcmp(line, "12:34:56.789 I app.start version=\"1.0\"\n"));
 	XVT_ASSERT_INT_EQ(written, strlen(line));
 
-	written = XvtLog_FormatLine(line, sizeof line, 0, 'D', "app.ready", 9, "");
+	written = XvtLog_FormatLine(line, sizeof line, 0, 'D', "app.ready", 9,
+				    "");
 	XVT_ASSERT_TRUE(!strcmp(line, "00:00:00.000 D app.ready\n"));
 	XVT_ASSERT_INT_EQ(written, 25);
 
 	/* One second past midnight after a full day wraps. */
-	XvtLog_FormatLine(line, sizeof line, 86400000u + 1000u, 'W', "x.y", 3, NULL);
+	XvtLog_FormatLine(line, sizeof line, 86400000u + 1000u, 'W', "x.y", 3,
+			  NULL);
 	XVT_ASSERT_TRUE(!strcmp(line, "00:00:01.000 W x.y\n"));
 
 	/* Line-breaking characters in the text become spaces. */
-	XvtLog_FormatLine(line, sizeof line, 0, 'E', "x.y", 3, "a=1\nb=2\tc=3\r");
+	XvtLog_FormatLine(line, sizeof line, 0, 'E', "x.y", 3,
+			  "a=1\nb=2\tc=3\r");
 	XVT_ASSERT_TRUE(!strcmp(line, "00:00:00.000 E x.y a=1 b=2 c=3 \n"));
 
 	/* A line that does not fit keeps its newline and terminator. */
-	written = XvtLog_FormatLine(line, 20, 45296789u, 'I', "app.start", 9, "version=\"1.0\"");
+	written = XvtLog_FormatLine(line, 20, 45296789u, 'I', "app.start", 9,
+				    "version=\"1.0\"");
 	XVT_ASSERT_TRUE(!strcmp(line, "12:34:56.789 I app\n"));
 	XVT_ASSERT_INT_EQ(written, 19);
 
@@ -146,26 +164,34 @@ static void CheckFormat(void) {
 	XVT_ASSERT_INT_EQ(line[0], 'x');
 }
 
-static void CheckShortenHome(void) {
+static void CheckShortenHome(void)
+{
 	static const char home[] = "/Users/ann";
 	const size_t length = sizeof(home) - 1;
 	char out[64];
-	size_t written = XvtLog_ShortenHome(out, sizeof out, "root=\"/Users/ann/Games\"", home, length);
+	size_t written = XvtLog_ShortenHome(
+		out, sizeof out, "root=\"/Users/ann/Games\"", home, length);
 	XVT_ASSERT_TRUE(!strcmp(out, "root=\"~/Games\""));
 	XVT_ASSERT_INT_EQ(written, strlen(out));
 
 	/* Every copy at a path start is replaced, the whole text included. */
-	XvtLog_ShortenHome(out, sizeof out, "a=/Users/ann/x b=\"/Users/ann\" '/Users/ann'", home, length);
+	XvtLog_ShortenHome(out, sizeof out,
+			   "a=/Users/ann/x b=\"/Users/ann\" '/Users/ann'", home,
+			   length);
 	XVT_ASSERT_TRUE(!strcmp(out, "a=~/x b=\"~\" '~'"));
 	XvtLog_ShortenHome(out, sizeof out, "/Users/ann", home, length);
 	XVT_ASSERT_TRUE(!strcmp(out, "~"));
 
 	/* A longer name, a deeper path, and other letter case stay whole. */
-	XvtLog_ShortenHome(out, sizeof out, "/Users/anna/x /old/Users/ann/x /USERS/ann/x", home, length);
-	XVT_ASSERT_TRUE(!strcmp(out, "/Users/anna/x /old/Users/ann/x /USERS/ann/x"));
+	XvtLog_ShortenHome(out, sizeof out,
+			   "/Users/anna/x /old/Users/ann/x /USERS/ann/x", home,
+			   length);
+	XVT_ASSERT_TRUE(
+		!strcmp(out, "/Users/anna/x /old/Users/ann/x /USERS/ann/x"));
 
 	/* Windows separators. */
-	XvtLog_ShortenHome(out, sizeof out, "path=\"C:\\Users\\ann\\AppData\"", "C:\\Users\\ann", 12);
+	XvtLog_ShortenHome(out, sizeof out, "path=\"C:\\Users\\ann\\AppData\"",
+			   "C:\\Users\\ann", 12);
 	XVT_ASSERT_TRUE(!strcmp(out, "path=\"~\\AppData\""));
 
 	/* No usable home copies the text unchanged; a NULL text copies as "". */
@@ -173,7 +199,8 @@ static void CheckShortenHome(void) {
 	XVT_ASSERT_TRUE(!strcmp(out, "/Users/ann/x"));
 	XvtLog_ShortenHome(out, sizeof out, "/x/y", "/", 1);
 	XVT_ASSERT_TRUE(!strcmp(out, "/x/y"));
-	XVT_ASSERT_INT_EQ(XvtLog_ShortenHome(out, sizeof out, NULL, home, length), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtLog_ShortenHome(out, sizeof out, NULL, home, length), 0);
 	XVT_ASSERT_INT_EQ(out[0], 0);
 
 	/* A copy that does not fit is cut with its terminator. */
@@ -181,12 +208,14 @@ static void CheckShortenHome(void) {
 	XVT_ASSERT_TRUE(!strcmp(out, "~/G"));
 	XVT_ASSERT_INT_EQ(written, 3);
 	out[0] = 'x';
-	XVT_ASSERT_INT_EQ(XvtLog_ShortenHome(out, 0, "/Users/ann", home, length), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtLog_ShortenHome(out, 0, "/Users/ann", home, length), 0);
 	XVT_ASSERT_INT_EQ(out[0], 'x');
 }
 
-static void CheckHexList(void) {
-	static const unsigned values[] = { 0x2au, 0xffffffffu, 0u };
+static void CheckHexList(void)
+{
+	static const unsigned values[] = {0x2au, 0xffffffffu, 0u};
 	char out[32];
 	size_t written = XvtLog_FormatHexList(out, sizeof out, values, 3);
 	XVT_ASSERT_TRUE(!strcmp(out, "0000002a,ffffffff,00000000"));
@@ -204,7 +233,8 @@ static void CheckHexList(void) {
 	XVT_ASSERT_INT_EQ(out[0], 'x');
 }
 
-int main(void) {
+int main(void)
+{
 	CheckGate();
 	CheckParse();
 	CheckSplit();

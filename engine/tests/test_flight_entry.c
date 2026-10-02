@@ -18,13 +18,15 @@
 static char g_command[512];
 
 /* Runs Prepare on a writable copy of text, which must have fewer than 7 arguments. */
-static void Prepare(const char* text) {
+static void Prepare(const char *text)
+{
 	XVT_ASSERT_TRUE(strlen(text) < sizeof g_command);
 	strcpy(g_command, text);
 	XVT_ASSERT_INT_EQ(XvtFlightEntry_Prepare(g_command), 0);
 }
 
-static void SetAllOptions(int value) {
+static void SetAllOptions(int value)
+{
 	g_flightConfTrainCourse = value;
 	g_flightConfNoPilot = value;
 	g_flightConfDirectInput = value;
@@ -40,17 +42,22 @@ static void SetAllOptions(int value) {
 	g_flightPageFlip = value;
 }
 
-static void CheckNullCommand(void) { XVT_ASSERT_INT_EQ(XvtFlightEntry_Prepare(NULL), 0); }
+static void CheckNullCommand(void)
+{
+	XVT_ASSERT_INT_EQ(XvtFlightEntry_Prepare(NULL), 0);
+}
 
-static void CheckOptionsOff(void) {
+static void CheckOptionsOff(void)
+{
 	/* Every "no" form, and the plain options, inside one quoted name. */
 	Fixture_Begin();
 	Fixture_Load();
 	SetAllOptions(1);
-	g_flightConfTrainCourse = g_flightConfNoPilot = g_flightInProgressLaunch = 0;
+	g_flightConfTrainCourse = g_flightConfNoPilot =
+		g_flightInProgressLaunch = 0;
 	g_flightConfNewNet = g_flightConfNoLauncher = 0;
 	Prepare("mission ~traincourse nopilot nodinput nosfx nomusic novoice notickcounter nomipmaps inprogress "
-			"newnet nolauncher nofullscreen nopageflip~");
+		"newnet nolauncher nofullscreen nopageflip~");
 	XVT_ASSERT_INT_EQ(g_flightConfTrainCourse, 1);
 	XVT_ASSERT_INT_EQ(g_flightConfNoPilot, 1);
 	XVT_ASSERT_INT_EQ(g_flightInProgressLaunch, 1);
@@ -67,12 +74,14 @@ static void CheckOptionsOff(void) {
 	Fixture_End();
 }
 
-static void CheckOptionsOn(void) {
+static void CheckOptionsOn(void)
+{
 	/* The plain forms of the [no] options turn them on; plain options that are absent are off. */
 	Fixture_Begin();
 	Fixture_Load();
 	SetAllOptions(0);
-	g_flightConfTrainCourse = g_flightConfNoPilot = g_flightInProgressLaunch = 1;
+	g_flightConfTrainCourse = g_flightConfNoPilot =
+		g_flightInProgressLaunch = 1;
 	g_flightConfNewNet = g_flightConfNoLauncher = 1;
 	Prepare("mission ~dinput sfx music voice tickcounter mipmaps~");
 	XVT_ASSERT_INT_EQ(g_flightConfDirectInput, 1);
@@ -93,7 +102,8 @@ static void CheckOptionsOn(void) {
 	Fixture_End();
 }
 
-static void CheckOptionsAnywhere(void) {
+static void CheckOptionsAnywhere(void)
+{
 	/* An option is found as a substring anywhere: inside a file name, and run together with another. */
 	Fixture_Begin();
 	Fixture_Load();
@@ -105,21 +115,25 @@ static void CheckOptionsAnywhere(void) {
 	Fixture_End();
 }
 
-static void CheckSplit(void) {
+static void CheckSplit(void)
+{
 	/* Split in place at spaces, with ~ quoting one argument; six arguments are too few. */
 	Fixture_Begin();
 	Fixture_Load();
 	Prepare("first second ~third word~ fourth fifth sixth");
-	const char* expected[] = { "first", "second", "third word", "fourth", "fifth", "sixth" };
+	const char *expected[] = {"first",  "second", "third word",
+				  "fourth", "fifth",  "sixth"};
 	for (int i = 0; i < 6; ++i) {
-		const char* argument = g_flightLaunchArgs.arguments[i];
-		XVT_ASSERT_TRUE(argument >= g_command && argument < g_command + sizeof g_command);
+		const char *argument = g_flightLaunchArgs.arguments[i];
+		XVT_ASSERT_TRUE(argument >= g_command &&
+				argument < g_command + sizeof g_command);
 		XVT_ASSERT_INT_EQ(strcmp(argument, expected[i]), 0);
 	}
 	Fixture_End();
 }
 
-static void CheckLoadsConfig(void) {
+static void CheckLoadsConfig(void)
+{
 	/* Prepare loads the config: the game config is what the config load makes of the settings. */
 	static GameConfig loaded;
 	Fixture_Begin();
@@ -133,7 +147,8 @@ static void CheckLoadsConfig(void) {
 	Fixture_End();
 }
 
-static void CheckCleanup(void) {
+static void CheckCleanup(void)
+{
 	/* With nothing started, Cleanup still hands rendering back to the frontend. */
 	Fixture_Begin();
 	Fixture_Load();
@@ -144,7 +159,8 @@ static void CheckCleanup(void) {
 	Fixture_End();
 }
 
-int main(void) {
+int main(void)
+{
 	CheckNullCommand();
 	CheckOptionsOff();
 	CheckOptionsOn();

@@ -8,7 +8,8 @@ uint32_t g_lastTickTimeMs;
 void Time_ResetElapsedTicks(void) { g_lastTickTimeMs = 0; }
 
 // FUNCTION: XVT 0x4AC760
-uint32_t Time_ConsumeElapsedTicks(void) {
+uint32_t Time_ConsumeElapsedTicks(void)
+{
 	uint32_t time;
 	uint32_t lastTickTimeMs;
 	uint32_t deltaTicks;

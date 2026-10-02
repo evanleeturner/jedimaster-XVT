@@ -133,15 +133,15 @@ typedef enum XvtInputActionCategory {
 } XvtInputActionCategory;
 
 /* The action with that settings name, matched exactly; NONE for NULL or an unknown name. */
-XvtInputAction XvtInputActions_FromName(const char* name);
+XvtInputAction XvtInputActions_FromName(const char *name);
 /* The settings name; "none" out of range. */
-const char* XvtInputActions_ToName(XvtInputAction action);
+const char *XvtInputActions_ToName(XvtInputAction action);
 /* The label shown to the player; "None" out of range. */
-const char* XvtInputActions_DisplayName(XvtInputAction action);
+const char *XvtInputActions_DisplayName(XvtInputAction action);
 /* SYSTEM out of range. */
 XvtInputActionCategory XvtInputActions_Category(XvtInputAction action);
 /* The label shown to the player; "" out of range. */
-const char* XvtInputActions_CategoryName(XvtInputActionCategory category);
+const char *XvtInputActions_CategoryName(XvtInputActionCategory category);
 /* true for every action but NONE, CHAT_SEND and CHAT_CANCEL. */
 bool XvtInputActions_KeyboardBindable(XvtInputAction action);
 /* The action's flight key code; 0 out of range. */

@@ -24,7 +24,8 @@
 
 static int Placeholder(int frame) { return frame; }
 
-static void Fresh(int session_mode) {
+static void Fresh(int session_mode)
+{
 	XvtNetworkSession_Shutdown();
 	memset(&g_frontState, 0, sizeof g_frontState);
 	g_frontState.screenStates[0].updateFn = Placeholder;
@@ -37,19 +38,26 @@ static void Fresh(int session_mode) {
 	FrontendButton_EnableOverlayText();
 }
 
-static FrontendScreenUpdateFn Screen(void) {
+static FrontendScreenUpdateFn Screen(void)
+{
 	return g_frontState.screenStates[g_frontState.screenStackTop].updateFn;
 }
 
-static int SessionClosing(void) { return XvtNetworkSession_GetStatus().state == XVT_NETWORK_SESSION_PENDING; }
+static int SessionClosing(void)
+{
+	return XvtNetworkSession_GetStatus().state ==
+	       XVT_NETWORK_SESSION_PENDING;
+}
 
 /* Runs action with result and checks the promise every call keeps. */
-static void Resume(int result, int action) {
+static void Resume(int result, int action)
+{
 	XVT_ASSERT_INT_EQ(XvtMissionDialogs_Resume(result, action), 0);
 	XVT_ASSERT_INT_EQ(FrontendButton_IsOverlayTextEnabled(), 0);
 }
 
-static void CheckNotice(void) {
+static void CheckNotice(void)
+{
 	for (int result = 0; result < 2; ++result) {
 		Fresh(FRONTEND_MISSION_SESSION_NET_HOST);
 		Resume(result, XVT_MISSION_NOTICE);
@@ -58,9 +66,12 @@ static void CheckNotice(void) {
 	}
 }
 
-static void CheckCancelledActionsIgnoreResult(void) {
-	const int actions[] = { XVT_MISSION_SETUP_CANCELLED, XVT_MISSION_SETUP_BOOTED, XVT_MISSION_TEAM_CANCELLED,
-							XVT_MISSION_ASSIGNMENT_CANCELLED, XVT_MISSION_BRIEFING_CANCELLED };
+static void CheckCancelledActionsIgnoreResult(void)
+{
+	const int actions[] = {
+		XVT_MISSION_SETUP_CANCELLED, XVT_MISSION_SETUP_BOOTED,
+		XVT_MISSION_TEAM_CANCELLED, XVT_MISSION_ASSIGNMENT_CANCELLED,
+		XVT_MISSION_BRIEFING_CANCELLED};
 	for (unsigned i = 0; i < sizeof actions / sizeof actions[0]; ++i) {
 		for (int result = 0; result < 2; ++result) {
 			Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
@@ -84,7 +95,8 @@ static void CheckCancelledActionsIgnoreResult(void) {
 	}
 }
 
-static void CheckTeamPrevious(void) {
+static void CheckTeamPrevious(void)
+{
 	/* Solo, either result reopens mission setup. */
 	for (int result = 0; result < 2; ++result) {
 		Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
@@ -97,12 +109,18 @@ static void CheckTeamPrevious(void) {
 	XVT_ASSERT_TRUE(Screen() != MissionSetup_Update);
 }
 
-static void CheckTailsNeedNonzeroResult(void) {
-	const int actions[] = { XVT_MISSION_SETUP_HOST_LEAVE,   XVT_MISSION_CLIENT_LEAVE,
-							XVT_MISSION_TEAM_CLIENT_LEAVE,  XVT_MISSION_SOLO_BACK_TO_SETUP,
-							XVT_MISSION_SOLO_BACK_TO_TEAMS, XVT_MISSION_DEBRIEF_CLIENT_LEAVE,
-							XVT_MISSION_DEBRIEF_SOLO_ABORT, XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER,
-							XVT_MISSION_HOST_RESTART,       XVT_MISSION_DEBRIEF_HOST_ABORT };
+static void CheckTailsNeedNonzeroResult(void)
+{
+	const int actions[] = {XVT_MISSION_SETUP_HOST_LEAVE,
+			       XVT_MISSION_CLIENT_LEAVE,
+			       XVT_MISSION_TEAM_CLIENT_LEAVE,
+			       XVT_MISSION_SOLO_BACK_TO_SETUP,
+			       XVT_MISSION_SOLO_BACK_TO_TEAMS,
+			       XVT_MISSION_DEBRIEF_CLIENT_LEAVE,
+			       XVT_MISSION_DEBRIEF_SOLO_ABORT,
+			       XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER,
+			       XVT_MISSION_HOST_RESTART,
+			       XVT_MISSION_DEBRIEF_HOST_ABORT};
 	for (unsigned i = 0; i < sizeof actions / sizeof actions[0]; ++i) {
 		Fresh(FRONTEND_MISSION_SESSION_NET_HOST);
 		g_frontendQuickStartLaunchFlag = 1;
@@ -119,7 +137,8 @@ static void CheckTailsNeedNonzeroResult(void) {
 	}
 }
 
-static void CheckLeaveActions(void) {
+static void CheckLeaveActions(void)
+{
 	Fresh(FRONTEND_MISSION_SESSION_NET_HOST);
 	Resume(1, XVT_MISSION_SETUP_HOST_LEAVE);
 	XVT_ASSERT_TRUE(Screen() == Concourse_Update);
@@ -142,7 +161,8 @@ static void CheckLeaveActions(void) {
 	XVT_ASSERT_INT_EQ(SessionClosing(), 1);
 }
 
-static void CheckSoloBack(void) {
+static void CheckSoloBack(void)
+{
 	Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
 	Resume(1, XVT_MISSION_SOLO_BACK_TO_SETUP);
 	XVT_ASSERT_TRUE(Screen() == MissionSetup_Update);
@@ -152,7 +172,8 @@ static void CheckSoloBack(void) {
 	XVT_ASSERT_TRUE(Screen() == MissionSetup_TeamAssignmentUpdate);
 }
 
-static void CheckDebriefSoloAbort(void) {
+static void CheckDebriefSoloAbort(void)
+{
 	for (int clear = 0; clear < 2; ++clear) {
 		Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
 		g_frontendQuickStartLaunchFlag = 1;
@@ -160,7 +181,8 @@ static void CheckDebriefSoloAbort(void) {
 		g_missionSetupRosterAuthoritative = 1;
 		g_mpRoster[0].playerId = 5;
 		g_mpRoster[7].playerId = 9;
-		Resume(1, clear ? XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER : XVT_MISSION_DEBRIEF_SOLO_ABORT);
+		Resume(1, clear ? XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER
+				: XVT_MISSION_DEBRIEF_SOLO_ABORT);
 		XVT_ASSERT_TRUE(Screen() == MissionSetup_Update);
 		XVT_ASSERT_INT_EQ(g_frontendQuickStartLaunchFlag, 0);
 		XVT_ASSERT_INT_EQ(g_frontendGameSessionInProgress, 0);
@@ -171,7 +193,8 @@ static void CheckDebriefSoloAbort(void) {
 	}
 }
 
-int main(void) {
+int main(void)
+{
 	CheckNotice();
 	CheckCancelledActionsIgnoreResult();
 	CheckTeamPrevious();

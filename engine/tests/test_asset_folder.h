@@ -18,11 +18,12 @@
 typedef struct XvtTestAssets {
 	char folder[XVT_TEST_PATH_CAPACITY];
 	char asset[XVT_TEST_PATH_CAPACITY];
-	AeronVfs* vfs;
+	AeronVfs *vfs;
 } XvtTestAssets;
 
 /* Makes a fresh folder with empty asset, user and temp folders, and binds storage to them. */
-static inline void XvtTest_OpenAssets(XvtTestAssets* assets) {
+static inline void XvtTest_OpenAssets(XvtTestAssets *assets)
+{
 	char user[XVT_TEST_PATH_CAPACITY];
 	char temp[XVT_TEST_PATH_CAPACITY];
 	XvtTest_MakeFolder(assets->folder);
@@ -32,7 +33,7 @@ static inline void XvtTest_OpenAssets(XvtTestAssets* assets) {
 	XvtTest_Join(assets->asset, assets->folder, "asset");
 	XvtTest_Join(user, assets->folder, "user");
 	XvtTest_Join(temp, assets->folder, "temp");
-	AeronVfsConfig config = { 0 };
+	AeronVfsConfig config = {0};
 	config.asset_root = assets->asset;
 	config.resource_root = assets->asset;
 	config.user_root = user;
@@ -44,26 +45,31 @@ static inline void XvtTest_OpenAssets(XvtTestAssets* assets) {
 
 /* Places an empty file at path, relative to the asset folder and written with '/', making the folders on
  * the way that are missing. */
-static inline void XvtTest_AddAsset(XvtTestAssets* assets, const char* path) {
+static inline void XvtTest_AddAsset(XvtTestAssets *assets, const char *path)
+{
 	char prefix[XVT_TEST_PATH_CAPACITY];
 	size_t length = strlen(path);
 	XVT_ASSERT_TRUE(length > 0 && length < sizeof prefix);
 	memcpy(prefix, path, length + 1);
 	for (size_t i = 0; i < length; ++i) {
-		if (prefix[i] != '/')
+		if (prefix[i] != '/') {
 			continue;
+		}
 		prefix[i] = 0;
-		if (XvtTest_Kind(assets->asset, prefix) == 0)
+		if (XvtTest_Kind(assets->asset, prefix) == 0) {
 			XvtTest_MakeSubfolder(assets->asset, prefix);
+		}
 		prefix[i] = '/';
 	}
 	XvtTest_WriteFile(assets->asset, path, "", 0);
 }
 
 /* Unbinds storage and removes the folder. */
-static inline void XvtTest_CloseAssets(XvtTestAssets* assets) {
-	if (!assets->vfs)
+static inline void XvtTest_CloseAssets(XvtTestAssets *assets)
+{
+	if (!assets->vfs) {
 		return;
+	}
 	XvtStorage_Bind(NULL);
 	AeronVfs_Destroy(assets->vfs);
 	assets->vfs = NULL;

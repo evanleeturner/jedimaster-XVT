@@ -39,13 +39,13 @@ void XvtRenderAssets_BeginFrame(void);
  * bindings. Stamps the three generations and the flight palette, and records the snapshot's
  * serial as the export awaiting consumption. A source past its list's capacity counts a dropped
  * record and requests a fatal renderer error. Does nothing before Init or for NULL. */
-void XvtRenderAssets_Export(XvtRenderSnapshot* snapshot);
+void XvtRenderAssets_Export(XvtRenderSnapshot *snapshot);
 /* Records that the renderer is done with the export of snapshot_serial. */
 void XvtRenderAssets_Consumed(uint64_t snapshot_serial);
 /* Register the model or texture file loaded into a classic handle, keyed by that handle.
  * Handle 0 is ignored. */
-void XvtRenderAssets_RegisterOpt(uint16_t handle, const char* path);
-void XvtRenderAssets_RegisterTexture(uint16_t handle, const char* path);
+void XvtRenderAssets_RegisterOpt(uint16_t handle, const char *path);
+void XvtRenderAssets_RegisterTexture(uint16_t handle, const char *path);
 /* Binds a model type to the source now registered for handle; 0 or an unknown handle unbinds.
  * Types from XVT_SNAP_TYPES up are ignored. */
 void XvtRenderAssets_BindType(uint16_t type, uint16_t handle);
@@ -59,9 +59,9 @@ void XvtRenderAssets_ClearMission(void);
  * sources never match. */
 uint64_t XvtRenderAssets_HandleId(uint16_t handle);
 /* Returns the id of the live source keyed by owner, or 0. */
-uint64_t XvtRenderAssets_ImageId(const void* owner);
+uint64_t XvtRenderAssets_ImageId(const void *owner);
 /* Retires every source keyed by owner. Does nothing before Init or for NULL. */
-void XvtRenderAssets_RetireImage(const void* owner);
+void XvtRenderAssets_RetireImage(const void *owner);
 struct ImageResource;
 
 typedef struct XvtFrontendImageColors {
@@ -71,17 +71,21 @@ typedef struct XvtFrontendImageColors {
 
 /* Registers a frontend BMP keyed by image and stores its 256-entry color table and pixel-format
  * flag for CopyFrontendColors. Stores nothing when registration fails. */
-void XvtRenderAssets_RegisterFrontendImage(const struct ImageResource* image, const char* path,
-										   int make_palette, int pixel_format_555);
+void XvtRenderAssets_RegisterFrontendImage(const struct ImageResource *image,
+					   const char *path, int make_palette,
+					   int pixel_format_555);
 /* Host-thread asset preparation copies registry-owned data before marking the frame consumed. */
 /* Copies the stored colors of BMP source id, retired or not. Returns 1 on success; 0 before
  * Init, for id 0 or NULL colors, or when id is not a registered BMP. */
-int XvtRenderAssets_CopyFrontendColors(uint64_t id, XvtFrontendImageColors* colors);
+int XvtRenderAssets_CopyFrontendColors(uint64_t id,
+				       XvtFrontendImageColors *colors);
 /* Registers a non-model source (image, font, cursor, panel, icon) keyed by owner, or by handle when owner is
  * NULL, and returns its id. Returns 0 before Init, when owner and handle are both 0, or on failure. */
-uint64_t XvtRenderAssets_RegisterImage(const void* owner, uint16_t handle, const char* path,
-									   XvtSnapImageKind kind, uint32_t first, uint32_t count,
-									   uint16_t point_size, uint8_t row_bytes, int make_palette);
+uint64_t XvtRenderAssets_RegisterImage(const void *owner, uint16_t handle,
+				       const char *path, XvtSnapImageKind kind,
+				       uint32_t first, uint32_t count,
+				       uint16_t point_size, uint8_t row_bytes,
+				       int make_palette);
 /* Original pointer keys are used only during capture, never by the remaster. */
 /* Copies the live HUD layout into the cockpit layout: elements 0-287, the 28 cockpit resource
  * descriptors, the panel sprite info and span masks 0 and 1; with auxiliary, elements 288-431
@@ -91,23 +95,25 @@ void XvtRenderAssets_CaptureCockpit(int auxiliary);
 /* Registers the cockpit LFD file whose entry table is entries, with its resource's viewport,
  * and binds it to that resource's descriptor. A resource without a handle registers under the
  * flight scratch screen buffer's handle. Does nothing when entries is not one of the 28 resources. */
-void XvtRenderAssets_RegisterLfd(const char* path, uint8_t** entries);
+void XvtRenderAssets_RegisterLfd(const char *path, uint8_t **entries);
 /* Registers the panel sprite file for panel slots first to first + count - 1 of 265, binding
  * slot first + i to frame skip + i; when first is 0 it also sets the layout's panel asset. Does nothing
  * when count is 0 or the range leaves the 265 slots. */
-void XvtRenderAssets_RegisterPanel(const char* path, uint16_t first_sprite, uint16_t count, uint16_t skip);
+void XvtRenderAssets_RegisterPanel(const char *path, uint16_t first_sprite,
+				   uint16_t count, uint16_t skip);
 /* Registers the map icon file and binds icon i to frame i for i below count; icons past count
  * keep their old binding, except a binding to a source this call retires (the same frames table
  * registered again with other parameters): retiring a source clears every icon bound to it. Does
  * nothing for 0. More than XVT_SNAP_MAP_ICON_FRAMES logs an error and requests a fatal error. */
-void XvtRenderAssets_RegisterIcons(const char* path, uint8_t** frames, uint16_t count);
+void XvtRenderAssets_RegisterIcons(const char *path, uint8_t **frames,
+				   uint16_t count);
 /* Registers the micro and small software flight fonts, and the medium one except at 320x240. */
 void XvtRenderAssets_RegisterFlightFonts(void);
 /* Returns the source id bound to map icon index and stores its frame in *frame when frame is
  * not NULL; 0 and frame 0 for an unbound or out-of-range index. */
-uint64_t XvtRenderAssets_MapIconFrame(unsigned index, uint32_t* frame);
+uint64_t XvtRenderAssets_MapIconFrame(unsigned index, uint32_t *frame);
 /* Returns the built-in default cursor bitmap. */
-const uint8_t* XvtRenderAssets_DefaultCursor(void);
+const uint8_t *XvtRenderAssets_DefaultCursor(void);
 
 #ifdef __cplusplus
 }

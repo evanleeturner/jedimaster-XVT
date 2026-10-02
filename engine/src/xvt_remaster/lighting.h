@@ -22,14 +22,15 @@ extern "C" {
  * projectile (XWA's color per object type; intensity 200 for lasers and countermeasures, 250 for
  * torpedoes, pulses, missiles, bombs and rockets; other types give no light), placed relative to the
  * camera. Returns 1. */
-int XvtLighting_Begin(AeronScene3D* scene, const XvtRenderSnapshot* snapshot);
+int XvtLighting_Begin(AeronScene3D *scene, const XvtRenderSnapshot *snapshot);
 /* Adds one point light at position (relative to the scene origin): color times intensity times the
  * point_lights scale setting, radius = the larger of minimum_range and intensity * 50, times the
  * range_scale setting. Does nothing when point lights are disabled, intensity is not positive or not
  * finite, the scale setting is not positive, or any resulting value is not positive or not finite. The
  * scene drops lights past its cap with a once-per-frame warning; the drop is not reported here. */
-void XvtLighting_AddPoint(AeronScene3D* scene, const float position[3], const float color[3], float intensity,
-						  float minimum_range);
+void XvtLighting_AddPoint(AeronScene3D *scene, const float position[3],
+			  const float color[3], float intensity,
+			  float minimum_range);
 #ifdef __cplusplus
 }
 #endif

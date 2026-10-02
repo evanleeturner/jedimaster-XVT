@@ -27,24 +27,27 @@
 
 // GLOBAL: XVT 0x51A558
 const uint32_t g_explosionBillboardColorByFrame[32] = {
-	0xd0ffffff, 0xe0ffffff, 0xf0ffffff, 0xf0ffffff, 0xe0ffffff, 0xd0ffffff, 0xb0ffffff, 0x90ffffff,
-	0x70ffffff, 0x50ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff,
-	0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff,
-	0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff,
+	0xd0ffffff, 0xe0ffffff, 0xf0ffffff, 0xf0ffffff, 0xe0ffffff, 0xd0ffffff,
+	0xb0ffffff, 0x90ffffff, 0x70ffffff, 0x50ffffff, 0x30ffffff, 0x30ffffff,
+	0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff,
+	0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff,
+	0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff,
+	0x30ffffff, 0x30ffffff,
 };
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x401450
-void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry* quadRecord) {
+void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry *quadRecord)
+{
 	uint16_t frame;
 	uint16_t modelType;
 	uint16_t screenSize;
 	uint16_t handle;
 	int cameraWorldY;
-	ObjectRecord* object;
-	const uint8_t* modelData;
-	const TexLevelHeader* textureHeader;
-	SpritePayload* sprite;
+	ObjectRecord *object;
+	const uint8_t *modelData;
+	const TexLevelHeader *textureHeader;
+	SpritePayload *sprite;
 
 	frame = (uint16_t)quadRecord->frame & 0x7FFFu;
 	g_flightSwRotSpriteSpanRunsEnabled = 1;
@@ -52,34 +55,47 @@ void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry* quadRecord) {
 	g_billboardObjectOrTypeIndex = quadRecord->objectOrTypeIndex;
 	object = &g_objectTable[g_billboardObjectOrTypeIndex];
 	cameraWorldY = g_players[g_localPlayer].viewState.cameraWorldY;
-	g_camRelWorldX = object->world_x - g_players[g_localPlayer].viewState.cameraWorldX;
+	g_camRelWorldX = object->world_x -
+			 g_players[g_localPlayer].viewState.cameraWorldX;
 	g_camRelWorldY = object->world_y - cameraWorldY;
-	g_camRelWorldZ = object->world_z - g_players[g_localPlayer].viewState.cameraWorldZ;
+	g_camRelWorldZ = object->world_z -
+			 g_players[g_localPlayer].viewState.cameraWorldZ;
 	g_viewSpaceDepth = quadRecord->depthZ;
 	screenSize = (uint16_t)SceneBillboard_ComputeProjectedSize(
-		quadRecord->depthZ, (uint16_t)g_objectTypeTable[modelType].maxBoundsExtent,
+		quadRecord->depthZ,
+		(uint16_t)g_objectTypeTable[modelType].maxBoundsExtent,
 		(uint16_t)quadRecord->screenSize);
 	handle = g_objectTypeTable[modelType].resourceHandle;
-	modelData = (const uint8_t*)Memory_LockHandle(handle);
+	modelData = (const uint8_t *)Memory_LockHandle(handle);
 	frame &= 0x7Fu;
 	Memory_UnlockHandle(handle);
-	textureHeader = (const TexLevelHeader*)modelData;
+	textureHeader = (const TexLevelHeader *)modelData;
 	sprite =
-		(SpritePayload*)(modelData + *(const uint32_t*)(modelData + textureHeader->imageOffsetTableOffset +
-														frame * sizeof(uint32_t)));
-	if (g_useHardware3D != 0)
-		RenderQuad_DrawRotatedSprite(quadRecord->rotationAngle, quadRecord->screenX, quadRecord->screenY,
-									 screenSize, sprite);
-	else {
-		FlightSw_PrepareSpriteRotationTables(quadRecord->rotationAngle, FLIGHT_SW_16BPP_BYTES_PER_PIXEL);
+		(SpritePayload
+			 *)(modelData +
+			    *(const uint32_t
+				      *)(modelData +
+					 textureHeader->imageOffsetTableOffset +
+					 frame * sizeof(uint32_t)));
+	if (g_useHardware3D != 0) {
+		RenderQuad_DrawRotatedSprite(
+			quadRecord->rotationAngle, quadRecord->screenX,
+			quadRecord->screenY, screenSize, sprite);
+	} else {
+		FlightSw_PrepareSpriteRotationTables(
+			quadRecord->rotationAngle,
+			FLIGHT_SW_16BPP_BYTES_PER_PIXEL);
 		FlightSw_LoadSpritePaletteTables(sprite);
-		FlightSw_DrawRotatedSpriteQuad(quadRecord->screenX, quadRecord->screenY, screenSize, sprite);
+		FlightSw_DrawRotatedSpriteQuad(quadRecord->screenX,
+					       quadRecord->screenY, screenSize,
+					       sprite);
 	}
 }
 
 // FUNCTION: XVT 0x40BBF0
-void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t screenSize,
-								  const void* textureImage) {
+void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
+				  uint16_t screenSize, const void *textureImage)
+{
 	enum {
 		EXPLOSION_FRAME_COUNT = 32,
 		CLIP_VERTEX_CAPACITY = 40,
@@ -94,8 +110,8 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 		SPRITE_ALPHA_RENDER_FLAGS = 512
 	};
 
-	const uint8_t* textureBytes;
-	const TexLevelImageHeader* imageHeader;
+	const uint8_t *textureBytes;
+	const TexLevelImageHeader *imageHeader;
 	uint32_t color;
 	float computedDepth;
 	float depth;
@@ -118,35 +134,38 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	int vertexIndex;
 	uint32_t vertexColor;
 	uint32_t vertexSpecular;
-	uint16_t* palette;
-	const uint8_t* pixels;
+	uint16_t *palette;
+	const uint8_t *pixels;
 	int rleFormat;
-	Std3DTexCacheNode* texture;
+	Std3DTexCacheNode *texture;
 
 #ifdef XVT_MODERN
 	/* Suppress before texture lookup so hidden classic draws do not refill the cache. */
-	if (AeronDx5_IsClassicFlightRenderingSuppressed())
+	if (AeronDx5_IsClassicFlightRenderingSuppressed()) {
 		return;
+	}
 #endif
 
-	textureBytes = (const uint8_t*)textureImage;
-	imageHeader = (const TexLevelImageHeader*)textureImage;
+	textureBytes = (const uint8_t *)textureImage;
+	imageHeader = (const TexLevelImageHeader *)textureImage;
 	screenY = g_flightVpHeight - screenY;
 #ifdef XVT_MODERN
 	color = UINT32_MAX;
 #endif
 	if (g_billboardObjectOrTypeIndex >= 0 &&
-		(unsigned int)g_regionMainObjectSlotEnd > (unsigned int)g_billboardObjectOrTypeIndex) {
-		ObjectRecord* object;
+	    (unsigned int)g_regionMainObjectSlotEnd >
+		    (unsigned int)g_billboardObjectOrTypeIndex) {
+		ObjectRecord *object;
 		int frame;
 
 		object = &g_objectTable[g_billboardObjectOrTypeIndex];
 		if (object->genusId == CRAFT_GENUS_EXPLOSION) {
 			frame = object->typeSpecificByte[0];
-			if (frame >= 0 && frame < EXPLOSION_FRAME_COUNT)
+			if (frame >= 0 && frame < EXPLOSION_FRAME_COUNT) {
 				color = g_explosionBillboardColorByFrame[frame];
-			else
+			} else {
 				color = UINT32_MAX;
+			}
 		} else {
 			color = UINT32_MAX;
 		}
@@ -155,13 +174,16 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	if ((unsigned int)g_viewSpaceDepth > 0x1000000u) {
 		color = UINT32_MAX;
 		computedDepth = 0.00012205541f;
-		if (g_std3DZCompareCap == 2)
+		if (g_std3DZCompareCap == 2) {
 			computedDepth = 0.99987793f;
+		}
 	} else {
-		computedDepth =
-			g_renderUnitFloat / ((float)g_viewSpaceDepth * g_invDepthProjScale + g_renderUnitFloat);
-		if (g_std3DZCompareCap == 2)
+		computedDepth = g_renderUnitFloat /
+				((float)g_viewSpaceDepth * g_invDepthProjScale +
+				 g_renderUnitFloat);
+		if (g_std3DZCompareCap == 2) {
 			computedDepth = g_renderUnitFloat - computedDepth;
+		}
 	}
 	depth = computedDepth;
 	sourceWidth = (int32_t)imageHeader->width;
@@ -182,32 +204,40 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	vertexIndex = 0;
 	do {
 		powerOfTwoWidth *= 2;
-		if (powerOfTwoWidth >= sourceWidth)
+		if (powerOfTwoWidth >= sourceWidth) {
 			break;
+		}
 		++vertexIndex;
 	} while (vertexIndex < TEXTURE_DIMENSION_STEPS);
 	powerOfTwoHeight = 1;
-	for (vertexIndex = 0; vertexIndex < TEXTURE_DIMENSION_STEPS; ++vertexIndex) {
+	for (vertexIndex = 0; vertexIndex < TEXTURE_DIMENSION_STEPS;
+	     ++vertexIndex) {
 		powerOfTwoHeight *= 2;
-		if (powerOfTwoHeight >= sourceHeight)
+		if (powerOfTwoHeight >= sourceHeight) {
 			break;
+		}
 	}
 	if (g_pStd3DCurDevice->caps.bSquareOnlyTexture != 0) {
-		if (powerOfTwoWidth > powerOfTwoHeight)
+		if (powerOfTwoWidth > powerOfTwoHeight) {
 			powerOfTwoHeight = powerOfTwoWidth;
-		else if (powerOfTwoHeight > powerOfTwoWidth)
+		} else if (powerOfTwoHeight > powerOfTwoWidth) {
 			powerOfTwoWidth = powerOfTwoHeight;
+		}
 	}
 	width = powerOfTwoWidth;
 	height = powerOfTwoHeight;
 
 	maxU /= (float)width;
 	maxV /= (float)height;
-	halfWidth = (screenSize * (int32_t)imageHeader->width) >> TEXTURE_SCALE_SHIFT;
-	halfHeight = (screenSize * (int32_t)imageHeader->height) >> TEXTURE_SCALE_SHIFT;
+	halfWidth = (screenSize * (int32_t)imageHeader->width) >>
+		    TEXTURE_SCALE_SHIFT;
+	halfHeight = (screenSize * (int32_t)imageHeader->height) >>
+		     TEXTURE_SCALE_SHIFT;
 	angle = (uint16_t)angle;
-	xOffset = trig2_cosinedwordmult(halfWidth, angle) + trig2_sinedwordmult(halfHeight, angle);
-	yOffset = trig2_cosinedwordmult(halfHeight, angle) - trig2_sinedwordmult(halfWidth, angle);
+	xOffset = trig2_cosinedwordmult(halfWidth, angle) +
+		  trig2_sinedwordmult(halfHeight, angle);
+	yOffset = trig2_cosinedwordmult(halfHeight, angle) -
+		  trig2_sinedwordmult(halfWidth, angle);
 
 	g_clipCountA = INITIAL_QUAD_VERTEX_COUNT;
 	g_clipVertCursor = INITIAL_QUAD_VERTEX_COUNT;
@@ -221,8 +251,10 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	vertices[0].scaledInverseDepth = depth;
 	memset(&vertices[0].lightIntensity, 0, sizeof(float) * 3);
 	negativeHalfWidth = -halfWidth;
-	xOffset = trig2_cosinedwordmult(negativeHalfWidth, angle) + trig2_sinedwordmult(halfHeight, angle);
-	yOffset = trig2_cosinedwordmult(halfHeight, angle) - trig2_sinedwordmult(negativeHalfWidth, angle);
+	xOffset = trig2_cosinedwordmult(negativeHalfWidth, angle) +
+		  trig2_sinedwordmult(halfHeight, angle);
+	yOffset = trig2_cosinedwordmult(halfHeight, angle) -
+		  trig2_sinedwordmult(negativeHalfWidth, angle);
 	vertices[1].x = (float)(screenX + xOffset);
 	vertices[1].y = (float)(screenY + yOffset);
 	vertices[1].scaledInverseDepth = depth;
@@ -230,18 +262,20 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	vertices[1].u = maxU;
 	vertices[1].v = 0.0f;
 	negativeHalfHeight = -halfHeight;
-	xOffset =
-		trig2_cosinedwordmult(negativeHalfWidth, angle) + trig2_sinedwordmult(negativeHalfHeight, angle);
-	yOffset =
-		trig2_cosinedwordmult(negativeHalfHeight, angle) - trig2_sinedwordmult(negativeHalfWidth, angle);
+	xOffset = trig2_cosinedwordmult(negativeHalfWidth, angle) +
+		  trig2_sinedwordmult(negativeHalfHeight, angle);
+	yOffset = trig2_cosinedwordmult(negativeHalfHeight, angle) -
+		  trig2_sinedwordmult(negativeHalfWidth, angle);
 	vertices[2].x = (float)(screenX + xOffset);
 	vertices[2].y = (float)(screenY + yOffset);
 	vertices[2].scaledInverseDepth = depth;
 	vertices[2].lightIntensity = 0.0f;
 	vertices[2].u = maxU;
 	vertices[2].v = maxV;
-	xOffset = trig2_cosinedwordmult(halfWidth, angle) + trig2_sinedwordmult(negativeHalfHeight, angle);
-	yOffset = trig2_cosinedwordmult(negativeHalfHeight, angle) - trig2_sinedwordmult(halfWidth, angle);
+	xOffset = trig2_cosinedwordmult(halfWidth, angle) +
+		  trig2_sinedwordmult(negativeHalfHeight, angle);
+	yOffset = trig2_cosinedwordmult(negativeHalfHeight, angle) -
+		  trig2_sinedwordmult(halfWidth, angle);
 	vertices[3].x = (float)(screenX + xOffset);
 	vertices[3].y = (float)(screenY + yOffset);
 	vertices[3].scaledInverseDepth = depth;
@@ -264,11 +298,13 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	if (g_clipCountB > 0) {
 #endif
 		previousIndex = g_clipIdxB[g_clipCountB - 1];
-		for (vertexIndex = 0; vertexIndex < g_clipCountB; ++vertexIndex) {
+		for (vertexIndex = 0; vertexIndex < g_clipCountB;
+		     ++vertexIndex) {
 			int currentIndex;
 
 			currentIndex = g_clipIdxB[vertexIndex];
-			RenderClip_ClipPolyBottom(previousIndex, currentIndex, vertices);
+			RenderClip_ClipPolyBottom(previousIndex, currentIndex,
+						  vertices);
 			previousIndex = currentIndex;
 		}
 #ifdef XVT_MODERN
@@ -279,11 +315,13 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	if (g_clipCountA > 0) {
 #endif
 		previousIndex = g_clipIdxA[g_clipCountA - 1];
-		for (vertexIndex = 0; vertexIndex < g_clipCountA; ++vertexIndex) {
+		for (vertexIndex = 0; vertexIndex < g_clipCountA;
+		     ++vertexIndex) {
 			int currentIndex;
 
 			currentIndex = g_clipIdxA[vertexIndex];
-			RenderClip_ClipPolyLeft(previousIndex, currentIndex, vertices);
+			RenderClip_ClipPolyLeft(previousIndex, currentIndex,
+						vertices);
 			previousIndex = currentIndex;
 		}
 #ifdef XVT_MODERN
@@ -294,27 +332,31 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	if (g_clipCountB > 0) {
 #endif
 		previousIndex = g_clipIdxB[g_clipCountB - 1];
-		for (vertexIndex = 0; vertexIndex < g_clipCountB; ++vertexIndex) {
+		for (vertexIndex = 0; vertexIndex < g_clipCountB;
+		     ++vertexIndex) {
 			int currentIndex;
 
 			currentIndex = g_clipIdxB[vertexIndex];
-			RenderClip_ClipPolyRight(previousIndex, currentIndex, vertices);
+			RenderClip_ClipPolyRight(previousIndex, currentIndex,
+						 vertices);
 			previousIndex = currentIndex;
 		}
 #ifdef XVT_MODERN
 	}
 #endif
-	if (g_clipCountA < MIN_TRIANGLE_VERTEX_COUNT)
+	if (g_clipCountA < MIN_TRIANGLE_VERTEX_COUNT) {
 		return;
+	}
 
 	if (g_clipCountA + g_d3dVertexCount > g_maxBatchVerts ||
-		g_clipCountA + g_d3dTriangleCount > g_maxBatchTris) {
+	    g_clipCountA + g_d3dTriangleCount > g_maxBatchTris) {
 		Math_SetFpuExtendedPrecisionMode();
 		std3D_StartScene();
 		std3D_LockExecuteBuffer();
 		std3D_AddVertices(g_flightVertexBuffer, g_d3dVertexCount);
 		std3D_BeginInstructions();
-		std3D_AddTriangles(g_triBuffer, (unsigned int)g_d3dTriangleCount);
+		std3D_AddTriangles(g_triBuffer,
+				   (unsigned int)g_d3dTriangleCount);
 		std3D_ExecuteBuffer();
 		std3D_EndScene();
 		Math_SetFpuSinglePrecisionMode();
@@ -339,29 +381,40 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 		sourceU = vertices[sourceIndex].u;
 		sourceV = vertices[sourceIndex].v;
 		sourceDepth = vertices[sourceIndex].scaledInverseDepth;
-		g_flightVertexBuffer[g_d3dVertexCount].sx = vertices[sourceIndex].x + g_flightVpOriginX;
-		g_flightVertexBuffer[g_d3dVertexCount].sy = sourceY + g_flightVpOriginY;
+		g_flightVertexBuffer[g_d3dVertexCount].sx =
+			vertices[sourceIndex].x + g_flightVpOriginX;
+		g_flightVertexBuffer[g_d3dVertexCount].sy =
+			sourceY + g_flightVpOriginY;
 		g_flightVertexBuffer[g_d3dVertexCount].sz = sourceDepth;
 		g_flightVertexBuffer[g_d3dVertexCount].rhw = sourceDepth;
 		g_flightVertexBuffer[g_d3dVertexCount].tu = sourceU;
 		g_flightVertexBuffer[g_d3dVertexCount].tv = sourceV;
 		g_flightVertexBuffer[g_d3dVertexCount].color = vertexColor;
-		g_flightVertexBuffer[g_d3dVertexCount].specular = vertexSpecular;
+		g_flightVertexBuffer[g_d3dVertexCount].specular =
+			vertexSpecular;
 		g_clipIdxA[vertexIndex] = g_d3dVertexCount;
 		++g_d3dVertexCount;
 	}
-	palette = (uint16_t*)(textureBytes + imageHeader->convertedPaletteOffset);
+	palette = (uint16_t *)(textureBytes +
+			       imageHeader->convertedPaletteOffset);
 	pixels = textureBytes + imageHeader->encodedImageOffset + 16;
 	rleFormat = (int32_t)imageHeader->packingMode;
-	texture = RenderTexture_GetOrCreateBitmap(width, height, palette, pixels, rleFormat);
-	for (vertexIndex = TRIANGLE_FAN_FIRST_INDEX; vertexIndex < g_clipCountA; ++vertexIndex) {
+	texture = RenderTexture_GetOrCreateBitmap(width, height, palette,
+						  pixels, rleFormat);
+	for (vertexIndex = TRIANGLE_FAN_FIRST_INDEX; vertexIndex < g_clipCountA;
+	     ++vertexIndex) {
 		g_triBuffer[g_d3dTriangleCount].v0 = g_clipIdxA[0];
-		g_triBuffer[g_d3dTriangleCount].v1 = g_clipIdxA[vertexIndex - 1];
+		g_triBuffer[g_d3dTriangleCount].v1 =
+			g_clipIdxA[vertexIndex - 1];
 		g_triBuffer[g_d3dTriangleCount].v2 = g_clipIdxA[vertexIndex];
 		g_triBuffer[g_d3dTriangleCount].texture = texture;
-		g_triBuffer[g_d3dTriangleCount].flags = (Std3DRenderStateFlags)SPRITE_BASE_RENDER_FLAGS;
-		if (g_bilinearEnabled != 0)
-			g_triBuffer[g_d3dTriangleCount].flags += BILINEAR_RENDER_FLAGS;
-		g_triBuffer[g_d3dTriangleCount++].flags += SPRITE_ALPHA_RENDER_FLAGS;
+		g_triBuffer[g_d3dTriangleCount].flags =
+			(Std3DRenderStateFlags)SPRITE_BASE_RENDER_FLAGS;
+		if (g_bilinearEnabled != 0) {
+			g_triBuffer[g_d3dTriangleCount].flags +=
+				BILINEAR_RENDER_FLAGS;
+		}
+		g_triBuffer[g_d3dTriangleCount++].flags +=
+			SPRITE_ALPHA_RENDER_FLAGS;
 	}
 }

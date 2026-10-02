@@ -25,7 +25,8 @@
 
 static int Placeholder(int frame) { return frame; }
 
-static void Fresh(void) {
+static void Fresh(void)
+{
 	XvtDialog_Shutdown();
 	XvtNetworkSession_Shutdown();
 	XvtTest_CloseDisplay();
@@ -37,12 +38,14 @@ static void Fresh(void) {
 	g_gameConfig.sfxDatapadEnabled = 0;
 }
 
-static FrontendScreenUpdateFn TopScreen(void) {
+static FrontendScreenUpdateFn TopScreen(void)
+{
 	return g_frontState.screenStates[g_frontState.screenStackTop].updateFn;
 }
 
 /* Runs the open dialog's first frame, then dismisses it with Escape. */
-static void DismissDialog(void) {
+static void DismissDialog(void)
+{
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 	XvtDialog_Update();
 	g_frontState.charRingBuffer[g_frontState.charWriteIdx++] = 27;
@@ -51,23 +54,28 @@ static void DismissDialog(void) {
 }
 
 /* Fills the state Return clears with values it must not keep. */
-static void Dirty(void) {
+static void Dirty(void)
+{
 	g_frontendNetSelectedSessionIdx = 3;
 	g_frontendNetProbeMissionElapsedSeconds = 2;
 	g_frontendNetReceivedMissionDescriptionId = 17;
-	memset(g_frontendNetSelectedGameName, 'g', sizeof g_frontendNetSelectedGameName - 1);
+	memset(g_frontendNetSelectedGameName, 'g',
+	       sizeof g_frontendNetSelectedGameName - 1);
 }
 
-static void CheckCleared(void) {
+static void CheckCleared(void)
+{
 	XVT_ASSERT_INT_EQ(g_frontendSkipScreenEntrySetup, 1);
 	XVT_ASSERT_INT_EQ(g_frontendNetSelectedSessionIdx, -1);
 	XVT_ASSERT_INT_EQ(g_frontendNetProbeMissionElapsedSeconds, 0);
 	XVT_ASSERT_INT_EQ(g_frontendNetReceivedMissionDescriptionId, -1);
-	for (unsigned i = 0; i < sizeof g_frontendNetSelectedGameName; ++i)
+	for (unsigned i = 0; i < sizeof g_frontendNetSelectedGameName; ++i) {
 		XVT_ASSERT_INT_EQ(g_frontendNetSelectedGameName[i], 0);
+	}
 }
 
-static void CheckReturn(void) {
+static void CheckReturn(void)
+{
 	Fresh();
 	Dirty();
 	g_missionText = malloc(4096);
@@ -75,10 +83,12 @@ static void CheckReturn(void) {
 	memset(g_missionText, 'b', 4096);
 	XvtNetworkDialogs_Return(1);
 	XVT_ASSERT_TRUE(TopScreen() == FrontendNet_HostGameScreen);
-	XVT_ASSERT_INT_EQ(g_frontendMissionSessionMode, FRONTEND_MISSION_SESSION_NET_HOST);
+	XVT_ASSERT_INT_EQ(g_frontendMissionSessionMode,
+			  FRONTEND_MISSION_SESSION_NET_HOST);
 	CheckCleared();
-	for (int i = 0; i < 4096; ++i)
+	for (int i = 0; i < 4096; ++i) {
 		XVT_ASSERT_INT_EQ(g_missionText[i], 0);
+	}
 	free(g_missionText);
 	g_missionText = NULL;
 
@@ -87,26 +97,34 @@ static void CheckReturn(void) {
 	Dirty();
 	XvtNetworkDialogs_Return(0);
 	XVT_ASSERT_TRUE(TopScreen() == FrontendNet_JoinGameScreen);
-	XVT_ASSERT_INT_EQ(g_frontendMissionSessionMode, FRONTEND_MISSION_SESSION_NET_CLIENT);
+	XVT_ASSERT_INT_EQ(g_frontendMissionSessionMode,
+			  FRONTEND_MISSION_SESSION_NET_CLIENT);
 	CheckCleared();
 }
 
-static void CheckResume(void) {
+static void CheckResume(void)
+{
 	for (int result = 0; result < 2; ++result) {
 		Fresh();
-		XVT_ASSERT_INT_EQ(XvtNetworkDialogs_Resume(result, XVT_NETWORK_ACCESS_REJECTED), 0);
+		XVT_ASSERT_INT_EQ(XvtNetworkDialogs_Resume(
+					  result, XVT_NETWORK_ACCESS_REJECTED),
+				  0);
 		XVT_ASSERT_TRUE(TopScreen() == FrontendNet_JoinGameScreen);
 		XVT_ASSERT_TRUE(g_frontState.pendingScreenUpdateFn == NULL);
 
 		/* A password first queues the options datapad. */
 		Fresh();
-		XVT_ASSERT_INT_EQ(XvtNetworkDialogs_Resume(result, XVT_NETWORK_ACCESS_PASSWORD), 0);
+		XVT_ASSERT_INT_EQ(XvtNetworkDialogs_Resume(
+					  result, XVT_NETWORK_ACCESS_PASSWORD),
+				  0);
 		XVT_ASSERT_TRUE(TopScreen() == FrontendNet_JoinGameScreen);
-		XVT_ASSERT_TRUE(g_frontState.pendingScreenUpdateFn == Config_OptionsDatapadUpdate);
+		XVT_ASSERT_TRUE(g_frontState.pendingScreenUpdateFn ==
+				Config_OptionsDatapadUpdate);
 	}
 }
 
-static void CheckConnecting(void) {
+static void CheckConnecting(void)
+{
 	Fresh();
 	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
 	/* Not clicked, or clicked outside the cancel button. */
@@ -122,15 +140,20 @@ static void CheckConnecting(void) {
 	FrontendDisplay_UnlockBackBuffer();
 }
 
-static void CheckFailedWaitsForDismissal(void) {
+static void CheckFailedWaitsForDismissal(void)
+{
 	for (int host = 0; host < 2; ++host) {
 		Fresh();
-		XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost(NULL, "Luke", "", 0), 0);
-		XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_FAILED);
-		XvtNetworkDialogs_ShowFailure(AERON_DPLAY_DIRECTORY_ERROR_TIMEOUT, host);
+		XVT_ASSERT_INT_EQ(
+			XvtNetworkSession_BeginHost(NULL, "Luke", "", 0), 0);
+		XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state,
+				  XVT_NETWORK_SESSION_FAILED);
+		XvtNetworkDialogs_ShowFailure(
+			AERON_DPLAY_DIRECTORY_ERROR_TIMEOUT, host);
 
 		/* The session is reset, and the message waits in a confirm dialog. */
-		XVT_ASSERT_TRUE(XvtNetworkSession_GetStatus().state != XVT_NETWORK_SESSION_FAILED);
+		XVT_ASSERT_TRUE(XvtNetworkSession_GetStatus().state !=
+				XVT_NETWORK_SESSION_FAILED);
 		XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 		XVT_ASSERT_TRUE(g_frontDialogLine1OrEdit[0] != 0);
 		XVT_ASSERT_TRUE(TopScreen() == Placeholder);
@@ -138,26 +161,37 @@ static void CheckFailedWaitsForDismissal(void) {
 		/* Once dismissed, the frontend resumes the dialog's continuation, which returns to the screen. */
 		DismissDialog();
 		int frame_result = -1;
-		XVT_ASSERT_INT_EQ(XvtDialog_ResumeContinuation(&frame_result), 1);
-		XVT_ASSERT_TRUE(TopScreen() == (host ? FrontendNet_HostGameScreen : FrontendNet_JoinGameScreen));
+		XVT_ASSERT_INT_EQ(XvtDialog_ResumeContinuation(&frame_result),
+				  1);
+		XVT_ASSERT_TRUE(TopScreen() ==
+				(host ? FrontendNet_HostGameScreen
+				      : FrontendNet_JoinGameScreen));
 		XVT_ASSERT_INT_EQ(g_frontendMissionSessionMode,
-						  host ? FRONTEND_MISSION_SESSION_NET_HOST : FRONTEND_MISSION_SESSION_NET_CLIENT);
+				  host ? FRONTEND_MISSION_SESSION_NET_HOST
+				       : FRONTEND_MISSION_SESSION_NET_CLIENT);
 	}
 }
 
-static void CheckFailedEveryErrorHasAMessage(void) {
-	for (int error = AERON_DPLAY_DIRECTORY_ERROR_NONE; error <= AERON_DPLAY_DIRECTORY_ERROR_BUSY; ++error) {
+static void CheckFailedEveryErrorHasAMessage(void)
+{
+	for (int error = AERON_DPLAY_DIRECTORY_ERROR_NONE;
+	     error <= AERON_DPLAY_DIRECTORY_ERROR_BUSY; ++error) {
 		Fresh();
-		memset(g_frontDialogLine1OrEdit, 0, sizeof g_frontDialogLine1OrEdit);
-		XvtNetworkDialogs_ShowFailure((AeronDplayDirectoryError)error, 0);
+		memset(g_frontDialogLine1OrEdit, 0,
+		       sizeof g_frontDialogLine1OrEdit);
+		XvtNetworkDialogs_ShowFailure((AeronDplayDirectoryError)error,
+					      0);
 		XVT_ASSERT_TRUE(g_frontDialogLine1OrEdit[0] != 0);
 	}
 }
 
-static void CheckFailedReturnsAtOnce(void) {
+static void CheckFailedReturnsAtOnce(void)
+{
 	Fresh();
 	/* An untaken result from an earlier dialog: the failure's Confirm takes it and does not wait. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("earlier", NULL, NULL, NULL, NULL, 0), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(
+		XvtDialog_Confirm("earlier", NULL, NULL, NULL, NULL, 0),
+		XVT_DIALOG_PENDING);
 	DismissDialog();
 	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
 	XvtNetworkDialogs_ShowFailure(AERON_DPLAY_DIRECTORY_ERROR_FULL, 1);
@@ -165,12 +199,14 @@ static void CheckFailedReturnsAtOnce(void) {
 	XVT_ASSERT_TRUE(TopScreen() == FrontendNet_HostGameScreen);
 }
 
-static void CheckAdmissionFailed(void) {
+static void CheckAdmissionFailed(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtNetworkDialogs_ReportAdmissionFailure(), 0);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginJoin("\x02", "Luke", NULL), 0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_FAILED);
+	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state,
+			  XVT_NETWORK_SESSION_FAILED);
 
 	/* Reported as a join's failure: once dismissed, back to the join screen. */
 	XVT_ASSERT_INT_EQ(XvtNetworkDialogs_ReportAdmissionFailure(), 1);
@@ -181,7 +217,8 @@ static void CheckAdmissionFailed(void) {
 	XVT_ASSERT_TRUE(TopScreen() == FrontendNet_JoinGameScreen);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckReturn();
 	CheckResume();
 	CheckConnecting();

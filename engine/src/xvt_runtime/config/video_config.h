@@ -22,17 +22,21 @@ typedef struct XvtVideoSettings {
 } XvtVideoSettings;
 
 /* Copies the video fields out of settings. */
-void XvtVideoSettings_Read(const XvtSettings* settings, XvtVideoSettings* out);
+void XvtVideoSettings_Read(const XvtSettings *settings, XvtVideoSettings *out);
 /* true when every field is equal. */
-bool XvtVideoSettings_Equals(const XvtVideoSettings* left, const XvtVideoSettings* right);
+bool XvtVideoSettings_Equals(const XvtVideoSettings *left,
+			     const XvtVideoSettings *right);
 /* true when every field is in its allowed range or set; temporal upscaling other than off also needs
  * msaa_samples 1. On failure error says only "Invalid video settings". */
-bool XvtVideoSettings_Validate(const XvtVideoSettings* options, char* error, size_t capacity);
+bool XvtVideoSettings_Validate(const XvtVideoSettings *options, char *error,
+			       size_t capacity);
 /* Copies the fields into render, all but fullscreen, which is not a render setting. */
-void XvtVideoSettings_ApplyTo(const XvtVideoSettings* options, XvtRenderSettings* render);
+void XvtVideoSettings_ApplyTo(const XvtVideoSettings *options,
+			      XvtRenderSettings *render);
 /* Validates options, then writes every video field into the user overrides, even one that equals the
  * default, in memory only. */
-bool XvtConfig_SetVideo(const XvtVideoSettings* options, char* error, size_t capacity);
+bool XvtConfig_SetVideo(const XvtVideoSettings *options, char *error,
+			size_t capacity);
 /* Removes the video fields from the user overrides, so the shipped values apply, in memory only. */
-bool XvtConfig_RestoreVideo(char* error, size_t capacity);
+bool XvtConfig_RestoreVideo(char *error, size_t capacity);
 #endif

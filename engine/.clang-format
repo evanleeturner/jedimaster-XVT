@@ -1,27 +1,21 @@
 ---
+# K&R layout in the Linux kernel's form: 8-column tabs, an 80-column
+# target, a function's opening brace on its own line, a control
+# statement's on the same line, and braces on every control body.
 BasedOnStyle: LLVM
-UseTab: ForContinuationAndIndentation
-IndentWidth: 4
-TabWidth: 4
-AlignConsecutiveAssignments: false
-AlignConsecutiveDeclarations: false
-BreakBeforeBraces: Attach
-SeparateDefinitionBlocks: Always
-IndentCaseLabels: true
-ColumnLimit: 110
-AccessModifierOffset: -4
-NamespaceIndentation: None
-PointerAlignment: Left
-SpaceBeforeParens: ControlStatements
-SpaceAfterCStyleCast: false
-SpaceAfterTemplateKeyword: true
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeCtorInitializerColon: true
-SpaceBeforeInheritanceColon: true
-SpaceBeforeCpp11BracedList: true
-SpaceInEmptyParentheses: false
-SpacesInAngles: false
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
-Cpp11BracedListStyle: false
-InsertNewlineAtEOF: true
+IndentWidth: 8
+UseTab: Always
+ContinuationIndentWidth: 8
+BreakBeforeBraces: Linux
+InsertBraces: true
+IndentCaseLabels: false
+ColumnLimit: 80
+# A string is never split, so a message can still be found by searching
+# for it.
+BreakStringLiterals: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+SortIncludes: CaseSensitive
+SpaceBeforeParens: ControlStatementsExceptForEachMacros
+# Comments keep their words and line breaks; only their indentation moves.
+ReflowComments: IndentOnly

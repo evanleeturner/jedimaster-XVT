@@ -26,7 +26,8 @@ struct FrontendNetPacketScratch {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_FrontendNetPacketScratch[(sizeof(FrontendNetPacketScratch) == 512) ? 1 : -1];
+typedef char xvt_size_FrontendNetPacketScratch
+	[(sizeof(FrontendNetPacketScratch) == 512) ? 1 : -1];
 
 struct FrontendNetSessionEntry {
 	char gameName[32];
@@ -57,7 +58,7 @@ extern int g_frontendNetProbePasswordRequired;
 extern int g_frontendNetProbeMissionElapsedSeconds;
 extern int g_frontendBriefingEnteredCount;
 extern char g_frontendChatInputBuffer[100];
-extern char* g_frontendChatLogBuffer;
+extern char *g_frontendChatLogBuffer;
 extern int g_frontendChatLogUsedBytes;
 extern int g_frontendChatTeamOnly;
 extern int g_frontendChatScrollOffset;
@@ -78,8 +79,8 @@ int FrontendNet_ProcessNetworkPackets(void);
 int FrontendNet_ConnectToSelectedGameScreen(int frameCounter);
 int FrontendNet_MakeSessionGuidKey(NetSessionGuid guid);
 int FrontendNet_RefreshSessionList(void);
-int FrontendNet_CompareSessionListEntries(const FrontendNetSessionEntry* lhs,
-										  const FrontendNetSessionEntry* rhs);
+int FrontendNet_CompareSessionListEntries(const FrontendNetSessionEntry *lhs,
+					  const FrontendNetSessionEntry *rhs);
 int FrontendNet_SortSessions(void);
 int FrontendNet_ProbeAllSessions(void);
 int FrontendNet_ProbeSessionByIndex(int sessionIdx);

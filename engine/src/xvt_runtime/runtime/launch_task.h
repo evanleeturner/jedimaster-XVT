@@ -25,7 +25,7 @@ int XvtLaunchTask_IsActive(void);
 int XvtLaunchTask_HasPendingLaunch(void);
 /* From pending only: releases the frontend display surfaces for flight, enters the running phase
  * and returns the flight command; otherwise returns NULL. */
-const char* XvtLaunchTask_BeginPendingLaunch(void);
+const char *XvtLaunchTask_BeginPendingLaunch(void);
 /* Ignored when idle. Returns to idle and cancels the fade. After a running flight, restores the
  * frontend surfaces (a failure ends the program), reloads the sound list, writes the config,
  * refreshes the rating name, saves the pilot and reinitializes CD audio. With datapad music on,

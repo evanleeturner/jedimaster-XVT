@@ -20,7 +20,10 @@
 
 /* An allocation that cannot be met must come back as NULL, so Init's refusal can be seen; by default
  * AddressSanitizer stops the program instead. */
-const char* __asan_default_options(void) { return "allocator_may_return_null=1"; }
+const char *__asan_default_options(void)
+{
+	return "allocator_may_return_null=1";
+}
 
 enum { kSlots = 6 };
 
@@ -31,7 +34,8 @@ static WarheadGuidanceState g_testGuidance;
 
 /* Six live objects (type 1, signature 0x100 + slot) at the world origin, each with a still mobile
  * record; one simulation tick per step; no local slots; empty remainder and reference motion tables. */
-static void FreshWorld(void) {
+static void FreshWorld(void)
+{
 	memset(g_testObjects, 0, sizeof g_testObjects);
 	memset(g_testMobiles, 0, sizeof g_testMobiles);
 	memset(&g_testCraft, 0, sizeof g_testCraft);
@@ -49,20 +53,26 @@ static void FreshWorld(void) {
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Init(kSlots), 1);
 }
 
-static void Seed(unsigned slot, unsigned channel) {
+static void Seed(unsigned slot, unsigned channel)
+{
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(slot, channel, 3, 1, 4), 0);
 }
 
-static int Probe(unsigned slot, unsigned channel) {
+static int Probe(unsigned slot, unsigned channel)
+{
 	return XvtFlightIntegration_Rate(slot, channel, 1, 1, 4);
 }
 
 /* Reads slot's entry without leaving a carry: a zero rate moves nothing. */
-static void Touch(unsigned slot) {
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(slot, XVT_INTEGRATE_TURN, 0, 1, 4), 0);
+static void Touch(unsigned slot)
+{
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(slot, XVT_INTEGRATE_TURN, 0, 1, 4),
+		0);
 }
 
-static void CheckSeedAndProbe(void) {
+static void CheckSeedAndProbe(void)
+{
 	FreshWorld();
 	Seed(0, XVT_INTEGRATE_PITCH);
 	/* Channels and slots carry separately. */
@@ -71,16 +81,26 @@ static void CheckSeedAndProbe(void) {
 	XVT_ASSERT_INT_EQ(Probe(0, XVT_INTEGRATE_PITCH), 1);
 }
 
-static void CheckNoTable(void) {
+static void CheckNoTable(void)
+{
 	FreshWorld();
 	XvtFlightIntegration_Shutdown();
 	/* Without the table every call is the plain truncated result, with nothing carried. */
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 3, 1, 4), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 3, 1, 4), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 7, 3, 4), 5);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, -7, 3, 4), -5);
-	for (int i = 0; i < 300; ++i)
-		XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(0, XVT_INTEGRATE_ROLL, 1, 0xFFFF, 0xFFFF, 1), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 3, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 3, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 7, 3, 4), 5);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, -7, 3, 4),
+		-5);
+	for (int i = 0; i < 300; ++i) {
+		XVT_ASSERT_INT_EQ(
+			XvtFlightIntegration_Steer(0, XVT_INTEGRATE_ROLL, 1,
+						   0xFFFF, 0xFFFF, 1),
+			0);
+	}
 
 	/* An allocation that fails leaves no table either. */
 	FreshWorld();
@@ -96,47 +116,72 @@ static void CheckNoTable(void) {
 	XVT_ASSERT_INT_EQ(Probe(0, XVT_INTEGRATE_PITCH), 0);
 }
 
-static void CheckRateCarry(void) {
+static void CheckRateCarry(void)
+{
 	FreshWorld();
 	/* Truncated toward zero. */
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_TURN, -7, 1, 4), -1);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(1, XVT_INTEGRATE_TURN, 7, 1, 4), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_TURN, -7, 1, 4), -1);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(1, XVT_INTEGRATE_TURN, 7, 1, 4), 1);
 
 	/* Ten short steps add up to what one step of ten ticks gives: nothing is lost to truncation. */
 	FreshWorld();
 	int sum = 0, negative = 0;
 	for (int i = 0; i < 10; ++i) {
-		sum += XvtFlightIntegration_Rate(2, XVT_INTEGRATE_BANK, 7, 1, 4);
-		negative += XvtFlightIntegration_Rate(3, XVT_INTEGRATE_BANK, -7, 1, 4);
+		sum += XvtFlightIntegration_Rate(2, XVT_INTEGRATE_BANK, 7, 1,
+						 4);
+		negative += XvtFlightIntegration_Rate(3, XVT_INTEGRATE_BANK, -7,
+						      1, 4);
 	}
-	XVT_ASSERT_INT_EQ(sum, XvtFlightIntegration_Rate(4, XVT_INTEGRATE_BANK, 7, 10, 4));
+	XVT_ASSERT_INT_EQ(sum, XvtFlightIntegration_Rate(4, XVT_INTEGRATE_BANK,
+							 7, 10, 4));
 	XVT_ASSERT_INT_EQ(sum, 70 / 4);
 	XVT_ASSERT_INT_EQ(negative, -70 / 4);
 }
 
-static void CheckRateSignChange(void) {
+static void CheckRateSignChange(void)
+{
 	FreshWorld();
 	/* A carry of 3/4 is dropped when the rate turns negative: -1/4 then -3/4 make exactly -1. */
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_ROLL, 3, 1, 4), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_ROLL, -1, 1, 4), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_ROLL, -3, 1, 4), -1);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_ROLL, 3, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_ROLL, -1, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_ROLL, -3, 1, 4), -1);
 
 	/* Zero counts as a sign of its own: a zero rate drops the carry too. */
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(1, XVT_INTEGRATE_ROLL, 3, 1, 4), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(1, XVT_INTEGRATE_ROLL, 0, 1, 4), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(1, XVT_INTEGRATE_ROLL, 1, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(1, XVT_INTEGRATE_ROLL, 3, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(1, XVT_INTEGRATE_ROLL, 0, 1, 4), 0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(1, XVT_INTEGRATE_ROLL, 1, 1, 4), 0);
 }
 
-static void CheckRateLimits(void) {
+static void CheckRateLimits(void)
+{
 	FreshWorld();
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_COUNT, 1000, 1, 1), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 1000, 1, 0), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 1000, 1, -4), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, INT_MAX, 4, 1), INT_MAX);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, INT_MIN, 4, 1), INT_MIN);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_COUNT, 1000, 1, 1),
+		0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 1000, 1, 0),
+		0);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 1000, 1, -4),
+		0);
+	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH,
+						    INT_MAX, 4, 1),
+			  INT_MAX);
+	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH,
+						    INT_MIN, 4, 1),
+			  INT_MIN);
 }
 
-static void CheckClear(void) {
+static void CheckClear(void)
+{
 	FreshWorld();
 	Seed(0, XVT_INTEGRATE_PITCH);
 	Seed(0, XVT_INTEGRATE_TURN);
@@ -145,7 +190,8 @@ static void CheckClear(void) {
 	XVT_ASSERT_INT_EQ(Probe(0, XVT_INTEGRATE_TURN), 1);
 }
 
-static void CheckEntryFollowsObject(void) {
+static void CheckEntryFollowsObject(void)
+{
 	FreshWorld();
 	Seed(0, XVT_INTEGRATE_PITCH);
 	g_testObjects[0].objectSignature = 0x999;
@@ -164,7 +210,8 @@ static void CheckEntryFollowsObject(void) {
 	XVT_ASSERT_INT_EQ(Probe(3, XVT_INTEGRATE_PITCH), 1);
 }
 
-static void CheckSpinChannels(void) {
+static void CheckSpinChannels(void)
+{
 	FreshWorld();
 	/* While the roll impulse rate is 0, the spin channels carry nothing; other channels still do. */
 	g_testMobiles[0].rollImpulseRate = 0;
@@ -182,7 +229,8 @@ static void CheckSpinChannels(void) {
 	XVT_ASSERT_INT_EQ(Probe(1, XVT_INTEGRATE_SPIN_ANGLE), 1);
 }
 
-static void CheckHomingChannels(void) {
+static void CheckHomingChannels(void)
+{
 	FreshWorld();
 	g_testMobiles[0].pWarheadGuidance = &g_testGuidance;
 	g_testGuidance.homingTier = 1;
@@ -209,7 +257,8 @@ static void CheckHomingChannels(void) {
 	XVT_ASSERT_INT_EQ(Probe(0, XVT_INTEGRATE_HOME_YAW), 0);
 }
 
-static void CheckCarriedObjectReset(void) {
+static void CheckCarriedObjectReset(void)
+{
 	FreshWorld();
 	g_testMobiles[0].pCraft = &g_testCraft;
 	g_testCraft.carriedObjectIndex = 1;
@@ -232,47 +281,78 @@ static void CheckCarriedObjectReset(void) {
 	XVT_ASSERT_INT_EQ(Probe(3, XVT_INTEGRATE_PITCH), 1);
 }
 
-static void CheckSteer(void) {
+static void CheckSteer(void)
+{
 	FreshWorld();
 	/* 0xFFFF counts as a whole: 236 * 1 * 1 * 1 over 236 is exactly 1. */
 	XVT_ASSERT_INT_EQ(
-		XvtFlightIntegration_Steer(0, XVT_INTEGRATE_ROLL, SIMULATION_TICKS_PER_SECOND, 0xFFFF, 0xFFFF, 1), 1);
+		XvtFlightIntegration_Steer(0, XVT_INTEGRATE_ROLL,
+					   SIMULATION_TICKS_PER_SECOND, 0xFFFF,
+					   0xFFFF, 1),
+		1);
 	/* 0x8000 is a half. */
 	XVT_ASSERT_INT_EQ(
-		XvtFlightIntegration_Steer(1, XVT_INTEGRATE_ROLL, 2 * SIMULATION_TICKS_PER_SECOND, 0x8000, 0xFFFF, 1),
+		XvtFlightIntegration_Steer(1, XVT_INTEGRATE_ROLL,
+					   2 * SIMULATION_TICKS_PER_SECOND,
+					   0x8000, 0xFFFF, 1),
 		1);
 	XVT_ASSERT_INT_EQ(
-		XvtFlightIntegration_Steer(2, XVT_INTEGRATE_ROLL, 2 * SIMULATION_TICKS_PER_SECOND, 0xFFFF, 0x8000, 1),
+		XvtFlightIntegration_Steer(2, XVT_INTEGRATE_ROLL,
+					   2 * SIMULATION_TICKS_PER_SECOND,
+					   0xFFFF, 0x8000, 1),
 		1);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(0, XVT_INTEGRATE_COUNT, 1000, 0xFFFF, 0xFFFF, 1), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(0, XVT_INTEGRATE_COUNT,
+						     1000, 0xFFFF, 0xFFFF, 1),
+			  0);
 
 	/* Clamped to 0xFFFF. */
 	g_elapsedTicks = 1000;
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(3, XVT_INTEGRATE_ROLL, 0xFFFF, 0xFFFF, 0xFFFF, 1), 0xFFFF);
+	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(3, XVT_INTEGRATE_ROLL,
+						     0xFFFF, 0xFFFF, 0xFFFF, 1),
+			  0xFFFF);
 
 	/* 472 steps of one tick add up to one step of 472 ticks. */
 	FreshWorld();
 	unsigned sum = 0;
-	for (int i = 0; i < 2 * SIMULATION_TICKS_PER_SECOND; ++i)
-		sum += XvtFlightIntegration_Steer(0, XVT_INTEGRATE_TURN, 100, 0x8000, 0xFFFF, 1);
+	for (int i = 0; i < 2 * SIMULATION_TICKS_PER_SECOND; ++i) {
+		sum += XvtFlightIntegration_Steer(0, XVT_INTEGRATE_TURN, 100,
+						  0x8000, 0xFFFF, 1);
+	}
 	g_elapsedTicks = 2 * SIMULATION_TICKS_PER_SECOND;
-	XVT_ASSERT_INT_EQ(sum, XvtFlightIntegration_Steer(1, XVT_INTEGRATE_TURN, 100, 0x8000, 0xFFFF, 1));
+	XVT_ASSERT_INT_EQ(sum,
+			  XvtFlightIntegration_Steer(1, XVT_INTEGRATE_TURN, 100,
+						     0x8000, 0xFFFF, 1));
 	XVT_ASSERT_INT_EQ(sum, 100);
 
 	/* A new direction drops the carry: 235/236 of a unit carried, then 1/236 the other way is 0. */
 	FreshWorld();
-	for (int i = 0; i < SIMULATION_TICKS_PER_SECOND - 1; ++i)
-		XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(0, XVT_INTEGRATE_BANK, 1, 0xFFFF, 0xFFFF, 1), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(1, XVT_INTEGRATE_BANK, 1, 0xFFFF, 0xFFFF, 1), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(0, XVT_INTEGRATE_BANK, 1, 0xFFFF, 0xFFFF, -1), 0);
+	for (int i = 0; i < SIMULATION_TICKS_PER_SECOND - 1; ++i) {
+		XVT_ASSERT_INT_EQ(
+			XvtFlightIntegration_Steer(0, XVT_INTEGRATE_BANK, 1,
+						   0xFFFF, 0xFFFF, 1),
+			0);
+	}
+	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(1, XVT_INTEGRATE_BANK, 1,
+						     0xFFFF, 0xFFFF, 1),
+			  0);
+	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(0, XVT_INTEGRATE_BANK, 1,
+						     0xFFFF, 0xFFFF, -1),
+			  0);
 	/* The same direction keeps it: the 236th step completes a unit. */
-	for (int i = 0; i < SIMULATION_TICKS_PER_SECOND - 2; ++i)
-		XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(1, XVT_INTEGRATE_BANK, 1, 0xFFFF, 0xFFFF, 1), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(1, XVT_INTEGRATE_BANK, 1, 0xFFFF, 0xFFFF, 1), 1);
+	for (int i = 0; i < SIMULATION_TICKS_PER_SECOND - 2; ++i) {
+		XVT_ASSERT_INT_EQ(
+			XvtFlightIntegration_Steer(1, XVT_INTEGRATE_BANK, 1,
+						   0xFFFF, 0xFFFF, 1),
+			0);
+	}
+	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Steer(1, XVT_INTEGRATE_BANK, 1,
+						     0xFFFF, 0xFFFF, 1),
+			  1);
 }
 
 /* Runs Move on slot `steps` times and returns the summed movement on each axis. */
-static void MoveSum(unsigned slot, int steps, int64_t sum[3]) {
+static void MoveSum(unsigned slot, int steps, int64_t sum[3])
+{
 	sum[0] = sum[1] = sum[2] = 0;
 	for (int i = 0; i < steps; ++i) {
 		XvtFlightIntegration_Move(slot);
@@ -282,14 +362,17 @@ static void MoveSum(unsigned slot, int steps, int64_t sum[3]) {
 	}
 }
 
-static void SetMotion(unsigned slot, uint16_t speed, int16_t x, int16_t y, int16_t z) {
+static void SetMotion(unsigned slot, uint16_t speed, int16_t x, int16_t y,
+		      int16_t z)
+{
 	g_testMobiles[slot].speed = speed;
 	g_testMobiles[slot].moveX = x;
 	g_testMobiles[slot].moveY = y;
 	g_testMobiles[slot].moveZ = z;
 }
 
-static void CheckMove(void) {
+static void CheckMove(void)
+{
 	/* Speed 256 scales to (4660 * 256 + 128) >> 8 = 4660; over 236 * 32768, an axis of 32767 moves 4660 *
 	 * 32767 / 7733248 = 19.74 per tick and an axis of 1000 moves 0.60. */
 	FreshWorld();
@@ -332,12 +415,14 @@ static void CheckMove(void) {
 	XVT_ASSERT_INT_EQ(steps[2], 0);
 }
 
-static void CheckPush(void) {
+static void CheckPush(void)
+{
 	FreshWorld();
 	g_elapsedTicks = 1;
 	/* Clamped to the cap: 236 per second at one tick moves 1. Nothing is created or lost. */
 	int accum = 1000, output = 0;
-	XvtFlightIntegration_Push(0, 0, &accum, SIMULATION_TICKS_PER_SECOND, &output);
+	XvtFlightIntegration_Push(0, 0, &accum, SIMULATION_TICKS_PER_SECOND,
+				  &output);
 	XVT_ASSERT_INT_EQ(output, 1);
 	XVT_ASSERT_INT_EQ(accum, 999);
 	for (int i = 0; i < 50; ++i) {
@@ -348,7 +433,8 @@ static void CheckPush(void) {
 	XVT_ASSERT_INT_EQ(output, 1 + 21);
 
 	int negative = -1000, out_negative = 0;
-	XvtFlightIntegration_Push(1, 1, &negative, SIMULATION_TICKS_PER_SECOND, &out_negative);
+	XvtFlightIntegration_Push(1, 1, &negative, SIMULATION_TICKS_PER_SECOND,
+				  &out_negative);
 	XVT_ASSERT_INT_EQ(out_negative, -1);
 	XVT_ASSERT_INT_EQ(negative, -999);
 
@@ -359,7 +445,8 @@ static void CheckPush(void) {
 	XVT_ASSERT_INT_EQ(small, 0);
 	XVT_ASSERT_INT_EQ(out_small, 12);
 	int small_negative = -5, out_small_negative = 0;
-	XvtFlightIntegration_Push(3, 0, &small_negative, 10000, &out_small_negative);
+	XvtFlightIntegration_Push(3, 0, &small_negative, 10000,
+				  &out_small_negative);
 	XVT_ASSERT_INT_EQ(small_negative, 0);
 	XVT_ASSERT_INT_EQ(out_small_negative, -5);
 
@@ -372,16 +459,20 @@ static void CheckPush(void) {
 	XvtIntegrationWire record;
 	XvtFlightIntegration_Encode(4, &record);
 	XVT_ASSERT_INT_EQ(record.type, 1);
-	XVT_ASSERT_INT_EQ(XvtWire_Get64(record.remainder[XVT_INTEGRATE_PUSH_Y]), 0);
+	XVT_ASSERT_INT_EQ(XvtWire_Get64(record.remainder[XVT_INTEGRATE_PUSH_Y]),
+			  0);
 	XVT_ASSERT_INT_EQ(record.direction[XVT_INTEGRATE_PUSH_Y], 0);
 }
 
-static int RecordsEqual(const XvtIntegrationWire* a, const XvtIntegrationWire* b) {
+static int RecordsEqual(const XvtIntegrationWire *a,
+			const XvtIntegrationWire *b)
+{
 	return memcmp(a, b, sizeof *a) == 0;
 }
 
 /* A well-formed record for slot 2's object: every channel and axis carries something. */
-static XvtIntegrationWire GoodRecord(void) {
+static XvtIntegrationWire GoodRecord(void)
+{
 	XvtIntegrationWire record;
 	memset(&record, 0, sizeof record);
 	XvtWire_Set16(record.slot, 2);
@@ -391,18 +482,23 @@ static XvtIntegrationWire GoodRecord(void) {
 	XvtWire_Set16(record.carried_slot, 0xFFFF);
 	XvtWire_Set16(record.target_slot, 4);
 	XvtWire_Set16(record.target_signature, 0x104);
-	for (unsigned axis = 0; axis < XVT_STATE_POSITION_AXES; ++axis)
+	for (unsigned axis = 0; axis < XVT_STATE_POSITION_AXES; ++axis) {
 		XvtWire_Set64(record.position_remainder[axis],
-					  (uint64_t)(int64_t)(axis == 1 ? -1000 : 1000 + (int)axis));
+			      (uint64_t)(int64_t)(axis == 1
+							  ? -1000
+							  : 1000 + (int)axis));
+	}
 	for (unsigned channel = 0; channel < XVT_INTEGRATE_COUNT; ++channel) {
 		XvtWire_Set64(record.remainder[channel],
-					  (uint64_t)(int64_t)(channel % 2 ? -(int)channel : (int)channel));
+			      (uint64_t)(int64_t)(channel % 2 ? -(int)channel
+							      : (int)channel));
 		record.direction[channel] = (int8_t)(channel % 3) - 1;
 	}
 	return record;
 }
 
-static void CheckEncodeDecode(void) {
+static void CheckEncodeDecode(void)
+{
 	FreshWorld();
 	XvtIntegrationWire record = GoodRecord(), out;
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Decode(&record, 1), 1);
@@ -429,7 +525,8 @@ static void CheckEncodeDecode(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Decode(&record, 1), 1);
 }
 
-static void CheckEncodeEmpty(void) {
+static void CheckEncodeEmpty(void)
+{
 	FreshWorld();
 	XvtIntegrationWire record = GoodRecord(), out, empty;
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Decode(&record, 1), 1);
@@ -464,7 +561,8 @@ static void CheckEncodeEmpty(void) {
 }
 
 /* Decodes record with apply and checks it is refused and slot 2's entry is as before. */
-static void ExpectRefused(const XvtIntegrationWire* record) {
+static void ExpectRefused(const XvtIntegrationWire *record)
+{
 	XvtIntegrationWire before, after;
 	XvtFlightIntegration_Encode(2, &before);
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Decode(record, 1), 0);
@@ -472,13 +570,16 @@ static void ExpectRefused(const XvtIntegrationWire* record) {
 	XVT_ASSERT_TRUE(RecordsEqual(&before, &after));
 }
 
-static void CheckDecodeRefusals(void) {
+static void CheckDecodeRefusals(void)
+{
 	FreshWorld();
 	Seed(2, XVT_INTEGRATE_PITCH);
 	const XvtIntegrationWire good = GoodRecord();
 	XvtIntegrationWire bad;
-	const int64_t position_limit = (int64_t)SIMULATION_TICKS_PER_SECOND * 32768;
-	const int64_t steering_limit = (int64_t)SIMULATION_TICKS_PER_SECOND * 65536 * 65536;
+	const int64_t position_limit =
+		(int64_t)SIMULATION_TICKS_PER_SECOND * 32768;
+	const int64_t steering_limit =
+		(int64_t)SIMULATION_TICKS_PER_SECOND * 65536 * 65536;
 	const int64_t other_limit = INT64_C(1) << 31;
 
 	bad = good;
@@ -514,27 +615,37 @@ static void CheckDecodeRefusals(void) {
 	ExpectRefused(&bad);
 
 	bad = good;
-	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_ROLL], (uint64_t)steering_limit);
+	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_ROLL],
+		      (uint64_t)steering_limit);
 	ExpectRefused(&bad);
 	bad = good;
-	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_BANK], (uint64_t)-steering_limit);
+	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_BANK],
+		      (uint64_t)-steering_limit);
 	ExpectRefused(&bad);
 
 	bad = good;
-	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_HOME_SPEED], (uint64_t)other_limit);
+	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_HOME_SPEED],
+		      (uint64_t)other_limit);
 	ExpectRefused(&bad);
 	bad = good;
-	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_SPIN_DECAY], (uint64_t)-other_limit);
+	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_SPIN_DECAY],
+		      (uint64_t)-other_limit);
 	ExpectRefused(&bad);
 
 	/* One short of each bound is accepted, as are 0xFFFF slots and the empty record. */
 	bad = good;
-	XvtWire_Set64(bad.position_remainder[0], (uint64_t)(position_limit - 1));
-	XvtWire_Set64(bad.position_remainder[1], (uint64_t)(1 - position_limit));
-	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_ROLL], (uint64_t)(steering_limit - 1));
-	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_TURN], (uint64_t)(1 - steering_limit));
-	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_PUSH_X], (uint64_t)(other_limit - 1));
-	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_HOME_YAW], (uint64_t)(1 - other_limit));
+	XvtWire_Set64(bad.position_remainder[0],
+		      (uint64_t)(position_limit - 1));
+	XvtWire_Set64(bad.position_remainder[1],
+		      (uint64_t)(1 - position_limit));
+	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_ROLL],
+		      (uint64_t)(steering_limit - 1));
+	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_TURN],
+		      (uint64_t)(1 - steering_limit));
+	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_PUSH_X],
+		      (uint64_t)(other_limit - 1));
+	XvtWire_Set64(bad.remainder[XVT_INTEGRATE_HOME_YAW],
+		      (uint64_t)(1 - other_limit));
 	XvtWire_Set16(bad.target_slot, 0xFFFF);
 	XvtWire_Set16(bad.carried_slot, kSlots - 1);
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Decode(&bad, 0), 1);
@@ -543,13 +654,15 @@ static void CheckDecodeRefusals(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Decode(&bad, 0), 1);
 }
 
-static int HasReferenceMotion(unsigned slot) {
+static int HasReferenceMotion(unsigned slot)
+{
 	XvtReferenceMotionWire record;
 	XvtReferenceMotion_Encode(slot, &record);
 	return record.type != 0;
 }
 
-static void CheckReset(void) {
+static void CheckReset(void)
+{
 	FreshWorld();
 	Seed(1, XVT_INTEGRATE_PITCH);
 	Seed(2, XVT_INTEGRATE_PITCH);
@@ -564,10 +677,12 @@ static void CheckReset(void) {
 	XVT_ASSERT_INT_EQ(HasReferenceMotion(2), 1);
 }
 
-static void CheckResetShared(void) {
+static void CheckResetShared(void)
+{
 	FreshWorld();
-	for (unsigned slot = 0; slot < kSlots; ++slot)
+	for (unsigned slot = 0; slot < kSlots; ++slot) {
 		Seed(slot, XVT_INTEGRATE_PITCH);
+	}
 	g_localTransientSlotStart = 2;
 	g_localDebrisSlotEnd = 4;
 	XvtFlightIntegration_ResetShared();
@@ -585,7 +700,8 @@ static void CheckResetShared(void) {
 	XvtFlightIntegration_ResetShared();
 }
 
-int main(void) {
+int main(void)
+{
 	CheckSeedAndProbe();
 	CheckNoTable();
 	CheckRateCarry();

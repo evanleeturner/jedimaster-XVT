@@ -35,12 +35,12 @@ int32_t XvtReferenceMotion_AxisDisplacement(unsigned slot, unsigned axis);
 /* Canonical schema-1 record, 28 bytes. Decode validates before installation. */
 /* Writes slot's entry as a record. A slot out of range or empty, or an entry that belongs to another
  * object, gives the empty record: zero but for the slot. */
-void XvtReferenceMotion_Encode(unsigned slot, XvtReferenceMotionWire* out);
+void XvtReferenceMotion_Encode(unsigned slot, XvtReferenceMotionWire *out);
 /* Returns 1 when record is well formed: slot in range, no unknown flag, a zero reserved field, and,
  * for type 0, exactly the empty record. With apply, it then replaces the slot's entry. Returns 0
  * otherwise and changes nothing. The record is not checked against the object in the slot; a later
  * read clears the entry if they differ. */
-int XvtReferenceMotion_Decode(const XvtReferenceMotionWire* record, int apply);
+int XvtReferenceMotion_Decode(const XvtReferenceMotionWire *record, int apply);
 /* Clears every entry except the local slots from g_localTransientSlotStart up to g_localDebrisSlotEnd.
  * Does nothing before Init. */
 void XvtReferenceMotion_ResetShared(void);

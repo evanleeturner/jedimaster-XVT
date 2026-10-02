@@ -8,18 +8,22 @@
 
 static int g_viewerPending;
 
-int XvtFrontendMovies_PlayViewer(const char* name) {
+int XvtFrontendMovies_PlayViewer(const char *name)
+{
 	int result = Movie_Play(name, 0);
 	g_viewerPending = result == XVT_MOVIE_PENDING;
 	return g_viewerPending;
 }
 
-int XvtFrontendMovies_ResumeViewer(void) {
+int XvtFrontendMovies_ResumeViewer(void)
+{
 	int result;
-	if (!g_viewerPending)
+	if (!g_viewerPending) {
 		return 0;
-	if (!XvtMovieTask_TakeResult(&result))
+	}
+	if (!XvtMovieTask_TakeResult(&result)) {
 		return 1;
+	}
 	g_viewerPending = 0;
 	FrontendDisplay_ClearBackBuffer();
 	FrontendDisplay_PresentFrame();

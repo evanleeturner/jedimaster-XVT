@@ -6,13 +6,14 @@
 #include <string.h>
 
 // FUNCTION: XVT 0x4DD9D0
-void FrontendString_LoadTable(char* fileName) {
+void FrontendString_LoadTable(char *fileName)
+{
 	unsigned int totalDataSize;
-	XvtFile* stream;
-	char* writePosition;
-	char* copyDestination;
-	char* resizedData;
-	unsigned int* resizedOffsets;
+	XvtFile *stream;
+	char *writePosition;
+	char *copyDestination;
+	char *resizedData;
+	unsigned int *resizedOffsets;
 	unsigned int lineLength;
 	unsigned int copyLength;
 	unsigned int stringOffset;
@@ -20,11 +21,13 @@ void FrontendString_LoadTable(char* fileName) {
 
 	totalDataSize = 0;
 	stream = File_Open(fileName, "r");
-	if (stream == NULL)
+	if (stream == NULL) {
 		return;
+	}
 
 	FrontendString_UnloadTable();
-	g_frontState.uiStringOffsets = malloc(64 * sizeof(*g_frontState.uiStringOffsets));
+	g_frontState.uiStringOffsets =
+		malloc(64 * sizeof(*g_frontState.uiStringOffsets));
 	if (g_frontState.uiStringOffsets == NULL) {
 		File_Close(stream);
 		return;
@@ -40,8 +43,9 @@ void FrontendString_LoadTable(char* fileName) {
 
 	writePosition = g_frontState.uiStringData;
 	for (;;) {
-		if (File_Gets(line, sizeof(line), stream) == NULL)
+		if (File_Gets(line, sizeof(line), stream) == NULL) {
 			break;
+		}
 		line[sizeof(line) - 1] = '\0';
 		if (line[0] != '/' || line[1] != '/') {
 			lineLength = strlen(line) + 1;
@@ -51,19 +55,26 @@ void FrontendString_LoadTable(char* fileName) {
 				line[lineLength - 2] = '\0';
 			}
 
-			stringOffset = writePosition - g_frontState.uiStringData;
+			stringOffset =
+				writePosition - g_frontState.uiStringData;
 			copyDestination = writePosition;
 			totalDataSize += copyLength + 1;
 			writePosition += copyLength + 1;
-			g_frontState.uiStringOffsets[g_frontState.uiStringCount] = stringOffset;
+			g_frontState
+				.uiStringOffsets[g_frontState.uiStringCount] =
+				stringOffset;
 			memcpy(copyDestination, line, copyLength + 1);
 			++g_frontState.uiStringCount;
-			if (g_frontState.uiStringCapacity == g_frontState.uiStringCount) {
-				resizedOffsets =
-					realloc(g_frontState.uiStringOffsets,
-							(g_frontState.uiStringCapacity + 64) * sizeof(*g_frontState.uiStringOffsets));
-				if (resizedOffsets == NULL)
+			if (g_frontState.uiStringCapacity ==
+			    g_frontState.uiStringCount) {
+				resizedOffsets = realloc(
+					g_frontState.uiStringOffsets,
+					(g_frontState.uiStringCapacity +
+					 64) * sizeof(*g_frontState
+							       .uiStringOffsets));
+				if (resizedOffsets == NULL) {
 					break;
+				}
 				g_frontState.uiStringOffsets = resizedOffsets;
 				g_frontState.uiStringCapacity += 64;
 			}
@@ -85,9 +96,10 @@ void FrontendString_LoadTable(char* fileName) {
 }
 
 // FUNCTION: XVT 0x4DDBC0
-void FrontendString_UnloadTable(void) {
-	unsigned int** offsets;
-	char** data;
+void FrontendString_UnloadTable(void)
+{
+	unsigned int **offsets;
+	char **data;
 
 	offsets = &g_frontState.uiStringOffsets;
 	data = &g_frontState.uiStringData;
@@ -106,7 +118,8 @@ void FrontendString_UnloadTable(void) {
 }
 
 // FUNCTION: XVT 0x4DDC10
-const char* FrontendString_Get(FrontendStringId index) {
+const char *FrontendString_Get(FrontendStringId index)
+{
 	if ((unsigned int)index >= g_frontState.uiStringCount) {
 		return "No text.";
 	}

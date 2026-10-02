@@ -13,9 +13,9 @@
 #include "xvt/util/memory.h"
 
 // GLOBAL: XVT 0x5234F0
-uint8_t g_backdropModelTypes[64] = { 0 };
+uint8_t g_backdropModelTypes[64] = {0};
 // GLOBAL: XVT 0x523530
-uint8_t g_backdropPackedDirections[64] = { 0 };
+uint8_t g_backdropPackedDirections[64] = {0};
 // GLOBAL: XVT 0x523570
 uint16_t g_backdropPositiveYCount = 0;
 // GLOBAL: XVT 0x523574
@@ -29,52 +29,63 @@ uint16_t g_backdropPositiveXCount = 0;
 // GLOBAL: XVT 0x523584
 uint16_t g_backdropNegativeXCount = 0;
 // GLOBAL: XVT 0x9A8DD0
-int32_t g_backdropCamR1XSteps[16] = { 0 };
+int32_t g_backdropCamR1XSteps[16] = {0};
 // GLOBAL: XVT 0x9D1270
-int32_t g_backdropCamR2XSteps[16] = { 0 };
+int32_t g_backdropCamR2XSteps[16] = {0};
 // GLOBAL: XVT 0x9D80D0
-int32_t g_backdropCamR0XSteps[16] = { 0 };
+int32_t g_backdropCamR0XSteps[16] = {0};
 // GLOBAL: XVT 0x9E9600
-int32_t g_backdropCamR1YSteps[16] = { 0 };
+int32_t g_backdropCamR1YSteps[16] = {0};
 // GLOBAL: XVT 0x9EC480
-int32_t g_backdropCamR2YSteps[16] = { 0 };
+int32_t g_backdropCamR2YSteps[16] = {0};
 // GLOBAL: XVT 0x9FE740
-int32_t g_backdropCamR0YSteps[16] = { 0 };
+int32_t g_backdropCamR0YSteps[16] = {0};
 // GLOBAL: XVT 0xA004E0
-int32_t g_backdropCamR1ZSteps[16] = { 0 };
+int32_t g_backdropCamR1ZSteps[16] = {0};
 // GLOBAL: XVT 0xA07C80
-int32_t g_backdropCamR2ZSteps[16] = { 0 };
+int32_t g_backdropCamR2ZSteps[16] = {0};
 // GLOBAL: XVT 0xA08250
-int32_t g_backdropCamR0ZSteps[16] = { 0 };
+int32_t g_backdropCamR0ZSteps[16] = {0};
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x420110
-void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY, int angle) {
-	const uint8_t* modelData;
-	const TexLevelHeader* textureHeader;
-	SpritePayload* sprite;
+void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY,
+				       int angle)
+{
+	const uint8_t *modelData;
+	const TexLevelHeader *textureHeader;
+	SpritePayload *sprite;
 	uint16_t softwareAngle;
 
 	g_flightSwRotSpriteSpanRunsEnabled = 1;
 	g_camRelWorldZ = 0x100000;
 	g_viewSpaceDepth = 0x7FFFFFFF;
-	modelData = (const uint8_t*)Memory_LockHandle(g_objectTypeTable[modelType].resourceHandle);
+	modelData = (const uint8_t *)Memory_LockHandle(
+		g_objectTypeTable[modelType].resourceHandle);
 	Memory_UnlockHandle(g_objectTypeTable[modelType].resourceHandle);
-	textureHeader = (const TexLevelHeader*)modelData;
-	sprite =
-		(SpritePayload*)(modelData + *(const uint32_t*)(modelData + textureHeader->imageOffsetTableOffset));
-	if (g_useHardware3D != 0)
-		RenderQuad_DrawRotatedSprite(angle, screenX, screenY, 256, sprite);
-	else {
+	textureHeader = (const TexLevelHeader *)modelData;
+	sprite = (SpritePayload
+			  *)(modelData +
+			     *(const uint32_t
+				       *)(modelData +
+					  textureHeader
+						  ->imageOffsetTableOffset));
+	if (g_useHardware3D != 0) {
+		RenderQuad_DrawRotatedSprite(angle, screenX, screenY, 256,
+					     sprite);
+	} else {
 		softwareAngle = (uint16_t)angle;
-		FlightSw_PrepareSpriteRotationTables(softwareAngle, FLIGHT_SW_16BPP_BYTES_PER_PIXEL);
+		FlightSw_PrepareSpriteRotationTables(
+			softwareAngle, FLIGHT_SW_16BPP_BYTES_PER_PIXEL);
 		FlightSw_LoadSpritePaletteTables(sprite);
-		FlightSw_DrawRotatedSpriteQuad((int16_t)screenX, (int16_t)screenY, 256, sprite);
+		FlightSw_DrawRotatedSpriteQuad((int16_t)screenX,
+					       (int16_t)screenY, 256, sprite);
 	}
 }
 
 // FUNCTION: XVT 0x426080
-void Backdrop_BuildStarOffsetsAndRender(void) {
+void Backdrop_BuildStarOffsetsAndRender(void)
+{
 	int accumR0X;
 	int accumR0Y;
 	int accumR0Z;
@@ -134,15 +145,24 @@ void Backdrop_BuildStarOffsetsAndRender(void) {
 	accumR2Y = 0;
 	accumR2Z = 0;
 	for (stepIndex = 0; stepIndex < CAMERA_STEP_COUNT; ++stepIndex) {
-		g_backdropCamR0XSteps[stepIndex] = accumR0X >> CAMERA_STEP_SHIFT;
-		g_backdropCamR1XSteps[stepIndex] = accumR1X >> CAMERA_STEP_SHIFT;
-		g_backdropCamR2XSteps[stepIndex] = accumR2X >> CAMERA_STEP_SHIFT;
-		g_backdropCamR0YSteps[stepIndex] = accumR0Y >> CAMERA_STEP_SHIFT;
-		g_backdropCamR1YSteps[stepIndex] = accumR1Y >> CAMERA_STEP_SHIFT;
-		g_backdropCamR2YSteps[stepIndex] = accumR2Y >> CAMERA_STEP_SHIFT;
-		g_backdropCamR0ZSteps[stepIndex] = accumR0Z >> CAMERA_STEP_SHIFT;
-		g_backdropCamR1ZSteps[stepIndex] = accumR1Z >> CAMERA_STEP_SHIFT;
-		g_backdropCamR2ZSteps[stepIndex] = accumR2Z >> CAMERA_STEP_SHIFT;
+		g_backdropCamR0XSteps[stepIndex] =
+			accumR0X >> CAMERA_STEP_SHIFT;
+		g_backdropCamR1XSteps[stepIndex] =
+			accumR1X >> CAMERA_STEP_SHIFT;
+		g_backdropCamR2XSteps[stepIndex] =
+			accumR2X >> CAMERA_STEP_SHIFT;
+		g_backdropCamR0YSteps[stepIndex] =
+			accumR0Y >> CAMERA_STEP_SHIFT;
+		g_backdropCamR1YSteps[stepIndex] =
+			accumR1Y >> CAMERA_STEP_SHIFT;
+		g_backdropCamR2YSteps[stepIndex] =
+			accumR2Y >> CAMERA_STEP_SHIFT;
+		g_backdropCamR0ZSteps[stepIndex] =
+			accumR0Z >> CAMERA_STEP_SHIFT;
+		g_backdropCamR1ZSteps[stepIndex] =
+			accumR1Z >> CAMERA_STEP_SHIFT;
+		g_backdropCamR2ZSteps[stepIndex] =
+			accumR2Z >> CAMERA_STEP_SHIFT;
 		accumR0X += g_camMatR0_X;
 		accumR1X += g_camMatR1_X;
 		accumR2X += g_camMatR2_X;
@@ -154,9 +174,12 @@ void Backdrop_BuildStarOffsetsAndRender(void) {
 		accumR2Z += g_camMatR2_Z;
 	}
 
-	gridBaseR2 = -STAR_GRID_RADIUS * (g_camMatR2_X + g_camMatR2_Y + g_camMatR2_Z);
-	gridBaseR1 = -STAR_GRID_RADIUS * (g_camMatR1_X + g_camMatR1_Y + g_camMatR1_Z);
-	gridBaseR0 = -STAR_GRID_RADIUS * (g_camMatR0_X + g_camMatR0_Y + g_camMatR0_Z);
+	gridBaseR2 = -STAR_GRID_RADIUS *
+		     (g_camMatR2_X + g_camMatR2_Y + g_camMatR2_Z);
+	gridBaseR1 = -STAR_GRID_RADIUS *
+		     (g_camMatR1_X + g_camMatR1_Y + g_camMatR1_Z);
+	gridBaseR0 = -STAR_GRID_RADIUS *
+		     (g_camMatR0_X + g_camMatR0_Y + g_camMatR0_Z);
 	jitterIndex = 0;
 	for (gridX = 0; gridX < STAR_GRID_SIZE; ++gridX) {
 		gridRowR0 = gridBaseR0;
@@ -167,9 +190,12 @@ void Backdrop_BuildStarOffsetsAndRender(void) {
 			gridValueR1 = gridRowR1;
 			gridValueR2 = gridRowR2;
 			for (gridZ = 0; gridZ < STAR_GRID_SIZE; ++gridZ) {
-				g_starfieldJitterX[jitterIndex] = gridValueR0 >> STAR_JITTER_SHIFT;
-				g_starfieldJitterY[jitterIndex] = gridValueR1 >> STAR_JITTER_SHIFT;
-				g_starfieldJitterZ[jitterIndex] = gridValueR2 >> STAR_JITTER_SHIFT;
+				g_starfieldJitterX[jitterIndex] =
+					gridValueR0 >> STAR_JITTER_SHIFT;
+				g_starfieldJitterY[jitterIndex] =
+					gridValueR1 >> STAR_JITTER_SHIFT;
+				g_starfieldJitterZ[jitterIndex] =
+					gridValueR2 >> STAR_JITTER_SHIFT;
 				++jitterIndex;
 				gridValueR0 += g_camMatR0_Z;
 				gridValueR2 += g_camMatR2_Z;
@@ -184,201 +210,312 @@ void Backdrop_BuildStarOffsetsAndRender(void) {
 		gridBaseR0 += g_camMatR0_X;
 	}
 
-	if (g_backdropsEnabled == 0)
+	if (g_backdropsEnabled == 0) {
 		return;
+	}
 
 	directionIndex = 0;
 	angle = (int16_t)-trig2_arctan(g_camMatR1_X, g_camMatR0_X);
 	if (g_camMatR2_Y >= 0) {
-		for (directionCount = g_backdropPositiveYCount; directionCount-- != 0;) {
-			packedDirection = g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection & DIRECTION_LOW_INDEX_MASK;
+		for (directionCount = g_backdropPositiveYCount;
+		     directionCount-- != 0;) {
+			packedDirection =
+				g_backdropPackedDirections[directionIndex++];
+			lowStepIndex = (uint8_t)packedDirection &
+				       DIRECTION_LOW_INDEX_MASK;
 			basisY = g_backdropCamR1XSteps[lowStepIndex];
 			basisZ = g_backdropCamR2XSteps[lowStepIndex];
 			basisX = g_backdropCamR0XSteps[lowStepIndex];
-			if (((uint8_t)packedDirection & DIRECTION_NEGATE_LOW_BIT) != 0) {
+			if (((uint8_t)packedDirection &
+			     DIRECTION_NEGATE_LOW_BIT) != 0) {
 				basisX = -basisX;
 				basisY = -basisY;
 				basisZ = -basisZ;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) != 0) {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX - g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY - g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ - g_backdropCamR2ZSteps[highStepIndex];
+			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			    0) {
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX -
+					g_backdropCamR0ZSteps[highStepIndex];
+				viewY = basisY -
+					g_backdropCamR1ZSteps[highStepIndex];
+				viewZ = basisZ -
+					g_backdropCamR2ZSteps[highStepIndex];
 			} else {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX + g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY + g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ + g_backdropCamR2ZSteps[highStepIndex];
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX +
+					g_backdropCamR0ZSteps[highStepIndex];
+				viewY = basisY +
+					g_backdropCamR1ZSteps[highStepIndex];
+				viewZ = basisZ +
+					g_backdropCamR2ZSteps[highStepIndex];
 			}
 			viewX += g_camMatR0_Y >> CAMERA_QUARTER_SHIFT;
 			viewY += g_camMatR1_Y >> CAMERA_QUARTER_SHIFT;
 			viewZ += g_camMatR2_Y >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0)
-				Backdrop_ProjectAndDrawScreenQuad(viewX, viewY, viewZ, angle, directionIndex);
+			if (viewZ >= 0) {
+				Backdrop_ProjectAndDrawScreenQuad(
+					viewX, viewY, viewZ, angle,
+					directionIndex);
+			}
 		}
 		directionIndex += g_backdropNegativeYCount;
 	} else {
 		directionIndex += g_backdropPositiveYCount;
-		for (directionCount = g_backdropNegativeYCount; directionCount-- != 0;) {
-			packedDirection = g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection & DIRECTION_LOW_INDEX_MASK;
+		for (directionCount = g_backdropNegativeYCount;
+		     directionCount-- != 0;) {
+			packedDirection =
+				g_backdropPackedDirections[directionIndex++];
+			lowStepIndex = (uint8_t)packedDirection &
+				       DIRECTION_LOW_INDEX_MASK;
 			basisX = g_backdropCamR0XSteps[lowStepIndex];
 			basisY = g_backdropCamR1XSteps[lowStepIndex];
 			basisZ = g_backdropCamR2XSteps[lowStepIndex];
-			if (((uint8_t)packedDirection & DIRECTION_NEGATE_LOW_BIT) != 0) {
+			if (((uint8_t)packedDirection &
+			     DIRECTION_NEGATE_LOW_BIT) != 0) {
 				basisX = -basisX;
 				basisY = -basisY;
 				basisZ = -basisZ;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) != 0) {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX - g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY - g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ - g_backdropCamR2ZSteps[highStepIndex];
+			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			    0) {
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX -
+					g_backdropCamR0ZSteps[highStepIndex];
+				viewY = basisY -
+					g_backdropCamR1ZSteps[highStepIndex];
+				viewZ = basisZ -
+					g_backdropCamR2ZSteps[highStepIndex];
 			} else {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX + g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY + g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ + g_backdropCamR2ZSteps[highStepIndex];
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX +
+					g_backdropCamR0ZSteps[highStepIndex];
+				viewY = basisY +
+					g_backdropCamR1ZSteps[highStepIndex];
+				viewZ = basisZ +
+					g_backdropCamR2ZSteps[highStepIndex];
 			}
 			viewX -= g_camMatR0_Y >> CAMERA_QUARTER_SHIFT;
 			viewY -= g_camMatR1_Y >> CAMERA_QUARTER_SHIFT;
 			viewZ -= g_camMatR2_Y >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0)
-				Backdrop_ProjectAndDrawScreenQuad(viewX, viewY, viewZ, angle, directionIndex);
+			if (viewZ >= 0) {
+				Backdrop_ProjectAndDrawScreenQuad(
+					viewX, viewY, viewZ, angle,
+					directionIndex);
+			}
 		}
 	}
 
 	angle = (int16_t)-trig2_arctan(g_camMatR1_Y, g_camMatR0_Y);
 	if (g_camMatR2_X >= 0) {
-		for (directionCount = g_backdropPositiveXCount; directionCount-- != 0;) {
-			packedDirection = g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection & DIRECTION_LOW_INDEX_MASK;
+		for (directionCount = g_backdropPositiveXCount;
+		     directionCount-- != 0;) {
+			packedDirection =
+				g_backdropPackedDirections[directionIndex++];
+			lowStepIndex = (uint8_t)packedDirection &
+				       DIRECTION_LOW_INDEX_MASK;
 			basisX = g_backdropCamR0YSteps[lowStepIndex];
 			basisY = g_backdropCamR1YSteps[lowStepIndex];
 			basisZ = g_backdropCamR2YSteps[lowStepIndex];
-			if (((uint8_t)packedDirection & DIRECTION_NEGATE_LOW_BIT) != 0) {
+			if (((uint8_t)packedDirection &
+			     DIRECTION_NEGATE_LOW_BIT) != 0) {
 				basisX = -basisX;
 				basisY = -basisY;
 				basisZ = -basisZ;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) != 0) {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX - g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY - g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ - g_backdropCamR2ZSteps[highStepIndex];
+			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			    0) {
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX -
+					g_backdropCamR0ZSteps[highStepIndex];
+				viewY = basisY -
+					g_backdropCamR1ZSteps[highStepIndex];
+				viewZ = basisZ -
+					g_backdropCamR2ZSteps[highStepIndex];
 			} else {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX + g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY + g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ + g_backdropCamR2ZSteps[highStepIndex];
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX +
+					g_backdropCamR0ZSteps[highStepIndex];
+				viewY = basisY +
+					g_backdropCamR1ZSteps[highStepIndex];
+				viewZ = basisZ +
+					g_backdropCamR2ZSteps[highStepIndex];
 			}
 			viewX += g_camMatR0_X >> CAMERA_QUARTER_SHIFT;
 			viewY += g_camMatR1_X >> CAMERA_QUARTER_SHIFT;
 			viewZ += g_camMatR2_X >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0)
-				Backdrop_ProjectAndDrawScreenQuad(viewX, viewY, viewZ, angle, directionIndex);
+			if (viewZ >= 0) {
+				Backdrop_ProjectAndDrawScreenQuad(
+					viewX, viewY, viewZ, angle,
+					directionIndex);
+			}
 		}
 		directionIndex += g_backdropNegativeXCount;
 	} else {
 		directionIndex += g_backdropPositiveXCount;
-		for (directionCount = g_backdropNegativeXCount; directionCount-- != 0;) {
-			packedDirection = g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection & DIRECTION_LOW_INDEX_MASK;
+		for (directionCount = g_backdropNegativeXCount;
+		     directionCount-- != 0;) {
+			packedDirection =
+				g_backdropPackedDirections[directionIndex++];
+			lowStepIndex = (uint8_t)packedDirection &
+				       DIRECTION_LOW_INDEX_MASK;
 			basisX = g_backdropCamR0YSteps[lowStepIndex];
 			basisY = g_backdropCamR1YSteps[lowStepIndex];
 			basisZ = g_backdropCamR2YSteps[lowStepIndex];
-			if (((uint8_t)packedDirection & DIRECTION_NEGATE_LOW_BIT) != 0) {
+			if (((uint8_t)packedDirection &
+			     DIRECTION_NEGATE_LOW_BIT) != 0) {
 				basisX = -basisX;
 				basisY = -basisY;
 				basisZ = -basisZ;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) != 0) {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX - g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY - g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ - g_backdropCamR2ZSteps[highStepIndex];
+			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			    0) {
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX -
+					g_backdropCamR0ZSteps[highStepIndex];
+				viewY = basisY -
+					g_backdropCamR1ZSteps[highStepIndex];
+				viewZ = basisZ -
+					g_backdropCamR2ZSteps[highStepIndex];
 			} else {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX + g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY + g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ + g_backdropCamR2ZSteps[highStepIndex];
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX +
+					g_backdropCamR0ZSteps[highStepIndex];
+				viewY = basisY +
+					g_backdropCamR1ZSteps[highStepIndex];
+				viewZ = basisZ +
+					g_backdropCamR2ZSteps[highStepIndex];
 			}
 			viewX -= g_camMatR0_X >> CAMERA_QUARTER_SHIFT;
 			viewY -= g_camMatR1_X >> CAMERA_QUARTER_SHIFT;
 			viewZ -= g_camMatR2_X >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0)
-				Backdrop_ProjectAndDrawScreenQuad(viewX, viewY, viewZ, angle, directionIndex);
+			if (viewZ >= 0) {
+				Backdrop_ProjectAndDrawScreenQuad(
+					viewX, viewY, viewZ, angle,
+					directionIndex);
+			}
 		}
 	}
 
 	angle = (int16_t)-trig2_arctan(g_camMatR1_X, g_camMatR0_X);
 	if (g_camMatR2_Z >= 0) {
-		for (directionCount = g_backdropPositiveZCount; directionCount-- != 0;) {
-			packedDirection = g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection & DIRECTION_LOW_INDEX_MASK;
+		for (directionCount = g_backdropPositiveZCount;
+		     directionCount-- != 0;) {
+			packedDirection =
+				g_backdropPackedDirections[directionIndex++];
+			lowStepIndex = (uint8_t)packedDirection &
+				       DIRECTION_LOW_INDEX_MASK;
 			basisX = g_backdropCamR0YSteps[lowStepIndex];
 			basisY = g_backdropCamR1YSteps[lowStepIndex];
 			basisZ = g_backdropCamR2YSteps[lowStepIndex];
-			if (((uint8_t)packedDirection & DIRECTION_NEGATE_LOW_BIT) != 0) {
+			if (((uint8_t)packedDirection &
+			     DIRECTION_NEGATE_LOW_BIT) != 0) {
 				basisX = -basisX;
 				basisY = -basisY;
 				basisZ = -basisZ;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) != 0) {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX - g_backdropCamR0XSteps[highStepIndex];
-				viewY = basisY - g_backdropCamR1XSteps[highStepIndex];
-				viewZ = basisZ - g_backdropCamR2XSteps[highStepIndex];
+			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			    0) {
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX -
+					g_backdropCamR0XSteps[highStepIndex];
+				viewY = basisY -
+					g_backdropCamR1XSteps[highStepIndex];
+				viewZ = basisZ -
+					g_backdropCamR2XSteps[highStepIndex];
 			} else {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX + g_backdropCamR0XSteps[highStepIndex];
-				viewY = basisY + g_backdropCamR1XSteps[highStepIndex];
-				viewZ = basisZ + g_backdropCamR2XSteps[highStepIndex];
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX +
+					g_backdropCamR0XSteps[highStepIndex];
+				viewY = basisY +
+					g_backdropCamR1XSteps[highStepIndex];
+				viewZ = basisZ +
+					g_backdropCamR2XSteps[highStepIndex];
 			}
 			viewX += g_camMatR0_Z >> CAMERA_QUARTER_SHIFT;
 			viewY += g_camMatR1_Z >> CAMERA_QUARTER_SHIFT;
 			viewZ += g_camMatR2_Z >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0)
-				Backdrop_ProjectAndDrawScreenQuad(viewX, viewY, viewZ, angle, directionIndex);
+			if (viewZ >= 0) {
+				Backdrop_ProjectAndDrawScreenQuad(
+					viewX, viewY, viewZ, angle,
+					directionIndex);
+			}
 		}
 	} else {
 		directionIndex += g_backdropPositiveZCount;
-		for (directionCount = g_backdropNegativeZCount; directionCount-- != 0;) {
-			packedDirection = g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection & DIRECTION_LOW_INDEX_MASK;
+		for (directionCount = g_backdropNegativeZCount;
+		     directionCount-- != 0;) {
+			packedDirection =
+				g_backdropPackedDirections[directionIndex++];
+			lowStepIndex = (uint8_t)packedDirection &
+				       DIRECTION_LOW_INDEX_MASK;
 			basisX = g_backdropCamR0YSteps[lowStepIndex];
 			basisY = g_backdropCamR1YSteps[lowStepIndex];
 			basisZ = g_backdropCamR2YSteps[lowStepIndex];
-			if (((uint8_t)packedDirection & DIRECTION_NEGATE_LOW_BIT) != 0) {
+			if (((uint8_t)packedDirection &
+			     DIRECTION_NEGATE_LOW_BIT) != 0) {
 				basisX = -basisX;
 				basisY = -basisY;
 				basisZ = -basisZ;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) != 0) {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX - g_backdropCamR0XSteps[highStepIndex];
-				viewY = basisY - g_backdropCamR1XSteps[highStepIndex];
-				viewZ = basisZ - g_backdropCamR2XSteps[highStepIndex];
+			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			    0) {
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX -
+					g_backdropCamR0XSteps[highStepIndex];
+				viewY = basisY -
+					g_backdropCamR1XSteps[highStepIndex];
+				viewZ = basisZ -
+					g_backdropCamR2XSteps[highStepIndex];
 			} else {
-				highStepIndex = (packedDirection & DIRECTION_HIGH_INDEX_MASK) >> 4;
-				viewX = basisX + g_backdropCamR0XSteps[highStepIndex];
-				viewY = basisY + g_backdropCamR1XSteps[highStepIndex];
-				viewZ = basisZ + g_backdropCamR2XSteps[highStepIndex];
+				highStepIndex = (packedDirection &
+						 DIRECTION_HIGH_INDEX_MASK) >>
+						4;
+				viewX = basisX +
+					g_backdropCamR0XSteps[highStepIndex];
+				viewY = basisY +
+					g_backdropCamR1XSteps[highStepIndex];
+				viewZ = basisZ +
+					g_backdropCamR2XSteps[highStepIndex];
 			}
 			viewX -= g_camMatR0_Z >> CAMERA_QUARTER_SHIFT;
 			viewY -= g_camMatR1_Z >> CAMERA_QUARTER_SHIFT;
 			viewZ -= g_camMatR2_Z >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0)
-				Backdrop_ProjectAndDrawScreenQuad(viewX, viewY, viewZ, angle, directionIndex);
+			if (viewZ >= 0) {
+				Backdrop_ProjectAndDrawScreenQuad(
+					viewX, viewY, viewZ, angle,
+					directionIndex);
+			}
 		}
 	}
 }
 
 // FUNCTION: XVT 0x426860
-void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angle, int backdropNumber) {
+void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ,
+				       int angle, int backdropNumber)
+{
 	int projectedX;
 	int projectedY;
 	uint32_t projectionScale;
@@ -386,7 +523,8 @@ void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angl
 	enum { PROJECTION_WORD_BITS = 32, PROJECTION_SATURATION = 0x7FFFFF00 };
 
 #ifdef XVT_MODERN
-	projectionScale = 1u << (g_perspectiveShift & (PROJECTION_WORD_BITS - 1));
+	projectionScale = 1u
+			  << (g_perspectiveShift & (PROJECTION_WORD_BITS - 1));
 #else
 	projectionScale = 1u << g_perspectiveShift;
 #endif
@@ -403,17 +541,23 @@ void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angl
 #else
 		magnitude = -viewX;
 #endif
-		if (projectionDepth < magnitude)
+		if (projectionDepth < magnitude) {
 			return;
-		numerator = (uint64_t)(uint32_t)magnitude * projectionScale + (uint32_t)g_projScaleHalfInt;
+		}
+		numerator = (uint64_t)(uint32_t)magnitude * projectionScale +
+			    (uint32_t)g_projScaleHalfInt;
 #ifdef XVT_MODERN
-		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) < (uint32_t)projectionDepth)
+		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
+		    (uint32_t)projectionDepth)
 #else
-		if (((const uint32_t*)&numerator)[1] < (uint32_t)projectionDepth)
+		if (((const uint32_t *)&numerator)[1] <
+		    (uint32_t)projectionDepth)
 #endif
-			quotient = (uint32_t)(numerator / (uint32_t)projectionDepth);
-		else
+			quotient = (uint32_t)(numerator /
+					      (uint32_t)projectionDepth);
+		else {
 			quotient = PROJECTION_SATURATION;
+		}
 		projectedX = -(int)quotient;
 	} else {
 		int projectionDepth;
@@ -422,17 +566,23 @@ void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angl
 
 		projectionDepth = viewZ;
 		magnitude = viewX;
-		if (projectionDepth < magnitude)
+		if (projectionDepth < magnitude) {
 			return;
-		numerator = (uint64_t)(uint32_t)magnitude * projectionScale + (uint32_t)g_projScaleHalfInt;
+		}
+		numerator = (uint64_t)(uint32_t)magnitude * projectionScale +
+			    (uint32_t)g_projScaleHalfInt;
 #ifdef XVT_MODERN
-		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) < (uint32_t)projectionDepth)
+		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
+		    (uint32_t)projectionDepth)
 #else
-		if (((const uint32_t*)&numerator)[1] < (uint32_t)projectionDepth)
+		if (((const uint32_t *)&numerator)[1] <
+		    (uint32_t)projectionDepth)
 #endif
-			projectedX = (int)(numerator / (uint32_t)projectionDepth);
-		else
+			projectedX =
+				(int)(numerator / (uint32_t)projectionDepth);
+		else {
 			projectedX = PROJECTION_SATURATION;
+		}
 	}
 
 	if (viewY < 0) {
@@ -447,17 +597,23 @@ void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angl
 #else
 		magnitude = -viewY;
 #endif
-		if (projectionDepth < magnitude)
+		if (projectionDepth < magnitude) {
 			return;
-		numerator = (uint64_t)(uint32_t)magnitude * projectionScale + (uint32_t)g_projScaleHalfInt;
+		}
+		numerator = (uint64_t)(uint32_t)magnitude * projectionScale +
+			    (uint32_t)g_projScaleHalfInt;
 #ifdef XVT_MODERN
-		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) < (uint32_t)projectionDepth)
+		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
+		    (uint32_t)projectionDepth)
 #else
-		if (((const uint32_t*)&numerator)[1] < (uint32_t)projectionDepth)
+		if (((const uint32_t *)&numerator)[1] <
+		    (uint32_t)projectionDepth)
 #endif
-			quotient = (uint32_t)(numerator / (uint32_t)projectionDepth);
-		else
+			quotient = (uint32_t)(numerator /
+					      (uint32_t)projectionDepth);
+		else {
 			quotient = PROJECTION_SATURATION;
+		}
 		projectedY = -(int)quotient;
 	} else {
 		int projectionDepth;
@@ -466,27 +622,35 @@ void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ, int angl
 
 		projectionDepth = viewZ;
 		magnitude = viewY;
-		if (projectionDepth < magnitude)
+		if (projectionDepth < magnitude) {
 			return;
-		numerator = (uint64_t)(uint32_t)magnitude * projectionScale + (uint32_t)g_projScaleHalfInt;
+		}
+		numerator = (uint64_t)(uint32_t)magnitude * projectionScale +
+			    (uint32_t)g_projScaleHalfInt;
 #ifdef XVT_MODERN
-		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) < (uint32_t)projectionDepth)
+		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
+		    (uint32_t)projectionDepth)
 #else
-		if (((const uint32_t*)&numerator)[1] < (uint32_t)projectionDepth)
+		if (((const uint32_t *)&numerator)[1] <
+		    (uint32_t)projectionDepth)
 #endif
-			projectedY = (int)(numerator / (uint32_t)projectionDepth);
-		else
+			projectedY =
+				(int)(numerator / (uint32_t)projectionDepth);
+		else {
 			projectedY = PROJECTION_SATURATION;
+		}
 	}
 	projectedX += (int)g_flightVpCenterX;
 	projectedY += (int)g_flightVpCenterY;
 	projectedY += g_projOffsetY;
-	Backdrop_DrawModelTexQuadAtScreen(g_backdropModelTypes[backdropNumber - 1], projectedX,
-									  (int)g_flightVpHeight - projectedY, angle);
+	Backdrop_DrawModelTexQuadAtScreen(
+		g_backdropModelTypes[backdropNumber - 1], projectedX,
+		(int)g_flightVpHeight - projectedY, angle);
 }
 
 // FUNCTION: XVT 0x458ED0
-void Backdrop_GenerateDefaultRecords(void) {
+void Backdrop_GenerateDefaultRecords(void)
+{
 	int16_t lowCoordRoll;
 	uint16_t lowCoord;
 	uint16_t highCoord;
@@ -511,7 +675,8 @@ void Backdrop_GenerateDefaultRecords(void) {
 		} while (highCoord > 12);
 		highCoord <<= 4;
 		highCoord += lowCoord;
-		g_backdropPackedDirections[directionRecordIdx++] = (uint8_t)highCoord;
+		g_backdropPackedDirections[directionRecordIdx++] =
+			(uint8_t)highCoord;
 	}
 
 	/* lowCoord is reused here as the record index for the model types. */
@@ -523,7 +688,8 @@ void Backdrop_GenerateDefaultRecords(void) {
 			if (modelTypeRoll < 12) {
 				modelType = (uint8_t)(modelTypeRoll / 3 + 117);
 			} else {
-				modelType = (uint8_t)((modelTypeRoll & 1) + 125);
+				modelType =
+					(uint8_t)((modelTypeRoll & 1) + 125);
 			}
 			g_backdropModelTypes[lowCoord] = modelType;
 		}

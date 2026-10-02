@@ -9,15 +9,15 @@
  * shields, systems, distances and order times, the proving-grounds counters and signed score, each
  * weapon slot's charge, and before the CRT each launcher's count), then the remaining fields, so
  * separators land after the numeric clears. */
-int XvtHudPanes_DrawReadouts(const XvtHudDraw* draw, unsigned phase);
+int XvtHudPanes_DrawReadouts(const XvtHudDraw *draw, unsigned phase);
 /* Draws every visible MFD page but the message log, after the CRT: its background and border inside its
  * placement, each row's background, its glyphs; then the launcher counts of that phase. */
-int XvtHudPanes_DrawPages(const XvtHudDraw* draw);
+int XvtHudPanes_DrawPages(const XvtHudDraw *draw);
 /* Draws the message log page, each visible message pane's glyphs at its placement, and after the ready
  * pane the network ping and lag fields that belong after the CRT. */
-int XvtHudPanes_DrawMessages(const XvtHudDraw* draw);
+int XvtHudPanes_DrawMessages(const XvtHudDraw *draw);
 /* Draws, in the alert phase, the loading text and bar (a foreground border two pixels out, a background
  * border one out, the filled width in foreground) when visible, and the active alert: its border, five
  * row backgrounds, and its visible lines of glyphs. */
-int XvtHudPanes_DrawOverlays(const XvtHudDraw* draw);
+int XvtHudPanes_DrawOverlays(const XvtHudDraw *draw);
 #endif

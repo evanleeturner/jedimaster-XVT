@@ -23,7 +23,7 @@ extern uint16_t g_elapsedTicks;
 extern uint16_t g_simStepsPerSecond;
 extern int g_gameTime;
 extern int g_singleObjectUpdateOverrideIdx;
-extern void* g_flightMainWindowHandle;
+extern void *g_flightMainWindowHandle;
 extern uint32_t g_dynamicMusicLastUpdateMs;
 extern int g_dynamicMusicTrackRemainingMs;
 extern uint8_t g_dynamicMusicState;
@@ -57,9 +57,9 @@ enum FlightLaunchArgument {
 };
 
 struct FlightLaunchArgs {
-	char* programName;
-	char* sentinel;
-	char* arguments[FLIGHT_LAUNCH_ARG_COUNT];
+	char *programName;
+	char *sentinel;
+	char *arguments[FLIGHT_LAUNCH_ARG_COUNT];
 };
 
 extern const uint16_t g_graphicsDetailDistanceThresholdByPreset[4];
@@ -116,9 +116,9 @@ struct FlightMissionState {
 	int32_t globalUnitCraftCount[11];
 };
 
-extern uint8_t* g_worldStateDupBuffer;
+extern uint8_t *g_worldStateDupBuffer;
 extern unsigned int g_worldChecksumRegionLengths[16];
-extern uint8_t* g_worldStateBuffer;
+extern uint8_t *g_worldStateBuffer;
 extern int g_worldStateDupSize;
 extern uint16_t g_worldStateDupHandle;
 extern unsigned int g_worldChecksum[16];
@@ -159,7 +159,7 @@ extern uint8_t g_flightNoiseTable[512];
 extern int g_unusedFlightStartupObjectPassState;
 extern uint8_t g_unusedFlightMessageRuntimeState;
 extern int g_unusedFlightSessionResetState;
-extern XvtFile* g_unusedFlightDebugLogFile;
+extern XvtFile *g_unusedFlightDebugLogFile;
 extern int g_laserFireTimestampTrackingEnabled;
 extern int g_unusedFlightTransientResetState;
 extern uint8_t g_unusedFlightNetworkBlock[48];
@@ -172,7 +172,7 @@ extern uint32_t g_flightSoundInitStartTimeMs;
 void Flight_ResetUnusedResumeSlots(void);
 void Flight_UpdateTimers(void);
 void Flight_UpdateDynamicMusicState(void);
-uint8_t* Flight_GetDuplicateWorldStateBuffer(void);
+uint8_t *Flight_GetDuplicateWorldStateBuffer(void);
 int Flight_GetDuplicateWorldStateSize(void);
 void Flight_AllocWorldStateBuffers(void);
 void Flight_FreeWorldStateBuffers(void);
@@ -181,9 +181,12 @@ void Flight_RestoreWorldState(void);
 size_t Flight_CalculateWorldStateBufferSize(void);
 void Flight_ChecksumWorldState(int unusedArg0, int unusedArg1);
 int Flight_ComputeWorldStateResyncSegmentSize(int worldStateSize);
-int Flight_BuildWorldStateResyncSegmentChecksums(int* outChecksums, uint8_t* worldState, int worldStateSize);
-int Flight_BuildWorldStateObjectPresenceMap(uint8_t* outMap, uint8_t* worldState);
-void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t* presenceMap);
+int Flight_BuildWorldStateResyncSegmentChecksums(int *outChecksums,
+						 uint8_t *worldState,
+						 int worldStateSize);
+int Flight_BuildWorldStateObjectPresenceMap(uint8_t *outMap,
+					    uint8_t *worldState);
+void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap);
 void Flight_StepSimToTime(int targetGameTime);
 void Flight_AdvanceOneStep(int targetGameTime);
 void Flight_MainLoop(int unused);
@@ -191,9 +194,11 @@ void Flight_RunMissionLoop(void);
 int Flight_UpdateActivePlayerCount(void);
 int Flight_RecountPlayersAndCheckMissionEnd(void);
 int Flight_ComputeLiveWorldStateChecksum(void);
-unsigned int Flight_ChecksumBufferRotateXor(const void* data, unsigned int size);
+unsigned int Flight_ChecksumBufferRotateXor(const void *data,
+					    unsigned int size);
 
-static __inline uint32_t Flight_RotateChecksumLeft(uint32_t checksum) {
+static __inline uint32_t Flight_RotateChecksumLeft(uint32_t checksum)
+{
 #ifdef XVT_MODERN
 	return (checksum << 1) | (checksum >> 31);
 #else
@@ -205,15 +210,17 @@ void Flight_UpdatePlayerStep(int playerIdx);
 void Flight_ProcessPlayerActions(int playerIdx);
 char Flight_ApplyGraphicsDetailPreset(uint16_t preset);
 #ifndef XVT_MODERN
-int WinMain(void* hInstance, void* hPrevInstance, char* lpCmdLine, int nShowCmd);
+int WinMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
+	    int nShowCmd);
 #endif
-int Flight_Main(char* missionCmdLine);
+int Flight_Main(char *missionCmdLine);
 int Flight_UpdateAndFocusMainWindow(void);
 int32_t Flight_PumpWindowMessages(void);
-int32_t Flight_WndProc(void* hWnd, unsigned int Msg, uint32_t wParam, int32_t lParam);
+int32_t Flight_WndProc(void *hWnd, unsigned int Msg, uint32_t wParam,
+		       int32_t lParam);
 void Flight_UpdateCraftSteeringAndSpeed(void);
-void Flight_SlewObjectSpeedTowardTarget(unsigned int objectIdx, int targetSpeed, int allowDecel,
-										int throttleFraction);
+void Flight_SlewObjectSpeedTowardTarget(unsigned int objectIdx, int targetSpeed,
+					int allowDecel, int throttleFraction);
 void Flight_AccelerateObjectSpeed(int objectIdx, int accelerationPerSecond);
 void Flight_DecelerateObjectSpeed(int objectIdx, int decelerationPerSecond);
 void Flight_UpdateDivePulloutPitchTarget(int objectIdx);

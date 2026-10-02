@@ -47,7 +47,8 @@ static CraftData g_testCraft;
 static uint8_t *g_image, *g_saved, *g_again;
 static size_t g_capacity;
 
-static void World(void) {
+static void World(void)
+{
 	memset(g_testObjects, 0, sizeof g_testObjects);
 	memset(g_testMobiles, 0, sizeof g_testMobiles);
 	memset(&g_testCraft, 0, sizeof g_testCraft);
@@ -92,21 +93,30 @@ static void World(void) {
 	g_saved = calloc(1, g_capacity);
 	g_again = calloc(1, g_capacity);
 	XVT_ASSERT_TRUE(g_image && g_saved && g_again);
-	for (int i = 0; i < PREFIX; ++i)
+	for (int i = 0; i < PREFIX; ++i) {
 		g_image[i] = (uint8_t)(i * 7 + 1);
+	}
 }
 
-static void Seed(unsigned slot) {
+static void Seed(unsigned slot)
+{
 	XvtFlightIntegration_Clear(slot, CHANNEL);
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Rate(slot, CHANNEL, 3, 1, 4), 0);
 }
 
-static int Probe(unsigned slot) { return XvtFlightIntegration_Rate(slot, CHANNEL, 1, 1, 4); }
+static int Probe(unsigned slot)
+{
+	return XvtFlightIntegration_Rate(slot, CHANNEL, 1, 1, 4);
+}
 
-static size_t Append(uint8_t* image) { return XvtFlightCheckpoint_Append(image, PREFIX); }
+static size_t Append(uint8_t *image)
+{
+	return XvtFlightCheckpoint_Append(image, PREFIX);
+}
 
 /* The player's paired record as an extension appended now carries it. */
-static XvtPairedMotionWire Paired(unsigned player) {
+static XvtPairedMotionWire Paired(unsigned player)
+{
 	size_t size = Append(g_image);
 	XvtFlightCheckpointView view;
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_Read(g_image, size, &view), 1);
@@ -115,31 +125,38 @@ static XvtPairedMotionWire Paired(unsigned player) {
 	return record;
 }
 
-static XvtStateFooter Footer(const uint8_t* image, size_t size) {
+static XvtStateFooter Footer(const uint8_t *image, size_t size)
+{
 	XvtStateFooter footer;
 	memcpy(&footer, image + size - sizeof footer, sizeof footer);
 	return footer;
 }
 
-static void SetFooter(uint8_t* image, size_t size, const XvtStateFooter* footer) {
+static void SetFooter(uint8_t *image, size_t size, const XvtStateFooter *footer)
+{
 	memcpy(image + size - sizeof *footer, footer, sizeof *footer);
 }
 
 /* After a change inside the extension, writes its CRC-32C into the footer again, so that Read judges the
  * change itself and not the CRC. */
-static void Reseal(uint8_t* image, size_t size) {
+static void Reseal(uint8_t *image, size_t size)
+{
 	XvtStateFooter footer = Footer(image, size);
-	XvtWire_Set32(footer.timing_crc, XvtFlightWire_Crc32c(image + XvtWire_Get32(footer.world_bytes),
-														  XvtWire_Get32(footer.timing_bytes)));
+	XvtWire_Set32(
+		footer.timing_crc,
+		XvtFlightWire_Crc32c(image + XvtWire_Get32(footer.world_bytes),
+				     XvtWire_Get32(footer.timing_bytes)));
 	SetFooter(image, size, &footer);
 }
 
-static int ReadImage(const uint8_t* image, size_t size) {
+static int ReadImage(const uint8_t *image, size_t size)
+{
 	XvtFlightCheckpointView view;
 	return XvtFlightCheckpoint_Read(image, size, &view);
 }
 
-static void CheckBeginAndMasks(void) {
+static void CheckBeginAndMasks(void)
+{
 	World();
 	XvtFlightCheckpoint_Begin(0x07);
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_InitialMask(), 0x07);
@@ -150,19 +167,22 @@ static void CheckBeginAndMasks(void) {
 	XvtFlightCheckpoint_ApplyConfirmedMask(0x05);
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_ConfirmedMask(), 0x05);
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_InitialMask(), 0x07);
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		XVT_ASSERT_INT_EQ(g_playerAbortFlags[i], i == 1);
+	}
 
 	/* The confirmed mask stays within the initial one. */
 	XvtFlightCheckpoint_ApplyConfirmedMask(0xFF);
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_ConfirmedMask(), 0x07);
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		XVT_ASSERT_INT_EQ(g_playerAbortFlags[i], 0);
+	}
 
 	XvtFlightCheckpoint_ApplyConfirmedMask(0);
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_ConfirmedMask(), 0);
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i) {
 		XVT_ASSERT_INT_EQ(g_playerAbortFlags[i], i < 3);
+	}
 
 	/* Begin sets both masks again and clears every paired record. */
 	Seed(0);
@@ -174,7 +194,8 @@ static void CheckBeginAndMasks(void) {
 	XVT_ASSERT_INT_EQ(Paired(0).validity, 0);
 }
 
-static void CheckAppendRead(void) {
+static void CheckAppendRead(void)
+{
 	World();
 	Seed(0);
 	Seed(1);
@@ -191,13 +212,17 @@ static void CheckAppendRead(void) {
 	XVT_ASSERT_INT_EQ(view.membership.initial, 0x03);
 	XVT_ASSERT_INT_EQ(view.membership.confirmed, 0x03);
 	/* The view points into the image, after the world bytes. */
-	const uint8_t* parts[] = { view.reference, view.integration, view.players, view.paired };
-	for (int i = 0; i < 4; ++i)
-		XVT_ASSERT_TRUE(parts[i] >= g_image + PREFIX && parts[i] < g_image + size);
+	const uint8_t *parts[] = {view.reference, view.integration,
+				  view.players, view.paired};
+	for (int i = 0; i < 4; ++i) {
+		XVT_ASSERT_TRUE(parts[i] >= g_image + PREFIX &&
+				parts[i] < g_image + size);
+	}
 
 	size_t prefix = 0;
 	int tick = -1;
-	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_Validate(g_image, size, &prefix, &tick), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightCheckpoint_Validate(g_image, size, &prefix, &tick), 1);
 	XVT_ASSERT_INT_EQ(prefix, PREFIX);
 	XVT_ASSERT_INT_EQ(tick, TICK);
 
@@ -208,18 +233,21 @@ static void CheckAppendRead(void) {
 
 	/* Read changes no state: an extension appended afterwards is the same. */
 	XVT_ASSERT_INT_EQ(Append(g_again), size);
-	XVT_ASSERT_INT_EQ(memcmp(g_again + PREFIX, g_image + PREFIX, size - PREFIX), 0);
+	XVT_ASSERT_INT_EQ(
+		memcmp(g_again + PREFIX, g_image + PREFIX, size - PREFIX), 0);
 	XVT_ASSERT_INT_EQ(Probe(0), 1);
 	XVT_ASSERT_INT_EQ(Probe(1), 1);
 
 	/* The footer records the game time: a later time reads back as the tick. */
 	g_gameTime = TICK + 2 * XVT_NETWORK_STEP_TICKS;
 	size = Append(g_image);
-	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_Validate(g_image, size, &prefix, &tick), 1);
+	XVT_ASSERT_INT_EQ(
+		XvtFlightCheckpoint_Validate(g_image, size, &prefix, &tick), 1);
 	XVT_ASSERT_INT_EQ(tick, g_gameTime);
 }
 
-static void CheckReadRefusals(void) {
+static void CheckReadRefusals(void)
+{
 	World();
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Cookie(), 0);
 	Seed(0);
@@ -230,7 +258,8 @@ static void CheckReadRefusals(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_Read(g_saved, size, &view), 1);
 	size_t reference = (size_t)(view.reference - g_saved);
 	size_t players = (size_t)(view.players - g_saved);
-	size_t membership = (size_t)(view.paired - g_saved) + XVT_FLIGHT_PLAYERS * sizeof(XvtPairedMotionWire);
+	size_t membership = (size_t)(view.paired - g_saved) +
+			    XVT_FLIGHT_PLAYERS * sizeof(XvtPairedMotionWire);
 	XvtStateFooter good = Footer(g_saved, size), footer;
 
 	XVT_ASSERT_INT_EQ(ReadImage(g_image, sizeof(XvtStateFooter) - 1), 0);
@@ -271,7 +300,8 @@ static void CheckReadRefusals(void) {
 	SetFooter(g_image, size, &footer);
 	XVT_ASSERT_INT_EQ(ReadImage(g_image, size), 0);
 	footer = good;
-	XvtWire_Set32(footer.timing_bytes, XvtWire_Get32(good.timing_bytes) - 1);
+	XvtWire_Set32(footer.timing_bytes,
+		      XvtWire_Get32(good.timing_bytes) - 1);
 	SetFooter(g_image, size, &footer);
 	XVT_ASSERT_INT_EQ(ReadImage(g_image, size), 0);
 	SetFooter(g_image, size, &good);
@@ -315,7 +345,8 @@ static void CheckReadRefusals(void) {
 	XVT_ASSERT_INT_EQ(ReadImage(g_image, size), 1);
 }
 
-static void CheckRestore(void) {
+static void CheckRestore(void)
+{
 	World();
 	Seed(0);
 	Seed(1);
@@ -337,18 +368,21 @@ static void CheckRestore(void) {
 	XvtFlightCheckpoint_Restore(&view);
 	XVT_ASSERT_INT_EQ(g_gameTime, TICK);
 	/* The network tick is the view's (flight_timing.h: the advance serial is tick / step). */
-	XVT_ASSERT_TRUE(XvtFlightTiming_AdvanceSerial() == TICK / XVT_NETWORK_STEP_TICKS);
+	XVT_ASSERT_TRUE(XvtFlightTiming_AdvanceSerial() ==
+			TICK / XVT_NETWORK_STEP_TICKS);
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_ConfirmedMask(), 0x01);
 	XVT_ASSERT_INT_EQ(g_playerAbortFlags[1], 1);
 
 	/* Every record is back: the extension appended now is the one restored from. */
 	XVT_ASSERT_INT_EQ(Append(g_again), size);
-	XVT_ASSERT_INT_EQ(memcmp(g_again + PREFIX, g_saved + PREFIX, size - PREFIX), 0);
+	XVT_ASSERT_INT_EQ(
+		memcmp(g_again + PREFIX, g_saved + PREFIX, size - PREFIX), 0);
 	XVT_ASSERT_INT_EQ(Probe(0), 1);
 	XVT_ASSERT_INT_EQ(Probe(3), 0);
 }
 
-static void CheckSavePlayer(void) {
+static void CheckSavePlayer(void)
+{
 	World();
 	Seed(0);
 	XvtFlightCheckpoint_SavePlayer(0, TICK);
@@ -389,7 +423,8 @@ static void CheckSavePlayer(void) {
 	XVT_ASSERT_INT_EQ(Paired(1).validity, XVT_PAIRED_OWNER_VALID);
 }
 
-static void CheckRestorePlayer(void) {
+static void CheckRestorePlayer(void)
+{
 	/* A record saved at the player's lockstep tick for its current object is restored. */
 	World();
 	Seed(0);
@@ -423,7 +458,8 @@ static void CheckRestorePlayer(void) {
 	XVT_ASSERT_INT_EQ(Paired(0).validity, 0);
 }
 
-static void CheckCarriedObject(void) {
+static void CheckCarriedObject(void)
+{
 	/* Slot 0's craft carries slot 3: both motions are saved, and both restored. */
 	World();
 	g_testCraft.carriedObjectIndex = 3;
@@ -431,7 +467,8 @@ static void CheckCarriedObject(void) {
 	Seed(3);
 	XvtFlightCheckpoint_SavePlayer(0, TICK);
 	XvtPairedMotionWire record = Paired(0);
-	XVT_ASSERT_INT_EQ(record.validity, XVT_PAIRED_OWNER_VALID | XVT_PAIRED_CARRIED_VALID);
+	XVT_ASSERT_INT_EQ(record.validity,
+			  XVT_PAIRED_OWNER_VALID | XVT_PAIRED_CARRIED_VALID);
 	XVT_ASSERT_INT_EQ(XvtWire_Get16(record.carried_id.slot), 3);
 	XVT_ASSERT_INT_EQ(XvtWire_Get16(record.carried_id.signature), 0x303);
 	XVT_ASSERT_INT_EQ(Probe(3), 1);
@@ -458,7 +495,8 @@ static void CheckCarriedObject(void) {
 	XVT_ASSERT_INT_EQ(Probe(0), 1);
 }
 
-static void CheckNetwork125Only(void) {
+static void CheckNetwork125Only(void)
+{
 	World();
 	Seed(0);
 	XvtFlightCheckpoint_SavePlayer(0, TICK);
@@ -479,7 +517,8 @@ static void CheckNetwork125Only(void) {
 	XVT_ASSERT_INT_EQ(Paired(0).validity, XVT_PAIRED_OWNER_VALID);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckBeginAndMasks();
 	CheckAppendRead();
 	CheckReadRefusals();

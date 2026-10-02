@@ -5,27 +5,34 @@
 #include <stddef.h>
 #include <string.h>
 
-typedef HRESULT(AERON_DXAPI* DDUtilSurfaceGetDcFunc)(IDirectDrawSurface* surface, void** dc);
-typedef HRESULT(AERON_DXAPI* DDUtilSurfaceReleaseDcFunc)(IDirectDrawSurface* surface, void* dc);
+typedef HRESULT(AERON_DXAPI *DDUtilSurfaceGetDcFunc)(
+	IDirectDrawSurface *surface, void **dc);
+typedef HRESULT(AERON_DXAPI *DDUtilSurfaceReleaseDcFunc)(
+	IDirectDrawSurface *surface, void *dc);
 
 #ifndef XVT_MODERN
-__declspec(dllimport) void* __stdcall CreateCompatibleDC(void* dc);
-__declspec(dllimport) void* __stdcall SelectObject(void* dc, void* object);
-__declspec(dllimport) int __stdcall GetObjectA(void* object, int bufferSize, void* buffer);
-__declspec(dllimport) int __stdcall StretchBlt(void* destinationDc, int xDestination, int yDestination,
-											   int destinationWidth, int destinationHeight, void* sourceDc,
-											   int xSource, int ySource, int sourceWidth, int sourceHeight,
-											   unsigned long rasterOperation);
-__declspec(dllimport) int __stdcall DeleteDC(void* dc);
-__declspec(dllimport) void* __stdcall GetModuleHandleA(const char* moduleName);
-__declspec(dllimport) void* __stdcall LoadImageA(void* instance, const char* name, unsigned int type,
-												 int width, int height, unsigned int loadFlags);
-__declspec(dllimport) int __stdcall DeleteObject(void* object);
+__declspec(dllimport) void *__stdcall CreateCompatibleDC(void *dc);
+__declspec(dllimport) void *__stdcall SelectObject(void *dc, void *object);
+__declspec(dllimport) int __stdcall GetObjectA(void *object, int bufferSize,
+					       void *buffer);
+__declspec(dllimport) int __stdcall
+StretchBlt(void *destinationDc, int xDestination, int yDestination,
+	   int destinationWidth, int destinationHeight, void *sourceDc,
+	   int xSource, int ySource, int sourceWidth, int sourceHeight,
+	   unsigned long rasterOperation);
+__declspec(dllimport) int __stdcall DeleteDC(void *dc);
+__declspec(dllimport) void *__stdcall GetModuleHandleA(const char *moduleName);
+__declspec(dllimport) void *__stdcall
+LoadImageA(void *instance, const char *name, unsigned int type, int width,
+	   int height, unsigned int loadFlags);
+__declspec(dllimport) int __stdcall DeleteObject(void *object);
 #endif
 
 // FUNCTION: XVT 0x4F0BE0
-IDirectDrawSurface* DDUtil_LoadBitmapSurface(IDirectDraw* directDraw, const char* bitmapName, int width,
-											 int height) {
+IDirectDrawSurface *DDUtil_LoadBitmapSurface(IDirectDraw *directDraw,
+					     const char *bitmapName, int width,
+					     int height)
+{
 #ifdef XVT_MODERN
 	(void)directDraw;
 	(void)bitmapName;
@@ -33,8 +40,8 @@ IDirectDrawSurface* DDUtil_LoadBitmapSurface(IDirectDraw* directDraw, const char
 	(void)height;
 	return NULL;
 #else
-	void* bitmap;
-	IDirectDrawSurface* surface;
+	void *bitmap;
+	IDirectDrawSurface *surface;
 	DDSURFACEDESC surfaceDesc;
 	BITMAP bitmapInfo;
 
@@ -49,7 +56,8 @@ IDirectDrawSurface* DDUtil_LoadBitmapSurface(IDirectDraw* directDraw, const char
 	surfaceDesc.dwSize = sizeof(surfaceDesc);
 	surfaceDesc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
 	surfaceDesc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
-	if (directDraw->lpVtbl->CreateSurface(directDraw, &surfaceDesc, &surface, NULL) != DX_DD_OK) {
+	if (directDraw->lpVtbl->CreateSurface(directDraw, &surfaceDesc,
+					      &surface, NULL) != DX_DD_OK) {
 		return NULL;
 	}
 	DDUtil_CopyBitmapToSurface(surface, bitmap, 0, 0, 0, 0);
@@ -59,16 +67,19 @@ IDirectDrawSurface* DDUtil_LoadBitmapSurface(IDirectDraw* directDraw, const char
 }
 
 // FUNCTION: XVT 0x4F0CC0
-HRESULT DDUtil_ReloadBitmapSurface(IDirectDrawSurface* surface, const char* bitmapName) {
+HRESULT DDUtil_ReloadBitmapSurface(IDirectDrawSurface *surface,
+				   const char *bitmapName)
+{
 #ifdef XVT_MODERN
 	(void)surface;
 	(void)bitmapName;
 	return DX_E_NOTIMPL;
 #else
-	void* bitmap;
+	void *bitmap;
 	HRESULT result;
 
-	bitmap = LoadImageA(GetModuleHandleA(NULL), bitmapName, 0, 0, 0, 0x2000);
+	bitmap =
+		LoadImageA(GetModuleHandleA(NULL), bitmapName, 0, 0, 0, 0x2000);
 	if (bitmap == NULL) {
 		bitmap = LoadImageA(NULL, bitmapName, 0, 0, 0, 0x2010);
 		if (bitmap == NULL) {
@@ -82,8 +93,9 @@ HRESULT DDUtil_ReloadBitmapSurface(IDirectDrawSurface* surface, const char* bitm
 }
 
 // FUNCTION: XVT 0x4F0D30
-HRESULT DDUtil_CopyBitmapToSurface(IDirectDrawSurface* surface, void* bitmap, int xSrc, int ySrc, int width,
-								   int height) {
+HRESULT DDUtil_CopyBitmapToSurface(IDirectDrawSurface *surface, void *bitmap,
+				   int xSrc, int ySrc, int width, int height)
+{
 #ifdef XVT_MODERN
 	(void)surface;
 	(void)bitmap;
@@ -93,10 +105,10 @@ HRESULT DDUtil_CopyBitmapToSurface(IDirectDrawSurface* surface, void* bitmap, in
 	(void)height;
 	return DX_E_NOTIMPL;
 #else
-	void* compatibleDc;
+	void *compatibleDc;
 	int actualWidth;
 	int actualHeight;
-	void* destinationDc;
+	void *destinationDc;
 	HRESULT result;
 	int bitmapObject[6];
 	DDSURFACEDESC surfaceDesc;
@@ -120,11 +132,14 @@ HRESULT DDUtil_CopyBitmapToSurface(IDirectDrawSurface* surface, void* bitmap, in
 	surfaceDesc.dwSize = sizeof(surfaceDesc);
 	surfaceDesc.dwFlags = DDSD_HEIGHT | DDSD_WIDTH;
 	surface->lpVtbl->GetSurfaceDesc(surface, &surfaceDesc);
-	result = ((DDUtilSurfaceGetDcFunc)surface->lpVtbl->GetDC)(surface, &destinationDc);
+	result = ((DDUtilSurfaceGetDcFunc)surface->lpVtbl->GetDC)(
+		surface, &destinationDc);
 	if (result == DX_DD_OK) {
-		StretchBlt(destinationDc, 0, 0, surfaceDesc.dwWidth, surfaceDesc.dwHeight, compatibleDc, xSrc, ySrc,
-				   actualWidth, actualHeight, DDROP_SRCCOPY);
-		((DDUtilSurfaceReleaseDcFunc)surface->lpVtbl->ReleaseDC)(surface, destinationDc);
+		StretchBlt(destinationDc, 0, 0, surfaceDesc.dwWidth,
+			   surfaceDesc.dwHeight, compatibleDc, xSrc, ySrc,
+			   actualWidth, actualHeight, DDROP_SRCCOPY);
+		((DDUtilSurfaceReleaseDcFunc)surface->lpVtbl->ReleaseDC)(
+			surface, destinationDc);
 	}
 	DeleteDC(compatibleDc);
 	return result;

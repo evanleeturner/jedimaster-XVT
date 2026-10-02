@@ -36,7 +36,7 @@
 
 /* Where frame 0 is the faulting instruction itself (crash_note.h), a fault in Crash puts frame 0 inside
  * Crash; elsewhere the handler's frames come first and frame 0 is not checked. */
-#if (defined(__linux__) && (defined(__x86_64__) || defined(__aarch64__))) ||                                 \
+#if (defined(__linux__) && (defined(__x86_64__) || defined(__aarch64__))) ||   \
 	(defined(_WIN32) && (defined(_M_X64) || defined(__x86_64__)))
 #define FAULT_IN_CRASH 1
 #else
@@ -46,33 +46,45 @@
 #define CRASH_CODE_SPAN 512
 
 /* Formats through XvtCrashNote_FormatLine with a variable argument list, as the note's writer does. */
-static size_t Format(char* out, size_t capacity, uint32_t ms, const char* format, ...) {
+static size_t Format(char *out, size_t capacity, uint32_t ms,
+		     const char *format, ...)
+{
 	va_list args;
 	va_start(args, format);
-	size_t length = XvtCrashNote_FormatLine(out, capacity, ms, format, args);
+	size_t length =
+		XvtCrashNote_FormatLine(out, capacity, ms, format, args);
 	va_end(args);
 	return length;
 }
 
-static void CheckFormatLine(void) {
+static void CheckFormatLine(void)
+{
 	char line[256];
-	size_t length = Format(line, sizeof line, 76955005u, "app.crash_signal signal=\"%s\" code=%d addr=%#llx",
-						   "SIGSEGV", 1, 0ull);
-	XVT_ASSERT_INT_EQ(strcmp(line, "21:22:35.005 C app.crash_signal signal=\"SIGSEGV\" code=1 addr=0x0\n"),
-					  0);
+	size_t length =
+		Format(line, sizeof line, 76955005u,
+		       "app.crash_signal signal=\"%s\" code=%d addr=%#llx",
+		       "SIGSEGV", 1, 0ull);
+	XVT_ASSERT_INT_EQ(
+		strcmp(line,
+		       "21:22:35.005 C app.crash_signal signal=\"SIGSEGV\" code=1 addr=0x0\n"),
+		0);
 	XVT_ASSERT_INT_EQ(length, strlen(line));
 
-	Format(line, sizeof line, 0, "d=%d d=%d u=%u llu=%llu x=%#llx pct=%%", -7, INT_MIN, 4294967295u,
-		   18446744073709551615ull, 0xdeadbeefull);
+	Format(line, sizeof line, 0, "d=%d d=%d u=%u llu=%llu x=%#llx pct=%%",
+	       -7, INT_MIN, 4294967295u, 18446744073709551615ull,
+	       0xdeadbeefull);
 	XVT_ASSERT_INT_EQ(
-		strcmp(
-			line,
-			"00:00:00.000 C d=-7 d=-2147483648 u=4294967295 llu=18446744073709551615 x=0xdeadbeef pct=%\n"),
+		strcmp(line,
+		       "00:00:00.000 C d=-7 d=-2147483648 u=4294967295 llu=18446744073709551615 x=0xdeadbeef pct=%\n"),
 		0);
 
 	/* Text: line breaks and tabs become spaces; NULL is written as (null). */
-	Format(line, sizeof line, 0, "a=\"%s\" b=\"%s\"", "one\ntwo\r\tthree", (const char*)NULL);
-	XVT_ASSERT_INT_EQ(strcmp(line, "00:00:00.000 C a=\"one two  three\" b=\"(null)\"\n"), 0);
+	Format(line, sizeof line, 0, "a=\"%s\" b=\"%s\"", "one\ntwo\r\tthree",
+	       (const char *)NULL);
+	XVT_ASSERT_INT_EQ(
+		strcmp(line,
+		       "00:00:00.000 C a=\"one two  three\" b=\"(null)\"\n"),
+		0);
 
 	/* The time of day wraps at 24 hours. */
 	Format(line, sizeof line, 86400000u + 3723004u, "x");
@@ -95,9 +107,10 @@ static void CheckFormatLine(void) {
 }
 
 /* Crashes the way case names; a case that does not crash returns. */
-static void Crash(const char* name) {
+static void Crash(const char *name)
+{
 	if (!strcmp(name, "segv")) {
-		volatile int* volatile target = NULL;
+		volatile int *volatile target = NULL;
 		*target = 1;
 	} else if (!strcmp(name, "abort")) {
 		abort();
@@ -116,21 +129,25 @@ static void Crash(const char* name) {
 }
 
 /* Returns Crash's offset in this program, as a frame line would give it. */
-static unsigned long long CrashOffset(void) {
-	void (*function)(const char*) = Crash;
-	void* address;
+static unsigned long long CrashOffset(void)
+{
+	void (*function)(const char *) = Crash;
+	void *address;
 	memcpy(&address, &function, sizeof address);
 #ifdef _WIN32
-	return (unsigned long long)((uintptr_t)address - (uintptr_t)GetModuleHandleA(NULL));
+	return (unsigned long long)((uintptr_t)address -
+				    (uintptr_t)GetModuleHandleA(NULL));
 #else
 	Dl_info where;
 	XVT_ASSERT_TRUE(dladdr(address, &where) != 0);
-	return (unsigned long long)((uintptr_t)address - (uintptr_t)where.dli_fbase);
+	return (unsigned long long)((uintptr_t)address -
+				    (uintptr_t)where.dli_fbase);
 #endif
 }
 
 /* Installs the note on a new log file at path and crashes as name says. */
-static void RunChild(const char* name, const char* path) {
+static void RunChild(const char *name, const char *path)
+{
 	XvtLogFileHandle file = XvtLogFile_Open(path, NULL, 0);
 	XVT_ASSERT_TRUE(file != XVT_LOG_FILE_NONE);
 	XvtCrashNote_Install(file);
@@ -139,10 +156,11 @@ static void RunChild(const char* name, const char* path) {
 	exit(77);
 }
 
-static char* ReadAll(const char* path) {
-	FILE* file = fopen(path, "rb");
+static char *ReadAll(const char *path)
+{
+	FILE *file = fopen(path, "rb");
 	XVT_ASSERT_TRUE(file != NULL);
-	char* text = calloc(1, 1 << 16);
+	char *text = calloc(1, 1 << 16);
 	XVT_ASSERT_TRUE(text != NULL);
 	size_t length = fread(text, 1, (1 << 16) - 1, file);
 	text[length] = 0;
@@ -153,16 +171,18 @@ static char* ReadAll(const char* path) {
 /* Checks a crashed child's log: the first line starts with first, every later line is a frame line with
  * n counting up from 0, at least two frames, one frame in this program, and, when in_crash is nonzero,
  * frame 0 inside Crash. */
-static void CheckNote(const char* path, const char* first, int in_crash) {
-	char* text = ReadAll(path);
-	char* line = text;
+static void CheckNote(const char *path, const char *first, int in_crash)
+{
+	char *text = ReadAll(path);
+	char *line = text;
 	int frames = 0;
 	int ours = 0;
-	char* end = strchr(line, '\n');
+	char *end = strchr(line, '\n');
 	XVT_ASSERT_TRUE(end != NULL);
 	*end = 0;
 	if (strlen(line) < 15 || strncmp(line + 13, first, strlen(first))) {
-		fprintf(stderr, "first line: %s\nwanted after the stamp: %s\n", line, first);
+		fprintf(stderr, "first line: %s\nwanted after the stamp: %s\n",
+			line, first);
 		XVT_ASSERT_TRUE(0);
 	}
 	for (line = end + 1; *line; line = end + 1) {
@@ -170,16 +190,25 @@ static void CheckNote(const char* path, const char* first, int in_crash) {
 		end = strchr(line, '\n');
 		XVT_ASSERT_TRUE(end != NULL);
 		*end = 0;
-		snprintf(want, sizeof want, "C app.crash_frame n=%d module=\"", frames);
-		XVT_ASSERT_TRUE(strlen(line) > 13 && !strncmp(line + 13, want, strlen(want)));
-		if (strstr(line, "module=\"" PROGRAM_NAME "\" offset=0x"))
+		snprintf(want, sizeof want, "C app.crash_frame n=%d module=\"",
+			 frames);
+		XVT_ASSERT_TRUE(strlen(line) > 13 &&
+				!strncmp(line + 13, want, strlen(want)));
+		if (strstr(line, "module=\"" PROGRAM_NAME "\" offset=0x")) {
 			ours++;
+		}
 		if (frames == 0 && in_crash) {
-			const char* offset = strstr(line, "module=\"" PROGRAM_NAME "\" offset=0x");
-			unsigned long long at = offset ? strtoull(strstr(offset, "0x") + 2, NULL, 16) : 0;
-			if (!offset || at < CrashOffset() || at >= CrashOffset() + CRASH_CODE_SPAN) {
-				fprintf(stderr, "frame 0: %s\nwanted inside Crash, from offset 0x%llx\n", line,
-						CrashOffset());
+			const char *offset = strstr(
+				line, "module=\"" PROGRAM_NAME "\" offset=0x");
+			unsigned long long at =
+				offset ? strtoull(strstr(offset, "0x") + 2,
+						  NULL, 16)
+				       : 0;
+			if (!offset || at < CrashOffset() ||
+			    at >= CrashOffset() + CRASH_CODE_SPAN) {
+				fprintf(stderr,
+					"frame 0: %s\nwanted inside Crash, from offset 0x%llx\n",
+					line, CrashOffset());
 				XVT_ASSERT_TRUE(0);
 			}
 		}
@@ -193,17 +222,20 @@ static void CheckNote(const char* path, const char* first, int in_crash) {
 #ifdef _WIN32
 
 /* Starts this program as "child <name> <path>" and returns its exit code. */
-static DWORD RunCase(const char* name, const char* path) {
+static DWORD RunCase(const char *name, const char *path)
+{
 	char program[MAX_PATH];
 	char command[3 * MAX_PATH];
 	STARTUPINFOA startup;
 	PROCESS_INFORMATION process;
 	DWORD code = 0;
 	XVT_ASSERT_TRUE(GetModuleFileNameA(NULL, program, MAX_PATH) > 0);
-	snprintf(command, sizeof command, "\"%s\" child %s \"%s\"", program, name, path);
+	snprintf(command, sizeof command, "\"%s\" child %s \"%s\"", program,
+		 name, path);
 	memset(&startup, 0, sizeof startup);
 	startup.cb = sizeof startup;
-	XVT_ASSERT_TRUE(CreateProcessA(program, command, NULL, NULL, FALSE, 0, NULL, NULL, &startup, &process));
+	XVT_ASSERT_TRUE(CreateProcessA(program, command, NULL, NULL, FALSE, 0,
+				       NULL, NULL, &startup, &process));
 	WaitForSingleObject(process.hProcess, INFINITE);
 	XVT_ASSERT_TRUE(GetExitCodeProcess(process.hProcess, &code));
 	CloseHandle(process.hThread);
@@ -211,18 +243,23 @@ static DWORD RunCase(const char* name, const char* path) {
 	return code;
 }
 
-static void CheckCrashes(void) {
+static void CheckCrashes(void)
+{
 	char folder[MAX_PATH];
 	char path[MAX_PATH];
 	XVT_ASSERT_TRUE(GetTempPathA(MAX_PATH, folder) > 0);
-	snprintf(path, sizeof path, "%sopenxvt-crash-%lu.log", folder, (unsigned long)GetCurrentProcessId());
+	snprintf(path, sizeof path, "%sopenxvt-crash-%lu.log", folder,
+		 (unsigned long)GetCurrentProcessId());
 
 	DeleteFileA(path);
 	XVT_ASSERT_INT_EQ(RunCase("segv", path), EXCEPTION_ACCESS_VIOLATION);
-	CheckNote(path, "C app.crash_exception code=0xc0000005 addr=0x0", FAULT_IN_CRASH);
+	CheckNote(path, "C app.crash_exception code=0xc0000005 addr=0x0",
+		  FAULT_IN_CRASH);
 	DeleteFileA(path);
-	XVT_ASSERT_INT_EQ(RunCase("divide", path), EXCEPTION_INT_DIVIDE_BY_ZERO);
-	CheckNote(path, "C app.crash_exception code=0xc0000094 addr=0x", FAULT_IN_CRASH);
+	XVT_ASSERT_INT_EQ(RunCase("divide", path),
+			  EXCEPTION_INT_DIVIDE_BY_ZERO);
+	CheckNote(path, "C app.crash_exception code=0xc0000094 addr=0x",
+		  FAULT_IN_CRASH);
 	DeleteFileA(path);
 	/* The C runtime ends an aborted program with exit code 3. */
 	XVT_ASSERT_INT_EQ(RunCase("abort", path), 3);
@@ -230,7 +267,8 @@ static void CheckCrashes(void) {
 	DeleteFileA(path);
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
 	if (argc == 4 && !strcmp(argv[1], "child")) {
 		/* No error dialog: the parent reads the exit code. */
 		SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
@@ -243,14 +281,16 @@ int main(int argc, char* argv[]) {
 
 #else
 
-static void OnPrevious(int signal) {
+static void OnPrevious(int signal)
+{
 	(void)signal;
 	_exit(42);
 }
 
 /* Forks a child that crashes as name says, with its log at path and, when previous_signal is nonzero, a
  * handler of its own for that signal installed before the note; returns the child's wait status. */
-static int RunCase(const char* name, const char* path, int previous_signal) {
+static int RunCase(const char *name, const char *path, int previous_signal)
+{
 	int status = 0;
 	unlink(path);
 	pid_t child = fork();
@@ -271,44 +311,53 @@ static int RunCase(const char* name, const char* path, int previous_signal) {
 
 /* Checks the child died of signal and wrote a note that starts with first, frame 0 inside Crash when in_crash
  * is nonzero. */
-static void CheckDied(int status, int signal, const char* path, const char* first, int in_crash) {
+static void CheckDied(int status, int signal, const char *path,
+		      const char *first, int in_crash)
+{
 	if (!WIFSIGNALED(status) || WTERMSIG(status) != signal) {
-		fprintf(stderr, "child status %d: exited %d, signal %d; wanted signal %d\n", status,
-				WIFEXITED(status) ? WEXITSTATUS(status) : -1, WIFSIGNALED(status) ? WTERMSIG(status) : -1,
-				signal);
+		fprintf(stderr,
+			"child status %d: exited %d, signal %d; wanted signal %d\n",
+			status, WIFEXITED(status) ? WEXITSTATUS(status) : -1,
+			WIFSIGNALED(status) ? WTERMSIG(status) : -1, signal);
 		XVT_ASSERT_TRUE(0);
 	}
 	CheckNote(path, first, in_crash);
 }
 
-static void CheckCrashes(void) {
+static void CheckCrashes(void)
+{
 	char path[256];
-	const char* folder = getenv("TMPDIR");
-	snprintf(path, sizeof path, "%s/openxvt-crash-%ld.log", folder && folder[0] ? folder : "/tmp",
-			 (long)getpid());
+	const char *folder = getenv("TMPDIR");
+	snprintf(path, sizeof path, "%s/openxvt-crash-%ld.log",
+		 folder && folder[0] ? folder : "/tmp", (long)getpid());
 
 	/* A fault: the faulting address, then the frames; the program still dies of the same signal. */
 	CheckDied(RunCase("segv", path, 0), SIGSEGV, path,
-			  "C app.crash_signal signal=\"SIGSEGV\" code=1 addr=0x0", FAULT_IN_CRASH);
+		  "C app.crash_signal signal=\"SIGSEGV\" code=1 addr=0x0",
+		  FAULT_IN_CRASH);
 #if defined(__x86_64__) || defined(__i386__)
 	/* Integer division by zero traps on x86 only; ARM processors return 0. */
-	CheckDied(RunCase("divide", path, 0), SIGFPE, path, "C app.crash_signal signal=\"SIGFPE\" code=1 addr=0x",
-			  FAULT_IN_CRASH);
+	CheckDied(RunCase("divide", path, 0), SIGFPE, path,
+		  "C app.crash_signal signal=\"SIGFPE\" code=1 addr=0x",
+		  FAULT_IN_CRASH);
 #endif
 	/* Sent signals do not repeat by themselves; the note sends them again. They carry no address: addr is 0,
 	 * not the sender's ids that share its place. */
-	CheckDied(RunCase("abort", path, 0), SIGABRT, path, "C app.crash_signal signal=\"SIGABRT\"", 0);
+	CheckDied(RunCase("abort", path, 0), SIGABRT, path,
+		  "C app.crash_signal signal=\"SIGABRT\"", 0);
 	CheckDied(RunCase("kill", path, 0), SIGSEGV, path,
-			  "C app.crash_signal signal=\"SIGSEGV\" code=0 addr=0x0", 0);
+		  "C app.crash_signal signal=\"SIGSEGV\" code=0 addr=0x0", 0);
 
 	/* A handler installed before the note still runs after it: here it exits with 42. */
 	int status = RunCase("segv", path, SIGSEGV);
 	XVT_ASSERT_TRUE(WIFEXITED(status) && WEXITSTATUS(status) == 42);
-	CheckNote(path, "C app.crash_signal signal=\"SIGSEGV\"", FAULT_IN_CRASH);
+	CheckNote(path, "C app.crash_signal signal=\"SIGSEGV\"",
+		  FAULT_IN_CRASH);
 	unlink(path);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckFormatLine();
 	CheckCrashes();
 	return 0;

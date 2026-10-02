@@ -33,12 +33,13 @@ int16_t g_sceneBillboardQueueCount = 0;
 uint16_t g_billboardObjectOrTypeIndex = 0;
 
 // GLOBAL: XVT 0x9ECA30
-static SceneBillboardQueueEntry g_sceneBillboardQueue[32] = { { 0 } };
+static SceneBillboardQueueEntry g_sceneBillboardQueue[32] = {{0}};
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x401000
-void SceneBillboard_DrawOrQueueObject(int objectIndex) {
-	ObjectRecord* object;
+void SceneBillboard_DrawOrQueueObject(int objectIndex)
+{
+	ObjectRecord *object;
 	uint16_t sourceObjectType;
 	uint16_t frame;
 	int absR0Z;
@@ -56,7 +57,8 @@ void SceneBillboard_DrawOrQueueObject(int objectIndex) {
 	object = &g_objectTable[objectIndex];
 	sourceObjectType = object->objectType;
 	g_billboardObjectOrTypeIndex = objectIndex;
-	g_billboardTextureFrameSequence = g_objectTypeTable[sourceObjectType].textureFrameSequence;
+	g_billboardTextureFrameSequence =
+		g_objectTypeTable[sourceObjectType].textureFrameSequence;
 	if (sourceObjectType == COMPONENT_OBJECT_TYPE) {
 		frame = object->typeSpecificByte[0] >> 1;
 	} else {
@@ -64,7 +66,8 @@ void SceneBillboard_DrawOrQueueObject(int objectIndex) {
 			return;
 		}
 		g_billboardTextureSequenceIndex = object->typeSpecificByte[0];
-		frame = g_billboardTextureFrameSequence[g_billboardTextureSequenceIndex];
+		frame = g_billboardTextureFrameSequence
+			[g_billboardTextureSequenceIndex];
 	}
 
 	if (frame >= BILLBOARD_INVALID_FRAME_START) {
@@ -78,13 +81,15 @@ void SceneBillboard_DrawOrQueueObject(int objectIndex) {
 		g_billboardModelNodeSwitchIndex = frame;
 		RenderScene_DrawSelectedRootNode(object, frame);
 		if (sourceObjectType == COMPONENT_OBJECT_TYPE) {
-			g_billboardTextureSequenceIndex = g_objectTable[objectIndex].typeSpecificByte[1];
-			frame = g_objectType132TextureFrameSequence[g_billboardTextureSequenceIndex];
+			g_billboardTextureSequenceIndex =
+				g_objectTable[objectIndex].typeSpecificByte[1];
+			frame = g_objectType132TextureFrameSequence
+				[g_billboardTextureSequenceIndex];
 		}
 	}
 
-	if (frame >= BILLBOARD_INVALID_FRAME_START || frame < BILLBOARD_MODEL_FRAME_LIMIT ||
-		g_viewSpaceDepth < 0) {
+	if (frame >= BILLBOARD_INVALID_FRAME_START ||
+	    frame < BILLBOARD_MODEL_FRAME_LIMIT || g_viewSpaceDepth < 0) {
 		return;
 	}
 	absR0Z = g_objViewMat_R0_Z;
@@ -110,38 +115,47 @@ void SceneBillboard_DrawOrQueueObject(int objectIndex) {
 
 	projectedX = TRANSFM2_ProjectScreenX(g_viewSpaceX, g_viewSpaceDepth);
 	projectedXHigh = projectedX & BILLBOARD_SCREEN_COORD_HIGH_MASK;
-	if (projectedXHigh > 0 || projectedXHigh < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
+	if (projectedXHigh > 0 ||
+	    projectedXHigh < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
 		return;
 	}
 	projectedY = TRANSFM2_ProjectScreenY(g_viewSpaceY, g_viewSpaceDepth);
 	projectedYHigh = projectedY & BILLBOARD_SCREEN_COORD_HIGH_MASK;
-	if (projectedYHigh > 0 || projectedYHigh < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
+	if (projectedYHigh > 0 ||
+	    projectedYHigh < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
 		return;
 	}
 
 	screenY = g_flightVpHeight - projectedY;
 	screenSize = g_objectTable[objectIndex].mobj->effectSize;
 	if (screenSize != 0) {
-		screenSize = (uint16_t)(screenSize << BILLBOARD_EFFECT_SIZE_SHIFT);
+		screenSize =
+			(uint16_t)(screenSize << BILLBOARD_EFFECT_SIZE_SHIFT);
 		if (screenSize >= BILLBOARD_DEFAULT_SCREEN_SIZE) {
-			screenSize = (uint16_t)(screenSize + BILLBOARD_DEFAULT_SCREEN_SIZE);
+			screenSize = (uint16_t)(screenSize +
+						BILLBOARD_DEFAULT_SCREEN_SIZE);
 		}
 	} else {
 		screenSize = BILLBOARD_DEFAULT_SCREEN_SIZE;
 	}
-	SceneBillboard_QueueProjectedTextured(g_billboardObjectOrTypeIndex, frame, screenSize,
-										  (int16_t)projectedX, (int16_t)screenY, g_viewSpaceDepth,
-										  rotationAngle);
+	SceneBillboard_QueueProjectedTextured(
+		g_billboardObjectOrTypeIndex, frame, screenSize,
+		(int16_t)projectedX, (int16_t)screenY, g_viewSpaceDepth,
+		rotationAngle);
 }
 
 // FUNCTION: XVT 0x401250
-void SceneBillboard_QueueProjectedTextured(int objectOrTypeIndex, int frame, int screenSize, int screenX,
-										   int screenY, int depthZ, int rotationAngle) {
+void SceneBillboard_QueueProjectedTextured(int objectOrTypeIndex, int frame,
+					   int screenSize, int screenX,
+					   int screenY, int depthZ,
+					   int rotationAngle)
+{
 	int16_t count;
 
 	count = g_sceneBillboardQueueCount;
 	if (count < 32) {
-		g_sceneBillboardQueue[count].objectOrTypeIndex = objectOrTypeIndex;
+		g_sceneBillboardQueue[count].objectOrTypeIndex =
+			objectOrTypeIndex;
 		g_sceneBillboardQueue[count].frame = frame;
 		g_sceneBillboardQueue[count].screenSize = screenSize;
 		g_sceneBillboardQueue[count].screenX = screenX;
@@ -153,7 +167,8 @@ void SceneBillboard_QueueProjectedTextured(int objectOrTypeIndex, int frame, int
 }
 
 // FUNCTION: XVT 0x4012C0
-void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers) {
+void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers)
+{
 	enum { TARGET_BOX_COLOR = 59 };
 
 	int16_t queuedCount;
@@ -174,13 +189,24 @@ void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers) {
 				if (g_sceneBillboardQueueCount > 0) {
 					count = g_sceneBillboardQueueCount;
 					do {
-						if (g_sceneBillboardQueue[queueIndex + 1].depthZ <
-							g_sceneBillboardQueue[queueIndex].depthZ) {
-							SceneBillboardQueueEntry temporary;
+						if (g_sceneBillboardQueue
+							    [queueIndex + 1]
+								    .depthZ <
+						    g_sceneBillboardQueue
+							    [queueIndex]
+								    .depthZ) {
+							SceneBillboardQueueEntry
+								temporary;
 
-							temporary = g_sceneBillboardQueue[queueIndex];
-							g_sceneBillboardQueue[queueIndex] = g_sceneBillboardQueue[queueIndex + 1];
-							g_sceneBillboardQueue[queueIndex + 1] = temporary;
+							temporary = g_sceneBillboardQueue
+								[queueIndex];
+							g_sceneBillboardQueue
+								[queueIndex] = g_sceneBillboardQueue
+									[queueIndex +
+									 1];
+							g_sceneBillboardQueue
+								[queueIndex +
+								 1] = temporary;
 							swapped = 1;
 						}
 						++queueIndex;
@@ -188,7 +214,9 @@ void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers) {
 				}
 			}
 
-			RenderQuad_DrawModelTexture(&g_sceneBillboardQueue[g_sceneBillboardQueueCount]);
+			RenderQuad_DrawModelTexture(
+				&g_sceneBillboardQueue
+					[g_sceneBillboardQueueCount]);
 			queuedCount = g_sceneBillboardQueueCount;
 			--g_sceneBillboardQueueCount;
 		} while (queuedCount != 0);
@@ -197,22 +225,29 @@ void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers) {
 	if (drawTargetMarkers == 0) {
 		return;
 	}
-	currentTargetObjectIdx = (uint16_t)g_players[g_localPlayer].currentTargetObjectIdx;
+	currentTargetObjectIdx =
+		(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx;
 	if (currentTargetObjectIdx == UINT16_MAX) {
 		return;
 	}
-	if (g_objectTable[currentTargetObjectIdx].genusId == CRAFT_GENUS_STARSHIP ||
-		g_objectTable[currentTargetObjectIdx].genusId == CRAFT_GENUS_PLATFORM) {
+	if (g_objectTable[currentTargetObjectIdx].genusId ==
+		    CRAFT_GENUS_STARSHIP ||
+	    g_objectTable[currentTargetObjectIdx].genusId ==
+		    CRAFT_GENUS_PLATFORM) {
 		Targeting_DrawObjectBox(currentTargetObjectIdx,
-								(uint16_t)g_players[g_localPlayer].selectedTargetComponent, TARGET_BOX_COLOR);
+					(uint16_t)g_players[g_localPlayer]
+						.selectedTargetComponent,
+					TARGET_BOX_COLOR);
 	} else {
-		Targeting_DrawObjectBox(currentTargetObjectIdx, UINT16_MAX, TARGET_BOX_COLOR);
+		Targeting_DrawObjectBox(currentTargetObjectIdx, UINT16_MAX,
+					TARGET_BOX_COLOR);
 	}
 }
 
 // FUNCTION: XVT 0x41FF70
-void SceneBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex) {
-	ObjectRecord* object;
+void SceneBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex)
+{
+	ObjectRecord *object;
 	int deltaX;
 	int deltaY;
 	int deltaZ;
@@ -222,25 +257,34 @@ void SceneBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex) {
 
 	g_billboardObjectOrTypeIndex = objectIndex;
 	object = &g_objectTable[objectIndex];
-	deltaX = g_players[g_localPlayer].viewState.cameraWorldX - object->world_x;
-	deltaY = g_players[g_localPlayer].viewState.cameraWorldY - object->world_y;
-	deltaZ = g_players[g_localPlayer].viewState.cameraWorldZ - object->world_z;
-	sideProjection = Math_Dot3Q15(object->mobj->cachedSideX, object->mobj->cachedSideY,
-								  object->mobj->cachedSideZ, deltaX, deltaY, deltaZ);
-	upProjection = Math_Dot3Q15(object->mobj->cachedUpX, object->mobj->cachedUpY, object->mobj->cachedUpZ,
-								deltaX, deltaY, deltaZ);
+	deltaX = g_players[g_localPlayer].viewState.cameraWorldX -
+		 object->world_x;
+	deltaY = g_players[g_localPlayer].viewState.cameraWorldY -
+		 object->world_y;
+	deltaZ = g_players[g_localPlayer].viewState.cameraWorldZ -
+		 object->world_z;
+	sideProjection = Math_Dot3Q15(
+		object->mobj->cachedSideX, object->mobj->cachedSideY,
+		object->mobj->cachedSideZ, deltaX, deltaY, deltaZ);
+	upProjection =
+		Math_Dot3Q15(object->mobj->cachedUpX, object->mobj->cachedUpY,
+			     object->mobj->cachedUpZ, deltaX, deltaY, deltaZ);
 	savedRoll = object->roll;
-	object->roll = (int16_t)(savedRoll + trig2_arctan(upProjection, sideProjection));
+	object->roll = (int16_t)(savedRoll +
+				 trig2_arctan(upProjection, sideProjection));
 	object->roll -= BILLBOARD_ALIGNMENT_QUARTER_TURN;
 	object->mobj->orientMatrixDirty = 1;
-	FVIEW_SetObjectTransform(object->roll, object->pitch, object->yaw, 0, object);
+	FVIEW_SetObjectTransform(object->roll, object->pitch, object->yaw, 0,
+				 object);
 	RenderScene_DrawObjectModel(object);
 	object->roll = savedRoll;
 	object->mobj->orientMatrixDirty = 1;
 }
 
 // FUNCTION: XVT 0x4243D0
-int SceneBillboard_ComputeProjectedSize(int depthZ, uint16_t modelMaxExtent, uint16_t baseScreenSize) {
+int SceneBillboard_ComputeProjectedSize(int depthZ, uint16_t modelMaxExtent,
+					uint16_t baseScreenSize)
+{
 #ifdef XVT_MODERN
 	if (depthZ < 0 && depthZ != INT32_MIN)
 #else
@@ -250,22 +294,25 @@ int SceneBillboard_ComputeProjectedSize(int depthZ, uint16_t modelMaxExtent, uin
 	depthZ >>= 8;
 	/* From here depthZ holds the model's extent over that depth, a scale, and then that scale times
 	 * baseScreenSize over 256: the projected size returned. */
-	if (depthZ != 0)
+	if (depthZ != 0) {
 		depthZ = modelMaxExtent / depthZ;
+	}
 #ifdef XVT_MODERN
 	{
 		uint32_t product;
 
 		product = (uint32_t)baseScreenSize * (uint32_t)depthZ;
 		depthZ = (int)(product >> 8);
-		if ((product & 0x80000000u) != 0)
+		if ((product & 0x80000000u) != 0) {
 			depthZ -= 0x1000000;
+		}
 	}
 #else
 	depthZ *= baseScreenSize;
 	depthZ >>= 8;
 #endif
-	if (depthZ > 1024)
+	if (depthZ > 1024) {
 		depthZ = 1024;
+	}
 	return depthZ;
 }

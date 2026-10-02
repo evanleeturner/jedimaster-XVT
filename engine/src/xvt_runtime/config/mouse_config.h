@@ -11,9 +11,11 @@ typedef struct XvtMouseOptions {
 
 /* Reads the required input.mouse_flight and input.mouse_invert_y booleans and input.mouse_sensitivity,
  * 1 to 9. On failure *options may be partly written. */
-bool XvtMouseConfig_Parse(const AeronConfigFile* document, XvtMouseOptions* options, char* error,
-						  size_t capacity);
+bool XvtMouseConfig_Parse(const AeronConfigFile *document,
+			  XvtMouseOptions *options, char *error,
+			  size_t capacity);
 /* Stores options in the user overrides, dropping each one that equals the shipped default, in memory
  * only. Needs loaded settings. */
-bool XvtConfig_SetMouse(const XvtMouseOptions* options, char* error, size_t capacity);
+bool XvtConfig_SetMouse(const XvtMouseOptions *options, char *error,
+			size_t capacity);
 #endif

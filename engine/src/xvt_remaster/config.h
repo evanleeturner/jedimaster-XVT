@@ -28,16 +28,17 @@ int XvtRemasterConfig_Sync(void);
  * override every later Sync re-applies. Returns false, with error written and the fullscreen change
  * undone (a failed undo requests a fatal renderer error), when validation or the apply fails. previous
  * is unused. */
-bool XvtRemasterConfig_ApplyVideo(const XvtVideoSettings* previous, const XvtVideoSettings* requested,
-								  char* error, size_t capacity);
+bool XvtRemasterConfig_ApplyVideo(const XvtVideoSettings *previous,
+				  const XvtVideoSettings *requested,
+				  char *error, size_t capacity);
 /* The settings last applied, or NULL before the first successful Sync or ApplyVideo. */
-const XvtRenderSettings* XvtRemasterConfig_Effective(void);
+const XvtRenderSettings *XvtRemasterConfig_Effective(void);
 /* 0 before the first apply, then incremented each time the effective settings change, the read-back
  * included. */
 uint64_t XvtRemasterConfig_Generation(void);
 /* Borrowed until the next settings boundary; bind on every scene begin. */
 /* The anisotropic mesh sampler, or NULL when anisotropy is off or nothing is applied yet. */
-AeronSampler* XvtRemasterConfig_MeshSampler(void);
+AeronSampler *XvtRemasterConfig_MeshSampler(void);
 /* Destroys the sampler and forgets every applied setting and the video override: Effective returns NULL
  * and the generation restarts at 0. */
 void XvtRemasterConfig_Shutdown(void);

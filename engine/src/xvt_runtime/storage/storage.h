@@ -21,59 +21,61 @@ extern "C" {
 /* All handles borrow the application's VFS; shutdown follows their consumers. */
 /* Sets the VFS every call here uses and clears the last path; NULL unbinds. Probe and the Open calls
  * fail while none is bound. */
-void XvtStorage_Bind(AeronVfs* vfs);
+void XvtStorage_Bind(AeronVfs *vfs);
 /* The bound VFS, or NULL. */
-AeronVfs* XvtStorage_Vfs(void);
+AeronVfs *XvtStorage_Vfs(void);
 /* Cleans a relative path: either slash separates, empty and "." parts are dropped, and the result
  * joins the rest with '/'. Returns 1, or 0 for NULL, a leading slash, any ':', any ".." part, an empty
  * result, or a result that does not fit in capacity with its terminator; on 0, output may hold an
  * unterminated partial copy. */
-int XvtStorage_Normalize(const char* path, char* output, size_t capacity);
+int XvtStorage_Normalize(const char *path, char *output, size_t capacity);
 /* 1 when path names a file in root. 0 only when its absence is proven: the parent folder exists and lists
  * no entry of that name in any letter case, or a missing ancestor is proven the same way. -1 otherwise: a
  * folder, a rejected path, no bound VFS, a parent that is a file, a failed listing, or a listed entry
  * that the exact lookup missed. */
-int XvtStorage_Probe(AeronVfsRoot root, const char* path);
+int XvtStorage_Probe(AeronVfsRoot root, const char *path);
 /* Looks up an asset the way Open looks up a read of an ordinary file: BalanceOfPower/<path>, then
  * <path>, in ASSET. Returns 1, with the path that opened in resolved; 0 when Probe proves both absent;
  * -1 otherwise. resolved is meaningful only on 1. */
-int XvtStorage_ResolveAsset(const char* path, char* resolved, size_t capacity);
+int XvtStorage_ResolveAsset(const char *path, char *resolved, size_t capacity);
 /* The game's fopen: opens path in the place the note at the top of this file gives. Modes as fopen,
  * except that "a+" opens for appending only. Returns NULL for a NULL mode, a mode that does not start
  * with r, w or a, a rejected path, or a failed open; a read that falls back returns the first place
  * that opens. */
-AeronFile* XvtStorage_Open(const char* path, const char* mode);
+AeronFile *XvtStorage_Open(const char *path, const char *mode);
 /* Opens path in one root. A mode that writes ("w", "a", or any "+") is refused outside USER and TEMP,
  * first creates missing parent folders, and logs an error when the open fails. A read refuses a
  * folder. Returns NULL on refusal or failure, for a mode that does not start with r, w or a, a
  * rejected path, or no bound VFS. Modes as in Open. */
-AeronFile* XvtStorage_OpenRoot(AeronVfsRoot root, const char* path, const char* mode);
+AeronFile *XvtStorage_OpenRoot(AeronVfsRoot root, const char *path,
+			       const char *mode);
 /* Replaces the file at path, placed as Open places a write, with size bytes: it writes and flushes
  * <path>.tmp beside it, then renames that over the file. Returns 1, or 0 on failure; a failure after
  * the path was accepted is logged. */
-int XvtStorage_WriteAtomic(const char* path, const void* data, size_t size);
+int XvtStorage_WriteAtomic(const char *path, const void *data, size_t size);
 /* Removes the file (or empty folder) at path, placed as Open places a write; a cache file is removed from
  * USER's cache/ folder, never from ASSET. Returns 0, or -1. */
-int XvtStorage_Remove(const char* path);
+int XvtStorage_Remove(const char *path);
 /* Renames within USER only, without the cache/ folder or the TEMP placing that Open and Remove apply:
  * a .tmp file is looked for in USER, not in TEMP where Open writes it. Returns 0, or -1. */
-int XvtStorage_Rename(const char* old_path, const char* new_path);
+int XvtStorage_Rename(const char *old_path, const char *new_path);
 /* Calls callback for each file, never a folder, in the folder of root that wildcard names, whose name
  * matches the last part of wildcard in any letter case. Returns 0 for a rejected wildcard, a failed
  * listing, or a callback that returned 0 to stop; otherwise nonzero. An entry's name is valid only during
  * its callback. */
-int XvtStorage_Glob(AeronVfsRoot root, const char* wildcard, AeronVfsGlobCallback callback, void* context);
+int XvtStorage_Glob(AeronVfsRoot root, const char *wildcard,
+		    AeronVfsGlobCallback callback, void *context);
 /* Remembers the last path and root as the file CloseGlobalStream may remove. Call it straight after
  * opening that stream. */
 void XvtStorage_CaptureGlobalStream(void);
 /* Closes stream. Returns 1 when the stream's error flag was set or the close failed, else 0; 0 also for
  * NULL. On such a failure with remove_on_error, removes the remembered file when it lies in USER or
  * TEMP, and logs when that removal fails. */
-int XvtStorage_CloseGlobalStream(AeronFile* stream, int remove_on_error);
+int XvtStorage_CloseGlobalStream(AeronFile *stream, int remove_on_error);
 /* The path of the latest open, for error messages: Open sets it to path as given, then to each place
  * it tries; OpenRoot and ResolveAsset set it to the last place they try. Empty after Bind. When OpenRoot
  * rejects a path, it can hold the start of the rejected path over the rest of the old one. */
-const char* XvtStorage_LastPath(void);
+const char *XvtStorage_LastPath(void);
 /* The root that goes with the last path. */
 AeronVfsRoot XvtStorage_LastRoot(void);
 /* Report through a native message box, then terminate without returning to game code. */
@@ -85,7 +87,7 @@ __declspec(noreturn)
 #else
 __attribute__((noreturn))
 #endif
-void XvtStorage_Fatal(const char* message, int exit_code);
+void XvtStorage_Fatal(const char *message, int exit_code);
 
 #ifdef __cplusplus
 }

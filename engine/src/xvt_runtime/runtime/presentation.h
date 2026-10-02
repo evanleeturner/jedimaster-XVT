@@ -28,7 +28,8 @@ AeronRectI XvtPresentation_FromClassic(AeronRectI rect);
  * centered in the window. Returns 1 when the mouse is inside the content and that area; x and y
  * are written whenever the window size is valid, even outside it. Returns 0 without writing for
  * NULL input or a window too small to map. */
-int XvtPresentation_MouseToClassic(const AeronInputSnapshot* input, int* x, int* y);
+int XvtPresentation_MouseToClassic(const AeronInputSnapshot *input, int *x,
+				   int *y);
 /* Moves the mouse to classic point x, y; returns Aeron's result. */
 int XvtPresentation_WarpClassic(int x, int y);
 /* Called before standalone UI, surface replacement and task teardown draws. */

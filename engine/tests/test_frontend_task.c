@@ -47,13 +47,15 @@ enum { ACTION_NONE, ACTION_SWITCH, ACTION_QUEUE, ACTION_DIALOG };
 
 static int OtherScreen(int frame) { return frame * 0; }
 
-static int OtherExit(int frame) {
+static int OtherExit(int frame)
+{
 	(void)frame;
 	++g_otherExitCalls;
 	return 0;
 }
 
-static int DialogScreen(int frame) {
+static int DialogScreen(int frame)
+{
 	(void)frame;
 	++g_dialogCalls;
 	return 0;
@@ -61,32 +63,37 @@ static int DialogScreen(int frame) {
 
 /* The top screen's update: counts its calls, and on request switches screens, queues a screen push or
  * opens a dialog before returning g_screenReturn. */
-static int Screen(int frame) {
-	static const RECT whole = { 0, 0, 639, 479 };
+static int Screen(int frame)
+{
+	static const RECT whole = {0, 0, 639, 479};
 	++g_screenCalls;
 	g_screenFrame = frame;
-	if (g_screenAction == ACTION_SWITCH)
+	if (g_screenAction == ACTION_SWITCH) {
 		FrontendScreen_SetCallbacks(OtherScreen, OtherExit);
-	else if (g_screenAction == ACTION_QUEUE)
+	} else if (g_screenAction == ACTION_QUEUE) {
 		FrontendScreen_QueuePush(OtherScreen, &whole);
-	else if (g_screenAction == ACTION_DIALOG)
+	} else if (g_screenAction == ACTION_DIALOG) {
 		XvtDialog_Begin(DialogScreen, NULL);
+	}
 	return g_screenReturn;
 }
 
-static int Exit(int frame) {
+static int Exit(int frame)
+{
 	(void)frame;
 	++g_exitCalls;
 	return 0;
 }
 
-static int Continuation(int result, int context) {
+static int Continuation(int result, int context)
+{
 	(void)result;
 	(void)context;
 	return 5;
 }
 
-static void Fresh(void) {
+static void Fresh(void)
+{
 	XvtDialog_Shutdown();
 	XvtNetworkTask_Shutdown();
 	XvtNetworkSession_Shutdown();
@@ -111,14 +118,16 @@ static void AdvanceMs(int ms) { XvtTime_AdvanceHostClock(ms * 1000); }
  * left, so the next Update runs a frame. */
 static void FrameDue(void) { AdvanceMs(1000); }
 
-static void CheckRunFrameWithoutUpdate(void) {
+static void CheckRunFrameWithoutUpdate(void)
+{
 	Fresh();
 	g_frontState.screenStates[0].updateFn = NULL;
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 0);
 	XVT_ASSERT_INT_EQ(g_exitCalls, 0);
 }
 
-static void CheckRunFrame(void) {
+static void CheckRunFrame(void)
+{
 	Fresh();
 	g_screenReturn = 7;
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 7);
@@ -135,7 +144,8 @@ static void CheckRunFrame(void) {
 	XVT_ASSERT_INT_EQ(g_exitCalls, 1);
 }
 
-static void CheckSwitchRunsCapturedExit(void) {
+static void CheckSwitchRunsCapturedExit(void)
+{
 	Fresh();
 	g_screenAction = ACTION_SWITCH;
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 0);
@@ -152,7 +162,8 @@ static void CheckSwitchRunsCapturedExit(void) {
 	XVT_ASSERT_INT_EQ(g_exitCalls, 1);
 }
 
-static void CheckPendingPush(void) {
+static void CheckPendingPush(void)
+{
 	Fresh();
 	g_screenAction = ACTION_QUEUE;
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 0);
@@ -161,7 +172,8 @@ static void CheckPendingPush(void) {
 	FrontendScreen_PopState();
 }
 
-static void CheckDialogHoldsFrame(void) {
+static void CheckDialogHoldsFrame(void)
+{
 	Fresh();
 	g_screenAction = ACTION_DIALOG;
 	g_screenReturn = 1;
@@ -171,9 +183,11 @@ static void CheckDialogHoldsFrame(void) {
 	XVT_ASSERT_INT_EQ(g_exitCalls, 0);
 }
 
-static void CheckContinuationReplacesUpdate(void) {
+static void CheckContinuationReplacesUpdate(void)
+{
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(DialogScreen, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(DialogScreen, NULL),
+			  XVT_DIALOG_PENDING);
 	XvtDialog_ContinueWith(Continuation, 0);
 	XvtDialog_Update();
 	g_frontState.charRingBuffer[g_frontState.charWriteIdx++] = 27;
@@ -189,7 +203,8 @@ static void CheckContinuationReplacesUpdate(void) {
 	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
 }
 
-static void CheckNetworkTaskHoldsFrame(void) {
+static void CheckNetworkTaskHoldsFrame(void)
+{
 	Fresh();
 	XvtNetworkTask_Begin(XVT_NETWORK_HOST);
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_IsActive(), 1);
@@ -200,7 +215,8 @@ static void CheckNetworkTaskHoldsFrame(void) {
 	XVT_ASSERT_INT_EQ(g_exitCalls, 0);
 }
 
-static void CheckTickPacing(void) {
+static void CheckTickPacing(void)
+{
 	Fresh();
 	FrameDue();
 	XvtFrontendTask_Update();
@@ -219,7 +235,8 @@ static void CheckTickPacing(void) {
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_ShouldQuit(), 0);
 }
 
-static void CheckTickPresents(void) {
+static void CheckTickPresents(void)
+{
 	Fresh();
 	FrameDue();
 	uint64_t serial = AeronDx5_GetClassicFlightFrameSerial();
@@ -228,10 +245,12 @@ static void CheckTickPresents(void) {
 	XVT_ASSERT_INT_EQ(AeronDx5_GetClassicFlightFrameSerial(), serial + 1);
 }
 
-static void CheckTickRunsOnlyTheDialog(void) {
+static void CheckTickRunsOnlyTheDialog(void)
+{
 	Fresh();
 	FrameDue();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(DialogScreen, NULL), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(XvtDialog_Begin(DialogScreen, NULL),
+			  XVT_DIALOG_PENDING);
 	XvtFrontendTask_Update();
 	XVT_ASSERT_INT_EQ(g_dialogCalls, 1);
 	XVT_ASSERT_INT_EQ(g_screenCalls, 0);
@@ -247,7 +266,8 @@ static void CheckTickRunsOnlyTheDialog(void) {
 	XVT_ASSERT_INT_EQ(g_screenCalls, 0);
 }
 
-static void CheckWakeDelayTakesCdSooner(void) {
+static void CheckWakeDelayTakesCdSooner(void)
+{
 	Fresh();
 	FrameDue();
 	XvtFrontendTask_Update();
@@ -258,7 +278,8 @@ static void CheckWakeDelayTakesCdSooner(void) {
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), FRAME_MS * 1000);
 }
 
-static void CheckServiceFrameSystems(void) {
+static void CheckServiceFrameSystems(void)
+{
 	Fresh();
 	/* A joystick marked present that cannot be read is dropped when it is polled. */
 	XvtFrontendTask_ServiceFrameSystems();
@@ -290,7 +311,8 @@ static void CheckServiceFrameSystems(void) {
 	XvtCdTask_CancelFade();
 }
 
-static void CheckShutdownBeforeInit(void) {
+static void CheckShutdownBeforeInit(void)
+{
 	static CutsceneEntry table[1];
 	Fresh();
 	g_cutsceneTable = table;
@@ -302,7 +324,8 @@ static void CheckShutdownBeforeInit(void) {
 	g_cutsceneCount = 0;
 }
 
-static void CheckQuit(void) {
+static void CheckQuit(void)
+{
 	Fresh();
 	FrameDue();
 	g_screenReturn = 2;
@@ -316,7 +339,8 @@ static void CheckQuit(void) {
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_ShouldQuit(), 1);
 }
 
-int main(void) {
+int main(void)
+{
 	XvtTime_Reset();
 	CheckRunFrameWithoutUpdate();
 	CheckRunFrame();

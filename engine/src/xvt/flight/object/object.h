@@ -49,9 +49,9 @@ struct MobileObject {
 	int16_t cachedUpX;
 	int16_t cachedUpY;
 	int16_t cachedUpZ;
-	WarheadGuidanceState* pWarheadGuidance;
-	CraftData* pCraft;
-	MobileObjectCharData* pCharData;
+	WarheadGuidanceState *pWarheadGuidance;
+	CraftData *pCraft;
+	MobileObjectCharData *pCharData;
 };
 
 struct TurretTargetState {
@@ -80,7 +80,7 @@ struct ObjectRecord {
 	uint16_t typeSpecificWord;
 	uint8_t typeSpecificByte[2];
 	int playerOwnerIdx;
-	struct MobileObject* mobj;
+	struct MobileObject *mobj;
 };
 
 struct ObjectSlotRange {
@@ -96,9 +96,9 @@ struct MobileObjectLinkIndices {
 
 extern MobileObjectLinkIndices g_mobileObjectLinkIndices[488];
 extern int g_spawnObjectTypeByObjectSlot[488];
-extern MobileObject* g_mobileObjectPoolBase;
-extern MobileObjectCharData* g_mobileObjectCharDataPool;
-extern WarheadGuidanceState* g_projectileGuidanceStates;
+extern MobileObject *g_mobileObjectPoolBase;
+extern MobileObjectCharData *g_mobileObjectCharDataPool;
+extern WarheadGuidanceState *g_projectileGuidanceStates;
 extern int g_activeRegionCraftObjectSlotEnd;
 extern int g_mobileObjectCharDataCount;
 extern int g_mobileObjectCharDataSlotStart;
@@ -116,20 +116,23 @@ extern int g_explosionObjectSlotStart;
 extern unsigned int g_projectileObjectSlotsTotal;
 extern int g_activeRegionObjectSlotStart;
 extern ObjectSlotRange g_objectSlotRangeByGenus[20];
-extern ObjectRecord* g_objectTable;
+extern ObjectRecord *g_objectTable;
 
 void Object_UpdateLifetimeAndMovement(void);
-int Object_AddTrigMoveDeltaAndClampWorldPosition(uint32_t* objectWords);
+int Object_AddTrigMoveDeltaAndClampWorldPosition(uint32_t *objectWords);
 void RenderNonCraftSceneObject(uint16_t objectIndex);
-uint16_t Object_SpawnDetachedComponent(uint16_t sourceObjectIndex, int16_t meshIndex);
+uint16_t Object_SpawnDetachedComponent(uint16_t sourceObjectIndex,
+				       int16_t meshIndex);
 uint16_t Object_SpawnEffectFragment(uint16_t sourceObjIdx);
 uint16_t Object_SpawnLocalEffectFragment(uint16_t sourceObjIdx);
 uint16_t Object_AllocSlotForGenus(uint16_t genusId);
 uint16_t Object_FindFreeMissionSlot(void);
-void Object_CopyStatePreservingStorage(unsigned int dstObjIdx, unsigned int srcObjIdx);
+void Object_CopyStatePreservingStorage(unsigned int dstObjIdx,
+				       unsigned int srcObjIdx);
 void Object_RelinkMobileObjectPointers(void);
-unsigned int Object_DirectionAndDistanceToMeshCenter(uint16_t fromObjIdx, uint16_t targetObjIdx,
-													 unsigned int meshIdx);
+unsigned int Object_DirectionAndDistanceToMeshCenter(uint16_t fromObjIdx,
+						     uint16_t targetObjIdx,
+						     unsigned int meshIdx);
 uint8_t Object_HasActiveDecoyBeam(uint16_t objIdx);
 
 #ifdef __cplusplus

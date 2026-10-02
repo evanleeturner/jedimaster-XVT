@@ -102,20 +102,23 @@ struct MissionTriggerPair {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_MissionTriggerPair[(sizeof(MissionTriggerPair) == 11) ? 1 : -1];
+typedef char xvt_size_MissionTriggerPair[(sizeof(MissionTriggerPair) == 11)
+						 ? 1
+						 : -1];
 
 #pragma pack(push, 1)
 
 struct FlightGroupGoal {
 	uint8_t goalKind;
 	uint8_t eventCondition;
-	MissionGoalAmount amount; ///< Encoded goal amount threshold used by Mission_EvaluateCondition.
+	MissionGoalAmount
+		amount; ///< Encoded goal amount threshold used by Mission_EvaluateCondition.
 	int8_t points;
 	uint8_t enabledTeams[10];
 	uint8_t timeLimit5s;
 	uint8_t activeSequence; ///< Sequential-goal selector in the mission format; XVT loads it but has no
-							///< direct runtime read.
-	uint8_t reserved[62];   ///< Reserved mission-file storage.
+	///< direct runtime read.
+	uint8_t reserved[62]; ///< Reserved mission-file storage.
 };
 
 #pragma pack(pop)
@@ -124,11 +127,12 @@ typedef char xvt_size_FlightGroupGoal[(sizeof(FlightGroupGoal) == 78) ? 1 : -1];
 #pragma pack(push, 1)
 
 struct GlobalGoal {
-	MissionTriggerPair triggerPairs[2]; ///< Two trigger pairs evaluated to determine the goal state.
-	char name[16];                      ///< Mission-file goal name.
+	MissionTriggerPair triggerPairs
+		[2]; ///< Two trigger pairs evaluated to determine the goal state.
+	char name[16]; ///< Mission-file goal name.
 	uint8_t version; ///< Mission-file goal format version; not consumed by XVT runtime logic.
 	uint8_t triggerPair1OrTriggerPair2; ///< Value 1 combines the trigger-pair results with OR; other values
-										///< use AND.
+					    ///< use AND.
 	uint8_t rawDelay; ///< Mission-file goal delay metadata; loaded but not consumed by XVT runtime logic.
 	int8_t rawPoints; ///< Signed score unit; XVT awards 250 times this value.
 };
@@ -247,31 +251,35 @@ typedef enum FlightGroupGoalStatusStringId {
 
 extern uint8_t g_goalConditionTextVariantCount[48];
 extern uint8_t g_goalTitleColorByIndex[8];
-extern const char* g_strGoalCondFeminine[188][14];
-extern const char* g_strGoalCondNeutered[188][14];
-extern const char* g_strGoalCondMasculine[188][14];
+extern const char *g_strGoalCondFeminine[188][14];
+extern const char *g_strGoalCondNeutered[188][14];
+extern const char *g_strGoalCondMasculine[188][14];
 extern uint8_t g_craftGender[80];
-extern const char* g_strGoalOperators[2];
-extern const char* g_strGoalTitles[9];
-extern const char* g_strGoalPercentages[14];
-extern const char* g_strGoalFamilyNames[7];
-extern const char* g_strGoalGenusNames[16];
-extern const char* g_strGoalConjunctions[8];
-extern const char* g_strGoalEscape[3];
-extern const char* g_strGoalSides[3];
-extern const char* g_strUnknown;
-extern const char* g_strSatMineProbeBuoyPilotNames[16];
-extern const char* g_strStatusStrings[9];
-extern const char* g_strWarheadNames[13];
-extern const char* g_strSpeciesNamesPlural[73];
-extern const char* g_strWingmanCommands[10];
+extern const char *g_strGoalOperators[2];
+extern const char *g_strGoalTitles[9];
+extern const char *g_strGoalPercentages[14];
+extern const char *g_strGoalFamilyNames[7];
+extern const char *g_strGoalGenusNames[16];
+extern const char *g_strGoalConjunctions[8];
+extern const char *g_strGoalEscape[3];
+extern const char *g_strGoalSides[3];
+extern const char *g_strUnknown;
+extern const char *g_strSatMineProbeBuoyPilotNames[16];
+extern const char *g_strStatusStrings[9];
+extern const char *g_strWarheadNames[13];
+extern const char *g_strSpeciesNamesPlural[73];
+extern const char *g_strWingmanCommands[10];
 
-int16_t goals_outputgoal(uint16_t targetId, uint16_t condition, uint16_t targetType, uint16_t goalStatus,
-						 uint16_t amountOp, uint16_t timeLimit5SecUnits, const char* conditionTextOverride,
-						 int percentComplete, int goalTitleIndex);
-int16_t goals_DrawConditionText(unsigned int craftSpecies, uint16_t condition, uint16_t amountTextVariant,
-								int16_t conditionRowBase);
-int16_t goals_DrawObjectTypeName(uint16_t craftSpecies, int16_t usePluralName, int16_t useShortName);
+int16_t goals_outputgoal(uint16_t targetId, uint16_t condition,
+			 uint16_t targetType, uint16_t goalStatus,
+			 uint16_t amountOp, uint16_t timeLimit5SecUnits,
+			 const char *conditionTextOverride, int percentComplete,
+			 int goalTitleIndex);
+int16_t goals_DrawConditionText(unsigned int craftSpecies, uint16_t condition,
+				uint16_t amountTextVariant,
+				int16_t conditionRowBase);
+int16_t goals_DrawObjectTypeName(uint16_t craftSpecies, int16_t usePluralName,
+				 int16_t useShortName);
 
 #ifdef __cplusplus
 }

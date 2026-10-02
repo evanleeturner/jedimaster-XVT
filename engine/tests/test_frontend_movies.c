@@ -22,7 +22,8 @@
 
 static XvtTestAssets g_assets;
 
-static void Fresh(void) {
+static void Fresh(void)
+{
 	XvtFrontendMovies_Reset();
 	XvtMovieTask_Shutdown();
 	XvtTest_CloseAssets(&g_assets);
@@ -34,8 +35,9 @@ static void Fresh(void) {
 }
 
 /* Ticks the movie task until the movie completes, then reaps it as the port does on the next frame. */
-static void FinishMovie(void) {
-	struct timespec pause = { 0, 1000000 };
+static void FinishMovie(void)
+{
+	struct timespec pause = {0, 1000000};
 	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
 		XvtMovieTask_Update();
 		nanosleep(&pause, NULL);
@@ -44,7 +46,8 @@ static void FinishMovie(void) {
 	XvtMovieTask_ReapFinished();
 }
 
-static void CheckNothingPending(void) {
+static void CheckNothingPending(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 0);
 	/* A movie that cannot be found is not pending. */
@@ -53,14 +56,15 @@ static void CheckNothingPending(void) {
 	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_Suspended);
 }
 
-static void CheckViewerWaitsForResult(void) {
+static void CheckViewerWaitsForResult(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtFrontendMovies_PlayViewer("intro"), 1);
 	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
 	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 1);
 
 	/* Completed but not reaped: the result has not arrived. */
-	struct timespec pause = { 0, 1000000 };
+	struct timespec pause = {0, 1000000};
 	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
 		XvtMovieTask_Update();
 		nanosleep(&pause, NULL);
@@ -72,11 +76,13 @@ static void CheckViewerWaitsForResult(void) {
 	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 0);
 	int result = 77;
 	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_ResumePending);
+	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
+			  CDAudio_ResumePending);
 	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 0);
 }
 
-static void CheckUntakenResultHandedBack(void) {
+static void CheckUntakenResultHandedBack(void)
+{
 	Fresh();
 	/* A movie started elsewhere completes and is reaped, its result untaken. */
 	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), XVT_MOVIE_PENDING);
@@ -90,7 +96,8 @@ static void CheckUntakenResultHandedBack(void) {
 	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 0);
 }
 
-static void CheckReset(void) {
+static void CheckReset(void)
+{
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtFrontendMovies_PlayViewer("intro"), 1);
 	XvtFrontendMovies_Reset();
@@ -103,7 +110,8 @@ static void CheckReset(void) {
 	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_Suspended);
 }
 
-int main(void) {
+int main(void)
+{
 	CheckNothingPending();
 	CheckViewerWaitsForResult();
 	CheckUntakenResultHandedBack();

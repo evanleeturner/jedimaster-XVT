@@ -14,23 +14,32 @@ typedef struct ConfirmedControls {
 
 static ConfirmedControls g_confirmed[XVT_FLIGHT_PLAYERS];
 
-void XvtFlightPrediction_Reset(void) { memset(g_confirmed, 0, sizeof g_confirmed); }
-
-void XvtFlightPrediction_Confirm(unsigned player, int tick, const FlightInputFrameRecord* input) {
-	if (player >= XVT_FLIGHT_PLAYERS || !input)
-		return;
-	/* Keep this outside the consumable input queue. Confirmation can prune the
-	 * last record while prediction still needs its held controls. */
-	g_confirmed[player] = (ConfirmedControls) { *input, tick, g_players[player].objectIndex,
-												g_players[player].boundObjectSignature, 1 };
+void XvtFlightPrediction_Reset(void)
+{
+	memset(g_confirmed, 0, sizeof g_confirmed);
 }
 
-static int QueuePlayer(unsigned player, int tick) {
-	const ConfirmedControls* confirmed = &g_confirmed[player];
-	const FlightInputFrameRecord* source = NULL;
+void XvtFlightPrediction_Confirm(unsigned player, int tick,
+				 const FlightInputFrameRecord *input)
+{
+	if (player >= XVT_FLIGHT_PLAYERS || !input) {
+		return;
+	}
+	/* Keep this outside the consumable input queue. Confirmation can prune the
+	 * last record while prediction still needs its held controls. */
+	g_confirmed[player] =
+		(ConfirmedControls){*input, tick, g_players[player].objectIndex,
+				    g_players[player].boundObjectSignature, 1};
+}
+
+static int QueuePlayer(unsigned player, int tick)
+{
+	const ConfirmedControls *confirmed = &g_confirmed[player];
+	const FlightInputFrameRecord *source = NULL;
 	int source_tick = -1;
-	if (confirmed->valid && confirmed->tick <= tick && confirmed->slot == g_players[player].objectIndex &&
-		confirmed->signature == g_players[player].boundObjectSignature) {
+	if (confirmed->valid && confirmed->tick <= tick &&
+	    confirmed->slot == g_players[player].objectIndex &&
+	    confirmed->signature == g_players[player].boundObjectSignature) {
 		source = &confirmed->input;
 		source_tick = confirmed->tick;
 	}
@@ -40,22 +49,26 @@ static int QueuePlayer(unsigned player, int tick) {
 		return 0;
 	}
 	for (int i = 0; i < count; ++i) {
-		const InputFrame* frame = &g_inputHistory[player][i];
-		if (frame->timestamp > tick)
+		const InputFrame *frame = &g_inputHistory[player][i];
+		if (frame->timestamp > tick) {
 			break;
-		if (frame->inputSource == XVT_INPUT_PREDICTED)
+		}
+		if (frame->inputSource == XVT_INPUT_PREDICTED) {
 			continue;
+		}
 		/* Generic insertion may replace an unconsumed real record. Prediction
 		 * must leave both real and authoritative samples at this tick intact. */
-		if (frame->timestamp == tick)
+		if (frame->timestamp == tick) {
 			return 1;
+		}
 		if (frame->timestamp >= source_tick) {
 			source = &frame->input;
 			source_tick = frame->timestamp;
 		}
 	}
-	if (!source)
+	if (!source) {
 		return 1;
+	}
 	FlightInputFrameRecord input = *source;
 	input.key = 0;
 	input.flags = 0;
@@ -63,8 +76,9 @@ static int QueuePlayer(unsigned player, int tick) {
 	/* Roll changes the meaning of the stick. Preserve it, but never invent
 	 * speculative fire/target-button actions or repeat discrete commands. */
 	input.keyMods &= 2;
-	InputFrame* inserted;
-	XvtInputInsertStatus status = XvtFlightHistory_Insert(player, tick, &input, &inserted);
+	InputFrame *inserted;
+	XvtInputInsertStatus status =
+		XvtFlightHistory_Insert(player, tick, &input, &inserted);
 	if (status == XVT_INPUT_FULL || status == XVT_INPUT_INVALID) {
 		XvtFlightNetwork_RequestRecovery();
 		return 0;
@@ -76,12 +90,17 @@ static int QueuePlayer(unsigned player, int tick) {
 	return 1;
 }
 
-int XvtFlightPrediction_Queue(int tick) {
-	if (!XvtFlightWire_ValidTick((unsigned)tick))
+int XvtFlightPrediction_Queue(int tick)
+{
+	if (!XvtFlightWire_ValidTick((unsigned)tick)) {
 		return 0;
-	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player)
-		if (player != (unsigned)g_localPlayer && g_players[player].participationState &&
-			!QueuePlayer(player, tick))
+	}
+	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
+		if (player != (unsigned)g_localPlayer &&
+		    g_players[player].participationState &&
+		    !QueuePlayer(player, tick)) {
 			return 0;
+		}
+	}
 	return 1;
 }

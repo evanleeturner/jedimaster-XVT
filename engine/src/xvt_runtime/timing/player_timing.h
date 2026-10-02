@@ -42,7 +42,8 @@ void XvtPlayerTiming_Clear(unsigned player, unsigned channel);
  * keeps the new remainder. The carry clears first when value's sign (zero included) differs from the
  * last call's. Clamped to int; 0 for a zero divisor or a channel past the enum. A player out of range
  * gets the plain result, with no carry. */
-int XvtPlayerTiming_Scale(unsigned player, unsigned channel, int value, unsigned elapsed, unsigned divisor);
+int XvtPlayerTiming_Scale(unsigned player, unsigned channel, int value,
+			  unsigned elapsed, unsigned divisor);
 /* How far to move this step to close difference: all of it, clearing the carry, when its magnitude is
  * under 8 or the step would reach it; otherwise 4 * max(1, |difference| / 29) per 8 ticks, scaled by
  * g_elapsedTicks through Scale, with difference's sign. */
@@ -68,13 +69,13 @@ void XvtPlayerTiming_Recover(unsigned player);
  * shared state as a record: channels, lock and control state, camera focus; not the recovery position.
  * A player out of range, without a live object in the main region, or whose entry belongs to another
  * object gives the empty record: zero but for the player. */
-void XvtPlayerTiming_Encode(unsigned player, XvtPlayerTimingWire* out);
+void XvtPlayerTiming_Encode(unsigned player, XvtPlayerTimingWire *out);
 /* Returns 1 when record is well formed: player in range; valid, lock_half and control_valid 0 or 1;
  * lock_mode at most XVT_LOCK_HALF_TARGET_LOSS; no unknown control bit; zero reserved fields; if not
  * valid, exactly the empty record; if valid, a slot in the main region; directions -1, 0 or 1; and
  * remainders smaller than SIMULATION_TICKS_PER_SECOND in magnitude. With apply, it then replaces the
  * player's shared state, leaving the recovery position. Returns 0 otherwise and changes nothing. */
-int XvtPlayerTiming_Decode(const XvtPlayerTimingWire* record, int apply);
+int XvtPlayerTiming_Decode(const XvtPlayerTimingWire *record, int apply);
 /* Clears every player's shared state: all channels, lock and control state, camera focus and the
  * entry's object. Recovery positions stay. */
 void XvtPlayerTiming_ResetShared(void);

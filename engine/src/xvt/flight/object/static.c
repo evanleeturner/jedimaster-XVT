@@ -12,7 +12,9 @@
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x446700
-uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx, uint16_t staticObjIdx) {
+uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx,
+					 uint16_t staticObjIdx)
+{
 	enum { MAX_DISTANCE = 0x20000, LARGE_MODEL_EXTENT = 1095 };
 
 	int sourceSourceObjIdx;
@@ -25,20 +27,27 @@ uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx, uint16_t staticO
 	unsigned int sourceToStaticDistance;
 	int staticSweepAbs;
 
-	sourceSourceObjIdx = (uint16_t)g_objectTable[sourceObjIdx].mobj->sourceObjIdx;
-	if (sourceSourceObjIdx >= staticObjIdx)
+	sourceSourceObjIdx =
+		(uint16_t)g_objectTable[sourceObjIdx].mobj->sourceObjIdx;
+	if (sourceSourceObjIdx >= staticObjIdx) {
 		return 0;
+	}
 
 	staticGenusId = g_objectTable[staticObjIdx].genusId;
-	if (staticGenusId == CRAFT_GENUS_OBSTACLE)
+	if (staticGenusId == CRAFT_GENUS_OBSTACLE) {
 		return 0;
-	if (staticGenusId == CRAFT_GENUS_SMALL_DEBRIS)
+	}
+	if (staticGenusId == CRAFT_GENUS_SMALL_DEBRIS) {
 		return 0;
+	}
 	if (staticGenusId != CRAFT_GENUS_NORMAL_DEBRIS &&
-		g_activeRegionCraftObjectSlotEnd > (int)sourceSourceObjIdx) {
+	    g_activeRegionCraftObjectSlotEnd > (int)sourceSourceObjIdx) {
 		if (g_objectTable[sourceSourceObjIdx].playerOwnerIdx == -1 &&
-			g_objectTable[sourceSourceObjIdx].mobj->pCraft->aiController.targetObjIdx != staticObjIdx)
+		    g_objectTable[sourceSourceObjIdx]
+				    .mobj->pCraft->aiController.targetObjIdx !=
+			    staticObjIdx) {
 			return 0;
+		}
 	}
 
 	staticObjectType = g_objectTable[staticObjIdx].objectType;
@@ -52,69 +61,91 @@ uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx, uint16_t staticO
 
 	hitRadius = g_objectTypeTable[staticObjectType].maxBoundsExtent;
 	dx = g_collisionProbeWorldX - g_worldLocX;
-	if (dx < 0)
+	if (dx < 0) {
 		dx = -dx;
-	if (dx > MAX_DISTANCE)
+	}
+	if (dx > MAX_DISTANCE) {
 		return 0;
+	}
 	dy = g_collisionProbeWorldY - g_worldLocY;
-	if (dy < 0)
+	if (dy < 0) {
 		dy = -dy;
-	if (dy > MAX_DISTANCE)
+	}
+	if (dy > MAX_DISTANCE) {
 		return 0;
+	}
 	dz = g_collisionProbeWorldZ - g_worldLocZ;
-	if (dz < 0)
+	if (dz < 0) {
 		dz = -dz;
-	if (dz > MAX_DISTANCE)
+	}
+	if (dz > MAX_DISTANCE) {
 		return 0;
+	}
 
-	sourceToStaticDistance = collide_roughdistance3du((unsigned int)dx, (unsigned int)dy, (unsigned int)dz);
-	if ((int)sourceToStaticDistance > MAX_DISTANCE)
+	sourceToStaticDistance = collide_roughdistance3du(
+		(unsigned int)dx, (unsigned int)dy, (unsigned int)dz);
+	if ((int)sourceToStaticDistance > MAX_DISTANCE) {
 		return 0;
+	}
 
 	dx = g_collisionProbeWorldX - g_collisionSegmentStartWorldX;
-	if (dx < 0)
+	if (dx < 0) {
 		dx = -dx;
+	}
 	dy = g_collisionProbeWorldY - g_collisionSegmentStartWorldY;
-	if (dy < 0)
+	if (dy < 0) {
 		dy = -dy;
+	}
 	dz = g_collisionProbeWorldZ - g_collisionSegmentStartWorldZ;
-	if (dz < 0)
+	if (dz < 0) {
 		dz = -dz;
+	}
 
 	staticSweepAbs = g_collisionSweepEndX - g_collisionSweepStartX;
-	if (staticSweepAbs < 0)
+	if (staticSweepAbs < 0) {
 		staticSweepAbs = -staticSweepAbs;
+	}
 	dx += staticSweepAbs;
 	staticSweepAbs = g_collisionSweepEndY - g_collisionSweepStartY;
-	if (staticSweepAbs < 0)
+	if (staticSweepAbs < 0) {
 		staticSweepAbs = -staticSweepAbs;
+	}
 	dy += staticSweepAbs;
 	staticSweepAbs = g_collisionSweepEndZ - g_collisionSweepStartZ;
-	if (staticSweepAbs < 0)
+	if (staticSweepAbs < 0) {
 		staticSweepAbs = -staticSweepAbs;
+	}
 	dz += staticSweepAbs;
 
 	dx += hitRadius;
 	dy += hitRadius;
 	dz += hitRadius;
-	if (collide_roughdistance3du((unsigned int)dx, (unsigned int)dy, (unsigned int)dz) <
-		sourceToStaticDistance)
+	if (collide_roughdistance3du((unsigned int)dx, (unsigned int)dy,
+				     (unsigned int)dz) <
+	    sourceToStaticDistance) {
 		return 0;
+	}
 
 	if (hitRadius >= LARGE_MODEL_EXTENT ||
-		g_objectTable[staticObjIdx].objectType == CRAFT_SPECIES_CONTAINER_CLASS_H)
-		return (uint16_t)collide_CheckSweptModelCollision(sourceObjIdx, staticObjIdx);
+	    g_objectTable[staticObjIdx].objectType ==
+		    CRAFT_SPECIES_CONTAINER_CLASS_H) {
+		return (uint16_t)collide_CheckSweptModelCollision(sourceObjIdx,
+								  staticObjIdx);
+	}
 	hitRadius >>= 2;
-	return (uint16_t)collide_checkboxcollision(hitRadius + (hitRadius >> 1));
+	return (uint16_t)collide_checkboxcollision(hitRadius +
+						   (hitRadius >> 1));
 }
 
 // FUNCTION: XVT 0x446960
-void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx) {
+void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx)
+{
 	enum {
 		EFFECT_TYPE_DEFAULT = 0x81,
 		EFFECT_TYPE_LASER_IMPACT = 0x83,
 		EFFECT_TYPE_ION_IMPACT = 0x84,
-		TEMPORARY_PROJECTILE_OBJECT_TYPE = PROJECTILE_OBJECT_TYPE_REBEL_LASER,
+		TEMPORARY_PROJECTILE_OBJECT_TYPE =
+			PROJECTILE_OBJECT_TYPE_REBEL_LASER,
 		RANDOM_IMPACT_SOUND_COUNT = 4,
 		EXPLOSION_FAMILY = 5,
 		IMPACT_VARIANT = 2,
@@ -124,8 +155,10 @@ void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx) {
 	uint16_t victimIndex = (uint16_t)victimObjIdx;
 
 	if (g_objectTable[victimIndex].genusId == CRAFT_GENUS_NORMAL_DEBRIS) {
-		if (g_objectTable[sourceObjIdx].objectType != PROJECTILE_OBJECT_TYPE_ION_LASER &&
-			g_objectTable[sourceObjIdx].objectType != PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER) {
+		if (g_objectTable[sourceObjIdx].objectType !=
+			    PROJECTILE_OBJECT_TYPE_ION_LASER &&
+		    g_objectTable[sourceObjIdx].objectType !=
+			    PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER) {
 			effectType = EFFECT_TYPE_LASER_IMPACT;
 		} else {
 			effectType = EFFECT_TYPE_ION_IMPACT;
@@ -135,25 +168,34 @@ void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx) {
 			  .outcomeCount[FLIGHT_GROUP_OUTCOME_DESTROYED];
 		effectType = EFFECT_TYPE_DEFAULT;
 		g_objectTable[victimIndex].objectType = 0;
-		Mission_CreditDestructionDamageContributors(sourceObjIdx, victimObjIdx);
+		Mission_CreditDestructionDamageContributors(sourceObjIdx,
+							    victimObjIdx);
 	} else {
-		if (g_objectTable[sourceObjIdx].objectType == PROJECTILE_OBJECT_TYPE_ION_LASER ||
-			g_objectTable[sourceObjIdx].objectType == PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER) {
+		if (g_objectTable[sourceObjIdx].objectType ==
+			    PROJECTILE_OBJECT_TYPE_ION_LASER ||
+		    g_objectTable[sourceObjIdx].objectType ==
+			    PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER) {
 			g_objectTable[victimIndex].typeSpecificWord = 0;
-			++g_missionFgStats[g_objectTable[victimIndex].flightGroupIdx]
+			++g_missionFgStats[g_objectTable[victimIndex]
+						   .flightGroupIdx]
 				  .outcomeCount[FLIGHT_GROUP_OUTCOME_DISABLED];
 			effectType = EFFECT_TYPE_ION_IMPACT;
 		} else {
-			++g_missionFgStats[g_objectTable[victimIndex].flightGroupIdx]
+			++g_missionFgStats[g_objectTable[victimIndex]
+						   .flightGroupIdx]
 				  .outcomeCount[FLIGHT_GROUP_OUTCOME_DESTROYED];
 			effectType = EFFECT_TYPE_DEFAULT;
-			if (g_objectTable[victimIndex].objectType == CRAFT_SPECIES_MINE_TYPE_C) {
-				laser_createprojectilefromstatic(victimObjIdx,
-												 g_objectTable[sourceObjIdx].mobj->sourceObjIdx);
+			if (g_objectTable[victimIndex].objectType ==
+			    CRAFT_SPECIES_MINE_TYPE_C) {
+				laser_createprojectilefromstatic(
+					victimObjIdx,
+					g_objectTable[sourceObjIdx]
+						.mobj->sourceObjIdx);
 			}
 			g_objectTable[victimIndex].objectType = 0;
-			Mission_CreditDestructionDamageContributors(g_objectTable[sourceObjIdx].mobj->sourceObjIdx,
-														victimObjIdx);
+			Mission_CreditDestructionDamageContributors(
+				g_objectTable[sourceObjIdx].mobj->sourceObjIdx,
+				victimObjIdx);
 		}
 	}
 
@@ -164,14 +206,19 @@ void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx) {
 		if (sourceObjIdx == UINT16_MAX) {
 			return;
 		}
-		g_objectTable[sourceObjIdx].objectType = TEMPORARY_PROJECTILE_OBJECT_TYPE;
+		g_objectTable[sourceObjIdx].objectType =
+			TEMPORARY_PROJECTILE_OBJECT_TYPE;
 	}
 
-	g_objectTable[sourceObjIdx].world_x = g_collisionSegmentStartWorldX + g_collisionHitOffsetX;
-	g_objectTable[sourceObjIdx].world_y = g_collisionSegmentStartWorldY + g_collisionHitOffsetY;
-	g_objectTable[sourceObjIdx].world_z = g_collisionSegmentStartWorldZ + g_collisionHitOffsetZ;
+	g_objectTable[sourceObjIdx].world_x =
+		g_collisionSegmentStartWorldX + g_collisionHitOffsetX;
+	g_objectTable[sourceObjIdx].world_y =
+		g_collisionSegmentStartWorldY + g_collisionHitOffsetY;
+	g_objectTable[sourceObjIdx].world_z =
+		g_collisionSegmentStartWorldZ + g_collisionHitOffsetZ;
 	if (g_projectileTypeData
-			.warheadClass[g_objectTable[sourceObjIdx].objectType - PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
+		    .warheadClass[g_objectTable[sourceObjIdx].objectType -
+				  PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
 		effectType = EFFECT_TYPE_DEFAULT;
 	}
 	g_objectTable[sourceObjIdx].objectType = (uint8_t)effectType;
@@ -186,12 +233,16 @@ void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx) {
 	g_objectTable[sourceObjIdx].yaw = 0;
 	g_objectTable[sourceObjIdx].roll = 0;
 	g_objectTable[sourceObjIdx].mobj->orientMatrixDirty = 1;
-	g_objectTable[sourceObjIdx].mobj->moveVectorDirty = g_objectTable[sourceObjIdx].mobj->orientMatrixDirty;
-	if (effectType == EFFECT_TYPE_LASER_IMPACT || effectType == EFFECT_TYPE_ION_IMPACT) {
-		fsfx_PlaySound(FLIGHT_SOUND_LASER_IMPACT, sourceObjIdx, g_localPlayer);
+	g_objectTable[sourceObjIdx].mobj->moveVectorDirty =
+		g_objectTable[sourceObjIdx].mobj->orientMatrixDirty;
+	if (effectType == EFFECT_TYPE_LASER_IMPACT ||
+	    effectType == EFFECT_TYPE_ION_IMPACT) {
+		fsfx_PlaySound(FLIGHT_SOUND_LASER_IMPACT, sourceObjIdx,
+			       g_localPlayer);
 	} else {
-		fsfx_PlaySound(
-			(uint16_t)((GameRand2() & (RANDOM_IMPACT_SOUND_COUNT - 1)) + FLIGHT_SOUND_SMALL_EXPLOSION_FIRST),
-			sourceObjIdx, g_localPlayer);
+		fsfx_PlaySound((uint16_t)((GameRand2() &
+					   (RANDOM_IMPACT_SOUND_COUNT - 1)) +
+					  FLIGHT_SOUND_SMALL_EXPLOSION_FIRST),
+			       sourceObjIdx, g_localPlayer);
 	}
 }

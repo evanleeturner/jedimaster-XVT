@@ -17,7 +17,7 @@ typedef enum ProvingGroundsStatusLabelId {
 } ProvingGroundsStatusLabelId;
 
 extern int g_provingGroundsScoreDecimalDivisors[9];
-extern const char* g_provingGroundsStatusLabels[5];
+extern const char *g_provingGroundsStatusLabels[5];
 extern int16_t g_provingGroundsLocalPlayerRollHistory[4];
 extern int16_t g_provingGroundsLocalPlayerPitchHistory[4];
 extern int16_t g_provingGroundsLocalPlayerYawHistory[4];
@@ -33,7 +33,8 @@ void ProvingGrounds_StartLevel(uint16_t level);
 void ProvingGrounds_UpdateCourse(void);
 int ProvingGrounds_HasPlayerCrossedCheckpoint(uint16_t checkpointObjIdx);
 void ProvingGrounds_DrawStatusPanel(int16_t x, int16_t y);
-void ProvingGrounds_DrawScoreDecimal(int score, unsigned int width, unsigned int minDigits);
+void ProvingGrounds_DrawScoreDecimal(int score, unsigned int width,
+				     unsigned int minDigits);
 void ProvingGrounds_RenderTimeBonusFrame(void);
 
 #ifdef __cplusplus

@@ -44,7 +44,7 @@ extern int g_skipMovieChecks;
 int Frontend_LoadResources(void);
 int Frontend_HandleCommonScreenControls(int screenContext);
 int Frontend_FormatSecondsToClockString(unsigned int seconds);
-int ErrorText_LoadLine(int lineIndex, char* outText);
+int ErrorText_LoadLine(int lineIndex, char *outText);
 int Frontend_CheckHostCdPresent(void);
 int Frontend_SavePersistentState(void);
 int Frontend_IsScrollableControlFocused(int controlId);

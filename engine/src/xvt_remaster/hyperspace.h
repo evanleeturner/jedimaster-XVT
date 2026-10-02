@@ -22,18 +22,20 @@ extern "C" {
  * until tick 472 then quadratically, posed by the streak's roll, in world units, widened for aspect
  * ratios past 4:3; returns 0 when the vertex buffer, allocation or upload fails, 1 with nothing to draw
  * when there are no streaks. */
-int XvtHyperspace_Prepare(AeronCommandBuffer* cmd, const XvtRenderSnapshot* snapshot, AeronScene3D* scene,
-						  const XvtRenderView* view);
+int XvtHyperspace_Prepare(AeronCommandBuffer *cmd,
+			  const XvtRenderSnapshot *snapshot,
+			  AeronScene3D *scene, const XvtRenderView *view);
 /* The scene's background hook. Creates the pipelines for pass's sample count on first use or a change
  * (on failure marks cmd failed and draws nothing), sets the viewport to the whole target, draws the
  * tunnel as a full-screen triangle when prepared, then the streaks additively. user is unused. */
-void XvtHyperspace_Draw(AeronCommandBuffer* cmd, AeronRenderPass* pass, int width, int height, void* user);
+void XvtHyperspace_Draw(AeronCommandBuffer *cmd, AeronRenderPass *pass,
+			int width, int height, void *user);
 /* Releases everything and forgets the frame's state. */
 void XvtHyperspace_Shutdown(void);
 
 typedef struct XvtHyperLighting {
-	AeronTexture* texture;
-	AeronSampler* sampler;
+	AeronTexture *texture;
+	AeronSampler *sampler;
 	float direction[3], color[3];
 } XvtHyperLighting;
 
@@ -41,7 +43,7 @@ typedef struct XvtHyperLighting {
 /* Returns 1 and fills out with the environment cube and its sampler, direction (0, 1, 0) and color =
  * cap_color * brightness * highlight_strength * mesh_key_strength from the hyperspace settings, when the
  * last Prepare built the tunnel for scene; else 0 with out untouched. */
-int XvtHyperspace_Lighting(AeronScene3D* scene, XvtHyperLighting* out);
+int XvtHyperspace_Lighting(AeronScene3D *scene, XvtHyperLighting *out);
 #ifdef __cplusplus
 }
 #endif
