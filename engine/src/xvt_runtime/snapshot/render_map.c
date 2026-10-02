@@ -166,6 +166,33 @@ static void Label(XvtSnapMap *map, XvtSnapMapObject *m, const ObjectRecord *o)
 		colors[m->effective_iff < 6 ? m->effective_iff : 3]);
 }
 
+/* Sets an object's map icon from its object type and IFF color group in the
+ * current icon set: the icon's width and height and, once icons are loaded,
+ * its frame and the map's icon asset id. */
+static void Icon(XvtSnapMap *map, XvtSnapMapObject *m, const uint8_t *frames,
+		 unsigned object_type, unsigned group)
+{
+	unsigned base_frame = object_type < 106 ? frames[object_type] : 19;
+	const uint8_t *widths = g_flightIcons640WidthByFrame,
+		      *heights = g_flightIcons640HeightByFrame;
+	if (frames == g_flightMapIcons320x240FrameByObjectType) {
+		widths = g_flightMapIcons320x240WidthByFrame;
+		heights = g_flightMapIcons320x240HeightByFrame;
+	} else if (frames == g_flightMapIcons480x360FrameByObjectType) {
+		widths = g_flightMapIcons480x360WidthByFrame;
+		heights = g_flightMapIcons480x360HeightByFrame;
+	}
+	m->icon_width = widths[base_frame];
+	m->icon_height = heights[base_frame];
+	unsigned frame = base_frame + g_flightIconFrameCount * group / 4;
+	if (g_flightIconFrames && frame < (unsigned)g_flightIconFrameCount) {
+		uint32_t actual;
+		uint64_t id = XvtRenderAssets_MapIconFrame(frame, &actual);
+		map->icon_asset_id = id;
+		m->icon_frame = (uint16_t)actual;
+	}
+}
+
 void XvtRenderMap_Capture(XvtSnapMap *map, const XvtSnapObject *objects,
 			  unsigned count)
 {
@@ -226,29 +253,7 @@ void XvtRenderMap_Capture(XvtSnapMap *map, const XvtSnapObject *objects,
 			   m->effective_iff == 4)
 				? 2
 				: 1;
-		unsigned base_frame =
-			o->objectType < 106 ? frames[o->objectType] : 19;
-		const uint8_t *widths = g_flightIcons640WidthByFrame,
-			      *heights = g_flightIcons640HeightByFrame;
-		if (frames == g_flightMapIcons320x240FrameByObjectType) {
-			widths = g_flightMapIcons320x240WidthByFrame;
-			heights = g_flightMapIcons320x240HeightByFrame;
-		} else if (frames == g_flightMapIcons480x360FrameByObjectType) {
-			widths = g_flightMapIcons480x360WidthByFrame;
-			heights = g_flightMapIcons480x360HeightByFrame;
-		}
-		m->icon_width = widths[base_frame];
-		m->icon_height = heights[base_frame];
-		unsigned frame =
-			base_frame + g_flightIconFrameCount * group / 4;
-		if (g_flightIconFrames &&
-		    frame < (unsigned)g_flightIconFrameCount) {
-			uint32_t actual;
-			uint64_t id =
-				XvtRenderAssets_MapIconFrame(frame, &actual);
-			map->icon_asset_id = id;
-			m->icon_frame = (uint16_t)actual;
-		}
+		Icon(map, m, frames, o->objectType, group);
 		m->movement_visible = o->mobj && o->mobj->family == 0;
 		m->move_x = snap->move_q15[0];
 		m->move_y = snap->move_q15[1];
