@@ -54,7 +54,7 @@ enum {
 
 struct AiController {
 	uint8_t currentOrderSlot;
-	AiOrderScratch orderScratch;
+	AiOrderScratch orderProgress;
 	uint8_t orderStateFlag;
 	uint8_t pendingPlanId;
 	uint8_t currentPlanId;
@@ -103,12 +103,12 @@ struct AiFlightState {
 	uint8_t diveState;
 	int16_t pitchRate;
 	int16_t pitchAccel;
-	uint8_t headingState;
+	uint8_t pitchState;
 	uint8_t headingForce;
-	uint16_t headingStep;
+	uint16_t pitchStepScale;
 	int16_t rollRate;
 	int16_t rollAccel;
-	uint8_t enterFlag;
+	uint8_t rollState;
 	uint16_t rollStep;
 	int16_t turnRate;
 	int16_t turnAccel;
@@ -158,7 +158,7 @@ struct PaiContext {
 
 extern PaiContext g_paiContext;
 extern int g_paiSkipToOrder4Checked;
-extern int g_targetRangeScore;
+extern int g_lastRoughDistance;
 extern uint16_t g_aiSkillValueQ16ByLevel[8];
 extern const uint16_t g_aiThinkIntervalBySkill[8];
 extern PaiPlanRecord g_planTable[256];

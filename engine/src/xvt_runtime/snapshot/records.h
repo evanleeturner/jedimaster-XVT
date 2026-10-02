@@ -20,7 +20,7 @@ typedef struct XvtSnapshotMobileObjectProximityList {
 
 typedef struct XvtSnapshotAiController {
 	uint8_t currentOrderSlot;
-	AiOrderScratch orderScratch;
+	AiOrderScratch orderProgress;
 	uint8_t orderStateFlag;
 	uint8_t pendingPlanId;
 	uint8_t currentPlanId;
@@ -69,12 +69,12 @@ typedef struct XvtSnapshotAiFlightState {
 	uint8_t diveState;
 	int16_t pitchRate;
 	int16_t pitchAccel;
-	uint8_t headingState;
+	uint8_t pitchState;
 	uint8_t headingForce;
-	uint16_t headingStep;
+	uint16_t pitchStepScale;
 	int16_t rollRate;
 	int16_t rollAccel;
-	uint8_t enterFlag;
+	uint8_t rollState;
 	uint16_t rollStep;
 	int16_t turnRate;
 	int16_t turnAccel;
@@ -151,7 +151,7 @@ typedef struct XvtSnapshotObjectRecord {
 } XvtSnapshotObjectRecord;
 
 typedef struct XvtSnapshotMobileObject {
-	uint8_t state;
+	uint8_t family;
 	uint8_t lightIntensityScale;
 	int32_t simStateTimestamp;
 	int32_t prevWorldX;
@@ -163,7 +163,7 @@ typedef struct XvtSnapshotMobileObject {
 	uint16_t speedRemainder;
 	uint32_t damageAmount;
 	uint16_t lifetimeTimer;
-	uint16_t framesAlive;
+	uint16_t secondsAlive;
 	uint16_t sourceObjIdx;
 	uint8_t sourceObjectType;
 	uint8_t iff;
@@ -207,7 +207,7 @@ typedef struct XvtSnapshotCraftData {
 	uint16_t carriedObjectIndex;
 	uint16_t carrierObjIdx;
 	uint16_t lastAttackerObjIdx;
-	uint16_t lastHitTimestamp;
+	uint16_t lastHitMissionSecond;
 	XvtSnapshotAiFlightState aiFlight;
 	uint8_t waveNumber;
 	int32_t pushAccumX;
@@ -226,7 +226,7 @@ typedef struct XvtSnapshotCraftData {
 	int16_t weaponFireInhibitTimer;
 	uint8_t unusedMissionFlag;
 	uint8_t notDisabledAccountingSuppress;
-	uint8_t wasCaptured;
+	uint8_t capturedByFlightGroup;
 	int8_t attackedByTeam[10];
 	uint8_t iffVisibility[10];
 	uint8_t boardingState;
@@ -283,7 +283,7 @@ typedef struct XvtSnapshotPlayerData {
 	uint32_t boundObjectSignature;
 	uint16_t pilotRating;
 	int16_t iff;
-	int16_t playerIff;
+	int16_t team;
 	uint16_t boundFlightGroupIdx;
 	uint8_t connectedFlag;
 	uint8_t regionSessionId;
@@ -341,7 +341,7 @@ typedef struct XvtSnapshotPlayerData {
 	int16_t savedSpeed;
 	int16_t savedSpeedRemainder;
 	int16_t savedRollImpulseRate;
-	uint16_t savedFieldId;
+	uint16_t savedObjectSignature;
 	uint8_t savedRegion;
 	int32_t pendingActionTimer;
 	int32_t beamFireCooldownTimer;

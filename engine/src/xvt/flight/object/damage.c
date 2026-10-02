@@ -151,20 +151,20 @@ uint16_t Damage_QueueCraftBillboardsForObjectType(unsigned int objectIndex, int 
 					}
 
 					billboardAngle = (uint16_t)(billboardAngle + g_objectTable[objectIndex].roll);
-					screenX = TRANSFM2_ProjectScreenX(viewX, depthZ);
+					screenX = TRANSFM2_ProjectScreenX(g_viewSpaceX, g_viewSpaceDepth);
 					if ((screenX & (int)0xFFFF0000) <= 0 && (screenX & (int)0xFFFF0000) >= -65536) {
 						int screenY;
 
-						screenY = TRANSFM2_ProjectScreenY(viewY, depthZ);
+						screenY = TRANSFM2_ProjectScreenY(g_viewSpaceY, g_viewSpaceDepth);
 						if ((screenY & (int)0xFFFF0000) <= 0 && (screenY & (int)0xFFFF0000) >= -65536) {
 							uint16_t viewportHalfHeight;
 
 							viewportHalfHeight = g_flightVpHeight >> 1;
 							screenY -= viewportHalfHeight;
 							screenY = viewportHalfHeight - screenY;
-							SceneBillboard_QueueProjectedTextured(g_billboardObjectOrTypeIndex,
-																  (uint16_t)frame, 0x100, (int16_t)screenX,
-																  (int16_t)screenY, depthZ, billboardAngle);
+							SceneBillboard_QueueProjectedTextured(
+								g_billboardObjectOrTypeIndex, (uint16_t)frame, 0x100, (int16_t)screenX,
+								(int16_t)screenY, g_viewSpaceDepth, billboardAngle);
 						}
 					}
 				}

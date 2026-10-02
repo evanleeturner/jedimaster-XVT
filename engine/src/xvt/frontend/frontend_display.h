@@ -70,7 +70,7 @@ uint32_t FrontendDisplay_InitPreservingNetworkSession(void* hInstance, void* hPr
 													  int (*modeInitFn)(void), int fps, int bpp);
 void FrontendDisplay_ResetGlobalStatePreservingNetworkSession(void);
 int FrontendDisplay_CaptureScreenshot(void);
-uint8_t* FrontendDisplay_LockSurfaceForFlight(void);
+uint8_t* FrontendDisplay_GetDrawSurfaceForFlight(void);
 int FrontendDisplay_RunFrame(void);
 void* FrontendDisplay_GetMainWindowHandle(void);
 IDirectDraw* FrontendDisplay_GetDirectDraw(void);

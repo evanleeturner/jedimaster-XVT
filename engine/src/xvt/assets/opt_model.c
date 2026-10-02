@@ -850,7 +850,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 			node->pName = nodeName;
 			node->nodeType = (OptNodeType)nodeType;
 			cursor += sizeof(*node);
-			node->param1 = (*nodeDefSlot)->fieldCount;
+			node->payloadCount = (*nodeDefSlot)->fieldCount;
 		}
 		totalSize += sizeof(OptNode);
 		if (cursor != NULL) {
@@ -1662,14 +1662,14 @@ void OptModel_TranslateNodeVerticesRecursive(OptNode* node, OptimizedPolyObject*
 
 	if (node != NULL) {
 		while (node->nodeType == OPT_NODEREF) {
-			node = OptModel_ResolveNodeRef(model, (const char*)node->param2);
+			node = OptModel_ResolveNodeRef(model, (const char*)node->payload);
 			if (node == NULL)
 				return;
 		}
 
 		if (node->nodeType == OPT_MESHVERTS) {
-			vertexCount = node->param1;
-			vertex = node->param2;
+			vertexCount = node->payloadCount;
+			vertex = node->payload;
 			delta = translation;
 			if (vertexCount > 0) {
 				do {
@@ -1743,7 +1743,7 @@ void OptModel_RelocateNodePointersRecursive(OptNode* node, XvtOptValue relocatio
 
 		node->param2 = (uint8_t*)node->param2 + relocationDelta;
 		records = (OptLegacyParamRecord*)node->param2;
-		for (paramIndex = 0; paramIndex < node->param1; ++paramIndex) {
+		for (paramIndex = 0; paramIndex < node->payloadCount; ++paramIndex) {
 			if (records->data != NULL)
 				records->data = (uint8_t*)records->data + relocationDelta;
 			++records;
@@ -1859,7 +1859,7 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 	g_curMeshFlags = NULL;
 	g_curVertexCount = 0;
 	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex)
-		OptModel_GetSerializedNodeSize(model->rootNodes[rootIndex], &meshState);
+		OptModel_MeasureNodeAndRaiseCapacities(model->rootNodes[rootIndex], &meshState);
 	Memory_UnlockHandle(handle);
 	return handle;
 #else
@@ -1963,7 +1963,7 @@ uint16_t OptModel_LoadFileToHandle(char* filename) {
 	g_curVertexCount = 0;
 	serializedSize = sizeof(*model) + sizeof(*model->rootNodes) * model->rootNodeCount;
 	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex)
-		serializedSize += OptModel_GetSerializedNodeSize(model->rootNodes[rootIndex], &meshState);
+		serializedSize += OptModel_MeasureNodeAndRaiseCapacities(model->rootNodes[rootIndex], &meshState);
 	Memory_UnlockHandle(handle);
 	return handle;
 
@@ -2061,7 +2061,7 @@ void* OptModel_FindSharedTextureDataInNodeBeforeTarget(const void* textureData, 
 		return NULL;
 
 	if (node->nodeType == OPT_TEXTURE) {
-		nodeTexture = node->param2;
+		nodeTexture = node->payload;
 		nodeTextureData = (uint8_t*)nodeTexture + sizeof(*nodeTexture);
 		textureByteCount = nodeTexture->height;
 		textureByteCount *= nodeTexture->width;
@@ -2162,7 +2162,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 		case OPT_FACEDATA_15:
 		case OPT_FACEDATA_16:
 		case OPT_FACEDATA_17:
-			if (*(int*)(*sourceNode)->param2 < 0) {
+			if (*(int*)(*sourceNode)->payload < 0) {
 				emitNode = 0;
 				break;
 			}
@@ -2180,16 +2180,16 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				} else {
 					destinationNode->pName = NULL;
 				}
-				destinationNode->param1 = 0;
+				destinationNode->payloadCount = 0;
 #ifdef XVT_MODERN
 				cursor = XvtOpt_AlignPointer(cursor);
 #endif
-				destinationNode->param2 = cursor;
+				destinationNode->payload = cursor;
 				*(int*)cursor = 0;
 				OptModel_AppendConvertedFacesForCurrentMesh(destinationNode, (*sourceNode), srcModel,
 															meshState);
 				emitNode = 0;
-				cursor += sizeof(int) + 100 * destinationNode->param1;
+				cursor += sizeof(int) + 100 * destinationNode->payloadCount;
 			} else {
 				unsigned int faceRecordSize;
 				unsigned int trailingSize;
@@ -2204,27 +2204,27 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				} else {
 					destinationNode->pName = NULL;
 				}
-				destinationNode->param1 = (*sourceNode)->param1;
+				destinationNode->payloadCount = (*sourceNode)->payloadCount;
 #ifdef XVT_MODERN
 				cursor = XvtOpt_AlignPointer(cursor);
 #endif
-				destinationNode->param2 = cursor;
+				destinationNode->payload = cursor;
 				if (g_optSourceIsVersion0)
-					faceRecordSize = sizeof(int) + 48 * (*sourceNode)->param1;
+					faceRecordSize = sizeof(int) + 48 * (*sourceNode)->payloadCount;
 				else
-					faceRecordSize = sizeof(int) + 64 * (*sourceNode)->param1;
-				memcpy(cursor, (*sourceNode)->param2, faceRecordSize);
+					faceRecordSize = sizeof(int) + 64 * (*sourceNode)->payloadCount;
+				memcpy(cursor, (*sourceNode)->payload, faceRecordSize);
 				cursor += faceRecordSize;
-				trailingSize = 16 * (*sourceNode)->param1;
-				memcpy(cursor, (*sourceNode)->param2, trailingSize);
+				trailingSize = 16 * (*sourceNode)->payloadCount;
+				memcpy(cursor, (*sourceNode)->payload, trailingSize);
 				cursor += trailingSize;
-				payloadSize = 36 * (*sourceNode)->param1;
+				payloadSize = 36 * (*sourceNode)->payloadCount;
 				if (g_optSourceIsVersion0)
 					sourceTrailingData =
-						(uint8_t*)(*sourceNode)->param2 + sizeof(int) + 48 * (*sourceNode)->param1;
+						(uint8_t*)(*sourceNode)->payload + sizeof(int) + 48 * (*sourceNode)->payloadCount;
 				else
 					sourceTrailingData =
-						(uint8_t*)(*sourceNode)->param2 + sizeof(int) + 64 * (*sourceNode)->param1;
+						(uint8_t*)(*sourceNode)->payload + sizeof(int) + 64 * (*sourceNode)->payloadCount;
 				memcpy(cursor, sourceTrailingData, payloadSize);
 				cursor += payloadSize;
 				sourceTrailingData += payloadSize;
@@ -2237,36 +2237,36 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			}
 			break;
 
-		case OPT_TYPE_2:
+		case OPT_TRANSFORM:
 			payloadSize = 48;
 			break;
 
 		case OPT_MESHVERTS:
-			g_modelNodeWalkUnusedScratch0 = (*sourceNode)->param2;
-			g_curVertexCount = (*sourceNode)->param1;
+			g_modelNodeWalkUnusedScratch0 = (*sourceNode)->payload;
+			g_curVertexCount = (*sourceNode)->payloadCount;
 			if (g_optConvertVertexNode != NULL)
 				emitNode = 0;
 			else
-				payloadSize = sizeof(OptVector) * (*sourceNode)->param1;
+				payloadSize = sizeof(OptVector) * (*sourceNode)->payloadCount;
 			break;
 
-		case OPT_TYPE_4:
+		case OPT_TRANSLATION:
 			payloadSize = 12;
 			break;
 
-		case OPT_TYPE_5:
+		case OPT_ROTATION:
 			payloadSize = 36;
 			break;
 
-		case OPT_TYPE_6:
+		case OPT_SCALE:
 			payloadSize = 12;
 			break;
 
 		case OPT_NODEREF:
 			destinationNode = (*sourceNode);
-			payloadSize = (unsigned int)strlen((const char*)(*sourceNode)->param2) + 1;
+			payloadSize = (unsigned int)strlen((const char*)(*sourceNode)->payload) + 1;
 			while (destinationNode->nodeType == OPT_NODEREF) {
-				destinationNode = OptModel_ResolveNodeRef(srcModel, (const char*)destinationNode->param2);
+				destinationNode = OptModel_ResolveNodeRef(srcModel, (const char*)destinationNode->payload);
 				if (destinationNode == NULL)
 					break;
 			}
@@ -2275,25 +2275,25 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			break;
 
 		case OPT_TYPE_9:
-			payloadSize = 56 * (*sourceNode)->param1;
-			g_curMeshFlags = (*sourceNode)->param2;
+			payloadSize = 56 * (*sourceNode)->payloadCount;
+			g_curMeshFlags = (*sourceNode)->payload;
 			break;
 
 		case OPT_VERTNORMALS:
-			g_curVertNormals = (OptVector*)(*sourceNode)->param2;
+			g_curVertNormals = (OptVector*)(*sourceNode)->payload;
 			meshState->pVertNormals = g_curVertNormals;
 			if (g_optConvertVertexNormalNode != NULL)
 				emitNode = 0;
 			else
-				payloadSize = sizeof(OptVector) * (*sourceNode)->param1;
+				payloadSize = sizeof(OptVector) * (*sourceNode)->payloadCount;
 			break;
 
 		case OPT_TEXCOORDS:
-			g_modelNodeWalkUnusedScratch1 = (*sourceNode)->param2;
+			g_modelNodeWalkUnusedScratch1 = (*sourceNode)->payload;
 			if (g_optConvertTexCoordNode != NULL)
 				emitNode = 0;
 			else
-				payloadSize = sizeof(OptTexCoord) * (*sourceNode)->param1;
+				payloadSize = sizeof(OptTexCoord) * (*sourceNode)->payloadCount;
 			break;
 
 		case OPT_TYPE_19:
@@ -2306,7 +2306,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			int textureDataSize;
 
 			g_optConvertSourceTextureNode = (*sourceNode);
-			texture = (OptTextureData*)(*sourceNode)->param2;
+			texture = (OptTextureData*)(*sourceNode)->payload;
 			textureDataSize = texture->width * texture->height;
 			if (textureDataSize == texture->textureSize)
 				payloadSize = sizeof(*texture) + texture->dataSize;
@@ -2350,8 +2350,8 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				} else {
 					destinationNode->pName = NULL;
 				}
-				destinationNode->param2 = NULL;
-				destinationNode->param1 = 0;
+				destinationNode->payload = NULL;
+				destinationNode->payloadCount = 0;
 				destinationNode->childCount = 4;
 #ifdef XVT_MODERN
 				cursor = XvtOpt_AlignPointer(cursor);
@@ -2368,18 +2368,18 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				vertexNode->nodeType = OPT_MESHVERTS;
 				cursor += sizeof(*vertexNode);
 				vertexNode->pName = NULL;
-				vertexNode->param2 = cursor;
-				vertexNode->param1 = 0;
+				vertexNode->payload = cursor;
+				vertexNode->payloadCount = 0;
 				vertexNode->childCount = 0;
 				vertexNode->pChildren = NULL;
 				OptModel_CollectUniqueVertices(vertexNode, (*sourceNode), srcModel, meshState);
 				g_optConvertVertexNode = vertexNode;
 
-				vectors = (OptVector*)vertexNode->param2;
+				vectors = (OptVector*)vertexNode->payload;
 				minimum.x = maximum.x = vectors->x;
 				minimum.y = maximum.y = vectors->y;
 				minimum.z = maximum.z = vectors->z;
-				remaining = vertexNode->param1;
+				remaining = vertexNode->payloadCount;
 				if (remaining > 0) {
 					do {
 						if (vectors->x < minimum.x)
@@ -2409,9 +2409,9 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 					vectors[0].x = maximum.x;
 					vectors[0].y = maximum.y;
 					vectors[0].z = maximum.z;
-					vertexNode->param1 += 2;
+					vertexNode->payloadCount += 2;
 				}
-				cursor += sizeof(OptVector) * vertexNode->param1;
+				cursor += sizeof(OptVector) * vertexNode->payloadCount;
 
 #ifdef XVT_MODERN
 				cursor = XvtOpt_AlignPointer(cursor);
@@ -2421,13 +2421,13 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				texCoordNode->nodeType = OPT_TEXCOORDS;
 				cursor += sizeof(*texCoordNode);
 				texCoordNode->pName = NULL;
-				texCoordNode->param2 = cursor;
-				texCoordNode->param1 = 0;
+				texCoordNode->payload = cursor;
+				texCoordNode->payloadCount = 0;
 				texCoordNode->childCount = 0;
 				texCoordNode->pChildren = NULL;
 				OptModel_CollectUniqueTexCoords(texCoordNode, (*sourceNode), srcModel, meshState);
 				g_optConvertTexCoordNode = texCoordNode;
-				cursor += sizeof(OptTexCoord) * texCoordNode->param1;
+				cursor += sizeof(OptTexCoord) * texCoordNode->payloadCount;
 
 #ifdef XVT_MODERN
 				cursor = XvtOpt_AlignPointer(cursor);
@@ -2437,8 +2437,8 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				normalNode->nodeType = OPT_VERTNORMALS;
 				cursor += sizeof(*normalNode);
 				normalNode->pName = NULL;
-				normalNode->param2 = cursor;
-				normalNode->param1 = 0;
+				normalNode->payload = cursor;
+				normalNode->payloadCount = 0;
 				normalNode->childCount = 0;
 				normalNode->pChildren = NULL;
 				savedNormals = meshState->pVertNormals;
@@ -2448,7 +2448,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				meshState->pVertNormals = savedNormals;
 				g_optConvertVertexNormalNode = normalNode;
 				g_curVertexCount = savedVertexCount;
-				cursor += sizeof(OptVector) * normalNode->param1;
+				cursor += sizeof(OptVector) * normalNode->payloadCount;
 
 #ifdef XVT_MODERN
 				cursor = XvtOpt_AlignPointer(cursor);
@@ -2461,17 +2461,18 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 #ifdef XVT_MODERN
 				cursor = XvtOpt_AlignPointer(cursor);
 #endif
-				destinationNode->param2 = cursor;
-				destinationNode->param1 = (*sourceNode)->param1;
-				memcpy(cursor, (*sourceNode)->param2, sizeof(int) * (*sourceNode)->param1);
-				cursor += sizeof(int) * (*sourceNode)->param1;
-				if ((*sourceNode)->childCount > (*sourceNode)->param1) {
-					destinationNode->param1 = (*sourceNode)->childCount;
-					memset(cursor, 0, sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->param1));
-					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->param1);
-				} else if ((*sourceNode)->childCount < (*sourceNode)->param1) {
-					destinationNode->param1 = (*sourceNode)->childCount;
-					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->param1);
+				destinationNode->payload = cursor;
+				destinationNode->payloadCount = (*sourceNode)->payloadCount;
+				memcpy(cursor, (*sourceNode)->payload, sizeof(int) * (*sourceNode)->payloadCount);
+				cursor += sizeof(int) * (*sourceNode)->payloadCount;
+				if ((*sourceNode)->childCount > (*sourceNode)->payloadCount) {
+					destinationNode->payloadCount = (*sourceNode)->childCount;
+					memset(cursor, 0,
+						   sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount));
+					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount);
+				} else if ((*sourceNode)->childCount < (*sourceNode)->payloadCount) {
+					destinationNode->payloadCount = (*sourceNode)->childCount;
+					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount);
 				}
 			} else {
 				destinationNode->nodeType = OPT_FACEGROUP;
@@ -2480,17 +2481,18 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 #ifdef XVT_MODERN
 				cursor = XvtOpt_AlignPointer(cursor);
 #endif
-				destinationNode->param2 = cursor;
-				destinationNode->param1 = (*sourceNode)->param1;
-				memcpy(cursor, (*sourceNode)->param2, sizeof(int) * (*sourceNode)->param1);
-				cursor += sizeof(int) * (*sourceNode)->param1;
-				if ((*sourceNode)->childCount > (*sourceNode)->param1) {
-					destinationNode->param1 = (*sourceNode)->childCount;
-					memset(cursor, 0, sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->param1));
-					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->param1);
-				} else if ((*sourceNode)->childCount < (*sourceNode)->param1) {
-					destinationNode->param1 = (*sourceNode)->childCount;
-					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->param1);
+				destinationNode->payload = cursor;
+				destinationNode->payloadCount = (*sourceNode)->payloadCount;
+				memcpy(cursor, (*sourceNode)->payload, sizeof(int) * (*sourceNode)->payloadCount);
+				cursor += sizeof(int) * (*sourceNode)->payloadCount;
+				if ((*sourceNode)->childCount > (*sourceNode)->payloadCount) {
+					destinationNode->payloadCount = (*sourceNode)->childCount;
+					memset(cursor, 0,
+						   sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount));
+					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount);
+				} else if ((*sourceNode)->childCount < (*sourceNode)->payloadCount) {
+					destinationNode->payloadCount = (*sourceNode)->childCount;
+					cursor += sizeof(int) * ((*sourceNode)->childCount - (*sourceNode)->payloadCount);
 				}
 			}
 			emitNode = 0;
@@ -2526,19 +2528,19 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 		} else {
 			destinationNode->pName = NULL;
 		}
-		destinationNode->param1 = (*sourceNode)->param1;
+		destinationNode->payloadCount = (*sourceNode)->payloadCount;
 #ifdef XVT_MODERN
 		cursor = XvtOpt_AlignPointer(cursor);
 #endif
-		destinationNode->param2 = cursor;
-		memcpy(cursor, (*sourceNode)->param2, payloadSize);
+		destinationNode->payload = cursor;
+		memcpy(cursor, (*sourceNode)->payload, payloadSize);
 		cursor += payloadSize;
 		if ((*sourceNode)->nodeType == OPT_TEXTURE) {
 			OptTextureData* sourceTexture;
 			uint16_t* embeddedPalette;
 			int textureDataSize;
 
-			sourceTexture = (OptTextureData*)(*sourceNode)->param2;
+			sourceTexture = (OptTextureData*)(*sourceNode)->payload;
 			if (sourceTexture->paletteType == 0) {
 				embeddedPalette = (uint16_t*)((uint8_t*)sourceTexture + sizeof(*sourceTexture));
 				textureDataSize = sourceTexture->width * sourceTexture->height;
@@ -2553,14 +2555,14 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 					if (sharedTextureData != NULL) {
 						OptTextureData* destinationTexture;
 
-						destinationTexture = (OptTextureData*)destinationNode->param2;
+						destinationTexture = (OptTextureData*)destinationNode->payload;
 						destinationTexture->palette = sharedTextureData;
 					} else {
 						const void* sourcePalette;
 						OptTextureData* destinationTexture;
 
 						sourcePalette = sourceTexture->palette;
-						destinationTexture = (OptTextureData*)destinationNode->param2;
+						destinationTexture = (OptTextureData*)destinationNode->payload;
 						destinationTexture->palette = (uint16_t*)cursor;
 						memcpy(cursor, sourcePalette, 12288);
 						cursor += 12288;
@@ -2569,7 +2571,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 					OptTextureData* destinationTexture;
 					uint16_t* destinationPalette;
 
-					destinationTexture = (OptTextureData*)destinationNode->param2;
+					destinationTexture = (OptTextureData*)destinationNode->payload;
 					destinationPalette =
 						(uint16_t*)((uint8_t*)destinationTexture + sizeof(*destinationTexture));
 					textureDataSize = destinationTexture->width * destinationTexture->height;
@@ -2592,8 +2594,8 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 		cursor += sizeof(*destinationNode);
 		destinationNode->pName = NULL;
 		destinationNode->nodeType = OPT_GROUP;
-		destinationNode->param1 = 0;
-		destinationNode->param2 = NULL;
+		destinationNode->payloadCount = 0;
+		destinationNode->payload = NULL;
 	}
 
 	destinationNode->childCount = 0;
@@ -2623,18 +2625,18 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			vertexNode->nodeType = OPT_MESHVERTS;
 			cursor += sizeof(*vertexNode);
 			vertexNode->pName = NULL;
-			vertexNode->param2 = cursor;
-			vertexNode->param1 = 0;
+			vertexNode->payload = cursor;
+			vertexNode->payloadCount = 0;
 			vertexNode->childCount = 0;
 			vertexNode->pChildren = NULL;
 			OptModel_CollectUniqueVertices(vertexNode, (*sourceNode), srcModel, meshState);
 			g_optConvertVertexNode = vertexNode;
 
-			vectors = (OptVector*)vertexNode->param2;
+			vectors = (OptVector*)vertexNode->payload;
 			minimum.x = maximum.x = vectors->x;
 			minimum.y = maximum.y = vectors->y;
 			minimum.z = maximum.z = vectors->z;
-			remaining = vertexNode->param1;
+			remaining = vertexNode->payloadCount;
 			if (remaining > 0) {
 				do {
 					if (vectors->x < minimum.x)
@@ -2664,9 +2666,9 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 				vectors[0].x = maximum.x;
 				vectors[0].y = maximum.y;
 				vectors[0].z = maximum.z;
-				vertexNode->param1 += 2;
+				vertexNode->payloadCount += 2;
 			}
-			cursor += sizeof(OptVector) * vertexNode->param1;
+			cursor += sizeof(OptVector) * vertexNode->payloadCount;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
@@ -2676,13 +2678,13 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			texCoordNode->nodeType = OPT_TEXCOORDS;
 			cursor += sizeof(*texCoordNode);
 			texCoordNode->pName = NULL;
-			texCoordNode->param2 = cursor;
-			texCoordNode->param1 = 0;
+			texCoordNode->payload = cursor;
+			texCoordNode->payloadCount = 0;
 			texCoordNode->childCount = 0;
 			texCoordNode->pChildren = NULL;
 			OptModel_CollectUniqueTexCoords(texCoordNode, (*sourceNode), srcModel, meshState);
 			g_optConvertTexCoordNode = texCoordNode;
-			cursor += sizeof(OptTexCoord) * texCoordNode->param1;
+			cursor += sizeof(OptTexCoord) * texCoordNode->payloadCount;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
@@ -2692,8 +2694,8 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			normalNode->nodeType = OPT_VERTNORMALS;
 			cursor += sizeof(*normalNode);
 			normalNode->pName = NULL;
-			normalNode->param2 = cursor;
-			normalNode->param1 = 0;
+			normalNode->payload = cursor;
+			normalNode->payloadCount = 0;
 			normalNode->childCount = 0;
 			normalNode->pChildren = NULL;
 			savedNormals = meshState->pVertNormals;
@@ -2704,7 +2706,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(uint8_t* dst, OptNode* srcNod
 			g_optConvertVertexNormalNode = normalNode;
 			g_curVertexCount = savedVertexCount;
 			firstChildIndex = 3;
-			cursor += sizeof(OptVector) * normalNode->param1;
+			cursor += sizeof(OptVector) * normalNode->payloadCount;
 		} else {
 			firstChildIndex = 0;
 			destinationNode->childCount = (*sourceNode)->childCount;
@@ -2748,7 +2750,7 @@ void OptModel_CollectUniqueVertices(OptNode* dstVertexNode, OptNode* srcNode, Op
 		return;
 	}
 	while (srcNode->nodeType == OPT_NODEREF) {
-		srcNode = OptModel_ResolveNodeRef(srcModel, (const char*)srcNode->param2);
+		srcNode = OptModel_ResolveNodeRef(srcModel, (const char*)srcNode->payload);
 		if (srcNode == NULL) {
 			return;
 		}
@@ -2757,15 +2759,15 @@ void OptModel_CollectUniqueVertices(OptNode* dstVertexNode, OptNode* srcNode, Op
 	if (srcNode->nodeType == OPT_MESHVERTS) {
 		int sourceIndex;
 
-		sourceVertex = (float*)srcNode->param2;
-		for (sourceIndex = 0; sourceIndex < srcNode->param1; ++sourceIndex) {
+		sourceVertex = (float*)srcNode->payload;
+		for (sourceIndex = 0; sourceIndex < srcNode->payloadCount; ++sourceIndex) {
 			float* destinationVertex;
 			int destinationCount;
 			int destinationIndex;
 
-			destinationVertex = (float*)dstVertexNode->param2;
+			destinationVertex = (float*)dstVertexNode->payload;
 			destinationIndex = 0;
-			destinationCount = dstVertexNode->param1;
+			destinationCount = dstVertexNode->payloadCount;
 			while (destinationIndex < destinationCount) {
 				if (sourceVertex[0] == destinationVertex[0] && sourceVertex[1] == destinationVertex[1] &&
 					sourceVertex[2] == destinationVertex[2]) {
@@ -2778,7 +2780,7 @@ void OptModel_CollectUniqueVertices(OptNode* dstVertexNode, OptNode* srcNode, Op
 				destinationVertex[0] = sourceVertex[0];
 				destinationVertex[1] = sourceVertex[1];
 				destinationVertex[2] = sourceVertex[2];
-				++dstVertexNode->param1;
+				++dstVertexNode->payloadCount;
 			}
 			sourceVertex += 3;
 		}
@@ -2801,7 +2803,7 @@ void OptModel_CollectUniqueTexCoords(OptNode* dstTexCoordNode, OptNode* srcNode,
 		return;
 	}
 	while (srcNode->nodeType == OPT_NODEREF) {
-		srcNode = OptModel_ResolveNodeRef(srcModel, (const char*)srcNode->param2);
+		srcNode = OptModel_ResolveNodeRef(srcModel, (const char*)srcNode->payload);
 		if (srcNode == NULL) {
 			return;
 		}
@@ -2811,17 +2813,17 @@ void OptModel_CollectUniqueTexCoords(OptNode* dstTexCoordNode, OptNode* srcNode,
 		float* sourceTexCoord;
 		int sourceIndex;
 
-		sourceTexCoord = (float*)srcNode->param2;
+		sourceTexCoord = (float*)srcNode->payload;
 		destinationNode = dstTexCoordNode;
 		sourceIndex = 0;
-		while (sourceIndex < srcNode->param1) {
+		while (sourceIndex < srcNode->payloadCount) {
 			float* destinationTexCoord;
 			int destinationIndex;
 			int destinationCount;
 
-			destinationTexCoord = (float*)destinationNode->param2;
+			destinationTexCoord = (float*)destinationNode->payload;
 			destinationIndex = 0;
-			destinationCount = destinationNode->param1;
+			destinationCount = destinationNode->payloadCount;
 			while (destinationIndex < destinationCount) {
 				if (sourceTexCoord[0] == destinationTexCoord[0] &&
 					sourceTexCoord[1] == destinationTexCoord[1]) {
@@ -2833,7 +2835,7 @@ void OptModel_CollectUniqueTexCoords(OptNode* dstTexCoordNode, OptNode* srcNode,
 			if (destinationIndex == destinationCount) {
 				destinationTexCoord[0] = sourceTexCoord[0];
 				destinationTexCoord[1] = sourceTexCoord[1];
-				++destinationNode->param1;
+				++destinationNode->payloadCount;
 			}
 			sourceTexCoord += 2;
 			++sourceIndex;
@@ -2863,7 +2865,7 @@ void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNod
 		return;
 	}
 	while (node->nodeType == OPT_NODEREF) {
-		node = OptModel_ResolveNodeRef(srcModel, (const char*)node->param2);
+		node = OptModel_ResolveNodeRef(srcModel, (const char*)node->payload);
 		if (node == NULL) {
 			return;
 		}
@@ -2878,11 +2880,12 @@ void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNod
 			if (meshState->pVertNormals == NULL) {
 				OptLegacyFacePayload* faceData;
 
-				faceData = (OptLegacyFacePayload*)node->param2;
+				faceData = (OptLegacyFacePayload*)node->payload;
 				if (g_optSourceIsVersion0) {
-					sourceNormal = (OptVector*)&((OptLegacyFacePayloadV0*)faceData)->storage[node->param1];
+					sourceNormal =
+						(OptVector*)&((OptLegacyFacePayloadV0*)faceData)->storage[node->payloadCount];
 				} else {
-					sourceNormal = (OptVector*)&faceData->storage[node->param1];
+					sourceNormal = (OptVector*)&faceData->storage[node->payloadCount];
 				}
 				sourceIndex = 0;
 				if (g_curVertexCount > 0) {
@@ -2891,9 +2894,9 @@ void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNod
 						int destinationCount;
 						int destinationIndex;
 
-						destinationNormal = (OptVector*)destinationNode->param2;
+						destinationNormal = (OptVector*)destinationNode->payload;
 						destinationIndex = 0;
-						destinationCount = destinationNode->param1;
+						destinationCount = destinationNode->payloadCount;
 						if (destinationIndex < destinationCount) {
 							do {
 								if (destinationNormal->x == sourceNormal->x) {
@@ -2910,7 +2913,7 @@ void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNod
 							destinationNormal->x = sourceNormal->x;
 							destinationNormal->y = sourceNormal->y;
 							destinationNormal->z = sourceNormal->z;
-							++destinationNode->param1;
+							++destinationNode->payloadCount;
 						}
 						++sourceNormal;
 						++sourceIndex;
@@ -2920,22 +2923,22 @@ void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNod
 			break;
 
 		case OPT_MESHVERTS:
-			g_curVertexCount = node->param1;
+			g_curVertexCount = node->payloadCount;
 			break;
 
 		case OPT_VERTNORMALS:
-			meshState->pVertNormals = (OptVector*)node->param2;
-			sourceNormal = (OptVector*)node->param2;
+			meshState->pVertNormals = (OptVector*)node->payload;
+			sourceNormal = (OptVector*)node->payload;
 			sourceIndex = 0;
-			if (node->param1 > 0) {
+			if (node->payloadCount > 0) {
 				do {
 					OptVector* destinationNormal;
 					int destinationCount;
 					int destinationIndex;
 
-					destinationNormal = (OptVector*)destinationNode->param2;
+					destinationNormal = (OptVector*)destinationNode->payload;
 					destinationIndex = 0;
-					destinationCount = destinationNode->param1;
+					destinationCount = destinationNode->payloadCount;
 					if (destinationIndex < destinationCount) {
 						do {
 							if (destinationNormal->x == sourceNormal->x) {
@@ -2952,11 +2955,11 @@ void OptModel_CollectUniqueVertexNormals(OptNode* dstNormalNode, OptNode* srcNod
 						destinationNormal->x = sourceNormal->x;
 						destinationNormal->y = sourceNormal->y;
 						destinationNormal->z = sourceNormal->z;
-						++destinationNode->param1;
+						++destinationNode->payloadCount;
 					}
 					++sourceNormal;
 					++sourceIndex;
-				} while (sourceIndex < node->param1);
+				} while (sourceIndex < node->payloadCount);
 			}
 			break;
 
@@ -2985,17 +2988,17 @@ int OptModel_RemapVectorIndex(const OptNode* uniqueVectorNode, const OptVector* 
 		return -1;
 
 	sourceVectors += sourceIndex;
-	uniqueVectors = uniqueVectorNode->param2;
+	uniqueVectors = uniqueVectorNode->payload;
 	cursor = g_optConvertVectorSearchCursor;
 	cursor -= sourceIndex >> 1;
 	g_optConvertVectorSearchCursor = cursor;
-	if (cursor < 0 || uniqueVectorNode->param1 < cursor) {
+	if (cursor < 0 || uniqueVectorNode->payloadCount < cursor) {
 		g_optConvertVectorSearchCursor = 0;
 		cursor = 0;
 	}
 
 	uniqueVectors += 3 * g_optConvertVectorSearchCursor;
-	if (uniqueVectorNode->param1 > g_optConvertVectorSearchCursor) {
+	if (uniqueVectorNode->payloadCount > g_optConvertVectorSearchCursor) {
 		do {
 			if (uniqueVectors[0] != sourceVectors->x || uniqueVectors[1] != sourceVectors->y ||
 				sourceVectors->z != uniqueVectors[2]) {
@@ -3006,12 +3009,12 @@ int OptModel_RemapVectorIndex(const OptNode* uniqueVectorNode, const OptVector* 
 			} else {
 				return g_optConvertVectorSearchCursor;
 			}
-		} while (uniqueVectorNode->param1 > g_optConvertVectorSearchCursor);
+		} while (uniqueVectorNode->payloadCount > g_optConvertVectorSearchCursor);
 	}
 
 	g_optConvertVectorSearchCursor = 0;
-	uniqueVectors = uniqueVectorNode->param2;
-	if (uniqueVectorNode->param1 > 0) {
+	uniqueVectors = uniqueVectorNode->payload;
+	if (uniqueVectorNode->payloadCount > 0) {
 		do {
 			if (uniqueVectors[0] != sourceVectors->x || uniqueVectors[1] != sourceVectors->y ||
 				sourceVectors->z != uniqueVectors[2]) {
@@ -3022,7 +3025,7 @@ int OptModel_RemapVectorIndex(const OptNode* uniqueVectorNode, const OptVector* 
 			} else {
 				return g_optConvertVectorSearchCursor;
 			}
-		} while (uniqueVectorNode->param1 > g_optConvertVectorSearchCursor);
+		} while (uniqueVectorNode->payloadCount > g_optConvertVectorSearchCursor);
 	}
 
 	return 0;
@@ -3037,15 +3040,15 @@ int OptModel_RemapTexCoordIndex(const OptNode* uniqueTexCoordNode, const OptTexC
 		return -1;
 
 	sourceTexCoords += sourceIndex;
-	uniqueTexCoords = uniqueTexCoordNode->param2;
+	uniqueTexCoords = uniqueTexCoordNode->payload;
 	g_optConvertTexCoordSearchCursor -= sourceIndex >> 1;
 	if (g_optConvertTexCoordSearchCursor < 0 ||
-		uniqueTexCoordNode->param1 < g_optConvertTexCoordSearchCursor) {
+		uniqueTexCoordNode->payloadCount < g_optConvertTexCoordSearchCursor) {
 		g_optConvertTexCoordSearchCursor = 0;
 	}
 
 	uniqueTexCoords += 2 * g_optConvertTexCoordSearchCursor;
-	if (uniqueTexCoordNode->param1 > g_optConvertTexCoordSearchCursor) {
+	if (uniqueTexCoordNode->payloadCount > g_optConvertTexCoordSearchCursor) {
 		do {
 			if (uniqueTexCoords[0] != sourceTexCoords->u || uniqueTexCoords[1] != sourceTexCoords->v) {
 				uniqueTexCoords += 2;
@@ -3053,12 +3056,12 @@ int OptModel_RemapTexCoordIndex(const OptNode* uniqueTexCoordNode, const OptTexC
 			} else {
 				return g_optConvertTexCoordSearchCursor;
 			}
-		} while (uniqueTexCoordNode->param1 > g_optConvertTexCoordSearchCursor);
+		} while (uniqueTexCoordNode->payloadCount > g_optConvertTexCoordSearchCursor);
 	}
 
 	g_optConvertTexCoordSearchCursor = 0;
-	uniqueTexCoords = uniqueTexCoordNode->param2;
-	if (uniqueTexCoordNode->param1 > 0) {
+	uniqueTexCoords = uniqueTexCoordNode->payload;
+	if (uniqueTexCoordNode->payloadCount > 0) {
 		do {
 			if (uniqueTexCoords[0] != sourceTexCoords->u || uniqueTexCoords[1] != sourceTexCoords->v) {
 				uniqueTexCoords += 2;
@@ -3066,7 +3069,7 @@ int OptModel_RemapTexCoordIndex(const OptNode* uniqueTexCoordNode, const OptTexC
 			} else {
 				return g_optConvertTexCoordSearchCursor;
 			}
-		} while (uniqueTexCoordNode->param1 > g_optConvertTexCoordSearchCursor);
+		} while (uniqueTexCoordNode->payloadCount > g_optConvertTexCoordSearchCursor);
 	}
 
 	return 0;
@@ -3092,7 +3095,7 @@ void OptModel_AppendConvertedFacesForNode(OptNode* dstFaceNode, OptNode* targetF
 		return;
 
 	while (node->nodeType == OPT_NODEREF) {
-		node = OptModel_ResolveNodeRef(srcModel, (const char*)node->param2);
+		node = OptModel_ResolveNodeRef(srcModel, (const char*)node->payload);
 		if (node == NULL)
 			return;
 	}
@@ -3106,29 +3109,31 @@ void OptModel_AppendConvertedFacesForNode(OptNode* dstFaceNode, OptNode* targetF
 		case OPT_FACEDATA_16:
 		case OPT_FACEDATA_17:
 			if (g_optConvertTargetFaceFound != 0 &&
-				g_optConvertFaceTextureNode == g_optConvertSourceTextureNode && *(int*)node->param2 > 0) {
-				destinationData = dstFaceNode->param2;
+				g_optConvertFaceTextureNode == g_optConvertSourceTextureNode && *(int*)node->payload > 0) {
+				destinationData = dstFaceNode->payload;
 				destinationBytes = destinationData + sizeof(int);
 				destinationEdgeCount = *(int*)destinationData;
 #ifdef XVT_MODERN
-				memmove(destinationBytes + 64 * node->param1, destinationBytes, 100 * dstFaceNode->param1);
+				memmove(destinationBytes + 64 * node->payloadCount, destinationBytes,
+						100 * dstFaceNode->payloadCount);
 #else
-				memcpy(destinationBytes + 64 * node->param1, destinationBytes, 100 * dstFaceNode->param1);
+				memcpy(destinationBytes + 64 * node->payloadCount, destinationBytes,
+					   100 * dstFaceNode->payloadCount);
 #endif
 
-				sourceCursor = (const int*)node->param2 + 1;
+				sourceCursor = (const int*)node->payload + 1;
 				sourceVectors = meshState->pVertNormals;
 				if (sourceVectors == NULL) {
 					if (g_optSourceIsVersion0)
-						sourceVectors = (const OptVector*)((const uint8_t*)sourceCursor + 48 * node->param1 +
-														   36 * node->param1);
+						sourceVectors = (const OptVector*)((const uint8_t*)sourceCursor +
+														   48 * node->payloadCount + 36 * node->payloadCount);
 					else
-						sourceVectors = (const OptVector*)((const uint8_t*)sourceCursor + 64 * node->param1 +
-														   36 * node->param1);
+						sourceVectors = (const OptVector*)((const uint8_t*)sourceCursor +
+														   64 * node->payloadCount + 36 * node->payloadCount);
 				}
 
 				destinationCursor = (int*)destinationBytes;
-				for (faceIndex = 0; faceIndex < node->param1; ++faceIndex) {
+				for (faceIndex = 0; faceIndex < node->payloadCount; ++faceIndex) {
 					int sourceEdgeIndex;
 
 					*destinationCursor++ = OptModel_RemapVectorIndex(
@@ -3180,57 +3185,58 @@ void OptModel_AppendConvertedFacesForNode(OptNode* dstFaceNode, OptNode* targetF
 						sourceCursor += 8;
 				}
 
-				destinationTrailingBytes = destinationBytes + 64 * (node->param1 + dstFaceNode->param1);
+				destinationTrailingBytes =
+					destinationBytes + 64 * (node->payloadCount + dstFaceNode->payloadCount);
 				destinationFaceNormals = (OptVector*)destinationTrailingBytes;
 #ifdef XVT_MODERN
-				memmove(destinationTrailingBytes + 12 * node->param1, destinationTrailingBytes,
-						36 * dstFaceNode->param1);
+				memmove(destinationTrailingBytes + 12 * node->payloadCount, destinationTrailingBytes,
+						36 * dstFaceNode->payloadCount);
 #else
-				memcpy(destinationTrailingBytes + 12 * node->param1, destinationTrailingBytes,
-					   36 * dstFaceNode->param1);
+				memcpy(destinationTrailingBytes + 12 * node->payloadCount, destinationTrailingBytes,
+					   36 * dstFaceNode->payloadCount);
 #endif
 				if (g_optSourceIsVersion0)
-					sourceFaceNormals =
-						(const OptVector*)((const uint8_t*)node->param2 + sizeof(int) + 48 * node->param1);
+					sourceFaceNormals = (const OptVector*)((const uint8_t*)node->payload + sizeof(int) +
+														   48 * node->payloadCount);
 				else
-					sourceFaceNormals =
-						(const OptVector*)((const uint8_t*)node->param2 + sizeof(int) + 64 * node->param1);
-				for (faceIndex = 0; faceIndex < node->param1; ++faceIndex)
+					sourceFaceNormals = (const OptVector*)((const uint8_t*)node->payload + sizeof(int) +
+														   64 * node->payloadCount);
+				for (faceIndex = 0; faceIndex < node->payloadCount; ++faceIndex)
 					destinationFaceNormals[faceIndex] = sourceFaceNormals[faceIndex];
 
 				destinationTrailingBytes =
-					(uint8_t*)&destinationFaceNormals[node->param1 + dstFaceNode->param1];
+					(uint8_t*)&destinationFaceNormals[node->payloadCount + dstFaceNode->payloadCount];
 				destinationTextureGradients = (OptVector*)destinationTrailingBytes;
 #ifdef XVT_MODERN
-				memmove(destinationTrailingBytes + 24 * node->param1, destinationTrailingBytes,
-						24 * dstFaceNode->param1);
+				memmove(destinationTrailingBytes + 24 * node->payloadCount, destinationTrailingBytes,
+						24 * dstFaceNode->payloadCount);
 #else
-				memcpy(destinationTrailingBytes + 24 * node->param1, destinationTrailingBytes,
-					   24 * dstFaceNode->param1);
+				memcpy(destinationTrailingBytes + 24 * node->payloadCount, destinationTrailingBytes,
+					   24 * dstFaceNode->payloadCount);
 #endif
-				sourceTextureGradients = sourceFaceNormals + node->param1;
-				for (faceIndex = 0; faceIndex < node->param1; ++faceIndex) {
+				sourceTextureGradients = sourceFaceNormals + node->payloadCount;
+				for (faceIndex = 0; faceIndex < node->payloadCount; ++faceIndex) {
 					destinationTextureGradients[2 * faceIndex] = sourceTextureGradients[2 * faceIndex];
 					destinationTextureGradients[2 * faceIndex + 1] =
 						sourceTextureGradients[2 * faceIndex + 1];
 				}
 
-				dstFaceNode->param1 += node->param1;
-				*(int*)destinationData += *(int*)node->param2;
-				*(int*)node->param2 = -1;
+				dstFaceNode->payloadCount += node->payloadCount;
+				*(int*)destinationData += *(int*)node->payload;
+				*(int*)node->payload = -1;
 			}
 			break;
 
 		case OPT_MESHVERTS:
-			g_modelNodeWalkUnusedScratch0 = node->param2;
+			g_modelNodeWalkUnusedScratch0 = node->payload;
 			break;
 
 		case OPT_VERTNORMALS:
-			meshState->pVertNormals = (OptVector*)node->param2;
+			meshState->pVertNormals = (OptVector*)node->payload;
 			break;
 
 		case OPT_TEXCOORDS:
-			g_modelNodeWalkUnusedScratch1 = node->param2;
+			g_modelNodeWalkUnusedScratch1 = node->payload;
 			break;
 
 		case OPT_TEXTURE:
@@ -3349,13 +3355,13 @@ void OptModel_FixupRuntimeTexturePointers(OptNode* node, OptimizedPolyObject* ds
 	currentNode = node;
 	if (currentNode != NULL) {
 		while (currentNode->nodeType == OPT_NODEREF) {
-			currentNode = OptModel_ResolveNodeRef(dstModel, (const char*)currentNode->param2);
+			currentNode = OptModel_ResolveNodeRef(dstModel, (const char*)currentNode->payload);
 			if (currentNode == NULL)
 				return;
 		}
 
 		if (currentNode->nodeType == OPT_TEXTURE) {
-			textureData = (OptTextureData*)currentNode->param2;
+			textureData = (OptTextureData*)currentNode->payload;
 			if (textureData->paletteType != 0) {
 				textureData->paletteType = 0;
 				palette = (uint8_t*)textureData + sizeof(*textureData);
@@ -3380,7 +3386,7 @@ void OptModel_FixupRuntimeTexturePointers(OptNode* node, OptimizedPolyObject* ds
 					correspondingNode =
 						OptModel_FindCorrespondingTextureNodeInModel(dstModel, srcModel, sourcePalette);
 					if (correspondingNode != NULL) {
-						correspondingTextureData = (OptTextureData*)correspondingNode->param2;
+						correspondingTextureData = (OptTextureData*)correspondingNode->payload;
 						palette = (uint8_t*)correspondingTextureData + sizeof(*correspondingTextureData);
 						textureDataSize = correspondingTextureData->width * correspondingTextureData->height;
 						if (correspondingTextureData->textureSize == textureDataSize)
@@ -3430,7 +3436,7 @@ OptNode* OptModel_FindCorrespondingTextureNode(OptNode* srcNode, OptNode* dstNod
 		return NULL;
 
 	if (source->nodeType == OPT_TEXTURE) {
-		textureData = (OptTextureData*)source->param2;
+		textureData = (OptTextureData*)source->payload;
 		embeddedPalette = (uint16_t*)((uint8_t*)textureData + sizeof(*textureData));
 		textureDataSize = textureData->width * textureData->height;
 		if (textureData->textureSize == textureDataSize)
@@ -3513,7 +3519,7 @@ void OptModel_SaveHandleToFile(const char* filename, uint16_t handle) {
 		if (model->rootNodeCount > 0) {
 			rootOffset = 0;
 			do {
-				serializedSize += OptModel_GetSerializedNodeSize(
+				serializedSize += OptModel_MeasureNodeAndRaiseCapacities(
 					*(OptNode**)((uint8_t*)model->rootNodes + rootOffset), &parentState);
 				rootOffset += sizeof(*model->rootNodes);
 				++rootIndex;
@@ -3535,7 +3541,7 @@ void OptModel_SaveHandleToFile(const char* filename, uint16_t handle) {
 #endif
 
 // FUNCTION: XVT 0x476810
-unsigned int OptModel_GetSerializedNodeSize(OptNode* node, SceneMesh* parentState) {
+unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* parentState) {
 	unsigned int serializedSize;
 	int* paramData;
 	OptNodeType nodeType;
@@ -3552,7 +3558,7 @@ unsigned int OptModel_GetSerializedNodeSize(OptNode* node, SceneMesh* parentStat
 
 		serializedSize = (unsigned int)strlen(node->pName) + sizeof(OptNode) + 1;
 
-	paramData = node->param2;
+	paramData = node->payload;
 	nodeType = node->nodeType;
 	if (paramData != NULL) {
 		switch (nodeType) {
@@ -3563,32 +3569,32 @@ unsigned int OptModel_GetSerializedNodeSize(OptNode* node, SceneMesh* parentStat
 				if (g_sceneEdgeFlagsCapacity < paramData[0])
 					g_sceneEdgeFlagsCapacity = paramData[0];
 				serializedSize += 4;
-				serializedSize += (unsigned int)node->param1 << 6;
-				serializedSize += 36 * node->param1;
+				serializedSize += (unsigned int)node->payloadCount << 6;
+				serializedSize += 36 * node->payloadCount;
 				if (parentState->pVertNormals == NULL)
 					serializedSize += 12 * g_curVertexCount;
 				break;
 
-			case OPT_TYPE_2:
+			case OPT_TRANSFORM:
 				serializedSize += 48;
 				break;
 
 			case OPT_MESHVERTS:
-				g_curVertexCount = node->param1;
+				g_curVertexCount = node->payloadCount;
 				serializedSize += 12 * g_curVertexCount;
-				if (g_vertexRemapCapacity < node->param1)
-					g_vertexRemapCapacity = node->param1;
+				if (g_vertexRemapCapacity < node->payloadCount)
+					g_vertexRemapCapacity = node->payloadCount;
 				break;
 
-			case OPT_TYPE_4:
+			case OPT_TRANSLATION:
 				serializedSize += 12;
 				break;
 
-			case OPT_TYPE_5:
+			case OPT_ROTATION:
 				serializedSize += 36;
 				break;
 
-			case OPT_TYPE_6:
+			case OPT_SCALE:
 				serializedSize += 12;
 				break;
 
@@ -3600,8 +3606,8 @@ unsigned int OptModel_GetSerializedNodeSize(OptNode* node, SceneMesh* parentStat
 				int recordCount;
 				int scaledRecordCount;
 
-				recordCount = node->param1;
-				g_curMeshFlags = node->param2;
+				recordCount = node->payloadCount;
+				g_curMeshFlags = node->payload;
 				scaledRecordCount = recordCount << 3;
 				scaledRecordCount -= recordCount;
 				serializedSize += scaledRecordCount << 3;
@@ -3611,15 +3617,15 @@ unsigned int OptModel_GetSerializedNodeSize(OptNode* node, SceneMesh* parentStat
 			case OPT_VERTNORMALS: {
 				int vectorValueCount;
 
-				vectorValueCount = 3 * node->param1;
-				g_curVertNormals = node->param2;
+				vectorValueCount = 3 * node->payloadCount;
+				g_curVertNormals = node->payload;
 				serializedSize += 4 * vectorValueCount;
 				parentState->pVertNormals = (OptVector*)paramData;
 				break;
 			}
 
 			case OPT_TEXCOORDS:
-				serializedSize += 8 * node->param1;
+				serializedSize += 8 * node->payloadCount;
 				break;
 
 			case OPT_TYPE_19:
@@ -3631,7 +3637,7 @@ unsigned int OptModel_GetSerializedNodeSize(OptNode* node, SceneMesh* parentStat
 				int textureByteCount;
 				uint8_t* embeddedPalette;
 
-				textureData = node->param2;
+				textureData = node->payload;
 				serializedSize += sizeof(*textureData);
 				textureByteCount = textureData->height * textureData->width;
 				if (textureByteCount == textureData->textureSize)
@@ -3653,7 +3659,7 @@ unsigned int OptModel_GetSerializedNodeSize(OptNode* node, SceneMesh* parentStat
 			}
 
 			case OPT_FACEGROUP:
-				serializedSize += 4 * node->param1;
+				serializedSize += 4 * node->payloadCount;
 				break;
 
 			case OPT_HARDPOINT:
@@ -3676,7 +3682,7 @@ unsigned int OptModel_GetSerializedNodeSize(OptNode* node, SceneMesh* parentStat
 		int textureByteCount;
 		uint8_t* embeddedPalette;
 
-		textureData = node->param2;
+		textureData = node->payload;
 		serializedSize += sizeof(*textureData);
 		textureByteCount = textureData->height * textureData->width;
 		if (textureByteCount == textureData->textureSize)
@@ -3710,7 +3716,7 @@ unsigned int OptModel_GetSerializedNodeSize(OptNode* node, SceneMesh* parentStat
 		if (node->childCount > 0) {
 			childOffset = 0;
 			do {
-				serializedSize += OptModel_GetSerializedNodeSize(
+				serializedSize += OptModel_MeasureNodeAndRaiseCapacities(
 					*(OptNode**)((uint8_t*)node->pChildren + childOffset), &childState);
 				childOffset += sizeof(*node->pChildren);
 				++childIndex;
@@ -3804,7 +3810,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 		totalSize += sizeof(*srcNode->pChildren) * (unsigned int)srcNode->childCount;
 	}
 
-	sourcePayload = srcNode->param2;
+	sourcePayload = srcNode->payload;
 	switch (srcNode->nodeType) {
 		case OPT_FACEDATA:
 		case OPT_FACEDATA_15:
@@ -3812,60 +3818,61 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 		case OPT_FACEDATA_17:
 			if (g_sceneEdgeFlagsCapacity < *(const int*)sourcePayload)
 				g_sceneEdgeFlagsCapacity = *(const int*)sourcePayload;
-			payloadSize = sizeof(int) + (unsigned int)srcNode->param1 * (sizeof(OptPackedFaceRecord) + 36u);
+			payloadSize =
+				sizeof(int) + (unsigned int)srcNode->payloadCount * (sizeof(OptPackedFaceRecord) + 36u);
 			if (meshState->pVertNormals == NULL)
 				payloadSize += sizeof(OptVector) * (unsigned int)g_curVertexCount;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
 			break;
-		case OPT_TYPE_2:
+		case OPT_TRANSFORM:
 			payloadSize = 48;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
 			break;
 		case OPT_MESHVERTS:
-			payloadSize = sizeof(OptVector) * (unsigned int)srcNode->param1;
+			payloadSize = sizeof(OptVector) * (unsigned int)srcNode->payloadCount;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
-			g_curVertexCount = srcNode->param1;
-			if (srcNode->param1 > g_vertexRemapCapacity)
-				g_vertexRemapCapacity = srcNode->param1;
+			g_curVertexCount = srcNode->payloadCount;
+			if (srcNode->payloadCount > g_vertexRemapCapacity)
+				g_vertexRemapCapacity = srcNode->payloadCount;
 			break;
-		case OPT_TYPE_4:
+		case OPT_TRANSLATION:
 			payloadSize = 12;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
 			break;
-		case OPT_TYPE_5:
+		case OPT_ROTATION:
 			payloadSize = 36;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
 			break;
-		case OPT_TYPE_6:
+		case OPT_SCALE:
 			payloadSize = 12;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
@@ -3873,27 +3880,27 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 		case OPT_NODEREF:
 			payloadSize = (unsigned int)strlen((const char*)sourcePayload) + 1;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
 			break;
 		case OPT_TYPE_9:
-			payloadSize = 56u * (unsigned int)srcNode->param1;
+			payloadSize = 56u * (unsigned int)srcNode->payloadCount;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			g_curMeshFlags = sourcePayload;
 			totalSize += payloadSize;
 			break;
 		case OPT_VERTNORMALS:
-			payloadSize = sizeof(OptVector) * (unsigned int)srcNode->param1;
+			payloadSize = sizeof(OptVector) * (unsigned int)srcNode->payloadCount;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			g_curVertNormals = (OptVector*)sourcePayload;
@@ -3901,10 +3908,10 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 			meshState->pVertNormals = (OptVector*)sourcePayload;
 			break;
 		case OPT_TEXCOORDS:
-			payloadSize = 8u * (unsigned int)srcNode->param1;
+			payloadSize = 8u * (unsigned int)srcNode->payloadCount;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
@@ -3912,8 +3919,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 		case OPT_TYPE_19:
 			payloadSize = 12;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
@@ -3945,7 +3952,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 			int green;
 			int blue;
 
-			sourceTexture = (const OptTextureData*)srcNode->param2;
+			sourceTexture = (const OptTextureData*)srcNode->payload;
 			if (dst != NULL && g_generateMissionPalette != 0 && g_flight16bppBytesPerPixel == 1) {
 				sourceTexels = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
 				sourcePalette = sourceTexels + sourceTexture->height * sourceTexture->width;
@@ -3964,11 +3971,11 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 			if ((unsigned int)sourceTexture->textureSize ==
 				(unsigned int)(sourceTexture->height * sourceTexture->width)) {
 				if (dst != NULL) {
-					runtimeNode->param2 = dst;
-					memcpy(dst, srcNode->param2, sizeof(*sourceTexture));
+					runtimeNode->payload = dst;
+					memcpy(dst, srcNode->payload, sizeof(*sourceTexture));
 					sourceTexels = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
 					dst += sizeof(*sourceTexture);
-					runtimeTexture = (OptTextureData*)runtimeNode->param2;
+					runtimeTexture = (OptTextureData*)runtimeNode->payload;
 					if (g_keepFullResTextures == 0 &&
 						runtimeTexture->width > OPT_TEXTURE_FULL_RES_THRESHOLD &&
 						runtimeTexture->height > OPT_TEXTURE_FULL_RES_THRESHOLD) {
@@ -3991,8 +3998,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 				texturePayloadSize =
 					(unsigned int)(sourceTexture->height * sourceTexture->width) + sizeof(*sourceTexture);
 				if (dst != NULL) {
-					runtimeNode->param2 = dst;
-					memcpy(dst, srcNode->param2, texturePayloadSize);
+					runtimeNode->payload = dst;
+					memcpy(dst, srcNode->payload, texturePayloadSize);
 					dst += texturePayloadSize;
 					sourceTexels = (const uint8_t*)sourceTexture + sizeof(*sourceTexture);
 					if (sourceTexture->paletteType == 0)
@@ -4002,7 +4009,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 					sourcePalette16 = (const uint16_t*)(sourcePalette + 2 * OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 					width = sourceTexture->width;
 					height = sourceTexture->height;
-					runtimeTexture = (OptTextureData*)runtimeNode->param2;
+					runtimeTexture = (OptTextureData*)runtimeNode->payload;
 					runtimeTexture->textureSize = width * height;
 					runtimeTexture->dataSize = width * height;
 					while (width > 1 && height > 1) {
@@ -4073,7 +4080,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 				}
 			}
 
-			sourceTexture = (const OptTextureData*)srcNode->param2;
+			sourceTexture = (const OptTextureData*)srcNode->payload;
 			if (sourceTexture->paletteType != 0) {
 				texturePayloadSize +=
 					(unsigned int)(sourceTexture->paletteType * g_flight16bppBytesPerPixel) *
@@ -4142,10 +4149,10 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 			break;
 		}
 		case OPT_FACEGROUP:
-			payloadSize = 4u * (unsigned int)srcNode->param1;
+			payloadSize = 4u * (unsigned int)srcNode->payloadCount;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
@@ -4153,8 +4160,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 		case OPT_HARDPOINT:
 			payloadSize = 16;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
@@ -4162,8 +4169,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 		case OPT_ROTSCALE:
 			payloadSize = 48;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
@@ -4171,8 +4178,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 		case OPT_MESHDESC:
 			payloadSize = 72;
 			if (dst != NULL) {
-				runtimeNode->param2 = dst;
-				memcpy(dst, srcNode->param2, payloadSize);
+				runtimeNode->payload = dst;
+				memcpy(dst, srcNode->payload, payloadSize);
 				dst += payloadSize;
 			}
 			totalSize += payloadSize;
@@ -4353,13 +4360,13 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 	} else {
 		packedNode->pName = NULL;
 	}
-	packedNode->param1 = 1;
+	packedNode->payloadCount = 1;
 	packedNode->param2 = dest;
 	packedNode->childCount = 0;
 	packedNode->pChildren = NULL;
 
 	params = sourceNode->param2;
-	if (params != NULL && sourceNode->param1 != 0 && params->data != NULL) {
+	if (params != NULL && sourceNode->payloadCount != 0 && params->data != NULL) {
 		switch (nodeType) {
 			case OPT_FACEDATA: {
 				OptPackedFaceNode* faceNode = (OptPackedFaceNode*)packedNode;
@@ -4458,7 +4465,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 				break;
 			}
 
-			case OPT_TYPE_2: {
+			case OPT_TRANSFORM: {
 				float* transform = (float*)dest;
 				const OptVector* pivot = params[4].data;
 				float pivotX;
@@ -4517,35 +4524,35 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 			}
 
 			case OPT_MESHVERTS:
-				packedNode->param1 = params[0].value1;
-				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)packedNode->param1);
+				packedNode->payloadCount = params[0].value1;
+				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)packedNode->payloadCount);
 				g_modelNodeWalkUnusedScratch0 = dest;
-				g_curVertexCount = packedNode->param1;
+				g_curVertexCount = packedNode->payloadCount;
 				dest += sizeof(OptVector) * (size_t)g_curVertexCount;
-				if (packedNode->param1 > g_vertexRemapCapacity)
-					g_vertexRemapCapacity = packedNode->param1;
+				if (packedNode->payloadCount > g_vertexRemapCapacity)
+					g_vertexRemapCapacity = packedNode->payloadCount;
 				break;
 
-			case OPT_TYPE_4:
+			case OPT_TRANSLATION:
 				*(OptVector*)dest = *(const OptVector*)params[0].data;
 				dest += sizeof(OptVector);
 				break;
 
-			case OPT_TYPE_5: {
+			case OPT_ROTATION: {
 				float* matrix = (float*)dest;
 				dest += 9 * sizeof(float);
 				Math3D_BuildAxisAngleMatrix(matrix, params[0].data);
 				break;
 			}
 
-			case OPT_TYPE_6:
+			case OPT_SCALE:
 				*(OptVector*)dest = *(const OptVector*)params[0].data;
 				dest += sizeof(OptVector);
 				break;
 
 			case OPT_NODEREF: {
 				const char* nodeName = params[0].data;
-				packedNode->param1 = 1;
+				packedNode->payloadCount = 1;
 				packedNode->param2 = dest;
 				strcpy((char*)dest, nodeName);
 				dest += strlen(nodeName) + 1;
@@ -4567,7 +4574,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 					maxRecordCount = params[4].value1;
 				if (maxRecordCount < params[5].value1)
 					maxRecordCount = params[5].value1;
-				packedNode->param1 = maxRecordCount;
+				packedNode->payloadCount = maxRecordCount;
 
 				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)params[0].value1);
 				destValues = (float*)dest + 3 * params[0].value1;
@@ -4656,22 +4663,22 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 
 			case OPT_TYPE_10:
 			case OPT_TYPE_14:
-				packedNode->param1 = *(const int*)params[0].data;
+				packedNode->payloadCount = *(const int*)params[0].data;
 				break;
 
 			case OPT_VERTNORMALS:
-				packedNode->param1 = params[0].value1;
-				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)packedNode->param1);
+				packedNode->payloadCount = params[0].value1;
+				memcpy(dest, params[0].data, sizeof(OptVector) * (size_t)packedNode->payloadCount);
 				g_curVertNormals = (OptVector*)dest;
 				((SceneMesh*)conversionState)->pVertNormals = (OptVector*)dest;
-				dest += sizeof(OptVector) * (size_t)packedNode->param1;
+				dest += sizeof(OptVector) * (size_t)packedNode->payloadCount;
 				break;
 
 			case OPT_TEXCOORDS:
-				packedNode->param1 = params[0].value1;
-				memcpy(dest, params[0].data, sizeof(OptTexCoord) * (size_t)packedNode->param1);
+				packedNode->payloadCount = params[0].value1;
+				memcpy(dest, params[0].data, sizeof(OptTexCoord) * (size_t)packedNode->payloadCount);
 				g_modelNodeWalkUnusedScratch1 = dest;
-				dest += sizeof(OptTexCoord) * (size_t)packedNode->param1;
+				dest += sizeof(OptTexCoord) * (size_t)packedNode->payloadCount;
 				break;
 
 			case OPT_FACEDATA_15: {
@@ -4856,18 +4863,18 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(const OptimizedPolyObject* 
 				OptNode* mutableSourceNode = (OptNode*)sourceNode;
 				const float* sourceValues = params[0].data;
 				int sourceIndex;
-				packedNode->param1 = 0;
+				packedNode->payloadCount = 0;
 				for (sourceIndex = 0; sourceIndex < params[0].value1; ++sourceIndex) {
 					if (mutableSourceNode->pChildren[sourceIndex] != NULL &&
 						(sourceIndex == 0 || sourceValues[sourceIndex - 1] != sourceValues[sourceIndex])) {
 						*(float*)dest = sourceValues[sourceIndex];
 						dest += sizeof(float);
-						mutableSourceNode->pChildren[packedNode->param1] =
+						mutableSourceNode->pChildren[packedNode->payloadCount] =
 							mutableSourceNode->pChildren[sourceIndex];
-						++packedNode->param1;
+						++packedNode->payloadCount;
 					}
 				}
-				mutableSourceNode->childCount = packedNode->param1;
+				mutableSourceNode->childCount = packedNode->payloadCount;
 				break;
 			}
 
@@ -4959,7 +4966,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 		packedSize = strlen(sourceNode->pName) + 25;
 	}
 	params = sourceNode->param2;
-	if (params != NULL && sourceNode->param1 != 0 && params->data != NULL) {
+	if (params != NULL && sourceNode->payloadCount != 0 && params->data != NULL) {
 		data = params->data;
 		switch (nodeType) {
 			case OPT_FACEDATA:
@@ -4992,7 +4999,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 				packedSize += 12 * g_curVertexCount;
 				break;
 
-			case OPT_TYPE_2:
+			case OPT_TRANSFORM:
 				packedSize += 48;
 				break;
 
@@ -5001,15 +5008,15 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(const OptimizedPolyObject* sour
 				packedSize += 12 * g_curVertexCount;
 				break;
 
-			case OPT_TYPE_4:
+			case OPT_TRANSLATION:
 				packedSize += 12;
 				break;
 
-			case OPT_TYPE_5:
+			case OPT_ROTATION:
 				packedSize += 36;
 				break;
 
-			case OPT_TYPE_6:
+			case OPT_SCALE:
 				packedSize += 12;
 				break;
 

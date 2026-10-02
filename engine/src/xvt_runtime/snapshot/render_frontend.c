@@ -134,10 +134,10 @@ static unsigned GlyphColor(unsigned color) {
 	unsigned cached = g_frontState.glyphScratchBuffer[color & 65535];
 	if (cached)
 		return cached;
-	unsigned total = g_frontState.glyphScratchReload;
+	unsigned total = g_frontState.textFadeFrameCount;
 	if (!total)
 		return color;
-	unsigned fade = total - g_frontState.glyphScratchTtl;
+	unsigned fade = total - g_frontState.textFadeFramesLeft;
 	unsigned shift = g_frontState.pixelFormat555 ? 10 : 11;
 	unsigned green = g_frontState.pixelFormat555 ? 31 : 63;
 	return (((((color >> shift) & 31) * fade / total) & 31) << shift) |
@@ -188,7 +188,7 @@ void XvtRenderFrontend_Glyph(const ImageResource* glyph, int x, int y, unsigned 
 			++s->dropped_records;
 			return;
 		}
-		if (remap && g_frontState.displayBpp == 16 && g_frontState.glyphScratchTtl)
+		if (remap && g_frontState.displayBpp == 16 && g_frontState.textFadeFramesLeft)
 			color = GlyphColor(color);
 		XvtSnapGlyph* g = &s->glyphs[s->glyph_count++];
 		memset(g, 0, sizeof *g);

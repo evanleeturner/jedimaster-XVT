@@ -14,11 +14,11 @@ int WinMouse_SetPosition(int x, int y);
 void WinMouse_SetHorizontalBounds(int minX, int maxX);
 void WinMouse_SetVerticalBounds(int minY, int maxY);
 void WinMouse_SetScaleFactors(int scaleX, int scaleY);
-void WinMouse_GetPositionAndButtons(int16_t* buttons, int16_t* x, int16_t* y);
-void WinMouse_GetButtonPress(int16_t buttonIndex, int16_t* isDown, int16_t* pressed, int16_t* x, int16_t* y);
-void WinMouse_GetButtonRelease(int16_t buttonIndex, int16_t* isDown, int16_t* released, int16_t* x,
-							   int16_t* y);
-void WinMouse_GetMovementDelta(int16_t* deltaX, int16_t* deltaY);
+void WinMouse_PollPositionAndButtons(int16_t* buttons, int16_t* x, int16_t* y);
+void WinMouse_PollButtonPress(int16_t buttonIndex, int16_t* isDown, int16_t* pressed, int16_t* x, int16_t* y);
+void WinMouse_PollButtonRelease(int16_t buttonIndex, int16_t* isDown, int16_t* released, int16_t* x,
+								int16_t* y);
+void WinMouse_PollMovementDelta(int16_t* deltaX, int16_t* deltaY);
 
 #ifdef __cplusplus
 }

@@ -55,7 +55,7 @@ void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry* quadRecord) {
 	g_camRelWorldX = object->world_x - g_players[g_localPlayer].viewState.savedTargetX;
 	g_camRelWorldY = object->world_y - savedTargetY;
 	g_camRelWorldZ = object->world_z - g_players[g_localPlayer].viewState.savedTargetZ;
-	depthZ = quadRecord->depthZ;
+	g_viewSpaceDepth = quadRecord->depthZ;
 	screenSize = (uint16_t)SceneBillboard_ComputeProjectedSize(
 		quadRecord->depthZ, (uint16_t)g_modelTypeTable[modelType].maxBoundsExtent,
 		(uint16_t)quadRecord->screenSize);
@@ -152,13 +152,14 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 		}
 	}
 
-	if ((unsigned int)depthZ > 0x1000000u) {
+	if ((unsigned int)g_viewSpaceDepth > 0x1000000u) {
 		color = UINT32_MAX;
 		computedDepth = 0.00012205541f;
 		if (g_std3DZBufferBitDepth == 2)
 			computedDepth = 0.99987793f;
 	} else {
-		computedDepth = g_renderUnitFloat / ((float)depthZ * g_invDepthProjScale + g_renderUnitFloat);
+		computedDepth =
+			g_renderUnitFloat / ((float)g_viewSpaceDepth * g_invDepthProjScale + g_renderUnitFloat);
 		if (g_std3DZBufferBitDepth == 2)
 			computedDepth = g_renderUnitFloat - computedDepth;
 	}
@@ -306,17 +307,17 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 		return;
 
 	if (g_clipCountA + g_d3dVertexCount > g_maxBatchVerts ||
-		g_clipCountA + g_d3dIndexCount > g_maxBatchTris) {
+		g_clipCountA + g_d3dTriangleCount > g_maxBatchTris) {
 		Math_SetFpuExtendedPrecisionMode();
 		std3D_StartScene();
 		std3D_LockExecuteBuffer();
 		std3D_AddVertices(g_flightVertexBuffer, g_d3dVertexCount);
 		std3D_BeginInstructions();
-		std3D_AddTriangles(g_triBuffer, (unsigned int)g_d3dIndexCount);
+		std3D_AddTriangles(g_triBuffer, (unsigned int)g_d3dTriangleCount);
 		std3D_ExecuteBuffer();
 		std3D_EndScene();
 		Math_SetFpuSinglePrecisionMode();
-		g_d3dIndexCount = 0;
+		g_d3dTriangleCount = 0;
 		g_d3dVertexCount = 0;
 	}
 	if (g_capVertexAlpha != 0) {
@@ -353,13 +354,13 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	rleFormat = (int32_t)imageHeader->packingMode;
 	texture = RenderTexture_GetOrCreateBitmap(width, height, palette, pixels, rleFormat);
 	for (vertexIndex = TRIANGLE_FAN_FIRST_INDEX; vertexIndex < g_clipCountA; ++vertexIndex) {
-		g_triBuffer[g_d3dIndexCount].v0 = g_clipIdxA[0];
-		g_triBuffer[g_d3dIndexCount].v1 = g_clipIdxA[vertexIndex - 1];
-		g_triBuffer[g_d3dIndexCount].v2 = g_clipIdxA[vertexIndex];
-		g_triBuffer[g_d3dIndexCount].texture = texture;
-		g_triBuffer[g_d3dIndexCount].flags = (Std3DRenderStateFlags)SPRITE_BASE_RENDER_FLAGS;
+		g_triBuffer[g_d3dTriangleCount].v0 = g_clipIdxA[0];
+		g_triBuffer[g_d3dTriangleCount].v1 = g_clipIdxA[vertexIndex - 1];
+		g_triBuffer[g_d3dTriangleCount].v2 = g_clipIdxA[vertexIndex];
+		g_triBuffer[g_d3dTriangleCount].texture = texture;
+		g_triBuffer[g_d3dTriangleCount].flags = (Std3DRenderStateFlags)SPRITE_BASE_RENDER_FLAGS;
 		if (g_bilinearEnabled != 0)
-			g_triBuffer[g_d3dIndexCount].flags += BILINEAR_RENDER_FLAGS;
-		g_triBuffer[g_d3dIndexCount++].flags += SPRITE_ALPHA_RENDER_FLAGS;
+			g_triBuffer[g_d3dTriangleCount].flags += BILINEAR_RENDER_FLAGS;
+		g_triBuffer[g_d3dTriangleCount++].flags += SPRITE_ALPHA_RENDER_FLAGS;
 	}
 }

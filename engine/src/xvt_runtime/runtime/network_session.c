@@ -195,7 +195,7 @@ static int XvtNetworkSession_Factory(void) {
 	g_frontState.netRuntimeGroupPendingPayload.pendingFlush = 1;
 	g_frontState.netRuntimeGroupPendingPayload.payload[0] = NET_PACKET_NOP;
 	g_frontState.netRuntimeGroupPendingPayload.payloadLength = 1;
-	g_frontState.netSequenceCount = 0;
+	g_frontState.netReliablePeerSlotCount = 0;
 	g_frontState.netReliableRetryLongTimeoutMode = 0;
 	g_frontState.netGroupDplayId = 0;
 	g_frontState.netHostPlayerId = 0;
@@ -221,8 +221,8 @@ static int XvtNetworkSession_Factory(void) {
 	g_missionSetupRosterAuthoritative = 0;
 	g_frontState.netAppGuid = g_session.app;
 	g_frontState.netIsHost = g_session.host;
-	strcpy(g_frontState.netPlayers[0].playerName, g_session.info);
-	strcpy(g_frontState.netPlayers[0].sessionName, g_session.player);
+	strcpy(g_frontState.netPlayers[0].playerInfo, g_session.info);
+	strcpy(g_frontState.netPlayers[0].playerName, g_session.player);
 	strcpy(g_frontState.netSessionName, g_session.name);
 	result = DirectPlayCreate(provider, &temporary, NULL);
 	if (result)
@@ -247,10 +247,10 @@ static int XvtNetworkSession_Handshake(void) {
 		if (peers > 40 || size < 16 + 8 * peers)
 			continue;
 		g_frontState.netHostPlayerId = sender;
-		for (unsigned i = 0; i < g_frontState.netSequenceCount; ++i)
+		for (unsigned i = 0; i < g_frontState.netReliablePeerSlotCount; ++i)
 			if (g_frontState.netRuntimeReliablePeerSlots[i].directPlayId == sender)
 				saved = g_frontState.netRuntimeReliablePeerSlots[i];
-		g_frontState.netSequenceCount = peers;
+		g_frontState.netReliablePeerSlotCount = peers;
 		for (unsigned i = 0; i < peers; ++i) {
 			NetReliablePeerSlot* peer = &g_frontState.netRuntimeReliablePeerSlots[i];
 			const uint8_t* row = (const uint8_t*)packet + 16 + 8 * i;
@@ -383,7 +383,7 @@ int XvtNetworkSession_Tick(void) {
 			if (result)
 				return XvtNetworkSession_Fail(AERON_DPLAY_DIRECTORY_ERROR_CONNECTION_FAILED);
 			g_frontState.netRuntimeReliablePeerSlots[0].directPlayId = g_frontState.netGroupDplayId;
-			g_frontState.netSequenceCount = 1;
+			g_frontState.netReliablePeerSlotCount = 1;
 			g_session.phase = SESSION_ROSTER;
 			break;
 		case SESSION_ROSTER:

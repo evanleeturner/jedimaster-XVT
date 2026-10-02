@@ -15,7 +15,7 @@ struct SoundQueueEntry {
 	int volume;
 	int pan;
 	int loop;
-	int param2;
+	int allowRestartExisting;
 	int priority;
 };
 
@@ -48,8 +48,10 @@ int Sound_LoadEffectEx(const char* fileName, const char* name, int createFlags);
 void Sound_UnloadAllEffects(void);
 int Sound_UnloadEffectByName(const char* name);
 void Sound_FlushQueuedEffects(void);
-int Sound_QueueEffect(const char* soundName, int param2, int loop, int priority, int volume, int pan);
-int Sound_PlayEffectNow(const char* soundName, int param2, int loop, int priority, int volume, int pan);
+int Sound_QueueEffect(const char* soundName, int allowRestartExisting, int loop, int priority, int volume,
+					  int pan);
+int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loop, int priority, int volume,
+						int pan);
 int Sound_StopOldestInstance(const char* name);
 int Sound_StopAllInstances(void);
 int Sound_GetPrimaryBufferVolume(void);

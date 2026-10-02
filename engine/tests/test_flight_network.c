@@ -57,7 +57,7 @@ static void World(int host) {
 	g_players[0].connectedFlag = 1;
 	g_localPlayer = 0;
 	memset(&g_netSession, 0, sizeof g_netSession);
-	g_netSession.localPlayerId = host;
+	g_netSession.localIsHost = host;
 	g_netSession.hostDplayId = HOST_DPID;
 	for (unsigned i = 0; i < 8; ++i)
 		g_netSession.players[i].directPlayId = Dpid(i);
@@ -69,10 +69,10 @@ static void World(int host) {
 	g_activeFlightPlayerCount = 1;
 	g_flightNetPendingAckCount = 0;
 	g_flightNetClockAdjustAccumTicks = 0;
-	g_flightNetNextClientInputSendTimestamp = 0;
-	g_flightNetClockLeadAllowanceMs = 0;
+	g_flightNetNextWorldMessageTimestamp = 0;
+	g_flightNetClockLeadTicks = 0;
 	g_flightNetLastSentWorldMessageTimestamp = 0;
-	g_flightNetWorldChecksumResetAccumMs = 0;
+	g_flightNetWorldChecksumResetAccumTicks = 0;
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(SECOND_US);
 	Time_ResetFrameDeltaClocks();
@@ -80,16 +80,16 @@ static void World(int host) {
 	XvtFlightNetwork_Reset();
 	XvtFlightNetwork_CloseSession();
 	XvtFlightNetwork_BeginMission();
-	XvtFlightNetwork_BeginRecovery();
+	XvtFlightNetwork_ClearRecoveryRequest();
 	XvtFlightCheckpoint_Begin(0x01);
 }
 
 /* Agrees a mission cookie the way a host flying alone does, and returns it. */
 static uint32_t AgreeCookie(void) {
-	int host = g_netSession.localPlayerId;
-	g_netSession.localPlayerId = 1;
+	int host = g_netSession.localIsHost;
+	g_netSession.localIsHost = 1;
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
-	g_netSession.localPlayerId = host;
+	g_netSession.localIsHost = host;
 	XVT_ASSERT_TRUE(XvtFlightNetwork_Cookie() != 0);
 	return XvtFlightNetwork_Cookie();
 }
@@ -147,7 +147,7 @@ static void CheckCookie(void) {
 
 	/* A client flying alone takes no cookie of its own. */
 	XvtFlightNetwork_CloseSession();
-	g_netSession.localPlayerId = 0;
+	g_netSession.localIsHost = 0;
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Cookie(), 0);
 }
@@ -208,7 +208,7 @@ static void CheckRecoveryFlags(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 1);
 	XvtFlightNetwork_RequestRecovery();
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 1);
-	XvtFlightNetwork_BeginRecovery();
+	XvtFlightNetwork_ClearRecoveryRequest();
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 0);
 	XvtFlightNetwork_RequestRecovery();
 	XvtFlightNetwork_Recovered();
@@ -543,74 +543,75 @@ static void SendReady(void) {
 	g_players[1].connectedFlag = 1;
 	AddFrame(0, 20, XVT_INPUT_REAL, 1);
 	AddFrame(1, 20, XVT_INPUT_REAL, 1);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(PRIME), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME), 0);
 }
 
 static void CheckShouldSend(void) {
 	/* Once an interval of input time has passed it sends; not before. */
 	SendReady();
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(PRIME + XVT_WORLD_MESSAGE_TICKS - 1), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(PRIME + XVT_WORLD_MESSAGE_TICKS), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME + XVT_WORLD_MESSAGE_TICKS - 1), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME + XVT_WORLD_MESSAGE_TICKS), 1);
 
 	/* The input time is clock-adjusted. */
 	SendReady();
 	g_flightNetClockAdjustAccumTicks = XVT_WORLD_MESSAGE_TICKS;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(PRIME), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME), 1);
 
 	/* A connected player with no applied input blocks it, as does applied input that does not pass the
 	 * next message's tick; a player not connected does not. */
 	SendReady();
 	g_players[2].connectedFlag = 1;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(PRIME + XVT_WORLD_MESSAGE_TICKS), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME + XVT_WORLD_MESSAGE_TICKS), 0);
 	AddFrame(2, XVT_WORLD_MESSAGE_TICKS, XVT_INPUT_REAL, 1);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(PRIME + XVT_WORLD_MESSAGE_TICKS), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME + XVT_WORLD_MESSAGE_TICKS), 0);
 	AddFrame(2, XVT_WORLD_MESSAGE_TICKS + 2, XVT_INPUT_REAL, 1);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(PRIME + XVT_WORLD_MESSAGE_TICKS), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME + XVT_WORLD_MESSAGE_TICKS), 1);
 	SendReady();
 	AddFrame(3, 2, XVT_INPUT_REAL, 0);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(PRIME + XVT_WORLD_MESSAGE_TICKS), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME + XVT_WORLD_MESSAGE_TICKS), 1);
 
 	/* Far enough behind, it sends at once, even while a player blocks it. */
 	SendReady();
 	g_players[2].connectedFlag = 1;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(PRIME + XVT_WORLD_MESSAGE_TICKS), 0);
-	XVT_ASSERT_INT_EQ(
-		XvtFlightNetwork_ShouldSend(PRIME + (XVT_WORLD_LATE_INTERVALS + 1) * XVT_WORLD_MESSAGE_TICKS + 1), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(PRIME + XVT_WORLD_MESSAGE_TICKS), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(
+						  PRIME + (XVT_WORLD_LATE_INTERVALS + 1) * XVT_WORLD_MESSAGE_TICKS + 1),
+					  1);
 
 	/* Refused while recovery is needed, a resync state request is pending, the pending queue has no room
 	 * or start acknowledgements are pending. */
 	int due = PRIME + XVT_WORLD_MESSAGE_TICKS;
 	SendReady();
 	XvtFlightNetwork_RequestRecovery();
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(due), 0);
-	XvtFlightNetwork_BeginRecovery();
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(due), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(due), 0);
+	XvtFlightNetwork_ClearRecoveryRequest();
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(due), 1);
 
 	SendReady();
 	XvtFlightChecksumReportWire report;
 	memset(&report, 0, sizeof report);
-	XvtWire_Set32(report.state.opcode, NET_PACKET_WORLD_CHECKSUM);
+	XvtWire_Set32(report.checksum.opcode, NET_PACKET_WORLD_CHECKSUM);
 	XvtWire_Set32(report.request_state, XVT_CHECKSUM_REQUEST_STATE);
 	int aligned[sizeof report / sizeof(int)];
 	memcpy(aligned, &report, sizeof report);
 	XvtResync_DeferChecksum(Dpid(1), aligned);
 	XVT_ASSERT_INT_EQ(XvtResync_HasStateRequest(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(due), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(due), 0);
 	XvtResync_Reset();
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(due), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(due), 1);
 
 	SendReady();
 	while (XvtFlightMessages_Push(XVT_QUEUE_PENDING, "x", 1))
 		;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(due), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(due), 0);
 	XvtFlightMessages_Clear(XVT_QUEUE_PENDING);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(due), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(due), 1);
 
 	SendReady();
 	g_flightNetPendingAckCount = 1;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(due), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(due), 0);
 	g_flightNetPendingAckCount = 0;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(due), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(due), 1);
 }
 
 /* Takes the oldest pending message into g_out; returns 0 when there is none. */

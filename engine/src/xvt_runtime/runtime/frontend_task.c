@@ -111,7 +111,7 @@ int XvtFrontendTask_RunFrame(void) {
 	int modal = XvtDialog_IsActive();
 	g_continuationFrame = 0;
 	g_frontState.netReadyPlayerLeftThisFrame = 0;
-	if (g_frontState.glyphScratchTtl)
+	if (g_frontState.textFadeFramesLeft)
 		memset(&g_frontState.glyphScratchBuffer, 0, sizeof(g_frontState.glyphScratchBuffer));
 	updateFn = g_frontState.screenStates[stack].updateFn;
 	if (!updateFn)
@@ -159,8 +159,8 @@ int XvtFrontendTask_RunFrame(void) {
 		FrontendCursor_Draw();
 	memset(g_frontState.joystickButtonReleased, 0, sizeof(g_frontState.joystickButtonReleased));
 	++g_frontState.frameCounter;
-	if (g_frontState.glyphScratchTtl)
-		--g_frontState.glyphScratchTtl;
+	if (g_frontState.textFadeFramesLeft)
+		--g_frontState.textFadeFramesLeft;
 	g_frontState.mouseClickLatch = 0;
 	g_frontState.mouseRightClickLatch = 0;
 	return result;
@@ -224,7 +224,7 @@ void XvtFrontendTask_Shutdown(void) {
 	XvtNetworkTask_Shutdown();
 	Net_ShutdownDirectPlaySessionForQuit();
 	XvtFrontendMovies_Reset();
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 	XvtLaunchTask_Shutdown();
 	XvtDialog_Shutdown();
 	CDAudio_CloseDevice();

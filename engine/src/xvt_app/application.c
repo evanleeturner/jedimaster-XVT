@@ -27,7 +27,7 @@ static uint64_t XvtApplication_PresentationIntervalUs(void) {
 static void XvtApplication_DiscoverControllers(const AeronInputSnapshot* input) {
 	static char previous_error[512];
 	const XvtSettings* settings = XvtConfig_Settings();
-	if (!settings || XvtSettingsMenu_Open())
+	if (!settings || XvtSettingsMenu_IsOpen())
 		return;
 	XvtControllerOptions candidate = settings->controller;
 	char error[512] = { 0 };
@@ -48,11 +48,11 @@ static void XvtApplication_DiscoverControllers(const AeronInputSnapshot* input) 
 }
 
 static int XvtApplication_FrameLoop(void) {
-	while (!XvtPort_ShouldQuit()) {
+	while (!XvtPort_ServiceQuit()) {
 		int32_t delta_us = Aeron_BeginFrame();
 		uint64_t wake_delay_us;
 		uint64_t task_delay_us;
-		if (XvtPort_ShouldQuit())
+		if (XvtPort_ServiceQuit())
 			break;
 		const AeronInputSnapshot* input = Aeron_InputSnapshot();
 		XvtApplication_DiscoverControllers(input);
@@ -65,7 +65,7 @@ static int XvtApplication_FrameLoop(void) {
 		XvtRemaster_BeginFrame(input);
 		XvtPort_Tick(delta_us);
 		menu_opened |= XvtSettingsMenu_ConsumeRuntimeRequest();
-		if (XvtPort_ShouldQuit())
+		if (XvtPort_ServiceQuit())
 			break;
 		XvtRemaster_Frame(delta_us);
 		if (!menu_opened)

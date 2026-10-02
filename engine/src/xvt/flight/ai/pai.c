@@ -24,7 +24,7 @@ PaiContext g_paiContext;
 // GLOBAL: XVT 0x9A8C28
 int g_paiSkipToOrder4Checked = 0;
 // GLOBAL: XVT 0x9A1FF8
-int g_targetRangeScore = 0;
+int g_lastRoughDistance = 0;
 // GLOBAL: XVT 0x524100
 uint16_t g_aiSkillValueQ16ByLevel[8] = { 0x0000, 0x4000, 0x8000, 0xC000, 0xFFFF, 0xFFFF, 0x0000, 0x0000 };
 // GLOBAL: XVT 0x524110
@@ -252,7 +252,7 @@ void pai_UpdateAllCraftAI(void) {
 		if (object->objectType == 0)
 			continue;
 		mobileObject = object->mobj;
-		if (mobileObject->state != 0)
+		if (mobileObject->family != 0)
 			continue;
 		g_curCraft = mobileObject->pCraft;
 		controller = &g_curCraft->aiController;
@@ -290,7 +290,7 @@ void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx) {
 				controller->targetObjIdx = 0x8000u;
 			}
 		} else if (targetToken == 0xFEu) {
-			if (g_curCraft->wasCaptured != 0 &&
+			if (g_curCraft->capturedByFlightGroup != 0 &&
 				g_missionFlightGroups[g_objectTable[g_paiContext.objectIndex].flightGroupIdx]
 						.fg.missionPointEnabled[12] != 0) {
 				controller->targetObjIdx = 0x800Cu;
@@ -325,7 +325,7 @@ void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx) {
 	}
 
 	g_curCraft->lastAttackerObjIdx = UINT16_MAX;
-	g_curCraft->lastHitTimestamp = 0;
+	g_curCraft->lastHitMissionSecond = 0;
 	g_curCraft->aiFlight.threatObjIdx = UINT16_MAX;
 	controller->thinkTimer = ((objectIdx & 7) * controller->thinkInterval) >> 3;
 }
@@ -510,17 +510,17 @@ int pai_IsObjectWithinCurrentPointRange(unsigned int objIdx, unsigned int maxRan
 		deltaZ = (int)(0u - (unsigned int)deltaZ);
 
 	if (deltaY < deltaX)
-		g_targetRangeScore = deltaX + (deltaY >> 1);
+		g_lastRoughDistance = deltaX + (deltaY >> 1);
 	else
-		g_targetRangeScore = deltaY + (deltaX >> 1);
+		g_lastRoughDistance = deltaY + (deltaX >> 1);
 
-	if (g_targetRangeScore > deltaZ)
+	if (g_lastRoughDistance > deltaZ)
 		deltaZ >>= 1;
 	else
-		g_targetRangeScore >>= 1;
-	g_targetRangeScore += deltaZ;
+		g_lastRoughDistance >>= 1;
+	g_lastRoughDistance += deltaZ;
 
-	return g_targetRangeScore < (int)maxRangeScore;
+	return g_lastRoughDistance < (int)maxRangeScore;
 }
 
 // FUNCTION: XVT 0x403400
@@ -598,11 +598,11 @@ void pai_ObjectRefUpdateApproxRangeScore(unsigned int fromRef, unsigned int toRe
 		xyScore = deltaY + (deltaX >> 1);
 
 	if (xyScore > deltaZ) {
-		g_targetRangeScore = xyScore + (deltaZ >> 1);
+		g_lastRoughDistance = xyScore + (deltaZ >> 1);
 	} else {
-		g_targetRangeScore = xyScore;
-		g_targetRangeScore >>= 1;
-		g_targetRangeScore += deltaZ;
+		g_lastRoughDistance = xyScore;
+		g_lastRoughDistance >>= 1;
+		g_lastRoughDistance += deltaZ;
 	}
 }
 
@@ -743,9 +743,9 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 					++count;
 			if (count == 0) {
 				pai_ObjectRefUpdateApproxRangeScore(g_paiContext.objectIndex, objectIdx);
-				if ((unsigned int)g_targetRangeScore >= nearestRange)
+				if ((unsigned int)g_lastRoughDistance >= nearestRange)
 					continue;
-				nearestRange = g_targetRangeScore;
+				nearestRange = g_lastRoughDistance;
 				nearestObject = objectIdx;
 			}
 		}
@@ -808,9 +808,9 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 				}
 				if (reservedCount == 0) {
 					pai_ObjectRefUpdateApproxRangeScore(g_paiContext.objectIndex, objectIdx);
-					if ((unsigned int)g_targetRangeScore >= nearestRange)
+					if ((unsigned int)g_lastRoughDistance >= nearestRange)
 						continue;
-					nearestRange = g_targetRangeScore;
+					nearestRange = g_lastRoughDistance;
 					nearestObject = objectIdx;
 				}
 			}
@@ -831,7 +831,7 @@ int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot) {
 		strcmp(g_planTable[planId].name, "disabledpln") == 0 ||
 		strcmp(g_planTable[planId].name, "waitforboardpln") == 0) {
 		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].variable1 <=
-			g_paiContext.controller->orderScratch.goalProgress[orderSlot]) {
+			g_paiContext.controller->orderProgress.goalProgress[orderSlot]) {
 			result = 1;
 		}
 	} else if (strcmp(g_planTable[planId].name, "capfreeldr1pln") == 0 ||
@@ -855,7 +855,7 @@ int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot) {
 			   strcmp(g_planTable[planId].name, "boardtocontactpln") == 0 ||
 			   strcmp(g_planTable[planId].name, "boardtorepairpln") == 0) {
 		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].variable2 <=
-			g_paiContext.controller->orderScratch.goalProgress[orderSlot]) {
+			g_paiContext.controller->orderProgress.goalProgress[orderSlot]) {
 			result = 1;
 		}
 	} else if (strcmp(g_planTable[planId].name, "dropoffldr1pln") == 0) {
@@ -865,7 +865,7 @@ int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot) {
 												.variable2 -
 											1)]
 					.outcomeCount[FLIGHT_GROUP_OUTCOME_TOTAL] <=
-			g_paiContext.controller->orderScratch.goalProgress[orderSlot]) {
+			g_paiContext.controller->orderProgress.goalProgress[orderSlot]) {
 			result = 1;
 		}
 	} else if (strcmp(g_planTable[planId].name, "waitpln") == 0) {

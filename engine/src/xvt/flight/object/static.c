@@ -174,11 +174,11 @@ void static_laserhitstatic(uint16_t sourceObjIdx, int victimObjIdx) {
 	}
 	g_objectTable[sourceObjIdx].objectType = (uint8_t)effectType;
 	g_objectTable[sourceObjIdx].genusId = CRAFT_GENUS_EXPLOSION;
-	g_objectTable[sourceObjIdx].mobj->state = IMPACT_STATE;
+	g_objectTable[sourceObjIdx].mobj->family = IMPACT_STATE;
 	g_objectTable[sourceObjIdx].typeSpecificByte[0] = IMPACT_VARIANT;
 	g_objectTable[sourceObjIdx].mobj->speed = 0;
 	g_objectTable[sourceObjIdx].mobj->lightIntensityScale = 0;
-	g_objectTable[sourceObjIdx].mobj->framesAlive = 0;
+	g_objectTable[sourceObjIdx].mobj->secondsAlive = 0;
 	g_objectTable[sourceObjIdx].mobj->lifetimeTimer = 0;
 	g_objectTable[sourceObjIdx].pitch = 0;
 	g_objectTable[sourceObjIdx].yaw = 0;

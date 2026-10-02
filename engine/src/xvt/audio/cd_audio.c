@@ -157,7 +157,7 @@ void CDAudio_CloseDevice(void) {
 	int* savedAuxVolume;
 
 #ifdef XVT_MODERN
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 #endif
 	if (g_frontState.cdAudioMciDeviceId == 0) {
 		return;

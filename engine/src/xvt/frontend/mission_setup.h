@@ -157,7 +157,7 @@ struct CampaignContinuation {
 	CampaignSequenceState state; ///< Saved campaign sequence state.
 };
 
-extern int g_teamFgCountScratch[10];
+extern int g_teamPlayerFlightGroupCount[10];
 extern int g_missionSetupDraggedPlayerId;
 extern int g_missionSetupReservedPlayerIds[8];
 extern int g_missionSetupReservedPlayerCount;
@@ -193,7 +193,7 @@ extern const uint8_t g_craftIffCounterpart[20];
 extern unsigned int g_missionCount;
 extern int g_selectedMissionListIndex;
 extern MissionListEntry* g_missionList;
-extern int g_frontendSinglePlayerFlightSessionActive;
+extern int g_frontendGameSessionInProgress;
 extern int g_missionSetupIsHost;
 extern int g_missionSetupRosterAuthoritative;
 extern int g_missionSetupBeginButtonLockoutFrames;

@@ -51,7 +51,7 @@ void XvtRenderAssets_RegisterTexture(uint16_t handle, const char* path);
 void XvtRenderAssets_BindType(uint16_t type, uint16_t handle);
 /* Retires every source carrying this handle, owner-keyed ones included, and drops the type and
  * cockpit bindings to them. Does nothing before Init, for 0, or above 65535. */
-void XvtRenderAssets_FreeHandle(unsigned int handle);
+void XvtRenderAssets_RetireHandle(unsigned int handle);
 /* Clears all type bindings, raises the OPT and texture generations, and resets the cockpit
  * bindings. Retires no source. */
 void XvtRenderAssets_ClearMission(void);
@@ -61,7 +61,7 @@ uint64_t XvtRenderAssets_HandleId(uint16_t handle);
 /* Returns the id of the live source keyed by owner, or 0. */
 uint64_t XvtRenderAssets_ImageId(const void* owner);
 /* Retires every source keyed by owner. Does nothing before Init or for NULL. */
-void XvtRenderAssets_FreeImage(const void* owner);
+void XvtRenderAssets_RetireImage(const void* owner);
 struct ImageResource;
 
 typedef struct XvtFrontendImageColors {

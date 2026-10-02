@@ -77,7 +77,7 @@ static int DrawPage(const XvtHudDraw* draw, unsigned page_id) {
 	const XvtCockpitPageStore* content = &draw->state->page_content;
 	if (!page->visible)
 		return 1;
-	if ((unsigned)page->first_row + page->row_count > content->row_count ||
+	if ((unsigned)page->first_store_row + page->row_count > content->row_count ||
 		(unsigned)page->first_glyph + page->glyph_count > content->glyph_count)
 		return 0;
 	XvtHudDraw_Fill(draw, XVT_COCKPIT_AFTER_CRT, PlaceBounds(page->background_bounds, page->placement),
@@ -87,7 +87,7 @@ static int DrawPage(const XvtHudDraw* draw, unsigned page_id) {
 	border.y += page->placement.y;
 	XvtHudDraw_FrameClipped(draw, XVT_COCKPIT_AFTER_CRT, border, page->placement, page->border_argb);
 	for (unsigned index = 0; index < page->row_count; ++index) {
-		const XvtCockpitPageRow* row = &content->rows[page->first_row + index];
+		const XvtCockpitPageRow* row = &content->rows[page->first_store_row + index];
 		XvtHudDraw_Fill(draw, XVT_COCKPIT_AFTER_CRT, PlaceBounds(row->bounds, page->placement),
 						row->background_argb);
 	}

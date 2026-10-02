@@ -167,13 +167,13 @@ static void CheckFailedReturnsAtOnce(void) {
 
 static void CheckAdmissionFailed(void) {
 	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkDialogs_AdmissionFailed(), 0);
+	XVT_ASSERT_INT_EQ(XvtNetworkDialogs_ReportAdmissionFailure(), 0);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
 	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginJoin("\x02", "Luke", NULL), 0);
 	XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state, XVT_NETWORK_SESSION_FAILED);
 
 	/* Reported as a join's failure: once dismissed, back to the join screen. */
-	XVT_ASSERT_INT_EQ(XvtNetworkDialogs_AdmissionFailed(), 1);
+	XVT_ASSERT_INT_EQ(XvtNetworkDialogs_ReportAdmissionFailure(), 1);
 	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
 	DismissDialog();
 	int frame_result = -1;

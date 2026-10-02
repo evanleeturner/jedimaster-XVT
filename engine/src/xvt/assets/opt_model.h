@@ -112,11 +112,11 @@ extern OptVector* g_curVertNormals;
 typedef enum OptNodeType {
 	OPT_GROUP = 0x0,
 	OPT_FACEDATA = 0x1,
-	OPT_TYPE_2 = 0x2,
+	OPT_TRANSFORM = 0x2,
 	OPT_MESHVERTS = 0x3,
-	OPT_TYPE_4 = 0x4,
-	OPT_TYPE_5 = 0x5,
-	OPT_TYPE_6 = 0x6,
+	OPT_TRANSLATION = 0x4,
+	OPT_ROTATION = 0x5,
+	OPT_SCALE = 0x6,
 	OPT_NODEREF = 0x7,
 	OPT_TYPE_8 = 0x8,
 	OPT_TYPE_9 = 0x9,
@@ -149,9 +149,9 @@ struct OptNode {
 	OptNodeType nodeType;
 	int childCount;
 	struct OptNode** pChildren;
-	XvtOptValue param1; ///< Node-type-dependent scalar/count; OPT_NODEREF may store a relocated OptNode
-						///< pointer value.
-	void* param2;       ///< Relocated pointer to node-type-dependent payload data.
+	XvtOptValue payloadCount; ///< Node-type-dependent scalar/count; OPT_NODEREF may store a relocated OptNode
+							  ///< pointer value.
+	void* payload;            ///< Relocated pointer to node-type-dependent payload data.
 };
 
 struct OptimizedPolyObject {
@@ -303,7 +303,7 @@ OptNode* OptModel_FindCorrespondingTextureNodeInModel(OptimizedPolyObject* dstMo
 #ifndef XVT_MODERN
 void OptModel_SaveHandleToFile(const char* filename, uint16_t handle);
 #endif
-unsigned int OptModel_GetSerializedNodeSize(OptNode* node, SceneMesh* parentState);
+unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode* node, SceneMesh* parentState);
 void OptModel_PrepareTexturePalette(uint16_t* palette, int entryCount);
 unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshState, uint8_t* dst);
 #ifndef XVT_MODERN

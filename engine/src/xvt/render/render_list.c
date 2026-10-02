@@ -45,9 +45,9 @@ int RenderList_ProjectObjectBoundsForCulling(int objectIdx, unsigned int boundsR
 	savedTargetZ = g_players[playerIdx].viewState.savedTargetZ;
 	g_camRelWorldY = object->world_y - savedTargetY;
 	g_camRelWorldZ = object->world_z - savedTargetZ;
-	depthZ = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 	cullRadius = (int)boundsRadius;
-	farZ = (int)((unsigned int)depthZ + (unsigned int)cullRadius);
+	farZ = (int)((unsigned int)g_viewSpaceDepth + (unsigned int)cullRadius);
 	if (farZ < 0) {
 		return 0;
 	}
@@ -55,8 +55,8 @@ int RenderList_ProjectObjectBoundsForCulling(int objectIdx, unsigned int boundsR
 		cullRadius = farZ >> 4;
 	}
 
-	viewX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	absViewCoord = viewX;
+	g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	absViewCoord = g_viewSpaceX;
 	if (absViewCoord < 0) {
 		absViewCoord = (int)(0U - (unsigned int)absViewCoord);
 	}
@@ -65,8 +65,8 @@ int RenderList_ProjectObjectBoundsForCulling(int objectIdx, unsigned int boundsR
 		return 0;
 	}
 
-	viewY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	absViewCoord = viewY;
+	g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	absViewCoord = g_viewSpaceY;
 	if (absViewCoord < 0) {
 		absViewCoord = (int)(0U - (unsigned int)absViewCoord);
 	}

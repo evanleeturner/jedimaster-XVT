@@ -82,7 +82,7 @@ int FrontendDialog_ShowConfirmDialog(const char* line1, const char* line2, const
 	else
 		g_frontDialogCancelLabel[0] = '\0';
 	FrontendScreen_RunModal(FrontendDialog_ConfirmUpdateCallback, &rect);
-	FrontendText_ResetGlyphScratch();
+	FrontendText_StopTextFade();
 	if (overlayTextEnabled != 0)
 		FrontendButton_EnableOverlayText();
 	return g_dialogResult;
@@ -134,7 +134,7 @@ int FrontendDialog_ConfirmUpdateCallback(int frameState) {
 		FrontImage_DrawSpriteTranslucent("dialogbox", 0, 0);
 		FrontImage_DrawSpriteTranslucent("dialogbox", 0, 0);
 		FrontendDisplay_UnlockOffscreenSurface(SAVE_OFFSCREEN_BACKUP);
-		FrontendText_ResetGlyphScratchBuffer(GLYPH_SCRATCH_FRAMES);
+		FrontendText_StartTextFadeIn(GLYPH_SCRATCH_FRAMES);
 		return 0;
 	}
 
@@ -271,7 +271,7 @@ int FrontendDialog_PromptForPilotName(char* outName) {
 	FrontendCursor_GetPos(&g_frontDialogSavedMouseX, &g_frontDialogSavedMouseY);
 	memset(g_frontDialogText0, 0, sizeof(g_frontDialogText0));
 	FrontendScreen_RunModal(FrontendDialog_CreatePilotNameCallback, &rect);
-	FrontendText_ResetGlyphScratch();
+	FrontendText_StopTextFade();
 	if (overlayTextEnabled != 0)
 		FrontendButton_EnableOverlayText();
 	memcpy(outName, g_frontDialogText0, PILOT_NAME_LENGTH);
@@ -378,7 +378,7 @@ int FrontendDialog_ShowNetworkAbortError(const char* line1, const char* line2, c
 	else
 		g_frontDialogCancelLabel[0] = '\0';
 	FrontendScreen_RunModal(FrontendDialog_NetworkAbortErrorCallback, &rect);
-	FrontendText_ResetGlyphScratch();
+	FrontendText_StopTextFade();
 	if (overlayTextEnabled != 0)
 		FrontendButton_EnableOverlayText();
 	return g_dialogResult;
@@ -404,7 +404,7 @@ int FrontendDialog_NetworkAbortErrorCallback(int frameState) {
 		FrontImage_DrawSpriteTranslucent("dialogbox", 0, 0);
 		FrontImage_DrawSpriteTranslucent("dialogbox", 0, 0);
 		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_ResetGlyphScratchBuffer(20);
+		FrontendText_StartTextFadeIn(20);
 		return 0;
 	}
 

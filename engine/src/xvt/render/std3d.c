@@ -30,9 +30,9 @@ Std3DDevice* g_pStd3DCurDevice = 0;
 // GLOBAL: XVT 0x528C60
 int g_std3DNumTextureFormats = 0;
 // GLOBAL: XVT 0x528C64
-Std3DTexFmt* g_pFmtRGB565;
+Std3DTexFmt* g_pFmtOpaqueTexture;
 // GLOBAL: XVT 0xA90B58
-int g_fmtIdxRGB565 = 0;
+int g_fmtIdxOpaqueTexture = 0;
 // GLOBAL: XVT 0x528C68
 Std3DTexFmt* g_pFmtRGBA1555 = 0;
 // GLOBAL: XVT 0xA91B88
@@ -293,10 +293,10 @@ void std3D_ConvertTexTo1555(const uint16_t* srcPixels, int pixelCount) {
 	ColorInfo* sourceFormat;
 	ColorInfo* targetFormat;
 
-	if (g_pFmtRGB565 == g_pFmtRGBA1555) {
+	if (g_pFmtOpaqueTexture == g_pFmtRGBA1555) {
 		memcpy(g_texConvBuf1555, srcPixels, (size_t)pixelCount * sizeof(*srcPixels));
 	} else {
-		sourceFormat = &g_pFmtRGB565->colorInfo;
+		sourceFormat = &g_pFmtOpaqueTexture->colorInfo;
 		targetFormat = &g_pFmtRGBA1555->colorInfo;
 		for (pixelIndex = 0; pixelIndex < pixelCount; ++pixelIndex) {
 			uint8_t channel;
@@ -362,17 +362,17 @@ int std3D_Startup(void) {
 }
 
 // FUNCTION: XVT 0x4B0EF0
-Std3DRenderTargetDesc* std3D_InitRenderTargetDesc(unsigned int arg1, unsigned int arg2, int arg3) {
+Std3DRenderTargetDesc* std3D_InitRenderTargetDesc(unsigned int width, unsigned int height, int pitchBytes) {
 	Std3DRenderTargetDesc* result;
 	Std3DRenderTargetDesc** renderTarget;
 
 	memset(&g_std3DRenderTargetDesc, 0, sizeof(g_std3DRenderTargetDesc));
 	renderTarget = &g_pStd3DRenderTarget;
 	*renderTarget = &g_std3DRenderTargetDesc;
-	g_std3DRenderTargetDesc.width = arg1;
-	(*renderTarget)->height = arg2;
-	g_pStd3DRenderTarget->pitch = arg3;
-	g_pStd3DRenderTarget->widthPixels = arg3 / 2;
+	g_std3DRenderTargetDesc.width = width;
+	(*renderTarget)->height = height;
+	g_pStd3DRenderTarget->pitch = pitchBytes;
+	g_pStd3DRenderTarget->pitchPixels = pitchBytes / 2;
 	g_pStd3DRenderTarget->sizeBytes = g_pStd3DRenderTarget->pitch * g_pStd3DRenderTarget->height;
 	g_pStd3DRenderTarget->colorInfo.colorMode = STDCOLOR_RGB;
 	g_pStd3DRenderTarget->colorInfo.bpp = 16;
@@ -494,9 +494,9 @@ int std3D_CreateDevice(unsigned int deviceIdx, int bUseZBuffer) {
 	g_pTexCacheHead = NULL;
 	g_pTexCacheTail = NULL;
 	g_std3DTextureFrameTag = 1;
-	g_fmtIdxRGB565 = std3D_FindClosestFormat(&g_pStd3DRenderTarget->colorInfo, g_std3DTextureFormats,
-											 g_std3DNumTextureFormats);
-	g_pFmtRGB565 = &g_std3DTextureFormats[g_fmtIdxRGB565];
+	g_fmtIdxOpaqueTexture = std3D_FindClosestFormat(&g_pStd3DRenderTarget->colorInfo, g_std3DTextureFormats,
+													g_std3DNumTextureFormats);
+	g_pFmtOpaqueTexture = &g_std3DTextureFormats[g_fmtIdxOpaqueTexture];
 	if (g_pStd3DCurDevice->caps.bAlphaTexture != 0) {
 		alphaFormat.colorMode = STDCOLOR_RGBA;
 		alphaFormat.bpp = 16;
@@ -532,8 +532,8 @@ int std3D_CreateDevice(unsigned int deviceIdx, int bUseZBuffer) {
 }
 
 // FUNCTION: XVT 0x4B15A0
-struct IDirectDrawSurface* std3D_SetRenderSurface(struct IDirectDrawSurface* arg1) {
-	return g_std3DRenderSurface = arg1;
+struct IDirectDrawSurface* std3D_SetRenderSurface(struct IDirectDrawSurface* surface) {
+	return g_std3DRenderSurface = surface;
 }
 
 // FUNCTION: XVT 0x4B15B0
@@ -1184,8 +1184,10 @@ void std3D_SetRenderState(Std3DRenderStateFlags flags) {
 // FUNCTION: XVT 0x4B2540
 int std3D_SetPaletteConversionSource(const void* paletteRgb888, uint8_t alpha) {
 	memcpy(g_std3DPaletteConversionSourceRgb, paletteRgb888, sizeof(g_std3DPaletteConversionSourceRgb));
-	if (g_pFmtRGB565->colorInfo.colorMode == STDCOLOR_RGB && g_pFmtRGB565->colorInfo.bpp == 16) {
-		std3D_BuildColormapOpaque((uint8_t*)paletteRgb888, g_std3DPaletteScratch16, &g_pFmtRGB565->colorInfo);
+	if (g_pFmtOpaqueTexture->colorInfo.colorMode == STDCOLOR_RGB &&
+		g_pFmtOpaqueTexture->colorInfo.bpp == 16) {
+		std3D_BuildColormapOpaque((uint8_t*)paletteRgb888, g_std3DPaletteScratch16,
+								  &g_pFmtOpaqueTexture->colorInfo);
 	}
 	if (g_pStd3DCurDevice->caps.bAlphaTexture != 0) {
 		if (g_pFmtRGBA1555->colorInfo.colorMode == STDCOLOR_RGBA && g_pFmtRGBA1555->colorInfo.bpp == 16) {
@@ -1350,8 +1352,8 @@ int std3D_CreateMipSurface(Std3DVBuffer* source, Std3DTexCacheNode* node, int te
 		DebugPrintf("Using D3D texture format #%d.\n", g_fmtIdxRGBA4444, 0, 0, 0);
 	} else {
 		node->usesAlphaFormat = 0;
-		surfaceDesc = g_pFmtRGB565->ddsd;
-		DebugPrintf("Using D3D texture format #%d.\n", g_fmtIdxRGB565, 0, 0, 0);
+		surfaceDesc = g_pFmtOpaqueTexture->ddsd;
+		DebugPrintf("Using D3D texture format #%d.\n", g_fmtIdxOpaqueTexture, 0, 0, 0);
 	}
 	surfaceDesc.dwWidth = width;
 	surfaceDesc.dwHeight = height;
@@ -1763,7 +1765,7 @@ int std3D_ClearZBuffer(void) {
 }
 
 // FUNCTION: XVT 0x4B3380
-int std3D_SelectBestDevice(Std3DDeviceCaps* arg1) {
+int std3D_SelectBestDevice(Std3DDeviceCaps* requiredCaps) {
 	int bestMatchQuality;
 	Std3DDevice* device;
 	int deviceIndex;
@@ -1779,17 +1781,17 @@ int std3D_SelectBestDevice(Std3DDeviceCaps* arg1) {
 	deviceIndex = 0;
 	bestDeviceIndex = 0;
 	if (g_std3DNumDevices > (unsigned int)deviceIndex) {
-		requiredPerspective = arg1->bTexturePerspective;
+		requiredPerspective = requiredCaps->bTexturePerspective;
 		do {
 			matchQuality = 0;
 			if (requiredPerspective == 0 || device->caps.bTexturePerspective == requiredPerspective) {
 				matchQuality = 1;
-				requiredZBuffer = arg1->bHasZBuffer;
+				requiredZBuffer = requiredCaps->bHasZBuffer;
 				if (requiredZBuffer == 0 || device->caps.bHasZBuffer == requiredZBuffer) {
 					matchQuality = 2;
-					if ((arg1->colorModelFlags & device->caps.colorModelFlags) != 0) {
+					if ((requiredCaps->colorModelFlags & device->caps.colorModelFlags) != 0) {
 						matchQuality = 3;
-						if (device->caps.bHardware == arg1->bHardware) {
+						if (device->caps.bHardware == requiredCaps->bHardware) {
 							DebugPrintf("Found a perfect device match #%d!\n", deviceIndex, 0, 0, 0);
 							return deviceIndex;
 						}
@@ -2289,24 +2291,25 @@ int std3D_CreateZBuffer(int width, int height) {
 }
 
 // FUNCTION: XVT 0x4B4210
-HRESULT AERON_DXAPI std3D_EnumDevicesCallback(DxGuid* arg1, char* Source, char* arg3, D3DDEVICEDESC* arg4,
-											  D3DDEVICEDESC* arg5, void* arg6) {
+HRESULT AERON_DXAPI std3D_EnumDevicesCallback(DxGuid* guid, char* deviceDescription, char* deviceName,
+											  D3DDEVICEDESC* hardwareDesc, D3DDEVICEDESC* softwareDesc,
+											  void* context) {
 	Std3DDevice* device;
 	unsigned int shadeCaps;
-	(void)arg6;
+	(void)context;
 
 	if (g_std3DNumDevices < 4) {
 
 		device = &g_std3DDevices[g_std3DNumDevices];
-		memcpy(&device->guid, arg1, sizeof(device->guid));
-		strncpy(device->deviceDescription, Source, sizeof(device->deviceDescription));
-		strncpy(device->deviceName, arg3, sizeof(device->deviceName));
-		if (arg4->dcmColorModel != 0) {
+		memcpy(&device->guid, guid, sizeof(device->guid));
+		strncpy(device->deviceDescription, deviceDescription, sizeof(device->deviceDescription));
+		strncpy(device->deviceName, deviceName, sizeof(device->deviceName));
+		if (hardwareDesc->dcmColorModel != 0) {
 			device->caps.bHardware = 1;
-			memcpy(&device->d3dDesc, arg4, sizeof(device->d3dDesc));
+			memcpy(&device->d3dDesc, hardwareDesc, sizeof(device->d3dDesc));
 		} else {
 			device->caps.bHardware = 0;
-			memcpy(&device->d3dDesc, arg5, sizeof(device->d3dDesc));
+			memcpy(&device->d3dDesc, softwareDesc, sizeof(device->d3dDesc));
 		}
 
 		device->caps.colorModelFlags = 0;

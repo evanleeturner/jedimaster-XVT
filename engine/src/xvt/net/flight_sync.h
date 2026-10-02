@@ -21,7 +21,7 @@ void FlightSync_RemoveInputHistoryFrame(int playerIdx, InputFrame* frame);
 InputFrame* FlightSync_InsertInputFrame(int playerIdx, int timestamp, const FlightInputFrameRecord* input);
 InputFrame* FlightSync_FindLastNonzeroInputFrame(int playerIdx);
 void FlightSync_ResetRemotePlayerRenderSmoothing(void);
-void FlightSync_CaptureRemotePlayerRenderSamples(void);
+void FlightSync_CaptureSamplesAndRestorePoses(void);
 void FlightSync_ApplyRemotePlayerRenderSmoothing(void);
 #ifndef XVT_MODERN
 void FlightSync_ApplyWorldMessagePacket(uint8_t* packet);

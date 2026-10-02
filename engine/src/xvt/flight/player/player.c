@@ -401,8 +401,8 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft, int
 		g_curCraft = craft;
 		pai_setupcraftcontext((uint16_t)objectIdx);
 		pai_ApplyPendingPlanTargetAndManeuver((unsigned int)objectIdx);
-		craft->aiFlight.enterFlag = 0;
-		craft->aiFlight.headingState = 0;
+		craft->aiFlight.rollState = 0;
+		craft->aiFlight.pitchState = 0;
 		craft->aiFlight.turnState = 0;
 		craft->aiFlight.climbState = 0;
 		craft->aiFlight.diveState = 0;
@@ -1185,13 +1185,12 @@ void FlightChat_HandleInput(int playerIdx) {
 					recipientMode = player->msgTypeId;
 					shouldSend = 0;
 					if (recipientMode == FLIGHT_CHAT_RECIPIENT_TEAM) {
-						if (player->playerIff == recipient->playerIff) {
+						if (player->team == recipient->team) {
 							shouldSend = 1;
 						}
 					} else if (recipientMode == FLIGHT_CHAT_RECIPIENT_ENEMY) {
-						if (recipient->playerIff != player->playerIff &&
-							g_missionTeams[(uint16_t)recipient->playerIff]
-									.allies[(uint16_t)player->playerIff] == 0) {
+						if (recipient->team != player->team &&
+							g_missionTeams[(uint16_t)recipient->team].allies[(uint16_t)player->team] == 0) {
 							shouldSend = 1;
 						}
 					} else {
@@ -1228,13 +1227,12 @@ void FlightChat_HandleInput(int playerIdx) {
 					recipientMode = player->msgTypeId;
 					shouldSend = 0;
 					if (recipientMode == FLIGHT_CHAT_RECIPIENT_TEAM) {
-						if (player->playerIff == recipient->playerIff) {
+						if (player->team == recipient->team) {
 							shouldSend = 1;
 						}
 					} else if (recipientMode == FLIGHT_CHAT_RECIPIENT_ENEMY) {
-						if (recipient->playerIff != player->playerIff &&
-							g_missionTeams[(uint16_t)recipient->playerIff]
-									.allies[(uint16_t)player->playerIff] == 0) {
+						if (recipient->team != player->team &&
+							g_missionTeams[(uint16_t)recipient->team].allies[(uint16_t)player->team] == 0) {
 							shouldSend = 1;
 						}
 					} else {
@@ -1290,7 +1288,7 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 	unsigned int playerIff;
 	int16_t selectedObject;
 
-	playerIff = (uint16_t)g_players[playerIdx].playerIff;
+	playerIff = (uint16_t)g_players[playerIdx].team;
 	bestActionableObject = UINT16_MAX;
 	bestObjectiveObject = UINT16_MAX;
 	bestActionableRange = UINT_MAX;
@@ -1319,7 +1317,7 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 		enabledTeamGoals = &goals[0].enabledTeams[playerIff];
 		for (; goalIndex < FLIGHT_GROUP_GOAL_COUNT; ++goalIndex) {
 			FlightGroupGoal* goal = &goals[goalIndex];
-			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 && goal->type == (uint8_t)goalType &&
+			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 && goal->goalKind == (uint8_t)goalType &&
 				goal->points >= 0 &&
 				g_missionFgStats[g_objectTable[objectIdx].flightGroupIdx]
 						.goalState[FLIGHT_GROUP_GOAL_COUNT * playerIff + goalIndex] == GOAL_STATE_COMPLETE) {
@@ -1380,14 +1378,14 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 		if (g_objectTable[objectIdx].objectType == 0)
 			continue;
 		flightGroupIdx = g_objectTable[objectIdx].flightGroupIdx;
-		if (g_missionFlightGroups[flightGroupIdx].fg.team == g_players[playerIdx].playerIff)
+		if (g_missionFlightGroups[flightGroupIdx].fg.team == g_players[playerIdx].team)
 			continue;
 		goalIndex = 0;
 		goals = g_missionFlightGroups[flightGroupIdx].fg.goals;
 		enabledTeamGoals = &goals[0].enabledTeams[playerIff];
 		for (; goalIndex < FLIGHT_GROUP_GOAL_COUNT; ++goalIndex) {
 			FlightGroupGoal* goal = &goals[goalIndex];
-			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 && goal->type == (uint8_t)goalType &&
+			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 && goal->goalKind == (uint8_t)goalType &&
 				goal->points >= 0 &&
 				g_missionFgStats[flightGroupIdx].goalState[FLIGHT_GROUP_GOAL_COUNT * playerIff + goalIndex] ==
 					GOAL_STATE_COMPLETE) {
@@ -1490,9 +1488,9 @@ uint16_t Player_PickTargetInSight(int playerIdx) {
 		if (g_objectTable[objectIdx].objectType != 0 && g_players[playerIdx].objectIndex != objectIdx &&
 			(g_modelTypeTable[g_objectTable[objectIdx].objectType].flags & 1) != 0) {
 			if (Targeting_ScoreCandidate(objectIdx, 1, playerIdx)) {
-				if (bestRange > (unsigned int)g_targetRangeScore) {
+				if (bestRange > (unsigned int)g_lastRoughDistance) {
 					bestTarget = objectIdx;
-					bestRange = g_targetRangeScore;
+					bestRange = g_lastRoughDistance;
 				}
 			} else {
 				if (bestAngle <= g_targetAngleScore)
@@ -1507,9 +1505,9 @@ uint16_t Player_PickTargetInSight(int playerIdx) {
 		if (g_objectTable[objectIdx].objectType != 0 &&
 			(g_modelTypeTable[g_objectTable[objectIdx].objectType].flags & 1) != 0) {
 			if (Targeting_ScoreCandidate(objectIdx, 1, playerIdx)) {
-				if (bestRange > (unsigned int)g_targetRangeScore) {
+				if (bestRange > (unsigned int)g_lastRoughDistance) {
 					bestTarget = objectIdx;
-					bestRange = g_targetRangeScore;
+					bestRange = g_lastRoughDistance;
 				}
 			} else {
 				if (bestAngle <= g_targetAngleScore)
@@ -1566,7 +1564,7 @@ uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction, int
 				if (object->genusId != CRAFT_GENUS_EXPLOSION &&
 					Object_HasActiveDecoyBeam(currentObjIdx) == 0) {
 					mobileObject = g_objectTable[currentObjIdx].mobj;
-					if (mobileObject->state != 0) {
+					if (mobileObject->family != 0) {
 						break;
 					}
 					g_curCraft = mobileObject->pCraft;
@@ -1624,12 +1622,12 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 
 				switch (iffFilter) {
 					case 1:
-						if ((uint16_t)g_players[playerIdx].playerIff != objectIff)
+						if ((uint16_t)g_players[playerIdx].team != objectIff)
 							continue;
 						break;
 
 					case 2:
-						playerIff = (uint16_t)g_players[playerIdx].playerIff;
+						playerIff = (uint16_t)g_players[playerIdx].team;
 						if (playerIff == objectIff)
 							objectIff = 0;
 						else
@@ -1639,7 +1637,7 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 						break;
 
 					case 3:
-						playerIff = (uint16_t)g_players[playerIdx].playerIff;
+						playerIff = (uint16_t)g_players[playerIdx].team;
 						if (playerIff == objectIff)
 							objectIff = 0;
 						else
@@ -1661,7 +1659,7 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 					break;
 				if (object->genusId != CRAFT_GENUS_EXPLOSION && Object_HasActiveDecoyBeam(objectIndex) == 0) {
 					mobileObject = g_objectTable[objectIndex].mobj;
-					if (mobileObject->state != 0)
+					if (mobileObject->family != 0)
 						break;
 					g_curCraft = mobileObject->pCraft;
 					objectKind = g_curCraft->objectKind;
@@ -1930,7 +1928,7 @@ int16_t USER_calcdeltapitch(int16_t angleQ16, int16_t yawAngleQ16, uint16_t obje
 }
 
 // FUNCTION: XVT 0x4841B0
-int16_t Player_CanRadioCommandCraft(int objectIndex) {
+int16_t Player_CanRadioCommandCraft(int playerIdx) {
 	int currentTargetObjectIdx;
 	ObjectRecord* targetObject;
 	int flightGroupIdx;
@@ -1939,10 +1937,10 @@ int16_t Player_CanRadioCommandCraft(int objectIndex) {
 	int playerIff;
 	uint8_t globalUnit;
 
-	if (g_players[objectIndex].currentTargetObjectIdx == -1) {
+	if (g_players[playerIdx].currentTargetObjectIdx == -1) {
 		return 0;
 	}
-	currentTargetObjectIdx = (uint16_t)g_players[objectIndex].currentTargetObjectIdx;
+	currentTargetObjectIdx = (uint16_t)g_players[playerIdx].currentTargetObjectIdx;
 	if (g_activeRegionCraftObjectSlotEnd <= currentTargetObjectIdx) {
 		return 0;
 	}
@@ -1958,7 +1956,7 @@ int16_t Player_CanRadioCommandCraft(int objectIndex) {
 		return 0;
 	}
 	flightGroupIdx = targetObject->flightGroupIdx;
-	boundFlightGroupIdx = (uint16_t)g_players[objectIndex].boundFlightGroupIdx;
+	boundFlightGroupIdx = (uint16_t)g_players[playerIdx].boundFlightGroupIdx;
 	if (flightGroupIdx == boundFlightGroupIdx) {
 		return 1;
 	}
@@ -1966,7 +1964,7 @@ int16_t Player_CanRadioCommandCraft(int objectIndex) {
 	if (radio == 0) {
 		return 0;
 	}
-	playerIff = (uint16_t)g_players[objectIndex].playerIff;
+	playerIff = (uint16_t)g_players[playerIdx].team;
 	if (g_missionFlightGroups[flightGroupIdx].fg.team == playerIff) {
 		return 1;
 	}
@@ -1990,10 +1988,10 @@ void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 	if (targetObjIdx != UINT16_MAX) {
 		int targetTeam = g_missionFlightGroups[g_objectTable[targetObjIdx].flightGroupIdx].fg.team;
 		int targetIsHostile;
-		if (targetTeam == (uint16_t)g_players[playerIdx].playerIff) {
+		if (targetTeam == (uint16_t)g_players[playerIdx].team) {
 			targetIsHostile = 0;
 		} else {
-			targetIsHostile = !g_missionTeams[(uint16_t)g_players[playerIdx].playerIff].allies[targetTeam];
+			targetIsHostile = !g_missionTeams[(uint16_t)g_players[playerIdx].team].allies[targetTeam];
 		}
 		if (!targetIsHostile) {
 			return;
@@ -2019,7 +2017,7 @@ void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 			continue;
 		}
 		flightGroupIdx = object->flightGroupIdx;
-		if (g_missionFlightGroups[flightGroupIdx].fg.team != (uint16_t)g_players[playerIdx].playerIff) {
+		if (g_missionFlightGroups[flightGroupIdx].fg.team != (uint16_t)g_players[playerIdx].team) {
 			continue;
 		}
 		craft = object->mobj->pCraft;
@@ -2112,14 +2110,15 @@ int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx, int16_t excludedObjId
 					 (uint16_t)Mission_GameTimeToSeconds(g_missionElapsedClock.hours,
 														 g_missionElapsedClock.minutes,
 														 g_missionElapsedClock.seconds) -
-							 targetCraft->lastHitTimestamp <
+							 targetCraft->lastHitMissionSecond <
 						 5))
 					qualifies = 1;
 			}
 			playerOwnerIdx = g_objectTable[objectIdx].playerOwnerIdx;
 			if ((uint16_t)g_players[playerOwnerIdx].currentTargetObjectIdx == targetObjIdx) {
 				pai_ObjectRefUpdateApproxRangeScore(objectIdx, targetObjIdx);
-				if (g_targetRangeScore < 0x10000 && Targeting_ScoreCandidate(targetObjIdx, 0, playerOwnerIdx))
+				if (g_lastRoughDistance < 0x10000 &&
+					Targeting_ScoreCandidate(targetObjIdx, 0, playerOwnerIdx))
 					qualifies = 1;
 				if (craft->warheadLockTicks != 0)
 					qualifies = 1;
@@ -2210,10 +2209,10 @@ void Player_AppendKillMessageActorName(int slot, char* text, int objectIndex) {
 	playerOwnerIdx = object->playerOwnerIdx;
 	craft = object->mobj->pCraft;
 	if (g_flightMissionState.locatePlayersEnabled != 0 ||
-		craft->iffVisibility[(uint16_t)g_players[g_localPlayer].playerIff] != 0) {
+		craft->iffVisibility[(uint16_t)g_players[g_localPlayer].team] != 0) {
 		isEnemy = 0;
 	} else {
-		playerIff = (uint16_t)g_players[g_localPlayer].playerIff;
+		playerIff = (uint16_t)g_players[g_localPlayer].team;
 		team = g_missionFlightGroups[g_objectTable[(uint16_t)objectIndex].flightGroupIdx].fg.team;
 		if (team == playerIff)
 			isEnemy = 0;
@@ -2486,8 +2485,8 @@ void Player_UpdateParticipationState(void) {
 					FlightNet_MarkPilotNetworkPlayerLeft((int)playerIdx);
 				msg_addMessagePtr(0, NetSession_GetPlayerName((int)playerIdx));
 				msg_emitInFlightMessage(IFMSG_380_ARG_HAS_QUIT_THE_MISSION, g_localPlayer);
-				if (g_localPlayer == (int)playerIdx && NetSession_GetLocalPlayerId() != 0)
-					FlightNet_BroadcastLocalPlayerLeft();
+				if (g_localPlayer == (int)playerIdx && NetSession_IsLocalHost() != 0)
+					FlightNet_BroadcastHostSessionAbort();
 			}
 		}
 	}
@@ -2517,7 +2516,7 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx) {
 		object = &g_objectTable[objectIdx];
 		if (object->objectType != 0 && g_players[playerIdx].objectIndex != objectIdx &&
 			excludedObjectIdx != objectIdx) {
-			playerIff = (uint16_t)g_players[playerIdx].playerIff;
+			playerIff = (uint16_t)g_players[playerIdx].team;
 			if (object->mobj->team != playerIff) {
 				team = g_missionFlightGroups[g_objectTable[(uint16_t)objectIdx].flightGroupIdx].fg.team;
 				if (team == playerIff)
@@ -2554,7 +2553,7 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx) {
 		if (staticObject->objectType != 0 && staticObject->genusId == CRAFT_GENUS_MINE &&
 			excludedObjectIdx != (int16_t)staticObjectIdx && staticObject->typeSpecificWord != 0) {
 			staticObjectTeam = g_missionFlightGroups[g_objectTable[staticObjectIdx].flightGroupIdx].fg.team;
-			localPlayerIff = (uint16_t)g_players[playerIdx].playerIff;
+			localPlayerIff = (uint16_t)g_players[playerIdx].team;
 			if (localPlayerIff == staticObjectTeam)
 				isEnemy = 0;
 			else

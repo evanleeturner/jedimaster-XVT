@@ -402,7 +402,7 @@ void FrontendText_FreeAllFonts(void) {
 				g_frontState.fontSlots[index].pGlyphBits = 0;
 			}
 #ifdef XVT_MODERN
-			XvtRenderAssets_FreeImage(&g_frontState.fontSlots[index]);
+			XvtRenderAssets_RetireImage(&g_frontState.fontSlots[index]);
 #endif
 			g_frontState.fontSlots[index].inUse = 0;
 		}
@@ -420,7 +420,7 @@ void FrontendText_FreeFont(unsigned int pointSize) {
 			free(g_frontState.fontSlots[index].pGlyphBits);
 			g_frontState.fontSlots[index].pGlyphBits = 0;
 #ifdef XVT_MODERN
-			XvtRenderAssets_FreeImage(&g_frontState.fontSlots[index]);
+			XvtRenderAssets_RetireImage(&g_frontState.fontSlots[index]);
 #endif
 			g_frontState.fontSlots[index].inUse = 0;
 			g_frontState.fontBySize[pointSize] = 0;
@@ -906,30 +906,30 @@ int FrontendText_LoadFontAtlasFile(const char* fileName, int slotIndex) {
 }
 
 // FUNCTION: XVT 0x4DC140
-int FrontendText_ResetGlyphScratchBuffer(int frames) {
+int FrontendText_StartTextFadeIn(int frames) {
 	memset(g_frontState.glyphScratchBuffer, 0, sizeof(g_frontState.glyphScratchBuffer));
-	g_frontState.glyphScratchTtl = frames;
-	g_frontState.glyphScratchReload = frames;
+	g_frontState.textFadeFramesLeft = frames;
+	g_frontState.textFadeFrameCount = frames;
 	return 1;
 }
 
 // FUNCTION: XVT 0x4DC170
-int FrontendText_ResetGlyphScratch(void) {
-	g_frontState.glyphScratchTtl = 0;
-	g_frontState.glyphScratchReload = 0;
+int FrontendText_StopTextFade(void) {
+	g_frontState.textFadeFramesLeft = 0;
+	g_frontState.textFadeFrameCount = 0;
 	return 1;
 }
 
 // FUNCTION: XVT 0x4DC190
 int FrontendText_PushGlyphScratchTtl(void) {
-	g_savedGlyphScratchTtl = g_frontState.glyphScratchTtl;
-	g_frontState.glyphScratchTtl = 0;
+	g_savedGlyphScratchTtl = g_frontState.textFadeFramesLeft;
+	g_frontState.textFadeFramesLeft = 0;
 	return 1;
 }
 
 // FUNCTION: XVT 0x4DC1B0
 int FrontendText_PopGlyphScratchTtl(void) {
-	g_frontState.glyphScratchTtl = g_savedGlyphScratchTtl;
+	g_frontState.textFadeFramesLeft = g_savedGlyphScratchTtl;
 	return 1;
 }
 
@@ -1028,7 +1028,7 @@ void FrontendText_DrawFormattedWrappedText(RECT* rect, const uint8_t* text, int 
 				FrontendText_DrawAlignedInRect(10, lineBuffer, &drawRect, 0, 1, 0xFFFF);
 			} else {
 				FrontendDraw_RectOffsetXY(&drawRect, 0, 1);
-				FrontendText_DrawCentered(10, &lineBuffer[1], &drawRect, g_colorLightBlue);
+				FrontendText_DrawCentered(10, &lineBuffer[1], &drawRect, g_colorYellow);
 				FrontendDraw_RectOffsetXY(&drawRect, 0, -1);
 			}
 			lineStart = -1;

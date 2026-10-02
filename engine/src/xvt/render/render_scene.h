@@ -48,7 +48,7 @@ extern Std3DRenderTri* g_triBuffer;
 extern int g_clipInputProjVertEndIndex;
 extern int g_maxBatchVerts;
 extern int g_d3dVertexCount;
-extern int g_d3dIndexCount;
+extern int g_d3dTriangleCount;
 extern float g_flightVpOriginX;
 extern uint16_t g_sceneSpanDataHandle;
 extern uint16_t g_sceneSpanPtrListHandle;
@@ -111,13 +111,13 @@ struct SceneMesh {
 	OptVector* pModelVerts;
 	OptTexCoord* pUVs;
 	OptVector* pVertNormals;
-	int nodeType10Flags78; ///< Receives g_curMeshFlags when OPT_TYPE_10 param1 is 7 or 8; no downstream
+	int nodeType10Flags78; ///< Receives g_curMeshFlags when OPT_TYPE_10 payloadCount is 7 or 8; no downstream
 						   ///< consumer is identified.
 	int faceCount;
 	int edgeCount;
 	OptVector* pFaceNormals;
 	FaceTextureGradients* pFaceTexturing;
-	int nodeType10Flags56; ///< Receives g_curMeshFlags when OPT_TYPE_10 param1 is 5 or 6; no downstream
+	int nodeType10Flags56; ///< Receives g_curMeshFlags when OPT_TYPE_10 payloadCount is 5 or 6; no downstream
 						   ///< consumer is identified.
 	FaceRecord* pFaceGeom;
 	char* pTextureName;

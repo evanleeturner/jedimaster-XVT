@@ -35,8 +35,8 @@ void ModelBounds_EnsureCached(int modelType) {
 			if (rootNode != 0 && rootNode->nodeType != OPT_TEXTURE) {
 				vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNode);
 				if (vertexNode != 0) {
-					vertexData = (float*)vertexNode->param2;
-					vertexCount = vertexNode->param1;
+					vertexData = (float*)vertexNode->payload;
+					vertexCount = vertexNode->payloadCount;
 					if (vertexCount >= 2) {
 						bounds = vertexData + 3 * vertexCount - 6;
 						if (bounds[0] < minBounds.x)

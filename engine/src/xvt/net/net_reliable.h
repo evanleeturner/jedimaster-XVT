@@ -38,8 +38,8 @@ typedef char xvt_size_NetReliablePeerSlot[(sizeof(NetReliablePeerSlot) == 568) ?
 struct NetQueuedPacket {
 	DPID directPlayId;
 	uint32_t payloadSize;
-	int aux;
-	uint8_t meta0;
+	int lastNackMs;
+	uint8_t nackRetryCount;
 	uint8_t packetClass;
 	uint8_t sequenceByte;
 	uint8_t queuedFlag;
@@ -74,13 +74,13 @@ extern NetQueuedPacket g_netSessionRecvQueue[1024];
 extern int g_netLastDeliveredRecvSequence;
 
 int NetReliable_GetLastDeliveredRecvSequence(void);
-int NetReliable_IsDuplicateRecvSequence(int directPlayId, int sequence, int channelA, int channelB);
+int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence, int channelA, int channelB);
 int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int wantType0, int wantType2, int peerSlot);
 int NetReliable_RemoveQueuedPacket(unsigned int queueIndex);
 unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId);
 void NetReliable_ResetRecvQueueState(void);
-int NetReliable_GetPeerPacketDropCountByDpid_0(int directPlayId);
-int NetReliable_CompactLocalReceiveQueue(void);
+int NetReliable_GetPeerPacketDropCountByDpid(int directPlayId);
+int NetReliable_KeepOnlyHostReceivedPackets(void);
 
 #ifdef __cplusplus
 }

@@ -144,7 +144,7 @@ static void XvtFlightFrame_InvalidateRemoteTransforms(void) {
 static void XvtFlightFrame_UpdateLagIndicator(void) {
 	int lagTicks;
 
-	lagTicks = g_inputTimestamp - g_flightNetClockLeadAllowanceMs - g_serverTickTime;
+	lagTicks = g_inputTimestamp - g_flightNetClockLeadTicks - g_serverTickTime;
 	if (lagTicks < LAG_LEVEL_1_TICKS) {
 		g_lagIndicator = 0;
 	} else if (lagTicks < LAG_LEVEL_2_TICKS) {
@@ -166,7 +166,7 @@ static void XvtFlightFrame_UpdatePingIndicator(void) {
 		int hostDropCount;
 
 		hostDplayId = NetSession_GetHostDplayId();
-		hostDropCount = NetReliable_GetPeerPacketDropCountByDpid_0(hostDplayId);
+		hostDropCount = NetReliable_GetPeerPacketDropCountByDpid(hostDplayId);
 		g_flightPingDropScore += PING_DROP_SCORE_STEP * (hostDropCount - g_flightPingPrevHostDropCount);
 		if (g_flightPingDropScore == 0) {
 			g_pingIndicator = 0;
@@ -241,9 +241,9 @@ static void XvtFlightFrame_FormatUpdateHistogram(void) {
 static void XvtFlightFrame_Render(void) {
 	int updateTicks, renderTicks, loopTicks, renderStartTimestamp;
 	char overlayLine[180];
-	g_inputTimestamp += Time_GetFrameDelta();
+	g_inputTimestamp += Time_ConsumeElapsedTicks();
 	updateTicks = g_inputTimestamp - g_frame.frameStartTimestamp;
-	g_inputTimestamp += Time_GetFrameDelta();
+	g_inputTimestamp += Time_ConsumeElapsedTicks();
 	XvtFlightFrame_UpdateLagIndicator();
 	XvtFlightFrame_UpdatePingIndicator();
 
@@ -257,9 +257,9 @@ static void XvtFlightFrame_Render(void) {
 	FlightView_RenderFrame();
 	g_flightSfxSideEffectGate = 0;
 	Sound_FlushQueuedEffects();
-	FlightSync_CaptureRemotePlayerRenderSamples();
+	FlightSync_CaptureSamplesAndRestorePoses();
 	XvtFlightFrame_InvalidateRemoteTransforms();
-	g_inputTimestamp += Time_GetFrameDelta();
+	g_inputTimestamp += Time_ConsumeElapsedTicks();
 	renderTicks = g_inputTimestamp - renderStartTimestamp;
 	loopTicks = g_inputTimestamp - g_frame.loopStartTimestamp;
 	if (loopTicks == 0) {
@@ -281,12 +281,11 @@ static void XvtFlightFrame_Render(void) {
 		g_flightTickOverlayLastLoopTicks = loopTicks;
 		g_flightTickOverlayWindowTicks += loopTicks;
 		++g_flightTickOverlaySampleCount;
-		sprintf(overlayLine,
-				"R:%-2d U:%-2d N:%-2d O:%-2d T:%-2d FR:%-2d NOW:%-7dL:%-7dS:%-7dW:%-3dD:%-3dA%d\n",
-				renderTicks, updateTicks, 0, loopTicks - updateTicks - renderTicks, loopTicks,
-				SIMULATION_TICKS_PER_SECOND / loopTicks, g_inputTimestamp, g_gameTime, g_serverTickTime,
-				g_inputTimestamp - g_serverTickTime, g_flightNetClockLeadAllowanceMs,
-				g_flightNetClockAdjustAccumTicks);
+		sprintf(
+			overlayLine, "R:%-2d U:%-2d N:%-2d O:%-2d T:%-2d FR:%-2d NOW:%-7dL:%-7dS:%-7dW:%-3dD:%-3dA%d\n",
+			renderTicks, updateTicks, 0, loopTicks - updateTicks - renderTicks, loopTicks,
+			SIMULATION_TICKS_PER_SECOND / loopTicks, g_inputTimestamp, g_gameTime, g_serverTickTime,
+			g_inputTimestamp - g_serverTickTime, g_flightNetClockLeadTicks, g_flightNetClockAdjustAccumTicks);
 		if (updateTicks < 0) {
 			updateTicks = 0;
 		}
@@ -323,12 +322,10 @@ static void XvtFlightFrame_AdjustClock(void) {
 	if (cap < 1)
 		cap = 1;
 	char fellBehindLogLine[180];
-	g_inputTimestamp += Time_GetFrameDelta();
-	if ((unsigned int)(g_serverTickTime + g_flightNetClockLeadAllowanceMs) >=
-		(unsigned int)g_inputTimestamp) {
-		if ((unsigned int)(g_serverTickTime + g_flightNetClockLeadAllowanceMs) >
-			(unsigned int)g_inputTimestamp) {
-			clockAdjustment = (g_serverTickTime + g_flightNetClockLeadAllowanceMs - g_inputTimestamp) >>
+	g_inputTimestamp += Time_ConsumeElapsedTicks();
+	if ((unsigned int)(g_serverTickTime + g_flightNetClockLeadTicks) >= (unsigned int)g_inputTimestamp) {
+		if ((unsigned int)(g_serverTickTime + g_flightNetClockLeadTicks) > (unsigned int)g_inputTimestamp) {
+			clockAdjustment = (g_serverTickTime + g_flightNetClockLeadTicks - g_inputTimestamp) >>
 							  CLOCK_ADJUST_DIVISOR_SHIFT;
 			if (clockAdjustment == 0) {
 				clockAdjustment = 1;
@@ -340,8 +337,8 @@ static void XvtFlightFrame_AdjustClock(void) {
 			g_inputTimestamp += clockAdjustment;
 		}
 	} else {
-		clockAdjustment = (g_inputTimestamp - g_flightNetClockLeadAllowanceMs - g_serverTickTime) >>
-						  CLOCK_ADJUST_DIVISOR_SHIFT;
+		clockAdjustment =
+			(g_inputTimestamp - g_flightNetClockLeadTicks - g_serverTickTime) >> CLOCK_ADJUST_DIVISOR_SHIFT;
 		if (clockAdjustment == 0) {
 			clockAdjustment = 1;
 		}
@@ -355,8 +352,8 @@ static void XvtFlightFrame_AdjustClock(void) {
 	if (g_serverTickTime > g_inputTimestamp) {
 		sprintf(fellBehindLogLine, "Fell Behind! tickcounter:%-7d serverticks:%-7d adjustment:%-4d\n",
 				g_inputTimestamp, g_serverTickTime,
-				g_serverTickTime + g_flightNetClockLeadAllowanceMs - g_inputTimestamp);
-		clockAdjustment = g_serverTickTime + g_flightNetClockLeadAllowanceMs - g_inputTimestamp;
+				g_serverTickTime + g_flightNetClockLeadTicks - g_inputTimestamp);
+		clockAdjustment = g_serverTickTime + g_flightNetClockLeadTicks - g_inputTimestamp;
 		XVT_LOG_DEBUG("network.fell_behind input=%d server=%d adjust=%d", g_inputTimestamp, g_serverTickTime,
 					  clockAdjustment);
 		g_inputTimestamp += clockAdjustment;
@@ -371,7 +368,7 @@ static void XvtFlightFrame_StartAdvance(void) {
 	g_inputTimestamp = g_frame.frameTargetTimestamp;
 	FlightNet_SampleAndSendInput();
 	g_flightSimSideEffectsSuppressed = 0;
-	dtMs = g_inputTimestamp - g_gameTime;
+	g_netUpdateIntervalTicks = g_inputTimestamp - g_gameTime;
 	g_frame.phase = XVT_FRAME_ADVANCE;
 }
 
@@ -415,13 +412,13 @@ static void XvtFlightFrame_Checksum(void) {
 		XvtLog_FormatHexList(sums, sizeof sums, g_worldChecksum, REGIONS);
 		XvtLog_FormatHexList(lengths, sizeof lengths, g_peerChecksumRegionLengths, REGIONS);
 		XVT_LOG_DEBUG("network.checksum tick=%d host=%d sums=\"%s\" lengths=\"%s\"", g_serverTickTime,
-					  NetSession_GetLocalPlayerId() != 0, sums, lengths);
+					  NetSession_IsLocalHost() != 0, sums, lengths);
 	}
-	if (NetSession_GetLocalPlayerId())
+	if (NetSession_IsLocalHost())
 		FlightNet_BroadcastWorldChecksum((const int*)g_worldChecksum, (const int*)g_peerChecksumRegionLengths,
 										 16);
-	FlightNet_SendWorldChecksumToLocalPlayer((const int*)g_worldChecksum,
-											 (const int*)g_peerChecksumRegionLengths, 16);
+	FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum, (const int*)g_peerChecksumRegionLengths,
+									  16);
 	g_flightNetBufferWorldMessagesUntilChecksum = 1;
 	FlightSync_SnapshotWorldStateForReplay();
 	FlightSync_ResetWorldMessageBufferCursor();
@@ -514,16 +511,16 @@ static int XvtFlightFrame_NetworkTick(void) {
 		return XvtFlightFrame_End("mission_ended");
 	XvtFlightFrame_NetworkBudget();
 	if (!g_confirm.suspended && !g_confirm.predicted_suspended) {
-		int elapsed = Time_GetFrameDelta();
+		int elapsed = Time_ConsumeElapsedTicks();
 		if ((int64_t)g_inputTimestamp + elapsed >= INT32_MAX - 258) {
-			FlightNet_BroadcastLocalPlayerLeft();
+			FlightNet_BroadcastHostSessionAbort();
 			return XvtFlightFrame_End("clock_limit");
 		}
 		g_inputTimestamp += elapsed;
-		if (!NetSession_GetLocalPlayerId())
-			g_flightNetHostTimeoutElapsedMs += elapsed;
-		if (g_flightNetHostTimeoutElapsedMs > HOST_TIMEOUT_TICKS) {
-			XVT_LOG_WARN("network.host_timeout ticks=%d", g_flightNetHostTimeoutElapsedMs);
+		if (!NetSession_IsLocalHost())
+			g_flightNetHostTimeoutElapsedTicks += elapsed;
+		if (g_flightNetHostTimeoutElapsedTicks > HOST_TIMEOUT_TICKS) {
+			XVT_LOG_WARN("network.host_timeout ticks=%d", g_flightNetHostTimeoutElapsedTicks);
 			FlightNet_BroadcastPlayerAbort(g_localPlayer);
 			return XvtFlightFrame_End("host_timeout");
 		}
@@ -564,7 +561,7 @@ static int XvtFlightFrame_NetworkTick(void) {
 	}
 	XvtFlightFrame_AdjustClock();
 	if (g_inputTimestamp >= INT32_MAX - 258) {
-		FlightNet_BroadcastLocalPlayerLeft();
+		FlightNet_BroadcastHostSessionAbort();
 		return XvtFlightFrame_End("clock_limit");
 	}
 	int target = g_inputTimestamp & ~1;
@@ -606,7 +603,7 @@ int XvtFlightFrame_Tick(void) {
 		return 0;
 	if (g_frame.phase == XVT_FRAME_ADVANCE)
 		return XvtFlightFrame_Advance();
-	g_inputTimestamp += Time_GetFrameDelta();
+	g_inputTimestamp += Time_ConsumeElapsedTicks();
 	g_frame.loopStartTimestamp = g_inputTimestamp;
 	if (g_inputTimestamp - g_gameTime < (int)XvtFlightTiming_StepTicks())
 		return 0;
@@ -618,7 +615,7 @@ int XvtFlightFrame_Tick(void) {
 		return XvtFlightFrame_End("mission_complete");
 	}
 	g_frame.frameStartTimestamp = g_inputTimestamp;
-	g_inputTimestamp += Time_GetFrameDelta();
+	g_inputTimestamp += Time_ConsumeElapsedTicks();
 	XvtFlightFrame_StartAdvance();
 	return XvtFlightFrame_Advance();
 }

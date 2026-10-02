@@ -223,7 +223,7 @@ int XvtFlightEntry_Prepare(char* missionCmdLine) {
 	g_session = 1;
 	return NetSession_InitGameSession(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_SESSION_NAME],
 									  g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_PILOT_NAME],
-									  atoi(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_LOCAL_ID]),
+									  atoi(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_IS_HOST]),
 									  g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_MP_GAME_NAME],
 									  networkType,
 									  atoi(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_NUM_PLAYERS]),
@@ -405,8 +405,8 @@ static void XvtFlightEntry_Configure(void) {
 		}
 	}
 	XvtFlightEntry_ConfigureDisplaySize();
-	g_unusedFlightDisplayBytesPerPixelMirror = g_flight16bppBytesPerPixel;
-	g_unusedFlightDisplayHardware3DMirror = g_useHardware3D;
+	g_requestedFlightBytesPerPixel = g_flight16bppBytesPerPixel;
+	g_requestedFlightHardware3D = g_useHardware3D;
 }
 
 int XvtFlightEntry_CreateDevices(void) {

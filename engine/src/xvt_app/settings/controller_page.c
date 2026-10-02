@@ -299,9 +299,9 @@ void XvtControllerSettings_Discover(XvtControllerSettings* settings, AeronUiCont
 		settings->dirty = true;
 		XvtControllerMapping_SetOptions(&settings->draft);
 	}
-	if (ok && settings->capacity_warned)
+	if (ok && settings->discover_failed)
 		settings->error[0] = 0;
-	settings->capacity_warned = !ok;
+	settings->discover_failed = !ok;
 }
 
 static int XvtControllerSettings_ProfileMissingCount(const XvtControllerProfile* profile,
@@ -626,7 +626,7 @@ static void XvtControllerSettings_BindingDetailModal(XvtControllerSettings* sett
 				XvtControllerSettings_ApplyDraft(settings);
 			}
 		}
-		if (XvtBindingsEditor_Remove(ui)) {
+		if (XvtBindingsEditor_RemoveButton(ui)) {
 			XvtControllerSettings_RemoveBinding(profile, profile_index);
 			settings->editor.binding_selected = SIZE_MAX;
 			XvtControllerSettings_ApplyDraft(settings);

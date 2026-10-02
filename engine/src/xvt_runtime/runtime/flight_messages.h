@@ -53,7 +53,7 @@ size_t XvtFlightMessages_EncodeBatch(uint8_t* out, uint32_t cookie, const XvtFli
 									 unsigned count);
 /* Validates an input batch without extracting it: returns 1 when the opcode, cookie, count and
  * size match and every record decodes with strictly rising ticks. */
-int XvtFlightMessages_DecodeBatch(const uint8_t* bytes, size_t size, uint32_t cookie);
+int XvtFlightMessages_ValidateBatch(const uint8_t* bytes, size_t size, uint32_t cookie);
 /* Writes part of message for cookie into out. Returns its size, or 0 for a zero cookie, a part out
  * of range or a message over XVT_WORLD_RECORDS records. */
 size_t XvtFlightMessages_EncodePart(uint8_t* out, const XvtFlightMessage* message, uint32_t cookie,

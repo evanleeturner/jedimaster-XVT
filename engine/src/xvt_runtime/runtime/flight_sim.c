@@ -28,7 +28,7 @@ int XvtFlightSim_Resume(void) {
 	if (FlightInput_Read(-2) != FLIGHT_KEY_ALT_P)
 		return 0;
 	XvtFlightControls_Recover();
-	Time_GetFrameDelta();
+	Time_ConsumeElapsedTicks();
 	msg_emitInFlightMessage(IFMSG_002_MISSION_RESUMED, g_sim.player);
 	g_actionKey = 0;
 	g_flightDisplayRebuildPending = 0;
@@ -146,7 +146,7 @@ int XvtFlightSim_UpdateEntity(int playerIdx) {
 					case FLIGHT_KEY_ALT_P:
 						if (g_flightPlayerCount == 1 && !XvtPort_NetworkRequiresProgress()) {
 							XvtFlightControls_Recover();
-							g_inputTimestamp += Time_GetFrameDelta();
+							g_inputTimestamp += Time_ConsumeElapsedTicks();
 							fsfx_PlaySound(FLIGHT_SOUND_SMALL_CLICK, -1, playerIdx);
 							/* Publish the pause text over the retained HD flight view. */
 							XvtRenderCapture_BeginOverlay();
@@ -326,7 +326,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 					mobileObject = object->mobj;
 					if (mobileObject == NULL || mobileObject->pCraft == NULL)
 						continue;
-					if (g_players[playerIdx].savedFieldId == object->objectSignature &&
+					if (g_players[playerIdx].savedObjectSignature == object->objectSignature &&
 						g_players[playerIdx].savedRegion == g_players[playerIdx].regionSessionId) {
 						if (mobileObject->simStateTimestamp > g_players[playerIdx].lockstepTimestamp) {
 							XvtFlightCheckpoint_RestorePlayer(playerIdx);
@@ -399,7 +399,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 						g_players[playerIdx].savedRollImpulseRate = object->mobj->rollImpulseRate;
 						g_players[playerIdx].savedSpeed = object->mobj->speed;
 						g_players[playerIdx].savedSpeedRemainder = object->mobj->speedRemainder;
-						g_players[playerIdx].savedFieldId = object->objectSignature;
+						g_players[playerIdx].savedObjectSignature = object->objectSignature;
 						g_players[playerIdx].savedRegion = g_players[playerIdx].regionSessionId;
 						XvtFlightCheckpoint_SavePlayer(playerIdx, frame->timestamp);
 					}
@@ -625,7 +625,7 @@ XvtInputInsertStatus XvtFlightHistory_InsertReal(unsigned player, int tick,
 	}
 	if (frame) {
 		frame->valid = authoritative ? XVT_INPUT_AUTHORITATIVE : XVT_INPUT_REAL;
-		frame->applied = !authoritative && NetSession_GetLocalPlayerId();
+		frame->applied = !authoritative && NetSession_IsLocalHost();
 	} else if (authoritative) {
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
 			InputFrame* old = &g_inputHistory[player][i];

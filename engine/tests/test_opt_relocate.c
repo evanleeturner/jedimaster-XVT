@@ -49,7 +49,7 @@ static void Build(Block* block) {
 	block->hullChildren[2] = &block->vertices;
 
 	block->texture0.nodeType = OPT_TEXTURE;
-	block->texture0.param2 = &block->textureData[0];
+	block->texture0.payload = &block->textureData[0];
 	block->textureData[0].paletteType = 0;
 	block->textureData[0].palette = block->palettes[0];
 
@@ -61,17 +61,17 @@ static void Build(Block* block) {
 	block->wingChildren[1] = &block->reference;
 
 	block->texture1.nodeType = OPT_TEXTURE;
-	block->texture1.param2 = &block->textureData[1];
+	block->texture1.payload = &block->textureData[1];
 	block->textureData[1].paletteType = 1;
 	block->textureData[1].palette = block->palettes[1];
 
 	block->reference.nodeType = OPT_NODEREF;
-	block->reference.param2 = block->names[2];
-	block->reference.param1 = (XvtOptValue)&block->hull;
+	block->reference.payload = block->names[2];
+	block->reference.payloadCount = (XvtOptValue)&block->hull;
 
 	block->vertices.nodeType = OPT_MESHVERTS;
-	block->vertices.param1 = 2;
-	block->vertices.param2 = block->payload;
+	block->vertices.payloadCount = 2;
+	block->vertices.payload = block->payload;
 }
 
 /* Returns a copy of block at a new address, its pointers still into block. */
@@ -105,24 +105,24 @@ static void CheckRelocateMovesEveryPointer(void) {
 	XVT_ASSERT_SAME_OFFSET(original, moved, hull.pChildren);
 	for (int i = 0; i < 3; ++i)
 		XVT_ASSERT_SAME_OFFSET(original, moved, hullChildren[i]);
-	XVT_ASSERT_SAME_OFFSET(original, moved, texture0.param2);
-	XVT_ASSERT_SAME_OFFSET(original, moved, vertices.param2);
-	XVT_ASSERT_SAME_OFFSET(original, moved, reference.param2);
+	XVT_ASSERT_SAME_OFFSET(original, moved, texture0.payload);
+	XVT_ASSERT_SAME_OFFSET(original, moved, vertices.payload);
+	XVT_ASSERT_SAME_OFFSET(original, moved, reference.payload);
 
 	/* The Wing group is reached from two parents and moves once. */
 	XVT_ASSERT_SAME_OFFSET(original, moved, wing.pName);
 	XVT_ASSERT_SAME_OFFSET(original, moved, wing.pChildren);
 	for (int i = 0; i < 2; ++i)
 		XVT_ASSERT_SAME_OFFSET(original, moved, wingChildren[i]);
-	XVT_ASSERT_SAME_OFFSET(original, moved, texture1.param2);
+	XVT_ASSERT_SAME_OFFSET(original, moved, texture1.payload);
 
 	/* A palette moves for palette type 0 only; for other types the old address stays. */
 	XVT_ASSERT_SAME_OFFSET(original, moved, textureData[0].palette);
 	XVT_ASSERT_TRUE(moved->textureData[1].palette == original->textureData[1].palette);
 
 	/* Relocation clears the reference cache; a vertex count is not a pointer and stays. */
-	XVT_ASSERT_INT_EQ(moved->reference.param1, 0);
-	XVT_ASSERT_INT_EQ(moved->vertices.param1, 2);
+	XVT_ASSERT_INT_EQ(moved->reference.payloadCount, 0);
+	XVT_ASSERT_INT_EQ(moved->vertices.payloadCount, 2);
 	free(moved);
 	free(original);
 }
@@ -152,18 +152,18 @@ static void CheckRelocateNode(void) {
 	XVT_ASSERT_SAME_OFFSET(original, moved, wing.pChildren);
 	for (int i = 0; i < 2; ++i)
 		XVT_ASSERT_SAME_OFFSET(original, moved, wingChildren[i]);
-	XVT_ASSERT_SAME_OFFSET(original, moved, texture1.param2);
-	XVT_ASSERT_SAME_OFFSET(original, moved, reference.param2);
+	XVT_ASSERT_SAME_OFFSET(original, moved, texture1.payload);
+	XVT_ASSERT_SAME_OFFSET(original, moved, reference.payload);
 	XVT_ASSERT_TRUE(moved->textureData[1].palette == original->textureData[1].palette);
-	XVT_ASSERT_INT_EQ(moved->reference.param1, 0);
+	XVT_ASSERT_INT_EQ(moved->reference.payloadCount, 0);
 
 	/* Nothing above it or beside it moves, the model header included. */
 	XVT_ASSERT_TRUE(moved->model.selfMarker == &original->model);
 	XVT_ASSERT_TRUE(moved->model.rootNodes == original->model.rootNodes);
 	XVT_ASSERT_TRUE(moved->hull.pChildren == original->hull.pChildren);
 	XVT_ASSERT_TRUE(moved->hullChildren[0] == original->hullChildren[0]);
-	XVT_ASSERT_TRUE(moved->texture0.param2 == original->texture0.param2);
-	XVT_ASSERT_TRUE(moved->vertices.param2 == original->vertices.param2);
+	XVT_ASSERT_TRUE(moved->texture0.payload == original->texture0.payload);
+	XVT_ASSERT_TRUE(moved->vertices.payload == original->vertices.payload);
 	free(moved);
 	free(original);
 }
@@ -172,20 +172,20 @@ static void CheckResolveCached(void) {
 	Block* block = malloc(sizeof *block);
 	XVT_ASSERT_TRUE(block != NULL);
 	Build(block);
-	block->reference.param1 = 0;
+	block->reference.payloadCount = 0;
 
-	/* The first use looks the name up and caches the node in param1. */
+	/* The first use looks the name up and caches the node in payloadCount. */
 	XVT_ASSERT_TRUE(XvtOpt_ResolveCached(&block->model, &block->reference) == &block->hull);
-	XVT_ASSERT_TRUE(block->reference.param1 == (XvtOptValue)&block->hull);
+	XVT_ASSERT_TRUE(block->reference.payloadCount == (XvtOptValue)&block->hull);
 
 	/* Later uses return the cached node, even once the name no longer leads there. */
 	block->hull.pName = NULL;
 	XVT_ASSERT_TRUE(XvtOpt_ResolveCached(&block->model, &block->reference) == &block->hull);
 
 	/* A failed lookup returns NULL, caches nothing, and is tried again on the next call. */
-	block->reference.param1 = 0;
+	block->reference.payloadCount = 0;
 	XVT_ASSERT_TRUE(XvtOpt_ResolveCached(&block->model, &block->reference) == NULL);
-	XVT_ASSERT_INT_EQ(block->reference.param1, 0);
+	XVT_ASSERT_INT_EQ(block->reference.payloadCount, 0);
 	block->vertices.pName = block->names[0];
 	XVT_ASSERT_TRUE(XvtOpt_ResolveCached(&block->model, &block->reference) == &block->vertices);
 	free(block);

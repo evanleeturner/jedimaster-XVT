@@ -47,7 +47,7 @@ int XvtCampaignTask_WaitPacket(int packet_type, int** packet) {
 	DPID sender;
 	uint32_t size;
 	int count;
-	uint32_t now = XvtTime_GetElapsedTicks();
+	uint32_t now = XvtTime_GetElapsedMs();
 	*packet = NULL;
 	if (!g_campaign.packet_type) {
 		g_campaign.packet_type = packet_type;
@@ -94,7 +94,7 @@ int XvtCampaignTask_EnterTeams(void) {
 		g_frontendFirstVisibleLine = 0;
 		if (!File_CheckGameCdPresent(g_skipMovieChecks))
 			XvtStorage_Fatal("Cannot load required flight/voice files", 1);
-		Frontend_MarkHostCdAvailable();
+		Frontend_CheckHostCdPresent();
 		if (!g_hostCdAvailable && g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_NET_CLIENT)
 			XvtStorage_Fatal("Cannot load required training mission", 1);
 		if (g_skipFrontendEntryMovie ||
@@ -178,7 +178,7 @@ int XvtCampaignTask_EnterDebrief(void) {
 					g_debriefDisconnectedFromNetGame = 1;
 			}
 		}
-		Net_ResetRosterToLocalPlayerWithLockGuard();
+		Net_RefreshPlayerRosterWithLockGuard();
 		if (g_pilotData.promotionDelta == PILOT_PROMOTION_NONE ||
 			g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER)
 			return XvtCampaignTask_Finish(1);

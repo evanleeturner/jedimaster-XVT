@@ -82,7 +82,8 @@ void SceneBillboard_QueueObjectTextured(int objectIndex) {
 		}
 	}
 
-	if (frame >= BILLBOARD_INVALID_FRAME_START || frame < BILLBOARD_MODEL_FRAME_LIMIT || depthZ < 0) {
+	if (frame >= BILLBOARD_INVALID_FRAME_START || frame < BILLBOARD_MODEL_FRAME_LIMIT ||
+		g_viewSpaceDepth < 0) {
 		return;
 	}
 	absR0Z = g_objViewMat_R0_Z;
@@ -106,12 +107,12 @@ void SceneBillboard_QueueObjectTextured(int objectIndex) {
 		rotationAngle = (uint16_t)-trig2_arctan(axisY, axisX);
 	}
 
-	projectedX = TRANSFM2_ProjectScreenX(viewX, depthZ);
+	projectedX = TRANSFM2_ProjectScreenX(g_viewSpaceX, g_viewSpaceDepth);
 	projectedXHigh = projectedX & BILLBOARD_SCREEN_COORD_HIGH_MASK;
 	if (projectedXHigh > 0 || projectedXHigh < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
 		return;
 	}
-	projectedY = TRANSFM2_ProjectScreenY(viewY, depthZ);
+	projectedY = TRANSFM2_ProjectScreenY(g_viewSpaceY, g_viewSpaceDepth);
 	projectedYHigh = projectedY & BILLBOARD_SCREEN_COORD_HIGH_MASK;
 	if (projectedYHigh > 0 || projectedYHigh < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
 		return;
@@ -128,7 +129,8 @@ void SceneBillboard_QueueObjectTextured(int objectIndex) {
 		screenSize = BILLBOARD_DEFAULT_SCREEN_SIZE;
 	}
 	SceneBillboard_QueueProjectedTextured(g_billboardObjectOrTypeIndex, frame, screenSize,
-										  (int16_t)projectedX, (int16_t)screenY, depthZ, rotationAngle);
+										  (int16_t)projectedX, (int16_t)screenY, g_viewSpaceDepth,
+										  rotationAngle);
 }
 
 // FUNCTION: XVT 0x401250

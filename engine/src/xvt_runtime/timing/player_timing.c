@@ -252,7 +252,7 @@ void XvtPlayerTiming_Encode(unsigned player, XvtPlayerTimingWire* out) {
 	XvtWire_Set16(out->lock_target, state->lock_target);
 	XvtWire_Set16(out->lock_target_signature, state->lock_target_signature);
 	XvtWire_Set16(out->lock_weapon, state->lock_weapon);
-	XvtWire_Set64(out->lock_frame, state->lock_serial);
+	XvtWire_Set64(out->lock_serial, state->lock_serial);
 	XvtWire_Set16(out->camera_focus, state->camera_focus);
 }
 
@@ -293,7 +293,7 @@ int XvtPlayerTiming_Decode(const XvtPlayerTimingWire* record, int apply) {
 	state->lock_target = XvtWire_Get16(record->lock_target);
 	state->lock_target_signature = XvtWire_Get16(record->lock_target_signature);
 	state->lock_weapon = XvtWire_Get16(record->lock_weapon);
-	state->lock_serial = XvtWire_Get64(record->lock_frame);
+	state->lock_serial = XvtWire_Get64(record->lock_serial);
 	state->camera_focus = XvtWire_Get16(record->camera_focus);
 	return 1;
 }

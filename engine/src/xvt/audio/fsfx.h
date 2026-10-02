@@ -122,7 +122,7 @@ int fsfx_LoadSfxList(char* fileNameBuffer, uint16_t firstSoundId);
 void fsfx_LoadMissionVoiceSfx(void);
 void fsfx_StopHyperZoomImp(int playerIdx);
 int fsfx_PlaySound(unsigned int soundId, int objOrMissionPointRef, int playerIdx);
-int fsfx_triggerweaponsfx(unsigned int arg1, int arg2);
+int fsfx_triggerweaponsfx(unsigned int projectileObjectIndex, int playerIdx);
 unsigned int fsfx_ComputeSourceVolume(int objOrMissionPointRef, unsigned int soundId);
 int fsfx_ComputeSourcePan(int objOrMissionPointRef, int* volume);
 int fsfx_UpdateTargetingTone(unsigned int toneState);

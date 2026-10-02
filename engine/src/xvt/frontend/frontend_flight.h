@@ -14,7 +14,7 @@ extern int g_unusedFlightLoadingReadyScreenFlag;
 extern int g_frontendLaunchHumanPlayerCount;
 extern char g_frontendFlightCommandLine[256];
 
-int FlightLoading_GetReadyScreen(int frameCounter);
+int FlightLoading_UpdateReadyScreen(int frameCounter);
 int FrontendFlight_NoOpExit(int frameCounter);
 int FrontendFlight_LaunchSession(int frameCounter);
 

@@ -6,12 +6,12 @@
 int Mouse_ReadPositionAndButtons(int16_t* x, int16_t* y) {
 	int16_t buttons;
 
-	WinMouse_GetPositionAndButtons(&buttons, x, y);
+	WinMouse_PollPositionAndButtons(&buttons, x, y);
 	return buttons;
 }
 
 // FUNCTION: XVT 0x4A4EA0
-void Mouse_ReadDelta(int16_t* deltaX, int16_t* deltaY) { WinMouse_GetMovementDelta(deltaX, deltaY); }
+void Mouse_ReadDelta(int16_t* deltaX, int16_t* deltaY) { WinMouse_PollMovementDelta(deltaX, deltaY); }
 
 // FUNCTION: XVT 0x4AC8D0
 int Mouse_SetPosition(int16_t x, int16_t y) { return WinMouse_SetPosition(x, y); }

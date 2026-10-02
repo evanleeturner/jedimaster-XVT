@@ -21,7 +21,7 @@
 enum { UNSET = 12345 };
 
 static void Fresh(void) {
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 	memset(&g_frontState, 0, sizeof g_frontState);
 	g_musicCdMciDeviceId = 1;
 	g_frontState.cdAudioTrackCache.currentAuxVolume = UNSET;
@@ -46,7 +46,7 @@ static void CheckBeginNeedsADevice(void) {
 	g_musicCdMciDeviceId = 1;
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
 	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 1);
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 }
 
 static void CheckEqualLevels(void) {
@@ -159,7 +159,7 @@ static void CheckBeginReplacesFade(void) {
 	AdvanceMs(1);
 	XvtCdTask_Tick();
 	XVT_ASSERT_INT_EQ(Volume(), 5000 - 256);
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 }
 
 static void CheckCancel(void) {
@@ -168,7 +168,7 @@ static void CheckCancel(void) {
 	AdvanceMs(202);
 	XvtCdTask_Tick();
 	XVT_ASSERT_INT_EQ(Volume(), 512);
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), UINT64_MAX);
 	AdvanceMs(5000);
@@ -224,7 +224,7 @@ static void CheckSoonestWake(void) {
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 50000);
 	g_frontState.cdAudioTrackEndTick = 200;
 	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 101000);
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 }
 
 int main(void) {

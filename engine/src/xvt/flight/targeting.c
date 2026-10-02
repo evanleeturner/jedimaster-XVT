@@ -27,7 +27,7 @@ uint16_t g_targetAngleScore = -1;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x482640
-int16_t Targeting_ScoreCandidate(uint16_t a1, int16_t a2, int a3) {
+int16_t Targeting_ScoreCandidate(uint16_t objectIdx, int16_t a2, int playerIdx) {
 	int16_t scaleShift;
 	int dx;
 	int16_t dy, dz;
@@ -49,50 +49,50 @@ int16_t Targeting_ScoreCandidate(uint16_t a1, int16_t a2, int a3) {
 	uint16_t objectIndex;
 
 	g_targetAngleScore = -1;
-	objectIndex = a1;
-	if (g_players[a3].objectIndex == -1)
+	objectIndex = objectIdx;
+	if (g_players[playerIdx].objectIndex == -1)
 		return 0;
-	pai_ObjectRefUpdateApproxRangeScore(objectIndex, g_players[a3].objectIndex);
+	pai_ObjectRefUpdateApproxRangeScore(objectIndex, g_players[playerIdx].objectIndex);
 
-	if (g_targetRangeScore < 655360) {
+	if (g_lastRoughDistance < 655360) {
 		Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
-		if (g_players[a3].currentTargetObjectIdx == (int16_t)objectIndex) {
+		if (g_players[playerIdx].currentTargetObjectIdx == (int16_t)objectIndex) {
 			target = &g_objectTable[objectIndex];
 			objectType = target->objectType;
 			if (objectType != 0 && g_activeRegionCraftObjectSlotEnd > (int)objectIndex &&
 				target->mobj->pCraft != NULL) {
-				meshIndex = (uint16_t)g_players[a3].selectedTargetComponent;
+				meshIndex = (uint16_t)g_players[playerIdx].selectedTargetComponent;
 				pai_RotateLocalVectorToWorldScratch(target, ModelMesh_GetCenterX(objectType, meshIndex),
 													ModelMesh_GetCenterZ(objectType, meshIndex),
 													-ModelMesh_GetCenterY(objectType, meshIndex));
 				worldlocx += g_rotatedX;
 				worldlocy += g_rotatedY;
 				worldlocz += g_rotatedZ;
-				g_targetRangeScore =
-					collide_roughdistance3d(worldlocx - g_objectTable[g_players[a3].objectIndex].world_x,
-											worldlocy - g_objectTable[g_players[a3].objectIndex].world_y,
-											worldlocz - g_objectTable[g_players[a3].objectIndex].world_z);
+				g_lastRoughDistance = collide_roughdistance3d(
+					worldlocx - g_objectTable[g_players[playerIdx].objectIndex].world_x,
+					worldlocy - g_objectTable[g_players[playerIdx].objectIndex].world_y,
+					worldlocz - g_objectTable[g_players[playerIdx].objectIndex].world_z);
 			}
 		}
-		dx = (worldlocx - g_objectTable[g_players[a3].objectIndex].world_x) >> 4;
-		dy = (worldlocy - g_objectTable[g_players[a3].objectIndex].world_y) >> 4;
-		dz = (worldlocz - g_objectTable[g_players[a3].objectIndex].world_z) >> 4;
+		dx = (worldlocx - g_objectTable[g_players[playerIdx].objectIndex].world_x) >> 4;
+		dy = (worldlocy - g_objectTable[g_players[playerIdx].objectIndex].world_y) >> 4;
+		dz = (worldlocz - g_objectTable[g_players[playerIdx].objectIndex].world_z) >> 4;
 		scaleShift = 4;
 	} else {
 		Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
-		dx = (worldlocx - g_objectTable[g_players[a3].objectIndex].world_x) >> 8;
-		dy = (worldlocy - g_objectTable[g_players[a3].objectIndex].world_y) >> 8;
-		dz = (worldlocz - g_objectTable[g_players[a3].objectIndex].world_z) >> 8;
+		dx = (worldlocx - g_objectTable[g_players[playerIdx].objectIndex].world_x) >> 8;
+		dy = (worldlocy - g_objectTable[g_players[playerIdx].objectIndex].world_y) >> 8;
+		dz = (worldlocz - g_objectTable[g_players[playerIdx].objectIndex].world_z) >> 8;
 		scaleShift = 8;
 	}
 
-	target = &g_objectTable[g_players[a3].objectIndex];
+	target = &g_objectTable[g_players[playerIdx].objectIndex];
 	if (target->mobj->orientMatrixDirty != 0) {
 		FVIEW_calcrotatemove(target->pitch, target->yaw, target);
-		FVIEW_calcrotateorient(g_objectTable[g_players[a3].objectIndex].roll, 0,
-							   &g_objectTable[g_players[a3].objectIndex]);
+		FVIEW_calcrotateorient(g_objectTable[g_players[playerIdx].objectIndex].roll, 0,
+							   &g_objectTable[g_players[playerIdx].objectIndex]);
 	}
-	playerMobileObject = &g_objectTable[g_players[a3].objectIndex].mobj;
+	playerMobileObject = &g_objectTable[g_players[playerIdx].objectIndex].mobj;
 	forward = Math_MulQ15((int16_t)dx, (*playerMobileObject)->cachedFwdX);
 	forward += Math_MulQ15(dy, (*playerMobileObject)->cachedFwdY);
 	forward += Math_MulQ15(dz, (*playerMobileObject)->cachedFwdZ);
@@ -194,8 +194,7 @@ void Targeting_DrawSceneObjectBoxes(void) {
 		teamScore = g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][team];
 		teamScore += g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][team];
 		if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START &&
-			(uint16_t)g_players[g_localPlayer].playerIff == team &&
-			object->genusId == CRAFT_GENUS_STARFIGHTER) {
+			(uint16_t)g_players[g_localPlayer].team == team && object->genusId == CRAFT_GENUS_STARFIGHTER) {
 			colorIndex = COLOR_LOCAL_QUICK_START_CRAFT;
 		} else if (leadingTeam == NO_LEADING_TEAM || teamScore != leadingScore) {
 			if (object->playerOwnerIdx != -1 && object->playerOwnerIdx != g_localPlayer) {
@@ -206,7 +205,7 @@ void Targeting_DrawSceneObjectBoxes(void) {
 
 					craftTeam =
 						g_missionFlightGroups[g_objectTable[(uint16_t)objectIdx].flightGroupIdx].fg.team;
-					playerIff = (uint16_t)g_players[g_localPlayer].playerIff;
+					playerIff = (uint16_t)g_players[g_localPlayer].team;
 					if (craftTeam == playerIff) {
 						isHostile = 0;
 					} else {
@@ -247,7 +246,7 @@ void Targeting_DrawSceneObjectBoxes(void) {
 
 			craft = object->mobj->pCraft;
 			if (g_flightMissionState.locatePlayersEnabled == 0) {
-				playerIff = (uint16_t)g_players[g_localPlayer].playerIff;
+				playerIff = (uint16_t)g_players[g_localPlayer].team;
 				if (craft->iffVisibility[playerIff] == 0) {
 					craftTeam =
 						g_missionFlightGroups[g_objectTable[(uint16_t)objectIdx].flightGroupIdx].fg.team;

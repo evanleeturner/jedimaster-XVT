@@ -41,7 +41,7 @@ static int OtherPlayerBox(const PlayerData* p, const ObjectRecord* o, unsigned s
 	const CraftData* c = o->mobj ? o->mobj->pCraft : NULL;
 	if (!c || o->playerOwnerIdx == -1)
 		return 0;
-	unsigned iff = (uint16_t)p->playerIff, fg = o->flightGroupIdx;
+	unsigned iff = (uint16_t)p->team, fg = o->flightGroupIdx;
 	if (!g_flightMissionState.locatePlayersEnabled && iff < 10 && !c->iffVisibility[iff] && fg < 48) {
 		unsigned team = g_missionFlightGroups[fg].fg.team;
 		if (team < 10 && team != iff && !g_missionTeams[iff].allies[team])
@@ -101,7 +101,7 @@ static void Label(XvtSnapMap* map, XvtSnapMapObject* m, const ObjectRecord* o) {
 	if (fg >= 48 || (!o->mobj && o->genusId == CRAFT_GENUS_MINE))
 		return;
 	const CraftData* craft = o->mobj ? o->mobj->pCraft : NULL;
-	if (o->mobj && (o->mobj->state != 0 || !craft))
+	if (o->mobj && (o->mobj->family != 0 || !craft))
 		return;
 	const XvtFlightGroup* group = &g_missionFlightGroups[fg].fg;
 	unsigned number = 0;
@@ -183,7 +183,7 @@ void XvtRenderMap_Capture(XvtSnapMap* map, const XvtSnapObject* objects, unsigne
 			map->icon_asset_id = id;
 			m->icon_frame = (uint16_t)actual;
 		}
-		m->movement_visible = o->mobj && o->mobj->state == 0;
+		m->movement_visible = o->mobj && o->mobj->family == 0;
 		m->move_x = snap->move_q15[0];
 		m->move_y = snap->move_q15[1];
 		if (snap->orient_dirty) {

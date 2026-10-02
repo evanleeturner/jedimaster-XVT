@@ -36,7 +36,7 @@ struct PilotNetworkPlayer {
 	int totalScore;
 	int kills;
 	int killsShared;
-	int unknown34;
+	int craftInspected;
 	int killsAssist;
 	int totalLosses;
 	int craftId;

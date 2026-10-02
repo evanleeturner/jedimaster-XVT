@@ -191,7 +191,7 @@ void WinMouse_SetScaleFactors(int scaleX, int scaleY) {
 }
 
 // FUNCTION: XVT 0x4AC860
-void WinMouse_GetPositionAndButtons(int16_t* buttons, int16_t* x, int16_t* y) {
+void WinMouse_PollPositionAndButtons(int16_t* buttons, int16_t* x, int16_t* y) {
 	int positionX;
 	int positionY;
 	int buttonDown[3];
@@ -207,7 +207,8 @@ void WinMouse_GetPositionAndButtons(int16_t* buttons, int16_t* x, int16_t* y) {
 }
 
 // FUNCTION: XVT 0x4AC8F0
-void WinMouse_GetButtonPress(int16_t buttonIndex, int16_t* isDown, int16_t* pressed, int16_t* x, int16_t* y) {
+void WinMouse_PollButtonPress(int16_t buttonIndex, int16_t* isDown, int16_t* pressed, int16_t* x,
+							  int16_t* y) {
 	int positionX;
 	int positionY;
 	int deltaX;
@@ -224,8 +225,8 @@ void WinMouse_GetButtonPress(int16_t buttonIndex, int16_t* isDown, int16_t* pres
 }
 
 // FUNCTION: XVT 0x4AC960
-void WinMouse_GetButtonRelease(int16_t buttonIndex, int16_t* isDown, int16_t* released, int16_t* x,
-							   int16_t* y) {
+void WinMouse_PollButtonRelease(int16_t buttonIndex, int16_t* isDown, int16_t* released, int16_t* x,
+								int16_t* y) {
 	int positionX;
 	int positionY;
 	int deltaX;
@@ -242,7 +243,7 @@ void WinMouse_GetButtonRelease(int16_t buttonIndex, int16_t* isDown, int16_t* re
 }
 
 // FUNCTION: XVT 0x4ACA20
-void WinMouse_GetMovementDelta(int16_t* deltaX, int16_t* deltaY) {
+void WinMouse_PollMovementDelta(int16_t* deltaX, int16_t* deltaY) {
 	int polledDeltaX;
 	int polledDeltaY;
 	int positionX;

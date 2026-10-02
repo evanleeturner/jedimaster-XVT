@@ -24,7 +24,7 @@ extern uint16_t g_simStepScale;
 extern int g_gameTime;
 extern int g_singleObjectUpdateOverrideIdx;
 extern void* g_flightMainWindowHandle;
-extern uint32_t g_dynamicMusicLastUpdateTick;
+extern uint32_t g_dynamicMusicLastUpdateMs;
 extern int g_dynamicMusicTrackRemainingMs;
 extern uint8_t g_dynamicMusicState;
 extern uint8_t g_dynamicMusicOutcomeLatched;
@@ -49,7 +49,7 @@ enum FlightLaunchArgument {
 	FLIGHT_LAUNCH_ARG_MISSION_PATH,
 	FLIGHT_LAUNCH_ARG_SESSION_NAME,
 	FLIGHT_LAUNCH_ARG_PILOT_NAME,
-	FLIGHT_LAUNCH_ARG_LOCAL_ID,
+	FLIGHT_LAUNCH_ARG_IS_HOST,
 	FLIGHT_LAUNCH_ARG_MP_GAME_NAME,
 	FLIGHT_LAUNCH_ARG_UNUSED,
 	FLIGHT_LAUNCH_ARG_NUM_PLAYERS,
@@ -213,8 +213,8 @@ int32_t Flight_PumpWindowMessages(void);
 int32_t StubWndProc(void* hWnd, unsigned int Msg, uint32_t wParam, int32_t lParam);
 void Flight_UpdateCraftSteeringAndSpeed(void);
 void Flight_SlewObjectSpeedTowardTarget(unsigned int objectIdx, int targetSpeed, int allowDecel, int fracQ16);
-void Flight_AccelerateHyperspaceSpeed(int objectIdx, int accelerationPerTick);
-void Flight_DecelerateHyperspaceSpeed(int objectIdx, int deceleration);
+void Flight_AccelerateObjectSpeed(int objectIdx, int accelerationPerTick);
+void Flight_DecelerateObjectSpeed(int objectIdx, int deceleration);
 void Flight_UpdateDivePulloutPitchTarget(int objectIdx);
 
 #ifdef __cplusplus

@@ -47,7 +47,7 @@ int XvtNetworkBrowser_DrawList(void) {
 		int free_slots = room->metadata.max_players - room->metadata.players;
 		int color = !compatible                ? g_colorGray
 					: !room->metadata.joinable ? g_colorRed
-					: !free_slots              ? g_colorLightBlue
+					: !free_slots              ? g_colorYellow
 											   : g_colorGreen2;
 		if (i == XvtNetworkTask_SelectedIndex())
 			FrontendDraw_Rect(&rect, 0, 0, g_colorNavy, 1);
@@ -147,8 +147,8 @@ int XvtNetworkBrowser_Screen(int first_frame) {
 	if (!first_frame) {
 		FrontendCursor_SetPos(415, 121);
 		g_skipFrontendEntryMovie = 0;
-		g_unusedFrontendConcourseHostLatch = 0;
-		g_frontendSinglePlayerFlightSessionActive = 0;
+		g_configConnectionTypeEditable = 0;
+		g_frontendGameSessionInProgress = 0;
 		FrontImage_RegisterResourceDefault("frontres\\joinback.bmp", "background");
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteOpaque("background", 0, 0);
@@ -157,7 +157,7 @@ int XvtNetworkBrowser_Screen(int first_frame) {
 		FrontImage_DrawSpriteTranslucent("chatbox", 0, 0);
 		FrontImage_DrawSpriteTranslucent("joinoverlay", 0, 0);
 		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_ResetGlyphScratchBuffer(20);
+		FrontendText_StartTextFadeIn(20);
 		XvtNetworkTask_OpenBrowser();
 		if (XvtNetworkTask_BrowserError() == AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED) {
 			XvtDialog_Confirm("The multiplayer directory is not configured.", "", "",
@@ -189,7 +189,7 @@ int XvtNetworkBrowser_Screen(int first_frame) {
 	if (g_pilotData.name[0]) {
 		snprintf(g_frontendScratchBuffer, sizeof(g_frontendScratchBuffer), "%c%s %c%s", 6,
 				 g_pilotData.ratingName, 1, g_pilotData.name);
-		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorLightBlue);
+		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
 		snprintf(g_frontendScratchBuffer, sizeof(g_frontendScratchBuffer), "rebtiny%d",
 				 (first_frame % 32) >> 1);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);

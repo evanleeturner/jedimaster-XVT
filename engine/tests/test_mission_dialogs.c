@@ -31,7 +31,7 @@ static void Fresh(int session_mode) {
 	g_frontendMissionSessionMode = session_mode;
 	g_skipFrontendEntryMovie = 0;
 	g_frontendQuickStartLaunchFlag = 0;
-	g_frontendSinglePlayerFlightSessionActive = 0;
+	g_frontendGameSessionInProgress = 0;
 	g_missionSetupRosterAuthoritative = 0;
 	memset(g_mpRoster, 0, sizeof g_mpRoster);
 	FrontendButton_EnableOverlayText();
@@ -106,14 +106,14 @@ static void CheckTailsNeedNonzeroResult(void) {
 	for (unsigned i = 0; i < sizeof actions / sizeof actions[0]; ++i) {
 		Fresh(FRONTEND_MISSION_SESSION_NET_HOST);
 		g_frontendQuickStartLaunchFlag = 1;
-		g_frontendSinglePlayerFlightSessionActive = 1;
+		g_frontendGameSessionInProgress = 1;
 		g_missionSetupRosterAuthoritative = 1;
 		g_mpRoster[0].playerId = 5;
 		Resume(0, actions[i]);
 		XVT_ASSERT_TRUE(Screen() == Placeholder);
 		XVT_ASSERT_INT_EQ(SessionClosing(), 0);
 		XVT_ASSERT_INT_EQ(g_frontendQuickStartLaunchFlag, 1);
-		XVT_ASSERT_INT_EQ(g_frontendSinglePlayerFlightSessionActive, 1);
+		XVT_ASSERT_INT_EQ(g_frontendGameSessionInProgress, 1);
 		XVT_ASSERT_INT_EQ(g_missionSetupRosterAuthoritative, 1);
 		XVT_ASSERT_INT_EQ(g_mpRoster[0].playerId, 5);
 	}
@@ -156,14 +156,14 @@ static void CheckDebriefSoloAbort(void) {
 	for (int clear = 0; clear < 2; ++clear) {
 		Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
 		g_frontendQuickStartLaunchFlag = 1;
-		g_frontendSinglePlayerFlightSessionActive = 1;
+		g_frontendGameSessionInProgress = 1;
 		g_missionSetupRosterAuthoritative = 1;
 		g_mpRoster[0].playerId = 5;
 		g_mpRoster[7].playerId = 9;
 		Resume(1, clear ? XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER : XVT_MISSION_DEBRIEF_SOLO_ABORT);
 		XVT_ASSERT_TRUE(Screen() == MissionSetup_Update);
 		XVT_ASSERT_INT_EQ(g_frontendQuickStartLaunchFlag, 0);
-		XVT_ASSERT_INT_EQ(g_frontendSinglePlayerFlightSessionActive, 0);
+		XVT_ASSERT_INT_EQ(g_frontendGameSessionInProgress, 0);
 		XVT_ASSERT_INT_EQ(g_missionSetupRosterAuthoritative, 0);
 		/* Only CLEAR_ROSTER clears the multiplayer roster. */
 		XVT_ASSERT_INT_EQ(g_mpRoster[0].playerId, clear ? 0 : 5);

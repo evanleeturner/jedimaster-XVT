@@ -52,12 +52,12 @@ void XvtResync_DeferChecksum(int sender, const int* packet) {
 /* The roster slot of the player the host is sending to; logs name slots, not network ids. */
 static int XvtResync_PeerSlot(void) { return NetSession_FindPlayerSlotByDpid(g_resync.peer_dpid); }
 
-static int XvtResync_Escape(void) {
+static int XvtResync_TakeEscapeKey(void) {
 	return FlightInput_HasKeyReady() && FlightInput_GetNextKey() == FLIGHT_KEY_ESCAPE;
 }
 
 static void XvtResync_CompleteChecksum(void) {
-	if (NetSession_GetLocalPlayerId()) {
+	if (NetSession_IsLocalHost()) {
 		int index = NetSession_FindPlayerSlotByDpid(g_resync.peer_dpid);
 		int status = 3;
 		if ((unsigned)index < 8)
@@ -86,7 +86,7 @@ static void XvtResync_Pulse(int resending) {
 static void XvtResync_EndSend(int success) {
 	FlightAlert_RestoreBoxBackground();
 	g_resync.owns_alert = 0;
-	Time_GetFrameDelta();
+	Time_ConsumeElapsedTicks();
 	g_flightNetPendingAckCount = 0;
 	if (success)
 		XvtResync_BeginApply(g_resync.peer_dpid, g_resync.image_size);
@@ -129,7 +129,7 @@ int XvtResync_BeginSend(int player, uint8_t* world, int size) {
 	g_resync.image_size = size;
 	g_resync.phase = RESYNC_CHECKSUMS;
 	g_resync.retries = XVT_RESYNC_RETRIES;
-	g_inputTimestamp += Time_GetFrameDelta();
+	g_inputTimestamp += Time_ConsumeElapsedTicks();
 	FlightAlert_SaveBoxBackground();
 	g_resync.owns_alert = 1;
 	strcpy(text, g_strDiskIoMessages[DISK_IO_STR_COM_FAILURE_SENDING]);
@@ -187,14 +187,14 @@ static void XvtResync_SendChunk(void) {
 
 static void XvtResync_Checksums(void) {
 	int saved = g_inputTimestamp;
-	if (XvtResync_Escape()) {
+	if (XvtResync_TakeEscapeKey()) {
 		g_resync.retries = 1;
 		g_resync.elapsed = XVT_RESYNC_RETRY_TICKS;
 	} else {
 		FlightNet_ProcessIncomingPackets();
 		if (g_resync.restart_requested)
 			return;
-		g_inputTimestamp += Time_GetFrameDelta();
+		g_inputTimestamp += Time_ConsumeElapsedTicks();
 		g_resync.elapsed += g_inputTimestamp - saved;
 		g_inputTimestamp = saved;
 	}
@@ -270,7 +270,7 @@ static void XvtResync_Build(void) {
 
 int XvtResync_WaitAcks(int player, int count) {
 	int ack = 0, saved = g_inputTimestamp;
-	if (XvtResync_Escape()) {
+	if (XvtResync_TakeEscapeKey()) {
 		g_resync.ack_elapsed = XVT_RESYNC_RETRY_TICKS;
 		ack = g_resync.ack_previous;
 		g_resync.ack_retries = 1;
@@ -278,7 +278,7 @@ int XvtResync_WaitAcks(int player, int count) {
 		FlightNet_ProcessIncomingPackets();
 		if (g_resync.restart_requested)
 			return -1;
-		g_inputTimestamp += Time_GetFrameDelta();
+		g_inputTimestamp += Time_ConsumeElapsedTicks();
 		g_resync.ack_elapsed += g_inputTimestamp - saved;
 		g_inputTimestamp = saved;
 		while (ack < count && g_flightNetWorldStateChunkAcked[ack])
@@ -320,19 +320,19 @@ void XvtResync_BeginApply(int player, int size) {
 	g_flightNetScratchPacket.payloadDwords[1] = size;
 	g_flightNetScratchPacket.payloadDwords[2] = g_inputTimestamp;
 	XvtFlightNetwork_SendPacket(player, (unsigned*)&g_flightNetScratchPacket, 16);
-	Time_GetFrameDelta();
+	Time_ConsumeElapsedTicks();
 	g_flightNetPendingAckCount = 1;
 }
 
 static void XvtResync_Apply(void) {
-	if (XvtResync_Escape()) {
+	if (XvtResync_TakeEscapeKey()) {
 		g_resync.retries = 1;
 		g_inputTimestamp += XVT_RESYNC_RETRY_TICKS;
 	} else {
 		FlightNet_ProcessIncomingPackets();
 		if (g_resync.restart_requested)
 			return;
-		g_inputTimestamp += Time_GetFrameDelta();
+		g_inputTimestamp += Time_ConsumeElapsedTicks();
 		if (g_flightNetWorldStateAckReceivedFlag) {
 			g_flightNetWorldStateAckReceivedFlag = 0;
 			g_inputTimestamp = g_resync.elapsed;
@@ -365,8 +365,8 @@ static void XvtResync_Apply(void) {
 		g_flightNetPendingAckCount = 0;
 	} else
 		XVT_LOG_INFO("resync.send_done slot=%d", XvtResync_PeerSlot());
-	g_inputTimestamp += Time_GetFrameDelta();
-	g_inputTimestamp = g_flightNetClockLeadAllowanceMs + g_serverTickTime;
+	g_inputTimestamp += Time_ConsumeElapsedTicks();
+	g_inputTimestamp = g_flightNetClockLeadTicks + g_serverTickTime;
 	g_flightNetScratchPacket.packetType = NET_PACKET_RESYNC_NOTICE;
 	g_flightNetScratchPacket.payloadDwords[0] = 0;
 	XvtFlightNetwork_Broadcast((unsigned*)&g_flightNetScratchPacket, 8);
@@ -397,7 +397,7 @@ static int XvtResync_ReadyChecksum(void) {
 		const XvtFlightChecksumReportWire* packet = &g_checksums[index].packet;
 		int ready = (XvtWire_Get32(packet->request_state) == XVT_CHECKSUM_REQUEST_STATE
 						 ? g_serverTickTime >= g_flightNetLastSentWorldMessageTimestamp
-						 : XvtWire_Get32(packet->state.epoch) <= g_flightNetWorldChecksumEpoch);
+						 : XvtWire_Get32(packet->checksum.epoch) <= g_flightNetWorldChecksumEpoch);
 		if (ready)
 			return (int)i;
 	}
@@ -423,7 +423,7 @@ static void XvtResync_ServiceChecksums(void) {
 }
 
 void XvtResync_Tick(void) {
-	if (g_resync.phase != RESYNC_IDLE && NetSession_GetLocalPlayerId() && g_resync.restart_requested) {
+	if (g_resync.phase != RESYNC_IDLE && NetSession_IsLocalHost() && g_resync.restart_requested) {
 		XVT_LOG_DEBUG("resync.send_restart slot=%d", XvtResync_PeerSlot());
 		if (g_resync.owns_alert)
 			FlightAlert_RestoreBoxBackground();
@@ -464,7 +464,7 @@ void XvtResync_Tick(void) {
 			if (replay == XVT_REPLAY_IDLE || replay == XVT_REPLAY_TERMINAL) {
 				unsigned ack = NET_PACKET_ACK;
 				XvtFlightNetwork_SendPacket(NetSession_GetHostDplayId(), &ack, 4);
-				g_inputTimestamp = g_serverTickTime + g_flightNetClockLeadAllowanceMs;
+				g_inputTimestamp = g_serverTickTime + g_flightNetClockLeadTicks;
 				if (g_resync.owns_alert)
 					FlightAlert_RestoreBoxBackground();
 				g_resync.owns_alert = 0;
@@ -522,9 +522,8 @@ int XvtResync_HasStateRequest(void) {
 int XvtResync_IsActive(void) { return g_resync.phase != RESYNC_IDLE; }
 
 int XvtResync_HoldsInput(void) {
-	return !NetSession_GetLocalPlayerId() &&
-		   (g_receive.request_sent || g_resync.phase == RESYNC_FULL_RECEIVE ||
-			g_resync.phase == RESYNC_REPLAY);
+	return !NetSession_IsLocalHost() && (g_receive.request_sent || g_resync.phase == RESYNC_FULL_RECEIVE ||
+										 g_resync.phase == RESYNC_REPLAY);
 }
 
 uint64_t XvtResync_NextWakeDelayUs(void) {
@@ -571,19 +570,19 @@ void XvtResync_RequestState(void) {
 		}
 		return;
 	}
-	if (NetSession_GetLocalPlayerId()) {
+	if (NetSession_IsLocalHost()) {
 		/* A host cannot obtain an authoritative image from a client. */
 		XVT_LOG_ERROR("resync.host_desync");
 		g_flightMissionState.missionEndPending = 1;
-		FlightNet_BroadcastLocalPlayerLeft();
+		FlightNet_BroadcastHostSessionAbort();
 		return;
 	}
 	XvtFlightChecksumReportWire packet = { 0 };
-	XvtWire_Set32(packet.state.opcode, NET_PACKET_WORLD_CHECKSUM);
-	XvtWire_Set32(packet.state.epoch, g_flightNetWorldChecksumEpoch);
+	XvtWire_Set32(packet.checksum.opcode, NET_PACKET_WORLD_CHECKSUM);
+	XvtWire_Set32(packet.checksum.epoch, g_flightNetWorldChecksumEpoch);
 	for (unsigned region = 0; region < XVT_WORLD_CHECKSUM_REGIONS; ++region) {
-		XvtWire_Set32(packet.state.checksums[region], g_worldChecksum[region]);
-		XvtWire_Set32(packet.state.lengths[region], g_peerChecksumRegionLengths[region]);
+		XvtWire_Set32(packet.checksum.checksums[region], g_worldChecksum[region]);
+		XvtWire_Set32(packet.checksum.lengths[region], g_peerChecksumRegionLengths[region]);
 	}
 	XvtWire_Set32(packet.request_state, XVT_CHECKSUM_REQUEST_STATE);
 	XvtFlightNetwork_SendWire(NetSession_GetHostDplayId(), &packet, sizeof packet);
@@ -619,7 +618,7 @@ static int XvtResync_FullRequest(const uint8_t* bytes, unsigned size) {
 			return 1;
 		}
 		XvtFlightFrame_ResetReplay();
-		XvtFlightNetwork_BeginRecovery();
+		XvtFlightNetwork_ClearRecoveryRequest();
 		g_receive.size = (int)total;
 		g_receive.tick = (int)tick;
 		memset(g_worldStateDupBuffer, 0, total);
@@ -710,8 +709,8 @@ static int XvtResync_FullApply(const uint8_t* bytes, unsigned size) {
 	g_flightNetWorldChecksumEpoch = g_receive.epoch;
 	memcpy(g_worldChecksum, checksums, sizeof checksums);
 	memcpy(g_peerChecksumRegionLengths, lengths, sizeof lengths);
-	FlightNet_SendWorldChecksumToLocalPlayer(
-		(const int*)g_worldChecksum, (const int*)g_peerChecksumRegionLengths, XVT_WORLD_CHECKSUM_REGIONS);
+	FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum, (const int*)g_peerChecksumRegionLengths,
+									  XVT_WORLD_CHECKSUM_REGIONS);
 	XvtFlightFrame_ResetReplay();
 	XvtFlightNetwork_Recovered();
 	g_flightNetBufferWorldMessagesUntilChecksum = 0;
@@ -728,7 +727,7 @@ int XvtResync_ReceivePacket(int sender, const uint8_t* bytes, unsigned size) {
 	if (opcode == NET_PACKET_WORLD_CHECKSUM && size == sizeof(XvtFlightChecksumReportWire)) {
 		XvtFlightChecksumReportWire report;
 		memcpy(&report, bytes, sizeof report);
-		if (NetSession_GetLocalPlayerId() && g_resync.phase && sender == g_resync.peer_dpid) {
+		if (NetSession_IsLocalHost() && g_resync.phase && sender == g_resync.peer_dpid) {
 			if (XvtWire_Get32(report.request_state) == XVT_CHECKSUM_REQUEST_STATE) {
 				int aligned[sizeof report / sizeof(int)];
 				memcpy(aligned, &report, sizeof report);
@@ -736,7 +735,8 @@ int XvtResync_ReceivePacket(int sender, const uint8_t* bytes, unsigned size) {
 				g_resync.restart_requested = 1;
 				return 1;
 			}
-			if (!XvtWire_Get32(report.request_state) && XvtWire_Get32(report.state.epoch) == g_resync.epoch &&
+			if (!XvtWire_Get32(report.request_state) &&
+				XvtWire_Get32(report.checksum.epoch) == g_resync.epoch &&
 				g_resync.epoch != g_flightNetWorldChecksumEpoch)
 				return 1;
 		}
@@ -754,7 +754,7 @@ int XvtResync_ReceivePacket(int sender, const uint8_t* bytes, unsigned size) {
 		return opcode == NET_PACKET_RESYNC_REQUEST || opcode == NET_PACKET_RESYNC_CHUNK ||
 			   opcode == NET_PACKET_RESYNC_APPLY;
 	if (opcode == NET_PACKET_SERVER_CHECKSUM && size == sizeof(XvtFlightChecksumWire)) {
-		if (!NetSession_GetLocalPlayerId() && g_resync.phase != RESYNC_FULL_RECEIVE &&
+		if (!NetSession_IsLocalHost() && g_resync.phase != RESYNC_FULL_RECEIVE &&
 			g_resync.phase != RESYNC_REPLAY) {
 			XvtFlightChecksumWire table;
 			memcpy(&table, bytes, sizeof table);

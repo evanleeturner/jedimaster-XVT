@@ -29,7 +29,7 @@ static void World(void) {
 	}
 	g_localPlayer = 0;
 	XvtFlightPrediction_Reset();
-	XvtFlightNetwork_BeginRecovery();
+	XvtFlightNetwork_ClearRecoveryRequest();
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 0);
 }
 
@@ -275,6 +275,6 @@ int main(void) {
 	CheckConfirmedControls();
 	CheckCorruptHistory();
 	CheckFullHistory();
-	XvtFlightNetwork_BeginRecovery();
+	XvtFlightNetwork_ClearRecoveryRequest();
 	return 0;
 }

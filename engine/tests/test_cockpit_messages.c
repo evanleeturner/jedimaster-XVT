@@ -62,11 +62,11 @@ static void Start(void) {
 	memset(&g_systemMessagePane, 0, sizeof g_systemMessagePane);
 	memset(&g_flightGroupMessagePane, 0, sizeof g_flightGroupMessagePane);
 	g_readyMessagePaneQueue[0].stateOrMessageId = READY_ID;
-	g_readyMessagePaneQueue[0].ageTicks = 3;
+	g_readyMessagePaneQueue[0].ageSeconds = 3;
 	g_systemMessagePane.stateOrMessageId = SYSTEM_ID;
-	g_systemMessagePane.ageTicks = 4;
+	g_systemMessagePane.ageSeconds = 4;
 	g_flightGroupMessagePane.stateOrMessageId = GROUP_ID;
-	g_flightGroupMessagePane.ageTicks = 5;
+	g_flightGroupMessagePane.ageSeconds = 5;
 	g_localPlayer = 0;
 	memset(g_playerFlightTransientTimers, 0, sizeof g_playerFlightTransientTimers);
 	g_playerFlightTransientTimers[0].readyMessagePaneTimer = 100;
@@ -142,7 +142,7 @@ static void CheckLatchPlacesPane(void) {
 	XvtCockpitMessages_EndMessage();
 
 	/* The live record still holds the message: its live age is used. */
-	g_readyMessagePaneQueue[0].ageTicks = 9;
+	g_readyMessagePaneQueue[0].ageSeconds = 9;
 	XvtCockpitMessages_Latch(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400, 120, 30);
 	const XvtCockpitState* state = Exported();
 	const XvtCockpitMessage* pane = &state->messages.panes[XVT_COCKPIT_MESSAGE_READY];
@@ -163,7 +163,7 @@ static void CheckLatchPlacesPane(void) {
 
 	/* Once the live record holds another message, the age captured with the message stays. */
 	g_readyMessagePaneQueue[0].stateOrMessageId = READY_ID + 1;
-	g_readyMessagePaneQueue[0].ageTicks = 15;
+	g_readyMessagePaneQueue[0].ageSeconds = 15;
 	XvtCockpitMessages_Latch(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400, 120, 30);
 	XVT_ASSERT_INT_EQ(Exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].age_ticks, 3);
 

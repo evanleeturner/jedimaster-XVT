@@ -89,7 +89,7 @@ struct GameConfig {
 typedef char xvt_size_GameConfig[(sizeof(GameConfig) == 529) ? 1 : -1];
 
 extern GameConfig g_gameConfig;
-extern int g_unusedFrontendConcourseHostLatch;
+extern int g_configConnectionTypeEditable;
 
 int Config_OptionsDatapadUpdate(int frameState);
 void Config_DrawVideoOptionRows(void);

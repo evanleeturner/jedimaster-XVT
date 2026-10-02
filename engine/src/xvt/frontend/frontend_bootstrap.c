@@ -70,7 +70,7 @@ int FrontendBootstrap_LoadResources(int frameCounter) {
 	FrontImage_FreeResourceByName("testers");
 	FrontImage_FreeResourceByName("lakota");
 	FrontImage_FreeResourceByName("artists");
-	FrontendText_ResetGlyphScratch();
+	FrontendText_StopTextFade();
 	Frontend_LoadResources();
 	CDAudio_EnableLoopCurrentTrack();
 	return 0;

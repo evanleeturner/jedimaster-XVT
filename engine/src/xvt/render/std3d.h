@@ -148,7 +148,7 @@ struct Std3DRenderTargetDesc {
 	unsigned int height;
 	unsigned int sizeBytes;
 	int pitch;
-	unsigned int widthPixels;
+	unsigned int pitchPixels;
 	ColorInfo colorInfo;
 };
 
@@ -198,7 +198,7 @@ struct Std3DZBufferSurfaceBlock {
 };
 
 extern unsigned int g_std3DCapFlags;
-extern Std3DTexFmt* g_pFmtRGB565;
+extern Std3DTexFmt* g_pFmtOpaqueTexture;
 extern float g_std3DColorOverlayRed;
 extern float g_std3DColorOverlayGreen;
 extern float g_std3DColorOverlayBlue;
@@ -212,10 +212,10 @@ extern int g_std3DMaxTextureHeight;
 void std3D_CopyPaletteToScratch16(const uint16_t* palette, int colorCount);
 void std3D_ConvertTexTo1555(const uint16_t* srcPixels, int pixelCount);
 int std3D_Startup(void);
-Std3DRenderTargetDesc* std3D_InitRenderTargetDesc(unsigned int arg1, unsigned int arg2, int arg3);
+Std3DRenderTargetDesc* std3D_InitRenderTargetDesc(unsigned int width, unsigned int height, int pitchBytes);
 void std3D_Shutdown(void);
 int std3D_CreateDevice(unsigned int deviceIdx, int bUseZBuffer);
-struct IDirectDrawSurface* std3D_SetRenderSurface(struct IDirectDrawSurface* arg1);
+struct IDirectDrawSurface* std3D_SetRenderSurface(struct IDirectDrawSurface* surface);
 int std3D_SetColorOverlayParams(float red, float green, float blue, int enabled);
 int std3D_Log2Floor(int n);
 const char* std3D_LookupErrorString(int errorCode, const Std3DErrorStringEntry* entries, int entryCount);
@@ -255,15 +255,16 @@ void std3D_CacheListRemove(Std3DTexCacheNode* node);
 int std3D_QueryTextureVidMem(unsigned int* totalBytes, unsigned int* freeBytes);
 void std3D_CacheTextureSurface(Std3DTexCacheNode* node);
 int std3D_ClearZBuffer(void);
-int std3D_SelectBestDevice(Std3DDeviceCaps* arg1);
+int std3D_SelectBestDevice(Std3DDeviceCaps* requiredCaps);
 int std3D_FindClosestFormat(const ColorInfo* match, Std3DTexFmt* formats, unsigned int count);
 void std3D_DrawColorOverlay(void);
 int std3D_BuildViewportQuad(const Std3DViewportRect* rect);
 int std3D_SetInitialRenderState(void);
-int std3D_CreateViewport(int arg1, int arg2);
+int std3D_CreateViewport(int width, int height);
 int std3D_CreateZBuffer(int width, int height);
-HRESULT AERON_DXAPI std3D_EnumDevicesCallback(DxGuid* arg1, char* Source, char* arg3, D3DDEVICEDESC* arg4,
-											  D3DDEVICEDESC* arg5, void* arg6);
+HRESULT AERON_DXAPI std3D_EnumDevicesCallback(DxGuid* guid, char* deviceDescription, char* deviceName,
+											  D3DDEVICEDESC* hardwareDesc, D3DDEVICEDESC* softwareDesc,
+											  void* context);
 int AERON_DXAPI std3D_EnumTextureFormats(DDSURFACEDESC* surfaceDesc, void* context);
 int std3D_PackRenderBitDepths(int ddbdFlags);
 int std3D_PackZCmpCaps(unsigned int d3dpcmpcaps);

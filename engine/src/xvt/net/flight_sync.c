@@ -46,7 +46,7 @@ int g_remotePlayerRenderSmoothingEnabled = 1;
 // GLOBAL: XVT 0x550888
 RemotePlayerRenderSample g_remotePlayerRenderSamples[8];
 // GLOBAL: XVT 0x550A08
-RemotePlayerSavedRenderPose g_remotePlayerSavedRenderPoses[8];
+RemotePlayerSavedRenderPose g_remotePlayerSavedSimPoses[8];
 #ifndef XVT_MODERN
 // GLOBAL: XVT 0x550B90
 static uint8_t* g_worldMessageBuffer = NULL;
@@ -243,12 +243,12 @@ void FlightSync_ResetRemotePlayerRenderSmoothing(void) {
 
 	for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
 		g_remotePlayerRenderSamples[playerIndex].valid = 0;
-		g_remotePlayerSavedRenderPoses[playerIndex].valid = 0;
+		g_remotePlayerSavedSimPoses[playerIndex].valid = 0;
 	}
 }
 
 // FUNCTION: XVT 0x418970
-void FlightSync_CaptureRemotePlayerRenderSamples(void) {
+void FlightSync_CaptureSamplesAndRestorePoses(void) {
 	int playerIndex;
 
 	if (g_remotePlayerRenderSmoothingEnabled == 0)
@@ -292,13 +292,13 @@ void FlightSync_CaptureRemotePlayerRenderSamples(void) {
 				g_remotePlayerRenderSamples[playerIndex].speedMagnitude = object->mobj->speed;
 				g_remotePlayerRenderSamples[playerIndex].simStateTimestamp = object->mobj->simStateTimestamp;
 
-				if (g_remotePlayerSavedRenderPoses[playerIndex].valid != 0) {
-					object->roll = g_remotePlayerSavedRenderPoses[playerIndex].roll;
-					object->pitch = g_remotePlayerSavedRenderPoses[playerIndex].pitch;
-					object->yaw = g_remotePlayerSavedRenderPoses[playerIndex].yaw;
-					object->world_x = g_remotePlayerSavedRenderPoses[playerIndex].worldX;
-					object->world_y = g_remotePlayerSavedRenderPoses[playerIndex].worldY;
-					object->world_z = g_remotePlayerSavedRenderPoses[playerIndex].worldZ;
+				if (g_remotePlayerSavedSimPoses[playerIndex].valid != 0) {
+					object->roll = g_remotePlayerSavedSimPoses[playerIndex].roll;
+					object->pitch = g_remotePlayerSavedSimPoses[playerIndex].pitch;
+					object->yaw = g_remotePlayerSavedSimPoses[playerIndex].yaw;
+					object->world_x = g_remotePlayerSavedSimPoses[playerIndex].worldX;
+					object->world_y = g_remotePlayerSavedSimPoses[playerIndex].worldY;
+					object->world_z = g_remotePlayerSavedSimPoses[playerIndex].worldZ;
 				}
 			}
 		}
@@ -333,7 +333,7 @@ void FlightSync_ApplyRemotePlayerRenderSmoothing(void) {
 		return;
 
 	for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
-		g_remotePlayerSavedRenderPoses[playerIndex].valid = 0;
+		g_remotePlayerSavedSimPoses[playerIndex].valid = 0;
 		if (g_players[playerIndex].connectedFlag == 0 || g_players[playerIndex].objectIndex == -1)
 			continue;
 
@@ -345,13 +345,13 @@ void FlightSync_ApplyRemotePlayerRenderSmoothing(void) {
 			continue;
 		}
 
-		g_remotePlayerSavedRenderPoses[playerIndex].roll = object->roll;
-		g_remotePlayerSavedRenderPoses[playerIndex].pitch = object->pitch;
-		g_remotePlayerSavedRenderPoses[playerIndex].yaw = object->yaw;
-		g_remotePlayerSavedRenderPoses[playerIndex].worldX = object->world_x;
-		g_remotePlayerSavedRenderPoses[playerIndex].worldY = object->world_y;
-		g_remotePlayerSavedRenderPoses[playerIndex].worldZ = object->world_z;
-		g_remotePlayerSavedRenderPoses[playerIndex].valid = 1;
+		g_remotePlayerSavedSimPoses[playerIndex].roll = object->roll;
+		g_remotePlayerSavedSimPoses[playerIndex].pitch = object->pitch;
+		g_remotePlayerSavedSimPoses[playerIndex].yaw = object->yaw;
+		g_remotePlayerSavedSimPoses[playerIndex].worldX = object->world_x;
+		g_remotePlayerSavedSimPoses[playerIndex].worldY = object->world_y;
+		g_remotePlayerSavedSimPoses[playerIndex].worldZ = object->world_z;
+		g_remotePlayerSavedSimPoses[playerIndex].valid = 1;
 
 		predictedWorldX = g_remotePlayerRenderSamples[playerIndex].worldX;
 		predictedWorldY = g_remotePlayerRenderSamples[playerIndex].worldY;
@@ -496,7 +496,7 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t* packet) {
 	int checksumRequested;
 	FlightInputFrameRecord input;
 
-	if (NetSession_GetLocalPlayerId() == 0 && g_flightNetBufferWorldMessagesUntilChecksum == 1) {
+	if (NetSession_IsLocalHost() == 0 && g_flightNetBufferWorldMessagesUntilChecksum == 1) {
 		FlightSync_BufferWorldMessagePacket(packet);
 	}
 
@@ -508,7 +508,7 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t* packet) {
 		return;
 	}
 
-	if (packetTick - dtMs != g_serverTickTime) {
+	if (packetTick - g_netUpdateIntervalTicks != g_serverTickTime) {
 		NetReliable_ResetRecvQueueState();
 	}
 	FlightSync_DiscardAllPredictedInputFrames();
@@ -605,12 +605,12 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t* packet) {
 
 		Flight_ChecksumWorldState(0, 0);
 		g_flightNetWorldChecksumEpoch = (unsigned int)g_serverTickTime;
-		if (NetSession_GetLocalPlayerId() != 0) {
+		if (NetSession_IsLocalHost() != 0) {
 			FlightNet_BroadcastWorldChecksum((const int*)g_worldChecksum,
 											 (const int*)g_peerChecksumRegionLengths, checksumDwordCount);
 		}
-		FlightNet_SendWorldChecksumToLocalPlayer((const int*)g_worldChecksum,
-												 (const int*)g_peerChecksumRegionLengths, checksumDwordCount);
+		FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum,
+										  (const int*)g_peerChecksumRegionLengths, checksumDwordCount);
 		g_flightNetBufferWorldMessagesUntilChecksum = 1;
 		FlightSync_SnapshotWorldStateForReplay();
 		FlightSync_ResetWorldMessageBufferCursor();
@@ -652,7 +652,7 @@ void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int* packet) {
 		return;
 	if ((unsigned)packet[34] > 1)
 		return;
-	if (packet[34] == 1 && NetSession_GetLocalPlayerId() && senderPlayerIndex != g_localPlayer) {
+	if (packet[34] == 1 && NetSession_IsLocalHost() && senderPlayerIndex != g_localPlayer) {
 		XvtResync_BeginSend(senderDpid, g_worldStateBuffer, g_worldStateSize);
 		return;
 	}
@@ -691,7 +691,7 @@ void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int* packet) {
 		}
 	}
 
-	if (NetSession_GetLocalPlayerId() == 0) {
+	if (NetSession_IsLocalHost() == 0) {
 		return;
 	}
 
@@ -717,7 +717,7 @@ void FlightSync_HandleServerChecksumPacket(uint8_t* packet) {
 	unsigned int* localChecksum;
 	int checksumMismatch;
 
-	if (NetSession_GetLocalPlayerId() != 0 || ((uint32_t*)packet)[1] != g_flightNetWorldChecksumEpoch) {
+	if (NetSession_IsLocalHost() != 0 || ((uint32_t*)packet)[1] != g_flightNetWorldChecksumEpoch) {
 		return;
 	}
 
@@ -759,8 +759,8 @@ void FlightSync_ReplayResyncMessages(unsigned int worldStateBytes, int serverTic
 	g_serverTickTime = serverTickTime;
 	Flight_ChecksumWorldState(0, 0);
 	checksumDwordCount = (int)(sizeof(g_worldChecksum) / sizeof(g_worldChecksum[0]));
-	FlightNet_SendWorldChecksumToLocalPlayer((const int*)g_worldChecksum,
-											 (const int*)g_peerChecksumRegionLengths, checksumDwordCount);
+	FlightNet_SendWorldChecksumToHost((const int*)g_worldChecksum, (const int*)g_peerChecksumRegionLengths,
+									  checksumDwordCount);
 	FlightSync_SnapshotWorldStateForReplay();
 	g_flightNetBufferWorldMessagesUntilChecksum = 0;
 	FlightSync_ReplayBufferedWorldMessages();

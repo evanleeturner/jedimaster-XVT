@@ -440,7 +440,7 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...) {
 		g_modelPreviewRenderResourcesInitialized = 1;
 	}
 
-	depthZ = (int)g_modelPreviewViewDelta.z;
+	g_viewSpaceDepth = (int)g_modelPreviewViewDelta.z;
 	g_modelPreviewObject.mobj->nodeSwitchIndex = (uint8_t)g_nodeSwitchIndex;
 	savedLocalLightsLevel = g_localLightsLevel;
 	g_localLightsLevel = 0;
@@ -467,7 +467,7 @@ void ModelPreview_ScaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, doub
 		return;
 	}
 	while (resolvedNode->nodeType == OPT_NODEREF) {
-		resolvedNode = OptModel_ResolveNodeRef(opt, (const char*)resolvedNode->param2);
+		resolvedNode = OptModel_ResolveNodeRef(opt, (const char*)resolvedNode->payload);
 		if (resolvedNode == NULL) {
 			return;
 		}
@@ -481,8 +481,8 @@ void ModelPreview_ScaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, doub
 			FaceTextureGradients* gradients;
 			float* points;
 
-			count = resolvedNode->param1;
-			faceData = (OptPackedFaceData*)resolvedNode->param2;
+			count = resolvedNode->payloadCount;
+			faceData = (OptPackedFaceData*)resolvedNode->payload;
 			faceNormals = (OptVector*)&faceData->records[count];
 			gradients = (FaceTextureGradients*)&faceNormals[count];
 			points = (float*)gradients;
@@ -505,8 +505,8 @@ void ModelPreview_ScaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, doub
 			int count;
 			float* vertices;
 
-			count = resolvedNode->param1;
-			vertices = (float*)resolvedNode->param2;
+			count = resolvedNode->payloadCount;
+			vertices = (float*)resolvedNode->payload;
 			if (count > 0) {
 				do {
 					vertices[0] = (float)(vertices[0] * scale);
@@ -523,7 +523,7 @@ void ModelPreview_ScaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, doub
 			float* childScales;
 
 			count = resolvedNode->childCount;
-			childScales = (float*)resolvedNode->param2;
+			childScales = (float*)resolvedNode->payload;
 			if (count > 0) {
 				do {
 					*childScales = (float)(*childScales / scale);
@@ -552,7 +552,7 @@ void ModelPreview_UnscaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, do
 		return;
 	}
 	while (resolvedNode->nodeType == OPT_NODEREF) {
-		resolvedNode = OptModel_ResolveNodeRef(opt, (const char*)resolvedNode->param2);
+		resolvedNode = OptModel_ResolveNodeRef(opt, (const char*)resolvedNode->payload);
 		if (resolvedNode == NULL) {
 			return;
 		}
@@ -566,8 +566,8 @@ void ModelPreview_UnscaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, do
 			FaceTextureGradients* gradients;
 			float* points;
 
-			count = resolvedNode->param1;
-			faceData = (OptPackedFaceData*)resolvedNode->param2;
+			count = resolvedNode->payloadCount;
+			faceData = (OptPackedFaceData*)resolvedNode->payload;
 			faceNormals = (OptVector*)&faceData->records[count];
 			gradients = (FaceTextureGradients*)&faceNormals[count];
 			points = (float*)gradients;
@@ -590,8 +590,8 @@ void ModelPreview_UnscaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, do
 			int count;
 			float* vertices;
 
-			count = resolvedNode->param1;
-			vertices = (float*)resolvedNode->param2;
+			count = resolvedNode->payloadCount;
+			vertices = (float*)resolvedNode->payload;
 			if (count > 0) {
 				do {
 					vertices[0] = (float)(vertices[0] / scale);
@@ -608,7 +608,7 @@ void ModelPreview_UnscaleOptNodeTree(OptNode* node, OptimizedPolyObject* opt, do
 			float* childScales;
 
 			count = resolvedNode->childCount;
-			childScales = (float*)resolvedNode->param2;
+			childScales = (float*)resolvedNode->payload;
 			if (count > 0) {
 				do {
 					*childScales = (float)(*childScales * scale);
@@ -655,14 +655,14 @@ void ModelPreview_AccumulateOptNodeBounds(OptNode* node, OptimizedPolyObject* ob
 	currentNode = node;
 	if (currentNode != NULL) {
 		while (currentNode->nodeType == OPT_NODEREF) {
-			currentNode = OptModel_ResolveNodeRef(object, (const char*)currentNode->param2);
+			currentNode = OptModel_ResolveNodeRef(object, (const char*)currentNode->payload);
 			if (currentNode == NULL)
 				return;
 		}
 
 		if (currentNode->nodeType == OPT_MESHVERTS) {
-			vertexCount = currentNode->param1;
-			vertex = currentNode->param2;
+			vertexCount = currentNode->payloadCount;
+			vertex = currentNode->payload;
 			if (vertexCount > 0) {
 				do {
 					if (vertex[0] > g_modelPreviewBoundsMaxX)

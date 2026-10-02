@@ -8,7 +8,7 @@ uint32_t g_lastTickTime;
 void Time_ResetFrameDeltaClocks(void) { g_lastTickTime = 0; }
 
 // FUNCTION: XVT 0x4AC760
-uint32_t Time_GetFrameDelta(void) {
+uint32_t Time_ConsumeElapsedTicks(void) {
 	uint32_t time;
 	uint32_t lastTickTime;
 	uint32_t deltaTicks;

@@ -44,29 +44,29 @@ static void World(int host, int cookie) {
 	memset(&g_flightMissionState, 0, sizeof g_flightMissionState);
 	g_flightNetPendingAckCount = 0;
 	g_flightNetClockAdjustAccumTicks = 0;
-	g_flightNetNextClientInputSendTimestamp = 0;
-	g_flightNetClockLeadAllowanceMs = 0;
+	g_flightNetNextWorldMessageTimestamp = 0;
+	g_flightNetClockLeadTicks = 0;
 	g_flightNetLastSentWorldMessageTimestamp = 0;
-	g_flightNetWorldChecksumResetAccumMs = 0;
+	g_flightNetWorldChecksumResetAccumTicks = 0;
 	XvtResync_Reset();
 	XvtFlightNetwork_Reset();
 	XvtFlightNetwork_CloseSession();
 	XvtFlightNetwork_BeginMission();
-	XvtFlightNetwork_BeginRecovery();
+	XvtFlightNetwork_ClearRecoveryRequest();
 	XvtFlightCheckpoint_Begin(0x01);
 	if (cookie) {
 		/* A host flying alone agrees a cookie without a peer. */
-		g_netSession.localPlayerId = 1;
+		g_netSession.localIsHost = 1;
 		g_activeFlightPlayerCount = 1;
 		XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
 		XVT_ASSERT_TRUE(XvtFlightNetwork_Cookie() != 0);
 	}
-	g_netSession.localPlayerId = host;
+	g_netSession.localIsHost = host;
 	g_inputTimestamp = INPUT;
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(5000000);
 	Time_ResetFrameDeltaClocks();
-	XVT_ASSERT_INT_EQ(Time_GetFrameDelta(), 0);
+	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), 0);
 	XvtTime_AdvanceHostClock(WAITING_TICKS * 4000);
 }
 
@@ -75,13 +75,13 @@ static void CheckNothingWithoutCookie(void) {
 	XvtFlightNetwork_ProcessPackets();
 	XVT_ASSERT_INT_EQ(g_inputTimestamp, INPUT);
 	/* The frame time was not read. */
-	XVT_ASSERT_INT_EQ(Time_GetFrameDelta(), WAITING_TICKS);
+	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), WAITING_TICKS);
 
 	World(1, 0);
 	XvtFlightNetwork_ProcessPackets();
 	XVT_ASSERT_INT_EQ(g_inputTimestamp, INPUT);
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 0);
-	XVT_ASSERT_INT_EQ(Time_GetFrameDelta(), WAITING_TICKS);
+	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), WAITING_TICKS);
 }
 
 static void CheckNothingWithoutLocalPlayer(void) {
@@ -89,7 +89,7 @@ static void CheckNothingWithoutLocalPlayer(void) {
 	g_players[0].connectedFlag = 0;
 	XvtFlightNetwork_ProcessPackets();
 	XVT_ASSERT_INT_EQ(g_inputTimestamp, INPUT);
-	XVT_ASSERT_INT_EQ(Time_GetFrameDelta(), WAITING_TICKS);
+	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), WAITING_TICKS);
 }
 
 static void CheckClientStops(void) {
@@ -97,7 +97,7 @@ static void CheckClientStops(void) {
 	World(0, 1);
 	XvtFlightNetwork_ProcessPackets();
 	XVT_ASSERT_INT_EQ(g_inputTimestamp, INPUT + WAITING_TICKS);
-	XVT_ASSERT_INT_EQ(Time_GetFrameDelta(), 0);
+	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), 0);
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 0);
 }
 
@@ -105,7 +105,7 @@ static void CheckHostSendsWhileAllowed(void) {
 	/* A host that ShouldSend refuses stops reading too. */
 	World(1, 1);
 	g_flightNetPendingAckCount = 1;
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(INPUT), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(INPUT), 0);
 	XvtFlightNetwork_ProcessPackets();
 	XVT_ASSERT_INT_EQ(g_inputTimestamp, INPUT + WAITING_TICKS);
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 0);
@@ -113,10 +113,10 @@ static void CheckHostSendsWhileAllowed(void) {
 	/* A host far behind on world messages sends them, queued pending for its own confirmation, until
 	 * ShouldSend refuses. */
 	World(1, 1);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(INPUT - 100), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(INPUT - 100), 0);
 	XvtFlightNetwork_ProcessPackets();
 	XVT_ASSERT_TRUE(XvtFlightMessages_Count(XVT_QUEUE_PENDING) > 0);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_ShouldSend(INPUT), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(INPUT), 0);
 	XVT_ASSERT_INT_EQ(g_inputTimestamp, INPUT + WAITING_TICKS);
 }
 

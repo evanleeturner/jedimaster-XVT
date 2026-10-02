@@ -1057,7 +1057,7 @@ void Movie_DrawMultiplayerSyncStatus(void) {
 // FUNCTION: XVT 0x4F0510
 void Movie_UpdateMultiplayerSyncTimeout(void) {
 	enum {
-		HOST_TIMEOUT_MS = 5000,
+		HOST_TIMEOUT_TICKS = 5000,
 		CLIENT_TIMEOUT_MS = 20000,
 		TIMEOUT_COMPLETION_STATE = 2,
 		PROMPT_FONT_SIZE = 12,
@@ -1068,7 +1068,7 @@ void Movie_UpdateMultiplayerSyncTimeout(void) {
 	RECT rect;
 	int packet[2];
 
-	timeoutMs = Net_IsHost() != 0 ? HOST_TIMEOUT_MS : CLIENT_TIMEOUT_MS;
+	timeoutMs = Net_IsHost() != 0 ? HOST_TIMEOUT_TICKS : CLIENT_TIMEOUT_MS;
 	if (g_movieMultiplayerSyncDeadlineTick == 0) {
 		packet[0] = NET_PACKET_MOVIE_SYNC;
 		packet[1] = 0;

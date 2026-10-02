@@ -123,7 +123,7 @@ static void CheckWakeDuringResync(void) {
 	/* While a resync is active the task wakes when the resync does. The apply phase is a running send. */
 	World();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_Begin("mission"), 1);
-	g_netSession.localPlayerId = 1;
+	g_netSession.localIsHost = 1;
 	XvtResync_BeginApply(101, 4096);
 	XVT_ASSERT_INT_EQ(XvtResync_IsActive(), 1);
 	XVT_ASSERT_TRUE(XvtFlightTask_NextWakeDelayUs() == XvtResync_NextWakeDelayUs());
@@ -135,7 +135,7 @@ static void CheckShutdown(void) {
 	 * network state are reset. */
 	World();
 	XVT_ASSERT_INT_EQ(XvtFlightTask_Begin("mission"), 1);
-	g_netSession.localPlayerId = 1;
+	g_netSession.localIsHost = 1;
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
 	XVT_ASSERT_TRUE(XvtFlightNetwork_Cookie() != 0);
 	XvtResync_BeginApply(101, 4096);
@@ -146,7 +146,7 @@ static void CheckShutdown(void) {
 
 	/* Idle, it still resets them. */
 	World();
-	g_netSession.localPlayerId = 1;
+	g_netSession.localIsHost = 1;
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_Options(), 1);
 	XvtResync_BeginApply(101, 4096);
 	XvtFlightTask_Shutdown();

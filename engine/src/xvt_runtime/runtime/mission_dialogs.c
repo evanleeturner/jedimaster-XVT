@@ -120,7 +120,7 @@ int XvtMissionDialogs_Resume(int result, int action) {
 				FrontendButton_DisableOverlayText();
 				g_skipFrontendEntryMovie = 0;
 				g_frontendQuickStartLaunchFlag = 0;
-				g_frontendSinglePlayerFlightSessionActive = 0;
+				g_frontendGameSessionInProgress = 0;
 				g_missionSetupRosterAuthoritative = 0;
 				if (action == XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER)
 					memset(g_mpRoster, 0, sizeof(g_mpRoster));

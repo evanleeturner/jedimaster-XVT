@@ -848,7 +848,7 @@ int XvtSnapshot_LiveChecksum(void) {
 	return (int)checksum;
 }
 
-static int XvtSnapshot_PoolIndex(uint32_t value, size_t stride, unsigned count) {
+static int XvtSnapshot_IsPoolLink(uint32_t value, size_t stride, unsigned count) {
 	return !value || ((value - 1) % stride == 0 && (value - 1) / stride < count);
 }
 
@@ -949,7 +949,7 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t* image, size_t size,
 			}
 		}
 		if (object.objectType != type ||
-			!XvtSnapshot_PoolIndex(object.mobj, sizeof(XvtSnapshotMobileObject), g_regionMainObjectSlotEnd))
+			!XvtSnapshot_IsPoolLink(object.mobj, sizeof(XvtSnapshotMobileObject), g_regionMainObjectSlotEnd))
 			return 0;
 		if (!object.mobj)
 			continue;
@@ -959,13 +959,13 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t* image, size_t size,
 		memcpy(&mobile, cursor, sizeof mobile);
 		cursor += sizeof mobile;
 		left -= sizeof mobile;
-		if (network && integration.type && integration.state != mobile.state)
+		if (network && integration.type && integration.state != mobile.family)
 			return 0;
-		if (!XvtSnapshot_PoolIndex(mobile.pCraft, sizeof(XvtSnapshotCraftData), g_craftDataPoolCapacity) ||
-			!XvtSnapshot_PoolIndex(mobile.pWarheadGuidance, sizeof(WarheadGuidanceState),
-								   g_projectileObjectSlotsTotal) ||
-			!XvtSnapshot_PoolIndex(mobile.pCharData, sizeof(XvtSnapshotMobileObjectCharData),
-								   g_mobileObjectCharDataCount))
+		if (!XvtSnapshot_IsPoolLink(mobile.pCraft, sizeof(XvtSnapshotCraftData), g_craftDataPoolCapacity) ||
+			!XvtSnapshot_IsPoolLink(mobile.pWarheadGuidance, sizeof(WarheadGuidanceState),
+									g_projectileObjectSlotsTotal) ||
+			!XvtSnapshot_IsPoolLink(mobile.pCharData, sizeof(XvtSnapshotMobileObjectCharData),
+									g_mobileObjectCharDataCount))
 			return 0;
 		size_t extra = (mobile.pCraft ? sizeof(XvtSnapshotCraftData) : 0) +
 					   (mobile.pWarheadGuidance ? sizeof(WarheadGuidanceState) : 0) +

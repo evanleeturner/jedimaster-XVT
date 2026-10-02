@@ -16,7 +16,7 @@ static struct {
 
 int XvtCdTask_BeginFade(unsigned int from, unsigned int to, int duration_ms) {
 	unsigned int distance;
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 	if (!g_frontState.cdAudioMciDeviceId && !g_musicCdMciDeviceId)
 		return 0;
 	if (from > 65535)
@@ -37,11 +37,11 @@ int XvtCdTask_BeginFade(unsigned int from, unsigned int to, int duration_ms) {
 
 int XvtCdTask_IsFading(void) { return g_fade.active; }
 
-void XvtCdTask_Cancel(void) { g_fade.active = 0; }
+void XvtCdTask_CancelFade(void) { g_fade.active = 0; }
 
 void XvtCdTask_Tick(void) {
 	uint64_t now = XvtTime_GetElapsedUs();
-	uint32_t ticks = XvtTime_GetElapsedTicks();
+	uint32_t ticks = XvtTime_GetElapsedMs();
 	if (g_fade.active && now >= g_fade.next) {
 		unsigned int steps = (unsigned int)((now - g_fade.next) / g_fade.interval + 1);
 		unsigned int distance =
@@ -77,7 +77,7 @@ void XvtCdTask_Tick(void) {
 uint64_t XvtCdTask_NextWakeDelayUs(void) {
 	uint64_t now = XvtTime_GetElapsedUs();
 	uint64_t delay = g_fade.active ? (now < g_fade.next ? g_fade.next - now : 0) : UINT64_MAX;
-	uint32_t ticks = XvtTime_GetElapsedTicks();
+	uint32_t ticks = XvtTime_GetElapsedMs();
 	int32_t remaining;
 	uint64_t candidate;
 	if (XvtFlightTask_IsActive())

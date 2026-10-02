@@ -114,7 +114,7 @@ int XvtMovieTask_Begin(const char* name, int synchronize) {
 	FrontendDisplay_UnlockBackBuffer();
 	FrontendDisplay_DisableOffscreenRestore();
 	FrontendDisplay_SetWndProcMode(2);
-	FrontendText_ResetGlyphScratch();
+	FrontendText_StopTextFade();
 	Keyboard_FlushCharBuffer();
 	g_movieSkipRequested = 0;
 	g_movie.synchronize =

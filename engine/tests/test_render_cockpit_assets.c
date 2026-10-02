@@ -297,9 +297,9 @@ static void CheckRegisterLfd(void) {
 	XvtRenderAssets_RegisterLfd("cockpit2.lfd", g_hudCockpitResources[6].entries);
 	uint64_t unhandled = XvtRenderAssets_ImageId(g_hudCockpitResources[6].entries);
 	XVT_ASSERT_TRUE(unhandled != 0 && unhandled != id);
-	XvtRenderAssets_FreeHandle(55);
+	XvtRenderAssets_RetireHandle(55);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(g_hudCockpitResources[6].entries), unhandled);
-	XvtRenderAssets_FreeHandle(g_flightLog1BufferHandle);
+	XvtRenderAssets_RetireHandle(g_flightLog1BufferHandle);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(g_hudCockpitResources[6].entries), 0);
 	XVT_ASSERT_INT_EQ(Definition()->layout.descriptors[6].lfd_asset_id, 0);
 

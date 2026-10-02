@@ -297,7 +297,7 @@ static void group(const DumpMission* mission, unsigned index) {
 	putchar('\n');
 	for (i = 0; i < 8; ++i) {
 		const FlightGroupGoal* g = &fg->goals[i];
-		printf("  Goal[%u] type=%u condition=%s(%u) amount=%s(%u) points(raw)=%d teams:", i, g->type,
+		printf("  Goal[%u] type=%u condition=%s(%u) amount=%s(%u) points(raw)=%d teams:", i, g->goalKind,
 			   lookup(conditionNames, sizeof(conditionNames) / sizeof(*conditionNames), g->eventCondition),
 			   g->eventCondition,
 			   lookup(amountNames, sizeof(amountNames) / sizeof(*amountNames), (uint8_t)g->amount),

@@ -113,8 +113,8 @@ static void CheckBeforeInit(void) {
 	XVT_ASSERT_INT_EQ(g_snapshot->image_asset_generation, 0);
 	XvtFrontendImageColors colors;
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_CopyFrontendColors(1, &colors), 0);
-	XvtRenderAssets_FreeHandle(3);
-	XvtRenderAssets_FreeImage(&g_ownerA);
+	XvtRenderAssets_RetireHandle(3);
+	XvtRenderAssets_RetireImage(&g_ownerA);
 	XvtRenderAssets_BeginTick();
 }
 
@@ -235,7 +235,7 @@ static void CheckHandles(void) {
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_HandleId(30), 0);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(NULL), 0);
 
-	XvtRenderAssets_FreeHandle(7);
+	XvtRenderAssets_RetireHandle(7);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_HandleId(7), 0);
 }
 
@@ -263,10 +263,10 @@ static void CheckGenerations(void) {
 	image = g_snapshot->image_asset_generation;
 
 	/* Retiring is a change too. */
-	XvtRenderAssets_FreeHandle(7);
+	XvtRenderAssets_RetireHandle(7);
 	Export();
 	XVT_ASSERT_TRUE(g_snapshot->opt_asset_generation > opt);
-	XvtRenderAssets_FreeImage(&g_ownerA);
+	XvtRenderAssets_RetireImage(&g_ownerA);
 	Export();
 	XVT_ASSERT_TRUE(g_snapshot->image_asset_generation > image);
 }
@@ -316,12 +316,12 @@ static void CheckFreeHandle(void) {
 	uint64_t image = XvtRenderAssets_RegisterImage(&g_ownerA, 9, "pic.bmp", XVT_IMAGE_BMP, 0, 1, 0, 0, 0);
 	XvtRenderAssets_BindType(3, 9);
 
-	XvtRenderAssets_FreeHandle(0);
-	XvtRenderAssets_FreeHandle(65536 + 9);
+	XvtRenderAssets_RetireHandle(0);
+	XvtRenderAssets_RetireHandle(65536 + 9);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_HandleId(9), opt);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(&g_ownerA), image);
 
-	XvtRenderAssets_FreeHandle(9);
+	XvtRenderAssets_RetireHandle(9);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_HandleId(9), 0);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(&g_ownerA), 0);
 	Export();
@@ -339,9 +339,9 @@ static void CheckFreeImage(void) {
 	Fresh();
 	uint64_t a = RegisterBmp(&g_ownerA, "pic.bmp");
 	uint64_t b = RegisterBmp(&g_ownerB, "pic.bmp");
-	XvtRenderAssets_FreeImage(NULL);
+	XvtRenderAssets_RetireImage(NULL);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(&g_ownerA), a);
-	XvtRenderAssets_FreeImage(&g_ownerA);
+	XvtRenderAssets_RetireImage(&g_ownerA);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(&g_ownerA), 0);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_ImageId(&g_ownerB), b);
 	Export();
@@ -403,7 +403,7 @@ static void CheckFrontendColors(void) {
 		XVT_ASSERT_INT_EQ(colors.color_lut[i], image.colorLUT[i]);
 	XVT_ASSERT_INT_EQ(colors.pixel_format_555, 1);
 
-	XvtRenderAssets_FreeImage(&image);
+	XvtRenderAssets_RetireImage(&image);
 	memset(&colors, 0, sizeof colors);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_CopyFrontendColors(id, &colors), 1);
 	XVT_ASSERT_INT_EQ(colors.color_lut[5], image.colorLUT[5]);
@@ -445,7 +445,7 @@ static void CheckRetiredLifetime(void) {
 	writer->flight_valid = 1;
 	writer->types[3].model_asset_id = id;
 	XvtRenderSnapshot_Commit(1, 1, 0);
-	XvtRenderAssets_FreeHandle(7);
+	XvtRenderAssets_RetireHandle(7);
 	/* From now on no view is published: later snapshots do not use the source. */
 	XvtRenderCapture_EndMission();
 

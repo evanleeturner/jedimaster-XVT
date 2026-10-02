@@ -106,7 +106,7 @@ void XvtCockpitMessages_BeginMessage(int pane_type) {
 	g_messageBuild.state.sender_iff = message->senderIff;
 	g_messageBuild.state.pane_type = (uint8_t)pane_type;
 	g_messageBuild.state.font_tier = g_flightFontTier;
-	g_messageBuild.state.age_ticks = message->ageTicks;
+	g_messageBuild.state.age_ticks = message->ageSeconds;
 	g_messageCapture = pane;
 	g_captureFailed = 0;
 	CapturePalette(g_messagePalette);
@@ -152,7 +152,7 @@ void XvtCockpitMessages_Latch(XvtCockpitMessageId pane, int source_x, int source
 			? &g_readyMessagePaneQueue[0]
 			: (pane == XVT_COCKPIT_MESSAGE_SYSTEM ? &g_systemMessagePane : &g_flightGroupMessagePane);
 	if (message->stateOrMessageId == destination->state.message_id)
-		destination->state.age_ticks = message->ageTicks;
+		destination->state.age_ticks = message->ageSeconds;
 	destination->state.timer_ticks =
 		pane == XVT_COCKPIT_MESSAGE_READY
 			? g_playerFlightTransientTimers[g_localPlayer].readyMessagePaneTimer

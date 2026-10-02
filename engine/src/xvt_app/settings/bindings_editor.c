@@ -59,7 +59,7 @@ void XvtBindingsEditor_List(XvtBindingsEditor* editor, AeronUiContext* ui, const
 	}
 }
 
-bool XvtBindingsEditor_Remove(AeronUiContext* ui) { return AeronUi_Button(ui, "Remove Binding") != 0; }
+bool XvtBindingsEditor_RemoveButton(AeronUiContext* ui) { return AeronUi_Button(ui, "Remove Binding") != 0; }
 
 void XvtBindingsEditor_EndDetail(XvtBindingsEditor* editor, AeronUiContext* ui) {
 	if (AeronUi_Button(ui, "Done"))

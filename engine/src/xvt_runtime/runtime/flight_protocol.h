@@ -115,7 +115,7 @@ typedef struct XvtFlightChecksumWire {
 } XvtFlightChecksumWire;
 
 typedef struct XvtFlightChecksumReportWire {
-	XvtFlightChecksumWire state;
+	XvtFlightChecksumWire checksum;
 	XvtWireU32 request_state;
 } XvtFlightChecksumReportWire;
 

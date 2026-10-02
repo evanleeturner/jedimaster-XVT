@@ -38,7 +38,7 @@ static void Clocks(XvtFlightTimingProfile profile) {
 	Time_ResetFrameDeltaClocks();
 	XvtFlightTiming_BeginSession(profile);
 	XvtFlightNetwork_BeginMission();
-	XvtFlightNetwork_BeginRecovery();
+	XvtFlightNetwork_ClearRecoveryRequest();
 	memset(g_players, 0, sizeof g_players);
 	memset(g_inputHistory, 0, sizeof g_inputHistory);
 	memset(g_inputFrameCount, 0, sizeof g_inputFrameCount);
@@ -67,7 +67,7 @@ static void CheckDelayForTicks(void) {
 	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(1000) == 1000ull * TICK_US);
 
 	/* After a tick of the frame-delta clock, time passes on the host clock and the delay shrinks by it. */
-	XVT_ASSERT_INT_EQ(Time_GetFrameDelta(), 0);
+	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), 0);
 	XvtTime_AdvanceHostClock(10 * MS_US);
 	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(3) == 3 * TICK_US - 10 * MS_US);
 	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(5) == 5 * TICK_US - 10 * MS_US);
@@ -189,7 +189,7 @@ static void CheckNativeTickWaits(void) {
 	Clocks(XVT_FLIGHT_TIMING_NATIVE);
 	g_gameTime = 100;
 	g_inputTimestamp = 100;
-	XVT_ASSERT_INT_EQ(Time_GetFrameDelta(), 0);
+	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), 0);
 	XvtTime_AdvanceHostClock(TICK_US);
 	XVT_ASSERT_INT_EQ(XvtFlightFrame_Tick(), 0);
 	XVT_ASSERT_INT_EQ(g_gameTime, 100);

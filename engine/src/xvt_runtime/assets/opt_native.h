@@ -13,7 +13,7 @@ extern "C" {
  * selfMarker, so Relocate can shift every internal pointer when the block moves. */
 
 /* For an OPT_NODEREF node: the node its name refers to, looked up with OptModel_ResolveNodeRef on first
- * use and cached in node->param1. A failed lookup returns NULL and is tried again on the next call;
+ * use and cached in node->payloadCount. A failed lookup returns NULL and is tried again on the next call;
  * Read and relocation clear the cache. */
 OptNode* XvtOpt_ResolveCached(const OptimizedPolyObject* model, OptNode* node);
 /* Shifts every internal pointer by how far the model moved since selfMarker was recorded, then records

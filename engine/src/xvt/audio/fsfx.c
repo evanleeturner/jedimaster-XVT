@@ -1099,9 +1099,10 @@ int fsfx_speakorderack(int playerIdx, int speakerObjIdx, int voiceCategory, int 
 		if ((unsigned int)g_activeRegionCraftObjectSlotEnd > candidateIndex) {
 			do {
 				if (g_objectTable[candidateIndex].objectType != 0 &&
-					g_objectTable[candidateIndex].mobj->state == 0 &&
+					g_objectTable[candidateIndex].mobj->family == 0 &&
 					g_objectTable[candidateIndex].playerOwnerIdx != playerIdx &&
-					g_objectTable[playerObjIdx].flightGroupIdx == g_objectTable[candidateIndex].flightGroupIdx) {
+					g_objectTable[playerObjIdx].flightGroupIdx ==
+						g_objectTable[candidateIndex].flightGroupIdx) {
 					candidates[candidateCount++] = candidateIndex;
 				}
 				candidateIndex++;
@@ -1279,7 +1280,7 @@ int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx,
 			return 0;
 		}
 		voiceVariant = g_fsfxDesignationToVoiceVariant
-			[g_flightMissionState.runtime.teamFgDesignationCode[(uint16_t)g_players[g_localPlayer].playerIff]
+			[g_flightMissionState.runtime.teamFgDesignationCode[(uint16_t)g_players[g_localPlayer].team]
 															   [g_objectTable[objIdx].flightGroupIdx]];
 		if (voiceVariant == 0xFF) {
 			return 0;
@@ -1296,7 +1297,7 @@ int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx,
 		}
 		if ((voiceVariant == 4 || voiceVariant == 5) &&
 			g_missionFlightGroups[g_objectTable[objIdx].flightGroupIdx].fg.team !=
-				(uint16_t)g_players[g_localPlayer].playerIff) {
+				(uint16_t)g_players[g_localPlayer].team) {
 			if (voiceVariant == 4) {
 				voiceVariant = 10;
 			} else {

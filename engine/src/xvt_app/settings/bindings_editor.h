@@ -37,7 +37,7 @@ bool XvtBindingsEditor_BeginDetail(XvtBindingsEditor* editor, AeronUiContext* ui
 void XvtBindingsEditor_List(XvtBindingsEditor* editor, AeronUiContext* ui, const AeronUiListItem* items,
 							size_t count, const char* empty_text);
 /* Draws the Remove Binding button; true when pressed. Removes nothing itself. */
-bool XvtBindingsEditor_Remove(AeronUiContext* ui);
+bool XvtBindingsEditor_RemoveButton(AeronUiContext* ui);
 /* Draws Done, which closes the modal, and ends the modal. */
 void XvtBindingsEditor_EndDetail(XvtBindingsEditor* editor, AeronUiContext* ui);
 /* Returns true only when Replace is chosen. The dialog owns its open flag. */

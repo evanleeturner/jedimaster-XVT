@@ -90,7 +90,7 @@ static void Fresh(void) {
 	XvtDialog_Shutdown();
 	XvtNetworkTask_Shutdown();
 	XvtNetworkSession_Shutdown();
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 	XvtTest_CloseDisplay();
 	memset(&g_frontState, 0, sizeof g_frontState);
 	XvtTest_OpenDisplay();
@@ -254,7 +254,7 @@ static void CheckWakeDelayTakesCdSooner(void) {
 	g_musicCdMciDeviceId = 1;
 	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 512, 0), 1);
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), 1000);
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), FRAME_MS * 1000);
 }
 
@@ -287,7 +287,7 @@ static void CheckServiceFrameSystems(void) {
 	AdvanceMs(1);
 	XvtFrontendTask_ServiceFrameSystems();
 	XVT_ASSERT_INT_EQ(g_frontState.cdAudioTrackCache.currentAuxVolume, 256);
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 }
 
 static void CheckShutdownBeforeInit(void) {

@@ -78,7 +78,7 @@ int16_t goals_outputgoal(uint16_t targetId, uint16_t condition, uint16_t targetT
 			g_flightDrawCharFn(' ');
 			FlightText_DrawString(g_missionFlightGroups[targetId].fg.name);
 			g_flightDrawCharFn(' ');
-			if (Mission_GetFlightGroupSpecialCargoOutcome8(
+			if (Mission_GetSpecialCargoInspectedCount(
 					targetId, g_missionFlightGroups[targetId].fg.specialCargoCraft) != 0) {
 				g_flightDrawCharFn(g_missionFlightGroups[targetId].fg.specialCargoCraft + '1');
 			} else {
@@ -101,7 +101,7 @@ int16_t goals_outputgoal(uint16_t targetId, uint16_t condition, uint16_t targetT
 			g_flightDrawCharFn(' ');
 			FlightText_DrawString(g_missionFlightGroups[targetId].fg.name);
 			g_flightDrawCharFn(' ');
-			if (Mission_GetFlightGroupSpecialCargoOutcome8(
+			if (Mission_GetSpecialCargoInspectedCount(
 					targetId, g_missionFlightGroups[targetId].fg.specialCargoCraft) != 0) {
 				g_flightDrawCharFn(g_missionFlightGroups[targetId].fg.specialCargoCraft + '1');
 			} else {

@@ -121,7 +121,7 @@ static void XvtFlightTask_ReleaseMission(int quitting) {
 
 static int XvtFlightTask_StartWorld(void) {
 	int offline = atoi(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_NUM_PLAYERS]) == 1 &&
-				  atoi(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_LOCAL_ID]) == 1 &&
+				  atoi(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_IS_HOST]) == 1 &&
 				  !g_flightInProgressLaunch &&
 				  XvtNetworkSession_GetStatus().state != XVT_NETWORK_SESSION_ESTABLISHED;
 	XvtFlightTimingProfile profile =
@@ -253,7 +253,7 @@ void XvtFlightTask_Tick(void) {
 		case XVT_FLIGHT_FIRST_DELTA:
 			if (!XvtCockpit_LoadingAssetsReady())
 				break;
-			g_inputTimestamp += Time_GetFrameDelta();
+			g_inputTimestamp += Time_ConsumeElapsedTicks();
 			if (g_inputTimestamp) {
 				Object_RelinkMobileObjectPointers();
 				g_flight.phase = XVT_FLIGHT_OPTIONS;
@@ -356,7 +356,7 @@ void XvtFlightTask_Shutdown(void) {
 	XvtFlightNetwork_Reset();
 	if (XvtFlightTask_IsActive()) {
 		XvtFlightTask_ReleaseMission(1);
-		XvtCdTask_Cancel();
+		XvtCdTask_CancelFade();
 		MusicCd_CloseDevice();
 		XvtFlightEntry_Cleanup();
 	}

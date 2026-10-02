@@ -38,14 +38,14 @@ static void XvtOpt_MoveNode(XvtOptRelocation* state, OptNode* node, unsigned dep
 		return;
 	}
 	node->pName = XvtOpt_Move(node->pName, state->delta);
-	node->param2 = XvtOpt_Move(node->param2, state->delta);
-	if (node->nodeType == OPT_TEXTURE && node->param2 && !XvtOpt_Seen(state, node->param2)) {
-		OptTextureData* texture = node->param2;
+	node->payload = XvtOpt_Move(node->payload, state->delta);
+	if (node->nodeType == OPT_TEXTURE && node->payload && !XvtOpt_Seen(state, node->payload)) {
+		OptTextureData* texture = node->payload;
 		if (!texture->paletteType)
 			texture->palette = XvtOpt_Move(texture->palette, state->delta);
 	}
 	if (node->nodeType == OPT_NODEREF)
-		node->param1 = 0;
+		node->payloadCount = 0;
 	node->pChildren = XvtOpt_Move(node->pChildren, state->delta);
 	if (node->pChildren && !XvtOpt_Seen(state, node->pChildren)) {
 		for (int i = 0; i < node->childCount; ++i) {
@@ -75,7 +75,7 @@ void XvtOpt_Relocate(OptimizedPolyObject* model) {
 }
 
 OptNode* XvtOpt_ResolveCached(const OptimizedPolyObject* model, OptNode* node) {
-	if (!node->param1)
-		node->param1 = (intptr_t)OptModel_ResolveNodeRef(model, node->param2);
-	return (OptNode*)node->param1;
+	if (!node->payloadCount)
+		node->payloadCount = (intptr_t)OptModel_ResolveNodeRef(model, node->payload);
+	return (OptNode*)node->payloadCount;
 }

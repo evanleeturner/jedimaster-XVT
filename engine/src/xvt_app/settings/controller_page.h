@@ -19,7 +19,7 @@
 /* original and draft are the saved models; unconfigured is the profile edited for a device with no model;
  * selected_guid and selected_instance name the device chosen in the selector, active_instance and
  * active_kind the one whose edit state is current; pending_axis, pending_axis_source, pending_digital,
- * conflicting_action and conflict_text feed the conflict dialogs; capacity_warned marks an error that
+ * conflicting_action and conflict_text feed the conflict dialogs; discover_failed marks an error that
  * Discover owns and clears. */
 typedef struct XvtControllerSettings {
 	XvtBindingsEditor editor;
@@ -30,7 +30,7 @@ typedef struct XvtControllerSettings {
 	uint32_t selected_instance;
 	AeronControllerKind active_kind;
 	char conflict_text[512];
-	bool capacity_warned;
+	bool discover_failed;
 	int page;
 	int axis;
 	XvtInputAxis pending_axis;

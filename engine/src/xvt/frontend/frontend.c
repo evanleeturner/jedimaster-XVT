@@ -69,7 +69,7 @@ int g_colorBlue = 0;
 // GLOBAL: XVT 0xB69E38
 int g_colorRed = 0;
 // GLOBAL: XVT 0xB6A2C0
-int g_colorLightBlue = 0;
+int g_colorYellow = 0;
 // GLOBAL: XVT 0xB6A2D8
 int g_colorGreen2 = 0;
 // GLOBAL: XVT 0x52C208
@@ -113,7 +113,7 @@ int Frontend_LoadResources(void) {
 
 	g_gameMainSkipIntroRelaunchGate = 1;
 	g_skipMovieChecks = 0;
-	Frontend_MarkHostCdAvailable();
+	Frontend_CheckHostCdPresent();
 	FrontendDisplay_DisableEscapeClose();
 	FrontendDisplay_SetSurfaceClearColor(0);
 	FrontendCursor_Show();
@@ -157,14 +157,14 @@ int Frontend_LoadResources(void) {
 	g_colorGreen = FrontendDisplay_PackRGB(0, 255, 0);
 	g_colorRed = FrontendDisplay_PackRGB(255, 0, 0);
 	g_colorBlue = FrontendDisplay_PackRGB(0, 0, 255);
-	g_colorLightBlue = FrontendDisplay_PackRGB(255, 255, 0);
+	g_colorYellow = FrontendDisplay_PackRGB(255, 255, 0);
 	g_colorGray = FrontendDisplay_PackRGB(96, 96, 96);
 	g_colorPaleCyan = FrontendDisplay_PackRGB(196, 252, 252);
 	g_colorTeal = FrontendDisplay_PackRGB(48, 111, 123);
 	g_colorRed2 = g_colorRed;
 	g_colorNavy2 = g_colorNavy;
 	g_colorBlue2 = g_colorBlue;
-	g_colorYellow2 = g_colorLightBlue;
+	g_colorYellow2 = g_colorYellow;
 	g_colorViolet = FrontendDisplay_PackRGB(128, 0, 255);
 	g_colorSpringGreen = FrontendDisplay_PackRGB(0, 255, 128);
 	g_colorMutedGreen2 = g_editableFieldBackgroundColor;
@@ -269,7 +269,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 		actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_COMMON, 1, actionTriggered);
 #endif
 		if (actionTriggered != 0) {
-			if (g_frontendSinglePlayerFlightSessionActive != 0) {
+			if (g_frontendGameSessionInProgress != 0) {
 				if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 					if (Net_IsHost() != 0) {
 						actionTriggered = FrontendDialog_ShowConfirmDialog(
@@ -417,7 +417,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 			FrontendScreen_PopState();
 			FrontendMouse_ClearInputGate();
 			FrontImage_FreeResourceByName("backconfig");
-			FrontendText_ResetGlyphScratch();
+			FrontendText_StopTextFade();
 			FrontendScrollbar_RestoreState();
 			if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_HOST) {
 				g_frontendNetPacketScratch.packetType = NET_PACKET_GAME_OPTIONS;
@@ -495,7 +495,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 			actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_COMMON, 2, actionTriggered);
 #endif
 			if (actionTriggered != 0) {
-				if (g_frontendSinglePlayerFlightSessionActive != 0) {
+				if (g_frontendGameSessionInProgress != 0) {
 					if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 						if (Net_IsHost() != 0) {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
@@ -627,7 +627,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 				actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_COMMON, 3, actionTriggered);
 #endif
 				if (actionTriggered != 0) {
-					if (g_frontendSinglePlayerFlightSessionActive != 0) {
+					if (g_frontendGameSessionInProgress != 0) {
 						if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 							if (Net_IsHost() != 0) {
 								actionTriggered = FrontendDialog_ShowConfirmDialog(
@@ -731,7 +731,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 				actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_COMMON, 4, actionTriggered);
 #endif
 				if (actionTriggered != 0) {
-					if (g_frontendSinglePlayerFlightSessionActive != 0 &&
+					if (g_frontendGameSessionInProgress != 0 &&
 						g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 						if (Net_IsHost() != 0) {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
@@ -817,7 +817,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 				free(g_techLibrarySpecTextTable);
 				g_techLibrarySpecTextTable = NULL;
 			}
-			FrontendText_ResetGlyphScratch();
+			FrontendText_StopTextFade();
 		}
 	} else if (screenContext < SCREEN_CONTEXT_CONFIG &&
 			   FrontendButton_DrawSpriteHitTest(&rect, NULL, "reviewcraftdown",
@@ -842,7 +842,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 			actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_COMMON, 5, actionTriggered);
 #endif
 			if (actionTriggered != 0) {
-				if (g_frontendSinglePlayerFlightSessionActive != 0) {
+				if (g_frontendGameSessionInProgress != 0) {
 					if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 						if (Net_IsHost() != 0) {
 							actionTriggered = FrontendDialog_ShowConfirmDialog(
@@ -1010,7 +1010,7 @@ int ErrorText_LoadLine(int lineIndex, char* outText) {
 }
 
 // FUNCTION: XVT 0x4C9EE0
-int Frontend_MarkHostCdAvailable(void) {
+int Frontend_CheckHostCdPresent(void) {
 #ifdef XVT_MODERN
 	char path[XVT_PATH_CAPACITY];
 	g_hostCdAvailable = XvtStorage_ResolveAsset("train/1ta01bf.tie", path, sizeof(path)) == 1;

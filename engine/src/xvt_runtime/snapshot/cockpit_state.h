@@ -83,7 +83,7 @@ typedef struct XvtCockpitPage {
 	uint16_t page_id, layout_id;
 	uint8_t visible, focused;
 	int16_t first_visible_row, selected_row;
-	uint16_t total_rows, first_row, row_count;
+	uint16_t total_rows, first_store_row, row_count;
 	uint16_t first_glyph, glyph_count, header_glyph_count;
 	XvtSnapRect placement, background_bounds, border_bounds;
 	uint32_t background_argb, border_argb;

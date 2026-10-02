@@ -139,7 +139,7 @@ static void Detail(XvtKeyboardSettings* settings, AeronUiContext* ui) {
 		++count;
 	}
 	XvtBindingsEditor_List(&settings->editor, ui, items, count, "This action has no keyboard binding.");
-	if (settings->editor.binding_selected < count && XvtBindingsEditor_Remove(ui)) {
+	if (settings->editor.binding_selected < count && XvtBindingsEditor_RemoveButton(ui)) {
 		XvtKeyboardMapping_Remove(&settings->draft, (size_t)items[settings->editor.binding_selected].id);
 		Changed(settings);
 	}

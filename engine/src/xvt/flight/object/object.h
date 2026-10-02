@@ -17,7 +17,7 @@ struct MobileObjectProximityList {
 };
 
 struct MobileObject {
-	uint8_t state;
+	uint8_t family;
 	uint8_t lightIntensityScale;
 	int32_t simStateTimestamp;
 	int prevWorldX;
@@ -29,7 +29,7 @@ struct MobileObject {
 	uint16_t speedRemainder;
 	unsigned int damageAmount;
 	uint16_t lifetimeTimer;
-	uint16_t framesAlive;
+	uint16_t secondsAlive;
 	uint16_t sourceObjIdx;
 	uint8_t sourceObjectType;
 	uint8_t iff;

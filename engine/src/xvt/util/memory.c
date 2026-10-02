@@ -85,7 +85,7 @@ uint16_t Memory_AllocHandleInternal(size_t size, int legacyTag, int clearFlag) {
 // FUNCTION: XVT 0x4AC6E0
 void Memory_FreeHandle(unsigned int handle) {
 #ifdef XVT_MODERN
-	XvtRenderAssets_FreeHandle(handle);
+	XvtRenderAssets_RetireHandle(handle);
 #endif
 	if (g_handleTables.ptrTable[handle - 1] != NULL) {
 		free(g_handleTables.ptrTable[handle - 1]);

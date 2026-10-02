@@ -316,7 +316,7 @@ void XvtCockpitPages_Export(XvtCockpitState* state) {
 		page->selected_row = content->selected_row;
 		page->style = content->mode;
 		page->first_glyph = store->glyph_count;
-		page->first_row = store->row_count;
+		page->first_store_row = store->row_count;
 		for (unsigned index = 0; index < XVT_COCKPIT_PAGE_SECTION_COUNT; ++index) {
 			const PageSection* section = &content->sections[index];
 			if (section->count > XVT_HUD_PAGE_GLYPH_CAPACITY - store->glyph_count ||
@@ -338,6 +338,6 @@ void XvtCockpitPages_Export(XvtCockpitState* state) {
 				page->header_glyph_count = (uint16_t)section->count;
 		}
 		page->glyph_count = store->glyph_count - page->first_glyph;
-		page->row_count = store->row_count - page->first_row;
+		page->row_count = store->row_count - page->first_store_row;
 	}
 }

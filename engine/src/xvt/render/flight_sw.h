@@ -38,7 +38,7 @@ extern uint16_t g_starfieldRandomVectorIndicesHandle;
 extern int32_t g_starfieldJitterX[125];
 extern int32_t g_starfieldJitterY[125];
 extern int32_t g_starfieldJitterZ[125];
-extern uint8_t g_unusedFlightRenderColorByte;
+extern uint8_t g_flightBackgroundColorIndex;
 #ifndef XVT_MODERN
 extern unsigned int g_vesaWindow;
 #endif
@@ -78,8 +78,8 @@ struct FlightSwRotSpriteCoeffState {
 	uint16_t primaryCosQ15;
 	uint16_t primaryStepReciprocal;
 	uint16_t scanCount;
-	uint16_t field10;
-	uint16_t field12;
+	uint16_t flipY;
+	uint16_t flipX;
 	uint16_t field14;
 	uint16_t octant;
 	uint16_t primaryAxisSwap;
@@ -226,9 +226,10 @@ int FlightSw_StepRotSpriteOctant6(void);
 int FlightSw_InitRotSpriteOctant7(void);
 int FlightSw_StepRotSpriteOctant7(void);
 uint8_t* FlightSw_SetRotatedSpriteDestBuffer(uint8_t* bufferAddress);
-unsigned int SetFlightViewport(unsigned int arg1, unsigned int arg2, int arg3, unsigned int arg4);
+unsigned int SetFlightViewport(unsigned int requestedWidth, unsigned int requestedHeight, int arg3,
+							   unsigned int requestedBaseOffset);
 void FlightSw_CopyLegacy8BitViewportToFramebuffer(const uint8_t* srcPixels);
-unsigned int PushFlightViewport(uint16_t arg1, uint16_t arg2, int16_t arg3, unsigned int arg4);
+unsigned int PushFlightViewport(uint16_t width, uint16_t height, int16_t arg3, unsigned int baseOffset);
 int PopFlightViewport(void);
 void Blit16ToFlightSurface(uint8_t* sourceBase, uint16_t transparentColorIndex, uint16_t sourceX,
 						   uint16_t sourceY, uint16_t destinationX, uint16_t destinationY,

@@ -32,7 +32,7 @@ enum { HOST_DPID = 500, PEER_DPID = 101 };
 
 static void World(int host, XvtFlightTimingProfile profile) {
 	memset(&g_netSession, 0, sizeof g_netSession);
-	g_netSession.localPlayerId = host;
+	g_netSession.localIsHost = host;
 	g_netSession.hostDplayId = HOST_DPID;
 	memset(&g_flightMissionState, 0, sizeof g_flightMissionState);
 	g_serverTickTime = 246;
@@ -49,7 +49,7 @@ static void World(int host, XvtFlightTimingProfile profile) {
 static void Defer(int sender, int request) {
 	XvtFlightChecksumReportWire report;
 	memset(&report, 0, sizeof report);
-	XvtWire_Set32(report.state.opcode, NET_PACKET_WORLD_CHECKSUM);
+	XvtWire_Set32(report.checksum.opcode, NET_PACKET_WORLD_CHECKSUM);
 	XvtWire_Set32(report.request_state, request ? XVT_CHECKSUM_REQUEST_STATE : XVT_CHECKSUM_REPORT);
 	int aligned[sizeof report / sizeof(int)];
 	memcpy(aligned, &report, sizeof report);
@@ -142,9 +142,9 @@ static void CheckRequestStateClient(void) {
 	XVT_ASSERT_TRUE(XvtResync_NextWakeDelayUs() <= wake);
 
 	/* The host holds no input even with a request recorded. */
-	g_netSession.localPlayerId = 1;
+	g_netSession.localIsHost = 1;
 	XVT_ASSERT_INT_EQ(XvtResync_HoldsInput(), 0);
-	g_netSession.localPlayerId = 0;
+	g_netSession.localIsHost = 0;
 
 	/* Reset drops the request. */
 	XvtResync_Reset();

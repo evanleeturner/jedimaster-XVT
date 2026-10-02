@@ -9,17 +9,17 @@
 extern "C" {
 #endif
 
-extern int g_flightNetNextClientInputSendTimestamp;
+extern int g_flightNetNextWorldMessageTimestamp;
 extern int g_flightNetSmallSessionPlayerThreshold;
 extern int g_flightNetLastSentWorldMessageTimestamp;
-extern int g_flightNetWorldChecksumResetAccumMs;
+extern int g_flightNetWorldChecksumResetAccumTicks;
 extern int g_flightNetSentWorldMessageCount;
 extern int g_flightNetReceivedWorldMessageCount;
-extern int dtMs;
+extern int g_netUpdateIntervalTicks;
 extern int g_serverTickTime;
 extern int g_flightNetClockAdjustAccumTicks;
 extern int g_flightNetClockProbeTimestamp;
-extern int g_flightNetHostTimeoutElapsedMs;
+extern int g_flightNetHostTimeoutElapsedTicks;
 
 #pragma pack(push, 1)
 
@@ -98,7 +98,7 @@ int FlightNet_SyncPlayerOptionsAndTaunts(void);
 int FlightNet_WaitForMissionStart(void);
 int FlightNet_SendClockProbeToHost(void);
 int FlightNet_BroadcastStillLoadingPulse(void);
-int FlightNet_BroadcastLocalPlayerLeft(void);
+int FlightNet_BroadcastHostSessionAbort(void);
 int FlightNet_SendStillLoadingPulse(void);
 int FlightNet_BroadcastPlayerDisconnected(int playerSlot);
 int FlightNet_BroadcastPlayerAbort(int playerSlot);
@@ -107,10 +107,10 @@ void FlightNet_MarkPilotNetworkPlayerLeft(int playerSlot);
 void FlightNet_ProcessIncomingPackets(void);
 int32_t FlightNet_SampleAndSendInput(void);
 void FlightNet_InitMissionStartAckState(void);
-int FlightNet_ShouldSendClientWorldMessage(int inputTimestamp);
-void FlightNet_SendClientWorldMessage(int inputTimestamp);
-int FlightNet_SendWorldChecksumToLocalPlayer(const int* worldChecksum, const int* peerChecksum,
-											 int checksumDwordCount);
+int FlightNet_ShouldSendWorldMessage(int inputTimestamp);
+void FlightNet_BroadcastWorldMessage(int inputTimestamp);
+int FlightNet_SendWorldChecksumToHost(const int* worldChecksum, const int* peerChecksum,
+									  int checksumDwordCount);
 int FlightNet_BroadcastWorldChecksum(const int* worldChecksum, const int* peerChecksum,
 									 int checksumDwordCount);
 void FlightNet_SendWorldStateResyncApplyRequest(int directPlayId, int worldStateSize);

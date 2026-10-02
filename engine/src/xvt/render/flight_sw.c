@@ -46,7 +46,7 @@ int32_t g_starfieldJitterY[125] = { 0 };
 // GLOBAL: XVT 0x9A7600
 int32_t g_starfieldJitterZ[125] = { 0 };
 // GLOBAL: XVT 0x523408
-uint8_t g_unusedFlightRenderColorByte = 0xFB;
+uint8_t g_flightBackgroundColorIndex = 0xFB;
 
 struct FlightViewportSaveState {
 	uint16_t viewportX;
@@ -1365,7 +1365,7 @@ void FlightStarfield_Render(void) {
 
 	g_starfieldGridDimension = STAR_GRID_SPAN / g_starDensity;
 	if (g_flight16bppBytesPerPixel == 2) {
-		backgroundColor16 = g_flightTextPalette[g_unusedFlightRenderColorByte];
+		backgroundColor16 = g_flightTextPalette[g_flightBackgroundColorIndex];
 		if (!g_starfieldColors16Initialized) {
 			int colorIndex;
 			g_starfieldColors16Handle = Memory_AllocHandle(STAR_COUNT * sizeof(uint16_t), 0);
@@ -1484,7 +1484,7 @@ void FlightStarfield_Render(void) {
 								uint8_t* pixel = g_flightSwFramebufferBase +
 												 g_surfacePitch * (g_flightVpY + screenY) + g_flightVpX +
 												 screenX;
-								if (*pixel == g_unusedFlightRenderColorByte)
+								if (*pixel == g_flightBackgroundColorIndex)
 									*pixel = colors8[starIndex];
 							}
 						}
@@ -2325,8 +2325,8 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle, uint16_t* outCoe
 	} else if (rotationAngle >= 0x4000) {
 		flipX = 2;
 	}
-	coeffs->field10 = flipY;
-	coeffs->field12 = flipX;
+	coeffs->flipY = flipY;
+	coeffs->flipX = flipX;
 
 	if (rotationAngle >= 0x4000)
 		primaryAngle = 0x8000 - rotationAngle;
@@ -2479,8 +2479,8 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle, uint16_t* outCoe
 		coeffs->secondaryStepByte = primaryStep >> 8;
 	}
 
-	coeffs->octant = coeffs->primaryAxisSwap | coeffs->field10 | coeffs->field12;
-	coeffs->field14 = (coeffs->field12 >> 1) + coeffs->field10;
+	coeffs->octant = coeffs->primaryAxisSwap | coeffs->flipY | coeffs->flipX;
+	coeffs->field14 = (coeffs->flipX >> 1) + coeffs->flipY;
 	coeffs->firstEdgeX = coeffs->edgePointsWithPredecessor[1].x;
 	coeffs->firstEdgeY = coeffs->edgePointsWithPredecessor[1].y;
 	coeffs->firstEdgeScreenY = g_flightSwRotSpriteViewportMaxY - coeffs->firstEdgeY;
@@ -2500,10 +2500,10 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle, uint16_t* outCoe
 			int16_t y;
 
 			x = coeffs->edgePointsWithPredecessor[spanIndex + 1].x;
-			if (coeffs->field12 != 0)
+			if (coeffs->flipX != 0)
 				x = -x;
 			y = coeffs->edgePointsWithPredecessor[spanIndex + 1].y;
-			if (coeffs->field10 != 0)
+			if (coeffs->flipY != 0)
 				y = -y;
 			if (g_flightSwRotSpriteDestYMode > 0)
 				coeffs->spanOffsets[spanIndex] = g_flightSwRotSpriteDestPitchBytes * y + 2 * x;
@@ -2516,10 +2516,10 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle, uint16_t* outCoe
 			int16_t y;
 
 			x = coeffs->edgePointsWithPredecessor[spanIndex + 1].x;
-			if (coeffs->field12 != 0)
+			if (coeffs->flipX != 0)
 				x = -x;
 			y = coeffs->edgePointsWithPredecessor[spanIndex + 1].y;
-			if (coeffs->field10 != 0)
+			if (coeffs->flipY != 0)
 				y = -y;
 			if (g_flightSwRotSpriteDestYMode > 0)
 				coeffs->spanOffsets[spanIndex] = g_flightSwRotSpriteDestPitchBytes * y + x;
@@ -3863,7 +3863,8 @@ uint8_t* FlightSw_SetRotatedSpriteDestBuffer(uint8_t* bufferAddress) {
 }
 
 // FUNCTION: XVT 0x426C60
-unsigned int SetFlightViewport(unsigned int arg1, unsigned int arg2, int arg3, unsigned int arg4) {
+unsigned int SetFlightViewport(unsigned int requestedWidth, unsigned int requestedHeight, int arg3,
+							   unsigned int requestedBaseOffset) {
 	unsigned int width;
 	unsigned int height;
 	unsigned int baseOffset;
@@ -3872,14 +3873,14 @@ unsigned int SetFlightViewport(unsigned int arg1, unsigned int arg2, int arg3, u
 	(void)arg3;
 
 	if (g_flightRenderModeId == 160) {
-		width = arg1 >> 1;
-		height = arg2 >> 1;
+		width = requestedWidth >> 1;
+		height = requestedHeight >> 1;
 		pitch = g_surfacePitch;
-		baseOffset = arg4 + 120 * pitch + 160;
+		baseOffset = requestedBaseOffset + 120 * pitch + 160;
 	} else {
-		width = arg1;
-		height = arg2;
-		baseOffset = arg4;
+		width = requestedWidth;
+		height = requestedHeight;
+		baseOffset = requestedBaseOffset;
 		pitch = g_surfacePitch;
 	}
 
@@ -3926,7 +3927,7 @@ void FlightSw_CopyLegacy8BitViewportToFramebuffer(const uint8_t* srcPixels) {
 }
 
 // FUNCTION: XVT 0x426F40
-unsigned int PushFlightViewport(uint16_t arg1, uint16_t arg2, int16_t arg3, unsigned int arg4) {
+unsigned int PushFlightViewport(uint16_t width, uint16_t height, int16_t arg3, unsigned int baseOffset) {
 	(void)arg3;
 #ifdef XVT_MODERN
 	XvtRenderCamera_SaveViewport();
@@ -3947,20 +3948,20 @@ unsigned int PushFlightViewport(uint16_t arg1, uint16_t arg2, int16_t arg3, unsi
 	g_savedFlightViewport.camMatR1_Z = g_camMatR1_Z;
 	g_savedFlightViewport.camMatR2_Z = g_camMatR2_Z;
 
-	g_flightVpWidth = arg1;
-	g_flightVpMaxX = arg1 - 1;
-	g_flightVpCenterX = arg1 >> 1;
-	g_flightVpHeight = arg2;
-	g_flightVpMaxY = arg2 - 1;
+	g_flightVpWidth = width;
+	g_flightVpMaxX = width - 1;
+	g_flightVpCenterX = width >> 1;
+	g_flightVpHeight = height;
+	g_flightVpMaxY = height - 1;
 	{
 		unsigned int remainder;
 		int pitch;
 
 		pitch = g_surfacePitch;
-		g_flightVpCenterY = arg2 >> 1;
-		g_flightVpBaseOffset = arg4;
-		g_flightVpY = arg4 / (unsigned int)pitch;
-		remainder = arg4 % (unsigned int)pitch;
+		g_flightVpCenterY = height >> 1;
+		g_flightVpBaseOffset = baseOffset;
+		g_flightVpY = baseOffset / (unsigned int)pitch;
+		remainder = baseOffset % (unsigned int)pitch;
 		g_flightVpX = remainder / (unsigned int)g_flight16bppBytesPerPixel;
 		g_viewportSpanMaskOffset = 0xE000;
 	}
@@ -5282,7 +5283,7 @@ void FlightSw_BlitPreparedRotatedSpriteSpans(uint8_t* pDst, int rowSkipBytes, in
 		FlightSurface_Lock();
 	}
 	scanY = startY;
-	depth = (float)(unsigned int)g_projScaleInt / (float)depthZ;
+	depth = (float)(unsigned int)g_projScaleInt / (float)g_viewSpaceDepth;
 	if (g_flight16bppBytesPerPixel == 2) {
 		if (endY > scanY) {
 			pixel = pDst;

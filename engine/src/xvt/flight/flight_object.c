@@ -465,7 +465,7 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx) {
 			g_objectTable[objectIdx].mobj->orientMatrixDirty = 1;
 			g_objectTable[objectIdx].mobj->moveVectorDirty = g_objectTable[objectIdx].mobj->orientMatrixDirty;
 			g_objectTable[objectIdx].mobj->pCraft->pitch = (uint16_t)pitch;
-			Flight_DecelerateHyperspaceSpeed(objectIdx, HYPERSPACE_ALIGN_DECELERATION);
+			Flight_DecelerateObjectSpeed(objectIdx, HYPERSPACE_ALIGN_DECELERATION);
 			return;
 		}
 		case HYPERSPACE_PHASE_DEPART:
@@ -586,15 +586,15 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx) {
 
 				accelerationStage = (uint16_t)(phaseElapsedTicks / HYPERSPACE_ACCELERATION_INTERVAL);
 				if (accelerationStage == 0)
-					Flight_AccelerateHyperspaceSpeed(objectIdx, 10);
+					Flight_AccelerateObjectSpeed(objectIdx, 10);
 				else if (accelerationStage == 1)
-					Flight_AccelerateHyperspaceSpeed(objectIdx, 25);
+					Flight_AccelerateObjectSpeed(objectIdx, 25);
 				else if (accelerationStage == 2)
-					Flight_AccelerateHyperspaceSpeed(objectIdx, 50);
+					Flight_AccelerateObjectSpeed(objectIdx, 50);
 				else if (accelerationStage == 3)
-					Flight_AccelerateHyperspaceSpeed(objectIdx, 100);
+					Flight_AccelerateObjectSpeed(objectIdx, 100);
 				else
-					Flight_AccelerateHyperspaceSpeed(objectIdx, 1000);
+					Flight_AccelerateObjectSpeed(objectIdx, 1000);
 				g_objectTable[objectIdx].world_y +=
 					HYPERSPACE_FORWARD_STEP * g_elapsedTicks * accelerationStage;
 			}
@@ -673,7 +673,7 @@ void FlightObject_UpdateDebrisAndTransientAnimations(void) {
 #endif
 		g_objectTable[debrisIndex].objectType = (GameRand2() & 3) + 110;
 		g_objectTable[debrisIndex].genusId = 11;
-		g_objectTable[debrisIndex].mobj->state = 3;
+		g_objectTable[debrisIndex].mobj->family = 3;
 		g_objectTable[debrisIndex].flightGroupIdx = -1;
 		if (g_objectTable[objectIndex].mobj->orientMatrixDirty != 0) {
 			FVIEW_calcrotatemove(g_objectTable[objectIndex].pitch, g_objectTable[objectIndex].yaw,

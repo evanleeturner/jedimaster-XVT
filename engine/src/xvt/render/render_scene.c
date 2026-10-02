@@ -109,7 +109,7 @@ int g_maxBatchVerts = 0;
 // GLOBAL: XVT 0x54F994
 int g_d3dVertexCount = 0;
 // GLOBAL: XVT 0x54F9A0
-int g_d3dIndexCount = 0;
+int g_d3dTriangleCount = 0;
 // GLOBAL: XVT 0x54F9A4
 float g_flightVpOriginX = 0.0f;
 // GLOBAL: XVT 0x999420
@@ -721,16 +721,16 @@ void RenderScene_DrawMeshFaces(const SceneMesh* mesh) {
 			g_d3dVertexCount += g_clipCountA;
 			if (g_clipCountA > triangleCorner) {
 				do {
-					g_triBuffer[g_d3dIndexCount].v0 = colorKeyVertexBase;
-					g_triBuffer[g_d3dIndexCount].v1 = colorKeyVertexBase + triangleCorner - 1;
-					g_triBuffer[g_d3dIndexCount].v2 = colorKeyVertexBase + triangleCorner;
-					g_triBuffer[g_d3dIndexCount].texture = colorKeyTexture;
-					g_triBuffer[g_d3dIndexCount].flags = (Std3DRenderStateFlags)BASE_MESH_TRIANGLE_FLAGS;
+					g_triBuffer[g_d3dTriangleCount].v0 = colorKeyVertexBase;
+					g_triBuffer[g_d3dTriangleCount].v1 = colorKeyVertexBase + triangleCorner - 1;
+					g_triBuffer[g_d3dTriangleCount].v2 = colorKeyVertexBase + triangleCorner;
+					g_triBuffer[g_d3dTriangleCount].texture = colorKeyTexture;
+					g_triBuffer[g_d3dTriangleCount].flags = (Std3DRenderStateFlags)BASE_MESH_TRIANGLE_FLAGS;
 					if (g_bilinearEnabled != 0)
-						g_triBuffer[g_d3dIndexCount].flags += BILINEAR_TRIANGLE_FLAGS;
+						g_triBuffer[g_d3dTriangleCount].flags += BILINEAR_TRIANGLE_FLAGS;
 					++triangleCorner;
-					g_triBuffer[g_d3dIndexCount].flags += COLOR_KEY_TRIANGLE_FLAGS;
-					++g_d3dIndexCount;
+					g_triBuffer[g_d3dTriangleCount].flags += COLOR_KEY_TRIANGLE_FLAGS;
+					++g_d3dTriangleCount;
 				} while (triangleCorner < g_clipCountA);
 			}
 		}
@@ -740,19 +740,19 @@ void RenderScene_DrawMeshFaces(const SceneMesh* mesh) {
 			int* triangleVertex = &g_clipIdxA[1];
 
 			do {
-				g_triBuffer[g_d3dIndexCount].v0 = g_clipIdxA[0];
-				g_triBuffer[g_d3dIndexCount].v1 = *triangleVertex++;
-				g_triBuffer[g_d3dIndexCount].v2 = *triangleVertex;
-				g_triBuffer[g_d3dIndexCount].texture = opaqueTexture;
-				g_triBuffer[g_d3dIndexCount].flags = (Std3DRenderStateFlags)BASE_MESH_TRIANGLE_FLAGS;
+				g_triBuffer[g_d3dTriangleCount].v0 = g_clipIdxA[0];
+				g_triBuffer[g_d3dTriangleCount].v1 = *triangleVertex++;
+				g_triBuffer[g_d3dTriangleCount].v2 = *triangleVertex;
+				g_triBuffer[g_d3dTriangleCount].texture = opaqueTexture;
+				g_triBuffer[g_d3dTriangleCount].flags = (Std3DRenderStateFlags)BASE_MESH_TRIANGLE_FLAGS;
 				if (g_bilinearEnabled != 0)
-					g_triBuffer[g_d3dIndexCount].flags += BILINEAR_TRIANGLE_FLAGS;
+					g_triBuffer[g_d3dTriangleCount].flags += BILINEAR_TRIANGLE_FLAGS;
 				if (g_capVertexAlpha != 0) {
-					g_triBuffer[g_d3dIndexCount].flags += COLOR_KEY_TRIANGLE_FLAGS;
+					g_triBuffer[g_d3dTriangleCount].flags += COLOR_KEY_TRIANGLE_FLAGS;
 					g_capVertexAlpha = 0;
 				}
 				++triangleCorner;
-				++g_d3dIndexCount;
+				++g_d3dTriangleCount;
 			} while (triangleCorner < g_clipCountA);
 		}
 		++faceIndex;
@@ -776,17 +776,17 @@ void RenderScene_DrawMesh(const SceneMesh* mesh) {
 	if (queuedMesh->visFaceCount == 0)
 		return;
 	if (g_d3dVertexCount + 8 * queuedMesh->visFaceCount > g_maxBatchVerts ||
-		g_d3dIndexCount + 2 * queuedMesh->visFaceCount > g_maxBatchTris) {
+		g_d3dTriangleCount + 2 * queuedMesh->visFaceCount > g_maxBatchTris) {
 		Math_SetFpuExtendedPrecisionMode();
 		std3D_StartScene();
 		std3D_LockExecuteBuffer();
 		std3D_AddVertices(g_flightVertexBuffer, g_d3dVertexCount);
 		std3D_BeginInstructions();
-		std3D_AddTriangles(g_triBuffer, (unsigned int)g_d3dIndexCount);
+		std3D_AddTriangles(g_triBuffer, (unsigned int)g_d3dTriangleCount);
 		std3D_ExecuteBuffer();
 		std3D_EndScene();
 		Math_SetFpuSinglePrecisionMode();
-		g_d3dIndexCount = 0;
+		g_d3dTriangleCount = 0;
 		g_d3dVertexCount = 0;
 	}
 	if (g_bBackdropMeshMode != 0)
@@ -808,7 +808,7 @@ void RenderScene_InitHardwareFrame(void) {
 	viewportOriginX = g_flightVpX + ((unsigned int)viewportOriginX >> 1);
 	viewportOriginY = g_flightVpY + ((unsigned int)viewportOriginY >> 1);
 	g_flightVpOriginX = (float)(unsigned int)viewportOriginX;
-	g_d3dIndexCount = 0;
+	g_d3dTriangleCount = 0;
 	g_flightVpOriginY = (float)(unsigned int)viewportOriginY;
 	g_d3dVertexCount = 0;
 	g_d3dVertexAlphaStateResetSlot = 0;
@@ -850,7 +850,7 @@ void RenderScene_FlushGeometry(void) {
 	}
 	g_sceneBillboardQueueCount = 0;
 
-	if (g_d3dVertexCount == 0 || g_d3dIndexCount == 0) {
+	if (g_d3dVertexCount == 0 || g_d3dTriangleCount == 0) {
 		return;
 	}
 	Math_SetFpuExtendedPrecisionMode();
@@ -858,7 +858,7 @@ void RenderScene_FlushGeometry(void) {
 	std3D_LockExecuteBuffer();
 	std3D_AddVertices(g_flightVertexBuffer, g_d3dVertexCount);
 	std3D_BeginInstructions();
-	std3D_AddTriangles(g_triBuffer, g_d3dIndexCount);
+	std3D_AddTriangles(g_triBuffer, g_d3dTriangleCount);
 	std3D_ExecuteBuffer();
 	std3D_EndScene();
 	Math_SetFpuSinglePrecisionMode();
@@ -1619,13 +1619,13 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 			}
 #endif
 		} else {
-			currentNode = OptModel_ResolveNodeRef(object, (const char*)currentNode->param2);
+			currentNode = OptModel_ResolveNodeRef(object, (const char*)currentNode->payload);
 		}
 		if (currentNode == NULL)
 			return;
 	}
 
-	nodeData = currentNode->param2;
+	nodeData = currentNode->payload;
 	if (nodeData != NULL) {
 		OptVector* parameters;
 
@@ -1642,15 +1642,15 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				OptVector* generatedNormals;
 
 				faceData = (OptPackedFaceData*)nodeData;
-				mesh->faceCount = currentNode->param1;
+				mesh->faceCount = currentNode->payloadCount;
 				mesh->edgeCount = faceData->edgeCount;
 				faceGeometry = (FaceRecord*)faceData->records;
 				mesh->pFaceGeom = faceGeometry;
-				faceNormals = (OptVector*)&faceGeometry[currentNode->param1];
+				faceNormals = (OptVector*)&faceGeometry[currentNode->payloadCount];
 				mesh->pFaceNormals = faceNormals;
-				faceTexturing = (FaceTextureGradients*)&faceNormals[currentNode->param1];
+				faceTexturing = (FaceTextureGradients*)&faceNormals[currentNode->payloadCount];
 				mesh->pFaceTexturing = faceTexturing;
-				generatedNormals = &faceTexturing[currentNode->param1].gradient0;
+				generatedNormals = &faceTexturing[currentNode->payloadCount].gradient0;
 				if (mesh->pMaterial == NULL) {
 					int paletteOffset;
 
@@ -1682,7 +1682,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				}
 				break;
 			}
-			case OPT_TYPE_2:
+			case OPT_TRANSFORM:
 				Math3D_MulMatrix3x3(mesh->viewOrient, &parameters[1].x);
 				Math3D_RotateVec3(&mesh->viewPosX, &parameters[1].x);
 				mesh->viewPosX += parameters->x;
@@ -1694,10 +1694,10 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				mesh->posZ -= Math3D_RotateVec3Z(&parameters->x, mesh->orient);
 				break;
 			case OPT_MESHVERTS:
-				mesh->vertexCount = currentNode->param1;
+				mesh->vertexCount = currentNode->payloadCount;
 				mesh->pModelVerts = parameters;
 				break;
-			case OPT_TYPE_4:
+			case OPT_TRANSLATION:
 				mesh->viewPosX += parameters->x;
 				mesh->viewPosY += parameters->y;
 				mesh->viewPosZ += parameters->z;
@@ -1705,12 +1705,12 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				mesh->posY -= Math3D_RotateVec3Y(&parameters->x, mesh->orient);
 				mesh->posZ -= Math3D_RotateVec3Z(&parameters->x, mesh->orient);
 				break;
-			case OPT_TYPE_5:
+			case OPT_ROTATION:
 				Math3D_MulMatrix3x3(mesh->viewOrient, (const float*)nodeData);
 				Math3D_RotateVec3(&mesh->viewPosX, (const float*)nodeData);
 				Math3D_MulMatrix3x3T(mesh->orient, (const float*)nodeData);
 				break;
-			case OPT_TYPE_6: {
+			case OPT_SCALE: {
 				float* scaleX;
 				float* scaleY;
 				float* scaleZ;
@@ -1747,9 +1747,9 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				break;
 			}
 			case OPT_TYPE_10:
-				if (currentNode->param1 == 8 || currentNode->param1 == 7)
+				if (currentNode->payloadCount == 8 || currentNode->payloadCount == 7)
 					memcpy(&mesh->nodeType10Flags78, &g_curMeshFlags, sizeof(mesh->nodeType10Flags78));
-				else if (currentNode->param1 == 6 || currentNode->param1 == 5)
+				else if (currentNode->payloadCount == 6 || currentNode->payloadCount == 5)
 					memcpy(&mesh->nodeType10Flags56, &g_curMeshFlags, sizeof(mesh->nodeType10Flags56));
 				else
 					memcpy(&mesh->nodeFlags[3], &g_curMeshFlags, sizeof(mesh->nodeFlags[3]));
@@ -1770,7 +1770,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				int paletteOffset;
 
 				mesh->pTextureName = currentNode->pName;
-				mesh->pMaterial = currentNode->param2;
+				mesh->pMaterial = currentNode->payload;
 				g_curTextureDesc = (OptTextureData*)mesh->pMaterial;
 				mesh->pTexels = mesh->pMaterial;
 				mesh->pTexels = (uint8_t*)mesh->pTexels + sizeof(OptTextureData);
@@ -1790,7 +1790,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				break;
 			}
 			case OPT_FACEGROUP:
-				if (depthZ <= 0 || g_forcedLodLevel != 0) {
+				if (g_viewSpaceDepth <= 0 || g_forcedLodLevel != 0) {
 					lodChildSelection = g_forcedLodLevel;
 					if (g_forcedLodLevel == 0) {
 						lodChildSelection = 1;
@@ -1800,7 +1800,8 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				} else {
 					selection.lodThreshold = 1.0f;
 					if (g_lodDistanceScale > 0.0f)
-						selection.lodThreshold = g_sw3dUnitFloat / ((float)depthZ * g_lodDistanceScale);
+						selection.lodThreshold =
+							g_sw3dUnitFloat / ((float)g_viewSpaceDepth * g_lodDistanceScale);
 					lodChildSelection = 1;
 					while (lodChildSelection <= currentNode->childCount &&
 						   ((float*)nodeData)[lodChildSelection - 1] > selection.lodThreshold)
@@ -1853,9 +1854,9 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 	} else {
 		switch (currentNode->nodeType) {
 			case OPT_TYPE_10:
-				if (currentNode->param1 == 8 || currentNode->param1 == 7)
+				if (currentNode->payloadCount == 8 || currentNode->payloadCount == 7)
 					memcpy(&mesh->nodeType10Flags78, &g_curMeshFlags, sizeof(mesh->nodeType10Flags78));
-				else if (currentNode->param1 == 6 || currentNode->param1 == 5)
+				else if (currentNode->payloadCount == 6 || currentNode->payloadCount == 5)
 					memcpy(&mesh->nodeType10Flags56, &g_curMeshFlags, sizeof(mesh->nodeType10Flags56));
 				else
 					memcpy(&mesh->nodeFlags[3], &g_curMeshFlags, sizeof(mesh->nodeFlags[3]));
@@ -1864,7 +1865,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* object, OptNode* node, Scene
 				int paletteOffset;
 
 				mesh->pTextureName = currentNode->pName;
-				mesh->pMaterial = currentNode->param2;
+				mesh->pMaterial = currentNode->payload;
 				g_curTextureDesc = (OptTextureData*)mesh->pMaterial;
 				mesh->pTexels = mesh->pMaterial;
 				mesh->pTexels = (uint8_t*)mesh->pTexels + sizeof(OptTextureData);
@@ -1982,7 +1983,7 @@ int RenderScene_IsSegmentOccludedByObjectModel(ObjectRecord* object, const OptVe
 // FUNCTION: XVT 0x4736B0
 int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode* node, SceneMesh* mesh,
 											const OptVector* segmentStart, const OptVector* segmentEnd) {
-	OptVector* param2;
+	OptVector* nodePayload;
 	int childIndex;
 	SceneMesh childMesh;
 
@@ -1990,19 +1991,19 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 		return 0;
 	}
 	while (node->nodeType == OPT_NODEREF) {
-		node = OptModel_ResolveNodeRef(model, (const char*)node->param2);
+		node = OptModel_ResolveNodeRef(model, (const char*)node->payload);
 		if (node == NULL) {
 			return 0;
 		}
 	}
-	param2 = (OptVector*)node->param2;
-	if (param2 != NULL) {
+	nodePayload = (OptVector*)node->payload;
+	if (nodePayload != NULL) {
 		switch (node->nodeType) {
 			case OPT_FACEDATA:
 			case OPT_FACEDATA_15:
 			case OPT_FACEDATA_16:
 			case OPT_FACEDATA_17: {
-				OptPackedFaceData* faceData = (OptPackedFaceData*)param2;
+				OptPackedFaceData* faceData = (OptPackedFaceData*)nodePayload;
 				FaceRecord* faceGeometry;
 				int hit;
 				OptVector* faceNormals;
@@ -2010,16 +2011,16 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 				OptVector* generatedNormals;
 				OptVector** vertexNormals;
 
-				mesh->faceCount = node->param1;
+				mesh->faceCount = node->payloadCount;
 				mesh->edgeCount = faceData->edgeCount;
-				param2 = (OptVector*)faceData->records;
-				faceGeometry = (FaceRecord*)param2;
+				nodePayload = (OptVector*)faceData->records;
+				faceGeometry = (FaceRecord*)nodePayload;
 				mesh->pFaceGeom = faceGeometry;
-				faceNormals = (OptVector*)&faceGeometry[node->param1];
+				faceNormals = (OptVector*)&faceGeometry[node->payloadCount];
 				mesh->pFaceNormals = faceNormals;
-				texturing = (FaceTextureGradients*)&faceNormals[node->param1];
+				texturing = (FaceTextureGradients*)&faceNormals[node->payloadCount];
 				mesh->pFaceTexturing = texturing;
-				generatedNormals = &texturing[node->param1].gradient0;
+				generatedNormals = &texturing[node->payloadCount].gradient0;
 				vertexNormals = &mesh->pVertNormals;
 				if (*vertexNormals == NULL) {
 					mesh->pVertNormals = generatedNormals;
@@ -2036,38 +2037,38 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 				}
 				break;
 			}
-			case OPT_TYPE_2:
-				Math3D_MulMatrix3x3(mesh->viewOrient, &param2[1].x);
-				Math3D_RotateVec3(&mesh->viewPosX, &param2[1].x);
-				mesh->viewPosX = RenderScene_AddTranslation(mesh->viewPosX, param2->x);
-				mesh->viewPosY += param2->y;
-				mesh->viewPosZ += param2->z;
-				Math3D_MulMatrix3x3T(mesh->orient, &param2[1].x);
-				mesh->posX -= Math3D_RotateVec3X(&param2->x, mesh->orient);
-				mesh->posY -= Math3D_RotateVec3Y(&param2->x, mesh->orient);
-				mesh->posZ -= Math3D_RotateVec3Z(&param2->x, mesh->orient);
+			case OPT_TRANSFORM:
+				Math3D_MulMatrix3x3(mesh->viewOrient, &nodePayload[1].x);
+				Math3D_RotateVec3(&mesh->viewPosX, &nodePayload[1].x);
+				mesh->viewPosX = RenderScene_AddTranslation(mesh->viewPosX, nodePayload->x);
+				mesh->viewPosY += nodePayload->y;
+				mesh->viewPosZ += nodePayload->z;
+				Math3D_MulMatrix3x3T(mesh->orient, &nodePayload[1].x);
+				mesh->posX -= Math3D_RotateVec3X(&nodePayload->x, mesh->orient);
+				mesh->posY -= Math3D_RotateVec3Y(&nodePayload->x, mesh->orient);
+				mesh->posZ -= Math3D_RotateVec3Z(&nodePayload->x, mesh->orient);
 				break;
 			case OPT_MESHVERTS:
-				mesh->vertexCount = node->param1;
-				mesh->pModelVerts = param2;
+				mesh->vertexCount = node->payloadCount;
+				mesh->pModelVerts = nodePayload;
 				break;
-			case OPT_TYPE_4:
-				mesh->viewPosX = RenderScene_AddTranslation(mesh->viewPosX, param2->x);
-				mesh->viewPosY += param2->y;
-				mesh->viewPosZ += param2->z;
-				mesh->posX -= Math3D_RotateVec3X(&param2->x, mesh->orient);
-				mesh->posY -= Math3D_RotateVec3Y(&param2->x, mesh->orient);
-				mesh->posZ -= Math3D_RotateVec3Z(&param2->x, mesh->orient);
+			case OPT_TRANSLATION:
+				mesh->viewPosX = RenderScene_AddTranslation(mesh->viewPosX, nodePayload->x);
+				mesh->viewPosY += nodePayload->y;
+				mesh->viewPosZ += nodePayload->z;
+				mesh->posX -= Math3D_RotateVec3X(&nodePayload->x, mesh->orient);
+				mesh->posY -= Math3D_RotateVec3Y(&nodePayload->x, mesh->orient);
+				mesh->posZ -= Math3D_RotateVec3Z(&nodePayload->x, mesh->orient);
 				break;
-			case OPT_TYPE_5:
-				Math3D_MulMatrix3x3(mesh->viewOrient, (const float*)param2);
-				Math3D_RotateVec3(&mesh->viewPosX, &param2->x);
-				Math3D_MulMatrix3x3T(mesh->orient, &param2->x);
+			case OPT_ROTATION:
+				Math3D_MulMatrix3x3(mesh->viewOrient, (const float*)nodePayload);
+				Math3D_RotateVec3(&mesh->viewPosX, &nodePayload->x);
+				Math3D_MulMatrix3x3T(mesh->orient, &nodePayload->x);
 				break;
-			case OPT_TYPE_6: {
-				float* scaleX = &param2->x;
-				float* scaleY = &param2->y;
-				float* scaleZ = &param2->z;
+			case OPT_SCALE: {
+				float* scaleX = &nodePayload->x;
+				float* scaleY = &nodePayload->y;
+				float* scaleZ = &nodePayload->z;
 				float* orientation = mesh->orient;
 				float inverseScale;
 
@@ -2098,8 +2099,8 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 				break;
 			}
 			case OPT_VERTNORMALS:
-				g_curVertNormals = param2;
-				mesh->pVertNormals = param2;
+				g_curVertNormals = nodePayload;
+				mesh->pVertNormals = nodePayload;
 				break;
 			default:
 				break;

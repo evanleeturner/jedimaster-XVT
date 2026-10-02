@@ -61,7 +61,7 @@ typedef struct XvtPlayerTimingWire {
 	uint8_t lock_mode, lock_half, control_valid;
 	XvtWireU32 control_mode;
 	XvtWireU16 lock_signature, lock_target, lock_target_signature, lock_weapon;
-	XvtWireU64 lock_frame;
+	XvtWireU64 lock_serial;
 	XvtWireU16 camera_focus, reserved_tail;
 } XvtPlayerTimingWire;
 

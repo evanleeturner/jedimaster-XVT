@@ -12,13 +12,13 @@ extern "C" {
 struct HudInFlightMessageRecord {
 	uint16_t stateOrMessageId;
 	uint16_t voiceSfxId;
-	uint16_t clockWord;
-	uint8_t clockTick;
+	uint16_t clockSubsecondTicks;
+	uint8_t clockSecond;
 	uint8_t clockMinute;
 	uint8_t clockHour;
 	uint8_t paneType;
 	uint16_t senderIff;
-	uint8_t ageTicks;
+	uint8_t ageSeconds;
 	uint8_t showCount;
 	char text[70];
 };

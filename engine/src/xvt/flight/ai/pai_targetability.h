@@ -44,10 +44,10 @@ static __inline int pai_IsObjectTargetable(unsigned int objIdx) {
 				sourceGenus = g_objectTable[g_paiContext.objectIndex].genusId;
 				if (sourceGenus == CRAFT_GENUS_STARFIGHTER || sourceGenus == CRAFT_GENUS_TRANSPORT ||
 					sourceGenus == CRAFT_GENUS_UTILITY_VEHICLE) {
-					if (g_targetRangeScore > AI_DECOY_RANGE_SMALL) {
+					if (g_lastRoughDistance > AI_DECOY_RANGE_SMALL) {
 						return 0;
 					}
-				} else if (g_targetRangeScore > AI_DECOY_RANGE_LARGE) {
+				} else if (g_lastRoughDistance > AI_DECOY_RANGE_LARGE) {
 					return 0;
 				}
 			}

@@ -46,9 +46,9 @@ int g_flightConfFlicker = 0;
 // GLOBAL: XVT 0x527EBC
 int g_renderTargetWidth = 640;
 // GLOBAL: XVT 0x527EC0
-int g_unusedFlightDisplayBytesPerPixelMirror = 1;
+int g_requestedFlightBytesPerPixel = 1;
 // GLOBAL: XVT 0x527EC4
-int g_unusedFlightDisplayHardware3DMirror = 1;
+int g_requestedFlightHardware3D = 1;
 // GLOBAL: XVT 0x527F7C
 uint32_t g_flightFlickerLastSyncTimeMs = 0;
 // GLOBAL: XVT 0x527F80

@@ -27,7 +27,7 @@ void XvtNetworkDialogs_Return(int host);
 void XvtNetworkDialogs_Failed(AeronDplayDirectoryError error, int host);
 /* When the network session has failed, reports it through Failed as a join and returns 1;
  * otherwise returns 0. */
-int XvtNetworkDialogs_AdmissionFailed(void);
+int XvtNetworkDialogs_ReportAdmissionFailure(void);
 
 #ifdef __cplusplus
 }

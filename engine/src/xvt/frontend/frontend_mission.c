@@ -404,7 +404,7 @@ void FrontendMission_InitPlayerState(void) {
 			g_pilotData.networkPlayers[rosterIndex].totalScore = 0;
 			g_pilotData.networkPlayers[rosterIndex].kills = 0;
 			g_pilotData.networkPlayers[rosterIndex].killsShared = 0;
-			g_pilotData.networkPlayers[rosterIndex].unknown34 = 0;
+			g_pilotData.networkPlayers[rosterIndex].craftInspected = 0;
 			g_pilotData.networkPlayers[rosterIndex].killsAssist = 0;
 			g_pilotData.networkPlayers[rosterIndex].totalLosses = 0;
 			g_pilotData.networkPlayers[rosterIndex].hasLeft = 0;
@@ -448,12 +448,13 @@ void FrontendMission_InitPlayerState(void) {
 		int teamIndex;
 
 		for (teamIndex = 0; teamIndex < g_teamCount; teamIndex++) {
-			for (assignmentSlot = 0; assignmentSlot < g_teamFgCountScratch[teamIndex]; assignmentSlot++) {
+			for (assignmentSlot = 0; assignmentSlot < g_teamPlayerFlightGroupCount[teamIndex];
+				 assignmentSlot++) {
 				if (g_missionSetupPlayerAssignments.teamPlayerIds[teamIndex][assignmentSlot] != 0) {
 					break;
 				}
 			}
-			if (assignmentSlot < g_teamFgCountScratch[teamIndex]) {
+			if (assignmentSlot < g_teamPlayerFlightGroupCount[teamIndex]) {
 				g_pilotData.meleeTournamentSequenceState.teamStandings[teamIndex]
 					.aiOpponentSourceTeamAndTypeFlag = 0;
 			}
@@ -478,12 +479,13 @@ void FrontendMission_InitPlayerState(void) {
 		} else {
 			int participatingTeams = 0;
 			for (teamIndex = 0; teamIndex < g_teamCount; teamIndex++) {
-				for (assignmentSlot = 0; assignmentSlot < g_teamFgCountScratch[teamIndex]; assignmentSlot++) {
+				for (assignmentSlot = 0; assignmentSlot < g_teamPlayerFlightGroupCount[teamIndex];
+					 assignmentSlot++) {
 					if (g_missionSetupPlayerAssignments.teamPlayerIds[teamIndex][assignmentSlot] != 0) {
 						break;
 					}
 				}
-				if (assignmentSlot < g_teamFgCountScratch[teamIndex]) {
+				if (assignmentSlot < g_teamPlayerFlightGroupCount[teamIndex]) {
 					participatingTeams++;
 					g_pilotData.meleeTournamentSequenceState.teamStandings[teamIndex]
 						.aiOpponentSourceTeamAndTypeFlag = 0;
@@ -552,5 +554,5 @@ void FrontendMission_InitPlayerState(void) {
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].missionSequenceDescriptionId =
 			g_pilotData.missionSequenceDescriptionId;
 	}
-	NetSession_CompactReliablePeerSlotsForRoster();
+	Net_CompactReliablePeerSlotsForRoster();
 }

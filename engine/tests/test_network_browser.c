@@ -71,12 +71,12 @@ static void CheckDrawsWithNoRooms(void) {
 static void CheckFirstFrame(void) {
 	Fresh();
 	g_skipFrontendEntryMovie = 1;
-	g_unusedFrontendConcourseHostLatch = 1;
-	g_frontendSinglePlayerFlightSessionActive = 1;
+	g_configConnectionTypeEditable = 1;
+	g_frontendGameSessionInProgress = 1;
 	XVT_ASSERT_INT_EQ(XvtNetworkBrowser_Screen(0), 0);
 	XVT_ASSERT_INT_EQ(g_skipFrontendEntryMovie, 0);
-	XVT_ASSERT_INT_EQ(g_unusedFrontendConcourseHostLatch, 0);
-	XVT_ASSERT_INT_EQ(g_frontendSinglePlayerFlightSessionActive, 0);
+	XVT_ASSERT_INT_EQ(g_configConnectionTypeEditable, 0);
+	XVT_ASSERT_INT_EQ(g_frontendGameSessionInProgress, 0);
 
 	/* The browser was opened, and with no directory configured a confirm dialog is up. */
 	XVT_ASSERT_INT_EQ(XvtNetworkTask_BrowserError(), AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);

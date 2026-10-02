@@ -14,7 +14,7 @@ extern int g_flightPageFlip;
 extern int g_flightLockBackBufferForHudDraw;
 extern IDirectDrawSurface* g_flightOffscreenSurface;
 extern uint8_t g_flightDisplaySurfacesActive;
-extern int32_t g_flightNetClockLeadAllowanceMs;
+extern int32_t g_flightNetClockLeadTicks;
 extern uint8_t g_flightSurfaceAlreadyLocked;
 extern int g_surfaceLockCount;
 

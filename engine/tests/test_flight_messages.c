@@ -159,12 +159,12 @@ static void CheckBatch(void) {
 	for (unsigned count = 1; count <= XVT_INPUT_BATCH_RECORDS; ++count) {
 		size_t size = XvtFlightMessages_EncodeBatch(g_bytes, COOKIE, records, count);
 		XVT_ASSERT_INT_EQ(size, sizeof(XvtFlightBatchHeader) + count * sizeof(XvtFlightInputWire));
-		XVT_ASSERT_INT_EQ(XvtFlightMessages_DecodeBatch(g_bytes, size, COOKIE), 1);
+		XVT_ASSERT_INT_EQ(XvtFlightMessages_ValidateBatch(g_bytes, size, COOKIE), 1);
 		/* The size must match the count exactly, and the cookie must be the one it was written for. */
-		XVT_ASSERT_INT_EQ(XvtFlightMessages_DecodeBatch(g_bytes, size - 1, COOKIE), 0);
-		XVT_ASSERT_INT_EQ(XvtFlightMessages_DecodeBatch(g_bytes, size + 1, COOKIE), 0);
-		XVT_ASSERT_INT_EQ(XvtFlightMessages_DecodeBatch(g_bytes, size, COOKIE + 1), 0);
-		XVT_ASSERT_INT_EQ(XvtFlightMessages_DecodeBatch(g_bytes, size, 0), 0);
+		XVT_ASSERT_INT_EQ(XvtFlightMessages_ValidateBatch(g_bytes, size - 1, COOKIE), 0);
+		XVT_ASSERT_INT_EQ(XvtFlightMessages_ValidateBatch(g_bytes, size + 1, COOKIE), 0);
+		XVT_ASSERT_INT_EQ(XvtFlightMessages_ValidateBatch(g_bytes, size, COOKIE + 1), 0);
+		XVT_ASSERT_INT_EQ(XvtFlightMessages_ValidateBatch(g_bytes, size, 0), 0);
 	}
 
 	size_t size = XvtFlightMessages_EncodeBatch(g_bytes, COOKIE, records, 4);
@@ -173,23 +173,23 @@ static void CheckBatch(void) {
 
 	/* Another opcode. */
 	g_bytes[0] ^= 1u;
-	XVT_ASSERT_INT_EQ(XvtFlightMessages_DecodeBatch(g_bytes, size, COOKIE), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightMessages_ValidateBatch(g_bytes, size, COOKIE), 0);
 	g_bytes[0] ^= 1u;
-	XVT_ASSERT_INT_EQ(XvtFlightMessages_DecodeBatch(g_bytes, size, COOKIE), 1);
+	XVT_ASSERT_INT_EQ(XvtFlightMessages_ValidateBatch(g_bytes, size, COOKIE), 1);
 
 	/* Ticks must rise strictly: a repeat of the previous tick is refused. */
 	XvtFlightInputWire copy = records[1];
 	XvtWire_Set32(copy.tick, XvtWire_Get32(records[0].tick));
 	memcpy(g_bytes + sizeof header + sizeof copy, &copy, sizeof copy);
-	XVT_ASSERT_INT_EQ(XvtFlightMessages_DecodeBatch(g_bytes, size, COOKIE), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightMessages_ValidateBatch(g_bytes, size, COOKIE), 0);
 
 	/* Every record must decode: an odd tick, still rising, is refused. */
 	XvtWire_Set32(copy.tick, XvtWire_Get32(records[0].tick) + 1);
 	memcpy(g_bytes + sizeof header + sizeof copy, &copy, sizeof copy);
-	XVT_ASSERT_INT_EQ(XvtFlightMessages_DecodeBatch(g_bytes, size, COOKIE), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightMessages_ValidateBatch(g_bytes, size, COOKIE), 0);
 
 	/* A header shorter than itself. */
-	XVT_ASSERT_INT_EQ(XvtFlightMessages_DecodeBatch(g_bytes, sizeof header - 1, COOKIE), 0);
+	XVT_ASSERT_INT_EQ(XvtFlightMessages_ValidateBatch(g_bytes, sizeof header - 1, COOKIE), 0);
 }
 
 static void CheckPartCount(void) {

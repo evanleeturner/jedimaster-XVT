@@ -611,7 +611,7 @@ uint32_t FrontendDisplay_RunMainLoop(void* hInstance, void* hPrevInstance, char*
 
 				frameReady = 0;
 				g_frontState.netReadyPlayerLeftThisFrame = 0;
-				if (g_frontState.glyphScratchTtl != 0)
+				if (g_frontState.textFadeFramesLeft != 0)
 					memset(&g_frontState.glyphScratchBuffer, 0, sizeof(g_frontState.glyphScratchBuffer));
 				Net_PumpIncomingPackets();
 				if (g_frontState.screenStates[g_frontState.screenStackTop].updateFn != NULL) {
@@ -647,8 +647,8 @@ uint32_t FrontendDisplay_RunMainLoop(void* hInstance, void* hPrevInstance, char*
 						CDAudio_CloseDevice();
 						PostMessageA(g_frontState.hWnd, WINDOW_CLOSE_MESSAGE, 0, 0);
 					}
-					if (g_frontState.glyphScratchTtl != 0)
-						--g_frontState.glyphScratchTtl;
+					if (g_frontState.textFadeFramesLeft != 0)
+						--g_frontState.textFadeFramesLeft;
 					g_frontState.mouseClickLatch = 0;
 					g_frontState.mouseRightClickLatch = 0;
 					if (g_frontState.cdAudioSuspendState == CDAudio_ResumePending &&
@@ -1443,7 +1443,7 @@ int FrontendDisplay_CaptureScreenshot(void) {
 }
 
 // FUNCTION: XVT 0x4D5410
-uint8_t* FrontendDisplay_LockSurfaceForFlight(void) { return g_drawSurfacePtr; }
+uint8_t* FrontendDisplay_GetDrawSurfaceForFlight(void) { return g_drawSurfacePtr; }
 
 // FUNCTION: XVT 0x4D5420
 int FrontendDisplay_RunFrame(void) {
@@ -1497,7 +1497,7 @@ int FrontendDisplay_RunFrame(void) {
 			}
 		}
 	}
-	if (g_frontState.glyphScratchTtl != 0)
+	if (g_frontState.textFadeFramesLeft != 0)
 		memset(&g_frontState.glyphScratchBuffer, 0, sizeof(g_frontState.glyphScratchBuffer));
 	Net_PumpIncomingPackets();
 	if (g_frontState.screenStates[g_frontState.screenStackTop].updateFn != NULL) {
@@ -1521,8 +1521,8 @@ int FrontendDisplay_RunFrame(void) {
 		++g_frontState.frameCounter;
 		if (updateResult == FRAME_FINISHED)
 			return FRAME_FINISHED;
-		if (g_frontState.glyphScratchTtl != 0)
-			--g_frontState.glyphScratchTtl;
+		if (g_frontState.textFadeFramesLeft != 0)
+			--g_frontState.textFadeFramesLeft;
 		g_frontState.mouseClickLatch = 0;
 		g_frontState.mouseRightClickLatch = 0;
 		if (g_frontState.cdAudioCurrentTrack != 0 && GetTickCount() > g_frontState.cdAudioTrackEndTick) {

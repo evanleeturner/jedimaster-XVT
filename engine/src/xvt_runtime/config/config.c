@@ -241,7 +241,8 @@ static int XvtConfig_Error(char* error, size_t capacity, const char* message, co
 
 enum { XVT_CONFIG_VERSION = 3 };
 
-static int XvtConfig_Version(const AeronConfigFile* document, int minimum, char* error, size_t capacity) {
+static int XvtConfig_CheckVersion(const AeronConfigFile* document, int minimum, char* error,
+								  size_t capacity) {
 	const AeronConfigNode* node = AeronConfigFile_GetNode(document, "version");
 	if (AeronConfigNode_Type(AeronConfigFile_Root(document)) != AERON_CONFIG_MAP)
 		return XvtSettings_NodeError(document, "", "The settings file has an invalid format.", error,
@@ -292,7 +293,7 @@ static int XvtConfig_ApplyDocument(const AeronConfigFile* document, GameConfig* 
 static int XvtConfig_Validate(const AeronConfigFile* document, XvtSettings* settings, char* error,
 							  size_t capacity) {
 	GameConfig game = { 0 };
-	return XvtConfig_Version(document, XVT_CONFIG_VERSION, error, capacity) &&
+	return XvtConfig_CheckVersion(document, XVT_CONFIG_VERSION, error, capacity) &&
 		   XvtConfig_ApplyDocument(document, &game, error, capacity) &&
 		   XvtSettings_Parse(document, &g_sceneDefaults, settings, error, capacity);
 }
@@ -352,7 +353,7 @@ int XvtConfig_UpdateUser(const AeronConfigFile* candidate, int save, char* error
 	if (!g_defaults || !g_configVfs)
 		return XvtConfig_Error(error, capacity, "valid shipped defaults are required",
 							   "RESOURCE/config.yaml");
-	if (!XvtConfig_Version(candidate, 1, error, capacity))
+	if (!XvtConfig_CheckVersion(candidate, 1, error, capacity))
 		return 0;
 	/* The destination always belongs to USER, independently of node provenance. */
 	if (!AeronConfigFile_CreateMap(AERON_VFS_ROOT_USER, "config.yaml", &user_root, &detail) ||

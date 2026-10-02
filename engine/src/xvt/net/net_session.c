@@ -55,7 +55,7 @@ uint8_t g_netSessionFlightHandshakeActive = 0;
 void NetSession_DebugTrace(const char* message) { (void)message; }
 
 // FUNCTION: XVT 0x46C230
-int NetSession_InitGameSession(const char* sessionName, const char* pilotName, int localId,
+int NetSession_InitGameSession(const char* sessionName, const char* pilotName, int isHost,
 							   const char* mpGameName, NetworkTransportType networkType, int numHumanPlayers,
 							   int inProgressLaunch, const char* connectionAddress) {
 	DPCAPS directPlayCaps;
@@ -109,7 +109,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 	g_netSession.reliablePeerSlotCount = 0;
 	success = 1;
 
-	if (numHumanPlayers == success && localId == success) {
+	if (numHumanPlayers == success && isHost == success) {
 		/* The single-player path reuses the persisted DirectPlay snapshot. */
 		NetSession_ImportRuntimeState(
 			(void**)&g_netSession.dplayInterface, &g_netSession.appGuid, &g_netSession.instanceGuid,
@@ -134,7 +134,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 		strncpy(g_netSession.localPlayerInfo.playerName, pilotName,
 				sizeof(g_netSession.localPlayerInfo.playerName));
 		g_netSession.players[0] = g_netSession.localPlayerInfo;
-		g_netSession.localPlayerId = localId;
+		g_netSession.localIsHost = isHost;
 		g_netSession.playerCount = success;
 		return success;
 	}
@@ -153,7 +153,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 	directPlayCaps.dwSize = sizeof(directPlayCaps);
 	g_netSession.dplayInterface->lpVtbl->GetCaps(g_netSession.dplayInterface, &directPlayCaps, 0);
 	g_netSession.playerCount = 0;
-	g_netSession.localPlayerId = localId;
+	g_netSession.localIsHost = isHost;
 	NetSession_EnumeratePlayers();
 #ifndef XVT_MODERN
 	receivedPlayerCount = numHumanPlayers;
@@ -168,7 +168,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 #ifdef XVT_MODERN
 	return XvtFlightNetwork_BeginSession(numHumanPlayers, inProgressLaunch);
 #else
-	if (NetSession_GetLocalPlayerId() != 0 && numHumanPlayers != 0) {
+	if (NetSession_IsLocalHost() != 0 && numHumanPlayers != 0) {
 		while (receivedPlayerCount != 0) {
 			packet = NetSession_WaitForGamePacket(&outDpid, &outAux, 60);
 			if (packet == NULL) {
@@ -180,7 +180,7 @@ int NetSession_InitGameSession(const char* sessionName, const char* pilotName, i
 		}
 	}
 
-	if (NetSession_GetLocalPlayerId() != 0) {
+	if (NetSession_IsLocalHost() != 0) {
 		if (numHumanPlayers > 1) {
 			NetSession_BroadcastPlayerRoster(0);
 			g_netSessionScratchPacket.packetType = NET_PACKET_NOP;
@@ -306,7 +306,7 @@ void NetSession_PumpIncomingPackets(void) {
 	for (;;) {
 		if ((int)g_netRecvQueueCount >= RECEIVE_QUEUE_LIMIT) {
 			NetSession_DebugTrace("Ran out of receive buffers!!!");
-			NetReliable_CompactLocalReceiveQueue();
+			NetReliable_KeepOnlyHostReceivedPackets();
 			return;
 		}
 		wireSize = sizeof(wirePacket);
@@ -502,8 +502,8 @@ void NetSession_PumpIncomingPackets(void) {
 			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex].payload + sizeof(packetType), appPayload, appPayloadSize);
 			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].directPlayId = fromId;
 			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].payloadSize = appPayloadSize + sizeof(packetType);
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].aux = 0;
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].meta0 = 0;
+			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].lastNackMs = 0;
+			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].nackRetryCount = 0;
 			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].queuedFlag = 1;
 			peerSlot = NetReliable_FindOrCreatePeerSlot(fromId);
 			if (channelMarker == 0) {
@@ -529,8 +529,8 @@ void NetSession_PumpIncomingPackets(void) {
 		peerSlot = NetReliable_FindOrCreatePeerSlot(fromId);
 		if (hasLength) {
 			expectedSequence = sequence == 0 ? SEQUENCE_MODULUS - 1 : sequence - 1;
-			duplicate =
-				NetReliable_IsDuplicateRecvSequence(fromId, expectedSequence, broadcastChannel, groupChannel);
+			duplicate = NetReliable_CheckAndRecordRecvSequence(fromId, expectedSequence, broadcastChannel,
+															   groupChannel);
 			if (!duplicate) {
 				if (peerSlot < g_netSession.reliablePeerSlotCount && peerSlot < 40 && !groupChannel)
 					++g_netSession.reliablePeerSlots[peerSlot].packetDropCount;
@@ -545,8 +545,8 @@ void NetSession_PumpIncomingPackets(void) {
 						memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex].payload + sizeof(uint32_t), piggyback + 1, piggybackSize - 1);
 						g_netSessionRecvQueue[g_netRecvQueueWriteIndex].directPlayId = fromId;
 						g_netSessionRecvQueue[g_netRecvQueueWriteIndex].payloadSize = piggybackSize + sizeof(uint32_t) - 1;
-						g_netSessionRecvQueue[g_netRecvQueueWriteIndex].aux = 0;
-						g_netSessionRecvQueue[g_netRecvQueueWriteIndex].meta0 = 0;
+						g_netSessionRecvQueue[g_netRecvQueueWriteIndex].lastNackMs = 0;
+						g_netSessionRecvQueue[g_netRecvQueueWriteIndex].nackRetryCount = 0;
 						g_netSessionRecvQueue[g_netRecvQueueWriteIndex].queuedFlag = 0;
 						if (broadcastChannel)
 							g_netSessionRecvQueue[g_netRecvQueueWriteIndex].packetClass = 0;
@@ -564,14 +564,14 @@ void NetSession_PumpIncomingPackets(void) {
 				}
 			}
 		}
-		duplicate = NetReliable_IsDuplicateRecvSequence(fromId, sequence, broadcastChannel, groupChannel);
+		duplicate = NetReliable_CheckAndRecordRecvSequence(fromId, sequence, broadcastChannel, groupChannel);
 		if (!groupChannel || !duplicate) {
 			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex].payload, &packetType, sizeof(packetType));
 			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex].payload + sizeof(packetType), packetData, packetSize);
 			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].directPlayId = fromId;
 			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].payloadSize = packetSize + sizeof(packetType);
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].aux = 0;
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].meta0 = 0;
+			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].lastNackMs = 0;
+			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].nackRetryCount = 0;
 			g_netSessionRecvQueue[g_netRecvQueueWriteIndex].queuedFlag = 1;
 			if (!duplicate)
 				g_netSessionRecvQueue[g_netRecvQueueWriteIndex].queuedFlag = 0;
@@ -760,8 +760,8 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 			queuedPacket = &g_netSessionExportRecvQueue[g_netSessionRecvQueueHighWater];
 			queuedPacket->directPlayId = directPlayId;
 			queuedPacket->payloadSize = payloadSize;
-			queuedPacket->aux = 0;
-			queuedPacket->meta0 = 0;
+			queuedPacket->lastNackMs = 0;
+			queuedPacket->nackRetryCount = 0;
 			queuedPacket->packetClass = 0;
 			queuedPacket->sequenceByte = (encodedPacket.packetTypeHeader & 0x7F00) >> 8;
 			++g_netSessionRecvQueueHighWater;
@@ -775,8 +775,8 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 			historyIndex = g_netSessionRecvHistoryCount;
 			g_netSessionRecvHistory[historyIndex].directPlayId = directPlayId;
 			g_netSessionRecvHistory[historyIndex].payloadSize = payloadSize;
-			g_netSessionRecvHistory[historyIndex].aux = 0;
-			g_netSessionRecvHistory[historyIndex].meta0 = 0;
+			g_netSessionRecvHistory[historyIndex].lastNackMs = 0;
+			g_netSessionRecvHistory[historyIndex].nackRetryCount = 0;
 			if (directPlayId == 0)
 				g_netSessionRecvHistory[historyIndex].packetClass = 0;
 			else if (directPlayId == g_netSession.groupDplayId)
@@ -794,7 +794,7 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 	if (g_netSession.localPlayerInfo.directPlayId == directPlayId || directPlayId == 0 ||
 		g_netSession.dplayInterface == NULL || directPlayId == g_netSession.groupDplayId) {
 		if ((int)g_netRecvQueueCount >= 1024)
-			NetReliable_CompactLocalReceiveQueue();
+			NetReliable_KeepOnlyHostReceivedPackets();
 		if ((int)g_netRecvQueueCount < 1024) {
 			unsigned int queueIndex;
 			unsigned int sequenceIndex;
@@ -803,8 +803,8 @@ int NetSession_SendPacket(int directPlayId, unsigned int* payload, signed int pa
 			queueIndex = (unsigned int)g_netRecvQueueWriteIndex;
 			g_netSessionRecvQueue[queueIndex].directPlayId = (DPID)g_netSession.localPlayerInfo.directPlayId;
 			g_netSessionRecvQueue[queueIndex].payloadSize = payloadSize;
-			g_netSessionRecvQueue[queueIndex].aux = 0;
-			g_netSessionRecvQueue[queueIndex].meta0 = 0;
+			g_netSessionRecvQueue[queueIndex].lastNackMs = 0;
+			g_netSessionRecvQueue[queueIndex].nackRetryCount = 0;
 			g_netSessionRecvQueue[queueIndex].queuedFlag = 0;
 			sequenceIndex = NetReliable_FindOrCreatePeerSlot(g_netSession.localPlayerInfo.directPlayId);
 			if (packetType == NET_PACKET_REMOTE_INPUT && g_gameConfig.asyncFlag == 1) {
@@ -925,7 +925,7 @@ int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t localSeq, uint8_
 			0, &encodedPacket.packetTypeHeader, (uint32_t)encodedSize);
 	} else {
 		if ((int)g_netRecvQueueCount >= 1024) {
-			NetReliable_CompactLocalReceiveQueue();
+			NetReliable_KeepOnlyHostReceivedPackets();
 		}
 		if ((int)g_netRecvQueueCount < 1024) {
 			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex].payload, packet, packetDataSize);
@@ -938,8 +938,8 @@ int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t localSeq, uint8_
 			g_netSessionRecvQueue[queueIndex].sequenceByte = remoteSeq;
 			g_netRecvQueueCount = queueCount;
 			g_netSessionRecvQueue[queueIndex].queuedFlag = 1;
-			g_netSessionRecvQueue[queueIndex].aux = 0;
-			g_netSessionRecvQueue[queueIndex].meta0 = 0;
+			g_netSessionRecvQueue[queueIndex].lastNackMs = 0;
+			g_netSessionRecvQueue[queueIndex].nackRetryCount = 0;
 			++g_netRecvQueueWriteIndex;
 			if (g_netRecvQueueWriteIndex >= 1024) {
 				g_netRecvQueueWriteIndex = 0;
@@ -975,7 +975,7 @@ int NetSession_GetPlayerCount(void) {
 }
 
 // FUNCTION: XVT 0x46E040
-int NetSession_GetLocalPlayerId(void) { return g_netSession.localPlayerId; }
+int NetSession_IsLocalHost(void) { return g_netSession.localIsHost; }
 
 // FUNCTION: XVT 0x46E050
 int* NetSession_ReceiveGamePacket(int* outSenderDpid, int* outPayloadSize) {
@@ -1011,7 +1011,7 @@ int NetSession_HandleHandshakePacket(int packetOpcode, int* packet) {
 
 	switch (packetOpcode) {
 		case DPSYS_CREATEPLAYERORGROUP:
-			result = NetSession_GetLocalPlayerId();
+			result = NetSession_IsLocalHost();
 			if (result == 0)
 				return result;
 			handshakeActive = g_netSessionFlightHandshakeActive;
@@ -1092,7 +1092,7 @@ int NetSession_HandleHandshakePacket(int packetOpcode, int* packet) {
 			if (packet[1] == DPPLAYERTYPE_PLAYER && packet[2] == g_netSession.hostDplayId)
 				XvtNetworkSession_HostLost();
 #endif
-			result = NetSession_GetLocalPlayerId();
+			result = NetSession_IsLocalHost();
 			if (result == 0)
 				return result;
 			if (g_netSessionFlightHandshakeActive != 0) {
@@ -1269,7 +1269,7 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 	int searchSequence;
 	int directPlayId;
 
-	extern int dtMs;
+	extern int g_netUpdateIntervalTicks;
 
 	NetSession_PumpIncomingPackets();
 	NetSession_SendReliableKeepalives();
@@ -1434,7 +1434,7 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 				sequenceDistance += 128;
 			searchSequence = remoteSequence;
 			resendDelay = sequenceDistance;
-			resendDelay *= dtMs;
+			resendDelay *= g_netUpdateIntervalTicks;
 			sentRetry = 0;
 			if (inspected[peerIndex] < 127)
 				inspected[peerIndex] = (uint8_t)(inspected[peerIndex] + sequenceDistance);
@@ -1468,15 +1468,15 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 						*outSenderDpid = g_netSession.recvScratchPacket.directPlayId;
 						*outPayloadSize = g_netSession.recvScratchPacket.payloadSize;
 						if (sequenceDistance <= 1) {
-							g_netSessionRecvQueue[queueIndex].meta0 = 0;
-							g_netSessionRecvQueue[queueIndex].aux = 0;
+							g_netSessionRecvQueue[queueIndex].nackRetryCount = 0;
+							g_netSessionRecvQueue[queueIndex].lastNackMs = 0;
 						}
 						return g_netSession.recvScratchPacket.payload;
 					}
 					--sequenceDistance;
 				} else {
 					++retryCounts[peerIndex];
-					if (g_netSessionRecvQueue[queueIndex].meta0 == 0) {
+					if (g_netSessionRecvQueue[queueIndex].nackRetryCount == 0) {
 						int retryChannel = channels.wantChannelA ? 0 : (channels.wantChannelB ? 2 : 1);
 						if (payloadType == NET_PACKET_WORLD_MESSAGE
 #ifdef XVT_MODERN
@@ -1514,11 +1514,11 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 							timeout = timeoutPayloadType == 2 ? 40000 : 3000;
 						} else {
 							retryLimit = timeoutPayloadType == 2 ? 5 : 3;
-							timeout = 1000 << g_netSessionRecvQueue[queueIndex].meta0;
+							timeout = 1000 << g_netSessionRecvQueue[queueIndex].nackRetryCount;
 						}
-						if (now - (uint32_t)g_netSessionRecvQueue[queueIndex].aux > timeout) {
+						if (now - (uint32_t)g_netSessionRecvQueue[queueIndex].lastNackMs > timeout) {
 							NetSession_DebugTrace("(RTO) ");
-							if (g_netSessionRecvQueue[queueIndex].meta0 > retryLimit) {
+							if (g_netSessionRecvQueue[queueIndex].nackRetryCount > retryLimit) {
 								NetSession_DebugTrace("(TMR) ");
 								g_netSession.reliablePeerSlots[peerIndex].lastActivityMs = timeGetTime();
 								remoteSequence = searchSequence;
@@ -1604,18 +1604,18 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 						}
 					}
 				}
-				resendDelay -= dtMs;
+				resendDelay -= g_netUpdateIntervalTicks;
 				++remoteSequence;
 				if (remoteSequence > 127)
 					remoteSequence = 0;
 			}
 
 			if (sequenceDistance <= 0) {
-				g_netSessionRecvQueue[queueIndex].meta0 = 0;
-				g_netSessionRecvQueue[queueIndex].aux = 0;
+				g_netSessionRecvQueue[queueIndex].nackRetryCount = 0;
+				g_netSessionRecvQueue[queueIndex].lastNackMs = 0;
 			} else if (sentRetry == 1) {
-				++g_netSessionRecvQueue[queueIndex].meta0;
-				g_netSessionRecvQueue[queueIndex].aux = timeGetTime();
+				++g_netSessionRecvQueue[queueIndex].nackRetryCount;
+				g_netSessionRecvQueue[queueIndex].lastNackMs = timeGetTime();
 			}
 		} else {
 			if (g_netRecvQueueReadIndex == queueIndex) {
@@ -1675,7 +1675,7 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 						--fullRemaining;
 						continue;
 					}
-				} else if (g_netSessionRecvQueue[fullQueueIndex].meta0 == 0) {
+				} else if (g_netSessionRecvQueue[fullQueueIndex].nackRetryCount == 0) {
 					++fullQueueIndex;
 					if ((int)fullQueueIndex >= 1024)
 						fullQueueIndex = 0;

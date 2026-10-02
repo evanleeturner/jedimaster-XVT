@@ -46,7 +46,7 @@ int XvtLaunchTask_Queue(void) {
 						 1);
 		return 1;
 	}
-	Frontend_MarkHostCdAvailable();
+	Frontend_CheckHostCdPresent();
 	if (!g_hostCdAvailable && g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_NET_CLIENT) {
 		XvtStorage_Fatal("Required training mission is missing from the installation", 1);
 		return 1;
@@ -116,7 +116,7 @@ void XvtLaunchTask_Complete(int succeeded) {
 	if (!XvtLaunchTask_IsActive())
 		return;
 	g_phase = XVT_LAUNCH_IDLE;
-	XvtCdTask_Cancel();
+	XvtCdTask_CancelFade();
 	if (launched) {
 		if (!FrontendDisplay_ReinitSurfaces()) {
 			XvtStorage_Fatal("Cannot restore frontend surfaces after flight", 1);

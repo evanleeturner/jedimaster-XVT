@@ -568,7 +568,7 @@ void Object_UpdateLifetimeAndMovement(void) {
 
 							Mission_ResolveObjectOrMissionPointWorldLoc(targetObjectIndex, 0);
 							if (targetObjectIndex >= g_activeRegionCraftObjectSlotEnd ||
-								g_objectTable[targetObjectIndex].mobj->state != 0) {
+								g_objectTable[targetObjectIndex].mobj->family != 0) {
 								g_rotatedX = worldlocx;
 								g_rotatedY = worldlocy;
 								g_rotatedZ = worldlocz;
@@ -855,7 +855,7 @@ void RenderNonCraftSceneObject(uint16_t objectIndex) {
 		RenderScene_DrawObjectModel(object);
 		return;
 	}
-	if (depthZ < 0) {
+	if (g_viewSpaceDepth < 0) {
 		return;
 	}
 
@@ -880,12 +880,12 @@ void RenderNonCraftSceneObject(uint16_t objectIndex) {
 		rotationAngle = (uint16_t)-trig2_arctan(axisY, axisX);
 	}
 
-	projectedX = TRANSFM2_ProjectScreenX(viewX, depthZ);
+	projectedX = TRANSFM2_ProjectScreenX(g_viewSpaceX, g_viewSpaceDepth);
 	projectedXHigh = projectedX & NONCRAFT_SCREEN_COORD_HIGH_MASK;
 	if (projectedXHigh > 0 || projectedXHigh < NONCRAFT_SCREEN_COORD_HIGH_MASK) {
 		return;
 	}
-	projectedY = TRANSFM2_ProjectScreenY(viewY, depthZ);
+	projectedY = TRANSFM2_ProjectScreenY(g_viewSpaceY, g_viewSpaceDepth);
 	projectedYHigh = projectedY & NONCRAFT_SCREEN_COORD_HIGH_MASK;
 	if (projectedYHigh > 0 || projectedYHigh < NONCRAFT_SCREEN_COORD_HIGH_MASK) {
 		return;
@@ -894,7 +894,8 @@ void RenderNonCraftSceneObject(uint16_t objectIndex) {
 	projectedY -= viewportCenter;
 	screenY = viewportCenter - projectedY;
 	SceneBillboard_QueueProjectedTextured(g_billboardObjectOrTypeIndex, frame, NONCRAFT_DEFAULT_SCREEN_SIZE,
-										  (int16_t)projectedX, (int16_t)screenY, depthZ, rotationAngle);
+										  (int16_t)projectedX, (int16_t)screenY, g_viewSpaceDepth,
+										  rotationAngle);
 }
 
 // FUNCTION: XVT 0x4591C0
@@ -909,13 +910,13 @@ uint16_t Object_SpawnDetachedComponent(uint16_t sourceObjectIndex, int16_t meshI
 
 	Object_CopyStatePreservingStorage(objectIndex, sourceObjectIndex);
 	objectOffsetIndex = objectIndex;
-	g_objectTable[objectOffsetIndex].mobj->state = 3;
+	g_objectTable[objectOffsetIndex].mobj->family = 3;
 	g_objectTable[objectOffsetIndex].genusId = CRAFT_GENUS_SMALL_DEBRIS;
 	g_objectTable[objectOffsetIndex].mobj->lightIntensityScale = 0;
 	g_objectTable[objectOffsetIndex].objectType = CRAFT_SPECIES_COMPONENT;
 	g_objectTable[objectOffsetIndex].mobj->sourceObjectType = g_objectTable[sourceObjectIndex].objectType;
 	g_objectTable[objectOffsetIndex].playerOwnerIdx = -1;
-	g_objectTable[objectOffsetIndex].mobj->framesAlive = 0;
+	g_objectTable[objectOffsetIndex].mobj->secondsAlive = 0;
 	g_objectTable[objectOffsetIndex].mobj->lifetimeTimer =
 		SIMULATION_TICKS_PER_SECOND * ((GameRand() & 7) + 4);
 	g_objectTable[objectOffsetIndex].typeSpecificByte[0] = (uint8_t)(meshIndex * 2);
@@ -940,7 +941,7 @@ uint16_t Object_SpawnEffectFragment(uint16_t sourceObjIdx) {
 
 	Object_CopyStatePreservingStorage(objectIndex, sourceObjIdx);
 	objectOffsetIndex = objectIndex;
-	g_objectTable[objectOffsetIndex].mobj->state = 5;
+	g_objectTable[objectOffsetIndex].mobj->family = 5;
 	g_objectTable[objectOffsetIndex].genusId = CRAFT_GENUS_EXPLOSION;
 	g_objectTable[objectOffsetIndex].mobj->lightIntensityScale = 0;
 	g_objectTable[objectOffsetIndex].objectType = (uint8_t)((GameRand() & 1) - 123);
@@ -968,7 +969,7 @@ uint16_t Object_SpawnEffectFragment(uint16_t sourceObjIdx) {
 		g_objectTable[objectOffsetIndex].mobj->orientMatrixDirty;
 	mobileObject = g_objectTable[objectOffsetIndex].mobj;
 	mobileObject->speed += (GameRand() & 0xFF) + 50;
-	g_objectTable[objectOffsetIndex].mobj->framesAlive = 0;
+	g_objectTable[objectOffsetIndex].mobj->secondsAlive = 0;
 	g_objectTable[objectOffsetIndex].mobj->lifetimeTimer =
 		SIMULATION_TICKS_PER_SECOND * ((GameRand() & 3) + 1);
 	g_objectTable[objectOffsetIndex].typeSpecificByte[0] = 0;
@@ -992,7 +993,7 @@ uint16_t Object_SpawnLocalEffectFragment(uint16_t sourceObjIdx) {
 
 	Object_CopyStatePreservingStorage(objectIndex, sourceObjIdx);
 	objectOffsetIndex = objectIndex;
-	g_objectTable[objectOffsetIndex].mobj->state = 5;
+	g_objectTable[objectOffsetIndex].mobj->family = 5;
 	g_objectTable[objectOffsetIndex].genusId = CRAFT_GENUS_EXPLOSION;
 	g_objectTable[objectOffsetIndex].mobj->lightIntensityScale = 2;
 	g_objectTable[objectOffsetIndex].objectType = (uint8_t)-99;
@@ -1021,7 +1022,7 @@ uint16_t Object_SpawnLocalEffectFragment(uint16_t sourceObjIdx) {
 	g_objectTable[objectOffsetIndex].mobj->moveVectorDirty =
 		g_objectTable[objectOffsetIndex].mobj->orientMatrixDirty;
 	g_objectTable[objectOffsetIndex].mobj->speed = (GameRand() & 0xF) + 35;
-	g_objectTable[objectOffsetIndex].mobj->framesAlive = 0;
+	g_objectTable[objectOffsetIndex].mobj->secondsAlive = 0;
 	g_objectTable[objectOffsetIndex].mobj->lifetimeTimer = (GameRand() & 3) + 39;
 	g_objectTable[objectOffsetIndex].typeSpecificByte[0] = 2;
 

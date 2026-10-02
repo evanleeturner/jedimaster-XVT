@@ -545,26 +545,26 @@ void FlightView_Render(void) {
 							g_curCraft = object->mobj->pCraft;
 							if (FlightView_IsObjectSphereVisible(mainObjectIndex,
 																 g_currentObjectBoundsExtent) != 0) {
-								RenderList_QueueObject(mainObjectIndex, depthZ);
+								RenderList_QueueObject(mainObjectIndex, g_viewSpaceDepth);
 							}
 							break;
 						case CRAFT_GENUS_PLAYER_PROJECTILE:
 						case CRAFT_GENUS_OTHER_PROJECTILE:
 							if (FlightView_IsObjectSphereVisible(mainObjectIndex,
 																 g_currentObjectBoundsExtent) != 0) {
-								RenderList_QueueObject(mainObjectIndex, depthZ);
+								RenderList_QueueObject(mainObjectIndex, g_viewSpaceDepth);
 							}
 							break;
 						case CRAFT_GENUS_SMALL_DEBRIS:
 							if (FlightView_IsObjectSphereVisible(mainObjectIndex,
 																 g_currentObjectBoundsExtent) != 0) {
-								RenderList_QueueObject(mainObjectIndex, depthZ);
+								RenderList_QueueObject(mainObjectIndex, g_viewSpaceDepth);
 							}
 							break;
 						case CRAFT_GENUS_EXPLOSION:
 							if (FlightView_IsObjectSphereVisible(mainObjectIndex,
 																 g_currentObjectBoundsExtent) != 0) {
-								RenderList_QueueObject(mainObjectIndex, depthZ);
+								RenderList_QueueObject(mainObjectIndex, g_viewSpaceDepth);
 							}
 							break;
 						default:
@@ -595,7 +595,7 @@ void FlightView_Render(void) {
 			if (genusId >= CRAFT_GENUS_MINE && genusId <= CRAFT_GENUS_SMALL_DEBRIS &&
 				FlightView_CullWorldSphereToViewport(object->world_x, object->world_y, object->world_z,
 													 g_currentObjectBoundsExtent) != 0) {
-				RenderList_QueueObject(staticObjectIndex, depthZ);
+				RenderList_QueueObject(staticObjectIndex, g_viewSpaceDepth);
 			}
 		}
 	}
@@ -704,16 +704,16 @@ void FlightView_Render(void) {
 	}
 	g_flightRenderDurationTicks = 0;
 	g_flightRenderScratchWord = 0;
-	g_inputTimestamp += (int)Time_GetFrameDelta();
+	g_inputTimestamp += (int)Time_ConsumeElapsedTicks();
 	g_flightRenderDurationTicks = (uint16_t)g_inputTimestamp;
 	RenderScene_UnlockBuffers();
 	if (g_useHardware3D != 0) {
 		FlightView_CompositeMaskedSoftwareSurface();
 	}
 	Hud_DrawHudTargetInsetIfEnabled(g_localPlayer);
-	g_unusedFlightRenderColorByte = 0;
-	g_inputTimestamp += (int)Time_GetFrameDelta();
-	g_unusedFlightRenderColorByte = g_flightColorEscapeBypassChar;
+	g_flightBackgroundColorIndex = 0;
+	g_inputTimestamp += (int)Time_ConsumeElapsedTicks();
+	g_flightBackgroundColorIndex = g_flightColorEscapeBypassChar;
 	g_flightRenderDurationTicks = (uint16_t)(g_inputTimestamp - g_flightRenderDurationTicks);
 	FlightSurface_Lock();
 	Hud_BlitSoftwareHudTextPanes();
@@ -736,10 +736,10 @@ int FlightView_ComputeObjectViewPosition(uint16_t objectIdx) {
 	savedTargetZ = g_players[g_localPlayer].viewState.savedTargetZ;
 	g_camRelWorldY = object->world_y - savedTargetY;
 	g_camRelWorldZ = object->world_z - savedTargetZ;
-	viewX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	viewY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	depthZ = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	return depthZ;
+	g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	return g_viewSpaceDepth;
 }
 
 // FUNCTION: XVT 0x44FF10
@@ -752,15 +752,15 @@ int FlightView_IsObjectSphereVisible(int objectIdx, unsigned int sphereRadius) {
 	g_camRelWorldX = g_objectTable[objectIdx].world_x - g_players[g_localPlayer].viewState.savedTargetX;
 	g_camRelWorldY = g_objectTable[objectIdx].world_y - g_players[g_localPlayer].viewState.savedTargetY;
 	g_camRelWorldZ = g_objectTable[objectIdx].world_z - g_players[g_localPlayer].viewState.savedTargetZ;
-	depthZ = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	depthWithRadius = depthZ + sphereRadius;
+	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	depthWithRadius = g_viewSpaceDepth + sphereRadius;
 	if (depthWithRadius < 0)
 		return 0;
 	if ((unsigned int)(depthWithRadius >> 8) > sphereRadius)
 		return 0;
 
 	transformedX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	viewX = transformedX;
+	g_viewSpaceX = transformedX;
 	if (transformedX < 0) {
 #ifdef XVT_MODERN
 		transformedX = transformedX == INT32_MIN ? INT32_MAX : -transformedX;
@@ -773,7 +773,7 @@ int FlightView_IsObjectSphereVisible(int objectIdx, unsigned int sphereRadius) {
 
 	transformedY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 	absoluteY = transformedY;
-	viewY = transformedY;
+	g_viewSpaceY = transformedY;
 	if (absoluteY < 0) {
 #ifdef XVT_MODERN
 		absoluteY = absoluteY == INT32_MIN ? INT32_MAX : -absoluteY;
@@ -798,8 +798,8 @@ int FlightView_CullWorldSphereToViewport(int worldX, int worldY, int worldZ, int
 	savedTargetZ = g_players[g_localPlayer].viewState.savedTargetZ;
 	g_camRelWorldY = worldY - savedTargetY;
 	g_camRelWorldZ = worldZ - savedTargetZ;
-	depthZ = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	depthWithRadius = depthZ + sphereRadius;
+	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	depthWithRadius = g_viewSpaceDepth + sphereRadius;
 	if (depthWithRadius < 0) {
 		return 0;
 	}
@@ -808,7 +808,7 @@ int FlightView_CullWorldSphereToViewport(int worldX, int worldY, int worldZ, int
 	}
 
 	transformedX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	viewX = transformedX;
+	g_viewSpaceX = transformedX;
 	if (transformedX < 0) {
 #ifdef XVT_MODERN
 		transformedX = transformedX == INT32_MIN ? INT32_MAX : -transformedX;
@@ -821,7 +821,7 @@ int FlightView_CullWorldSphereToViewport(int worldX, int worldY, int worldZ, int
 	}
 
 	transformedY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	viewY = transformedY;
+	g_viewSpaceY = transformedY;
 	absoluteY = transformedY;
 	if (absoluteY < 0) {
 #ifdef XVT_MODERN

@@ -88,10 +88,10 @@ static void XvtNetworkMetadata_Add(XvtNetworkMetadata* out, const NetPlayerInfo*
 			return;
 	out->players[index] = player->playerId;
 	XvtNetworkMetadata_ToUtf8(out->room.roster[index].name, sizeof(out->room.roster[index].name),
-							  player->sessionName, sizeof(player->sessionName));
+							  player->playerName, sizeof(player->playerName));
 	if (!out->room.roster[index].name[0])
 		strcpy(out->room.roster[index].name, "No name");
-	unsigned rating = (uint8_t)player->playerName[0];
+	unsigned rating = (uint8_t)player->playerInfo[0];
 	out->room.roster[index].rating = rating ? (uint8_t)(rating - 1) : 0;
 	++out->room.players;
 }

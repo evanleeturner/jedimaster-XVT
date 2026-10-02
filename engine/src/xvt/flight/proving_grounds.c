@@ -254,14 +254,14 @@ void ProvingGrounds_InitCourseObjects(void) {
 		modelType = modelTypes[objectIndex];
 		g_objectTable[objectIndex].objectType = (uint8_t)modelType;
 		g_objectTable[objectIndex].objectSignature = 1;
-		g_objectTable[objectIndex].mobj->state = 6;
+		g_objectTable[objectIndex].mobj->family = 6;
 		g_objectTable[objectIndex].genusId = 14;
 		g_objectTable[objectIndex].mobj->rollImpulseRate = 0;
 		g_objectTable[objectIndex].mobj->speed = 0;
 		g_objectTable[objectIndex].mobj->speedRemainder = 0;
 		g_objectTable[objectIndex].mobj->damageAmount = 0x7FFF;
 		g_objectTable[objectIndex].mobj->lifetimeTimer = 0;
-		g_objectTable[objectIndex].mobj->framesAlive = 0;
+		g_objectTable[objectIndex].mobj->secondsAlive = 0;
 		g_objectTable[objectIndex].mobj->sourceObjIdx = 0;
 		g_objectTable[objectIndex].mobj->sourceObjectType = 0;
 		g_objectTable[objectIndex].mobj->iff = 0;
@@ -288,7 +288,7 @@ void ProvingGrounds_InitCourseObjects(void) {
 		g_curCraft->unusedMissionFlag = 0;
 		g_curCraft->attackedByTeam[0] = 0;
 		g_curCraft->notDisabledAccountingSuppress = 0;
-		g_curCraft->wasCaptured = 0;
+		g_curCraft->capturedByFlightGroup = 0;
 		g_curCraft->sFoilState = 0;
 		for (beamIndex = 0; beamIndex < 5; ++beamIndex) {
 			g_curCraft->beamEffectAccum[beamIndex] = 0;
@@ -608,7 +608,7 @@ void ProvingGrounds_UpdateCourse(void) {
 				}
 				ProvingGrounds_RenderTimeBonusFrame();
 				do {
-					g_inputTimestamp += Time_GetFrameDelta();
+					g_inputTimestamp += Time_ConsumeElapsedTicks();
 				} while ((unsigned int)g_inputTimestamp < FRAME_DELAY_TICKS);
 				g_inputTimestamp = 0;
 			}

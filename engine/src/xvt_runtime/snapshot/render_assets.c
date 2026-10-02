@@ -234,7 +234,7 @@ void XvtRenderAssets_BindType(uint16_t type, uint16_t handle) {
 		g_bindings[type] = XvtRenderAssets_HandleId(handle);
 }
 
-void XvtRenderAssets_FreeHandle(unsigned int handle) {
+void XvtRenderAssets_RetireHandle(unsigned int handle) {
 	if (!g_initialized || !handle || handle > UINT16_MAX)
 		return;
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i)
@@ -242,7 +242,7 @@ void XvtRenderAssets_FreeHandle(unsigned int handle) {
 			Retire(&g_sources[i]);
 }
 
-void XvtRenderAssets_FreeImage(const void* owner) {
+void XvtRenderAssets_RetireImage(const void* owner) {
 	if (!g_initialized || !owner)
 		return;
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i)

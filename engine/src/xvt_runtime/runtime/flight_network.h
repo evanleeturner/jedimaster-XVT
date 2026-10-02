@@ -14,7 +14,7 @@ extern "C" {
 /* Network125 flight networking. Before flight: the roster, options and taunts, and mission start
  * exchanges, which agree on a mission cookie that tags control packets. In flight: each player's
  * input is recorded, staged and sent in batches, and the host sends world messages that make the
- * applied input authoritative. The host is the side whose NetSession_GetLocalPlayerId() is
+ * applied input authoritative. The host is the side whose NetSession_IsLocalHost() is
  * nonzero. */
 
 /* With a mission cookie and the local player connected, reads packets up to the per-iteration
@@ -28,7 +28,7 @@ void XvtFlightNetwork_ProcessPackets(void);
  * none blocks it), or at once when XVT_WORLD_LATE_INTERVALS behind. 0 while parts are still
  * outgoing, recovery is needed, a resync state request is pending, the pending queue lacks room or
  * start acknowledgements are pending. */
-int XvtFlightNetwork_ShouldSend(int inputTimestamp);
+int XvtFlightNetwork_TakeWorldSendTurn(int inputTimestamp);
 /* 1 once recovery was requested, until BeginRecovery or Recovered. */
 int XvtFlightNetwork_NeedsRecovery(void);
 /* Marks that the flight state needs recovery, logging a warning the first time. */
@@ -37,7 +37,7 @@ void XvtFlightNetwork_RequestRecovery(void);
  * player or out of range. */
 int XvtFlightNetwork_PlayerAbort(unsigned player);
 /* Clears the recovery request. */
-void XvtFlightNetwork_BeginRecovery(void);
+void XvtFlightNetwork_ClearRecoveryRequest(void);
 /* Clears the recovery request and the control sample, and drops staged input at or before the
  * game time. */
 void XvtFlightNetwork_Recovered(void);

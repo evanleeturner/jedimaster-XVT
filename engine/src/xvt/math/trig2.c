@@ -294,18 +294,18 @@ int16_t trig2_arcsin(int16_t sinQ15) {
 }
 
 // FUNCTION: XVT 0x46A5F0
-unsigned int trig2_sinewordmult(int16_t arg1, int16_t arg2) {
+unsigned int trig2_sinewordmult(int16_t value, int16_t angle) {
 	uint16_t sine;
 	uint16_t signDifference;
 	uint32_t product;
 
-	sine = (uint16_t)arg1 & 0x8000u;
+	sine = (uint16_t)value & 0x8000u;
 	if (sine != 0) {
-		arg1 = (int16_t)-arg1;
+		value = (int16_t)-value;
 	}
-	signDifference = sine ^ ((uint16_t)arg2 & 0x8000u);
-	sine = g_sinTable[((uint16_t)arg2 >> 6) & 0x1FFu];
-	product = (uint32_t)sine * (uint16_t)arg1 + 0x8000u;
+	signDifference = sine ^ ((uint16_t)angle & 0x8000u);
+	sine = g_sinTable[((uint16_t)angle >> 6) & 0x1FFu];
+	product = (uint32_t)sine * (uint16_t)value + 0x8000u;
 	if (signDifference != 0) {
 		product = 0u - product;
 	}

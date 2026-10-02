@@ -88,7 +88,7 @@ static void XvtDialog_End(void) {
 	g_frontState.offscreenRestoreEnabled = g_dialog.restore;
 	g_frontState.cursorVisible = g_dialog.cursor_visible;
 	FrontendCursor_SetPos(g_dialog.cursor_x, g_dialog.cursor_y);
-	FrontendText_ResetGlyphScratch();
+	FrontendText_StopTextFade();
 	if (g_dialog.overlay)
 		FrontendButton_EnableOverlayText();
 	else

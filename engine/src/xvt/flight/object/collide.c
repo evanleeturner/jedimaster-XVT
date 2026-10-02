@@ -427,7 +427,7 @@ void collide_collisions(void) {
 						}
 						if (INSPECTION_RANGE_SCALE * maxBoundsExtent > g_approxDist) {
 							uint16_t maxVisibility = 0;
-							uint16_t playerIff = (uint16_t)g_players[playerIdx].playerIff;
+							uint16_t playerIff = (uint16_t)g_players[playerIdx].team;
 							uint8_t flightGroupIdx = targetObject->flightGroupIdx;
 							int specialCargoFlag = 0;
 							int goalMessageRequired = 0;
@@ -469,7 +469,7 @@ void collide_collisions(void) {
 									  (specialCargoFlag != 0 ||
 									   g_missionFgStats[flightGroupIdx]
 											   .specialCargoOutcome[FLIGHT_GROUP_OUTCOME_INSPECTED] == 0))) &&
-									(goal->type == 0 || goal->type == 2)) {
+									(goal->goalKind == 0 || goal->goalKind == 2)) {
 									goalMessageRequired = 1;
 								}
 							}
@@ -503,7 +503,7 @@ void collide_collisions(void) {
 				}
 			}
 
-			if (g_objectTable[ownerObjIdx].mobj->framesAlive >= MIN_DOCK_PROMPT_FRAMES) {
+			if (g_objectTable[ownerObjIdx].mobj->secondsAlive >= MIN_DOCK_PROMPT_FRAMES) {
 				uint16_t mothershipPass;
 
 				for (mothershipPass = 0; mothershipPass < 2; ++mothershipPass) {
@@ -554,7 +554,7 @@ void collide_collisions(void) {
 							promptRange = HANGAR_RANGE;
 							if (mothership->genusId == CRAFT_GENUS_STARSHIP &&
 								g_flightMissionState.runtime
-										.teamGoalStatus[(uint16_t)g_players[playerIdx].playerIff][0] == 1) {
+										.teamGoalStatus[(uint16_t)g_players[playerIdx].team][0] == 1) {
 								promptRange = LARGE_STARSHIP_HANGAR_RANGE;
 							}
 							if ((unsigned int)collide_roughdistance3d(
@@ -597,7 +597,7 @@ void collide_collisions(void) {
 				continue;
 			}
 			if (g_objectTable[candidateObjIdx].mobj != NULL &&
-				g_objectTable[candidateObjIdx].mobj->framesAlive < NEW_OBJECT_COLLISION_GRACE_FRAMES &&
+				g_objectTable[candidateObjIdx].mobj->secondsAlive < NEW_OBJECT_COLLISION_GRACE_FRAMES &&
 				g_objectTable[candidateObjIdx].genusId != CRAFT_GENUS_PLAYER_PROJECTILE &&
 				g_objectTable[candidateObjIdx].genusId != CRAFT_GENUS_OTHER_PROJECTILE &&
 				g_objectTable[ownerObjIdx].genusId != CRAFT_GENUS_PLAYER_PROJECTILE &&
@@ -608,7 +608,7 @@ void collide_collisions(void) {
 			if (list->score[candidateSlot] > 0) {
 				continue;
 			}
-			if (g_objectTable[ownerObjIdx].mobj->framesAlive < NEW_OBJECT_COLLISION_GRACE_FRAMES &&
+			if (g_objectTable[ownerObjIdx].mobj->secondsAlive < NEW_OBJECT_COLLISION_GRACE_FRAMES &&
 				g_objectTable[ownerObjIdx].genusId != CRAFT_GENUS_PLAYER_PROJECTILE &&
 				g_objectTable[ownerObjIdx].genusId != CRAFT_GENUS_OTHER_PROJECTILE &&
 				g_objectTable[candidateObjIdx].genusId != CRAFT_GENUS_PLAYER_PROJECTILE &&
@@ -1172,7 +1172,7 @@ int collide_GetMobileObjectProximitySpeedQ12(uint16_t objIdx) {
 	if (mobileObject == NULL)
 		return 0;
 
-	switch (mobileObject->state) {
+	switch (mobileObject->family) {
 		case 0:
 			speed = g_modelDefs[GetModelIndexFromType(g_objectTable[objIdx].objectType)].maxSpeed;
 			mobileObject = g_objectTable[objIdx].mobj;
@@ -2038,7 +2038,7 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 
 		if (g_gameConfig.voiceTacticalOfficerEnabled == 2 &&
 			g_missionFlightGroups[g_objectTable[craftObjIdx].flightGroupIdx].fg.team ==
-				(uint16_t)g_players[g_localPlayer].playerIff &&
+				(uint16_t)g_players[g_localPlayer].team &&
 			g_objectTable[craftObjIdx].genusId != CRAFT_GENUS_STARFIGHTER) {
 			if (sourceObjIdx < g_activeRegionCraftObjectSlotEnd) {
 				int projectileType = g_objectTable[otherObjIdx].objectType;
@@ -2084,15 +2084,14 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 				uint16_t specialCargoFlag =
 					g_missionFlightGroups[g_objectTable[craftObjIdx].flightGroupIdx].fg.specialCargoCraft ==
 					craft->waveNumber;
-				uint16_t sourceTeam = (uint16_t)g_players[sourcePlayerIdx].playerIff;
+				uint16_t sourceTeam = (uint16_t)g_players[sourcePlayerIdx].team;
 
 				Mission_ApplyFlightGroupGoalScore(GOAL_EVENT_ATTACKED,
 												  g_objectTable[craftObjIdx].flightGroupIdx, sourcePlayerIdx,
 												  GOAL_SCORE_DIVISOR, specialCargoFlag, sourceTeam);
 				Mission_ApplyFlightGroupGoalScore(
 					GOAL_EVENT_ATTACKED, g_objectTable[craftObjIdx].flightGroupIdx, -1, GOAL_SCORE_DIVISOR,
-					specialCargoFlag,
-					(uint16_t)g_players[g_objectTable[sourceObjIdx].playerOwnerIdx].playerIff);
+					specialCargoFlag, (uint16_t)g_players[g_objectTable[sourceObjIdx].playerOwnerIdx].team);
 			}
 			*attackedByTeam |= ATTACKED_GOAL_SCORED_MASK;
 		}
@@ -2134,7 +2133,7 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 				}
 				if (recordAttacker == 1) {
 					craft->lastAttackerObjIdx = sourceObjIdx;
-					craft->lastHitTimestamp = (uint16_t)Mission_GameTimeToSeconds(
+					craft->lastHitMissionSecond = (uint16_t)Mission_GameTimeToSeconds(
 						g_missionElapsedClock.hours, g_missionElapsedClock.minutes,
 						g_missionElapsedClock.seconds);
 				}
@@ -2142,7 +2141,7 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 		}
 	} else if (g_objectTable[craftObjIdx].playerOwnerIdx != -1) {
 		craft->lastAttackerObjIdx = sourceObjIdx;
-		craft->lastHitTimestamp = (uint16_t)Mission_GameTimeToSeconds(
+		craft->lastHitMissionSecond = (uint16_t)Mission_GameTimeToSeconds(
 			g_missionElapsedClock.hours, g_missionElapsedClock.minutes, g_missionElapsedClock.seconds);
 	}
 
@@ -2234,9 +2233,9 @@ void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t h
 	else
 		g_objectTable[otherObjIdx].objectType = LASER_IMPACT_EFFECT_TYPE;
 	g_objectTable[otherObjIdx].genusId = EXPLOSION_GENUS;
-	g_objectTable[otherObjIdx].mobj->state = EXPLOSION_STATE;
+	g_objectTable[otherObjIdx].mobj->family = EXPLOSION_STATE;
 	g_objectTable[otherObjIdx].typeSpecificByte[0] = IMPACT_EFFECT_SUBTYPE;
-	g_objectTable[otherObjIdx].mobj->framesAlive = 0;
+	g_objectTable[otherObjIdx].mobj->secondsAlive = 0;
 	g_objectTable[otherObjIdx].mobj->lifetimeTimer = 0;
 	g_objectTable[otherObjIdx].mobj->lightIntensityScale = 0;
 	g_objectTable[otherObjIdx].mobj->speed = g_objectTable[craftObjIdx].mobj->speed;
@@ -2376,7 +2375,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 	if (sourceObjIdx != attackerSourceObjIdx && g_objectTable[sourceObjIdx].mobj != NULL) {
 		int sourcePlayerIdx;
 
-		sourceState = g_objectTable[sourceObjIdx].mobj->state;
+		sourceState = g_objectTable[sourceObjIdx].mobj->family;
 		if (sourceState == 0) {
 			attackerSourceObjIdx = sourceObjIdx;
 			sourcePlayerIdx = g_objectTable[sourceObjIdx].playerOwnerIdx;
@@ -2389,7 +2388,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 
 		if (sourcePlayerIdx != -1) {
 			craft->damageStats.damageFromPlayer[sourcePlayerIdx] += damageAmount;
-			if (g_objectTable[sourceObjIdx].mobj->state == 0)
+			if (g_objectTable[sourceObjIdx].mobj->family == 0)
 				craft->damageStats.damageFromCollision += damageAmount;
 		} else {
 			if (sourceState == 0) {
@@ -2547,7 +2546,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 															   victimObjIdx, UINT16_MAX) != 0) {
 								int victimTeam =
 									g_missionFlightGroups[g_objectTable[victimObjIdx].flightGroupIdx].fg.team;
-								int playerTeam = (uint16_t)g_players[g_localPlayer].playerIff;
+								int playerTeam = (uint16_t)g_players[g_localPlayer].team;
 
 								if (victimTeam != playerTeam)
 									enemyCraft = g_missionTeams[playerTeam].allies[victimTeam] == 0;
@@ -2719,7 +2718,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 		if (sourceObjIdx != UINT16_MAX && g_objectTable[sourceObjIdx].mobj != NULL) {
 			uint16_t destructionSourceObjIdx;
 
-			if (g_objectTable[sourceObjIdx].mobj->state == 0)
+			if (g_objectTable[sourceObjIdx].mobj->family == 0)
 				destructionSourceObjIdx = sourceObjIdx;
 			else
 				destructionSourceObjIdx = g_objectTable[sourceObjIdx].mobj->sourceObjIdx;
@@ -2773,7 +2772,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 		if (fsfx_SpeakTacticalOfficerEvent(TACTICAL_VOICE_STATUS, TACTICAL_MSG_DESTROYED, victimObjIdx,
 										   UINT16_MAX) != 0) {
 			int victimTeam = g_missionFlightGroups[g_objectTable[victimObjIdx].flightGroupIdx].fg.team;
-			int playerTeam = (uint16_t)g_players[g_localPlayer].playerIff;
+			int playerTeam = (uint16_t)g_players[g_localPlayer].team;
 			int enemyCraft = 0;
 
 			if (victimTeam != playerTeam)
@@ -2944,20 +2943,19 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 }
 
 // FUNCTION: XVT 0x41F300
-int collide_ConvertObjectToExplosion(unsigned int objOrMissionPointRef, uint8_t objectType) {
-	g_objectTable[objOrMissionPointRef].objectType = objectType;
-	g_objectTable[objOrMissionPointRef].genusId = 13;
-	g_objectTable[objOrMissionPointRef].mobj->state = 5;
-	g_objectTable[objOrMissionPointRef].typeSpecificByte[0] = 2;
-	g_objectTable[objOrMissionPointRef].mobj->lightIntensityScale = 0;
-	g_objectTable[objOrMissionPointRef].mobj->speed = 0;
-	g_objectTable[objOrMissionPointRef].mobj->framesAlive = 0;
-	g_objectTable[objOrMissionPointRef].mobj->lifetimeTimer = 0;
-	g_objectTable[objOrMissionPointRef].roll = 0;
-	g_objectTable[objOrMissionPointRef].mobj->rollImpulseRate = 0;
-	g_objectTable[objOrMissionPointRef].mobj->orientMatrixDirty = 1;
-	return fsfx_PlaySound((GameRand2() & 3) + FLIGHT_SOUND_SMALL_EXPLOSION_FIRST, objOrMissionPointRef,
-						  g_localPlayer);
+int collide_ConvertObjectToExplosion(unsigned int objectIndex, uint8_t objectType) {
+	g_objectTable[objectIndex].objectType = objectType;
+	g_objectTable[objectIndex].genusId = 13;
+	g_objectTable[objectIndex].mobj->family = 5;
+	g_objectTable[objectIndex].typeSpecificByte[0] = 2;
+	g_objectTable[objectIndex].mobj->lightIntensityScale = 0;
+	g_objectTable[objectIndex].mobj->speed = 0;
+	g_objectTable[objectIndex].mobj->secondsAlive = 0;
+	g_objectTable[objectIndex].mobj->lifetimeTimer = 0;
+	g_objectTable[objectIndex].roll = 0;
+	g_objectTable[objectIndex].mobj->rollImpulseRate = 0;
+	g_objectTable[objectIndex].mobj->orientMatrixDirty = 1;
+	return fsfx_PlaySound((GameRand2() & 3) + FLIGHT_SOUND_SMALL_EXPLOSION_FIRST, objectIndex, g_localPlayer);
 }
 
 // FUNCTION: XVT 0x41F3D0
@@ -3265,9 +3263,9 @@ unsigned int collide_ComputeCraftDamageAmount(uint16_t victimObjIdx, uint16_t so
 			modelIndex = GetModelIndexFromType(g_objectTable[sourceObjIdx].objectType);
 			for (launcherIndex = 0; launcherIndex < craft->warheadLauncherCount; ++launcherIndex) {
 				weaponSlotIndex = g_modelDefs[modelIndex].warheadLauncherFirstSlot[launcherIndex];
-				loadedWarheadCount = craft->weaponSlots[weaponSlotIndex].count;
+				loadedWarheadCount = craft->weaponSlots[weaponSlotIndex].ammoCount;
 				weaponSlotIndex = g_modelDefs[modelIndex].warheadLauncherLastSlot[launcherIndex];
-				loadedWarheadCount += craft->weaponSlots[weaponSlotIndex].count;
+				loadedWarheadCount += craft->weaponSlots[weaponSlotIndex].ammoCount;
 				projectileType = craft->warheadSlotTypeIds[launcherIndex];
 				if (g_objectTable[sourceObjIdx].genusId == 4 &&
 					g_objectTable[sourceObjIdx].objectType == 48 &&
@@ -3514,7 +3512,7 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject* object, OptNode* node) 
 				node = (OptNode*)node->pName;
 #endif
 			} else {
-				node = OptModel_ResolveNodeRef(object, (const char*)node->param2);
+				node = OptModel_ResolveNodeRef(object, (const char*)node->payload);
 			}
 			if (node == NULL)
 				return 0;
@@ -3525,12 +3523,12 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject* object, OptNode* node) 
 			case OPT_FACEDATA_15:
 			case OPT_FACEDATA_16:
 			case OPT_FACEDATA_17:
-				faceData = (OptPackedFaceData*)node->param2;
+				faceData = (OptPackedFaceData*)node->payload;
 				face = faceData->records;
-				faceNormal = (const OptVector*)&faceData->records[node->param1];
-				meshVertices = (const OptVector*)g_collideCurrentMeshVertsNode->param2;
+				faceNormal = (const OptVector*)&faceData->records[node->payloadCount];
+				meshVertices = (const OptVector*)g_collideCurrentMeshVertsNode->payload;
 				faceIndex = 0;
-				if (node->param1 > 0) {
+				if (node->payloadCount > 0) {
 					do {
 						if (collide_IntersectSegmentWithFacePlane(
 								&faceNormal->x, &meshVertices[face->vertexIndices[0]].x,
@@ -3556,14 +3554,14 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject* object, OptNode* node) 
 						++faceNormal;
 						++face;
 						++faceIndex;
-					} while (node->param1 > faceIndex);
+					} while (node->payloadCount > faceIndex);
 				}
 				break;
 
 			case OPT_MESHVERTS:
 				g_collideCurrentMeshVertsNode = node;
-				meshVertices = (const OptVector*)node->param2;
-				bounds = &meshVertices[node->param1 - 2];
+				meshVertices = (const OptVector*)node->payload;
+				bounds = &meshVertices[node->payloadCount - 2];
 				if (bounds[0].x > g_collideSweepWalkerStart.x && bounds[0].x > g_collideSweepWalkerEnd.x)
 					return 1;
 				if (bounds[0].y > g_collideSweepWalkerStart.y && bounds[0].y > g_collideSweepWalkerEnd.y)
@@ -3586,7 +3584,7 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject* object, OptNode* node) 
 			case OPT_ROTSCALE:
 				memcpy(&rotationAngleBits, &g_collideCurrentMeshRotationAngle, sizeof(rotationAngleBits));
 				if ((rotationAngleBits & 0x7FFFFFFFu) != 0) {
-					rotationScale = (const CollideOptRotationScale*)node->param2;
+					rotationScale = (const CollideOptRotationScale*)node->payload;
 					g_collideSweepWalkerStart.x -= rotationScale->origin.x;
 					g_collideSweepWalkerStart.y -= rotationScale->origin.y;
 					g_collideSweepWalkerStart.z -= rotationScale->origin.z;

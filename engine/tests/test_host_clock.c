@@ -13,7 +13,7 @@ static void CheckReset(void) {
 	XVT_ASSERT_TRUE(XvtTime_GetElapsedUs() != 0);
 	XvtTime_Reset();
 	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedUs(), 0);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedTicks(), 0);
+	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 0);
 }
 
 static void CheckAdvance(void) {
@@ -35,11 +35,11 @@ static void CheckAdvance(void) {
 static void CheckWholeMilliseconds(void) {
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(999);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedTicks(), 0);
+	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 0);
 	XvtTime_AdvanceHostClock(1);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedTicks(), 1);
+	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 1);
 	XvtTime_AdvanceHostClock(1999);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedTicks(), 2);
+	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 2);
 }
 
 static void CheckTicksWrap(void) {
@@ -54,14 +54,14 @@ static void CheckTicksWrap(void) {
 	XvtTime_AdvanceHostClock((int32_t)(target - added));
 	/* The microsecond count does not wrap; the millisecond count does. */
 	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedUs(), target);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedTicks(), 5);
+	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 5);
 }
 
 static void CheckWindowsClock(void) {
 	XvtTime_Reset();
 	XvtTime_AdvanceHostClock(42 * 1000 + 300);
-	XVT_ASSERT_INT_EQ(timeGetTime(), XvtTime_GetElapsedTicks());
-	XVT_ASSERT_INT_EQ(GetTickCount(), XvtTime_GetElapsedTicks());
+	XVT_ASSERT_INT_EQ(timeGetTime(), XvtTime_GetElapsedMs());
+	XVT_ASSERT_INT_EQ(GetTickCount(), XvtTime_GetElapsedMs());
 	XVT_ASSERT_INT_EQ(timeGetTime(), 42);
 }
 

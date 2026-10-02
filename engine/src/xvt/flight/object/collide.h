@@ -39,13 +39,13 @@ void collide_ResetNeighborProximityLists(uint16_t objectIndex);
 void collide_RemoveMobileObjectProximityCandidate(MobileObjectProximityList* list, uint16_t candidateObjIdx);
 void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx);
 int16_t collide_lasercraftcollide(uint16_t sourceObjIdx, uint16_t targetObjIdx);
-int16_t collide_checkboxcollision(int a1);
+int16_t collide_checkboxcollision(int radius);
 int collide_targetinrange(uint16_t sourceObjIdx, uint16_t targetObjIdx, uint16_t hardpointIndex);
 uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx, int16_t lookaheadSteps);
 void collide_laserhitcraft(uint16_t otherObjIdx, uint16_t craftObjIdx, int16_t hitMeshIndex);
 int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_t sourceObjIdx,
 							uint16_t hitSideOrDamageAmount);
-int collide_ConvertObjectToExplosion(unsigned int arg1, uint8_t arg2);
+int collide_ConvertObjectToExplosion(unsigned int objectIndex, uint8_t explosionObjectType);
 unsigned int collide_roughdistance3du(unsigned int abs_dx, unsigned int abs_dy, unsigned int abs_dz);
 int collide_roughdistance3d(int dx, int dy, int dz);
 unsigned int collide_TestSegmentAgainstLegacyPackedOptNode(const uint8_t* nodeData, int startX, int startY,

@@ -21,7 +21,7 @@ int g_netLastDeliveredRecvSequence;
 int NetReliable_GetLastDeliveredRecvSequence(void) { return g_netLastDeliveredRecvSequence; }
 
 // FUNCTION: XVT 0x46FC00
-int NetReliable_IsDuplicateRecvSequence(int directPlayId, int sequence, int channelA, int channelB) {
+int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence, int channelA, int channelB) {
 	uint32_t savedSlotCount;
 	unsigned int slot;
 	int recvSequence;
@@ -207,7 +207,7 @@ void NetReliable_ResetRecvQueueState(void) {
 }
 
 // FUNCTION: XVT 0x470020
-int NetReliable_GetPeerPacketDropCountByDpid_0(int directPlayId) {
+int NetReliable_GetPeerPacketDropCountByDpid(int directPlayId) {
 	unsigned int slot;
 	NetReliablePeerSlot* peer;
 
@@ -231,7 +231,7 @@ int NetReliable_GetPeerPacketDropCountByDpid_0(int directPlayId) {
 #pragma function(memcpy)
 #endif
 // FUNCTION: XVT 0x470060
-int NetReliable_CompactLocalReceiveQueue(void) {
+int NetReliable_KeepOnlyHostReceivedPackets(void) {
 	unsigned int dstIndex;
 	unsigned int srcIndex;
 	unsigned int keptCount;

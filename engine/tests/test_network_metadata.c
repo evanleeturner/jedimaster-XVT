@@ -34,8 +34,8 @@ static void AddPlayer(DPID id, const char* name, int ready, int rating_byte) {
 	memset(player, 0, sizeof *player);
 	player->playerId = id;
 	player->readyFlag = ready;
-	strncpy(player->sessionName, name, sizeof player->sessionName);
-	player->playerName[0] = (char)rating_byte;
+	strncpy(player->playerName, name, sizeof player->playerName);
+	player->playerInfo[0] = (char)rating_byte;
 }
 
 static void CheckToUtf8(void) {

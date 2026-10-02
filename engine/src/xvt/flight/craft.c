@@ -580,9 +580,9 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 					g_objectTable[debrisIndex].world_z += g_rotatedZ;
 					g_objectTable[debrisIndex].objectType = -127;
 					g_objectTable[debrisIndex].genusId = CRAFT_GENUS_EXPLOSION;
-					g_objectTable[debrisIndex].mobj->state = 5;
+					g_objectTable[debrisIndex].mobj->family = 5;
 					g_objectTable[debrisIndex].typeSpecificByte[0] = 2;
-					g_objectTable[debrisIndex].mobj->framesAlive = 0;
+					g_objectTable[debrisIndex].mobj->secondsAlive = 0;
 					g_objectTable[debrisIndex].mobj->lifetimeTimer = 0;
 					g_objectTable[debrisIndex].mobj->speed = g_objectTable[relatedObjIdx].mobj->speed;
 					g_objectTable[debrisIndex].pitch = g_objectTable[relatedObjIdx].pitch;
@@ -760,9 +760,9 @@ int Craft_SpawnExplosionObjectAtMesh(ObjectRecord* objRecord, uint16_t meshIndex
 		g_objectTable[objectIdx].world_z = objRecord->world_z + g_rotatedZ;
 		g_objectTable[objectIdx].objectType = useRandomVertex == 0 ? -127 : (uint8_t)((GameRand() & 1) + 127);
 		g_objectTable[objectIdx].genusId = 13;
-		g_objectTable[objectIdx].mobj->state = 5;
+		g_objectTable[objectIdx].mobj->family = 5;
 		g_objectTable[objectIdx].typeSpecificByte[0] = 2;
-		g_objectTable[objectIdx].mobj->framesAlive = 0;
+		g_objectTable[objectIdx].mobj->secondsAlive = 0;
 		g_objectTable[objectIdx].mobj->lifetimeTimer = 0;
 		g_objectTable[objectIdx].mobj->lightIntensityScale = effectSize >> 6;
 		g_objectTable[objectIdx].mobj->speed = 0;

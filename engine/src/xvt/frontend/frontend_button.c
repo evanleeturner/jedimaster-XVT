@@ -32,7 +32,7 @@ static int g_buttonOverlayPressedStyle;
 // GLOBAL: XVT 0x665578
 static int g_frontButtonLightColor = 0;
 // GLOBAL: XVT 0x665580
-static uint8_t g_buttonHoverState[256] = { 0 };
+static uint8_t g_buttonHeldState[256] = { 0 };
 
 // FUNCTION: XVT 0x4DA650
 int FrontendButton_HandleTextButton(RECT* rect, const char* text, int fontSize, int normalColor,
@@ -44,13 +44,13 @@ int FrontendButton_HandleTextButton(RECT* rect, const char* text, int fontSize, 
 	if (FrontendDraw_PointInRect(rect, cursorX, cursorY)) {
 		if (FrontendMouse_GetLeftDown() != 0 || FrontendMouse_GetRightDown() != 0) {
 			FrontendButton_DrawTextButtonState(rect, text, fontSize, normalColor, 1);
-			if (g_buttonHoverState[hoverSlot] == 0 && g_gameConfig.sfxDatapadEnabled != 0) {
+			if (g_buttonHeldState[hoverSlot] == 0 && g_gameConfig.sfxDatapadEnabled != 0) {
 				FrontendSound_PlayUISound(clickSoundName, 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 			}
-			g_buttonHoverState[hoverSlot] = 1;
+			g_buttonHeldState[hoverSlot] = 1;
 		} else {
 			FrontendButton_DrawTextButtonState(rect, text, fontSize, normalColor, 0);
-			g_buttonHoverState[hoverSlot] = 0;
+			g_buttonHeldState[hoverSlot] = 0;
 		}
 		if (FrontendMouse_GetLeftClick() != 0) {
 			return 1;
@@ -59,7 +59,7 @@ int FrontendButton_HandleTextButton(RECT* rect, const char* text, int fontSize, 
 			return 2;
 		}
 	} else {
-		g_buttonHoverState[hoverSlot] = 0;
+		g_buttonHeldState[hoverSlot] = 0;
 		FrontendButton_DrawTextButtonState(rect, text, fontSize, normalColor, 0);
 	}
 	return 0;
@@ -82,18 +82,18 @@ int FrontendButton_DrawSpriteHitTest(RECT* rect, const char* normalSprite, const
 		if (FrontendMouse_GetLeftDown() != 0 || FrontendMouse_GetRightDown() != 0) {
 			FrontendButton_UsePressedOverlayStyle();
 			FrontendButton_DrawSpriteAndTooltip(rect, pressedSprite, tooltipText, fontSize, textColor);
-			if (g_buttonHoverState[hoverSlot] == 0 && g_gameConfig.sfxDatapadEnabled != 0) {
+			if (g_buttonHeldState[hoverSlot] == 0 && g_gameConfig.sfxDatapadEnabled != 0) {
 				FrontendSound_PlayUISound(hoverSound, 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 			}
-			g_buttonHoverState[hoverSlot] = 1;
+			g_buttonHeldState[hoverSlot] = 1;
 			return 0;
 		}
 		FrontendButton_DrawSpriteAndTooltip(rect, normalSprite, tooltipText, fontSize, textColor);
-		g_buttonHoverState[hoverSlot] = 0;
+		g_buttonHeldState[hoverSlot] = 0;
 		return 0;
 	}
 
-	g_buttonHoverState[hoverSlot] = 0;
+	g_buttonHeldState[hoverSlot] = 0;
 	FrontendButton_DrawSpriteAndTooltip(rect, normalSprite, tooltipText, fontSize, textColor);
 	return 0;
 }

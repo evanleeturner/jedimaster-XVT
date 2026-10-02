@@ -37,7 +37,7 @@ struct MissionOrder {
 #pragma pack(pop)
 typedef char xvt_size_MissionOrder[(sizeof(MissionOrder) == 82) ? 1 : -1];
 
-extern uint16_t g_flightRuntimeReservedState;
+extern uint16_t g_targetProximityBlinkBit;
 extern uint8_t g_flightRuntimeStateInitialized;
 
 #pragma pack(push, 1)
@@ -518,7 +518,7 @@ struct XvtV10MissionHeader {
 #pragma pack(pop)
 typedef char xvt_size_XvtV10MissionHeader[(sizeof(XvtV10MissionHeader) == 130) ? 1 : -1];
 
-uint16_t Mission_GetFlightGroupSpecialCargoOutcome8(unsigned int flightGroupIdx, uint16_t specialCargoCraft);
+uint16_t Mission_GetSpecialCargoInspectedCount(unsigned int flightGroupIdx, uint16_t specialCargoCraft);
 void Mission_UpdateLogic(void);
 int Mission_EvaluateTriggerPair(const MissionTriggerPair* triggerPair, int16_t flightGroupIdx);
 int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, uint16_t variable,

@@ -40,14 +40,14 @@ static void CheckInitRefusesSize(void) {
 		XVT_ASSERT_INT_EQ(XvtPort_Init(), 0);
 		XVT_ASSERT_INT_EQ(XvtPort_GetExitCode(), 1);
 		XVT_ASSERT_INT_EQ(XvtPort_IsInitialized(), 0);
-		XVT_ASSERT_INT_EQ(XvtPort_ShouldQuit(), 1);
+		XVT_ASSERT_INT_EQ(XvtPort_ServiceQuit(), 1);
 	}
 }
 
 static void CheckBeforeInit(void) {
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtPort_IsInitialized(), 0);
-	XVT_ASSERT_INT_EQ(XvtPort_ShouldQuit(), 1);
+	XVT_ASSERT_INT_EQ(XvtPort_ServiceQuit(), 1);
 
 	/* Tick does nothing once ShouldQuit is 1: the host clock does not move. */
 	XvtTime_Reset();

@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-struct AiOrderScratch {
+struct AiOrderProgress {
 	uint8_t completionState[4];
 	uint8_t goalProgress[4];
 };

@@ -104,7 +104,7 @@ struct CraftWeaponStats {
 struct CraftWeaponSlot {
 	uint8_t projectileTypeId;
 	int8_t laserCharge;
-	uint8_t count;
+	uint8_t ammoCount;
 	uint8_t missileDefenseCooldown;
 };
 
@@ -127,7 +127,7 @@ struct CraftData {
 	uint16_t carriedObjectIndex;
 	uint16_t carrierObjIdx;
 	uint16_t lastAttackerObjIdx;
-	uint16_t lastHitTimestamp;
+	uint16_t lastHitMissionSecond;
 	AiFlightState aiFlight;
 	uint8_t waveNumber;
 	int pushAccumX;
@@ -146,7 +146,7 @@ struct CraftData {
 	int16_t weaponFireInhibitTimer;
 	uint8_t unusedMissionFlag;
 	uint8_t notDisabledAccountingSuppress;
-	uint8_t wasCaptured;
+	uint8_t capturedByFlightGroup;
 	int8_t attackedByTeam[10];
 	uint8_t iffVisibility[10];
 	uint8_t boardingState;

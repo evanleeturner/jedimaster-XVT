@@ -30,7 +30,7 @@ XvtFlightTimingProfile XvtFlightTiming_Profile(void);
 /* 1 in a NETWORK_125 session. */
 int XvtFlightTiming_IsNetwork125(void);
 /* The longest simulation step, in ticks: XVT_NETWORK_STEP_TICKS in NETWORK_125, otherwise the current
- * dtMs. */
+ * g_netUpdateIntervalTicks. */
 int XvtFlightTiming_SimulationMaximum(void);
 /* After a NETWORK_125 state restore at tick: sets the advance serial to tick / XVT_NETWORK_STEP_TICKS
  * and the reference phase to tick % XVT_REFERENCE_TICKS, closes any open step, and rebuilds the last

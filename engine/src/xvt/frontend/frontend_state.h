@@ -117,8 +117,8 @@ struct FrontendGlobalState {
 	CDAudioTrackCache cdAudioTrackCache;
 	BitmapFont fontSlots[10];
 	BitmapFont* fontBySize[256];
-	int glyphScratchTtl;
-	int glyphScratchReload;
+	int textFadeFramesLeft;
+	int textFadeFrameCount;
 	GlyphScratchBuffer glyphScratchBuffer;
 	int (*modeInitFn)(void);
 	FrontendScreenUpdateFn pendingScreenUpdateFn;
@@ -158,7 +158,7 @@ struct FrontendGlobalState {
 	NetQueuedPacket netRuntimeRecvScratchPacket;
 	NetReliablePeerSlot netRuntimeReliablePeerSlots[40];
 	uint8_t unknownNetState_C2B51[0x238];
-	uint32_t netSequenceCount;
+	uint32_t netReliablePeerSlotCount;
 	NetQueuedPacket* netExportRecvQueuePtr;
 	int netExportRecvQueueHighWater;
 	unsigned int* uiStringOffsets;

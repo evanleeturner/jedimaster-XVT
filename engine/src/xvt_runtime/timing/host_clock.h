@@ -19,7 +19,7 @@ void XvtTime_AdvanceHostClock(int32_t delta_us);
 uint64_t XvtTime_GetElapsedUs(void);
 /* Whole milliseconds since the last Reset, cut to 32 bits, so it wraps after about 49.7 days.
  * timeGetTime and GetTickCount return this value. */
-uint32_t XvtTime_GetElapsedTicks(void);
+uint32_t XvtTime_GetElapsedMs(void);
 
 #ifdef __cplusplus
 }

@@ -250,13 +250,13 @@ static void CheckRebuild(void) {
 	OptNode* vertexNode = root->pChildren[0];
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, vertexNode));
 	XVT_ASSERT_INT_EQ(vertexNode->nodeType, OPT_MESHVERTS);
-	XVT_ASSERT_TRUE(Inside(model, nativeSize, vertexNode->param2));
-	XVT_ASSERT_INT_EQ(memcmp(vertexNode->param2, vertices, sizeof vertices), 0);
+	XVT_ASSERT_TRUE(Inside(model, nativeSize, vertexNode->payload));
+	XVT_ASSERT_INT_EQ(memcmp(vertexNode->payload, vertices, sizeof vertices), 0);
 
 	OptNode* refNode = root->pChildren[1];
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, refNode));
 	XVT_ASSERT_INT_EQ(refNode->nodeType, OPT_NODEREF);
-	XVT_ASSERT_INT_EQ(refNode->param1, 0);
+	XVT_ASSERT_INT_EQ(refNode->payloadCount, 0);
 	Memory_UnlockHandle(handle);
 	Memory_FreeHandle(handle);
 	free(body.bytes);
@@ -279,7 +279,7 @@ static void CheckPayloadPastEnd(void) {
 	uint16_t handle = ReadFile("case.opt", &version, &nativeSize);
 	XVT_ASSERT_TRUE(handle != 0);
 	OptimizedPolyObject* model = Memory_LockHandle(handle);
-	const uint8_t* copied = model->rootNodes[0]->param2;
+	const uint8_t* copied = model->rootNodes[0]->payload;
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, copied) && Inside(model, nativeSize, copied + 23));
 	XVT_ASSERT_INT_EQ(memcmp(copied, tail, sizeof tail), 0);
 	for (int i = 12; i < 24; ++i)
@@ -308,7 +308,7 @@ static void CheckLastPayload(const Body* body, int version, uint32_t payload, ui
 	uint16_t handle = ReadFile("case.opt", &read, &nativeSize);
 	XVT_ASSERT_TRUE(handle != 0);
 	OptimizedPolyObject* model = Memory_LockHandle(handle);
-	const uint8_t* copied = model->rootNodes[model->rootNodeCount - 1]->param2;
+	const uint8_t* copied = model->rootNodes[model->rootNodeCount - 1]->payload;
 	const uint8_t* bodyCopy = (const uint8_t*)model + nativeSize - body->size;
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, copied));
 	XVT_ASSERT_TRUE(copied + size <= bodyCopy && (size_t)(bodyCopy - (copied + size)) < sizeof(void*));
@@ -325,9 +325,9 @@ static void CheckPayloadSizes(void) {
 		int32_t type;
 		uint32_t size;
 	} payloads[] = {
-		{ OPT_TYPE_2, 48 },          { OPT_ROTSCALE, 48 },     { OPT_MESHVERTS, 3 * 12 },
-		{ OPT_VERTNORMALS, 3 * 12 }, { OPT_TYPE_4, 12 },       { OPT_TYPE_6, 12 },
-		{ OPT_TYPE_19, 12 },         { OPT_TYPE_5, 36 },       { OPT_TYPE_9, 3 * 56 },
+		{ OPT_TRANSFORM, 48 },       { OPT_ROTSCALE, 48 },     { OPT_MESHVERTS, 3 * 12 },
+		{ OPT_VERTNORMALS, 3 * 12 }, { OPT_TRANSLATION, 12 },  { OPT_SCALE, 12 },
+		{ OPT_TYPE_19, 12 },         { OPT_ROTATION, 36 },     { OPT_TYPE_9, 3 * 56 },
 		{ OPT_TEXCOORDS, 3 * 8 },    { OPT_FACEGROUP, 3 * 4 }, { OPT_HARDPOINT, 16 },
 		{ OPT_MESHDESC, 72 },
 	};

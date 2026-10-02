@@ -185,7 +185,7 @@ MeshDescriptor* ModelMesh_FindDescriptorNodeRecursive(OptNode* node, OptimizedPo
 		return NULL;
 	}
 	if (node->nodeType == OPT_MESHDESC) {
-		return (MeshDescriptor*)node->param2;
+		return (MeshDescriptor*)node->payload;
 	}
 
 	for (childIndex = 0; childIndex < node->childCount; ++childIndex) {
@@ -285,7 +285,7 @@ int ModelMesh_GetVertexCount(int modelType, int meshIndex) {
 		meshIndex = model->rootNodeCount - 1;
 
 	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertexCount = vertexNode->param1;
+	vertexCount = vertexNode->payloadCount;
 
 	Memory_UnlockHandle(g_loadedModels[modelType]);
 	return vertexCount;
@@ -314,10 +314,10 @@ int ModelMesh_GetVertexX(int modelType, int meshIndex, int vertexIndex) {
 		meshIndex = model->rootNodeCount - 1;
 
 	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertices = (OptVector*)vertexNode->param2;
+	vertices = (OptVector*)vertexNode->payload;
 	clampedVertexIndex = vertexIndex;
-	if (clampedVertexIndex >= vertexNode->param1)
-		clampedVertexIndex = vertexNode->param1 - 1;
+	if (clampedVertexIndex >= vertexNode->payloadCount)
+		clampedVertexIndex = vertexNode->payloadCount - 1;
 	result = (int)vertices[clampedVertexIndex].x;
 
 	Memory_UnlockHandle(g_loadedModels[modelType]);
@@ -347,10 +347,10 @@ int ModelMesh_GetVertexY(int modelType, int meshIndex, int vertexIndex) {
 		meshIndex = model->rootNodeCount - 1;
 
 	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertices = (OptVector*)vertexNode->param2;
+	vertices = (OptVector*)vertexNode->payload;
 	clampedVertexIndex = vertexIndex;
-	if (clampedVertexIndex >= vertexNode->param1)
-		clampedVertexIndex = vertexNode->param1 - 1;
+	if (clampedVertexIndex >= vertexNode->payloadCount)
+		clampedVertexIndex = vertexNode->payloadCount - 1;
 	result = (int)vertices[clampedVertexIndex].y;
 
 	Memory_UnlockHandle(g_loadedModels[modelType]);
@@ -380,10 +380,10 @@ int ModelMesh_GetVertexZ(int modelType, int meshIndex, int vertexIndex) {
 		meshIndex = model->rootNodeCount - 1;
 
 	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertices = (OptVector*)vertexNode->param2;
+	vertices = (OptVector*)vertexNode->payload;
 	clampedVertexIndex = vertexIndex;
-	if (clampedVertexIndex >= vertexNode->param1)
-		clampedVertexIndex = vertexNode->param1 - 1;
+	if (clampedVertexIndex >= vertexNode->payloadCount)
+		clampedVertexIndex = vertexNode->payloadCount - 1;
 	result = (int)vertices[clampedVertexIndex].z;
 
 	Memory_UnlockHandle(g_loadedModels[modelType]);
@@ -944,7 +944,7 @@ float* ModelMesh_GetRotScaleData(int modelType, int meshIndex) {
 	rotScaleNode = rootNodes[meshIndex];
 	rotScaleNode = ModelMesh_FindFirstRotScaleNode(rotScaleNode);
 	if (rotScaleNode != 0)
-		result = (float*)rotScaleNode->param2;
+		result = (float*)rotScaleNode->payload;
 	else
 		result = 0;
 	Memory_UnlockHandle(g_loadedModels[modelType]);
@@ -981,7 +981,7 @@ OptNode* ModelMesh_FindNthHardpointNodeRecursive(OptNode* node, OptimizedPolyObj
 			}
 #endif
 		} else {
-			resolvedNode = OptModel_ResolveNodeRef(model, (const char*)resolvedNode->param2);
+			resolvedNode = OptModel_ResolveNodeRef(model, (const char*)resolvedNode->payload);
 		}
 		if (resolvedNode == NULL)
 			return NULL;
@@ -1040,7 +1040,7 @@ int ModelMesh_CountHardpointNodesRecursive(OptNode* node, OptimizedPolyObject* o
 			}
 #endif
 		} else {
-			resolvedNode = OptModel_ResolveNodeRef(object, (const char*)resolvedNode->param2);
+			resolvedNode = OptModel_ResolveNodeRef(object, (const char*)resolvedNode->payload);
 		}
 		if (resolvedNode == NULL)
 			return 0;
@@ -1109,7 +1109,7 @@ int ModelMesh_GetHardpointX(int modelIndex, int meshIndex, int hardpointIndex) {
 	rootNode = rootNodes[meshIndex];
 	hardpointNode = ModelMesh_FindNthHardpointNode(rootNode, model, hardpointIndex);
 	if (hardpointNode != NULL)
-		result = (int)((OptHardpoint*)hardpointNode->param2)->position.x;
+		result = (int)((OptHardpoint*)hardpointNode->payload)->position.x;
 	else
 		result = 0;
 	Memory_UnlockHandle(g_loadedModels[modelIndex]);
@@ -1137,7 +1137,7 @@ int ModelMesh_GetHardpointY(int modelIndex, int meshIndex, int hardpointIndex) {
 	rootNode = rootNodes[meshIndex];
 	hardpointNode = ModelMesh_FindNthHardpointNode(rootNode, model, hardpointIndex);
 	if (hardpointNode != NULL)
-		result = (int)((OptHardpoint*)hardpointNode->param2)->position.y;
+		result = (int)((OptHardpoint*)hardpointNode->payload)->position.y;
 	else
 		result = 0;
 	Memory_UnlockHandle(g_loadedModels[modelIndex]);
@@ -1167,7 +1167,7 @@ int ModelMesh_GetHardpointZ(int modelIndex, int meshIndex, int hardpointIndex) {
 	rootNode = rootNodes[meshIndex];
 	hardpointNode = ModelMesh_FindNthHardpointNode(rootNode, model, hardpointIndex);
 	if (hardpointNode != NULL)
-		result = (int)((OptHardpoint*)hardpointNode->param2)->position.z;
+		result = (int)((OptHardpoint*)hardpointNode->payload)->position.z;
 	else
 		result = 0;
 	Memory_UnlockHandle(g_loadedModels[modelIndex]);
@@ -1205,7 +1205,7 @@ void ModelMesh_GetHardpoint(int modelType, int meshIndex, int hardpointIndex, in
 		*outY = 0;
 		*outZ = 0;
 	} else {
-		hardpoint = (const OptHardpoint*)hardpointNode->param2;
+		hardpoint = (const OptHardpoint*)hardpointNode->payload;
 		position = &hardpoint->position;
 		*outType = hardpoint->hardpointType;
 		*outX = (int)position->x;
@@ -1365,8 +1365,8 @@ int ModelMesh_FindNearestVertexForPoint(int modelType, int localX, int localY, i
 		rootNodeIndex = model->rootNodeCount - 1;
 	}
 	verticesNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[rootNodeIndex]);
-	vertices = (OptVector*)verticesNode->param2;
-	vertexCount = verticesNode->param1;
+	vertices = (OptVector*)verticesNode->payload;
+	vertexCount = verticesNode->payloadCount;
 	if (vertexCount > 2) {
 		vertexCount -= 2;
 	}

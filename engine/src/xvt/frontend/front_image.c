@@ -112,7 +112,7 @@ void FrontImage_FreeResourceByName(const char* name) {
 
 	if (g_frontState.resourceTable[resourceIndex].image != NULL) {
 #ifdef XVT_MODERN
-		XvtRenderAssets_FreeImage(g_frontState.resourceTable[resourceIndex].image);
+		XvtRenderAssets_RetireImage(g_frontState.resourceTable[resourceIndex].image);
 #endif
 		if (g_frontState.resourceTable[resourceIndex].image->pixels != NULL) {
 			free(g_frontState.resourceTable[resourceIndex].image->pixels);
@@ -1670,7 +1670,7 @@ int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color,
 					uint16_t drawColor;
 
 					drawColor = (uint16_t)color;
-					if (allowColorRemap != 0 && g_frontState.glyphScratchTtl != 0)
+					if (allowColorRemap != 0 && g_frontState.textFadeFramesLeft != 0)
 						drawColor = (uint16_t)FrontImage_GetFadedGlyphColor16(color);
 					source = &glyph->pixels[glyph->width * clipTopSkip + clipLeftSkip];
 					destination = &g_drawSurfacePtr[2 * (x + clipLeftSkip) +
@@ -1701,7 +1701,7 @@ int FrontImage_DrawGlyph(ImageResource* glyph, int x, int y, unsigned int color,
 					unsigned int drawColor;
 
 					drawColor = color;
-					if (allowColorRemap != 0 && g_frontState.glyphScratchTtl != 0)
+					if (allowColorRemap != 0 && g_frontState.textFadeFramesLeft != 0)
 						drawColor = FrontImage_GetFadedGlyphColor16(color);
 					FrontImage_BlitGlyphRLE_16bpp(glyph, x + clipLeftSkip, y + clipTopSkip, clipLeftSkip,
 												  clipTopSkip, visibleWidth, visibleRows, drawColor);
@@ -3040,10 +3040,10 @@ unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16) {
 		color >>= 11;
 	}
 
-	fadeMultiplier = g_frontState.glyphScratchReload - g_frontState.glyphScratchTtl;
-	blue = fadeMultiplier * blue / (unsigned int)g_frontState.glyphScratchReload;
-	green = fadeMultiplier * green / (unsigned int)g_frontState.glyphScratchReload;
-	color = fadeMultiplier * color / (unsigned int)g_frontState.glyphScratchReload;
+	fadeMultiplier = g_frontState.textFadeFrameCount - g_frontState.textFadeFramesLeft;
+	blue = fadeMultiplier * blue / (unsigned int)g_frontState.textFadeFrameCount;
+	green = fadeMultiplier * green / (unsigned int)g_frontState.textFadeFrameCount;
+	color = fadeMultiplier * color / (unsigned int)g_frontState.textFadeFrameCount;
 	if (g_frontState.pixelFormat555 != 0) {
 		color = (color & 0x1F) << 5;
 		green &= 0x1F;

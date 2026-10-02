@@ -303,7 +303,7 @@ void XvtFlightLoading_Runtime(void) {
 			MILLISECONDS_PER_SECOND * g_dynamicMusicInitialStartSecondChoices[musicChoice];
 		musicUpdateTick = timeGetTime();
 		g_dynamicMusicState = MUSIC_TRACK_FLIGHT;
-		g_dynamicMusicLastUpdateTick = musicUpdateTick;
+		g_dynamicMusicLastUpdateMs = musicUpdateTick;
 	} else {
 		g_dynamicMusicTrackRemainingMs = INT32_MAX;
 		g_dynamicMusicState = 0;

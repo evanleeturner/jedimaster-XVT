@@ -16,7 +16,7 @@ extern "C" {
 typedef struct ActiveSoundInstance ActiveSoundInstance;
 typedef struct AiController AiController;
 typedef struct AiFlightState AiFlightState;
-typedef struct AiOrderScratch AiOrderScratch;
+typedef struct AiOrderProgress AiOrderScratch;
 typedef struct BattleContinuation BattleContinuation;
 typedef struct BattleSequenceState BattleSequenceState;
 typedef struct BitmapFont BitmapFont;

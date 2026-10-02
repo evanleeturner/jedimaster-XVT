@@ -6,12 +6,12 @@ enum {
 	PLAYER_COUNT = XVT_FLIGHT_PLAYERS,
 	WORLD_STATE_CHUNK_COUNT = XVT_RESYNC_CHUNKS_PER_BATCH,
 	PACKET_CLOCK_PROBE_REPLY_SIZE = 2 * sizeof(int),
-	CLOCK_PROBE_BIAS_MS = 20,
-	CLOCK_PROBE_LIMIT_MS = 472
+	CLOCK_PROBE_BIAS_TICKS = 20,
+	CLOCK_PROBE_LIMIT_TICKS = 472
 };
 
-/* Echoes a peer's clock probe back to it, then moves the allowed clock lead halfway (at least 1 ms)
- * toward the lead the probe asks for, halved for a synchronous game or a small session. */
+/* Echoes a peer's clock probe back to it, then moves the allowed clock lead halfway (at least 1
+ * tick) toward the lead the probe asks for, halved for a synchronous game or a small session. */
 static void XvtFlightNetwork_AnswerClockProbe(int senderDpid, const int* packet) {
 	int adjustment;
 	int targetLead;
@@ -25,47 +25,47 @@ static void XvtFlightNetwork_AnswerClockProbe(int senderDpid, const int* packet)
 	if (g_asyncFlag == 0 || g_flightNetSmallSessionPlayerThreshold > g_activeFlightPlayerCount) {
 		targetLead >>= 1;
 	}
-	if (g_flightNetClockLeadAllowanceMs < targetLead) {
-		adjustment = (targetLead - g_flightNetClockLeadAllowanceMs) >> 1;
+	if (g_flightNetClockLeadTicks < targetLead) {
+		adjustment = (targetLead - g_flightNetClockLeadTicks) >> 1;
 		if (adjustment == 0) {
 			adjustment = 1;
 		}
-		g_flightNetClockLeadAllowanceMs += adjustment;
-	} else if (g_flightNetClockLeadAllowanceMs > targetLead) {
-		adjustment = (g_flightNetClockLeadAllowanceMs - targetLead) >> 1;
+		g_flightNetClockLeadTicks += adjustment;
+	} else if (g_flightNetClockLeadTicks > targetLead) {
+		adjustment = (g_flightNetClockLeadTicks - targetLead) >> 1;
 		if (adjustment == 0) {
 			adjustment = 1;
 		}
-		g_flightNetClockLeadAllowanceMs -= adjustment;
+		g_flightNetClockLeadTicks -= adjustment;
 	}
 }
 
-/* On the host, when a reply carries the probe timestamp last sent, moves the allowed clock lead
- * halfway (at least 1 ms) toward the probe's round trip plus the clock adjustment so far and a
- * 20 ms bias, while that total stays under 472 ms. */
+/* On a client, when a reply carries the probe timestamp last sent, moves the allowed clock lead
+ * halfway (at least 1 tick) toward the probe's round trip plus the clock adjustment so far and a
+ * 20-tick bias, while that total stays under 472 ticks. A tick is 4 ms. */
 static void XvtFlightNetwork_ApplyClockProbeReply(const int* packet) {
-	if (NetSession_GetLocalPlayerId() == 0 && packet[1] == g_flightNetClockProbeTimestamp) {
+	if (NetSession_IsLocalHost() == 0 && packet[1] == g_flightNetClockProbeTimestamp) {
 		int adjustment;
 		int targetLead;
 
 		targetLead = g_flightNetClockAdjustAccumTicks;
 		targetLead += g_inputTimestamp;
 		targetLead -= packet[1];
-		targetLead += CLOCK_PROBE_BIAS_MS;
+		targetLead += CLOCK_PROBE_BIAS_TICKS;
 
-		if (targetLead < CLOCK_PROBE_LIMIT_MS) {
-			if (g_flightNetClockLeadAllowanceMs < targetLead) {
-				adjustment = (targetLead - g_flightNetClockLeadAllowanceMs) >> 1;
+		if (targetLead < CLOCK_PROBE_LIMIT_TICKS) {
+			if (g_flightNetClockLeadTicks < targetLead) {
+				adjustment = (targetLead - g_flightNetClockLeadTicks) >> 1;
 				if (adjustment == 0) {
 					adjustment = 1;
 				}
-				g_flightNetClockLeadAllowanceMs += adjustment;
-			} else if (g_flightNetClockLeadAllowanceMs > targetLead) {
-				adjustment = (g_flightNetClockLeadAllowanceMs - targetLead) >> 1;
+				g_flightNetClockLeadTicks += adjustment;
+			} else if (g_flightNetClockLeadTicks > targetLead) {
+				adjustment = (g_flightNetClockLeadTicks - targetLead) >> 1;
 				if (adjustment == 0) {
 					adjustment = 1;
 				}
-				g_flightNetClockLeadAllowanceMs -= adjustment;
+				g_flightNetClockLeadTicks -= adjustment;
 			}
 		}
 	}
@@ -132,17 +132,17 @@ static int XvtFlightNetwork_Control(int senderDpid, int* packet) {
 			if (g_flightNetPendingAckCount != 0) {
 				--g_flightNetPendingAckCount;
 				if (g_flightNetPendingAckCount == 0) {
-					g_flightNetNextClientInputSendTimestamp = 0;
+					g_flightNetNextWorldMessageTimestamp = 0;
 					return 1;
 				}
 			}
 			return 0;
 		case NET_PACKET_CLOCK_LEAD:
-			g_flightNetClockLeadAllowanceMs = packet[1];
+			g_flightNetClockLeadTicks = packet[1];
 			return 0;
 		case NET_PACKET_STILL_LOADING:
 			if (NetSession_GetHostDplayId() == senderDpid) {
-				g_flightNetHostTimeoutElapsedMs = 0;
+				g_flightNetHostTimeoutElapsedTicks = 0;
 			} else {
 				int playerIndex = NetSession_FindPlayerSlotByDpid(senderDpid);
 
@@ -166,16 +166,16 @@ static int XvtFlightNetwork_Control(int senderDpid, int* packet) {
 void XvtFlightNetwork_ProcessPackets(void) {
 	if (!XvtFlightNetwork_Cookie() || !g_players[g_localPlayer].connectedFlag)
 		return;
-	int currentTimestamp = g_inputTimestamp + (int)Time_GetFrameDelta();
+	int currentTimestamp = g_inputTimestamp + (int)Time_ConsumeElapsedTicks();
 	while (XvtFlightNetwork_TakePacketBudget()) {
 		int sender, size;
 		int* packet = NetSession_ReceiveGamePacket(&sender, &size);
-		currentTimestamp += (int)Time_GetFrameDelta();
+		currentTimestamp += (int)Time_ConsumeElapsedTicks();
 		if (!packet) {
-			if (!NetSession_GetLocalPlayerId() || !XvtFlightNetwork_ShouldSend(g_inputTimestamp))
+			if (!NetSession_IsLocalHost() || !XvtFlightNetwork_TakeWorldSendTurn(g_inputTimestamp))
 				break;
 			XvtFlightNetwork_SendWorld();
-			currentTimestamp += (int)Time_GetFrameDelta();
+			currentTimestamp += (int)Time_ConsumeElapsedTicks();
 			continue;
 		}
 		if (!XvtFlightNetwork_DecodeControl((const uint8_t*)packet, &size) ||
@@ -187,5 +187,5 @@ void XvtFlightNetwork_ProcessPackets(void) {
 		if (XvtFlightNetwork_Control(sender, packet))
 			return;
 	}
-	g_inputTimestamp = currentTimestamp + (int)Time_GetFrameDelta();
+	g_inputTimestamp = currentTimestamp + (int)Time_ConsumeElapsedTicks();
 }

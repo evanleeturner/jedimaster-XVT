@@ -416,7 +416,7 @@ int PilotRecord_DrawPilotList(const RECT* bounds, int firstVisibleIndex) {
 #ifdef XVT_MODERN
 				if (strcasecmp(g_pilotListDisplayNames[displayNameIndex], g_pilotData.name) == 0) {
 					FrontendText_DrawAlignedInRect(12, g_pilotListDisplayNames[displayNameIndex], &rect, 0, 1,
-												   g_colorLightBlue);
+												   g_colorYellow);
 				} else {
 					FrontendText_DrawAlignedInRect(12, g_pilotListDisplayNames[displayNameIndex], &rect, 0, 1,
 												   0xFFFF);
@@ -424,7 +424,7 @@ int PilotRecord_DrawPilotList(const RECT* bounds, int firstVisibleIndex) {
 #else
 				if (_strcmpi(g_pilotListDisplayNames[displayNameIndex], g_pilotData.name) == 0) {
 					FrontendText_DrawAlignedInRect(12, g_pilotListDisplayNames[displayNameIndex], &rect, 0, 1,
-												   g_colorLightBlue);
+												   g_colorYellow);
 				} else {
 					FrontendText_DrawAlignedInRect(12, g_pilotListDisplayNames[displayNameIndex], &rect, 0, 1,
 												   0xFFFF);
@@ -730,20 +730,19 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_350_SUMMARY_OF_KILLS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_189_EXERCISE), EXERCISE_X, y,
-						  g_colorLightBlue);
-		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
+		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X, y, g_colorYellow);
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_014_COMBAT), COMBAT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_297_TOTAL_KILLS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.totalKillsPerMT[0] != 0 ||
 			g_pilotStatsTotalKillsShared[0] != 0) {
 			sprintf(g_frontendScratchBuffer, "%d (%d)",
@@ -777,7 +776,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_351_PLAYER_KILLS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		sprintf(g_frontendScratchBuffer, "----");
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, EXERCISE_X, y, TEXT_COLOR_WHITE);
 		if (g_pilotStatsPlayerKills[1] != 0 || g_pilotStatsPlayerKillsShared[1] != 0) {
@@ -800,7 +799,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_352_NON_PLAYER_KILLS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		if (g_pilotStatsNonPlayerKills[0] != 0 || g_pilotStatsNonPlayerKillsShared[0] != 0) {
 			sprintf(g_frontendScratchBuffer, "%d (%d)", g_pilotStatsNonPlayerKills[0],
 					g_pilotStatsNonPlayerKillsShared[0]);
@@ -827,8 +826,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 	++row;
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_353_ASSISTS), TEXT_X, y,
-						  g_colorLightBlue);
+		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_353_ASSISTS), TEXT_X, y, g_colorYellow);
 		if (g_pilotStatsAssists[0] == 0) {
 			sprintf(g_frontendScratchBuffer, "----");
 		} else {
@@ -853,7 +851,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_354_HIDDEN_CARGO_FOUND), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		value = g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.numSpecialInspectedPerMT[0];
 		if (value == 0) {
 			sprintf(g_frontendScratchBuffer, "----");
@@ -881,7 +879,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_355_LASER_ACCURACY), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		shotsFired = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 						 .stats.energyFiredPerMT[0];
 		if (shotsFired == 0) {
@@ -921,7 +919,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_356_WARHEAD_ACCURACY), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		shotsFired = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 						 .stats.warheadsFiredPerMT[0];
 		if (shotsFired == 0) {
@@ -966,11 +964,11 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 		++row;
 		if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_357_PLAYER_KILLS_BY_RANK), TEXT_X,
-							  y, g_colorLightBlue);
+							  y, g_colorYellow);
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X, y,
-							  g_colorLightBlue);
+							  g_colorYellow);
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_014_COMBAT), COMBAT_X, y,
-							  g_colorLightBlue);
+							  g_colorYellow);
 			y += ROW_HEIGHT;
 		}
 		++row;
@@ -988,7 +986,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 				row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 				sprintf(g_frontendScratchBuffer, "%c%s", 6,
 						FrontendString_Get((FrontendStringId)(rating + PILOT_RATING_STRING_BASE)));
-				FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, TEXT_X, y, g_colorLightBlue);
+				FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, TEXT_X, y, g_colorYellow);
 				if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.stats.killsFullOnPlayerRatingPerMT[1][rating] == 0 &&
 					g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1028,13 +1026,13 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 		++row;
 		if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_358_CRAFT_KILLS_BY_TYPE), TEXT_X, y,
-							  g_colorLightBlue);
+							  g_colorYellow);
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_189_EXERCISE), EXERCISE_X, y,
-							  g_colorLightBlue);
+							  g_colorYellow);
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X, y,
-							  g_colorLightBlue);
+							  g_colorYellow);
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_014_COMBAT), COMBAT_X, y,
-							  g_colorLightBlue);
+							  g_colorYellow);
 			y += ROW_HEIGHT;
 		}
 		++row;
@@ -1097,13 +1095,12 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 	++row;
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_359_AVGS_PER_MISSION), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_189_EXERCISE), EXERCISE_X, y,
-						  g_colorLightBlue);
-		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
+		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X, y, g_colorYellow);
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_014_COMBAT), COMBAT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		y += ROW_HEIGHT;
 	}
 	++row;
@@ -1128,7 +1125,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_297_TOTAL_KILLS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		sharedAverage = (double)g_pilotStatsTotalKillsShared[0] / (double)exerciseMissionCount;
 		if ((double)(unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 						.stats.totalKillsPerMT[0] /
@@ -1179,7 +1176,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 	++row;
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_351_PLAYER_KILLS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		sprintf(g_frontendScratchBuffer, "----");
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, EXERCISE_X, y, TEXT_COLOR_WHITE);
 		sharedAverage = (double)g_pilotStatsPlayerKillsShared[1] / (double)meleeMissionCount;
@@ -1203,7 +1200,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 	++row;
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_352_NON_PLAYER_KILLS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		sharedAverage = (double)g_pilotStatsNonPlayerKillsShared[0] / (double)exerciseMissionCount;
 		if ((double)g_pilotStatsNonPlayerKills[0] / (double)exerciseMissionCount != 0.0 ||
 			sharedAverage != 0.0f) {
@@ -1237,8 +1234,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 	}
 	++row;
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_353_ASSISTS), TEXT_X, y,
-						  g_colorLightBlue);
+		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_353_ASSISTS), TEXT_X, y, g_colorYellow);
 		if ((double)g_pilotStatsAssists[0] / (double)exerciseMissionCount == 0.0) {
 			sprintf(g_frontendScratchBuffer, "----");
 		} else {
@@ -1270,20 +1266,19 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 	++row;
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_360_TOTAL_LOSSES), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_189_EXERCISE), EXERCISE_X, y,
-						  g_colorLightBlue);
-		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
+		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X, y, g_colorYellow);
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_014_COMBAT), COMBAT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_361_TOTAL_CRAFT_LOSSES), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.totalCraftLossesPerMT[0] == 0) {
 			sprintf(g_frontendScratchBuffer, "----");
 		} else {
@@ -1311,7 +1306,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 	++row;
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_362_TO_PLAYER_PILOTS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		if (g_pilotStatsLossesToPlayers[0] == 0) {
 			sprintf(g_frontendScratchBuffer, "----");
 		} else {
@@ -1335,7 +1330,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 	++row;
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_363_TO_NON_PLAYER_PILOTS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		if (g_pilotStatsLossesToNonPlayers[0] == 0) {
 			sprintf(g_frontendScratchBuffer, "----");
 		} else {
@@ -1360,7 +1355,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_364_TO_STARSHIPS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		value = g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.lossesByStarshipsPerMT[0];
 		if (value == 0) {
 			sprintf(g_frontendScratchBuffer, "----");
@@ -1387,7 +1382,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 	++row;
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_365_TO_MINES), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		value = g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.lossesByMinesPerMT[0];
 		if (value == 0) {
 			sprintf(g_frontendScratchBuffer, "----");
@@ -1414,7 +1409,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 	++row;
 	if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_366_FROM_COLLISIONS), TEXT_X, y,
-						  g_colorLightBlue);
+						  g_colorYellow);
 		value = g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.lossesByCollisionsPerMT[0];
 		if (value == 0) {
 			sprintf(g_frontendScratchBuffer, "----");
@@ -1447,11 +1442,11 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 		++row;
 		if (row >= g_pilotStatisticsScrollOffset && row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_534_LOSSES_TO_PLAYERS_BY_RANK),
-							  TEXT_X, y, g_colorLightBlue);
+							  TEXT_X, y, g_colorYellow);
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X, y,
-							  g_colorLightBlue);
+							  g_colorYellow);
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_014_COMBAT), COMBAT_X, y,
-							  g_colorLightBlue);
+							  g_colorYellow);
 			y += ROW_HEIGHT;
 		}
 		++row;
@@ -1465,7 +1460,7 @@ int PilotRecord_DrawPilotStatisticsPage(void) {
 				row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
 				sprintf(g_frontendScratchBuffer, "%c%s", 6,
 						FrontendString_Get((FrontendStringId)(rating + PILOT_RATING_STRING_BASE)));
-				FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, TEXT_X, y, g_colorLightBlue);
+				FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, TEXT_X, y, g_colorYellow);
 				value = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.stats.killedByPlayerRatingPerMT[1][rating];
 				if (value == 0) {
@@ -1906,11 +1901,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -1918,11 +1913,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
 							  FrontendString_Get(FRONTSTR_453_TRAINING_HISTORY), MISSION_ACHIEVEMENT_HEADER_X,
-							  y, g_colorLightBlue);
+							  y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_461_TIME),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -1985,22 +1980,22 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_454_MELEE_HISTORY),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_462_FINISH),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2064,11 +2059,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2076,11 +2071,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
 							  FrontendString_Get(FRONTSTR_456_TOURNAMENT_HISTORY),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_462_FINISH),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2145,22 +2140,22 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_455_COMBAT_HISTORY),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_461_TIME),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2223,22 +2218,22 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_457_BATTLE_HISTORY),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_718_MARGIN),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2298,11 +2293,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2310,11 +2305,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
 							  FrontendString_Get(FRONTSTR_458_CAMPAIGN_HISTORY), MISSION_ACHIEVEMENT_HEADER_X,
-							  y, g_colorLightBlue);
+							  y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_787_PROGRESS),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2408,11 +2403,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2420,11 +2415,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
 							  FrontendString_Get(FRONTSTR_453_TRAINING_HISTORY), MISSION_ACHIEVEMENT_HEADER_X,
-							  y, g_colorLightBlue);
+							  y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_461_TIME),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2487,22 +2482,22 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_454_MELEE_HISTORY),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_462_FINISH),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2566,11 +2561,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2578,11 +2573,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
 							  FrontendString_Get(FRONTSTR_456_TOURNAMENT_HISTORY),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_462_FINISH),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2647,22 +2642,22 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_455_COMBAT_HISTORY),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_461_TIME),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2724,22 +2719,22 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_457_BATTLE_HISTORY),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_718_MARGIN),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2799,11 +2794,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		if (g_pilotAchievementsScrollOffset <= row &&
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_459_BEST),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -2811,11 +2806,11 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 			row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
 							  FrontendString_Get(FRONTSTR_458_CAMPAIGN_HISTORY), MISSION_ACHIEVEMENT_HEADER_X,
-							  y, g_colorLightBlue);
+							  y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_460_SCORE),
-							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
 			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE, FrontendString_Get(FRONTSTR_787_PROGRESS),
-							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorLightBlue);
+							  MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
@@ -3677,7 +3672,7 @@ int PilotRecord_DrawCutsceneViewerPage(void) {
 				hasCampaignCutscene = 1;
 				FrontendText_DrawCentered(
 					12, g_pilotRecordSingleplayerCampaignMissionList[campaignIndex].description, &textRect,
-					g_colorLightBlue);
+					g_colorYellow);
 				y += 30;
 				FrontendDraw_RectOffsetXY(&textRect, 0, 30);
 			}
@@ -3919,7 +3914,7 @@ int PilotRecord_DrawCampaignMedalsPage(void) {
 						FrontendDraw_RectAssign(&rect, 88, 111, 424, 125);
 						FrontendText_DrawCentered(
 							12, g_pilotRecordSingleplayerCampaignMissionList[missionIndex].description, &rect,
-							g_colorLightBlue);
+							g_colorYellow);
 						FrontImage_GetResourceRect(
 							g_campaignAwardSprites[awardSpriteIndex].mainAwardSpriteName, &awardRect);
 						awardX = 256 - ((awardRect.right - awardRect.left + 1) >> 1);

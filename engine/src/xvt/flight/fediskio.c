@@ -113,7 +113,7 @@ const int g_missionAwardScoreMarginThresholds[3] = { 50000, 20000, 0 };
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x498400
-int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
+int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 	enum {
 		PLAYER_COUNT = sizeof(g_players) / sizeof(g_players[0]),
 		TEAM_COUNT = sizeof(g_flightMissionState.runtime.teamGoalStatus) /
@@ -129,7 +129,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 		TEAM_KILL_STAT_SHARED = 1,
 		TEAM_KILL_STAT_ASSIST = 3,
 		TEAM_GOAL_PRIMARY = 0,
-		TEAM_GOAL_SECONDARY = 1,
+		TEAM_GOAL_PREVENT = 1,
 		MISSION_STAT_TRAINING = 0,
 		MISSION_STAT_MELEE = 1,
 		MISSION_STAT_COMBAT = 2,
@@ -162,8 +162,8 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 	int team1PlayerFgCount;
 	int promotionThreshold;
 
-	(void)arg1;
-	(void)arg2;
+	(void)unused1;
+	(void)unused2;
 
 	connectedHumanCount = 0;
 	for (playerIdx = 0; playerIdx < PLAYER_COUNT; ++playerIdx) {
@@ -219,12 +219,12 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 			} else if (connectedHumanCount == 1) {
 				if (team1PlayerFgCount == 0) {
 					if (g_flightMissionState.runtime.teamGoalStatus[0][TEAM_GOAL_PRIMARY] != 1) {
-						g_flightMissionState.runtime.teamGoalStatus[0][TEAM_GOAL_SECONDARY] = 1;
+						g_flightMissionState.runtime.teamGoalStatus[0][TEAM_GOAL_PREVENT] = 1;
 						g_flightMissionState.runtime.teamGoalStatus[1][TEAM_GOAL_PRIMARY] = 1;
 					}
 				} else if (team0PlayerFgCount == 0 &&
 						   g_flightMissionState.runtime.teamGoalStatus[1][TEAM_GOAL_PRIMARY] != 1) {
-					g_flightMissionState.runtime.teamGoalStatus[1][TEAM_GOAL_SECONDARY] = 1;
+					g_flightMissionState.runtime.teamGoalStatus[1][TEAM_GOAL_PREVENT] = 1;
 					g_flightMissionState.runtime.teamGoalStatus[0][TEAM_GOAL_PRIMARY] = 1;
 				}
 			}
@@ -246,7 +246,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 				}
 				playerFgIdx = g_players[networkIdx].boundFlightGroupIdx;
 				if (g_flightMissionState.runtime
-							.teamGoalStatus[g_players[networkIdx].playerIff][TEAM_GOAL_PRIMARY] != 1 ||
+							.teamGoalStatus[g_players[networkIdx].team][TEAM_GOAL_PRIMARY] != 1 ||
 					statType == MISSION_STAT_MELEE ||
 					g_flightMissionState.playerFlightGroupWaveMode != CRAFT_WAVES_DEFAULT ||
 					g_missionFlightGroups[playerFgIdx].fg.numberOfWaves == UNLIMITED_WAVE_COUNT) {
@@ -263,7 +263,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 		}
 
 		memset(&g_pilotData.objectStats, 0, sizeof(g_pilotData.objectStats));
-		localPlayerIff = (uint16_t)g_players[g_localPlayer].playerIff;
+		localPlayerIff = (uint16_t)g_players[g_localPlayer].team;
 		score = g_players[g_localPlayer].missionStats.missionScore +
 				g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][localPlayerIff];
 		++g_pilotData.totalMissionsPlayedCount;
@@ -595,7 +595,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 			team = &g_pilotData.teams[teamIdx];
 			team->isMissionCompleted =
 				g_flightMissionState.runtime.teamGoalStatus[teamIdx][TEAM_GOAL_PRIMARY] == 1 &&
-				g_flightMissionState.runtime.teamGoalStatus[teamIdx][TEAM_GOAL_SECONDARY] != 1;
+				g_flightMissionState.runtime.teamGoalStatus[teamIdx][TEAM_GOAL_PREVENT] != 1;
 			team->missionScore = g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS_TENTHS][teamIdx];
 			team->missionTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds[teamIdx];
 			team->kills = g_flightMissionState.runtime.teamKillStats[TEAM_KILL_STAT_FULL][teamIdx];
@@ -606,7 +606,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 			} else {
 				for (playerIdx = 0; playerIdx < PLAYER_COUNT; ++playerIdx) {
 					if (g_players[playerIdx].network.directPlayId != 0 &&
-						(uint16_t)g_players[playerIdx].playerIff == teamIdx) {
+						(uint16_t)g_players[playerIdx].team == teamIdx) {
 						team->missionScore += g_players[playerIdx].missionStats.missionScore;
 					}
 				}
@@ -630,7 +630,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 					g_pilotData.networkPlayers[networkIdx].totalScore =
 						g_players[playerIdx].missionStats.missionScore +
 						g_flightMissionState.runtime
-							.teamScores[TEAM_SCORE_BONUS_TENTHS][(uint16_t)g_players[playerIdx].playerIff];
+							.teamScores[TEAM_SCORE_BONUS_TENTHS][(uint16_t)g_players[playerIdx].team];
 					g_pilotData.networkPlayers[networkIdx].totalLosses =
 						g_players[playerIdx].perMissionKills.totalCraftLosses;
 					break;
@@ -646,10 +646,10 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 		}
 		award = 0;
 		if (statType == MISSION_STAT_TRAINING) {
-			if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-														   [TEAM_GOAL_PRIMARY] == 1 &&
-				g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-														   [TEAM_GOAL_SECONDARY] != 1) {
+			if (g_flightMissionState.runtime
+						.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team][TEAM_GOAL_PRIMARY] == 1 &&
+				g_flightMissionState.runtime
+						.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team][TEAM_GOAL_PREVENT] != 1) {
 				award = 1;
 				for (awardThresholdIdx = 0;
 					 awardThresholdIdx < sizeof(g_missionAwardScoreMarginThresholds) /
@@ -810,11 +810,11 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 					playerTeamScore, placement, margin, award);
 		} else if (statType == MISSION_STAT_COMBAT) {
 			if (g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PRIMARY] == 2 ||
-				g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_SECONDARY] == 1) {
+				g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PREVENT] == 1) {
 				award = FAILED_AWARD;
 			} else if (connectedHumanCount == 1) {
 				if (g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PRIMARY] == 1 &&
-					g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_SECONDARY] != 1) {
+					g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PREVENT] != 1) {
 					award = 1;
 					for (awardThresholdIdx = 0;
 						 awardThresholdIdx < sizeof(g_missionAwardScoreMarginThresholds) /
@@ -840,8 +840,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 					award = FAILED_AWARD;
 				}
 			} else if (g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PRIMARY] == 1 &&
-					   g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_SECONDARY] !=
-						   1) {
+					   g_flightMissionState.runtime.teamGoalStatus[localPlayerIff][TEAM_GOAL_PREVENT] != 1) {
 				award = 1;
 				for (awardThresholdIdx = 0; awardThresholdIdx <= 4; ++awardThresholdIdx) {
 					if (score >= g_missionAwardWinThresholds[awardThresholdIdx]) {
@@ -891,9 +890,9 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 									.bestScore = score;
 							}
 							if (g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-										[(uint16_t)g_players[g_localPlayer].playerIff] != 0 &&
+										[(uint16_t)g_players[g_localPlayer].team] != 0 &&
 								(g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-										 [(uint16_t)g_players[g_localPlayer].playerIff] <
+										 [(uint16_t)g_players[g_localPlayer].team] <
 									 (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 										 .spCampaignMissions[missionId - 1]
 										 .bestTime ||
@@ -903,7 +902,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.spCampaignMissions[missionId - 1]
 									.bestTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-													[(uint16_t)g_players[g_localPlayer].playerIff];
+													[(uint16_t)g_players[g_localPlayer].team];
 							}
 							if (g_pilotData.teams[g_pilotData.team].isMissionCompleted != 0 &&
 								g_gameConfig.difficulty <= GAME_DIFFICULTY_HARD) {
@@ -947,18 +946,16 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 							  .spTrainingMissions[missionId]
 							  .numberTimesFlown;
 						if (g_flightMissionState.runtime
-								.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-											   [TEAM_GOAL_PRIMARY] == 1) {
+								.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team][TEAM_GOAL_PRIMARY] ==
+							1) {
 							++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .spTrainingMissions[missionId]
 								  .completedCount;
 						}
-						if (g_flightMissionState.runtime
-									.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-												   [TEAM_GOAL_PRIMARY] == 2 ||
-							g_flightMissionState.runtime
-									.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-												   [TEAM_GOAL_SECONDARY] == 1) {
+						if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
+																			.team][TEAM_GOAL_PRIMARY] == 2 ||
+							g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
+																			.team][TEAM_GOAL_PREVENT] == 1) {
 							++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .spTrainingMissions[missionId]
 								  .failedCount;
@@ -972,9 +969,9 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 									.bestScore = score;
 							}
 							if (g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-										[(uint16_t)g_players[g_localPlayer].playerIff] != 0 &&
+										[(uint16_t)g_players[g_localPlayer].team] != 0 &&
 								(g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-										 [(uint16_t)g_players[g_localPlayer].playerIff] <
+										 [(uint16_t)g_players[g_localPlayer].team] <
 									 (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 										 .spTrainingMissions[missionId]
 										 .bestTime ||
@@ -984,7 +981,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.spTrainingMissions[missionId]
 									.bestTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-													[(uint16_t)g_players[g_localPlayer].playerIff];
+													[(uint16_t)g_players[g_localPlayer].team];
 							}
 						}
 						if (award != 0) {
@@ -1028,17 +1025,16 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 					++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 						  .spMeleeMissions[missionId]
 						  .numberTimesFlown;
-					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
-																		.playerIff][TEAM_GOAL_PRIMARY] == 1) {
+					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PRIMARY] == 1) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .spMeleeMissions[missionId]
 							  .completedCount;
 					}
-					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
-																		.playerIff][TEAM_GOAL_PRIMARY] == 2 ||
-						g_flightMissionState.runtime
-								.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-											   [TEAM_GOAL_SECONDARY] == 1) {
+					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PRIMARY] == 2 ||
+						g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PREVENT] == 1) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .spMeleeMissions[missionId]
 							  .failedCount;
@@ -1050,10 +1046,11 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 							.spMeleeMissions[missionId]
 							.bestScore = score;
 					}
-					if (g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-								[(uint16_t)g_players[g_localPlayer].playerIff] != 0 &&
-						(g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-								 [(uint16_t)g_players[g_localPlayer].playerIff] <
+					if (g_flightMissionState.runtime
+								.teamMissionCompletionTimeSeconds[(uint16_t)g_players[g_localPlayer].team] !=
+							0 &&
+						(g_flightMissionState.runtime
+								 .teamMissionCompletionTimeSeconds[(uint16_t)g_players[g_localPlayer].team] <
 							 (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								 .spMeleeMissions[missionId]
 								 .bestTime ||
@@ -1062,8 +1059,9 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 								 .bestTime == 0)) {
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.spMeleeMissions[missionId]
-							.bestTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-											[(uint16_t)g_players[g_localPlayer].playerIff];
+							.bestTime =
+							g_flightMissionState.runtime
+								.teamMissionCompletionTimeSeconds[(uint16_t)g_players[g_localPlayer].team];
 					}
 					if (placement != 0 &&
 						((unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1123,17 +1121,16 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 					++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 						  .spCombatMissions[missionId]
 						  .numberTimesFlown;
-					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
-																		.playerIff][TEAM_GOAL_PRIMARY] == 1) {
+					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PRIMARY] == 1) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .spCombatMissions[missionId]
 							  .completedCount;
 					}
-					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
-																		.playerIff][TEAM_GOAL_PRIMARY] == 2 ||
-						g_flightMissionState.runtime
-								.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-											   [TEAM_GOAL_SECONDARY] == 1) {
+					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PRIMARY] == 2 ||
+						g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PREVENT] == 1) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .spCombatMissions[missionId]
 							  .failedCount;
@@ -1147,9 +1144,9 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 								.bestScore = score;
 						}
 						if (g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-									[(uint16_t)g_players[g_localPlayer].playerIff] != 0 &&
+									[(uint16_t)g_players[g_localPlayer].team] != 0 &&
 							(g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-									 [(uint16_t)g_players[g_localPlayer].playerIff] <
+									 [(uint16_t)g_players[g_localPlayer].team] <
 								 (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									 .spCombatMissions[missionId]
 									 .bestTime ||
@@ -1159,7 +1156,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.spCombatMissions[missionId]
 								.bestTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-												[(uint16_t)g_players[g_localPlayer].playerIff];
+												[(uint16_t)g_players[g_localPlayer].team];
 						}
 					}
 					if (award != 0) {
@@ -1221,9 +1218,9 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 									.bestScore = score;
 							}
 							if (g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-										[(uint16_t)g_players[g_localPlayer].playerIff] != 0 &&
+										[(uint16_t)g_players[g_localPlayer].team] != 0 &&
 								(g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-										 [(uint16_t)g_players[g_localPlayer].playerIff] <
+										 [(uint16_t)g_players[g_localPlayer].team] <
 									 (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 										 .mpCampaignMissions[missionId - 1]
 										 .bestTime ||
@@ -1233,7 +1230,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.mpCampaignMissions[missionId - 1]
 									.bestTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-													[(uint16_t)g_players[g_localPlayer].playerIff];
+													[(uint16_t)g_players[g_localPlayer].team];
 							}
 							if (g_pilotData.teams[g_pilotData.team].isMissionCompleted != 0 &&
 								g_gameConfig.difficulty <= GAME_DIFFICULTY_HARD) {
@@ -1282,18 +1279,16 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 							  .mpTrainingMissions[missionId]
 							  .numberTimesFlown;
 						if (g_flightMissionState.runtime
-								.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-											   [TEAM_GOAL_PRIMARY] == 1) {
+								.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team][TEAM_GOAL_PRIMARY] ==
+							1) {
 							++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .mpTrainingMissions[missionId]
 								  .completedCount;
 						}
-						if (g_flightMissionState.runtime
-									.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-												   [TEAM_GOAL_PRIMARY] == 2 ||
-							g_flightMissionState.runtime
-									.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-												   [TEAM_GOAL_SECONDARY] == 1) {
+						if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
+																			.team][TEAM_GOAL_PRIMARY] == 2 ||
+							g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
+																			.team][TEAM_GOAL_PREVENT] == 1) {
 							++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								  .mpTrainingMissions[missionId]
 								  .failedCount;
@@ -1307,9 +1302,9 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 									.bestScore = score;
 							}
 							if (g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-										[(uint16_t)g_players[g_localPlayer].playerIff] != 0 &&
+										[(uint16_t)g_players[g_localPlayer].team] != 0 &&
 								(g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-										 [(uint16_t)g_players[g_localPlayer].playerIff] <
+										 [(uint16_t)g_players[g_localPlayer].team] <
 									 (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 										 .mpTrainingMissions[missionId]
 										 .bestTime ||
@@ -1319,7 +1314,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 								g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									.mpTrainingMissions[missionId]
 									.bestTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-													[(uint16_t)g_players[g_localPlayer].playerIff];
+													[(uint16_t)g_players[g_localPlayer].team];
 							}
 						}
 						if (award != 0) {
@@ -1368,17 +1363,16 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 					++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 						  .mpMeleeMissions[missionId]
 						  .numberTimesFlown;
-					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
-																		.playerIff][TEAM_GOAL_PRIMARY] == 1) {
+					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PRIMARY] == 1) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .mpMeleeMissions[missionId]
 							  .completedCount;
 					}
-					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
-																		.playerIff][TEAM_GOAL_PRIMARY] == 2 ||
-						g_flightMissionState.runtime
-								.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-											   [TEAM_GOAL_SECONDARY] == 1) {
+					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PRIMARY] == 2 ||
+						g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PREVENT] == 1) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .mpMeleeMissions[missionId]
 							  .failedCount;
@@ -1390,10 +1384,11 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 							.mpMeleeMissions[missionId]
 							.bestScore = score;
 					}
-					if (g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-								[(uint16_t)g_players[g_localPlayer].playerIff] != 0 &&
-						(g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-								 [(uint16_t)g_players[g_localPlayer].playerIff] <
+					if (g_flightMissionState.runtime
+								.teamMissionCompletionTimeSeconds[(uint16_t)g_players[g_localPlayer].team] !=
+							0 &&
+						(g_flightMissionState.runtime
+								 .teamMissionCompletionTimeSeconds[(uint16_t)g_players[g_localPlayer].team] <
 							 (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								 .mpMeleeMissions[missionId]
 								 .bestTime ||
@@ -1402,8 +1397,9 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 								 .bestTime == 0)) {
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.mpMeleeMissions[missionId]
-							.bestTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-											[(uint16_t)g_players[g_localPlayer].playerIff];
+							.bestTime =
+							g_flightMissionState.runtime
+								.teamMissionCompletionTimeSeconds[(uint16_t)g_players[g_localPlayer].team];
 					}
 					if (placement == 1) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1482,17 +1478,16 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 					++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 						  .mpCombatMissions[missionId]
 						  .numberTimesFlown;
-					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
-																		.playerIff][TEAM_GOAL_PRIMARY] == 1) {
+					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PRIMARY] == 1) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .mpCombatMissions[missionId]
 							  .completedCount;
 					}
-					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer]
-																		.playerIff][TEAM_GOAL_PRIMARY] == 2 ||
-						g_flightMissionState.runtime
-								.teamGoalStatus[(uint16_t)g_players[g_localPlayer].playerIff]
-											   [TEAM_GOAL_SECONDARY] == 1) {
+					if (g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PRIMARY] == 2 ||
+						g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[g_localPlayer].team]
+																   [TEAM_GOAL_PREVENT] == 1) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .mpCombatMissions[missionId]
 							  .failedCount;
@@ -1506,9 +1501,9 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 								.bestScore = score;
 						}
 						if (g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-									[(uint16_t)g_players[g_localPlayer].playerIff] != 0 &&
+									[(uint16_t)g_players[g_localPlayer].team] != 0 &&
 							(g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-									 [(uint16_t)g_players[g_localPlayer].playerIff] <
+									 [(uint16_t)g_players[g_localPlayer].team] <
 								 (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 									 .mpCombatMissions[missionId]
 									 .bestTime ||
@@ -1518,7 +1513,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 							g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.mpCombatMissions[missionId]
 								.bestTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds
-												[(uint16_t)g_players[g_localPlayer].playerIff];
+												[(uint16_t)g_players[g_localPlayer].team];
 						}
 					}
 					if (award != 0) {
@@ -1705,10 +1700,10 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 			betterTeamCount = 0;
 			overallMargin = 0;
 			localTeamTotalScore = g_pilotData.meleeTournamentSequenceState
-									  .teamStandings[(uint16_t)g_players[g_localPlayer].playerIff]
+									  .teamStandings[(uint16_t)g_players[g_localPlayer].team]
 									  .totalScore;
 			for (teamIdx = 0; teamIdx < TEAM_COUNT; ++teamIdx) {
-				if (teamIdx != (uint16_t)g_players[g_localPlayer].playerIff &&
+				if (teamIdx != (uint16_t)g_players[g_localPlayer].team &&
 					g_pilotData.meleeTournamentSequenceState.teamStandings[teamIdx]
 							.aiOpponentSourceTeamAndTypeFlag != -1) {
 					if (localTeamTotalScore <
@@ -1948,7 +1943,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 			battleId = g_pilotData.missionDescriptionIds[MISSION_DIRECTORY_BATTLES];
 			for (teamIdx = 0; teamIdx < TEAM_COUNT; ++teamIdx) {
 				if (g_flightMissionState.runtime.teamGoalStatus[teamIdx][TEAM_GOAL_PRIMARY] == 1 &&
-					g_flightMissionState.runtime.teamGoalStatus[teamIdx][TEAM_GOAL_SECONDARY] != 1) {
+					g_flightMissionState.runtime.teamGoalStatus[teamIdx][TEAM_GOAL_PREVENT] != 1) {
 					break;
 				}
 			}
@@ -1987,8 +1982,8 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 			}
 			playerResult = 0;
 			if (overallWinner != 2) {
-				if ((overallWinner == 0 && g_players[g_localPlayer].playerIff == 0) ||
-					(overallWinner == 1 && g_players[g_localPlayer].playerIff == 1)) {
+				if ((overallWinner == 0 && g_players[g_localPlayer].team == 0) ||
+					(overallWinner == 1 && g_players[g_localPlayer].team == 1)) {
 					playerResult = 1;
 				} else {
 					playerResult = 2;
@@ -2010,7 +2005,7 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 					alliedPlayers = 0;
 					for (playerIdx = 0; playerIdx < PLAYER_COUNT; ++playerIdx) {
 						if (g_players[playerIdx].network.directPlayId != 0) {
-							if (g_players[g_localPlayer].playerIff == g_players[playerIdx].playerIff) {
+							if (g_players[g_localPlayer].team == g_players[playerIdx].team) {
 								++alliedPlayers;
 							} else {
 								++enemyPlayers;
@@ -2055,8 +2050,8 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 				}
 				playerResult = 0;
 				if (overallWinner != 2) {
-					if ((overallWinner == 0 && g_players[g_localPlayer].playerIff == 0) ||
-						(overallWinner == 1 && g_players[g_localPlayer].playerIff == 1)) {
+					if ((overallWinner == 0 && g_players[g_localPlayer].team == 0) ||
+						(overallWinner == 1 && g_players[g_localPlayer].team == 1)) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .spBattles[battleId]
 							  .victoryCount;
@@ -2125,8 +2120,8 @@ int16_t FeDiskIo_CommitFlightResults(int arg1, int arg2) {
 				}
 				playerResult = 0;
 				if (overallWinner != 2) {
-					if ((overallWinner == 0 && g_players[g_localPlayer].playerIff == 0) ||
-						(overallWinner == 1 && g_players[g_localPlayer].playerIff == 1)) {
+					if ((overallWinner == 0 && g_players[g_localPlayer].team == 0) ||
+						(overallWinner == 1 && g_players[g_localPlayer].team == 1)) {
 						++g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							  .mpBattles[battleId]
 							  .victoryCount;
@@ -2440,7 +2435,7 @@ void FeDiskIo_InitGlobalBuffers(void) {
 		FlightText_DrawStringCentered(fallbackResolutionMessage);
 	}
 
-	requestedBytesPerPixel = g_unusedFlightDisplayBytesPerPixelMirror;
+	requestedBytesPerPixel = g_requestedFlightBytesPerPixel;
 	activeBytesPerPixel = g_flight16bppBytesPerPixel;
 	if (requestedBytesPerPixel != activeBytesPerPixel) {
 		g_flightTextColorIndex = FLIGHT_TEXT_WARNING_COLOR;
@@ -2452,7 +2447,7 @@ void FeDiskIo_InitGlobalBuffers(void) {
 		}
 		FlightText_DrawStringCentered(pixelFormatMessage);
 	}
-	requestedHardware3D = g_unusedFlightDisplayHardware3DMirror;
+	requestedHardware3D = g_requestedFlightHardware3D;
 	activeHardware3D = g_useHardware3D;
 	if (requestedHardware3D != activeHardware3D) {
 		g_flightTextColorIndex = FLIGHT_TEXT_WARNING_COLOR;
@@ -2962,7 +2957,7 @@ unsigned int FeDiskIo_InitResources(void) {
 												  PALETTE_COLOR_COUNT);
 	}
 	g_flightColorEscapeBypassChar = (uint8_t)result;
-	g_unusedFlightRenderColorByte = (uint8_t)result;
+	g_flightBackgroundColorIndex = (uint8_t)result;
 	return result;
 }
 

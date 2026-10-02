@@ -44,7 +44,7 @@ int g_frontendLaunchHumanPlayerCount = 0;
 char g_frontendFlightCommandLine[256] = { 0 };
 
 // FUNCTION: XVT 0x4FB350
-int FlightLoading_GetReadyScreen(int frameCounter) {
+int FlightLoading_UpdateReadyScreen(int frameCounter) {
 	RECT rect;
 	int readyPlayerCount;
 
@@ -67,7 +67,7 @@ int FlightLoading_GetReadyScreen(int frameCounter) {
 		FrontImage_DrawSprite("frame", 0, 0);
 		FrontImage_DrawSprite("alloff", 0, 0);
 		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_ResetGlyphScratch();
+		FrontendText_StopTextFade();
 	}
 
 	FrontendDraw_RectAssign(&rect, 0, 0, 639, 479);
@@ -142,7 +142,7 @@ int FrontendFlight_LaunchSession(int frameCounter) {
 		}
 
 		FrontendCursor_Hide();
-		Frontend_MarkHostCdAvailable();
+		Frontend_CheckHostCdPresent();
 		if (g_hostCdAvailable == 0 && g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_NET_CLIENT) {
 
 			FrontendCursor_Show();

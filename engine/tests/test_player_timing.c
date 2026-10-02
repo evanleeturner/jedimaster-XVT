@@ -528,7 +528,7 @@ static XvtPlayerTimingWire GoodRecord(void) {
 	XvtWire_Set16(record.lock_target, 2);
 	XvtWire_Set16(record.lock_target_signature, 0x202);
 	XvtWire_Set16(record.lock_weapon, 1);
-	XvtWire_Set64(record.lock_frame, 41);
+	XvtWire_Set64(record.lock_serial, 41);
 	XvtWire_Set16(record.camera_focus, 3);
 	return record;
 }

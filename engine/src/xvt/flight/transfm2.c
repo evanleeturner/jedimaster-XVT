@@ -23,11 +23,11 @@ int g_camMatR1_Y = 0;
 // GLOBAL: XVT 0xA004CC
 int g_camMatR0_Y = 0;
 // GLOBAL: XVT 0x9A8E2C
-int viewX = 0;
+int g_viewSpaceX = 0;
 // GLOBAL: XVT 0x9A8E30
-int viewY = 0;
+int g_viewSpaceY = 0;
 // GLOBAL: XVT 0x9A8E34
-int depthZ = 0;
+int g_viewSpaceDepth = 0;
 // GLOBAL: XVT 0x9A1FF0
 int32_t g_projScaleHalfInt = 0;
 // GLOBAL: XVT 0x9D8C04
@@ -45,30 +45,30 @@ int TRANSFM2_clipobjecteyez(int x, int y, int z) {
 	int currentX;
 	int currentY;
 
-	negativeDepth = (int)(0u - (uint32_t)depthZ);
-	currentX = viewX;
+	negativeDepth = (int)(0u - (uint32_t)g_viewSpaceDepth);
+	currentX = g_viewSpaceX;
 	if (currentX < x) {
 		interpolationDelta = MATH2_ABoverC32(negativeDepth, (int)((uint32_t)x - (uint32_t)currentX),
 											 (int)((uint32_t)z + (uint32_t)negativeDepth));
-		viewX = (int)((uint32_t)viewX + (uint32_t)interpolationDelta);
+		g_viewSpaceX = (int)((uint32_t)g_viewSpaceX + (uint32_t)interpolationDelta);
 	} else {
 		interpolationDelta = MATH2_ABoverC32(negativeDepth, (int)((uint32_t)currentX - (uint32_t)x),
 											 (int)((uint32_t)z + (uint32_t)negativeDepth));
-		viewX = (int)((uint32_t)viewX - (uint32_t)interpolationDelta);
+		g_viewSpaceX = (int)((uint32_t)g_viewSpaceX - (uint32_t)interpolationDelta);
 	}
 
-	currentY = viewY;
+	currentY = g_viewSpaceY;
 	if (currentY < y) {
 		interpolationDelta = MATH2_ABoverC32(negativeDepth, (int)((uint32_t)y - (uint32_t)currentY),
 											 (int)((uint32_t)z + (uint32_t)negativeDepth));
-		viewY = (int)((uint32_t)viewY + (uint32_t)interpolationDelta);
+		g_viewSpaceY = (int)((uint32_t)g_viewSpaceY + (uint32_t)interpolationDelta);
 	} else {
 		interpolationDelta = MATH2_ABoverC32(negativeDepth, (int)((uint32_t)currentY - (uint32_t)y),
 											 (int)((uint32_t)z + (uint32_t)negativeDepth));
-		viewY = (int)((uint32_t)viewY - (uint32_t)interpolationDelta);
+		g_viewSpaceY = (int)((uint32_t)g_viewSpaceY - (uint32_t)interpolationDelta);
 	}
 
-	depthZ = 1;
+	g_viewSpaceDepth = 1;
 	return interpolationDelta;
 }
 

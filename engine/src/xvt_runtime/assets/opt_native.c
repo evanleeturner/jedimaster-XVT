@@ -172,7 +172,7 @@ static int XvtOpt_PayloadSize(XvtOptDecode* decode, const XvtOptEntry* entry, in
 			if (!normals)
 				*size += (size_t)vertices * 12;
 			break;
-		case OPT_TYPE_2:
+		case OPT_TRANSFORM:
 		case OPT_ROTSCALE:
 			*size = 48;
 			break;
@@ -180,12 +180,12 @@ static int XvtOpt_PayloadSize(XvtOptDecode* decode, const XvtOptEntry* entry, in
 		case OPT_VERTNORMALS:
 			*size = (size_t)entry->param * 12;
 			break;
-		case OPT_TYPE_4:
-		case OPT_TYPE_6:
+		case OPT_TRANSLATION:
+		case OPT_SCALE:
 		case OPT_TYPE_19:
 			*size = 12;
 			break;
-		case OPT_TYPE_5:
+		case OPT_ROTATION:
 			*size = 36;
 			break;
 		case OPT_NODEREF:
@@ -306,10 +306,10 @@ static void XvtOpt_Expand(XvtOptDecode* decode, uint8_t* native, uint8_t* raw_co
 		node->pName = XvtOpt_RawPointer(decode, raw_copy, entry->name);
 		node->nodeType = (OptNodeType)entry->type;
 		node->childCount = entry->count;
-		node->param1 = entry->type == OPT_NODEREF ? 0 : entry->param;
-		node->param2 = entry->payload_size ? native + entry->payload_offset : NULL;
+		node->payloadCount = entry->type == OPT_NODEREF ? 0 : entry->param;
+		node->payload = entry->payload_size ? native + entry->payload_offset : NULL;
 		if (entry->payload_copy_size)
-			memcpy(node->param2, XvtOpt_Address(decode, entry->payload, entry->payload_copy_size),
+			memcpy(node->payload, XvtOpt_Address(decode, entry->payload, entry->payload_copy_size),
 				   entry->payload_copy_size);
 		node->pChildren = entry->count ? (OptNode**)(native + entry->children_offset) : NULL;
 		const uint8_t* children =
@@ -319,7 +319,7 @@ static void XvtOpt_Expand(XvtOptDecode* decode, uint8_t* native, uint8_t* raw_co
 		if (entry->type == OPT_TEXTURE) {
 			const uint8_t* raw = XvtOpt_Address(decode, entry->payload, 24);
 			OptTextureData* texture = (OptTextureData*)(native + entry->texture_offset);
-			node->param2 = texture;
+			node->payload = texture;
 			texture->paletteType = (int32_t)XvtOpt_U32(raw + 4);
 			texture->textureSize = (int32_t)XvtOpt_U32(raw + 8);
 			texture->dataSize = (int32_t)XvtOpt_U32(raw + 12);

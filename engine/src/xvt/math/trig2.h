@@ -31,7 +31,7 @@ int16_t trig2_w_arcsin(int16_t sinQ15);
 int16_t trig2_w_arccos(int16_t cosQ15);
 int16_t trig2_arccos(int16_t cosQ15);
 int16_t trig2_arcsin(int16_t sinQ15);
-unsigned int trig2_sinewordmult(int16_t arg1, int16_t arg2);
+unsigned int trig2_sinewordmult(int16_t value, int16_t angle);
 int trig2_sinedwordmult(int value, uint16_t angle);
 int16_t trig2_getsignedcos(int16_t angleQ16);
 unsigned int trig2_cosinewordmult(uint16_t value, int16_t angle);

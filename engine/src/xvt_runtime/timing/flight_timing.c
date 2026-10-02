@@ -93,7 +93,7 @@ XvtFlightTimingProfile XvtFlightTiming_Profile(void) { return g_timing.profile; 
 int XvtFlightTiming_IsNetwork125(void) { return g_timing.profile == XVT_FLIGHT_TIMING_NETWORK_125; }
 
 int XvtFlightTiming_SimulationMaximum(void) {
-	return XvtFlightTiming_IsNetwork125() ? XVT_NETWORK_STEP_TICKS : dtMs;
+	return XvtFlightTiming_IsNetwork125() ? XVT_NETWORK_STEP_TICKS : g_netUpdateIntervalTicks;
 }
 
 void XvtFlightTiming_RestoreNetworkTick(int tick) {

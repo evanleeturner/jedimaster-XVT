@@ -31,7 +31,7 @@ static void World(void) {
 		g_players[i].objectIndex = i;
 	}
 	g_localPlayer = 0;
-	g_netSession.localPlayerId = 0;
+	g_netSession.localIsHost = 0;
 	g_gameTime = 0;
 	XvtFlightSim_Reset();
 }
@@ -189,7 +189,7 @@ static void CheckInsertReal(void) {
 	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].valid, XVT_INPUT_REAL);
 	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].applied, 0);
 	/* ...and applied on the host. */
-	g_netSession.localPlayerId = 1;
+	g_netSession.localIsHost = 1;
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, 8, &input, 0), XVT_INPUT_INSERTED);
 	XVT_ASSERT_INT_EQ(g_inputHistory[1][2].valid, XVT_INPUT_REAL);
 	XVT_ASSERT_TRUE(g_inputHistory[1][2].applied != 0);
@@ -316,6 +316,6 @@ int main(void) {
 	CheckInsertRealFull();
 	CheckRestoreCheckpoint();
 	CheckRecover();
-	g_netSession.localPlayerId = 0;
+	g_netSession.localIsHost = 0;
 	return 0;
 }

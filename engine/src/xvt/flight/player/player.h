@@ -119,7 +119,7 @@ struct PlayerData {
 	unsigned int boundObjectSignature;
 	uint16_t pilotRating;
 	int16_t iff;
-	int16_t playerIff;
+	int16_t team;
 	uint16_t boundFlightGroupIdx;
 	uint8_t connectedFlag;
 	uint8_t regionSessionId;
@@ -177,7 +177,7 @@ struct PlayerData {
 	int16_t savedSpeed;
 	int16_t savedSpeedRemainder;
 	int16_t savedRollImpulseRate;
-	uint16_t savedFieldId;
+	uint16_t savedObjectSignature;
 	uint8_t savedRegion;
 	int pendingActionTimer;
 	int beamFireCooldownTimer;

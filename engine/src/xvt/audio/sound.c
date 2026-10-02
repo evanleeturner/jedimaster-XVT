@@ -165,7 +165,7 @@ void Sound_FlushQueuedEffects(void) {
 	queueIndex = 0;
 	if (g_soundQueueCount > 0) {
 		do {
-			Sound_PlayEffectNow(g_soundQueue[queueIndex].name, g_soundQueue[queueIndex].param2,
+			Sound_PlayEffectNow(g_soundQueue[queueIndex].name, g_soundQueue[queueIndex].allowRestartExisting,
 								g_soundQueue[queueIndex].loop, g_soundQueue[queueIndex].priority,
 								g_soundQueue[queueIndex].volume, g_soundQueue[queueIndex].pan);
 			++queueIndex;
@@ -178,7 +178,8 @@ void Sound_FlushQueuedEffects(void) {
 #pragma function(memcpy)
 #endif
 // FUNCTION: XVT 0x42D120
-int Sound_QueueEffect(const char* soundName, int param2, int loop, int priority, int volume, int pan) {
+int Sound_QueueEffect(const char* soundName, int allowRestartExisting, int loop, int priority, int volume,
+					  int pan) {
 	int queueIndex;
 	int queuedPriority;
 	int queueCount;
@@ -219,7 +220,7 @@ int Sound_QueueEffect(const char* soundName, int param2, int loop, int priority,
 #endif
 	strncpy(queueEntry->name, name, sizeof(queueEntry->name));
 	g_soundQueue[queueIndex].loop = loop;
-	g_soundQueue[queueIndex].param2 = param2;
+	g_soundQueue[queueIndex].allowRestartExisting = allowRestartExisting;
 	g_soundQueue[queueIndex].priority = queuedPriority;
 	g_soundQueue[queueIndex].volume = volume;
 	g_soundQueue[queueIndex].pan = pan;
@@ -231,7 +232,8 @@ int Sound_QueueEffect(const char* soundName, int param2, int loop, int priority,
 }
 
 // FUNCTION: XVT 0x42D230
-int Sound_PlayEffectNow(const char* soundName, int param2, int loop, int priority, int volume, int pan) {
+int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loop, int priority, int volume,
+						int pan) {
 	int soundId;
 	int instanceIndex;
 	int scanIndex;
@@ -307,7 +309,7 @@ int Sound_PlayEffectNow(const char* soundName, int param2, int loop, int priorit
 				instance->buffer = NULL;
 				--g_activeSoundCount;
 			} else {
-				if (param2 != 0) {
+				if (allowRestartExisting != 0) {
 					instanceIndex = 0;
 					do {
 						activeSoundId = g_activeSoundInstances[instanceIndex].soundId;

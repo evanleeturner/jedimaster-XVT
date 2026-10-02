@@ -55,7 +55,7 @@ extern int g_frontendNetProbeVersion;
 extern int g_frontendNetProbePlayersNeeded;
 extern int g_frontendNetProbePasswordRequired;
 extern int g_frontendNetProbeResponseType;
-extern int g_frontendMissionOpcode99Count;
+extern int g_frontendBriefingEnteredCount;
 extern char g_frontendChatInputBuffer[100];
 extern char* g_frontendChatLogBuffer;
 extern int g_frontendChatLogUsedBytes;

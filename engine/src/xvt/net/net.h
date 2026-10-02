@@ -15,8 +15,8 @@ extern "C" {
 #pragma pack(push, 1)
 
 struct NetPlayerInfo {
+	char playerInfo[16];
 	char playerName[16];
-	char sessionName[16];
 	DPID playerId;
 	int readyFlag;
 };
@@ -197,7 +197,7 @@ int* Net_GetNextAppPacket(DPID* outSenderId, uint32_t* outPacketSize);
 void Net_HandleFrontendRosterPacket(int packetType, const void* packetData);
 void* Net_DequeueIncomingPacket(DPID* outSenderId, uint32_t* outPacketSize);
 int* Net_WaitForAppPacket(DPID* outSenderId, uint32_t* outPacketSize, int timeoutSeconds);
-int sub_4D11A0(DPID playerId);
+int Net_CountPlayersWithLowerId(DPID playerId);
 int Net_GetHostPlayerId(void);
 int Net_GetLocalPlayerId(void);
 void Net_MarkPlayerReadyNoLock(int playerId);
@@ -226,7 +226,7 @@ int NetSession_ExportRuntimeState(void** dplayInterface, const void* appGuid, co
 								  int* stateDwordB, int* stateDwordC, const void* stateBytesB,
 								  int* stateDwordD, int* stateDwordE, const NetQueuedPacket* recvHistory,
 								  int* recvHistoryCount, NetQueuedPacket* recvQueue, int* recvQueueHighWater);
-int NetSession_CompactReliablePeerSlotsForRoster(void);
+int Net_CompactReliablePeerSlotsForRoster(void);
 int Net_SendSequenceKeepalives(void);
 int Net_CheckAndRecordIncomingSequence(int playerId, int sequenceId, int useChannel0, int useChannel2);
 int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId, int useChannel0, int useChannel2,
@@ -235,8 +235,8 @@ int Net_RemoveIncomingPacketAtIndex(unsigned int queueIndex);
 unsigned int Net_GetAverageLatencyMs(int playerId);
 int Net_SetPlayerLatencyMs(int playerId, int latencyMs);
 int Net_SetPlayerNameWithLockGuard(unsigned int playerId, const char* longName, const char* shortName);
-int Net_ResetRosterToLocalPlayerWithLockGuard(void);
-unsigned int Net_AddSequence(int directPlayId);
+int Net_RefreshPlayerRosterWithLockGuard(void);
+unsigned int Net_FindOrCreatePeerSlot(int directPlayId);
 int Net_GetPacketDropRateBasisPoints(int playerId);
 int Net_UpdateKeepaliveSequences(void);
 int Net_GetPlayerPacketCount(int playerId);

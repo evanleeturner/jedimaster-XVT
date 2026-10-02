@@ -347,17 +347,17 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx, int
 	boxHeight = height;
 
 	if (g_d3dVertexCount + MAX_BOX_VERTEX_COUNT > g_maxBatchVerts ||
-		g_d3dIndexCount + MAX_BOX_TRIANGLE_COUNT > g_maxBatchTris) {
+		g_d3dTriangleCount + MAX_BOX_TRIANGLE_COUNT > g_maxBatchTris) {
 		Math_SetFpuExtendedPrecisionMode();
 		std3D_StartScene();
 		std3D_LockExecuteBuffer();
 		std3D_AddVertices(g_flightVertexBuffer, g_d3dVertexCount);
 		std3D_BeginInstructions();
-		std3D_AddTriangles(g_triBuffer, (unsigned int)g_d3dIndexCount);
+		std3D_AddTriangles(g_triBuffer, (unsigned int)g_d3dTriangleCount);
 		std3D_ExecuteBuffer();
 		std3D_EndScene();
 		Math_SetFpuSinglePrecisionMode();
-		g_d3dIndexCount = 0;
+		g_d3dTriangleCount = 0;
 		g_d3dVertexCount = 0;
 	}
 
@@ -414,16 +414,16 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx, int
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].color = color;
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].specular = 0;
 			}
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 3;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 1;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 3;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
 			g_d3dVertexCount += QUAD_VERTEX_COUNT;
 		}
 		start = right - cornerWidth;
@@ -451,16 +451,16 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx, int
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].color = color;
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].specular = 0;
 			}
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 3;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 1;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 3;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
 			g_d3dVertexCount += QUAD_VERTEX_COUNT;
 		}
 	}
@@ -491,16 +491,16 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx, int
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].color = color;
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].specular = 0;
 			}
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 3;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 1;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 3;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
 			g_d3dVertexCount += QUAD_VERTEX_COUNT;
 		}
 		start = right - cornerWidth;
@@ -528,16 +528,16 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx, int
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].color = color;
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].specular = 0;
 			}
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 3;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 1;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 3;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
 			g_d3dVertexCount += QUAD_VERTEX_COUNT;
 		}
 	}
@@ -568,16 +568,16 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx, int
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].color = color;
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].specular = 0;
 			}
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 3;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 1;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 3;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
 			g_d3dVertexCount += QUAD_VERTEX_COUNT;
 		}
 		start = bottom - cornerHeight;
@@ -605,16 +605,16 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx, int
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].color = color;
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].specular = 0;
 			}
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 3;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 1;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 3;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
 			g_d3dVertexCount += QUAD_VERTEX_COUNT;
 		}
 	}
@@ -645,16 +645,16 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx, int
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].color = color;
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].specular = 0;
 			}
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 3;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 1;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 3;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
 			g_d3dVertexCount += QUAD_VERTEX_COUNT;
 		}
 		start = bottom - cornerHeight;
@@ -682,16 +682,16 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx, int
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].color = color;
 				g_flightVertexBuffer[g_d3dVertexCount + vertexIndex].specular = 0;
 			}
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
-			g_triBuffer[g_d3dIndexCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dIndexCount].v1 = g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dIndexCount].v2 = g_d3dVertexCount + 3;
-			g_triBuffer[g_d3dIndexCount].texture = NULL;
-			g_triBuffer[g_d3dIndexCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 1;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
+			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].v1 = g_d3dVertexCount + 2;
+			g_triBuffer[g_d3dTriangleCount].v2 = g_d3dVertexCount + 3;
+			g_triBuffer[g_d3dTriangleCount].texture = NULL;
+			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
 			g_d3dVertexCount += QUAD_VERTEX_COUNT;
 		}
 	}
@@ -1547,7 +1547,7 @@ void Hud_AddBlipToRadar(int16_t objIdx) {
 		g_radarBlipColor = 47;
 	} else if (g_objectTable[objectIdx].genusId == CRAFT_GENUS_SATELLITE) {
 		g_radarBlipColor = 47;
-	} else if (mobileObject->state == 1) {
+	} else if (mobileObject->family == 1) {
 		if (((g_missionElapsedClock.subsecondTicks / 4) & 1) != 0)
 			g_radarBlipColor = 59;
 		else
@@ -1576,14 +1576,14 @@ void Hud_AddBlipToRadar(int16_t objIdx) {
 	}
 
 	pai_ObjectRefUpdateApproxRangeScore(g_players[g_localPlayer].objectIndex, objectIdx);
-	if (g_targetRangeScore > 122166) {
+	if (g_lastRoughDistance > 122166) {
 		if (g_radarBlipColor == 47)
 			g_radarBlipColor = 45;
 		else if (g_radarBlipColor == 211)
 			g_radarBlipColor += 2;
 		else
 			g_radarBlipColor -= 2;
-	} else if (g_targetRangeScore > 61083) {
+	} else if (g_lastRoughDistance > 61083) {
 		if (g_radarBlipColor == 47)
 			g_radarBlipColor = 46;
 		else if (g_radarBlipColor == 211)
@@ -1921,7 +1921,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 					g_flightMissionState.locatePlayersEnabled == 0) {
 					int playerIff;
 
-					playerIff = (uint16_t)g_players[g_localPlayer].playerIff;
+					playerIff = (uint16_t)g_players[g_localPlayer].team;
 					if (targetCraft->iffVisibility[playerIff] == 0) {
 						int flightGroupIndex;
 						int team;
@@ -1945,11 +1945,11 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 			targetObject = &g_objectTable[currentTargetObjectIndex];
 			if (targetObject->playerOwnerIdx != -1) {
 				if (g_flightMissionState.locatePlayersEnabled != 0 ||
-					targetCraft->iffVisibility[(uint16_t)g_players[g_localPlayer].playerIff] != 0 ||
+					targetCraft->iffVisibility[(uint16_t)g_players[g_localPlayer].team] != 0 ||
 					!(g_missionFlightGroups[targetObject->flightGroupIdx].fg.team ==
-							  (uint16_t)g_players[g_localPlayer].playerIff
+							  (uint16_t)g_players[g_localPlayer].team
 						  ? 0
-						  : g_missionTeams[(uint16_t)g_players[g_localPlayer].playerIff]
+						  : g_missionTeams[(uint16_t)g_players[g_localPlayer].team]
 									.allies[g_missionFlightGroups[targetObject->flightGroupIdx].fg.team] ==
 								0)) {
 					FlightText_AppendScratchChar('-');
@@ -2047,7 +2047,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 				g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx].mobj->pCraft;
 			int playerIff;
 
-			playerIff = (uint16_t)g_players[g_localPlayer].playerIff;
+			playerIff = (uint16_t)g_players[g_localPlayer].team;
 			if (displayCraft->iffVisibility[playerIff] == 0) {
 				int flightGroupIndex =
 					g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx].flightGroupIdx;
@@ -2072,11 +2072,11 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 	targetObject = &g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx];
 	if (targetObject->playerOwnerIdx != -1) {
 		if (g_flightMissionState.locatePlayersEnabled != 0 ||
-			targetObject->mobj->pCraft->iffVisibility[(uint16_t)g_players[g_localPlayer].playerIff] != 0 ||
+			targetObject->mobj->pCraft->iffVisibility[(uint16_t)g_players[g_localPlayer].team] != 0 ||
 			!(g_missionFlightGroups[targetObject->flightGroupIdx].fg.team ==
-					  (uint16_t)g_players[g_localPlayer].playerIff
+					  (uint16_t)g_players[g_localPlayer].team
 				  ? 0
-				  : g_missionTeams[(uint16_t)g_players[g_localPlayer].playerIff]
+				  : g_missionTeams[(uint16_t)g_players[g_localPlayer].team]
 							.allies[g_missionFlightGroups[targetObject->flightGroupIdx].fg.team] == 0)) {
 			FlightText_AppendScratchString(" (");
 			FlightText_AppendScratchString(NetSession_GetPlayerName(
@@ -2212,8 +2212,8 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 
 		if ((uint16_t)g_players[g_localPlayer].currentTargetObjectIdx < g_activeRegionCraftObjectSlotEnd &&
 			targetCraft != NULL &&
-			g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx].mobj->state == 0) {
-			if (targetCraft->iffVisibility[(uint16_t)g_players[g_localPlayer].playerIff] == 0 ||
+			g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx].mobj->family == 0) {
+			if (targetCraft->iffVisibility[(uint16_t)g_players[g_localPlayer].team] == 0 ||
 				targetCraft->objectKind == CRAFT_OBJECT_KIND_BREAKING_UP ||
 				targetCraft->objectKind == CRAFT_OBJECT_KIND_EXPLODING) {
 				cargoState = 0;
@@ -2330,7 +2330,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 				targetCraft != NULL && g_flightMissionState.locatePlayersEnabled == 0) {
 				int playerIff;
 
-				playerIff = (uint16_t)g_players[g_localPlayer].playerIff;
+				playerIff = (uint16_t)g_players[g_localPlayer].team;
 				if (targetCraft->iffVisibility[playerIff] == 0) {
 					int team;
 					int hostile;
@@ -2679,7 +2679,7 @@ void Hud_AppendObjectDisplayName(uint16_t objectRef, int16_t displayFlags) {
 			}
 
 			mobileObject = g_objectTable[objectIndex].mobj;
-			if (mobileObject->state == 0) {
+			if (mobileObject->family == 0) {
 				craft = mobileObject->pCraft;
 				if ((displayFlags & 1) != 0)
 					FlightText_AppendScratchString(g_modelDefs[craft->modelIndex].name);
@@ -3122,7 +3122,7 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot, uint1
 		if (craft->warheadLauncherCount == 0) {
 			warheadCount = 0;
 		} else {
-			warheadCount = craft->weaponSlots[warheadSlotIdx].count;
+			warheadCount = craft->weaponSlots[warheadSlotIdx].ammoCount;
 		}
 		g_hudElementStateCache[displaySlot + 27 + g_hudInstrumentSetBaseIndex] = (int16_t)warheadCount;
 
@@ -3200,7 +3200,7 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot, uint1
 	if (craft->warheadLauncherCount == 0) {
 		warheadCount = 0;
 	} else {
-		warheadCount = craft->weaponSlots[warheadSlotIdx].count;
+		warheadCount = craft->weaponSlots[warheadSlotIdx].ammoCount;
 	}
 	if (g_hudElementStateCache[displaySlot + 27 + g_hudInstrumentSetBaseIndex] != (int16_t)warheadCount) {
 		g_hudElementStateCache[displaySlot + 27 + g_hudInstrumentSetBaseIndex] = (int16_t)warheadCount;
@@ -3879,7 +3879,7 @@ void Hud_UpdateThreatIndicators(int hudMode) {
 		 ++objectIdx) {
 		CraftData* craft;
 
-		if (g_objectTable[objectIdx].objectType == 0 || g_objectTable[objectIdx].mobj->state != 0)
+		if (g_objectTable[objectIdx].objectType == 0 || g_objectTable[objectIdx].mobj->family != 0)
 			continue;
 		craft = g_objectTable[objectIdx].mobj->pCraft;
 		if (craft->workingSubsystems == 0 || craft->objectKind != CRAFT_OBJECT_KIND_ACTIVE)
@@ -3909,14 +3909,14 @@ void Hud_UpdateThreatIndicators(int hudMode) {
 				(uint16_t)Mission_GameTimeToSeconds(g_missionElapsedClock.hours,
 													g_missionElapsedClock.minutes,
 													g_missionElapsedClock.seconds) -
-						playerCraft->lastHitTimestamp <
+						playerCraft->lastHitMissionSecond <
 					5)
 				attackThreat = 1;
 			playerOwnerIdx = g_objectTable[objectIdx].playerOwnerIdx;
 			if ((uint16_t)g_players[playerOwnerIdx].currentTargetObjectIdx == playerObjectIdx &&
 				g_players[playerOwnerIdx].selectedWeaponMode == 0) {
 				pai_ObjectRefUpdateApproxRangeScore(objectIdx, playerObjectIdx);
-				if (g_targetRangeScore < 0x10000 &&
+				if (g_lastRoughDistance < 0x10000 &&
 					Targeting_ScoreCandidate(playerObjectIdx, 0, playerOwnerIdx))
 					attackThreat = 1;
 			}
@@ -3949,7 +3949,7 @@ void Hud_UpdateThreatIndicators(int hudMode) {
 		CraftData* craft;
 		int playerOwnerIdx;
 
-		if (g_objectTable[objectIdx].objectType == 0 || g_objectTable[objectIdx].mobj->state != 0)
+		if (g_objectTable[objectIdx].objectType == 0 || g_objectTable[objectIdx].mobj->family != 0)
 			continue;
 		craft = g_objectTable[objectIdx].mobj->pCraft;
 		if (craft->workingSubsystems == 0 || craft->objectKind != CRAFT_OBJECT_KIND_ACTIVE)
@@ -4304,7 +4304,7 @@ void Hud_DrawCmdTargetDetails(void) {
 					g_flightMissionState.locatePlayersEnabled == 0) {
 					int playerIff;
 
-					playerIff = (uint16_t)g_players[g_localPlayer].playerIff;
+					playerIff = (uint16_t)g_players[g_localPlayer].team;
 					if (targetCraft->iffVisibility[playerIff] == 0) {
 						int flightGroupIdx;
 						int team;
@@ -4388,11 +4388,11 @@ void Hud_DrawCmdTargetDetails(void) {
 			MobileObject* targetMobileObject;
 
 			targetMobileObject = g_objectTable[currentTargetObjectIdx].mobj;
-			if (targetMobileObject->state == 0) {
+			if (targetMobileObject->family == 0) {
 				CraftData* targetCraft;
 
 				targetCraft = targetMobileObject->pCraft;
-				if (targetCraft->iffVisibility[(uint16_t)g_players[g_localPlayer].playerIff] != 0) {
+				if (targetCraft->iffVisibility[(uint16_t)g_players[g_localPlayer].team] != 0) {
 					cargoState = 1;
 					cargoText = targetCraft->specialCargoName;
 					if (cargoText[0] == '\0') {
@@ -4437,7 +4437,7 @@ void Hud_DrawCmdTargetDetails(void) {
 			g_flightMissionState.locatePlayersEnabled == 0) {
 			int playerIff;
 
-			playerIff = (uint16_t)g_players[g_localPlayer].playerIff;
+			playerIff = (uint16_t)g_players[g_localPlayer].team;
 			if (targetCraft->iffVisibility[playerIff] == 0) {
 				int team;
 				int hostile;
@@ -5242,7 +5242,7 @@ void Hud_RebuildDisplayForViewState(int hudViewState, int playerIdx) {
 		g_flightSetPaletteRangeFn((RgbTriplet*)g_hudCockpitResources[resourceIndex].entries[2], 0,
 								  PALETTE_COCKPIT_COLOR_COUNT);
 		FlightText_SetClipRect(0, 0, g_surfaceWidth, g_surfaceHeight);
-		g_flightTextBgColor = g_unusedFlightRenderColorByte;
+		g_flightTextBgColor = g_flightBackgroundColorIndex;
 		g_flightFillClipRectFn();
 		g_flightBlitSpriteFn(g_hudCockpitResources[resourceIndex].entries[0], cockpitX, 0, 0,
 							 mirrorHorizontal);
@@ -5259,7 +5259,7 @@ void Hud_RebuildDisplayForViewState(int hudViewState, int playerIdx) {
 		g_projOffsetY = g_hudCockpitResourceDescriptors[viewportDescriptorIndex].projectionOffsetY;
 	} else {
 		FlightText_SetClipRect(0, 0, g_surfaceWidth, g_surfaceHeight);
-		g_flightTextBgColor = g_unusedFlightRenderColorByte;
+		g_flightTextBgColor = g_flightBackgroundColorIndex;
 		g_flightFillClipRectFn();
 		SetFlightViewport(g_surfaceWidth, g_surfaceHeight, g_flightViewportMode, 0);
 		FlightSw_BuildFullViewportSpanMaskRle((uint16_t)g_surfaceWidth, (unsigned int)g_surfaceHeight);
@@ -5861,7 +5861,7 @@ void Hud_Update3DCrt(uint16_t a1, uint16_t a2, uint16_t a3, uint16_t a4, int16_t
 	} else {
 		g_renderObjectRef |= TARGET_CROSS_RENDER_FLAG;
 	}
-	g_unusedFlightRenderColorByte = CRT_RENDER_COLOR;
+	g_flightBackgroundColorIndex = CRT_RENDER_COLOR;
 	RenderScene_Initialize(1);
 	g_sceneBillboardQueueCount = 0;
 	g_camRelWorldX = worldlocx - g_players[g_localPlayer].viewState.savedTargetX;
@@ -5889,9 +5889,9 @@ void Hud_Update3DCrt(uint16_t a1, uint16_t a2, uint16_t a3, uint16_t a4, int16_t
 		}
 	}
 
-	viewX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	viewY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	depthZ = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
+	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 	targetObjectIdx = (uint16_t)g_players[g_localPlayer].currentTargetObjectIdx;
 	targetObject = &g_objectTable[targetObjectIdx];
 	targetMobileObject = targetObject->mobj;
@@ -5997,14 +5997,14 @@ void Hud_Update3DCrt(uint16_t a1, uint16_t a2, uint16_t a3, uint16_t a4, int16_t
 			int markerX;
 			int markerY;
 
-			viewX = TRANSFM2_CamMatDotRow0(componentRelX, componentRelY, componentRelZ);
+			g_viewSpaceX = TRANSFM2_CamMatDotRow0(componentRelX, componentRelY, componentRelZ);
 #ifdef XVT_MODERN
 			XvtRenderCapture_CrtMarker(componentRelX, componentRelY, componentRelZ);
 #endif
-			viewY = TRANSFM2_CamMatDotRow1(componentRelX, componentRelY, componentRelZ);
-			depthZ = TRANSFM2_CamMatDotRow2(componentRelX, componentRelY, componentRelZ);
-			markerX = TRANSFM2_ProjectScreenX(viewX, depthZ);
-			markerY = TRANSFM2_ProjectScreenY(viewY, depthZ);
+			g_viewSpaceY = TRANSFM2_CamMatDotRow1(componentRelX, componentRelY, componentRelZ);
+			g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(componentRelX, componentRelY, componentRelZ);
+			markerX = TRANSFM2_ProjectScreenX(g_viewSpaceX, g_viewSpaceDepth);
+			markerY = TRANSFM2_ProjectScreenY(g_viewSpaceY, g_viewSpaceDepth);
 			Hud_DrawComponentMarkerBox(markerX - COMPONENT_MARKER_HALF_SIZE,
 									   markerY - COMPONENT_MARKER_HALF_SIZE, COMPONENT_MARKER_SIZE,
 									   COMPONENT_MARKER_SIZE, COMPONENT_MARKER_COLOR);
@@ -6012,7 +6012,7 @@ void Hud_Update3DCrt(uint16_t a1, uint16_t a2, uint16_t a3, uint16_t a4, int16_t
 	}
 
 	RenderScene_UnlockBuffers();
-	g_unusedFlightRenderColorByte = g_flightColorEscapeBypassChar;
+	g_flightBackgroundColorIndex = g_flightColorEscapeBypassChar;
 	PopFlightViewport();
 	g_renderObjectRef = savedRenderObjectRef;
 	g_players[g_localPlayer].viewState.savedTargetX = savedTargetX;
@@ -6296,7 +6296,7 @@ void Hud_ShiftReadyMessageQueueForReplacement(void) {
 	uint16_t destinationIndex;
 	uint8_t newPendingCount;
 
-	if (g_readyMessagePaneQueue[0].showCount < 2 && g_readyMessagePaneQueue[0].ageTicks == 0) {
+	if (g_readyMessagePaneQueue[0].showCount < 2 && g_readyMessagePaneQueue[0].ageSeconds == 0) {
 		oldPendingCount = g_readyMessageQueueCount;
 		destinationIndex = oldPendingCount + 1;
 		if (destinationIndex != 0) {
@@ -6604,13 +6604,13 @@ void Hud_ClearReadyMessageQueue(void) {
 // FUNCTION: XVT 0x451590
 void Hud_AdvanceFlightMessagePaneTimers(void) {
 	if (g_readyMessagePaneQueue[0].stateOrMessageId != UINT16_MAX) {
-		++g_readyMessagePaneQueue[0].ageTicks;
+		++g_readyMessagePaneQueue[0].ageSeconds;
 	}
 	if (g_systemMessagePane.stateOrMessageId != UINT16_MAX) {
-		++g_systemMessagePane.ageTicks;
+		++g_systemMessagePane.ageSeconds;
 	}
 	if (g_flightGroupMessagePane.stateOrMessageId != UINT16_MAX) {
-		++g_flightGroupMessagePane.ageTicks;
+		++g_flightGroupMessagePane.ageSeconds;
 	}
 }
 

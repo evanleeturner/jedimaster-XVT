@@ -114,7 +114,7 @@ int MissionBriefing_Update(int frameCounter) {
 
 		if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_MELEES) {
 			for (teamIndex = 0; teamIndex < g_teamCount; ++teamIndex) {
-				if (g_teamFgCountScratch[teamIndex] > 1) {
+				if (g_teamPlayerFlightGroupCount[teamIndex] > 1) {
 					break;
 				}
 			}
@@ -160,7 +160,7 @@ int MissionBriefing_Update(int frameCounter) {
 			g_mpRoster[0].craftOptionIndex = g_missionSetupSelectedFlightGroupCraftOptionIndex - 1;
 			g_mpRoster[0].countermeasureOptionIndex = g_missionSetupSelectedCountermeasureOptionIndex;
 			FrontendMission_InitPlayerState();
-			FrontendScreen_SetCallbacks(FlightLoading_GetReadyScreen, NULL);
+			FrontendScreen_SetCallbacks(FlightLoading_UpdateReadyScreen, NULL);
 			return 0;
 		}
 
@@ -215,7 +215,7 @@ int MissionBriefing_Update(int frameCounter) {
 		}
 		FrontImage_DrawSpriteTranslucent("regoverlay", 0, 0);
 		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_ResetGlyphScratchBuffer(20);
+		FrontendText_StartTextFadeIn(20);
 
 		if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 			if ((g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES &&
@@ -371,7 +371,7 @@ int MissionBriefing_Update(int frameCounter) {
 			return 0;
 		} else if (packetType == NET_PACKET_LAUNCH_ROSTER_AND_ASSIGNMENTS) {
 			FrontendMission_InitPlayerState();
-			FrontendScreen_SetCallbacks(FlightLoading_GetReadyScreen, NULL);
+			FrontendScreen_SetCallbacks(FlightLoading_UpdateReadyScreen, NULL);
 			return 0;
 		} else if (packetType == NET_PACKET_CRAFT_LOADOUT) {
 			if (g_gameConfig.craftSelection == CRAFT_SELECTION_HOST_ONLY && Net_IsHost() == 0) {
@@ -459,7 +459,7 @@ int MissionBriefing_Update(int frameCounter) {
 	FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
 	if (g_pilotData.name[0] != '\0') {
 		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
-		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorLightBlue);
+		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
 		if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES ||
 			g_pilotData.missionDirectoryId == MISSION_DIRECTORY_MELEES ||
 			g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TOURNAMENTS) {
@@ -480,7 +480,7 @@ int MissionBriefing_Update(int frameCounter) {
 
 	if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		FrontendDraw_RectAssign(&rect, 507, 452, 562, 464);
-		if (Net_CountReadyPlayers() <= g_frontendMissionOpcode99Count) {
+		if (Net_CountReadyPlayers() <= g_frontendBriefingEnteredCount) {
 			if (g_missionBriefingLaunchCountdownState == MISSION_BRIEFING_COUNTDOWN_IDLE) {
 				g_missionBriefingTickNowMs = GetTickCount();
 				g_missionBriefingLastTickMs = g_missionBriefingTickNowMs;
@@ -630,13 +630,13 @@ int MissionBriefing_Update(int frameCounter) {
 			g_mpRoster[0].craftOptionIndex = g_missionSetupSelectedFlightGroupCraftOptionIndex - 1;
 			g_mpRoster[0].countermeasureOptionIndex = g_missionSetupSelectedCountermeasureOptionIndex;
 			FrontendMission_InitPlayerState();
-			FrontendScreen_SetCallbacks(FlightLoading_GetReadyScreen, NULL);
+			FrontendScreen_SetCallbacks(FlightLoading_UpdateReadyScreen, NULL);
 			FrontendButton_DisableOverlayText();
 			return 0;
 		}
 	} else {
 		if (g_gameConfig.craftSelection == CRAFT_SELECTION_HOST_ONLY) {
-			if (Net_IsHost() != 0 && Net_CountReadyPlayers() <= g_frontendMissionOpcode99Count) {
+			if (Net_IsHost() != 0 && Net_CountReadyPlayers() <= g_frontendBriefingEnteredCount) {
 				FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_200_FLY));
 				if (FrontendButton_DrawSpriteHitTest(&rect, "flyup", "flydown",
 													 FrontendString_Get(FRONTSTR_200_FLY), 12, 0, 7,

@@ -55,7 +55,7 @@ GameConfig g_gameConfig = { 0 };
 // GLOBAL: XVT 0x664E98
 int g_configDrawStaticControlBackground = 0;
 // GLOBAL: XVT 0xB69CE0
-int g_unusedFrontendConcourseHostLatch = 0;
+int g_configConnectionTypeEditable = 0;
 // GLOBAL: XVT 0x664E9C
 int g_pendingMenuScreen = 0;
 
@@ -213,7 +213,7 @@ int Config_OptionsDatapadUpdate(int frameState) {
 		FrontendDraw_RectAssign(&rect, 84, 107, 604, 433);
 		FrontImage_DrawSpriteTranslucent("configoverlay", 0, 0);
 		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_ResetGlyphScratchBuffer(20);
+		FrontendText_StartTextFadeIn(20);
 	}
 
 	switch (g_pendingMenuScreen) {
@@ -260,7 +260,7 @@ int Config_OptionsDatapadUpdate(int frameState) {
 	FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
 	if (g_pilotData.name[0] != '\0') {
 		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
-		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorLightBlue);
+		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
 		animationFrame = frameState % PILOT_BANNER_ANIMATION_FRAMES;
 		animationFrame >>= 1;
 		sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
@@ -302,7 +302,7 @@ int Config_OptionsDatapadUpdate(int frameState) {
 		FrontendScreen_PopState();
 		FrontendMouse_ClearInputGate();
 		FrontImage_FreeResourceByName("backconfig");
-		FrontendText_ResetGlyphScratch();
+		FrontendText_StopTextFade();
 		FrontendScrollbar_RestoreState();
 		if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_HOST) {
 			g_frontendNetPacketScratch.packetType = NET_PACKET_GAME_OPTIONS;
@@ -488,7 +488,7 @@ void Config_DrawMipmapOptionRow(int configIndex) {
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
 	Config_DrawOptionSliderImpl(&g_gameConfig.mipmap[configIndex], &rect, 20, FRONTSTR_248_BLURRY, 1);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	FrontendText_DrawCentered(12, FrontendString_Get(FRONTSTR_250_OPTIMAL), &rect, g_colorLightBlue);
+	FrontendText_DrawCentered(12, FrontendString_Get(FRONTSTR_250_OPTIMAL), &rect, g_colorYellow);
 }
 
 // FUNCTION: XVT 0x4B8B20
@@ -625,7 +625,7 @@ void Config_DrawOptionCycleImpl(uint8_t* value, const RECT* rect, FrontendString
 				FrontImage_DrawSprite("3conbtn", optionRect.left, optionRect.top);
 			}
 		}
-		labelColor = g_colorLightBlue;
+		labelColor = g_colorYellow;
 		++optionIndex;
 		optionRect.left = optionRect.right + 5;
 		optionRect.right = optionRect.left + 100;
@@ -669,8 +669,7 @@ void Config_DrawThreeChoiceOption(uint8_t* value, const RECT* rect, FrontendStri
 		*value = 0;
 	}
 	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
-	FrontendText_DrawAlignedInRect(12, FrontendString_Get(valueBaseStrId), &optionRect, 0, 1,
-								   g_colorLightBlue);
+	FrontendText_DrawAlignedInRect(12, FrontendString_Get(valueBaseStrId), &optionRect, 0, 1, g_colorYellow);
 	FrontendDraw_RectOffsetXY(&optionRect, 0, -15);
 
 	optionRect.left = spriteRect.left + ((spriteRect.right - buttonWidth - spriteRect.left) >> 1) + 1;
@@ -685,7 +684,7 @@ void Config_DrawThreeChoiceOption(uint8_t* value, const RECT* rect, FrontendStri
 		*value = 1;
 	}
 	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
-	FrontendText_DrawCentered(12, FrontendString_Get(valueBaseStrId + 1), &optionRect, g_colorLightBlue);
+	FrontendText_DrawCentered(12, FrontendString_Get(valueBaseStrId + 1), &optionRect, g_colorYellow);
 	FrontendDraw_RectOffsetXY(&optionRect, 0, -15);
 
 	optionRect.right = spriteRect.right;
@@ -703,7 +702,7 @@ void Config_DrawThreeChoiceOption(uint8_t* value, const RECT* rect, FrontendStri
 	right = spriteRect.right;
 	optionRect.left = right - FrontendText_MeasureWidth(FrontendString_Get(valueBaseStrId + 2), 12) + 1;
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(valueBaseStrId + 2), &optionRect, 0, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 }
 
 // FUNCTION: XVT 0x4B93F0
@@ -734,11 +733,11 @@ void Config_DrawOptionSliderImpl(uint8_t* value, RECT* rect, int valueCount, Fro
 	FrontendDraw_RectCopy(&optionRect, rect);
 	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
 	optionRect.right = optionRect.left + sliderWidth / 2 - 1;
-	FrontendText_DrawAlignedInRect(12, FrontendString_Get(rangeLabelId), &optionRect, 0, 1, g_colorLightBlue);
+	FrontendText_DrawAlignedInRect(12, FrontendString_Get(rangeLabelId), &optionRect, 0, 1, g_colorYellow);
 	FrontendDraw_RectOffsetXY(&optionRect, sliderWidth / 2, 0);
 	optionRect.left = optionRect.right - FrontendText_MeasureWidth(FrontendString_Get(rangeLabelId + 1), 12);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(rangeLabelId + 1), &optionRect, 1, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 
 	FrontendDraw_RectOffsetXY(rect, 2, 0);
 	FrontImage_GetResourceRect("conhandle", &handleRect);
@@ -1784,7 +1783,7 @@ void Config_NetworkOptionsScreen(void) {
 	buttonWidth = rect.right - rect.left + 1;
 	FrontendCursor_GetPos(&cursorX, &cursorY);
 	FrontendDraw_RectAssign(&sourceRect, LABEL_LEFT, LABEL_TOP, LABEL_RIGHT, LABEL_BOTTOM);
-	if (g_unusedFrontendConcourseHostLatch == 0 &&
+	if (g_configConnectionTypeEditable == 0 &&
 		g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER)
 		FrontendText_DrawAlignedInRect(
 			FONT_LABEL,
@@ -1799,7 +1798,7 @@ void Config_NetworkOptionsScreen(void) {
 	FrontendDraw_RectCopy(&rect, &sourceRect);
 	rect.right = rect.left + buttonWidth;
 	if (g_configDrawStaticControlBackground != 0 &&
-		(g_unusedFrontendConcourseHostLatch != 0 ||
+		(g_configConnectionTypeEditable != 0 ||
 		 g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteTranslucent("offslot", rect.left, rect.top);
@@ -1807,7 +1806,7 @@ void Config_NetworkOptionsScreen(void) {
 		FrontImage_DrawSpriteTranslucent("offslot", rect.left, rect.top);
 	}
 	if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-		(g_unusedFrontendConcourseHostLatch != 0 ||
+		(g_configConnectionTypeEditable != 0 ||
 		 g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
 		(FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0)) {
 		if (g_gameConfig.networkType != NET_TRANSPORT_IPX) {
@@ -1823,14 +1822,14 @@ void Config_NetworkOptionsScreen(void) {
 	rect.left = rect.right + 5;
 	rect.right = rect.left + 100;
 	FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_305_IPX), &rect, 0, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 
 	FrontendDraw_RectOffsetXY(&sourceRect, 0, 25);
 	sourceRect.right = sourceRect.left + 127;
 	FrontendDraw_RectCopy(&rect, &sourceRect);
 	rect.right = rect.left + buttonWidth;
 	if (g_configDrawStaticControlBackground != 0 &&
-		(g_unusedFrontendConcourseHostLatch != 0 ||
+		(g_configConnectionTypeEditable != 0 ||
 		 g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteTranslucent("offslot", rect.left, rect.top);
@@ -1838,7 +1837,7 @@ void Config_NetworkOptionsScreen(void) {
 		FrontImage_DrawSpriteTranslucent("offslot", rect.left, rect.top);
 	}
 	if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-		(g_unusedFrontendConcourseHostLatch != 0 ||
+		(g_configConnectionTypeEditable != 0 ||
 		 g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
 		(FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0)) {
 		if (g_gameConfig.networkType != NET_TRANSPORT_TCPIP) {
@@ -1854,10 +1853,10 @@ void Config_NetworkOptionsScreen(void) {
 	rect.left = rect.right + 5;
 	rect.right = rect.left + 100;
 	FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_306_TCP_IP), &rect, 0, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 	FrontendDraw_RectOffsetXY(&rect, 100, 0);
 	FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_308_IP_ADDRESS_NAME), &rect, 0, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 	rect.left += optionWidth + 15;
 	rect.right = rect.left + FIELD_WIDTH;
 	FrontendDraw_RectInsetXY(&rect, 0, -2);
@@ -1870,7 +1869,7 @@ void Config_NetworkOptionsScreen(void) {
 	FrontendDraw_RectCopy(&rect, &sourceRect);
 	rect.right = rect.left + buttonWidth;
 	if (g_configDrawStaticControlBackground != 0 &&
-		(g_unusedFrontendConcourseHostLatch != 0 ||
+		(g_configConnectionTypeEditable != 0 ||
 		 g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteTranslucent("offslot", rect.left, rect.top);
@@ -1878,7 +1877,7 @@ void Config_NetworkOptionsScreen(void) {
 		FrontImage_DrawSpriteTranslucent("offslot", rect.left, rect.top);
 	}
 	if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-		(g_unusedFrontendConcourseHostLatch != 0 ||
+		(g_configConnectionTypeEditable != 0 ||
 		 g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
 		(FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0)) {
 		if (g_gameConfig.networkType != NET_TRANSPORT_MODEM) {
@@ -1894,10 +1893,10 @@ void Config_NetworkOptionsScreen(void) {
 	rect.left = rect.right + 5;
 	rect.right = rect.left + 100;
 	FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_307_DIRECT_MODEM), &rect, 0, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 	FrontendDraw_RectOffsetXY(&rect, 100, 0);
 	FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_309_PHONE_NUMBER), &rect, 0, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 	rect.left += optionWidth + 15;
 	rect.right = rect.left + FIELD_WIDTH;
 	FrontendDraw_RectInsetXY(&rect, 0, -2);
@@ -1911,7 +1910,7 @@ void Config_NetworkOptionsScreen(void) {
 	buttonWidth += rect.left;
 	rect.right = buttonWidth;
 	if (g_configDrawStaticControlBackground != 0 &&
-		(g_unusedFrontendConcourseHostLatch != 0 ||
+		(g_configConnectionTypeEditable != 0 ||
 		 g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteTranslucent("offslot", rect.left, rect.top);
@@ -1919,7 +1918,7 @@ void Config_NetworkOptionsScreen(void) {
 		FrontImage_DrawSpriteTranslucent("offslot", rect.left, rect.top);
 	}
 	if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-		(g_unusedFrontendConcourseHostLatch != 0 ||
+		(g_configConnectionTypeEditable != 0 ||
 		 g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
 		(FrontendMouse_GetLeftClick() != 0 || FrontendMouse_GetRightClick() != 0)) {
 		if (g_gameConfig.networkType != NET_TRANSPORT_SERIAL) {
@@ -1935,7 +1934,7 @@ void Config_NetworkOptionsScreen(void) {
 	rect.left = rect.right + 5;
 	rect.right = rect.left + 100;
 	FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_449_DIRECT_SERIAL), &rect, 0, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 
 #endif
 	FrontendDraw_RectOffsetXY(&sourceRect, 0, 35);
@@ -1944,7 +1943,7 @@ void Config_NetworkOptionsScreen(void) {
 	FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
 	FrontendDraw_RectCopy(&rect, &sourceRect);
 	FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_482_GAME_SESSION_PASSWORD), &rect,
-								   0, 1, g_colorLightBlue);
+								   0, 1, g_colorYellow);
 	labelWidth =
 		FrontendText_MeasureWidth(FrontendString_Get(FRONTSTR_482_GAME_SESSION_PASSWORD), FONT_LABEL);
 	rect.left += labelWidth + 15;
@@ -1962,12 +1961,12 @@ void Config_NetworkOptionsScreen(void) {
 			&sourceRect, 0, 1, 0xFFFF);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_479_PLAYING_OVER_THE_INTERNET),
-									   &sourceRect, 0, 1, g_colorLightBlue);
+									   &sourceRect, 0, 1, g_colorYellow);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
 		Config_DrawNetworkOptionCycleDisabled(&g_gameConfig.asyncFlag, &sourceRect, FRONTSTR_480_NO);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_743_HOST_SERVER_UPDATE_RATE),
-									   &sourceRect, 0, 1, g_colorLightBlue);
+									   &sourceRect, 0, 1, g_colorYellow);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
 		selectedOption = (uint8_t)((g_gameConfig.serverUpdateRate >> 1) - 2);
 		Config_DrawThreeOptionBar(&selectedOption, &sourceRect, FRONTSTR_744_LOW);
@@ -1976,12 +1975,12 @@ void Config_NetworkOptionsScreen(void) {
 									   &sourceRect, 0, 1, 0xFFFF);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_479_PLAYING_OVER_THE_INTERNET),
-									   &sourceRect, 0, 1, g_colorLightBlue);
+									   &sourceRect, 0, 1, g_colorYellow);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
 		Config_DrawOptionCycle(&g_gameConfig.asyncFlag, &sourceRect, FRONTSTR_480_NO);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
 		FrontendText_DrawAlignedInRect(FONT_LABEL, FrontendString_Get(FRONTSTR_743_HOST_SERVER_UPDATE_RATE),
-									   &sourceRect, 0, 1, g_colorLightBlue);
+									   &sourceRect, 0, 1, g_colorYellow);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
 		selectedOption = (uint8_t)((g_gameConfig.serverUpdateRate >> 1) - 2);
 		Config_DrawThreeChoiceOption(&selectedOption, &sourceRect, FRONTSTR_744_LOW);
@@ -2020,8 +2019,8 @@ void Config_DrawNetworkOptionCycleDisabled(const uint8_t* value, const RECT* rec
 			FrontImage_DrawSprite("3conbtn", slotRect.left, slotRect.top);
 		slotRect.left = slotRect.right + 5;
 		slotRect.right = slotRect.left + 100;
-		FrontendText_DrawAlignedInRect(12, FrontendString_Get(valueBaseStrId + optionIndex), &slotRect, 0,
-									   1, g_colorLightBlue);
+		FrontendText_DrawAlignedInRect(12, FrontendString_Get(valueBaseStrId + optionIndex), &slotRect, 0, 1,
+									   g_colorYellow);
 		slotRect.left = rect->left + 130;
 	}
 }
@@ -2055,7 +2054,7 @@ void Config_DrawThreeOptionBar(const uint8_t* selectedOption, const RECT* barRec
 		FrontImage_DrawSprite("3conbtn", optionRect.left, optionRect.top);
 	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(firstOptionStringId), &optionRect, 0, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 	FrontendDraw_RectOffsetXY(&optionRect, 0, -15);
 
 	optionRect.left = spriteRect.left + ((spriteRect.right - buttonWidth - spriteRect.left) >> 1) + 1;
@@ -2063,7 +2062,7 @@ void Config_DrawThreeOptionBar(const uint8_t* selectedOption, const RECT* barRec
 	if (*selectedOption == 1)
 		FrontImage_DrawSprite("3conbtn", optionRect.left, optionRect.top);
 	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
-	FrontendText_DrawCentered(12, FrontendString_Get(firstOptionStringId + 1), &optionRect, g_colorLightBlue);
+	FrontendText_DrawCentered(12, FrontendString_Get(firstOptionStringId + 1), &optionRect, g_colorYellow);
 	FrontendDraw_RectOffsetXY(&optionRect, 0, -15);
 
 	optionRect.right = spriteRect.right;
@@ -2074,7 +2073,7 @@ void Config_DrawThreeOptionBar(const uint8_t* selectedOption, const RECT* barRec
 	right = spriteRect.right;
 	optionRect.left = right - FrontendText_MeasureWidth(FrontendString_Get(firstOptionStringId + 2), 12) + 1;
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(firstOptionStringId + 2), &optionRect, 0, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 }
 
 // FUNCTION: XVT 0x4BC520
@@ -2290,8 +2289,7 @@ void Config_JoystickRemapScreen(void) {
 		maximumExclusive += 4;
 
 	FrontendDraw_RectAssign(&rect, 88, 246, 322, 260);
-	FrontendText_DrawCentered(12, FrontendString_Get(FRONTSTR_652_REMAPPABLE_BUTTONS), &rect,
-							  g_colorLightBlue);
+	FrontendText_DrawCentered(12, FrontendString_Get(FRONTSTR_652_REMAPPABLE_BUTTONS), &rect, g_colorYellow);
 	if (maximumExclusive > 10) {
 		FrontendDraw_RectAssign(&rect, 313, 261, 322, 415);
 		g_configJoystickButtonScrollOffset = FrontendScrollbar_Draw(
@@ -2353,7 +2351,7 @@ void Config_JoystickRemapScreen(void) {
 				if (visibleButtonIndex < buttonCount) {
 					color = 0xFFFF;
 					if (g_configSelectedJoystickButtonIndex == visibleButtonIndex)
-						color = (uint16_t)g_colorLightBlue;
+						color = (uint16_t)g_colorYellow;
 					sprintf(g_frontendScratchBuffer, "%s %d: %c%s",
 							FrontendString_Get(FRONTSTR_416_JOYSTICK_BUTTON), visibleButtonIndex + 1, 2,
 							g_joystickEntries[actionIndex].name);
@@ -2361,7 +2359,7 @@ void Config_JoystickRemapScreen(void) {
 				} else {
 					color = 0xFFFF;
 					if (visibleButtonIndex - buttonCount - g_configSelectedJoystickButtonIndex == -16)
-						color = (uint16_t)g_colorLightBlue;
+						color = (uint16_t)g_colorYellow;
 					sprintf(g_frontendScratchBuffer, "%s %s: %c%s",
 							FrontendString_Get(FRONTSTR_646_JOYSTICK_POV),
 							FrontendString_Get(FRONTSTR_647_UP + visibleButtonIndex - buttonCount), 2,
@@ -2374,7 +2372,7 @@ void Config_JoystickRemapScreen(void) {
 	}
 
 	FrontendDraw_RectAssign(&rect, 330, 111, 590, 125);
-	FrontendText_DrawCentered(12, FrontendString_Get(FRONTSTR_651_AVAILABLE_KEYS), &rect, g_colorLightBlue);
+	FrontendText_DrawCentered(12, FrontendString_Get(FRONTSTR_651_AVAILABLE_KEYS), &rect, g_colorYellow);
 	FrontendDraw_RectAssign(&rect, 591, 126, 600, 415);
 	g_configJoystickActionScrollOffset = FrontendScrollbar_Draw(
 		&rect, g_configJoystickActionScrollOffset, g_joystickEntryCount, 0, 5, (unsigned int)g_colorNavy, 2);
@@ -2406,7 +2404,7 @@ void Config_JoystickRemapScreen(void) {
 			}
 			sprintf(g_frontendScratchBuffer, "%c%s: %c%s", 2, entry->name, 1, entry->description);
 			{
-				int textColor = g_colorLightBlue;
+				int textColor = g_colorYellow;
 				if (actionIndex != g_configSelectedJoystickActionIndex)
 					textColor = 0xFFFF;
 				FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer, &rect, 0, 1, textColor);
@@ -2680,7 +2678,7 @@ int Config_CreditsScreen(int frameState) {
 			FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
 			return 0;
 		}
-		FrontendText_ResetGlyphScratchBuffer(200);
+		FrontendText_StartTextFadeIn(200);
 	}
 	if (g_creditsExitPending != 0) {
 #ifdef XVT_MODERN
@@ -2769,7 +2767,7 @@ int Config_CreditsScreen(int frameState) {
 			Credits_ParseNextPage(&g_creditsBufferIdx, &g_creditsHasMorePages, &outPageDurationFrames,
 								  &g_creditsGlyphScratchFrames);
 			g_creditsPageEndFrame += outPageDurationFrames;
-			FrontendText_ResetGlyphScratchBuffer(g_creditsGlyphScratchFrames);
+			FrontendText_StartTextFadeIn(g_creditsGlyphScratchFrames);
 			++g_creditsPageIndex;
 			if (g_creditsHasMorePages == 0) {
 				CDAudio_DisableLoopCurrentTrack();

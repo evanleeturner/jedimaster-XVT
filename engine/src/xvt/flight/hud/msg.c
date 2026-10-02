@@ -90,7 +90,7 @@ void msg_writeMessageLogFile(void) {
 				recordOffset += sizeof(*record);
 				++messageIndex;
 				File_Printf(stream, "%s\t%ld:%ld:%ld\n", text, (long)record->clockHour,
-							(long)record->clockMinute, (long)record->clockTick);
+							(long)record->clockMinute, (long)record->clockSecond);
 			} while ((uint16_t)g_messageLogWriteIndex > messageIndex);
 		}
 		File_RawClose(stream);
@@ -121,17 +121,17 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx) {
 
 	message.stateOrMessageId = (uint16_t)messageId;
 	if (g_flightMissionState.missionTimeLimitMinutes != 0) {
-		message.clockWord = (uint16_t)g_missionCountdownClock.subsecondTicks;
-		message.clockTick = g_missionCountdownClock.seconds;
+		message.clockSubsecondTicks = (uint16_t)g_missionCountdownClock.subsecondTicks;
+		message.clockSecond = g_missionCountdownClock.seconds;
 		message.clockMinute = g_missionCountdownClock.minutes;
 		message.clockHour = g_missionCountdownClock.hours;
 	} else {
-		message.clockWord = (uint16_t)g_missionElapsedClock.subsecondTicks;
-		message.clockTick = g_missionElapsedClock.seconds;
+		message.clockSubsecondTicks = (uint16_t)g_missionElapsedClock.subsecondTicks;
+		message.clockSecond = g_missionElapsedClock.seconds;
 		message.clockMinute = g_missionElapsedClock.minutes;
 		message.clockHour = g_missionElapsedClock.hours;
 	}
-	message.ageTicks = 0;
+	message.ageSeconds = 0;
 	message.showCount = 0;
 	message.senderIff = g_msgSenderIff;
 	if (messageId == IFMSG_207_CODE_01_ARGUMENT || messageId == IFMSG_196_CODE_02_ARGUMENT) {
@@ -398,7 +398,7 @@ void msg_radioMessage(uint16_t senderObjIdx, uint8_t* craftDescriptor, uint16_t 
 	flightGroupIdx = g_objectTable[senderObjIdx].flightGroupIdx;
 	g_msgSenderIff = g_missionFlightGroups[flightGroupIdx].fg.iff;
 	if (g_players[g_localPlayer].iff != g_msgSenderIff ||
-		g_missionFlightGroups[flightGroupIdx].fg.team != g_players[g_localPlayer].playerIff) {
+		g_missionFlightGroups[flightGroupIdx].fg.team != g_players[g_localPlayer].team) {
 		return;
 	}
 	if (multipleRecipients != 0) {
@@ -469,7 +469,7 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 	flightGroupIdx = g_objectTable[targetObjIdx].flightGroupIdx;
 	team = g_missionFlightGroups[flightGroupIdx].fg.team;
 	designation = g_flightMissionState.runtime
-					  .teamFgDesignationCode[(uint16_t)g_players[playerIdx].playerIff][flightGroupIdx];
+					  .teamFgDesignationCode[(uint16_t)g_players[playerIdx].team][flightGroupIdx];
 	if (designation == 0) {
 		if (craft == NULL) {
 			if (g_objectTable[targetObjIdx].genusId == CRAFT_GENUS_MINE) {
@@ -487,7 +487,7 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 		} else {
 			if (g_players[playerIdx].boundFlightGroupIdx == flightGroupIdx)
 				designation = IFMSG_323_YOUR_WINGMAN - IFMSG_309_TARGET_DESCRIPTION;
-			else if (team == (uint16_t)g_players[playerIdx].playerIff)
+			else if (team == (uint16_t)g_players[playerIdx].team)
 				designation = IFMSG_322_FRIENDLY_CRAFT - IFMSG_309_TARGET_DESCRIPTION;
 			else if (g_objectTable[targetObjIdx].genusId == CRAFT_GENUS_FREIGHTER &&
 					 craft->aiFlight.maxSpeedCache == 0)
@@ -501,13 +501,12 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 	g_msgArgTable[1] = IFMSG_331_BLANK;
 	if (designation != 0) {
 		if (g_targetDescDesignationUsesRelationText[designation] != 0) {
-			if (team == (uint16_t)g_players[playerIdx].playerIff)
+			if (team == (uint16_t)g_players[playerIdx].team)
 				g_msgArgTable[1] = IFMSG_334_OUR;
 			else {
 				int currentTeam = g_missionFlightGroups[g_objectTable[targetObjIdx].flightGroupIdx].fg.team;
-				int isEnemy =
-					(uint16_t)g_players[playerIdx].playerIff != currentTeam &&
-					g_missionTeams[(uint16_t)g_players[playerIdx].playerIff].allies[currentTeam] < 1;
+				int isEnemy = (uint16_t)g_players[playerIdx].team != currentTeam &&
+							  g_missionTeams[(uint16_t)g_players[playerIdx].team].allies[currentTeam] < 1;
 				g_msgArgTable[1] = IFMSG_333_FRIENDLY;
 				if (isEnemy)
 					g_msgArgTable[1] = IFMSG_332_ENEMY;
@@ -527,8 +526,8 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 	for (goalIndex = 0; goalIndex < 8; ++goalIndex) {
 		FlightGroupGoal* goal = &g_missionFlightGroups[flightGroupIdx].fg.goals[goalIndex];
 		int eventCondition;
-		int playerIff = (uint16_t)g_players[playerIdx].playerIff;
-		if (goal->enabledTeams[playerIff] == 0 || goal->type != 0 ||
+		int playerIff = (uint16_t)g_players[playerIdx].team;
+		if (goal->enabledTeams[playerIff] == 0 || goal->goalKind != 0 ||
 			g_missionFgStats[flightGroupIdx].goalState[8 * playerIff + goalIndex] != 4)
 			continue;
 		if (goal->amount == GOAL_AMT_ALL_SPECIAL_CARGO) {
@@ -559,7 +558,7 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 				 triggerOffset += sizeof(MissionTrigger)) {
 				unsigned int triggerByteIndex =
 					pairOffset + triggerOffset +
-					sizeof(g_missionGlobalGoals[0]) * (uint16_t)g_players[playerIdx].playerIff;
+					sizeof(g_missionGlobalGoals[0]) * (uint16_t)g_players[playerIdx].team;
 				const uint8_t* globalGoalBytes = (const uint8_t*)g_missionGlobalGoals;
 				int eventCondition = globalGoalBytes[triggerByteIndex + offsetof(MissionTrigger, condition)];
 				if (eventCondition != 10 &&
@@ -584,7 +583,7 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 		}
 	}
 	if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
-		if (inspectFlag != 0 && craft->iffVisibility[(uint16_t)g_players[playerIdx].playerIff] != 0)
+		if (inspectFlag != 0 && craft->iffVisibility[(uint16_t)g_players[playerIdx].team] != 0)
 			inspectFlag = 0;
 		if (captureFlag != 0 || boardedFlag != 0) {
 			if (g_objectTable[targetObjIdx].mobj->speed != 0)
@@ -658,7 +657,7 @@ void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char* outName) {
 	mobileObject = object->mobj;
 	if (mobileObject != NULL) {
 		objectType = object->objectType;
-		if (mobileObject->state == 0) {
+		if (mobileObject->family == 0) {
 			craft = mobileObject->pCraft;
 			flightGroupIdx = object->flightGroupIdx;
 			if (nameMode == 1) {

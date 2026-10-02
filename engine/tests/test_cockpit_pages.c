@@ -96,7 +96,7 @@ static void CheckCaptureLatchExport(void) {
 
 	XVT_ASSERT_INT_EQ(page->row_count, 1);
 	XVT_ASSERT_INT_EQ(store->row_count, 1);
-	const XvtCockpitPageRow* row = &store->rows[page->first_row];
+	const XvtCockpitPageRow* row = &store->rows[page->first_store_row];
 	XVT_ASSERT_INT_EQ(row->key, 7);
 	XVT_ASSERT_INT_EQ(row->selected, 1);
 	XVT_ASSERT_INT_EQ(row->glyph_count, 2);

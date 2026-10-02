@@ -64,7 +64,7 @@ static int XvtFlightNetwork_Acknowledge(int sender, int slot) {
 	return 1;
 }
 
-static void XvtFlightNetwork_Wait(int seconds);
+static void XvtFlightNetwork_SetPacketDeadline(int seconds);
 
 static void XvtFlightNetwork_WriteAgreement(XvtFlightAgreementWire* agreement) {
 	XvtWire_Set32(agreement->schema, XVT_TIMING_SCHEMA);
@@ -95,7 +95,7 @@ static void XvtFlightNetwork_Taunts(void) {
 	}
 	XvtFlightNetwork_SendWire(0, &packet, sizeof packet);
 	g_sync.phase = SYNC_TAUNTS;
-	XvtFlightNetwork_Wait(30);
+	XvtFlightNetwork_SetPacketDeadline(30);
 }
 
 static int XvtFlightNetwork_Finish(int result) {
@@ -112,14 +112,14 @@ static int XvtFlightNetwork_GiveUp(const char* stage) {
 	return XvtFlightNetwork_Finish(0);
 }
 
-static void XvtFlightNetwork_Wait(int seconds) {
+static void XvtFlightNetwork_SetPacketDeadline(int seconds) {
 	g_sync.packet_deadline = XvtTime_GetElapsedUs() / 1000 + (unsigned)seconds * 1000;
 }
 
 static int* XvtFlightNetwork_Poll(int* sender, int* size, int seconds) {
 	int* packet = NetSession_ReceiveGamePacket(sender, size);
 	if (packet)
-		XvtFlightNetwork_Wait(seconds);
+		XvtFlightNetwork_SetPacketDeadline(seconds);
 	return packet;
 }
 
@@ -155,8 +155,8 @@ int XvtFlightNetwork_BeginSession(int players, int in_progress) {
 	XvtNetworkSession_FlightReady();
 	memset(&g_sync, 0, sizeof(g_sync));
 	g_sync.expected = players;
-	XvtFlightNetwork_Wait(60);
-	if (NetSession_GetLocalPlayerId()) {
+	XvtFlightNetwork_SetPacketDeadline(60);
+	if (NetSession_IsLocalHost()) {
 		g_sync.phase = players ? SYNC_HOST_PLAYERS : SYNC_ROSTER_SEND;
 	} else {
 		if (in_progress)
@@ -181,7 +181,7 @@ static void XvtFlightNetwork_SendRosterRecord(void) {
 		XvtFlightNetwork_SendPacket(0, (unsigned*)&g_netSessionScratchPacket, 48);
 		g_sync.packet_type = NET_PACKET_ROSTER_ENTRY;
 	}
-	XvtFlightNetwork_Wait(60);
+	XvtFlightNetwork_SetPacketDeadline(60);
 }
 
 int XvtFlightNetwork_Session(void) {
@@ -254,7 +254,7 @@ static void XvtFlightNetwork_SendOptions(void) {
 	offset += sizeof agreement;
 	XvtFlightNetwork_BroadcastWire(bytes, offset);
 	g_sync.phase = SYNC_OPTIONS_ROSTER;
-	XvtFlightNetwork_Wait(60);
+	XvtFlightNetwork_SetPacketDeadline(60);
 }
 
 static int XvtFlightNetwork_ReadTaunts(int sender, const void* bytes, unsigned size) {
@@ -292,7 +292,7 @@ static int XvtFlightNetwork_ReadRoster(int sender, const void* packet, unsigned 
 		XvtWire_Get32(agreement.profile) != XVT_WIRE_PROFILE_NETWORK_125 || !XvtWire_Get32(agreement.cookie))
 		return 0;
 	g_missionCookie = XvtWire_Get32(agreement.cookie);
-	if (!NetSession_GetLocalPlayerId()) {
+	if (!NetSession_IsLocalHost()) {
 		FlightAlert_RestoreBoxBackground();
 		g_sync.alert = 0;
 		XvtFlightRosterHeader header;
@@ -313,7 +313,7 @@ int XvtFlightNetwork_Options(void) {
 	int sender, size;
 	int* packet;
 	if (!g_sync.phase) {
-		if (NetSession_GetLocalPlayerId() && !XvtFlightNetwork_BeginAgreement())
+		if (NetSession_IsLocalHost() && !XvtFlightNetwork_BeginAgreement())
 			return 0;
 		if (g_activeFlightPlayerCount <= 1) {
 			g_players[0].network.flightResolutionMode = g_flightResolutionMode;
@@ -321,7 +321,7 @@ int XvtFlightNetwork_Options(void) {
 			memcpy(g_playerTauntText, g_gameConfig.taunts, sizeof(g_gameConfig.taunts));
 			return 1;
 		}
-		if (NetSession_GetLocalPlayerId()) {
+		if (NetSession_IsLocalHost()) {
 			for (int i = 0; i < g_activeFlightPlayerCount; ++i) {
 				g_players[i].network.flightResolutionMode = FLIGHT_RESOLUTION_320X240;
 				g_players[i].pilotRating = 0;
@@ -340,7 +340,7 @@ int XvtFlightNetwork_Options(void) {
 			g_sync.phase = SYNC_OPTIONS_ROSTER;
 		}
 		XvtFlightNetwork_Alert();
-		XvtFlightNetwork_Wait(60);
+		XvtFlightNetwork_SetPacketDeadline(60);
 	}
 	if (g_sync.phase == SYNC_OPTIONS_HOST && g_sync.count >= NetSession_CountActivePlayers() - 1) {
 		FlightAlert_RestoreBoxBackground();
@@ -380,25 +380,25 @@ int XvtFlightNetwork_Start(void) {
 	int* packet;
 	if (!g_sync.phase) {
 		FlightNet_InitMissionStartAckState();
-		dtMs = XVT_WORLD_MESSAGE_TICKS;
-		g_flightNetWorldChecksumResetAccumMs = 0;
+		g_netUpdateIntervalTicks = XVT_WORLD_MESSAGE_TICKS;
+		g_flightNetWorldChecksumResetAccumTicks = 0;
 		memset(g_flightNetPeerSilenceTicks, 0, sizeof(g_flightNetPeerSilenceTicks));
 		g_flightNetResyncPlayerDplayId = 0;
 		g_flightNetPendingAckCount = g_flightNetClockAdjustAccumTicks = 0;
-		g_flightNetHostTimeoutElapsedMs = 0;
+		g_flightNetHostTimeoutElapsedTicks = 0;
 		if (g_activeFlightPlayerCount == 1) {
 			g_serverTickTime = g_gameTime = 0;
-			g_inputTimestamp = g_flightNetClockLeadAllowanceMs = 30;
-			Time_GetFrameDelta();
+			g_inputTimestamp = g_flightNetClockLeadTicks = 30;
+			Time_ConsumeElapsedTicks();
 			return 1;
 		}
 		g_sync.expected = NetSession_CountActivePlayers();
 		g_flightNetScratchPacket.packetType = NET_PACKET_MISSION_LOADING_READY;
 		XvtFlightNetwork_SendPacket(NetSession_GetHostDplayId(), (unsigned*)&g_flightNetScratchPacket, 4);
-		g_sync.phase = NetSession_GetLocalPlayerId() ? SYNC_START_HOST : SYNC_START_PACKET;
+		g_sync.phase = NetSession_IsLocalHost() ? SYNC_START_HOST : SYNC_START_PACKET;
 		if (g_sync.phase == SYNC_START_PACKET)
 			XvtFlightNetwork_Alert();
-		XvtFlightNetwork_Wait(60);
+		XvtFlightNetwork_SetPacketDeadline(60);
 	}
 	if (g_sync.phase == SYNC_START_HOST && g_sync.count >= g_sync.expected) {
 		g_flightNetScratchPacket.packetType = NET_PACKET_FLIGHT_MISSION_START;
@@ -408,15 +408,15 @@ int XvtFlightNetwork_Start(void) {
 	}
 	if (g_sync.phase == SYNC_START_ACKS) {
 		FlightNet_ProcessIncomingPackets();
-		g_inputTimestamp += Time_GetFrameDelta();
+		g_inputTimestamp += Time_ConsumeElapsedTicks();
 		if (g_flightNetPendingAckCount && (unsigned)g_inputTimestamp < 100)
 			return XVT_FLIGHT_NETWORK_PENDING;
 		g_flightNetPendingAckCount = 0;
-		g_inputTimestamp += Time_GetFrameDelta();
-		g_flightNetClockLeadAllowanceMs = g_inputTimestamp;
+		g_inputTimestamp += Time_ConsumeElapsedTicks();
+		g_flightNetClockLeadTicks = g_inputTimestamp;
 		if (g_inputTimestamp < 35) {
 			int adjustment = 35 - g_inputTimestamp;
-			g_flightNetClockLeadAllowanceMs += adjustment;
+			g_flightNetClockLeadTicks += adjustment;
 			g_inputTimestamp += adjustment;
 			g_flightNetClockAdjustAccumTicks -= adjustment;
 		}
@@ -437,10 +437,10 @@ int XvtFlightNetwork_Start(void) {
 			g_sync.alert = 0;
 			g_flightNetScratchPacket.packetType = NET_PACKET_ACK;
 			XvtFlightNetwork_SendPacket(NetSession_GetHostDplayId(), (unsigned*)&g_flightNetScratchPacket, 4);
-			Time_GetFrameDelta();
+			Time_ConsumeElapsedTicks();
 			g_serverTickTime = g_gameTime = g_inputTimestamp = 0;
-			g_flightNetClockLeadAllowanceMs = g_asyncFlag ? 130 : 30;
-			if (!NetSession_GetLocalPlayerId())
+			g_flightNetClockLeadTicks = g_asyncFlag ? 130 : 30;
+			if (!NetSession_IsLocalHost())
 				return XvtFlightNetwork_Finish(1);
 			g_flightNetPendingAckCount = g_sync.expected == 1 ? 1 : 2;
 			FlightNet_InitMissionStartAckState();
@@ -601,7 +601,7 @@ void XvtFlightNetwork_RequestRecovery(void) {
 	g_io.recovery = 1;
 }
 
-void XvtFlightNetwork_BeginRecovery(void) { g_io.recovery = 0; }
+void XvtFlightNetwork_ClearRecoveryRequest(void) { g_io.recovery = 0; }
 
 void XvtFlightNetwork_Recovered(void) {
 	g_io.recovery = 0;
@@ -736,9 +736,9 @@ void XvtFlightNetwork_SendWorld(void) {
 	}
 	if (!message->mask)
 		return;
-	g_flightNetWorldChecksumResetAccumMs += XVT_WORLD_MESSAGE_TICKS;
-	if (g_flightNetWorldChecksumResetAccumMs > XVT_WORLD_CHECKSUM_TICKS) {
-		g_flightNetWorldChecksumResetAccumMs = 0;
+	g_flightNetWorldChecksumResetAccumTicks += XVT_WORLD_MESSAGE_TICKS;
+	if (g_flightNetWorldChecksumResetAccumTicks > XVT_WORLD_CHECKSUM_TICKS) {
+		g_flightNetWorldChecksumResetAccumTicks = 0;
 		message->target_flags |= XVT_WORLD_CHECKSUM_FLAG;
 		memset(g_flightNetWorldChecksumPeerStatus, 0, sizeof g_flightNetWorldChecksumPeerStatus);
 	}
@@ -792,7 +792,7 @@ int XvtFlightNetwork_Receive(int sender, const uint8_t* bytes, size_t size) {
 		int player = NetSession_FindPlayerSlotByDpid(sender);
 		if ((unsigned)player >= XVT_FLIGHT_PLAYERS || player == g_localPlayer ||
 			!g_players[player].connectedFlag ||
-			!XvtFlightMessages_DecodeBatch(bytes, size, XvtFlightNetwork_Cookie())) {
+			!XvtFlightMessages_ValidateBatch(bytes, size, XvtFlightNetwork_Cookie())) {
 			XVT_LOG_DEBUG("network.batch_dropped slot=%d reason=\"invalid\"", player);
 			return 1;
 		}
@@ -834,7 +834,7 @@ int XvtFlightNetwork_Receive(int sender, const uint8_t* bytes, size_t size) {
 	}
 	if (result == 1) {
 		if ((message.mask & ~XvtFlightCheckpoint_InitialMask()) ||
-			!XvtFlightMessages_Enqueue(&message, XvtResync_IsActive() && !NetSession_GetLocalPlayerId()
+			!XvtFlightMessages_Enqueue(&message, XvtResync_IsActive() && !NetSession_IsLocalHost()
 													 ? XVT_QUEUE_REPLAY
 													 : XVT_QUEUE_PENDING)) {
 			XVT_LOG_DEBUG("network.world_rejected reason=\"%s\"",
@@ -843,8 +843,8 @@ int XvtFlightNetwork_Receive(int sender, const uint8_t* bytes, size_t size) {
 		} else {
 			XVT_LOG_DEBUG("network.world_received tick=%u mask=%02x records=%u queue=\"%s\"",
 						  (unsigned)(message.target_flags & INT32_MAX), message.mask, message.count,
-						  XvtResync_IsActive() && !NetSession_GetLocalPlayerId() ? "replay" : "pending");
-			g_flightNetHostTimeoutElapsedMs = 0;
+						  XvtResync_IsActive() && !NetSession_IsLocalHost() ? "replay" : "pending");
+			g_flightNetHostTimeoutElapsedTicks = 0;
 			++g_flightNetReceivedWorldMessageCount;
 		}
 	}
@@ -855,7 +855,7 @@ int XvtFlightNetwork_PlayerAbort(unsigned player) {
 	if (player >= XVT_FLIGHT_PLAYERS)
 		return 0;
 	XVT_LOG_INFO("network.player_left slot=%u local=%d", player, player == (unsigned)g_localPlayer);
-	if (NetSession_GetLocalPlayerId())
+	if (NetSession_IsLocalHost())
 		g_io.departures |= 1u << player;
 	return player != (unsigned)g_localPlayer;
 }
@@ -870,7 +870,7 @@ uint64_t XvtFlightNetwork_NextWakeDelayUs(int now) {
 	return XvtFlightTime_DelayForTicks(XVT_WORLD_MESSAGE_TICKS);
 }
 
-int XvtFlightNetwork_ShouldSend(int inputTimestamp) {
+int XvtFlightNetwork_TakeWorldSendTurn(int inputTimestamp) {
 	int interval = XVT_WORLD_MESSAGE_TICKS;
 	if (XvtFlightNetwork_Outgoing() || XvtFlightNetwork_NeedsRecovery() || XvtResync_HasStateRequest() ||
 		!XvtFlightMessages_HasRoom(XVT_QUEUE_PENDING, sizeof(XvtFlightMessage)))
@@ -878,14 +878,14 @@ int XvtFlightNetwork_ShouldSend(int inputTimestamp) {
 	if (g_flightNetPendingAckCount)
 		return 0;
 	int adjusted = inputTimestamp + g_flightNetClockAdjustAccumTicks;
-	if (!g_flightNetNextClientInputSendTimestamp)
-		g_flightNetNextClientInputSendTimestamp =
-			adjusted + (g_flightNetClockLeadAllowanceMs >> XVT_WORLD_START_LEAD_SHIFT);
-	int elapsed = adjusted - g_flightNetNextClientInputSendTimestamp;
+	if (!g_flightNetNextWorldMessageTimestamp)
+		g_flightNetNextWorldMessageTimestamp =
+			adjusted + (g_flightNetClockLeadTicks >> XVT_WORLD_START_LEAD_SHIFT);
+	int elapsed = adjusted - g_flightNetNextWorldMessageTimestamp;
 	if (elapsed < interval)
 		return 0;
 	if (elapsed > XVT_WORLD_LATE_INTERVALS * interval) {
-		g_flightNetNextClientInputSendTimestamp += interval;
+		g_flightNetNextWorldMessageTimestamp += interval;
 		return 1;
 	}
 	int oldest = INT32_MAX;
@@ -902,7 +902,7 @@ int XvtFlightNetwork_ShouldSend(int inputTimestamp) {
 	}
 	if (g_flightNetLastSentWorldMessageTimestamp + interval >= oldest)
 		return 0;
-	g_flightNetNextClientInputSendTimestamp += interval;
+	g_flightNetNextWorldMessageTimestamp += interval;
 	return 1;
 }
 

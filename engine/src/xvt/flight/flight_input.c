@@ -203,10 +203,10 @@ void FlightInput_ClearButtonsAndDebounce(void) {
 				mouseButtons = g_mouseButtons;
 			}
 			clearTicks = 0;
-			Time_GetFrameDelta();
+			Time_ConsumeElapsedTicks();
 		}
 		FlightInput_ReadAndApplyFlightDeadzone(-2);
-		clearTicks += Time_GetFrameDelta();
+		clearTicks += Time_ConsumeElapsedTicks();
 		mouseButtons = g_mouseButtons;
 		keyMods = g_keyMods;
 	} while (clearTicks < 2);

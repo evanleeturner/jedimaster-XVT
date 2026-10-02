@@ -103,7 +103,7 @@ void XvtNetworkDialogs_Failed(AeronDplayDirectoryError error, int host) {
 		XvtNetworkDialogs_Return(host);
 }
 
-int XvtNetworkDialogs_AdmissionFailed(void) {
+int XvtNetworkDialogs_ReportAdmissionFailure(void) {
 	XvtNetworkSessionStatus status = XvtNetworkSession_GetStatus();
 	if (status.state != XVT_NETWORK_SESSION_FAILED)
 		return 0;

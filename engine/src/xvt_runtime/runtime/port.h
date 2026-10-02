@@ -42,7 +42,7 @@ int XvtPort_NetworkRequiresProgress(void);
 /* 1 when not initialized or on a fatal error. The first call after Aeron or the frontend asks to
  * quit starts quitting: it shuts down the network task and the DirectPlay session. Once quitting,
  * returns 1 when DirectPlay is no longer active. */
-int XvtPort_ShouldQuit(void);
+int XvtPort_ServiceQuit(void);
 /* 1 after a fatal error, otherwise the exit code set by Init (0 or 1). */
 int XvtPort_GetExitCode(void);
 /* Relative to Aeron_BeginFrame, UINT64_MAX when no task has a deadline. */

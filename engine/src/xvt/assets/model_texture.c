@@ -13,7 +13,7 @@
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40DD40
-int ModelTexture_IsHardwareFormat555(void) { return g_pFmtRGB565->colorInfo.greenBPP == 5; }
+int ModelTexture_IsHardwareFormat555(void) { return g_pFmtOpaqueTexture->colorInfo.greenBPP == 5; }
 
 // FUNCTION: XVT 0x40DD50
 void ModelTexture_FilterHardwarePalette(uint16_t* palette) {

@@ -114,7 +114,7 @@ void XvtSettingsMenu_SetPage(int page, XvtSettingsPageFn draw) {
 		g_menu.pages[page] = draw;
 }
 
-bool XvtSettingsMenu_Open(void) { return g_menu.open; }
+bool XvtSettingsMenu_IsOpen(void) { return g_menu.open; }
 
 bool XvtSettingsMenu_CapturesKeyboard(void) {
 	return g_menu.open && AeronUi_KeyboardCaptureActive(g_menu.ui);

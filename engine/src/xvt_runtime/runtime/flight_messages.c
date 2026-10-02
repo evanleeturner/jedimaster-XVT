@@ -40,7 +40,7 @@ size_t XvtFlightMessages_EncodeBatch(uint8_t* out, uint32_t cookie, const XvtFli
 	return sizeof header + count * sizeof *records;
 }
 
-int XvtFlightMessages_DecodeBatch(const uint8_t* bytes, size_t size, uint32_t cookie) {
+int XvtFlightMessages_ValidateBatch(const uint8_t* bytes, size_t size, uint32_t cookie) {
 	XvtFlightBatchHeader header;
 	if (size < sizeof header)
 		return 0;

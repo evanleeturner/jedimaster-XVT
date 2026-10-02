@@ -54,7 +54,7 @@ typedef struct NetSessionState {
 	GUID appGuid;
 	GUID instanceGuid;
 	int groupDplayId;
-	int localPlayerId;
+	int localIsHost;
 	int hostDplayId;
 	int playerCount;
 	int receivePumpState;
@@ -115,7 +115,7 @@ SessionPlayerInfo* NetSession_GetPlayerRoster(int* outCount);
 SessionPlayerInfo* NetSession_GetLocalPlayerInfo(void);
 int NetSession_SetPlayerRoster(const SessionPlayerInfo* players, int playerCount);
 int NetSession_GetPlayerCount(void);
-int NetSession_GetLocalPlayerId(void);
+int NetSession_IsLocalHost(void);
 int* NetSession_ReceiveGamePacket(int* outSenderDpid, int* outPayloadSize);
 int NetSession_HandleHandshakePacket(int packetOpcode, int* packet);
 void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize);

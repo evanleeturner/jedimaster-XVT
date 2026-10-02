@@ -224,7 +224,7 @@ int Concourse_Update(int frameCounter) {
 			FrontImage_LoadResourceList("frontres\\icons.lst");
 			FrontendSound_LoadList("sfx\\sfx.lst");
 			FrontendDisplay_ClearBackBuffer();
-			Frontend_MarkHostCdAvailable();
+			Frontend_CheckHostCdPresent();
 #ifndef XVT_MODERN
 			if (g_skipMovieChecks == 0 && g_optIsHost == 0 && g_optIsClient == 0) {
 				if (g_pilotData.factionStatistics[0].cdMovieCheckCounter == 0) {
@@ -294,10 +294,10 @@ int Concourse_Update(int frameCounter) {
 			memset(g_frontendChatLogBuffer, 0, CONCOURSE_CHAT_LOG_BUFFER_SIZE);
 			g_frontendChatLogUsedBytes = 0;
 		}
-		g_unusedFrontendConcourseHostLatch = 1;
+		g_configConnectionTypeEditable = 1;
 		g_skipFrontendEntryMovie = 0;
 		g_frontendQuickStartLaunchFlag = 0;
-		g_frontendSinglePlayerFlightSessionActive = 0;
+		g_frontendGameSessionInProgress = 0;
 		if (g_optSkipIntro != 0) {
 			g_pilotData.team = g_pilotData.factionStatistics[g_pilotData.currentFactionId].team;
 			g_pilotData.missionDirectoryId =
@@ -393,7 +393,7 @@ int Concourse_Update(int frameCounter) {
 		FrontImage_RegisterResourceDefault("frontres\\reg0.bmp", "background0");
 		FrontImage_RegisterResourceDefault("frontres\\reg1.bmp", "background1");
 		PilotRecord_RedrawBackground();
-		FrontendText_ResetGlyphScratchBuffer(CONCOURSE_GLYPH_SCRATCH_FRAMES);
+		FrontendText_StartTextFadeIn(CONCOURSE_GLYPH_SCRATCH_FRAMES);
 	}
 
 	PilotRecord_UpdatePilotSelectionPanel(frameCounter);
@@ -407,7 +407,7 @@ int Concourse_Update(int frameCounter) {
 	FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
 	if (g_pilotData.name[0] != '\0') {
 		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
-		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorLightBlue);
+		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
 		if (g_pilotData.currentFactionId == 0) {
 			sprintf(g_frontendScratchBuffer, "rebtiny%d",
 					(frameCounter % CONCOURSE_ANIMATION_FRAME_COUNT) >> 1);

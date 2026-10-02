@@ -156,7 +156,7 @@ static void CheckEntryFollowsObject(void) {
 	XVT_ASSERT_INT_EQ(Probe(1, XVT_INTEGRATE_PITCH), 0);
 
 	Seed(2, XVT_INTEGRATE_PITCH);
-	g_testMobiles[2].state = 3;
+	g_testMobiles[2].family = 3;
 	XVT_ASSERT_INT_EQ(Probe(2, XVT_INTEGRATE_PITCH), 0);
 
 	/* The same object keeps its carry. */
@@ -443,10 +443,10 @@ static void CheckEncodeEmpty(void) {
 	XvtFlightIntegration_Encode(2, &out);
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
 	g_testObjects[2].objectType = 1;
-	g_testMobiles[2].state = 9;
+	g_testMobiles[2].family = 9;
 	XvtFlightIntegration_Encode(2, &out);
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
-	g_testMobiles[2].state = 0;
+	g_testMobiles[2].family = 0;
 	XvtFlightIntegration_Encode(2, &out);
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &record));
 

@@ -159,7 +159,7 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 			craft = mobileObject->pCraft;
 			if ((g_paiContext.requireLiveOrderTarget == 0 ||
 				 (craft->workingSubsystems != 0 &&
-				  (g_paiContext.requireLiveOrderTarget == 0 || craft->wasCaptured == 0 ||
+				  (g_paiContext.requireLiveOrderTarget == 0 || craft->capturedByFlightGroup == 0 ||
 				   g_objectTable[g_paiContext.objectIndex].mobj->team !=
 					   g_objectTable[objectArrayIndex].mobj->team))) &&
 				((g_paiContext.targetSearchFlags & TARGET_SEARCH_REQUIRE_ORDER_RANGE) == 0 ||
@@ -229,7 +229,7 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 			craft = mobileObject->pCraft;
 			if ((g_paiContext.requireLiveOrderTarget == 0 ||
 				 (craft->workingSubsystems != 0 &&
-				  (g_paiContext.requireLiveOrderTarget == 0 || craft->wasCaptured == 0 ||
+				  (g_paiContext.requireLiveOrderTarget == 0 || craft->capturedByFlightGroup == 0 ||
 				   g_objectTable[g_paiContext.objectIndex].mobj->team !=
 					   g_objectTable[objectArrayIndex].mobj->team))) &&
 				((g_paiContext.targetSearchFlags & TARGET_SEARCH_REQUIRE_ORDER_RANGE) == 0 ||
@@ -237,17 +237,17 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 				((g_paiContext.targetSearchFlags & TARGET_SEARCH_REQUIRE_CAPACITY) == 0 ||
 				 paifight_TargetHasAttackCapacity(objectIndex, (uint16_t)candidateCount))) {
 				if ((g_paiContext.targetSearchFlags & TARGET_SEARCH_USE_ORIGIN) != 0) {
-					g_targetRangeScore = collide_roughdistance3d(
+					g_lastRoughDistance = collide_roughdistance3d(
 						g_objectTable[objectArrayIndex].world_x - g_paiContext.targetSearchOriginX,
 						g_objectTable[objectArrayIndex].world_y - g_paiContext.targetSearchOriginY,
 						g_objectTable[objectArrayIndex].world_z - g_paiContext.targetSearchOriginZ);
 				} else {
 					pai_ObjectRefUpdateApproxRangeScore(g_paiContext.objectIndex, objectIndex);
 				}
-				if ((g_targetRangeScore <= ACTIVE_DECOY_IGNORE_RANGE ||
+				if ((g_lastRoughDistance <= ACTIVE_DECOY_IGNORE_RANGE ||
 					 Object_HasActiveDecoyBeam(objectIndex) != 1) &&
-					bestScore > (unsigned int)g_targetRangeScore) {
-					bestScore = g_targetRangeScore;
+					bestScore > (unsigned int)g_lastRoughDistance) {
+					bestScore = g_lastRoughDistance;
 					bestObject = objectIndex;
 				}
 			}
@@ -282,8 +282,8 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 				((g_paiContext.targetSearchFlags & TARGET_SEARCH_REQUIRE_CAPACITY) == 0 ||
 				 paifight_TargetHasAttackCapacity(objectIndex, (uint16_t)candidateCount))) {
 				pai_ObjectRefUpdateApproxRangeScore(g_paiContext.objectIndex, objectIndex);
-				if (bestScore > (unsigned int)g_targetRangeScore) {
-					bestScore = g_targetRangeScore;
+				if (bestScore > (unsigned int)g_lastRoughDistance) {
+					bestScore = g_lastRoughDistance;
 					bestObject = objectIndex;
 				}
 			}
@@ -298,14 +298,14 @@ int16_t paifight_FindEscortLeaderTargetFromOrder(uint16_t orderSlot) {
 	int16_t result;
 
 	orderIndex = orderSlot;
-	result = paifight_FindNearestEscortLeaderTarget(
+	result = paifight_TargetNearestEscortLeader(
 		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1Type,
 		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1,
 		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
 		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target2Type,
 		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target2);
 	if (result == -1) {
-		result = paifight_FindNearestEscortLeaderTarget(
+		result = paifight_TargetNearestEscortLeader(
 			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[0],
@@ -324,9 +324,8 @@ int16_t paifight_FindEscortLeaderTargetFromOrder(uint16_t orderSlot) {
 }
 
 // FUNCTION: XVT 0x45D2B0
-int16_t paifight_FindNearestEscortLeaderTarget(int16_t target1Type, uint16_t target1,
-											   int16_t targetRelationOp, int16_t target2Type,
-											   uint16_t target2) {
+int16_t paifight_TargetNearestEscortLeader(int16_t target1Type, uint16_t target1, int16_t targetRelationOp,
+										   int16_t target2Type, uint16_t target2) {
 	uint16_t flightGroupIdx;
 	uint16_t bestObjectIndex;
 	unsigned int bestRangeScore;
@@ -365,9 +364,9 @@ int16_t paifight_FindNearestEscortLeaderTarget(int16_t target1Type, uint16_t tar
 								((g_paiContext.targetSearchFlags & 1) == 0 ||
 								 paifight_TargetHasAttackCapacity(objectIndex, UINT8_MAX))) {
 								pai_ObjectRefUpdateApproxRangeScore(g_paiContext.objectIndex, objectIndex);
-								if (bestRangeScore > (unsigned int)g_targetRangeScore) {
+								if (bestRangeScore > (unsigned int)g_lastRoughDistance) {
 									bestObjectIndex = objectIndex;
-									bestRangeScore = g_targetRangeScore;
+									bestRangeScore = g_lastRoughDistance;
 								}
 							}
 						}
@@ -496,7 +495,7 @@ int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type, uint16
 										((g_paiContext.targetSearchFlags & 1) == 0 ||
 										 paifight_TargetHasAttackCapacity(objectIndex, UINT8_MAX))) {
 										if ((g_paiContext.targetSearchFlags & 0x20) != 0) {
-											g_targetRangeScore =
+											g_lastRoughDistance =
 												collide_roughdistance3d(g_objectTable[objectIndex].world_x -
 																			g_paiContext.targetSearchOriginX,
 																		g_objectTable[objectIndex].world_y -
@@ -509,7 +508,7 @@ int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type, uint16
 										}
 
 										if ((g_paiContext.targetSearchFlags & 0x10) != 0) {
-											if (g_targetRangeScore > AI_TARGET_RANGE_MAX) {
+											if (g_lastRoughDistance > AI_TARGET_RANGE_MAX) {
 												validTarget = 0;
 											} else {
 												int objectTeam;
@@ -530,9 +529,9 @@ int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type, uint16
 										}
 
 										if (validTarget != 0 &&
-											(unsigned int)g_targetRangeScore < bestRangeScore) {
+											(unsigned int)g_lastRoughDistance < bestRangeScore) {
 											bestObjectIndex = objectIndex;
-											bestRangeScore = g_targetRangeScore;
+											bestRangeScore = g_lastRoughDistance;
 										}
 									}
 								}
@@ -733,7 +732,7 @@ int16_t paifight_CountRemainingOrderTargets(int16_t target1Type, uint16_t target
 						craft = mobileObject->pCraft;
 						if (g_paiContext.requireLiveOrderTarget == 0 ||
 							(craft->workingSubsystems != 0 &&
-							 (g_paiContext.requireLiveOrderTarget == 0 || craft->wasCaptured == 0 ||
+							 (g_paiContext.requireLiveOrderTarget == 0 || craft->capturedByFlightGroup == 0 ||
 							  g_objectTable[g_paiContext.objectIndex].mobj->team != mobileObject->team))) {
 							++targetCount;
 						}
@@ -817,10 +816,10 @@ int16_t paifight_escorttargetorder(void) {
 				}
 				if (targetsEscortFlightGroup != 0 && paifight_TargetHasAttackCapacity(scanObjIdx, 0xFF)) {
 					pai_ObjectRefUpdateApproxRangeScore(sourceObjIdx, scanObjIdx);
-					if (bestRangeScore > (unsigned int)g_targetRangeScore) {
-						if (g_targetRangeScore < 0x40000) {
+					if (bestRangeScore > (unsigned int)g_lastRoughDistance) {
+						if (g_lastRoughDistance < 0x40000) {
 							bestTargetObjIdx = scanObjIdx;
-							bestRangeScore = g_targetRangeScore;
+							bestRangeScore = g_lastRoughDistance;
 						}
 					}
 				}
@@ -1143,8 +1142,8 @@ int16_t paifight_fightershootorder(void) {
 																  .warheadLauncherFirstSlot[launcherIndex];
 											g_curCraft->warheadLauncherFlags[launcherIndex] =
 												NORMAL_LAUNCHER_FLAGS;
-											if (g_curCraft->weaponSlots[weaponSlotIndex].count <
-												g_curCraft->weaponSlots[weaponSlotIndex + 1].count)
+											if (g_curCraft->weaponSlots[weaponSlotIndex].ammoCount <
+												g_curCraft->weaponSlots[weaponSlotIndex + 1].ammoCount)
 												g_curCraft->warheadLauncherFlags[launcherIndex] =
 													(int8_t)IMBALANCED_LAUNCHER_FLAGS;
 										}
@@ -1262,7 +1261,7 @@ int16_t paifight_missiledefenseorder(void) {
 			if (g_curCraft->componentState[meshIndex] == 0) {
 				if ((g_curCraft->weaponSlots[weaponSlotIndex].projectileTypeId == 0x90 ||
 					 g_curCraft->weaponSlots[weaponSlotIndex].projectileTypeId == 0x95) &&
-					g_curCraft->weaponSlots[weaponSlotIndex].count != 0) {
+					g_curCraft->weaponSlots[weaponSlotIndex].ammoCount != 0) {
 					if (g_curCraft->weaponSlots[weaponSlotIndex].missileDefenseCooldown != 0) {
 						--g_curCraft->weaponSlots[weaponSlotIndex].missileDefenseCooldown;
 					} else {
@@ -1323,7 +1322,7 @@ int16_t paifight_missiledefenseorder(void) {
 							range = collide_roughdistance3d(projectile->world_x - g_paifightSearchOriginX,
 															projectile->world_y - g_paifightSearchOriginY,
 															projectile->world_z - g_paifightSearchOriginZ);
-							g_targetRangeScore = range;
+							g_lastRoughDistance = range;
 							if (range > 0x4000) {
 								if ((unsigned int)range < bestRange) {
 									selectedTarget = candidateIndex;
@@ -1401,7 +1400,7 @@ int16_t paifight_missiledefenseorder(void) {
 									g_objectTable[candidateIndex].world_x - g_paifightSearchOriginX,
 									g_objectTable[candidateIndex].world_y - g_paifightSearchOriginY,
 									g_objectTable[candidateIndex].world_z - g_paifightSearchOriginZ);
-								g_targetRangeScore = range;
+								g_lastRoughDistance = range;
 								if (range < bestRange) {
 									selectedTarget = candidateIndex;
 									bestRange = range;
@@ -1471,7 +1470,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 				continue;
 
 			turretState->targetObjIdx = UINT16_MAX;
-			g_curCraft->weaponSlots[weaponSlotIndex].count = 0;
+			g_curCraft->weaponSlots[weaponSlotIndex].ammoCount = 0;
 			if (g_curCraft->objectKind == CRAFT_OBJECT_KIND_BREAKING_UP ||
 				g_curCraft->workingSubsystems == 0 || g_curCraft->weaponFireInhibitTimer != 0)
 				continue;
@@ -1506,7 +1505,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 				unsigned int maxRangeScore;
 				int clearSweep;
 
-				g_targetRangeScore = collide_roughdistance3d(
+				g_lastRoughDistance = collide_roughdistance3d(
 					g_objectTable[lastAttackerObjIdx].world_x - g_paifightSearchOriginX,
 					g_objectTable[lastAttackerObjIdx].world_y - g_paifightSearchOriginY,
 					g_objectTable[lastAttackerObjIdx].world_z - g_paifightSearchOriginZ);
@@ -1514,7 +1513,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 				if (expandedProbe)
 					maxRangeScore +=
 						g_modelTypeTable[g_objectTable[g_paiContext.objectIndex].objectType].maxBoundsExtent;
-				if ((unsigned int)g_targetRangeScore >= maxRangeScore) {
+				if ((unsigned int)g_lastRoughDistance >= maxRangeScore) {
 					searchForTarget = 1;
 				} else {
 					clearSweep = 1;
@@ -1594,7 +1593,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 					if (candidateValid == 0)
 						continue;
 
-					g_targetRangeScore =
+					g_lastRoughDistance =
 						collide_roughdistance3d(candidateObject->world_x - g_paifightSearchOriginX,
 												candidateObject->world_y - g_paifightSearchOriginY,
 												candidateObject->world_z - g_paifightSearchOriginZ);
@@ -1603,10 +1602,10 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 
 						for (turretIndex = 0; turretIndex < g_curCraft->laserSlotCount; ++turretIndex) {
 							if (g_curCraft->turretTargetStates[turretIndex].targetObjIdx == candidateObjIdx)
-								g_targetRangeScore += AI_TURRET_TARGET_PENALTY;
+								g_lastRoughDistance += AI_TURRET_TARGET_PENALTY;
 						}
 					}
-					if ((unsigned int)g_targetRangeScore >= bestRangeScore)
+					if ((unsigned int)g_lastRoughDistance >= bestRangeScore)
 						continue;
 
 					clearSweep = 1;
@@ -1620,7 +1619,7 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 					}
 					if (clearSweep) {
 						bestTargetObjIdx = (int16_t)candidateObjIdx;
-						bestRangeScore = (unsigned int)g_targetRangeScore;
+						bestRangeScore = (unsigned int)g_lastRoughDistance;
 					}
 				}
 
@@ -1818,7 +1817,7 @@ int16_t paifight_gunneroffenseorder(void) {
 			g_collisionSegmentStartWorldZ = g_paifightSearchOriginZ;
 		}
 
-		g_curCraft->weaponSlots[weaponSlotIndex].count = 0;
+		g_curCraft->weaponSlots[weaponSlotIndex].ammoCount = 0;
 		if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipprotectpln") == 0 ||
 			strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipescortpln") == 0) {
 			targetObjectIndex = paifight_FindAttackerOfOrderTargetFromOrder(g_paiContext.orderSlot);
@@ -1850,7 +1849,7 @@ int16_t paifight_gunneroffenseorder(void) {
 			turretState->retargetCooldownTimer += SIMULATION_TICKS_PER_SECOND;
 			if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipdisablepln") == 0 ||
 				strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "disableldr1pln") == 0)
-				g_curCraft->weaponSlots[weaponSlotIndex].count = 1;
+				g_curCraft->weaponSlots[weaponSlotIndex].ammoCount = 1;
 		} else {
 			targetObjectIndex = paifight_FindNearestGunnerTargetInCandidateSet(
 				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
@@ -1875,7 +1874,7 @@ int16_t paifight_gunneroffenseorder(void) {
 				if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "starshipdisablepln") ==
 						0 ||
 					strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "disableldr1pln") == 0) {
-					g_curCraft->weaponSlots[weaponSlotIndex].count = 1;
+					g_curCraft->weaponSlots[weaponSlotIndex].ammoCount = 1;
 				}
 			}
 		}
@@ -1915,7 +1914,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 			continue;
 
 		objectArrayIndex = objectIndex;
-		g_targetRangeScore =
+		g_lastRoughDistance =
 			collide_roughdistance3d(g_objectTable[objectArrayIndex].world_x - g_paifightSearchOriginX,
 									g_objectTable[objectArrayIndex].world_y - g_paifightSearchOriginY,
 									g_objectTable[objectArrayIndex].world_z - g_paifightSearchOriginZ);
@@ -1924,10 +1923,10 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 
 			for (turretIndex = 0; turretIndex < g_curCraft->laserSlotCount; ++turretIndex) {
 				if (g_curCraft->turretTargetStates[turretIndex].targetObjIdx == objectIndex)
-					g_targetRangeScore += AI_TURRET_TARGET_PENALTY;
+					g_lastRoughDistance += AI_TURRET_TARGET_PENALTY;
 			}
 		}
-		if ((unsigned int)g_targetRangeScore >= bestRangeScore)
+		if ((unsigned int)g_lastRoughDistance >= bestRangeScore)
 			continue;
 
 		if (expandedProbe) {
@@ -1942,7 +1941,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 		}
 		if (clearSweep) {
 			bestObjectIndex = objectIndex;
-			bestRangeScore = (unsigned int)g_targetRangeScore;
+			bestRangeScore = (unsigned int)g_lastRoughDistance;
 		}
 	}
 
@@ -1978,18 +1977,18 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 				continue;
 
 			Mission_ResolveObjectOrMissionPointWorldLoc(staticObjectIndex, 0);
-			g_targetRangeScore = collide_roughdistance3d(worldlocx - g_paifightSearchOriginX,
-														 worldlocy - g_paifightSearchOriginY,
-														 worldlocz - g_paifightSearchOriginZ);
+			g_lastRoughDistance = collide_roughdistance3d(worldlocx - g_paifightSearchOriginX,
+														  worldlocy - g_paifightSearchOriginY,
+														  worldlocz - g_paifightSearchOriginZ);
 			if (expandedProbe) {
 				int turretIndex;
 
 				for (turretIndex = 0; turretIndex < g_curCraft->laserSlotCount; ++turretIndex) {
 					if (g_curCraft->turretTargetStates[turretIndex].targetObjIdx == staticObjectIndex)
-						g_targetRangeScore += AI_TURRET_TARGET_PENALTY;
+						g_lastRoughDistance += AI_TURRET_TARGET_PENALTY;
 				}
 			}
-			if ((unsigned int)g_targetRangeScore >= bestRangeScore)
+			if ((unsigned int)g_lastRoughDistance >= bestRangeScore)
 				continue;
 
 			if (expandedProbe) {
@@ -2004,7 +2003,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 			}
 			if (clearSweep) {
 				bestObjectIndex = staticObjectIndex;
-				bestRangeScore = (unsigned int)g_targetRangeScore;
+				bestRangeScore = (unsigned int)g_lastRoughDistance;
 			}
 		}
 	}
@@ -2036,11 +2035,11 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 			if (!enemy && (sourceMobile->speed == 0 || (blocker->genusId != CRAFT_GENUS_STARFIGHTER &&
 														blocker->genusId != CRAFT_GENUS_TRANSPORT &&
 														blocker->genusId != CRAFT_GENUS_UTILITY_VEHICLE))) {
-				g_targetRangeScore = collide_roughdistance3d(blocker->world_x - g_paifightSearchOriginX,
-															 blocker->world_y - g_paifightSearchOriginY,
-															 blocker->world_z - g_paifightSearchOriginZ);
-				g_targetRangeScore -= g_modelTypeTable[blocker->objectType].maxBoundsExtent;
-				if ((unsigned int)g_targetRangeScore <= bestRangeScore) {
+				g_lastRoughDistance = collide_roughdistance3d(blocker->world_x - g_paifightSearchOriginX,
+															  blocker->world_y - g_paifightSearchOriginY,
+															  blocker->world_z - g_paifightSearchOriginZ);
+				g_lastRoughDistance -= g_modelTypeTable[blocker->objectType].maxBoundsExtent;
+				if ((unsigned int)g_lastRoughDistance <= bestRangeScore) {
 					ObjectRecord* bestObject = &g_objectTable[bestObjectIndex];
 
 					g_collisionProbeWorldX = bestObject->world_x;
@@ -2139,7 +2138,7 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16
 			g_objectTable[objectArrayIndex].world_x - g_paifightSearchOriginX,
 			g_objectTable[objectArrayIndex].world_y - g_paifightSearchOriginY,
 			g_objectTable[objectArrayIndex].world_z - g_paifightSearchOriginZ);
-		g_targetRangeScore = (int)rangeScore;
+		g_lastRoughDistance = (int)rangeScore;
 		if (rangeScore >= bestRangeScore)
 			continue;
 		if (requireClearSweep != 0) {
@@ -2149,7 +2148,7 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16
 			g_collisionProbeWorldZ = worldlocz;
 			if (collide_CheckSweptModelCollision(g_paiContext.objectIndex, g_paiContext.objectIndex) != 0)
 				continue;
-			rangeScore = (unsigned int)g_targetRangeScore;
+			rangeScore = (unsigned int)g_lastRoughDistance;
 		}
 		bestObjectIndex = objectIndex;
 		bestRangeScore = rangeScore;
@@ -2180,7 +2179,7 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16
 		rangeScore = (unsigned int)collide_roughdistance3d(worldlocx - g_paifightSearchOriginX,
 														   worldlocy - g_paifightSearchOriginY,
 														   worldlocz - g_paifightSearchOriginZ);
-		g_targetRangeScore = (int)rangeScore;
+		g_lastRoughDistance = (int)rangeScore;
 		if (rangeScore >= bestRangeScore)
 			continue;
 		if (requireClearSweep != 0) {
@@ -2189,7 +2188,7 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(int16_t target1Type, uint16
 			g_collisionProbeWorldZ = worldlocz;
 			if (collide_CheckSweptModelCollision(g_paiContext.objectIndex, g_paiContext.objectIndex) != 0)
 				continue;
-			rangeScore = (unsigned int)g_targetRangeScore;
+			rangeScore = (unsigned int)g_lastRoughDistance;
 		}
 		bestObjectIndex = objectIndex;
 		bestRangeScore = rangeScore;
@@ -2288,7 +2287,7 @@ int16_t paifight_followleadatkorder(void) {
 		if (validTarget != 0) {
 			if (leaderPlayerOwner != -1) {
 				pai_ObjectRefUpdateApproxRangeScore(g_paiContext.objectIndex, candidateTargetIdx);
-				if (g_targetRangeScore > PLAYER_LEADER_TARGET_RANGE)
+				if (g_lastRoughDistance > PLAYER_LEADER_TARGET_RANGE)
 					return 0;
 			}
 			g_paiContext.controller->targetObjIdx = candidateTargetIdx;
@@ -2481,9 +2480,9 @@ int16_t paifight_searchforclosestingroup(int16_t target1Type, uint16_t target1, 
 				if (g_objectTable[objectIndex].objectType != 0 &&
 					g_objectTable[objectIndex].flightGroupIdx == flightGroupIdx) {
 					pai_ObjectRefUpdateApproxRangeScore(g_paiContext.objectIndex, objectIndex);
-					if (bestRangeScore > (unsigned int)g_targetRangeScore) {
+					if (bestRangeScore > (unsigned int)g_lastRoughDistance) {
 						bestObjectIndex = objectIndex;
-						bestRangeScore = g_targetRangeScore;
+						bestRangeScore = g_lastRoughDistance;
 						g_aiEscortCandidateFgIdx = (uint8_t)flightGroupIdx;
 					}
 				}
@@ -2495,9 +2494,9 @@ int16_t paifight_searchforclosestingroup(int16_t target1Type, uint16_t target1, 
 				if (g_objectTable[objectIndex].objectType != 0 &&
 					g_objectTable[objectIndex].flightGroupIdx == flightGroupIdx) {
 					pai_ObjectRefUpdateApproxRangeScore(g_paiContext.objectIndex, objectIndex);
-					if (bestRangeScore > (unsigned int)g_targetRangeScore) {
+					if (bestRangeScore > (unsigned int)g_lastRoughDistance) {
 						bestObjectIndex = objectIndex;
-						bestRangeScore = g_targetRangeScore;
+						bestRangeScore = g_lastRoughDistance;
 						g_aiEscortCandidateFgIdx = (uint8_t)flightGroupIdx;
 					}
 				}

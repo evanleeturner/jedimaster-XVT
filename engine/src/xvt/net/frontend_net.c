@@ -70,7 +70,7 @@ int g_frontendNetProbePasswordRequired = 0;
 // GLOBAL: XVT 0xAA6CF0
 int g_frontendNetProbeResponseType = 0;
 // GLOBAL: XVT 0xA91C90
-int g_frontendMissionOpcode99Count = 0;
+int g_frontendBriefingEnteredCount = 0;
 // GLOBAL: XVT 0xAA6A80
 char g_frontendChatInputBuffer[100] = { 0 };
 // GLOBAL: XVT 0xB69CD0
@@ -125,7 +125,7 @@ int FrontendNet_DrawJoinGameList(int resetScroll) {
 		if (g_frontendNetSessionList[rowIndex].version != 101u) {
 			textColor = g_colorGray;
 		} else if (g_frontendNetSessionList[rowIndex].playersNeeded == 0) {
-			textColor = g_frontendNetSessionList[rowIndex].queryState != 0 ? g_colorRed : g_colorLightBlue;
+			textColor = g_frontendNetSessionList[rowIndex].queryState != 0 ? g_colorRed : g_colorYellow;
 		} else {
 			textColor = 0xFFFF;
 			if (g_frontendNetSessionList[rowIndex].playersNeeded <= 8)
@@ -191,7 +191,7 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 	RECT rect;
 	RECT screenRect;
 
-	g_unusedFrontendConcourseHostLatch = 0;
+	g_configConnectionTypeEditable = 0;
 	if (g_gameConfig.networkType != NET_TRANSPORT_IPX) {
 		if (g_skipFrontendEntryMovie != 0) {
 			g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
@@ -256,8 +256,8 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 				g_frontendNetSessionCount = 0;
 			}
 			g_frontendFirstVisibleLine = 0;
-			g_unusedFrontendConcourseHostLatch = 0;
-			g_frontendSinglePlayerFlightSessionActive = 0;
+			g_configConnectionTypeEditable = 0;
+			g_frontendGameSessionInProgress = 0;
 			g_frontendNetReceivedMissionDirectoryId = MISSION_DIRECTORY_TRAINING_EXERCISES;
 			g_frontendNetReceivedMissionDescriptionId = -1;
 			g_frontendNetSelectedSessionIdx = -1;
@@ -278,7 +278,7 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 			FrontImage_DrawSpriteTranslucent("chatbox", 0, 0);
 			FrontImage_DrawSpriteTranslucent("joinoverlay", 0, 0);
 			FrontendDisplay_UnlockOffscreenSurface(1);
-			FrontendText_ResetGlyphScratchBuffer(20);
+			FrontendText_StartTextFadeIn(20);
 		}
 
 		FrontendDraw_RectAssign(&rect, 158, 52, 491, 68);
@@ -412,7 +412,7 @@ int FrontendNet_JoinGameScreen(int firstFrame) {
 		FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
 		if (g_pilotData.name[0] != '\0') {
 			sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
-			FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorLightBlue);
+			FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
 			animationFrame = (firstFrame % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
 			sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 			FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
@@ -489,13 +489,13 @@ int FrontendNet_AccessAllianceNetworkScreen(int firstFrame) {
 		}
 		FrontImage_DrawSpriteTranslucent("chatbox", 0, 0);
 		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_ResetGlyphScratchBuffer(20);
+		FrontendText_StartTextFadeIn(20);
 	}
 
 	FrontendDraw_RectAssign(&rect, 84, 107, 434, 433);
 	FrontendText_DrawCentered(15, FrontendString_Get(FRONTSTR_020_ACCESSING_IMPERIAL_NETWORK), &rect, 0xFFFF);
 #ifdef XVT_MODERN
-	if (XvtNetworkDialogs_AdmissionFailed())
+	if (XvtNetworkDialogs_ReportAdmissionFailure())
 		return 0;
 #endif
 	networkResult = FrontendNet_ProcessNetworkPackets();
@@ -578,7 +578,7 @@ int FrontendNet_AccessAllianceNetworkScreen(int firstFrame) {
 	FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
 	if (g_pilotData.name[0] != '\0') {
 		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
-		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorLightBlue);
+		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
 		animationFrame = (firstFrame % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
 		sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
@@ -861,7 +861,7 @@ int FrontendNet_ConnectToSelectedGameScreen(int firstFrame) {
 		FrontendText_DrawCentered(CONNECT_TITLE_FONT_SIZE, FrontendString_Get(FRONTSTR_645_CONNECTING), &rect,
 								  0xFFFF);
 		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_ResetGlyphScratch();
+		FrontendText_StopTextFade();
 		return 0;
 	}
 
@@ -1419,8 +1419,8 @@ int FrontendNet_HostGameScreen(int firstFrame) {
 		g_hostGameStartPending = 0;
 		g_skipFrontendEntryMovie = 0;
 		g_frontendQuickStartLaunchFlag = 0;
-		g_unusedFrontendConcourseHostLatch = 1;
-		g_frontendSinglePlayerFlightSessionActive = 0;
+		g_configConnectionTypeEditable = 1;
+		g_frontendGameSessionInProgress = 0;
 		strcpy(g_pilotData.multiplayerGameName, g_pilotData.multiplayerHostName);
 		if (g_frontendChatLogBuffer != NULL) {
 			memset(g_frontendChatLogBuffer, 0, 1024);
@@ -1440,7 +1440,7 @@ int FrontendNet_HostGameScreen(int firstFrame) {
 		}
 		FrontImage_DrawSpriteTranslucent("createoverlay", 0, 0);
 		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_ResetGlyphScratchBuffer(20);
+		FrontendText_StartTextFadeIn(20);
 	}
 
 	if (g_hostGameStartPending == 0) {
@@ -1489,7 +1489,7 @@ int FrontendNet_HostGameScreen(int firstFrame) {
 		FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
 		if (g_pilotData.name[0] != '\0') {
 			sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
-			FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorLightBlue);
+			FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
 		}
 		if (Frontend_HandleCommonScreenControls(0) == 1) {
 			return 1;
@@ -1693,7 +1693,7 @@ int FrontendNet_ProcessNetworkPackets(void) {
 					netPlayer = Net_FindPlayer(payload[packetWordIndex]);
 					if (netPlayer != NULL) {
 						Net_MarkPlayerReadyNoLock(payload[packetWordIndex]);
-						strncpy(g_mpRoster[rosterIndex].name, netPlayer->sessionName, PLAYER_NAME_COPY_SIZE);
+						strncpy(g_mpRoster[rosterIndex].name, netPlayer->playerName, PLAYER_NAME_COPY_SIZE);
 						g_mpRoster[rosterIndex].playerId = netPlayer->playerId;
 						++packetWordIndex;
 						g_mpRoster[rosterIndex].pilotRating = payload[packetWordIndex];
@@ -2105,7 +2105,7 @@ int FrontendNet_ProcessNetworkPackets(void) {
 			break;
 
 		case NET_PACKET_BRIEFING_ENTERED:
-			++g_frontendMissionOpcode99Count;
+			++g_frontendBriefingEnteredCount;
 			break;
 
 		case NET_PACKET_TEAM_RESERVATION:
@@ -2185,7 +2185,7 @@ int FrontendNet_ProcessNetworkPackets(void) {
 					netPlayer = Net_FindPlayer(payload[packetWordIndex]);
 					if (netPlayer != NULL) {
 						Net_MarkPlayerReadyNoLock(payload[packetWordIndex]);
-						strncpy(g_mpRoster[rosterIndex].name, netPlayer->sessionName, PLAYER_NAME_COPY_SIZE);
+						strncpy(g_mpRoster[rosterIndex].name, netPlayer->playerName, PLAYER_NAME_COPY_SIZE);
 						g_mpRoster[rosterIndex].playerId = netPlayer->playerId;
 						++packetWordIndex;
 						g_mpRoster[rosterIndex].pilotRating = payload[packetWordIndex];

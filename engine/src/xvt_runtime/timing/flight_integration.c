@@ -47,11 +47,11 @@ static Integration* Entry(unsigned slot) {
 	Integration* s = &g_entries[slot];
 	const ObjectRecord* o = &g_objectTable[slot];
 	if (s->signature != o->objectSignature || s->type != o->objectType ||
-		(o->mobj && s->state != o->mobj->state)) {
+		(o->mobj && s->state != o->mobj->family)) {
 		memset(s, 0, sizeof *s);
 		s->signature = o->objectSignature;
 		s->type = o->objectType;
-		s->state = o->mobj ? o->mobj->state : 0;
+		s->state = o->mobj ? o->mobj->family : 0;
 		s->carried = UINT16_MAX;
 		s->target = UINT16_MAX;
 	}
@@ -188,7 +188,7 @@ void XvtFlightIntegration_Encode(unsigned slot, XvtIntegrationWire* out) {
 	const Integration* state = &g_entries[slot];
 	const ObjectRecord* object = &g_objectTable[slot];
 	if (!object->objectType || state->type != object->objectType ||
-		state->signature != object->objectSignature || (object->mobj && state->state != object->mobj->state))
+		state->signature != object->objectSignature || (object->mobj && state->state != object->mobj->family))
 		return;
 	XvtWire_Set16(out->signature, state->signature);
 	out->type = state->type;

@@ -198,7 +198,7 @@ static void CaptureObject(unsigned slot) {
 	if (!m)
 		return;
 	out->has_mobile = 1;
-	out->state = m->state;
+	out->state = m->family;
 	out->light_scale = m->lightIntensityScale;
 	out->prev_world_pos[0] = m->prevWorldX;
 	out->prev_world_pos[1] = m->prevWorldY;

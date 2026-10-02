@@ -126,7 +126,7 @@ int TechLibrary_Update(int frameCounter) {
 		FrontImage_DrawSprite("alloff", 0, 0);
 		FrontImage_DrawSpriteTranslucent("configoverlay", 0, 0);
 		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_ResetGlyphScratchBuffer(20);
+		FrontendText_StartTextFadeIn(20);
 	}
 
 	FrontendDraw_RectAssign(&rect, TECH_LIBRARY_VIEWPORT_LEFT, TECH_LIBRARY_VIEWPORT_TOP,
@@ -146,7 +146,7 @@ int TechLibrary_Update(int frameCounter) {
 							PILOT_BANNER_BOTTOM);
 	if (g_pilotData.name[0] != '\0') {
 		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
-		FrontendText_DrawCentered(BUTTON_FONT_SIZE, g_frontendScratchBuffer, &rect, g_colorLightBlue);
+		FrontendText_DrawCentered(BUTTON_FONT_SIZE, g_frontendScratchBuffer, &rect, g_colorYellow);
 		animationFrame = frameCounter % PILOT_BANNER_ANIMATION_FRAMES;
 		animationFrame >>= 1;
 		sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
@@ -193,7 +193,7 @@ int TechLibrary_Update(int frameCounter) {
 			free(g_techLibrarySpecTextTable);
 			g_techLibrarySpecTextTable = NULL;
 		}
-		FrontendText_ResetGlyphScratch();
+		FrontendText_StopTextFade();
 	}
 	return 0;
 }
@@ -382,7 +382,7 @@ int TechLibrary_DrawCraftSpecPanel(void) {
 
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
 	FrontendText_DrawAlignedInRect(12, FrontendString_Get(FRONTSTR_486_SPECIAL_CHARACTERISTICS), &rect, 0, 1,
-								   g_colorLightBlue);
+								   g_colorYellow);
 	FrontendDraw_RectOffsetXY(&rect, 0, 15);
 	FrontendDraw_RectCopy(&descriptionRect, &rect);
 	descriptionRect.bottom = descriptionRect.top + 120;

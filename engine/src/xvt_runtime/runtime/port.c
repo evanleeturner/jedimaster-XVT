@@ -127,7 +127,7 @@ void XvtPort_PausedFrame(void) {
 void XvtPort_Tick(int32_t delta_us) {
 	const AeronInputSnapshot* input;
 	int movieActive;
-	if (XvtPort_ShouldQuit())
+	if (XvtPort_ServiceQuit())
 		return;
 	XvtRenderSnapshot_BeginTick();
 	input = Aeron_InputSnapshot();
@@ -191,7 +191,7 @@ void XvtPort_Tick(int32_t delta_us) {
 	XvtPort_CommitSnapshot(movieActive);
 }
 
-int XvtPort_ShouldQuit(void) {
+int XvtPort_ServiceQuit(void) {
 	if (!g_xvtInitialized || Aeron_FatalErrorRequested())
 		return 1;
 	if (!g_quitting && (Aeron_QuitRequested() || XvtFrontendTask_ShouldQuit())) {

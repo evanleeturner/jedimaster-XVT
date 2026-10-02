@@ -47,8 +47,8 @@ int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn, RECT* screenRect) {
 	g_frontState.frameCounter = 0;
 	memset(g_frontState.joystickButtonReleased[0], 0, sizeof(g_frontState.joystickButtonReleased[0]));
 	memset(g_frontState.joystickButtonReleased[1], 0, sizeof(g_frontState.joystickButtonReleased[1]));
-	if (g_frontState.glyphScratchTtl != 0)
-		--g_frontState.glyphScratchTtl;
+	if (g_frontState.textFadeFramesLeft != 0)
+		--g_frontState.textFadeFramesLeft;
 	g_frontState.mouseClickLatch = 0;
 	g_frontState.mouseRightClickLatch = 0;
 	for (;;) {

@@ -321,7 +321,7 @@ static void BuildLauncher(XvtCockpitState* state, const CraftData* craft, unsign
 		return;
 	XvtCockpitLauncher* launcher = &state->weapons.launchers[display_slot];
 	const PlayerData* player = &g_players[g_localPlayer];
-	unsigned count = craft->warheadLauncherCount ? craft->weaponSlots[weapon_slot].count : 0;
+	unsigned count = craft->warheadLauncherCount ? craft->weaponSlots[weapon_slot].ammoCount : 0;
 	unsigned selection = 0;
 	if (count && (craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_WARHEAD_LAUNCHER)) {
 		selection = 1;
