@@ -509,6 +509,24 @@ static unsigned int XvtSnapshot_SumSlotRecords(uint8_t **cursor)
 	return sum;
 }
 
+/* Closes the current checksum region once it has grown past the target size
+ * while regions remain: records its length and sum, then starts the next
+ * region at the cursor with a zero sum. */
+static void XvtSnapshot_CloseChecksumRegion(
+	unsigned checksums[16], unsigned lengths[16], int lastRegion,
+	int regionTargetSize, const uint8_t *cursor, uint8_t **regionStart,
+	int *checksumRegionIndex, unsigned int *checksum)
+{
+	if (*checksumRegionIndex < lastRegion &&
+	    cursor - *regionStart > regionTargetSize) {
+		lengths[*checksumRegionIndex] =
+			(unsigned int)(cursor - *regionStart);
+		checksums[(*checksumRegionIndex)++] = *checksum;
+		*checksum = 0;
+		*regionStart = (uint8_t *)cursor;
+	}
+}
+
 static void XvtSnapshot_ChecksumPrefix(const uint8_t *image, size_t prefix,
 				       unsigned checksums[16],
 				       unsigned lengths[16])
@@ -546,16 +564,10 @@ static void XvtSnapshot_ChecksumPrefix(const uint8_t *image, size_t prefix,
 					checksum += XvtSnapshot_SumSlotRecords(
 						&cursor);
 				}
-				if (checksumRegionIndex < lastRegion &&
-				    cursor - regionStart > regionTargetSize) {
-					lengths[checksumRegionIndex] =
-						(unsigned int)(cursor -
-							       regionStart);
-					checksums[checksumRegionIndex++] =
-						checksum;
-					checksum = 0;
-					regionStart = cursor;
-				}
+				XvtSnapshot_CloseChecksumRegion(
+					checksums, lengths, lastRegion,
+					regionTargetSize, cursor, &regionStart,
+					&checksumRegionIndex, &checksum);
 			}
 			++objectIndex;
 		} while (objectCount > objectIndex);
@@ -571,14 +583,9 @@ static void XvtSnapshot_ChecksumPrefix(const uint8_t *image, size_t prefix,
 			checksum += *cursor++;
 		} while (--bytesRemaining != 0);
 	}
-	if (checksumRegionIndex < lastRegion &&
-	    cursor - regionStart > regionTargetSize) {
-		lengths[checksumRegionIndex] =
-			(unsigned int)(cursor - regionStart);
-		checksums[checksumRegionIndex++] = checksum;
-		checksum = 0;
-		regionStart = cursor;
-	}
+	XvtSnapshot_CloseChecksumRegion(checksums, lengths, lastRegion,
+					regionTargetSize, cursor, &regionStart,
+					&checksumRegionIndex, &checksum);
 
 	bytesRemaining = 1382 * flightGroupCount;
 	if (bytesRemaining > 0) {
@@ -586,35 +593,20 @@ static void XvtSnapshot_ChecksumPrefix(const uint8_t *image, size_t prefix,
 			checksum += *cursor++;
 		} while (--bytesRemaining != 0);
 	}
-	if (checksumRegionIndex < lastRegion &&
-	    cursor - regionStart > regionTargetSize) {
-		lengths[checksumRegionIndex] =
-			(unsigned int)(cursor - regionStart);
-		checksums[checksumRegionIndex++] = checksum;
-		checksum = 0;
-		regionStart = cursor;
-	}
+	XvtSnapshot_CloseChecksumRegion(checksums, lengths, lastRegion,
+					regionTargetSize, cursor, &regionStart,
+					&checksumRegionIndex, &checksum);
 
 	checksum += XvtSnapshot_SumBytes(&cursor, 3376);
-	if (checksumRegionIndex < lastRegion &&
-	    cursor - regionStart > regionTargetSize) {
-		lengths[checksumRegionIndex] =
-			(unsigned int)(cursor - regionStart);
-		checksums[checksumRegionIndex++] = checksum;
-		checksum = 0;
-		regionStart = cursor;
-	}
+	XvtSnapshot_CloseChecksumRegion(checksums, lengths, lastRegion,
+					regionTargetSize, cursor, &regionStart,
+					&checksumRegionIndex, &checksum);
 
 	checksum += XvtSnapshot_SumBytes(&cursor, 22);
 	checksum += XvtSnapshot_SumBytes(&cursor, 2);
-	if (checksumRegionIndex < lastRegion &&
-	    cursor - regionStart > regionTargetSize) {
-		lengths[checksumRegionIndex] =
-			(unsigned int)(cursor - regionStart);
-		checksums[checksumRegionIndex++] = checksum;
-		checksum = 0;
-		regionStart = cursor;
-	}
+	XvtSnapshot_CloseChecksumRegion(checksums, lengths, lastRegion,
+					regionTargetSize, cursor, &regionStart,
+					&checksumRegionIndex, &checksum);
 
 	checksum += XvtSnapshot_SumBytes(&cursor, 4);
 	checksum += *cursor++;
@@ -624,14 +616,9 @@ static void XvtSnapshot_ChecksumPrefix(const uint8_t *image, size_t prefix,
 	checksum += XvtSnapshot_SumBytes(&cursor, 4);
 	checksum += XvtSnapshot_SumBytes(&cursor, 4);
 	checksum += XvtSnapshot_SumBytes(&cursor, 256);
-	if (checksumRegionIndex < lastRegion &&
-	    cursor - regionStart > regionTargetSize) {
-		lengths[checksumRegionIndex] =
-			(unsigned int)(cursor - regionStart);
-		checksums[checksumRegionIndex++] = checksum;
-		checksum = 0;
-		regionStart = cursor;
-	}
+	XvtSnapshot_CloseChecksumRegion(checksums, lengths, lastRegion,
+					regionTargetSize, cursor, &regionStart,
+					&checksumRegionIndex, &checksum);
 
 	checksum += XvtSnapshot_SumBytes(&cursor, 2);
 	checksum += XvtSnapshot_SumBytes(&cursor, 2);
