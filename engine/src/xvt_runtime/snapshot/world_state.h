@@ -15,7 +15,7 @@
  *      if present
  *   2. mission clocks, header, per-flight-group stats and groups, mission state, timers,
  *      file version, player count and a reserved byte
- *   3. 20 dwords: 4 pool sizes, a reserved dword and 15 slot-range bounds
+ *   3. 20 dwords: 4 pool sizes, the world-state debris slot count and 15 slot-range bounds
  *   4. plan tables, random state, next object signature, laser-fire flag, 8 player records
  *   5. network 125 Hz profile only: the timing extension and footer (flight_checkpoint.h)
  *
@@ -40,10 +40,10 @@ size_t XvtSnapshot_Encode(uint8_t* image, size_t capacity);
 /* Returns 1 when image has the layout of an image this world would write, else 0: image is
  * not NULL, size is at most CalculateSize(), every block fits, the object and mobile records' pool links are
  * aligned and in range, player slots are in range, each record's type equals its type byte, the flight-group
- * count, pool sizes, reserved dword and slot ranges equal the live ones, and the length is exact. In the
- * network profile it also checks the footer, the timing extension's CRC, and that its records agree with the
- * image's slots. Does not check any other value; the craft record's object links are not checked. Writes
- * nothing. */
+ * count, pool sizes, world-state debris slot count and slot ranges equal the live ones, and the length is
+ * exact. In the network profile it also checks the footer, the timing extension's CRC, and that its records
+ * agree with the image's slots. Does not check any other value; the craft record's object links are not
+ * checked. Writes nothing. */
 int XvtSnapshot_Validate(const uint8_t* image, size_t size);
 
 /* Validates as XvtSnapshot_Validate, then overwrites the live world from image.
@@ -95,7 +95,7 @@ int XvtSnapshot_BuildPresenceMap(uint8_t* outMap, uint8_t* worldState);
 
 /* Reshapes g_worldStateDupBuffer in place so each slot's blocks match presenceMap: a block
  * the map lacks is removed, a block the map has is inserted zero-filled. Updates
- * worldStateSize. Slots from the map's slot count onward are left alone.
+ * g_worldStateDupSize. Slots from the map's slot count onward are left alone.
  * Removing an object or mobile record leaves the blocks nested under it; inserting one adds
  * that record alone.
  * Does not rewrite type bytes or pool-reference fields, so afterwards they may disagree

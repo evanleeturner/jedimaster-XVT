@@ -70,17 +70,17 @@ static void CheckCleared(void) {
 static void CheckReturn(void) {
 	Fresh();
 	Dirty();
-	g_briefingText = malloc(4096);
-	XVT_ASSERT_TRUE(g_briefingText != NULL);
-	memset(g_briefingText, 'b', 4096);
+	g_missionText = malloc(4096);
+	XVT_ASSERT_TRUE(g_missionText != NULL);
+	memset(g_missionText, 'b', 4096);
 	XvtNetworkDialogs_Return(1);
 	XVT_ASSERT_TRUE(TopScreen() == FrontendNet_HostGameScreen);
 	XVT_ASSERT_INT_EQ(g_frontendMissionSessionMode, FRONTEND_MISSION_SESSION_NET_HOST);
 	CheckCleared();
 	for (int i = 0; i < 4096; ++i)
-		XVT_ASSERT_INT_EQ(g_briefingText[i], 0);
-	free(g_briefingText);
-	g_briefingText = NULL;
+		XVT_ASSERT_INT_EQ(g_missionText[i], 0);
+	free(g_missionText);
+	g_missionText = NULL;
 
 	/* The join screen, with no briefing text allocated. */
 	Fresh();

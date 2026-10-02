@@ -50,8 +50,8 @@ static FlightInputFrameRecord Controls(int8_t axis) {
 static void AddFrame(unsigned player, int tick, int valid, int applied, int8_t axis) {
 	InputFrame* frame = &g_inputHistory[player][g_inputFrameCount[player]++];
 	frame->timestamp = tick;
-	frame->unconfirmed = valid;
-	frame->applied = applied;
+	frame->inputSource = valid;
+	frame->awaitingRelay = applied;
 	frame->input = Controls(axis);
 }
 
@@ -67,8 +67,8 @@ static const InputFrame* FrameAt(unsigned player, int tick) {
 static void AssertPredicted(unsigned player, int tick, int8_t axis) {
 	const InputFrame* frame = FrameAt(player, tick);
 	XVT_ASSERT_TRUE(frame != NULL);
-	XVT_ASSERT_INT_EQ(frame->unconfirmed, XVT_INPUT_PREDICTED);
-	XVT_ASSERT_INT_EQ(frame->applied, 0);
+	XVT_ASSERT_INT_EQ(frame->inputSource, XVT_INPUT_PREDICTED);
+	XVT_ASSERT_INT_EQ(frame->awaitingRelay, 0);
 	FlightInputFrameRecord source = Controls(axis);
 	XVT_ASSERT_INT_EQ(frame->input.axisX, source.axisX);
 	XVT_ASSERT_INT_EQ(frame->input.axisY, source.axisY);
@@ -129,7 +129,7 @@ static void CheckSourceIsNewestBeforeTick(void) {
 	for (int i = 1; i < g_inputFrameCount[1]; ++i)
 		XVT_ASSERT_TRUE(g_inputHistory[1][i - 1].timestamp < g_inputHistory[1][i].timestamp);
 	/* The frames already there are untouched. */
-	XVT_ASSERT_INT_EQ(FrameAt(1, 4)->unconfirmed, XVT_INPUT_PREDICTED);
+	XVT_ASSERT_INT_EQ(FrameAt(1, 4)->inputSource, XVT_INPUT_PREDICTED);
 	XVT_ASSERT_INT_EQ(FrameAt(1, 4)->input.axisX, 50);
 
 	/* Only predicted frames before the tick: no source, nothing inserted. */
@@ -157,12 +157,12 @@ static void CheckLeavesRealAndAuthoritative(void) {
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 2);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[2], 2);
 	const InputFrame* real = FrameAt(1, TICK);
-	XVT_ASSERT_INT_EQ(real->unconfirmed, XVT_INPUT_REAL);
+	XVT_ASSERT_INT_EQ(real->inputSource, XVT_INPUT_REAL);
 	XVT_ASSERT_INT_EQ(real->input.axisX, 30);
 	XVT_ASSERT_INT_EQ(real->input.key, 0x61);
 	XVT_ASSERT_INT_EQ(real->input.throttle, 777);
 	const InputFrame* authoritative = FrameAt(2, TICK);
-	XVT_ASSERT_INT_EQ(authoritative->unconfirmed, XVT_INPUT_AUTHORITATIVE);
+	XVT_ASSERT_INT_EQ(authoritative->inputSource, XVT_INPUT_AUTHORITATIVE);
 	XVT_ASSERT_INT_EQ(authoritative->input.axisX, 40);
 	XVT_ASSERT_INT_EQ(authoritative->input.keyMods, 0x0F);
 }

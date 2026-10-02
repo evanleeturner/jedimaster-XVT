@@ -6,7 +6,7 @@ enum {
 	PALETTE_BYTES = PALETTE_COLOR_COUNT * sizeof(RgbTriplet),
 	PALETTE_HALF_BYTES = PALETTE_BYTES / 2,
 	PALETTE_LAST_COLOR_OFFSET = PALETTE_BYTES - sizeof(RgbTriplet),
-	PALETTE_CHANNEL_MAX = 63,
+	MISSION_PALETTE_FIRST_COLOR = 64,
 	FLIGHT_RESOURCE_SCRATCH_BYTES = 1024,
 	MISSION_EXTENSION_LENGTH = 3,
 	MISSION_EXTENSION_FIRST = 0,
@@ -34,7 +34,7 @@ void XvtFlightLoading_Reset(void) {
 	g_objectTableHandle = g_mobileObjectPoolHandle = g_mobileObjectCharDataHandle = 0;
 	g_craftDataPoolHandle = g_warheadGuidancePoolHandle = 0;
 	g_stringDataHandle = g_renderObjectListHandle = 0;
-	g_flightTinyFontHandle = g_flightMicroFontHandle = g_flightMediumFontHandle = 0;
+	g_flightSmallFontHandle = g_flightMicroFontHandle = g_flightMediumFontHandle = 0;
 	g_flightScratchScreenBufferHandle = g_flightAuxBufferHandle = g_flightOffscreenBufferHandle = 0;
 	g_hudPanelSpriteDataHandle = g_flightIconFramesHandle = g_messageLogHandle = 0;
 	g_objectTable = NULL;
@@ -228,8 +228,8 @@ void XvtFlightLoading_Palette(void) {
 			g_generateMissionPalette = 0;
 			FeDiskIo_CloseGlobalStream(0);
 			FeDiskIo_ReadAllBytesOrFatal(g_currentMissionFile, g_flightAuxBuffer);
-			g_flightSetPaletteRangeFn((RgbTriplet*)g_flightAuxBuffer, PALETTE_CHANNEL_MAX + 1,
-									  PALETTE_COLOR_COUNT - (PALETTE_CHANNEL_MAX + 1));
+			g_flightSetPaletteRangeFn((RgbTriplet*)g_flightAuxBuffer, MISSION_PALETTE_FIRST_COLOR,
+									  PALETTE_COLOR_COUNT - MISSION_PALETTE_FIRST_COLOR);
 		}
 		g_currentMissionFile[missionExtensionOffset + MISSION_EXTENSION_FIRST] =
 			savedMissionExtensionPrefix[MISSION_EXTENSION_FIRST];

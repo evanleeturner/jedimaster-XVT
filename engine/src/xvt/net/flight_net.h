@@ -33,15 +33,14 @@ typedef char xvt_size_FlightNetScratchPacket[(sizeof(FlightNetScratchPacket) == 
 
 #pragma pack(push, 1)
 
-struct FlightNetInputDeltaBatchPacket {
+struct FlightNetInputBatchPacket {
 	int packetType;
 	uint8_t frameCount;
 	uint8_t streamBytes[507];
 };
 
 #pragma pack(pop)
-typedef char
-	xvt_size_FlightNetInputDeltaBatchPacket[(sizeof(FlightNetInputDeltaBatchPacket) == 512) ? 1 : -1];
+typedef char xvt_size_FlightNetInputBatchPacket[(sizeof(FlightNetInputBatchPacket) == 512) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -80,8 +79,8 @@ extern int g_flightNetPeerSilenceTicks[8];
 extern int g_lastSentInputTimestamp;
 extern int g_lastKeyframeTime;
 extern int g_flightNetLastInputBatchSendTime;
-extern FlightNetInputDeltaBatchPacket g_flightNetInputDeltaBatchPacket;
-extern int g_flightNetInputDeltaBatchLen;
+extern FlightNetInputBatchPacket g_flightNetInputBatchPacket;
+extern int g_flightNetInputBatchLen;
 extern int g_flightNetInputBatchIntervalTicks;
 extern int g_flightNetWorldStateAckReceivedFlag;
 extern int g_flightNetWorldStateChunkAcked[16];

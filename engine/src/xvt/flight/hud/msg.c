@@ -588,16 +588,16 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx, int emitHud
 			if (g_objectTable[targetObjIdx].mobj->speed != 0)
 				disableFlag = 1;
 			if (specialCargoRelevant != 0 &&
-				g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->waveNumber) {
+				g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->craftOrdinal) {
 				captureFlag = 0;
 				boardedFlag = 0;
 			}
 		}
 		if (disableFlag != 0 && specialCargoRelevant != 0 &&
-			g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->waveNumber)
+			g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->craftOrdinal)
 			disableFlag = 0;
 		if (destroyFlag != 0 && specialCargoRelevant != 0 &&
-			g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->waveNumber)
+			g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->craftOrdinal)
 			destroyFlag = 0;
 	}
 	if (inspectFlag != 0) {

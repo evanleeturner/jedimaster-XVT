@@ -8,7 +8,7 @@ char* g_briefingTextBlocks[32] = { 0 };
 // GLOBAL: XVT 0x669682
 char* g_briefingUnusedBuffers[20] = { 0 };
 // GLOBAL: XVT 0xAA6118
-char* g_briefingText = NULL;
+char* g_missionText = NULL;
 
 // FUNCTION: XVT 0x4F68B0
 int16_t BriefingText_FreeAllocatedBuffersExit(void) {

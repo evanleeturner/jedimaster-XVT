@@ -34,7 +34,7 @@ int XvtFlightTiming_IsNetwork125(void);
 int XvtFlightTiming_MaximumStepTicks(void);
 /* After a NETWORK_125 state restore at tick: sets the advance serial to tick / XVT_NETWORK_STEP_TICKS
  * and the reference phase to tick % XVT_REFERENCE_TICKS, closes any open step, and rebuilds the last
- * animation update's time and serial from tick and the crew mesh rotation timer, as 0 when that time
+ * animation update's time and serial from tick and the special-behavior update timer, as 0 when that time
  * is not positive. Does nothing outside NETWORK_125, or for a negative tick or one that is not a
  * multiple of XVT_NETWORK_STEP_TICKS. */
 void XvtFlightTiming_RestoreNetworkTick(int tick);

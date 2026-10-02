@@ -61,8 +61,8 @@ typedef struct XvtSnapshotAiFlightState {
 	uint8_t boardedAccountingDone;
 	uint8_t timesBoarded;
 	uint8_t dockingAccountingDone;
-	uint8_t objSignatureCount;
-	uint16_t objSignatures[10];
+	uint8_t dockedTargetCount;
+	uint16_t dockedTargetSignatures[10];
 	int16_t maxSpeedCache;
 	int16_t motionScale;
 	uint8_t climbState;
@@ -209,7 +209,7 @@ typedef struct XvtSnapshotCraftData {
 	uint16_t lastAttackerObjIdx;
 	uint16_t lastHitMissionSecond;
 	XvtSnapshotAiFlightState aiFlight;
-	uint8_t waveNumber;
+	uint8_t craftOrdinal;
 	int32_t pushAccumX;
 	int32_t pushAccumY;
 	int32_t pushAccumZ;

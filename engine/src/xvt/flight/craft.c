@@ -651,6 +651,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex, unsigned 
 	return damageAmount;
 }
 
+/* Besides spawning the effects, this points g_curCraft at the object's craft and leaves it there. */
 // FUNCTION: XVT 0x4A7480
 void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx, int16_t forceMainExplosion) {
 	/* Spawn main-hull explosion effects for eligible mesh components. */

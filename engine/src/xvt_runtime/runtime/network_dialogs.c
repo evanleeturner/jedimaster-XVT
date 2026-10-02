@@ -51,8 +51,8 @@ void XvtNetworkDialogs_Return(int host) {
 	g_frontendNetProbeMissionElapsedSeconds = 0;
 	g_frontendNetReceivedMissionDescriptionId = -1;
 	memset(g_frontendNetSelectedGameName, 0, sizeof(g_frontendNetSelectedGameName));
-	if (g_briefingText)
-		memset(g_briefingText, 0, 4096);
+	if (g_missionText)
+		memset(g_missionText, 0, 4096);
 	FrontendScreen_SetCallbacks(host ? FrontendNet_HostGameScreen : FrontendNet_JoinGameScreen,
 								host ? FrontendNet_HostGameExit : FrontendMissionList_FreeScreenResources);
 }

@@ -122,7 +122,7 @@ int XvtRemasterFlight_Prepare(const XvtRenderSnapshot* s, const XvtRenderSnapsho
 			XvtRenderMath_ObjectMatrix(old, s->camera.world_pos, out->previous_transform);
 		}
 		int64_t ticks = previous_valid ? (int64_t)s->view_time_ticks - p->view_time_ticks : 0;
-		g_frame.delta_seconds = !reset && ticks > 0 ? (float)ticks / 236.0f : 0;
+		g_frame.delta_sim_seconds = !reset && ticks > 0 ? (float)ticks / 236.0f : 0;
 	}
 	g_frame.object_count = s->object_count;
 	g_frame.snapshot_serial = s->snapshot_serial;

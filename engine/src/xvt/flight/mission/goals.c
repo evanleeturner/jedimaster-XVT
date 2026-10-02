@@ -34,7 +34,7 @@ const char* g_strGoalTitles[9] = { 0 };
 const char* g_strGoalPercentages[14] = { 0 };
 
 // GLOBAL: XVT 0xA68650
-const char* g_strGoalFamilyNames0To6[7] = { 0 };
+const char* g_strGoalFamilyNames[7] = { 0 };
 // GLOBAL: XVT 0xA68670
 const char* g_strGoalGenusNames[16] = { 0 };
 // GLOBAL: XVT 0xA686B0
@@ -69,6 +69,8 @@ int16_t goals_outputgoal(uint16_t targetId, uint16_t condition, uint16_t targetT
 
 	amountTextVariant = g_goalAmountTextVariantByOp[(uint16_t)amountOp];
 	consumedHeight = (int16_t)(g_flightFontLineHeight + 2);
+	/* From here goalStatus holds a row offset into the condition text tables (47 rows per status block),
+	 * passed below as the condition row base. */
 	goalStatus = (uint16_t)(47 * g_goalStatusConditionRowBlock[goalStatus]);
 
 	if (targetType == GOAL_TARGET_FLIGHT_GROUP) {
@@ -260,7 +262,7 @@ int16_t goals_outputgoal(uint16_t targetId, uint16_t condition, uint16_t targetT
 				break;
 
 			case GOAL_TARGET_FAMILY:
-				FlightText_DrawString(g_strGoalFamilyNames0To6[g_familyConvert[targetId]]);
+				FlightText_DrawString(g_strGoalFamilyNames[g_familyConvert[targetId]]);
 				FlightText_DrawString(": ");
 				break;
 

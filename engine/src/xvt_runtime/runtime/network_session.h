@@ -56,9 +56,9 @@ void XvtNetworkSession_Cancel(void);
 /* Shuts down the DirectPlay session. */
 void XvtNetworkSession_Leave(void);
 /* Called by the recovered close path; it never recursively closes DirectPlay. */
-/* Closes the flight network, stops the directory listing, cancels a join (deferred until the close
- * completes when the session was opened), clears the flight and lost state and returns to idle
- * with a close pending. */
+/* Forgets the flight mission cookie and its counter, stops the directory listing, cancels a join (deferred
+ * until the close completes when the session was opened), clears the flight and lost state and returns to
+ * idle with a close pending. */
 void XvtNetworkSession_OnClose(void);
 /* During admission, accepts the host's admission of the local player before the join deadline
  * and while not lost: finishes the join and returns 1 with the session established; otherwise 0. */

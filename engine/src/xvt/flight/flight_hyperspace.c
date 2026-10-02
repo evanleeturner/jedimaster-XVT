@@ -216,6 +216,7 @@ void FlightHyperspace_RenderTransitionEffect(void) {
 		g_objectTable->genusId = CRAFT_GENUS_OTHER_PROJECTILE;
 		g_objectTable->roll = (int16_t)g_hyperspaceStreakRollAngle[streakIndex];
 		g_objectTable->yaw = 0;
+		/* HYPERSPACE_FORWARD_OFFSET is reused here as an angle: a quarter turn of pitch. */
 		g_objectTable->pitch = HYPERSPACE_FORWARD_OFFSET;
 
 		streakLength = g_hyperspaceStreakHalfWidth[streakIndex];

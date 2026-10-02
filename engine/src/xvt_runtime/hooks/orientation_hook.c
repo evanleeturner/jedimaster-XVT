@@ -150,6 +150,8 @@ static void XvtOrientation_QuaternionToEuler(const float quaternion[4], float* p
 	float xx = x * x;
 	float yy = y * y;
 	float zz = z * z;
+	/* These mRC are 1-based elements of the row-vector rotation matrix, as DirectXMath's _RC; the
+	 * 0-based mRC of MatrixToQuaternion name other elements. */
 	float m31 = 2.0f * x * z + 2.0f * y * w;
 	float m32 = 2.0f * y * z - 2.0f * x * w;
 	float m33 = 1.0f - 2.0f * xx - 2.0f * yy;

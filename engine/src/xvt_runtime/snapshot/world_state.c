@@ -473,7 +473,7 @@ static void XvtSnapshot_ChecksumPrefix(const uint8_t* image, size_t prefix, unsi
 
 	checksum += XvtSnapshot_SumBytes(&cursor, 4);
 	checksum += *cursor++;
-	/* The 20 range dwords: 4 pool sizes, the reserved dword and 15 slot-range bounds. */
+	/* The 20 range dwords: 4 pool sizes, the world-state debris slot count and 15 slot-range bounds. */
 	checksum += XvtSnapshot_SumBytes(&cursor, 20 * 4);
 	checksum += XvtSnapshot_SumBytes(&cursor, 21760);
 	checksum += XvtSnapshot_SumBytes(&cursor, 4);
@@ -859,8 +859,8 @@ typedef struct XvtSnapshotWorldRanges {
 	int32_t local_start, local_end, main_end, static_count;
 } XvtSnapshotWorldRanges;
 
-/* Returns 1 when the 20 dwords at image_ranges (pool sizes, the reserved dword and the slot-range
- * bounds) equal this flight's live values, else 0. */
+/* Returns 1 when the 20 dwords at image_ranges (pool sizes, the world-state debris slot count and the
+ * slot-range bounds) equal this flight's live values, else 0. */
 static int XvtSnapshot_RangesMatchLive(const uint8_t* image_ranges) {
 	XvtSnapshotWorldRanges ranges;
 	memcpy(&ranges, image_ranges, sizeof ranges);

@@ -255,6 +255,8 @@ void sw3d_ProjectMeshVertices(SceneMesh* mesh) {
 				const OptTextureData* material = (const OptTextureData*)mesh->pMaterial;
 				float lodScale;
 
+				/* totalW, the sum of the corners' w values, becomes the corner count over that sum: the
+				 * reciprocal of their mean. */
 				if (geometry->vertexIdx[3] == -1) {
 					totalW = g_sw3dTriangleCornerCount / totalW;
 				} else {
@@ -419,6 +421,7 @@ void sw3d_RasterizeMeshFaces(SceneMesh* mesh) {
 	enum {
 		SW3D_INVALID_EDGE = -1,
 		SW3D_REJECTED_EDGE = -2,
+		SW3D_FACE_NEEDS_NEAR_CLIP = -1,
 	};
 
 	ProjVertex* vertices = &g_projVertList[mesh->vertBaseIndex];
@@ -452,7 +455,7 @@ void sw3d_RasterizeMeshFaces(SceneMesh* mesh) {
 		face = faceCursor;
 		++faceCursor;
 
-		if (face->nearClipState == SW3D_INVALID_EDGE) {
+		if (face->nearClipState == SW3D_FACE_NEEDS_NEAR_CLIP) {
 			face->nearClipState = g_flightVpHeight;
 			g_sw3dLatestClipVertex = NULL;
 			g_sw3dPreviousClipVertex = NULL;

@@ -521,7 +521,7 @@ int XvtFlightNetwork_DecodeControl(const uint8_t* packet, int* size) {
 		case NET_PACKET_RESYNC_NOTICE:
 		case NET_PACKET_CLOCK_LEAD:
 		case NET_PACKET_CLOCK_PROBE_REPLY:
-			minimum = sizeof(XvtFlightEpochWire);
+			minimum = 2 * sizeof(XvtWireU32);
 			break;
 		case NET_PACKET_CLOCK_PROBE:
 			minimum = sizeof(XvtFlightClockProbeWire);
@@ -727,7 +727,7 @@ void XvtFlightNetwork_SendWorld(void) {
 		message->participant_mask |= 1u << player;
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
 			InputFrame* frame = &g_inputHistory[player][i];
-			if (!frame->applied || frame->timestamp > tick)
+			if (!frame->awaitingRelay || frame->timestamp > tick)
 				continue;
 			XvtFlightWorldInputWire* record = &message->records[message->count++];
 			record->player = player;
@@ -749,8 +749,9 @@ void XvtFlightNetwork_SendWorld(void) {
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player)
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
 			InputFrame* frame = &g_inputHistory[player][i];
-			if ((message->participant_mask & (1u << player)) && frame->applied && frame->timestamp <= tick)
-				frame->applied = 0;
+			if ((message->participant_mask & (1u << player)) && frame->awaitingRelay &&
+				frame->timestamp <= tick)
+				frame->awaitingRelay = 0;
 		}
 	g_flightNetLastSentWorldMessageTimestamp = tick;
 	++g_flightNetSentWorldMessageCount;
@@ -895,7 +896,7 @@ int XvtFlightNetwork_TakeWorldSendTurn(int inputTimestamp) {
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
 		if (!g_players[player].participationState)
 			continue;
-		const InputFrame* input = FlightSync_FindLastAppliedInputFrame(player);
+		const InputFrame* input = FlightSync_FindLastUnrelayedInputFrame(player);
 		if (!input) {
 			oldest = 0;
 			break;

@@ -3,7 +3,7 @@
 #include "aeron/scene/draw_list2d.h"
 #include "xvt_remaster/hud_assets.h"
 
-/* Primitives for the HUD draw lists in classic cockpit coordinates: fills, frames, atlas parts and glyphs,
+/* Primitives for the HUD draw lists in classic cockpit coordinates: fills, outlines, atlas parts and glyphs,
  * each scaled and offset by the draw context into the target, appended to the before-CRT or after-CRT
  * list by phase. */
 
@@ -31,7 +31,7 @@ void XvtHudDraw_Fill(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, u
 /* Fill drawn as a sprite of font's opaque texel, so it batches with the font's glyphs. */
 void XvtHudDraw_TextFill(const XvtHudDraw* draw, const XvtFontAtlas* font, unsigned phase, XvtSnapRect rect,
 						 uint32_t color);
-/* FrameClipped with the layout's whole source size as the clip. */
+/* OutlineClipped with the layout's whole source size as the clip. */
 void XvtHudDraw_Outline(const XvtHudDraw* draw, unsigned phase, XvtSnapRect rect, uint32_t color);
 /* A one-pixel outline of rect, each edge cut to clip before it is filled; nothing for a rect without
  * positive size. */

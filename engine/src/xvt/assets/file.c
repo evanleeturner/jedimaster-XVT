@@ -246,6 +246,8 @@ char File_GetInstallDriveLetter(void) { return g_frontState.installDriveLetter; 
 // FUNCTION: XVT 0x4CCBB0
 const char* File_GetInstallPath(void) { return g_frontState.installPath; }
 
+/* The original's CD drive search is not reconstructed: this ignores relativeCdFilePath and always
+ * returns '.', which File_DetectGameAndCdPaths, outside XVT_MODERN, stores as the CD drive letter. */
 // FUNCTION: XVT 0x4CCBC0
 int File_FindCdDriveLetter(const char* relativeCdFilePath) {
 	(void)relativeCdFilePath;

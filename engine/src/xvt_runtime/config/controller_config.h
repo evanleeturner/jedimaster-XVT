@@ -21,7 +21,8 @@ bool XvtControllerConfig_Write(AeronConfigFile* document, const XvtControllerOpt
  * maps action names to one source or a list: a gamepad button name, {button} on a joystick, {axis,
  * direction positive or negative, threshold in (0, 1], default 0.5}, or {hat, direction up, right, down
  * or left} on a joystick. A source bound to two actions fails; one repeated for the same action is
- * ignored. Unknown fields fail, and the profile is validated at the end. */
+ * ignored. Unknown fields fail, except a third key in an axis source, which is ignored unless it is
+ * threshold; the profile is validated at the end. */
 bool XvtControllerConfig_ReadProfile(const AeronConfigFile* document, const char* path,
 									 AeronControllerKind kind, XvtControllerProfile* profile, char* error,
 									 size_t capacity);

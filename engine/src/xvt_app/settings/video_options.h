@@ -23,8 +23,9 @@ void XvtVideoOptions_RestoreDefaults(void);
 /* Once per frame. A fullscreen change observed on the window while nothing is pending is adopted into the
  * requested and accepted records. With a change pending: clears it and calls apply with the accepted and
  * requested records; on failure, or without an apply function, the request reverts to the accepted
- * record, the restore flag clears and false is returned with error; on success the requested record
- * becomes accepted and the fullscreen state is read again. true when nothing was pending. */
+ * record, the restore flag clears and false is returned with apply's error (error is left untouched
+ * without an apply function); on success the requested record becomes accepted and the fullscreen state
+ * is read again. true when nothing was pending. */
 bool XvtVideoOptions_ApplyPending(char* error, size_t capacity);
 /* Writes the accepted record, or the requested one when exiting, to the user overrides: nothing when it
  * equals the persisted record and no restore is flagged; the video overrides are removed when it equals

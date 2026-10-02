@@ -130,6 +130,8 @@ void FrontendMission_LoadCurrentWithBriefing(void) {
 					   sizeof(g_frontendMission.flightGroups[flightGroupIndex]));
 	}
 
+	/* indexedRecord holds the 16-bit word read ahead of each record: the message's slot here, then each
+	 * team's goal count, then whether a team record follows. */
 	for (messageIndex = 0; messageIndex < (int16_t)g_frontendMission.messageCount; ++messageIndex) {
 		File_ReadWord(stream, &indexedRecord);
 		File_ReadBytes(stream, &g_frontendMission.messages[(int16_t)indexedRecord],
@@ -234,6 +236,8 @@ void FrontendMission_LoadFile(const char* fileName, FrontendMission* outMission)
 			} while ((int16_t)outMission->flightGroupCount > flightGroupIndex);
 		}
 
+		/* indexedRecord holds the 16-bit word read ahead of each record: the message's slot here, then
+		 * each team's goal count, then whether a team record follows. */
 		for (messageIndex = 0; messageIndex < (int16_t)outMission->messageCount; ++messageIndex) {
 			File_ReadWord(stream, &indexedRecord);
 			File_ReadBytes(stream, &outMission->messages[(int16_t)indexedRecord],
@@ -316,6 +320,8 @@ void FrontendMission_LoadCurrent(void) {
 					   sizeof(g_frontendMission.flightGroups[flightGroupIndex]));
 	}
 
+	/* indexedRecord holds the 16-bit word read ahead of each record: the message's slot here, then each
+	 * team's goal count, then whether a team record follows. */
 	for (messageIndex = 0; messageIndex < (int16_t)g_frontendMission.messageCount; ++messageIndex) {
 		File_ReadWord(stream, &indexedRecord);
 		File_ReadBytes(stream, &g_frontendMission.messages[(int16_t)indexedRecord],
@@ -368,13 +374,14 @@ void FrontendMission_InitPlayerState(void) {
 	memset(g_pilotData.killsSharedFromPlayer, 0, sizeof(g_pilotData.killsSharedFromPlayer));
 	memset(g_pilotData.killsFullFromFlightGroup, 0, sizeof(g_pilotData.killsFullFromFlightGroup));
 	memset(g_pilotData.killsSharedFromFlightGroup, 0, sizeof(g_pilotData.killsSharedFromFlightGroup));
-	memset(&g_pilotData.objectStats, 0, sizeof(g_pilotData.objectStats));
+	memset(&g_pilotData.lastMissionStats, 0, sizeof(g_pilotData.lastMissionStats));
 	memset(g_pilotData.teams, 0, sizeof(g_pilotData.teams));
 	playerCount = 0;
 
 	if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_MELEES &&
 		g_pilotData.missionSequenceActive == 1 &&
 		g_pilotData.meleeTournamentSequenceState.currentMissionIndex == 0) {
+		/* rosterIndex counts the ten teams here, not roster entries. */
 		for (rosterIndex = 0; rosterIndex < 10; rosterIndex++) {
 			g_pilotData.meleeTournamentSequenceState.teamStandings[rosterIndex]
 				.aiOpponentSourceTeamAndTypeFlag = -1;

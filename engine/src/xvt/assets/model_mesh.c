@@ -253,6 +253,8 @@ MeshComponentType ModelMesh_GetObjectTypeMeshType(int objectType, int meshIndex)
 		meshIndex = model->rootNodeCount - 1;
 
 	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex], model);
+	/* From here meshIndex holds the result, no longer a root node index: the descriptor's mesh type,
+	 * or MESH_COMPONENT_00_DEFAULT without a descriptor. */
 	if (descriptor != NULL)
 		meshIndex = descriptor->meshType;
 	else
@@ -705,6 +707,8 @@ int ModelMesh_GetTargetId(int objectType, int meshIndex) {
 		meshIndex = model->rootNodeCount - 1;
 
 	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex], model);
+	/* From here meshIndex holds the result, no longer a root node index: the descriptor's target id,
+	 * or 0 without a descriptor. */
 	if (descriptor != NULL)
 		meshIndex = descriptor->targetId;
 	else
@@ -881,6 +885,8 @@ int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex) {
 		meshIndex = model->rootNodeCount - 1;
 
 	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex], model);
+	/* From here meshIndex holds the result, no longer a root node index: bit 1 (value 2) of the
+	 * descriptor's component flags, or 0 without a descriptor. */
 	if (descriptor != NULL)
 		meshIndex = descriptor->componentFlags & 2;
 	else
@@ -912,6 +918,8 @@ int ModelMesh_HasExplosionTypeBit0(int objectType, int meshIndex) {
 		meshIndex = model->rootNodeCount - 1;
 
 	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex], model);
+	/* From here meshIndex holds the result, no longer a root node index: bit 0 of the descriptor's
+	 * component flags, or 0 without a descriptor. */
 	if (descriptor != NULL)
 		meshIndex = descriptor->componentFlags & 1;
 	else
@@ -1437,6 +1445,8 @@ int ModelMesh_FindBridgeIndex(OptimizedPolyObject* model) {
 	return -1;
 }
 
+/* Fills g_objectTypeMeshCache for all 73 object types. The pointer returned is one past the end of
+ * the array, not a cache entry; it must not be dereferenced. */
 // FUNCTION: XVT 0x4AFA90
 ModelMeshObjectTypeCache* ModelMesh_BuildObjectTypeMeshCache(void) {
 	ModelMeshObjectTypeCache* cache;

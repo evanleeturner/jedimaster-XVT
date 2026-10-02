@@ -215,17 +215,17 @@ int NetSession_ImportRuntimeState(void** dplayInterfaceOut, GUID* appGuidOut, GU
 								  NetReliablePeerSlot* reliablePeerSlotsOut,
 								  uint32_t* reliablePeerSlotCountOut, uint32_t* broadcastSeqCounterOut,
 								  char* broadcastPayloadOut, int* broadcastPayloadLengthOut,
-								  int* broadcastPendingFlushOut, uint32_t* groupSeqCounterOut,
+								  int* broadcastPiggybackEmptyOut, uint32_t* groupSeqCounterOut,
 								  char* groupPayloadOut, int* groupPayloadLengthOut,
-								  int* groupPendingFlushOut, NetQueuedPacket* sentHistoryOut,
+								  int* groupPiggybackEmptyOut, NetQueuedPacket* sentHistoryOut,
 								  int* sentHistoryWriteIndexOut);
 int NetSession_ExportRuntimeState(
 	void** dplayInterface, const void* appGuid, const void* sessionGuid, int* groupId, int* hostPlayerId,
 	const void* localPlayerInfo, const NetQueuedPacket* recvQueueEntries, int* recvQueueRead,
 	int* recvQueueCount, int* recvQueueWrite, const NetReliablePeerSlot* reliablePeerSlots,
 	int* reliablePeerSlotCount, int* broadcastSeqCounter, const void* broadcastPayload,
-	int* broadcastPayloadLength, int* broadcastPendingFlush, int* groupSeqCounter, const void* groupPayload,
-	int* groupPayloadLength, int* groupPendingFlush, const NetQueuedPacket* sentHistory,
+	int* broadcastPayloadLength, int* broadcastPiggybackEmpty, int* groupSeqCounter, const void* groupPayload,
+	int* groupPayloadLength, int* groupPiggybackEmpty, const NetQueuedPacket* sentHistory,
 	int* sentHistoryWriteIndex, NetQueuedPacket* sentWorldMessageHistory, int* sentWorldMessageWriteIndex);
 int Net_CompactReliablePeerSlotsForRoster(void);
 int Net_SendSequenceKeepalives(void);

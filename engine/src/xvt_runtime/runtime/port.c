@@ -206,7 +206,7 @@ int XvtPort_GetExitCode(void) { return Aeron_FatalErrorRequested() ? 1 : g_xvtEx
 
 uint64_t XvtPort_NextWakeDelayUs(void) {
 	uint64_t task;
-	uint64_t cd;
+	uint64_t delay;
 	if (g_quitting)
 		return AeronDplay_NextWakeDelayUs();
 	if (g_xvtPaused)
@@ -214,11 +214,11 @@ uint64_t XvtPort_NextWakeDelayUs(void) {
 	task = XvtMovieTask_IsActive()    ? XvtMovieTask_NextWakeDelayUs()
 		   : XvtFlightTask_IsActive() ? XvtFlightTask_NextWakeDelayUs()
 									  : XvtFrontendTask_NextWakeDelayUs();
-	cd = XvtCdTask_NextWakeDelayUs();
-	if (cd < task)
-		task = cd;
-	cd = AeronDplay_NextWakeDelayUs();
-	return cd < task ? cd : task;
+	delay = XvtCdTask_NextWakeDelayUs();
+	if (delay < task)
+		task = delay;
+	delay = AeronDplay_NextWakeDelayUs();
+	return delay < task ? delay : task;
 }
 
 void XvtPort_Shutdown(void) {

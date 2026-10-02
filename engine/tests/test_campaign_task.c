@@ -51,8 +51,8 @@ static void Fresh(int session_mode) {
 	g_missionSetupDebriefTransition = 0;
 	g_cutsceneTable = NULL;
 	g_cutsceneCount = 0;
-	free(g_briefingText);
-	g_briefingText = NULL;
+	free(g_missionText);
+	g_missionText = NULL;
 	g_remoteBattleContinuationActive = 0;
 	g_remoteBattleSequenceContinuationChoice = 0;
 	g_remoteBattleLastCompletedMissionIndex = 0;
@@ -227,7 +227,7 @@ static void CheckDebriefOutsideTraining(void) {
 	XVT_ASSERT_INT_EQ(g_frontState.cursorVisible, 1);
 	XVT_ASSERT_INT_EQ(g_frontState.charReadIdx, g_frontState.charWriteIdx);
 	/* No briefing text outside a training sequence. */
-	XVT_ASSERT_TRUE(g_briefingText == NULL);
+	XVT_ASSERT_TRUE(g_missionText == NULL);
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_IsPending(), 0);
 }
 
@@ -239,7 +239,7 @@ static void CheckDebriefTrainingSequence(void) {
 		g_pilotData.missionSequenceActive = 1;
 		g_pilotData.campaignSequenceState.lastMissionCompleted = completed;
 		XVT_ASSERT_INT_EQ(XvtCampaignTask_EnterDebrief(), 1);
-		XVT_ASSERT_TRUE(g_briefingText != NULL);
+		XVT_ASSERT_TRUE(g_missionText != NULL);
 		XVT_ASSERT_TRUE(TopScreen() == Placeholder);
 	}
 }
@@ -289,7 +289,7 @@ static void CheckDebriefWaitsForCutscene(void) {
 	XvtMovieTask_ReapFinished();
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_EnterDebrief(), 1);
 	XVT_ASSERT_INT_EQ(XvtCampaignTask_IsPending(), 0);
-	XVT_ASSERT_TRUE(g_briefingText != NULL);
+	XVT_ASSERT_TRUE(g_missionText != NULL);
 	g_cutsceneTable = NULL;
 	g_cutsceneCount = 0;
 }
@@ -309,7 +309,7 @@ int main(void) {
 	XvtMovieTask_Shutdown();
 	XvtNetworkSession_Shutdown();
 	XvtTest_CloseAssets(&g_assets);
-	free(g_briefingText);
-	g_briefingText = NULL;
+	free(g_missionText);
+	g_missionText = NULL;
 	return 0;
 }

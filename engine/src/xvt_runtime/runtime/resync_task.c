@@ -314,6 +314,7 @@ void XvtResync_BeginApply(int peer_dpid, int size) {
 	g_resync.image_size = size;
 	g_resync.retries = XVT_RESYNC_RETRIES;
 	g_resync.pulse = 0;
+	/* In the apply phase elapsed holds the input tick the apply was sent at, not a duration. */
 	g_resync.elapsed = g_inputTimestamp;
 	g_flightNetScratchPacket.packetType = NET_PACKET_RESYNC_APPLY;
 	g_flightNetScratchPacket.payloadDwords[0] = (int)g_resync.epoch;

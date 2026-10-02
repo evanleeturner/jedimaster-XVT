@@ -39,7 +39,7 @@ static void DrawWeapons(const XvtHudDraw* draw) {
 		const XvtCockpitWeaponSlot* slot = &weapons->slots[index];
 		if (!slot->visible)
 			continue;
-		if (slot->charge_visible && !draw->state->view.instrument_base)
+		if (slot->charge_visible && draw->state->view.instrument_base == HUD_COCKPIT_INSTRUMENT_BASE_INDEX)
 			for (unsigned segment = 0; segment < 10; ++segment)
 				XvtHudDraw_Part(draw, XVT_HUD_LASER_CHARGE + index,
 								segment < slot->segments ? slot->charge_band : slot->empty_band,
@@ -53,7 +53,7 @@ static void DrawWeapons(const XvtHudDraw* draw) {
 			XvtHudDraw_Part(draw, XVT_HUD_LASER_LOCK + index, slot->locked, 0, 0, XVT_COCKPIT_BEFORE_CRT);
 	}
 	DrawIndicator(draw, XVT_HUD_TARGET_LOCK, &weapons->lock_indicator);
-	if (!draw->state->view.instrument_base)
+	if (draw->state->view.instrument_base == HUD_COCKPIT_INSTRUMENT_BASE_INDEX)
 		for (unsigned launcher = 0; launcher < 4; ++launcher)
 			if (weapons->launchers[launcher].visible)
 				XvtHudDraw_Part(draw, XVT_HUD_LAUNCHER + launcher, weapons->launchers[launcher].selection, 0,

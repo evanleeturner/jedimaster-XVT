@@ -66,11 +66,11 @@ typedef struct NetSessionState {
 	uint32_t broadcastSeqCounter;
 	uint8_t broadcastPayload[512];
 	int broadcastPayloadLength;
-	int broadcastPendingFlush;
+	int broadcastPiggybackEmpty;
 	uint32_t groupSeqCounter;
 	uint8_t groupPayload[512];
 	int groupPayloadLength;
-	int groupPendingFlush;
+	int groupPiggybackEmpty;
 	NetReliablePeerSlot reliablePeerSlots[40];
 	NetReliablePeerSlot reliablePeerScratch;
 	unsigned int reliablePeerSlotCount;

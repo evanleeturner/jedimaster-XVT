@@ -90,7 +90,7 @@ uint64_t XvtRenderAssets_RegisterImage(const void* owner, uint16_t handle, const
 void XvtRenderAssets_CaptureCockpit(int auxiliary);
 /* Registers the cockpit LFD file whose entry table is entries, with its resource's viewport,
  * and binds it to that resource's descriptor. A resource without a handle registers under the
- * flight log buffer's handle. Does nothing when entries is not one of the 28 resources. */
+ * flight scratch screen buffer's handle. Does nothing when entries is not one of the 28 resources. */
 void XvtRenderAssets_RegisterLfd(const char* path, uint8_t** entries);
 /* Registers the panel sprite file for panel slots first to first + count - 1 of 265, binding
  * slot first + i to frame skip + i; when first is 0 it also sets the layout's panel asset. Does nothing

@@ -43,7 +43,7 @@ static int QueuePlayer(unsigned player, int tick) {
 		const InputFrame* frame = &g_inputHistory[player][i];
 		if (frame->timestamp > tick)
 			break;
-		if (frame->unconfirmed == XVT_INPUT_PREDICTED)
+		if (frame->inputSource == XVT_INPUT_PREDICTED)
 			continue;
 		/* Generic insertion may replace an unconsumed real record. Prediction
 		 * must leave both real and authoritative samples at this tick intact. */
@@ -70,8 +70,8 @@ static int QueuePlayer(unsigned player, int tick) {
 		return 0;
 	}
 	if (inserted) {
-		inserted->unconfirmed = XVT_INPUT_PREDICTED;
-		inserted->applied = 0;
+		inserted->inputSource = XVT_INPUT_PREDICTED;
+		inserted->awaitingRelay = 0;
 	}
 	return 1;
 }

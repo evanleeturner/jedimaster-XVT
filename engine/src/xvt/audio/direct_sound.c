@@ -28,6 +28,8 @@ IDirectSoundBuffer* DirectSound_LoadWaveBuffer(IDirectSound* directSound, const 
 	if (DirectSound_LoadFileAndFindAudioData(0, fileName, &desc.lpwfxFormat, &sampleData,
 											 &desc.dwBufferBytes)) {
 		desc.dwSize = sizeof(desc);
+		/* 194 is DSBCAPS_STATIC | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME; 234 adds DSBCAPS_LOCSOFTWARE and
+		 * DSBCAPS_CTRLFREQUENCY. */
 		desc.dwFlags = 194;
 		if (omitSoftwareAndFrequencyCaps == 0) {
 			desc.dwFlags = 234;

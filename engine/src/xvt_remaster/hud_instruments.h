@@ -11,12 +11,11 @@
  * element 108 of its set). */
 void XvtHudInstruments_DrawCovers(const XvtHudDraw* draw);
 /* Draws, before the CRT, the weapon widgets (ten charge segments per visible slot with a visible charge,
- * unless the view has an instrument base; the selection, ready and lock parts; the target lock; and
- * the launchers without an instrument base), the shield gauges (primary and overcharge, unless in text
- * mode), hull, beam
- * enabled, the nine beam segments, the four power gauges (segments stepped by step_y), shield
- * distribution, S-foils, countermeasure selection, critical warning, and the threat and armament
- * indicators. */
+ * only in the cockpit instrument set, instrument_base 0; the selection, ready and lock parts; the target
+ * lock; and the launchers, only in the cockpit instrument set), the shield gauges (primary and overcharge,
+ * unless in text mode), hull, beam enabled, the nine beam segments, the four power gauges (segments
+ * stepped by step_y), shield distribution, S-foils, countermeasure selection, critical warning, and the
+ * threat and armament indicators. */
 void XvtHudInstruments_DrawWidgets(const XvtHudDraw* draw);
 /* Draws, before the CRT, each visible radar side's blips as single pixels (up to two rows by the
  * coverage bits) in their palette colors, and the marker as ten pixels around its position in palette

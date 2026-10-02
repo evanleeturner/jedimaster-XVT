@@ -313,6 +313,8 @@ void FrontendDraw_RectOutline(RECT* rect, int dx, int dy, int color) {
 		drawBottom = 0;
 	}
 
+	/* bottom starts as the clipped bottom edge; each case below turns it into the number of interior rows
+	 * and counts it down while drawing the side edges. */
 	bottom = clippedRect.bottom;
 	width = clippedRect.right - clippedRect.left + 1;
 	drawSurfacePitch = g_frontState.drawSurfacePitch;

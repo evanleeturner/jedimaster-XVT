@@ -88,7 +88,7 @@ uint16_t g_flightScratchScreenBufferHandle = 0;
 // GLOBAL: XVT 0x612BA0
 uint8_t g_rgb565ToPaletteIndexLut[UINT16_MAX + 1u] = { 0 };
 // GLOBAL: XVT 0x622BA0
-uint16_t g_flightTinyFontHandle = 0;
+uint16_t g_flightSmallFontHandle = 0;
 // GLOBAL: XVT 0x622BA4
 uint16_t g_flightOffscreenBufferHandle = 0;
 // GLOBAL: XVT 0x622BA8
@@ -119,8 +119,8 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 		TEAM_COUNT = sizeof(g_flightMissionState.runtime.teamGoalStatus) /
 					 sizeof(g_flightMissionState.runtime.teamGoalStatus[0]),
 		FLIGHT_GROUP_CAPACITY = sizeof(g_missionFlightGroups) / sizeof(g_missionFlightGroups[0]),
-		OBJECT_TYPE_STAT_COUNT = sizeof(g_pilotData.objectStats.killsPerCraftPerMT[0]) /
-								 sizeof(g_pilotData.objectStats.killsPerCraftPerMT[0][0]),
+		OBJECT_TYPE_STAT_COUNT = sizeof(g_pilotData.lastMissionStats.killsPerCraftPerMT[0]) /
+								 sizeof(g_pilotData.lastMissionStats.killsPerCraftPerMT[0][0]),
 		PLAYER_RATING_COUNT = sizeof(g_players[0].perMissionKills.killsFullOnPlayerRating) /
 							  sizeof(g_players[0].perMissionKills.killsFullOnPlayerRating[0]),
 		AI_RATING_COUNT = sizeof(g_players[0].perMissionKills.killsFullOnAiRating) /
@@ -186,10 +186,10 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 	}
 
 	if (g_missionHeader.missionType != MISSION_TYPE_SIMULATOR_1) {
-		if (g_missionHeader.missionType == MISSION_TYPE_JUNKYARD ||
+		if (g_missionHeader.missionType == MISSION_TYPE_TRAINING ||
 			g_missionHeader.missionType == MISSION_TYPE_SIMULATOR_2) {
 			statType = MISSION_STAT_TRAINING;
-		} else if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
+		} else if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
 			statType = MISSION_STAT_MELEE;
 		} else {
 			statType = MISSION_STAT_COMBAT;
@@ -262,7 +262,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 			}
 		}
 
-		memset(&g_pilotData.objectStats, 0, sizeof(g_pilotData.objectStats));
+		memset(&g_pilotData.lastMissionStats, 0, sizeof(g_pilotData.lastMissionStats));
 		localPlayerTeam = (uint16_t)g_players[g_localPlayer].team;
 		score = g_players[g_localPlayer].missionStats.missionScore +
 				g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][localPlayerTeam];
@@ -292,21 +292,21 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.totalKillsPerMT[statType] +=
 				kills;
 			g_pilotData.mainStats.totalKillsPerMT[statType] += kills;
-			g_pilotData.objectStats.totalKillsPerMT[0] += kills;
+			g_pilotData.lastMissionStats.totalKillsPerMT[0] += kills;
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killsPerCraftPerMT[statType][objectType] += kills;
 			g_pilotData.mainStats.killsPerCraftPerMT[statType][objectType] += kills;
-			g_pilotData.objectStats.killsPerCraftPerMT[0][objectType] += kills;
+			g_pilotData.lastMissionStats.killsPerCraftPerMT[0][objectType] += kills;
 			kills = g_players[g_localPlayer].perMissionKills.killsSharedOnFlightGroup[fgIdx];
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killsSharedPerCraftPerMT[statType][objectType] += kills;
 			g_pilotData.mainStats.killsSharedPerCraftPerMT[statType][objectType] += kills;
-			g_pilotData.objectStats.killsSharedPerCraftPerMT[0][objectType] += kills;
+			g_pilotData.lastMissionStats.killsSharedPerCraftPerMT[0][objectType] += kills;
 			kills = g_players[g_localPlayer].perMissionKills.killsAssistOnFlightGroup[fgIdx];
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killsAssistsPerCraftPerMT[statType][objectType] += kills;
 			g_pilotData.mainStats.killsAssistsPerCraftPerMT[statType][objectType] += kills;
-			g_pilotData.objectStats.killsAssistsPerCraftPerMT[0][objectType] += kills;
+			g_pilotData.lastMissionStats.killsAssistsPerCraftPerMT[0][objectType] += kills;
 		}
 
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -314,7 +314,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 			g_players[g_localPlayer].perMissionKills.friendliesKilled;
 		g_pilotData.mainStats.totalFriendliesKilledPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.friendliesKilled;
-		g_pilotData.objectStats.totalFriendliesKilledPerMT[0] +=
+		g_pilotData.lastMissionStats.totalFriendliesKilledPerMT[0] +=
 			g_players[g_localPlayer].perMissionKills.friendliesKilled;
 		for (ratingIdx = 0; ratingIdx < PLAYER_RATING_COUNT; ++ratingIdx) {
 			uint16_t value;
@@ -323,22 +323,22 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killsFullOnPlayerRatingPerMT[statType][ratingIdx] += value;
 			g_pilotData.mainStats.killsFullOnPlayerRatingPerMT[statType][ratingIdx] += value;
-			g_pilotData.objectStats.killsFullOnPlayerRatingPerMT[0][ratingIdx] += value;
+			g_pilotData.lastMissionStats.killsFullOnPlayerRatingPerMT[0][ratingIdx] += value;
 			value = g_players[g_localPlayer].perMissionKills.killsSharedOnPlayerRating[ratingIdx];
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killsSharedOnPlayerRatingPerMT[statType][ratingIdx] += value;
 			g_pilotData.mainStats.killsSharedOnPlayerRatingPerMT[statType][ratingIdx] += value;
-			g_pilotData.objectStats.killsSharedOnPlayerRatingPerMT[0][ratingIdx] += value;
+			g_pilotData.lastMissionStats.killsSharedOnPlayerRatingPerMT[0][ratingIdx] += value;
 			value = g_players[g_localPlayer].perMissionKills.killsAssistOnPlayerRating[ratingIdx];
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killsAssistOnPlayerRatingPerMT[statType][ratingIdx] += value;
 			g_pilotData.mainStats.killsAssistOnPlayerRatingPerMT[statType][ratingIdx] += value;
-			g_pilotData.objectStats.killsAssistOnPlayerRatingPerMT[0][ratingIdx] += value;
+			g_pilotData.lastMissionStats.killsAssistOnPlayerRatingPerMT[0][ratingIdx] += value;
 			value = g_players[g_localPlayer].perMissionKills.killedByPlayerRating[ratingIdx];
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killedByPlayerRatingPerMT[statType][ratingIdx] += value;
 			g_pilotData.mainStats.killedByPlayerRatingPerMT[statType][ratingIdx] += value;
-			g_pilotData.objectStats.killedByPlayerRatingPerMT[0][ratingIdx] += value;
+			g_pilotData.lastMissionStats.killedByPlayerRatingPerMT[0][ratingIdx] += value;
 		}
 		for (aiRatingIdx = 0; aiRatingIdx < AI_RATING_COUNT; ++aiRatingIdx) {
 			uint16_t value;
@@ -347,22 +347,22 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killsFullOnAIRatingPerMT[statType][aiRatingIdx] += value;
 			g_pilotData.mainStats.killsFullOnAIRatingPerMT[statType][aiRatingIdx] += value;
-			g_pilotData.objectStats.killsFullOnAIRatingPerMT[0][aiRatingIdx] += value;
+			g_pilotData.lastMissionStats.killsFullOnAIRatingPerMT[0][aiRatingIdx] += value;
 			value = g_players[g_localPlayer].perMissionKills.killsSharedOnAiRating[aiRatingIdx];
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killsSharedOnAIRatingPerMT[statType][aiRatingIdx] += value;
 			g_pilotData.mainStats.killsSharedOnAIRatingPerMT[statType][aiRatingIdx] += value;
-			g_pilotData.objectStats.killsSharedOnAIRatingPerMT[0][aiRatingIdx] += value;
+			g_pilotData.lastMissionStats.killsSharedOnAIRatingPerMT[0][aiRatingIdx] += value;
 			value = g_players[g_localPlayer].perMissionKills.killsAssistOnAiRating[aiRatingIdx];
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killsAssistOnAIRatingPerMT[statType][aiRatingIdx] += value;
 			g_pilotData.mainStats.killsAssistOnAIRatingPerMT[statType][aiRatingIdx] += value;
-			g_pilotData.objectStats.killsAssistOnAIRatingPerMT[0][aiRatingIdx] += value;
+			g_pilotData.lastMissionStats.killsAssistOnAIRatingPerMT[0][aiRatingIdx] += value;
 			value = g_players[g_localPlayer].perMissionKills.killedByAiRating[aiRatingIdx];
 			g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 				.stats.killedByAIRatingPerMT[statType][aiRatingIdx] += value;
 			g_pilotData.mainStats.killedByAIRatingPerMT[statType][aiRatingIdx] += value;
-			g_pilotData.objectStats.killedByAIRatingPerMT[0][aiRatingIdx] += value;
+			g_pilotData.lastMissionStats.killedByAIRatingPerMT[0][aiRatingIdx] += value;
 		}
 
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -370,60 +370,65 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 			g_players[g_localPlayer].perMissionKills.numSpecialInspected;
 		g_pilotData.mainStats.numSpecialInspectedPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.numSpecialInspected;
-		g_pilotData.objectStats.numSpecialInspectedPerMT[0] +=
+		g_pilotData.lastMissionStats.numSpecialInspectedPerMT[0] +=
 			g_players[g_localPlayer].perMissionKills.numSpecialInspected;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.energyFiredPerMT[statType] +=
 			g_players[g_localPlayer].missionStats.laserShotsFired;
 		g_pilotData.mainStats.energyFiredPerMT[statType] +=
 			g_players[g_localPlayer].missionStats.laserShotsFired;
-		g_pilotData.objectStats.energyFiredPerMT[0] += g_players[g_localPlayer].missionStats.laserShotsFired;
+		g_pilotData.lastMissionStats.energyFiredPerMT[0] +=
+			g_players[g_localPlayer].missionStats.laserShotsFired;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.energyFiredPerMT[statType] +=
 			g_players[g_localPlayer].missionStats.ionShotsFired;
 		g_pilotData.mainStats.energyFiredPerMT[statType] +=
 			g_players[g_localPlayer].missionStats.ionShotsFired;
-		g_pilotData.objectStats.energyFiredPerMT[0] += g_players[g_localPlayer].missionStats.ionShotsFired;
+		g_pilotData.lastMissionStats.energyFiredPerMT[0] +=
+			g_players[g_localPlayer].missionStats.ionShotsFired;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.energyHitsPerMT[statType] +=
 			g_players[g_localPlayer].missionStats.laserHitsScored;
 		g_pilotData.mainStats.energyHitsPerMT[statType] +=
 			g_players[g_localPlayer].missionStats.laserHitsScored;
-		g_pilotData.objectStats.energyHitsPerMT[0] += g_players[g_localPlayer].missionStats.laserHitsScored;
+		g_pilotData.lastMissionStats.energyHitsPerMT[0] +=
+			g_players[g_localPlayer].missionStats.laserHitsScored;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.energyHitsPerMT[statType] +=
 			g_players[g_localPlayer].missionStats.ionHitsScored;
 		g_pilotData.mainStats.energyHitsPerMT[statType] +=
 			g_players[g_localPlayer].missionStats.ionHitsScored;
-		g_pilotData.objectStats.energyHitsPerMT[0] += g_players[g_localPlayer].missionStats.ionHitsScored;
+		g_pilotData.lastMissionStats.energyHitsPerMT[0] +=
+			g_players[g_localPlayer].missionStats.ionHitsScored;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.warheadsFiredPerMT[statType] +=
 			g_players[g_localPlayer].warheadsFired;
 		g_pilotData.mainStats.warheadsFiredPerMT[statType] += g_players[g_localPlayer].warheadsFired;
-		g_pilotData.objectStats.warheadsFiredPerMT[0] += g_players[g_localPlayer].warheadsFired;
+		g_pilotData.lastMissionStats.warheadsFiredPerMT[0] += g_players[g_localPlayer].warheadsFired;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.warheadsHitsPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.warheadHits;
 		g_pilotData.mainStats.warheadsHitsPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.warheadHits;
-		g_pilotData.objectStats.warheadsHitsPerMT[0] += g_players[g_localPlayer].perMissionKills.warheadHits;
+		g_pilotData.lastMissionStats.warheadsHitsPerMT[0] +=
+			g_players[g_localPlayer].perMissionKills.warheadHits;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.totalCraftLossesPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.totalCraftLosses;
 		g_pilotData.mainStats.totalCraftLossesPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.totalCraftLosses;
-		g_pilotData.objectStats.totalCraftLossesPerMT[0] +=
+		g_pilotData.lastMissionStats.totalCraftLossesPerMT[0] +=
 			g_players[g_localPlayer].perMissionKills.totalCraftLosses;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.lossesByCollisionsPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.lossesByCollisions;
 		g_pilotData.mainStats.lossesByCollisionsPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.lossesByCollisions;
-		g_pilotData.objectStats.lossesByCollisionsPerMT[0] +=
+		g_pilotData.lastMissionStats.lossesByCollisionsPerMT[0] +=
 			g_players[g_localPlayer].perMissionKills.lossesByCollisions;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.lossesByStarshipsPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.lossesByStarships;
 		g_pilotData.mainStats.lossesByStarshipsPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.lossesByStarships;
-		g_pilotData.objectStats.lossesByStarshipsPerMT[0] +=
+		g_pilotData.lastMissionStats.lossesByStarshipsPerMT[0] +=
 			g_players[g_localPlayer].perMissionKills.lossesByStarships;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].stats.lossesByMinesPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.lossesByMines;
 		g_pilotData.mainStats.lossesByMinesPerMT[statType] +=
 			g_players[g_localPlayer].perMissionKills.lossesByMines;
-		g_pilotData.objectStats.lossesByMinesPerMT[0] +=
+		g_pilotData.lastMissionStats.lossesByMinesPerMT[0] +=
 			g_players[g_localPlayer].perMissionKills.lossesByMines;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId].totalScore += score;
 		g_pilotData.totalScore += score;
@@ -577,7 +582,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 				g_players[g_localPlayer].perMissionKills.killsFullFromFlightGroup[fgIdx];
 			g_pilotData.killsSharedFromFlightGroup[fgIdx] =
 				g_players[g_localPlayer].perMissionKills.killsSharedFromFlightGroup[fgIdx];
-			if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START &&
+			if (g_missionHeader.missionType == MISSION_TYPE_MELEE &&
 				(g_pilotData.missionSequenceActive != 1 ||
 				 g_pilotData.meleeTournamentSequenceState.currentMissionIndex == 0)) {
 				groupAI = g_missionFlightGroups[fgIdx].fg.groupAI;
@@ -600,7 +605,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 			team->missionTime = g_flightMissionState.runtime.teamMissionCompletionTimeSeconds[teamIdx];
 			team->kills = g_flightMissionState.runtime.teamKillStats[TEAM_KILL_STAT_FULL][teamIdx];
 			team->killsShared = g_flightMissionState.runtime.teamKillStats[TEAM_KILL_STAT_SHARED][teamIdx];
-			team->killsAssist = g_flightMissionState.runtime.teamKillStats[TEAM_KILL_STAT_LOSSES][teamIdx];
+			team->losses = g_flightMissionState.runtime.teamKillStats[TEAM_KILL_STAT_LOSSES][teamIdx];
 			if (statType == MISSION_STAT_MELEE) {
 				team->missionScore += g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][teamIdx];
 			} else {
@@ -1075,11 +1080,11 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					if (placement == FIRST_PLACE &&
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.spMeleeMissions[missionId]
-								.bestBonus < (unsigned int)margin &&
+								.bestMargin < (unsigned int)margin &&
 						margin > 0) {
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.spMeleeMissions[missionId]
-							.bestBonus = margin;
+							.bestMargin = margin;
 					}
 					if (award != 0) {
 						oldAward = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1426,11 +1431,11 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					if (placement == FIRST_PLACE &&
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.mpMeleeMissions[missionId]
-								.bestBonus < (unsigned int)margin &&
+								.bestMargin < (unsigned int)margin &&
 						margin > 0) {
 						g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 							.mpMeleeMissions[missionId]
-							.bestBonus = margin;
+							.bestMargin = margin;
 					}
 					if (award != 0) {
 						oldAward = (unsigned int)g_pilotData.factionStatistics[g_pilotData.currentFactionId]
@@ -1669,6 +1674,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2) {
 					teamMissionScore = g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][teamIdx] +
 									   g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][teamIdx];
 					betterMissionTeamCount = 0;
+					/* The network player index is reused here as the other team compared with teamIdx. */
 					for (networkIdx = 0; networkIdx < TEAM_COUNT; ++networkIdx) {
 						if (networkIdx != teamIdx &&
 							g_pilotData.meleeTournamentSequenceState.teamStandings[networkIdx]
@@ -2226,7 +2232,7 @@ uint16_t FeDiskIo_ReadAllBytesOrFatal(const char* fileName, void* dst) {
 void FeDiskIo_InitGlobalBuffers(void) {
 	enum {
 		STRING_DATA_BUFFER_BYTES = 32000,
-		TINY_FONT_BUFFER_BYTES = 34600,
+		SMALL_FONT_BUFFER_BYTES = 34600,
 		MICRO_FONT_BUFFER_BYTES = 20600,
 		MEDIUM_FONT_BUFFER_BYTES = 34600,
 		HUD_PANEL_SPRITE_BUFFER_BYTES = 120000,
@@ -2267,8 +2273,8 @@ void FeDiskIo_InitGlobalBuffers(void) {
 #endif
 	}
 
-	g_flightTinyFontHandle = Memory_AllocHandle(TINY_FONT_BUFFER_BYTES, 0);
-	if (g_flightTinyFontHandle == 0) {
+	g_flightSmallFontHandle = Memory_AllocHandle(SMALL_FONT_BUFFER_BYTES, 0);
+	if (g_flightSmallFontHandle == 0) {
 		allocationFailed = 1;
 	}
 	g_flightMicroFontHandle = Memory_AllocHandle(MICRO_FONT_BUFFER_BYTES, 0);
@@ -2321,7 +2327,7 @@ void FeDiskIo_InitGlobalBuffers(void) {
 	}
 
 	StringTable_LoadGameStrings(1);
-	g_flightFontSmallSw = Memory_LockHandle(g_flightTinyFontHandle);
+	g_flightFontSmallSw = Memory_LockHandle(g_flightSmallFontHandle);
 	g_flightFontMicroSw = Memory_LockHandle(g_flightMicroFontHandle);
 	g_flightFontMediumSw = Memory_LockHandle(g_flightMediumFontHandle);
 	switch (g_flightResolutionMode) {
@@ -2496,7 +2502,7 @@ void FeDiskIo_UnlockGlobalBuffers(void) {
 	}
 	Memory_UnlockHandle(g_stringDataHandle);
 	Memory_UnlockHandle(g_renderObjectListHandle);
-	Memory_UnlockHandle(g_flightTinyFontHandle);
+	Memory_UnlockHandle(g_flightSmallFontHandle);
 	Memory_UnlockHandle(g_flightMicroFontHandle);
 	Memory_UnlockHandle(g_flightMediumFontHandle);
 	Memory_UnlockHandle(g_flightScratchScreenBufferHandle);
@@ -2525,7 +2531,7 @@ void FeDiskIo_LockGlobalBuffers(void) {
 
 	StringTable_LoadGameStrings(0);
 	g_renderObjectListEntries = Memory_LockHandle(g_renderObjectListHandle);
-	g_flightFontSmallSw = Memory_LockHandle(g_flightTinyFontHandle);
+	g_flightFontSmallSw = Memory_LockHandle(g_flightSmallFontHandle);
 	g_flightFontMicroSw = Memory_LockHandle(g_flightMicroFontHandle);
 	g_flightFontMediumSw = Memory_LockHandle(g_flightMediumFontHandle);
 	if (g_flightFontTier == 1) {
@@ -2585,9 +2591,9 @@ void FeDiskIo_FreeFlightResources(void) {
 #endif
 		Memory_FreeHandle(g_renderObjectListHandle);
 #ifdef XVT_MODERN
-	if (g_flightTinyFontHandle)
+	if (g_flightSmallFontHandle)
 #endif
-		Memory_FreeHandle(g_flightTinyFontHandle);
+		Memory_FreeHandle(g_flightSmallFontHandle);
 #ifdef XVT_MODERN
 	if (g_flightMicroFontHandle)
 #endif
@@ -2623,7 +2629,7 @@ void FeDiskIo_FreeFlightResources(void) {
 #ifdef XVT_MODERN
 	g_stringDataHandle = 0;
 	g_renderObjectListHandle = 0;
-	g_flightTinyFontHandle = 0;
+	g_flightSmallFontHandle = 0;
 	g_flightMicroFontHandle = 0;
 	g_flightMediumFontHandle = 0;
 	g_flightScratchScreenBufferHandle = 0;
@@ -2858,6 +2864,7 @@ unsigned int FeDiskIo_InitResources(void) {
 				Color_BuildRgb565ToPaletteIndexLut(g_activeRgb565ToPaletteIndexLut, GENERATED_PALETTE_START,
 												   PALETTE_COLOR_COUNT);
 				if (FeDiskIo_OpenGlobalStream(g_currentMissionFile, "wb", 0, 1) != 0) {
+					/* Writes the whole 65,536-byte RGB565 lookup table as 256 x 256 bytes. */
 					File_RawWrite(g_activeRgb565ToPaletteIndexLut, PALETTE_COLOR_COUNT, PALETTE_COLOR_COUNT,
 								  g_stream);
 					FeDiskIo_CloseGlobalStream(1);
@@ -2919,6 +2926,7 @@ unsigned int FeDiskIo_InitResources(void) {
 			g_currentMissionFile[extensionOffset + 1] = 'n';
 			g_currentMissionFile[extensionOffset + 2] = 'v';
 			if (FeDiskIo_OpenGlobalStream(g_currentMissionFile, "wb", 0, 1) != 0) {
+				/* Writes the whole 65,536-byte RGB565 lookup table as 256 x 256 bytes. */
 				File_RawWrite(g_activeRgb565ToPaletteIndexLut, PALETTE_COLOR_COUNT, PALETTE_COLOR_COUNT,
 							  g_stream);
 				FeDiskIo_CloseGlobalStream(1);
@@ -3142,6 +3150,7 @@ void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType) {
 			}
 			wantedHardpointType =
 				(uint8_t)(g_modelDefs[modelDefIndex].laserGroupWeaponType[groupIndex] + 120);
+			/* currentMeshIndex is reused here as the hardpoint type to match, not a mesh index. */
 			currentMeshIndex = wantedHardpointType;
 			for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
 				uint16_t alternateSlot;
@@ -3208,6 +3217,7 @@ void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType) {
 				continue;
 			}
 			wantedHardpointType = (uint8_t)(g_modelDefs[modelDefIndex].warheadLauncherType[groupIndex] + 120);
+			/* currentMeshIndex is reused here as the hardpoint type to match, not a mesh index. */
 			currentMeshIndex = wantedHardpointType;
 			for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
 				hardpointCount = ModelMesh_CountHardpoints((uint8_t)objectType, meshIndex);

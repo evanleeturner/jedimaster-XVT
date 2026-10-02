@@ -54,8 +54,9 @@ void XvtCockpit_Presented(int standalone_overlay);
 /* Copies the last presented frame into destination. */
 void XvtCockpit_Export(XvtCockpitState* destination);
 /* Fills destination with the cockpit definition, screen size, features and palettes, including
- * each loaded view's 64-color palette. Leaves it cleared and invalid while working is invalid,
- * the cockpit resources are not loaded, or panel 0 has no asset. */
+ * each loaded view's 64-color palette. Leaves it cleared and invalid while working is invalid or
+ * the cockpit resources are not loaded; when panel 0 has no asset, the definition is captured and the
+ * rest left cleared and invalid. */
 void XvtCockpit_ExportResources(XvtCockpitResources* destination);
 /* Records the resource generation the renderer has prepared. */
 void XvtCockpit_ResourcesPrepared(uint64_t generation);

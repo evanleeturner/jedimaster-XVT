@@ -1218,6 +1218,8 @@ void std3D_ClampTextureDimensions(int srcWidth, int srcHeight, int* outWidth, in
 	}
 
 	if ((uint32_t)srcHeight >= 1) {
+		/* The height is clamped by the width limit, as in the original; g_std3DMaxTextureHeight is never
+		 * read. */
 		height = (uint32_t)g_std3DMaxTextureWidth;
 		if (height >= (uint32_t)srcHeight) {
 			height = (uint32_t)srcHeight;

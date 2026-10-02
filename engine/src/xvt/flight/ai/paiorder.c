@@ -29,10 +29,11 @@ int g_aiAttackerSearchRangeBySkill[4] = { 0x2000, 0x3000, 0x4000, 0 };
 // GLOBAL: XVT 0x5243C8
 int g_aiWarheadThreatRangeBySkill[4] = { 0x800, 0x1000, 0x1800, 0 };
 // GLOBAL: XVT 0x5243E0
-uint8_t g_aiUnderAttackFrontManeuverChoices[4] = { AI_MANEUVER_MODE_ZOOM, AI_MANEUVER_MODE_DIVE,
-												   AI_MANEUVER_MODE_SPLITS_DIVE, AI_MANEUVER_MODE_IMMELMANN };
+uint8_t g_aiUnderAttackFrontSideManeuverChoices[4] = { AI_MANEUVER_MODE_ZOOM, AI_MANEUVER_MODE_DIVE,
+													   AI_MANEUVER_MODE_SPLITS_DIVE,
+													   AI_MANEUVER_MODE_IMMELMANN };
 // GLOBAL: XVT 0x5243E8
-uint8_t g_aiUnderAttackSideRearManeuverChoices[8] = {
+uint8_t g_aiUnderAttackRearManeuverChoices[8] = {
 	AI_MANEUVER_MODE_TURN_INSIDE, AI_MANEUVER_MODE_SPLITS_DIVE,    AI_MANEUVER_MODE_TURN_INSIDE,
 	AI_MANEUVER_MODE_TURN_INSIDE, AI_MANEUVER_MODE_AVOID_ATTACKER, AI_MANEUVER_MODE_AVOID_ATTACKER,
 	AI_MANEUVER_MODE_SCISSORS,    AI_MANEUVER_MODE_AVOID_ATTACKER,
@@ -210,15 +211,16 @@ int16_t paiorder_underattackorder(void) {
 			randomValue = (uint16_t)GameRand();
 			if (threatBearing == 1) {
 				if (trig2_polardistance >= 0x2000 || randomValue >= 0x4000)
-					maneuverMode = g_aiUnderAttackFrontManeuverChoices[randomValue & 3];
+					maneuverMode = g_aiUnderAttackFrontSideManeuverChoices[randomValue & 3];
 				else
 					maneuverMode = AI_MANEUVER_MODE_TURN_INSIDE;
 			} else if (threatBearing == 0) {
-				maneuverMode = randomValue <= 0x8000 ? g_aiUnderAttackFrontManeuverChoices[randomValue & 3]
-													 : AI_MANEUVER_MODE_HEAD_ON_ATTACK;
+				maneuverMode = randomValue <= 0x8000
+								   ? g_aiUnderAttackFrontSideManeuverChoices[randomValue & 3]
+								   : AI_MANEUVER_MODE_HEAD_ON_ATTACK;
 			} else {
 				if (ownMaxSpeed < attackerMaxSpeed || trig2_polardistance <= 0x8000)
-					maneuverMode = g_aiUnderAttackSideRearManeuverChoices[randomValue & 7];
+					maneuverMode = g_aiUnderAttackRearManeuverChoices[randomValue & 7];
 				else
 					maneuverMode = AI_MANEUVER_MODE_SPEED_AWAY;
 			}
@@ -424,7 +426,7 @@ int16_t paiorder_enterhangarorder(void) {
 						++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 							  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED];
 						if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
-							otherCraft->waveNumber) {
+							otherCraft->craftOrdinal) {
 							g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 								.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DEPARTED] = 1;
 							specialCargo = 1;
@@ -438,7 +440,7 @@ int16_t paiorder_enterhangarorder(void) {
 						++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 							  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE];
 						if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
-							otherCraft->waveNumber)
+							otherCraft->craftOrdinal)
 							g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 								.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE] = 1;
 					}
@@ -456,7 +458,7 @@ int16_t paiorder_enterhangarorder(void) {
 					  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED];
 				specialCargo = 0;
 				if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
-					g_curCraft->waveNumber) {
+					g_curCraft->craftOrdinal) {
 					g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 						.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DEPARTED] = 1;
 					specialCargo = 1;
@@ -469,7 +471,7 @@ int16_t paiorder_enterhangarorder(void) {
 				++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 					  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE];
 				if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
-					g_curCraft->waveNumber)
+					g_curCraft->craftOrdinal)
 					g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 						.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE] = 1;
 			}
@@ -478,7 +480,7 @@ int16_t paiorder_enterhangarorder(void) {
 				++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamCapturedDepartedCount[team];
 				specialCargo = 0;
 				if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
-					g_curCraft->waveNumber) {
+					g_curCraft->craftOrdinal) {
 					++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 						  .teamSpecialCargoCapturedDeparted[team];
 					specialCargo = 1;
@@ -490,7 +492,7 @@ int16_t paiorder_enterhangarorder(void) {
 						g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.team != otherTeam) {
 						++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamUncapturedLost[otherTeam];
 						if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
-							g_curCraft->waveNumber)
+							g_curCraft->craftOrdinal)
 							g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 								.teamSpecialCargoUncapturedLost[otherTeam] = 1;
 					}
@@ -512,7 +514,7 @@ int16_t paiorder_enterhangarorder(void) {
 					++g_missionFgStats[carriedGroupIndex].teamCapturedDepartedCount[team];
 					specialCargo = 0;
 					if (g_missionFlightGroups[carriedGroupIndex].fg.specialCargoCraft ==
-						carriedCraft->waveNumber) {
+						carriedCraft->craftOrdinal) {
 						++g_missionFgStats[carriedGroupIndex].teamSpecialCargoCapturedDeparted[team];
 						specialCargo = 1;
 					}
@@ -522,7 +524,7 @@ int16_t paiorder_enterhangarorder(void) {
 							g_missionFlightGroups[carriedGroupIndex].fg.team != otherTeam) {
 							++g_missionFgStats[carriedGroupIndex].teamUncapturedLost[otherTeam];
 							if (g_missionFlightGroups[carriedGroupIndex].fg.specialCargoCraft ==
-								carriedCraft->waveNumber)
+								carriedCraft->craftOrdinal)
 								g_missionFgStats[carriedGroupIndex]
 									.teamSpecialCargoUncapturedLost[otherTeam] = 1;
 						}
@@ -530,7 +532,7 @@ int16_t paiorder_enterhangarorder(void) {
 					++g_missionFgStats[carriedGroupIndex]
 						  .outcomeCount[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION];
 					if (g_missionFlightGroups[carriedGroupIndex].fg.specialCargoCraft ==
-						carriedCraft->waveNumber)
+						carriedCraft->craftOrdinal)
 						g_missionFgStats[carriedGroupIndex]
 							.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION] = 1;
 				} else {
@@ -538,7 +540,7 @@ int16_t paiorder_enterhangarorder(void) {
 						  .outcomeCount[FLIGHT_GROUP_OUTCOME_CAPTURED_BY_DESTINATION];
 					specialCargo = 0;
 					if (g_missionFlightGroups[carriedGroupIndex].fg.specialCargoCraft ==
-						carriedCraft->waveNumber) {
+						carriedCraft->craftOrdinal) {
 						g_missionFgStats[carriedGroupIndex]
 							.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_CAPTURED_BY_DESTINATION] = 1;
 						specialCargo = 1;
@@ -710,6 +712,7 @@ int16_t paiorder_abortmissionorder(void) {
 			break;
 
 		case 5:
+			/* The launcher counter is reused here as a team index over the ten attackedByTeam entries. */
 			for (launcherIndex = 0; launcherIndex < 10; ++launcherIndex) {
 				if (g_curCraft->attackedByTeam[launcherIndex] != 0) {
 					abortMission = 1;
@@ -754,7 +757,7 @@ int16_t paiorder_abortmissionorder(void) {
 	if (abortMission != 0) {
 		if (g_curCraft->aiFlight.missionAbortedFlag == 0) {
 			++g_missionFgStats[g_paiContext.orderFlightGroupIndex].outcomeCount[FLIGHT_GROUP_OUTCOME_ABORTED];
-			if (g_curCraft->waveNumber ==
+			if (g_curCraft->craftOrdinal ==
 				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft) {
 				g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 					.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_ABORTED] = 1;
@@ -762,7 +765,7 @@ int16_t paiorder_abortmissionorder(void) {
 			if (g_curCraft->aiFlight.departTimerFlag != 0) {
 				--g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 					  .outcomeCount[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED];
-				if (g_curCraft->waveNumber ==
+				if (g_curCraft->craftOrdinal ==
 					g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft) {
 					g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 						.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED] = 0;
@@ -1378,7 +1381,7 @@ int16_t paiorder_avoidstarshiporder(void) {
 			}
 			if (collisionObjectIndex != g_paiContext.objectIndex &&
 				savedCraft->carriedObjectIndex != collisionObjectIndex) {
-				if ((savedCraft->waveNumber & 1) != 0)
+				if ((savedCraft->craftOrdinal & 1) != 0)
 					g_paiContext.controller->targetXYAngle =
 						(uint16_t)(g_objectTable[g_paiContext.objectIndex].yaw + QUARTER_TURN);
 				else
@@ -1466,7 +1469,8 @@ int16_t paiorder_stopgohomeorder(void) {
 			if (*departTimerFlag == 0) {
 				flightGroupIndex = g_paiContext.orderFlightGroupIndex;
 				++g_missionFgStats[flightGroupIndex].outcomeCount[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED];
-				if (g_missionFlightGroups[flightGroupIndex].fg.specialCargoCraft == g_curCraft->waveNumber) {
+				if (g_missionFlightGroups[flightGroupIndex].fg.specialCargoCraft ==
+					g_curCraft->craftOrdinal) {
 					g_missionFgStats[flightGroupIndex]
 						.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED] = 1;
 				}
@@ -1787,7 +1791,7 @@ int16_t paiorder_completefolloworder(void) {
 			flightGroupIndex = g_paiContext.orderFlightGroupIndex;
 			runtimeFlightGroupIndex = g_paiContext.orderFlightGroupIndex;
 			++g_missionFgStats[runtimeFlightGroupIndex].outcomeCount[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED];
-			if (g_missionFlightGroups[flightGroupIndex].fg.specialCargoCraft == g_curCraft->waveNumber) {
+			if (g_missionFlightGroups[flightGroupIndex].fg.specialCargoCraft == g_curCraft->craftOrdinal) {
 				g_missionFgStats[runtimeFlightGroupIndex]
 					.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED] = 1;
 			}

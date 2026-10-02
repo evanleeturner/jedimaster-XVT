@@ -13,9 +13,10 @@ extern "C" {
  * snapshot's hyperspace phase is the transition. Creates the shaders, environment pipeline, textures and
  * sampler on first use (0 when any fails, all released) and captures scene's jittered view-projection.
  * From XVT_SNAP_HYPERSPACE_STREAK_END ticks on: fills the tunnel uniforms from the render size, view's
- * half-angle tangents and projection offsets, the seconds past the streak end (236 ticks each), the
- * hyperspace settings and the camera's rows read as columns (right, forward, up), computes the
- * environment cube (0 when the compute pass or a face copy fails) and marks scene as the tunnel's scene.
+ * half-angle tangents and projection offsets, the time past the streak end in units of 236 ticks (the
+ * original's assumed tick rate; real ticks run 250 a second), the hyperspace settings and the camera's
+ * rows read as columns (right, forward, up), computes the environment cube (0 when the compute pass or a
+ * face copy fails) and marks scene as the tunnel's scene.
  * Before it: builds one quad per snapshot streak, the streak's half width to each side, with a length
  * growing quadratically until tick 472 then fixed at 16000, and a shift along world -y growing linearly
  * until tick 472 then quadratically, posed by the streak's roll, in world units, widened for aspect

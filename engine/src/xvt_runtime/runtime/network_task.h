@@ -62,8 +62,8 @@ void XvtNetworkTask_ToggleSelection(int index);
 /* With no attempt: when the network session has failed, shows the failure dialog, sets result to
  * 0 and returns 1; otherwise returns 0. During an attempt, sets result to 0 and returns 1: Escape,
  * or the cancel button of the connecting screen drawn otherwise, cancels; otherwise the session is
- * ticked, and when it finishes, a failure shows the failure dialog, a join opens the alliance
- * network screen, and a host opens mission setup. */
+ * ticked, and when it finishes, a failure shows the failure dialog, a join opens the await-admission
+ * screen, and a host opens mission setup. */
 int XvtNetworkTask_Resume(int* result);
 /* Cancels the attempt and returns to the host or join screen by the attempt's action; call only
  * during an attempt, since an idle task reads as a host. */

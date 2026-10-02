@@ -21,7 +21,7 @@ extern "C" {
  * then loads RESOURCE/aeron/scene3d_defaults.yaml, the shipped defaults (which must be valid format 3)
  * and the user file. A missing user file starts empty overrides in memory without writing one; an older
  * one is upgraded in memory only. A user file that cannot be inspected, read or accepted is an error and
- * stays untouched on disk; the defaults then stay loaded and CanReplace returns 1. */
+ * stays untouched on disk; the defaults then stay loaded and CanResetToDefaults returns 1. */
 int XvtConfig_Load(AeronVfs* vfs, char* error, size_t capacity);
 /* Replaces the user overrides with an empty format-3 document, in memory only. Needs the defaults. */
 int XvtConfig_ResetToDefaults(char* error, size_t capacity);
@@ -39,7 +39,7 @@ const XvtSettings* XvtConfig_Settings(void);
 const XvtSettings* XvtConfig_DefaultSettings(void);
 /* Counts accepted updates; never reset, not even by Shutdown. */
 uint64_t XvtConfig_Generation(void);
-/* 1 while the shipped defaults are loaded, so Replace can work. */
+/* 1 while the shipped defaults are loaded, so ResetToDefaults can work. */
 int XvtConfig_CanResetToDefaults(void);
 /* Copies and validates overrides before optional atomic USER/config.yaml save. */
 /* Needs the shipped defaults; candidate must be a map with a version from 1 to 3. Obsolete keys are

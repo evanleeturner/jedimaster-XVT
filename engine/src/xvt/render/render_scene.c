@@ -375,6 +375,8 @@ void RenderScene_ProjectMeshVertices(SceneMesh* mesh) {
 				const OptTextureData* material = (const OptTextureData*)mesh->pMaterial;
 				float meanViewDepth;
 
+				/* totalW, the sum of the corners' scaled inverse depths, becomes the corner count over
+				 * that sum: the reciprocal of their mean. */
 				if (geometry->vertexIdx[3] == -1) {
 					totalW = g_renderTriangleCornerCount / totalW;
 				} else {
@@ -1107,6 +1109,8 @@ void RenderScene_ComputeVertexLighting(SceneMesh* mesh, ProjVertex* outVert, con
 			if (lightDot / distance < g_renderPointLightFacingThreshold) {
 				continue;
 			}
+			/* With 3D hardware lightDot is replaced by half the distance, so the diffuse term below
+			 * becomes 0.5 over the distance and the facing term is dropped. */
 			lightDot = (float)(distance * g_renderHalfDouble);
 		}
 		diffuse = lightDot / (distance * distance);
@@ -2226,6 +2230,7 @@ int RenderScene_TestSegmentAgainstMeshFaces(const SceneMesh* mesh, const OptVect
 			continue;
 		}
 
+		/* distanceStart becomes the factor used below to place the hit point between start and end. */
 		distanceStart = (-distanceStart) / distanceEnd;
 
 		if (normal->x < normal->z && normal->y < normal->z) {

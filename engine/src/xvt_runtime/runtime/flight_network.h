@@ -20,7 +20,7 @@ extern "C" {
 /* With a mission cookie and the local player connected, reads packets up to the per-iteration
  * budget: drops those that fail DecodeControl or come from an unknown sender, and hands the rest
  * to Receive, the resync task or the flight control handler, which can end the read. When no
- * packet waits, the host sends a world message if ShouldSend allows, else reading stops. Unless the
+ * packet waits, the host sends a world message if TakeWorldSendTurn allows, else reading stops. Unless the
  * control handler ended it, the input clock then advances by the frame time read meanwhile. */
 void XvtFlightNetwork_ProcessPackets(void);
 /* Host pacing for SendWorld: 1 once a message interval of clock-adjusted input time has passed and
@@ -29,7 +29,7 @@ void XvtFlightNetwork_ProcessPackets(void);
  * outgoing, recovery is needed, a resync state request is pending, the pending queue lacks room or
  * start acknowledgements are pending. */
 int XvtFlightNetwork_TakeWorldSendTurn(int inputTimestamp);
-/* 1 once recovery was requested, until BeginRecovery or Recovered. */
+/* 1 once recovery was requested, until ClearRecoveryRequest or Recovered. */
 int XvtFlightNetwork_NeedsRecovery(void);
 /* Marks that the flight state needs recovery, logging a warning the first time. */
 void XvtFlightNetwork_RequestRecovery(void);
@@ -119,9 +119,9 @@ int XvtFlightNetwork_ExchangeOptions(void);
 /* The mission start handshake. A single player resets the clocks and returns 1. Otherwise each
  * player tells the host it has loaded; the host, once all have, broadcasts the start. On the start
  * every player acknowledges and resets the clocks with a lead allowance of 130 ticks with async on,
- * 30 otherwise; the host then waits for the acknowledgements until its input clock reaches 100
- * and keeps the lead allowance at least 35. Returns -1 while pending, 1 when started, and 0 after
- * 60 seconds without a packet. */
+ * 30 otherwise; the host then waits for the acknowledgements until its input clock reaches 100,
+ * sets its lead allowance to the input clock reached, and raises both to 35 when lower. Returns -1 while
+ * pending, 1 when started, and 0 after 60 seconds without a packet. */
 int XvtFlightNetwork_WaitForMissionStart(void);
 /* Ends any exchange in progress and forgets the mission cookie, keeping the counter. */
 void XvtFlightNetwork_Reset(void);

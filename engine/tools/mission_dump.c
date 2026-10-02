@@ -328,7 +328,7 @@ static int messages_and_goals(FILE* fp, const DumpMission* mission, unsigned mes
 			return 0;
 		printf("\nMessage[%u] ", index);
 		quote(m.message, sizeof(m.message));
-		printf(" delay(raw)=%u teams:", m.rawDelay);
+		printf(" delay(raw)=%u teams:", m.delay5s);
 		teams_enabled(m.sentToTeam);
 		printf("\n  ");
 		pair(mission, &m.triggerPairs[0]);

@@ -81,8 +81,8 @@ void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta) {
 		predictedFrame =
 			FlightSync_InsertInputFrame(playerIdx, lastFrame->timestamp + predictedFrameDelta, &input);
 		if (predictedFrame != NULL) {
-			predictedFrame->applied = 0;
-			predictedFrame->unconfirmed = INPUT_FRAME_PREDICTED;
+			predictedFrame->awaitingRelay = 0;
+			predictedFrame->inputSource = INPUT_FRAME_PREDICTED;
 		}
 	}
 }
@@ -105,7 +105,7 @@ void FlightSync_DiscardAllPredictedInputFrames(void) {
 			frame = g_inputHistory[playerIndex];
 			frameIndex = 0;
 			while (g_inputFrameCount[playerIndex] > frameIndex) {
-				if (frame->applied == 0 && frame->unconfirmed == INPUT_FRAME_PREDICTED) {
+				if (frame->awaitingRelay == 0 && frame->inputSource == INPUT_FRAME_PREDICTED) {
 					FlightSync_RemoveInputHistoryFrame(playerIndex, frame);
 				} else {
 					++frame;
@@ -131,7 +131,7 @@ void FlightSync_DiscardPredictedInputFrames(int playerIdx) {
 	frameIndex = 0;
 	frame = g_inputHistory[playerIdx];
 	while (frameIndex < g_inputFrameCount[playerIdx]) {
-		if (frame->applied == 0 && frame->unconfirmed == INPUT_FRAME_PREDICTED) {
+		if (frame->awaitingRelay == 0 && frame->inputSource == INPUT_FRAME_PREDICTED) {
 			FlightSync_RemoveInputHistoryFrame(playerIdx, frame);
 		} else {
 			++frame;
@@ -203,16 +203,16 @@ InputFrame* FlightSync_InsertInputFrame(int playerIdx, int timestamp, const Flig
 			} while (frameIndex != 0);
 		}
 	} else if (existingTimestamp == timestamp) {
-		if (frame->unconfirmed == 0) {
+		if (frame->inputSource == 0) {
 			return NULL;
 		}
-		if (frame->applied == 1) {
+		if (frame->awaitingRelay == 1) {
 			return NULL;
 		}
 	}
 	frame->timestamp = timestamp;
-	frame->unconfirmed = 1;
-	frame->applied = 0;
+	frame->inputSource = 1;
+	frame->awaitingRelay = 0;
 	frame->input = *input;
 	return frame;
 
@@ -220,7 +220,7 @@ InputFrame* FlightSync_InsertInputFrame(int playerIdx, int timestamp, const Flig
 }
 
 // FUNCTION: XVT 0x418890
-InputFrame* FlightSync_FindLastAppliedInputFrame(int playerIdx) {
+InputFrame* FlightSync_FindLastUnrelayedInputFrame(int playerIdx) {
 	InputFrame* frame;
 	int frameCount;
 	InputFrame* result;
@@ -229,7 +229,7 @@ InputFrame* FlightSync_FindLastAppliedInputFrame(int playerIdx) {
 	frameCount = g_inputFrameCount[playerIdx];
 	result = 0;
 	while (frameCount > 0) {
-		if (frame->applied != 0)
+		if (frame->awaitingRelay != 0)
 			result = frame;
 		++frame;
 		--frameCount;
@@ -579,8 +579,8 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t* packet) {
 
 				inserted = FlightSync_InsertInputFrame(playerIndex, timestamp, &input);
 				if (inserted != NULL) {
-					inserted->unconfirmed = 0;
-					inserted->applied = 0;
+					inserted->inputSource = 0;
+					inserted->awaitingRelay = 0;
 				}
 				--frameCount;
 			}
@@ -667,6 +667,7 @@ void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int* packet) {
 
 		localWorldStateSize = 0;
 		remoteWorldStateSize = 0;
+		/* playerIndex is reused here as a checksum region index. */
 		for (playerIndex = 0; playerIndex < CHECKSUM_REGION_COUNT; ++playerIndex) {
 			remoteWorldStateSize += remoteRegionLengths[playerIndex];
 			localWorldStateSize += (int)g_worldChecksumRegionLengths[playerIndex];
@@ -782,20 +783,20 @@ void FlightSync_BufferWorldMessagePacket(uint8_t* packet) {
 	uint16_t oldHandle;
 	int packetSize;
 	uint8_t* packetStart;
-	int groupCount;
+	int playerBlockCount;
 
 	packetSize = 9;
 	packetStart = packet;
-	groupCount = packet[8];
+	playerBlockCount = packet[8];
 	packet += 8;
 	++packet;
-	if (groupCount > 0) {
+	if (playerBlockCount > 0) {
 		do {
-			int entryCount;
+			int frameCount;
 
-			entryCount = *packet++;
+			frameCount = *packet++;
 			++packetSize;
-			if (entryCount > 0) {
+			if (frameCount > 0) {
 				do {
 					int timestampCode;
 
@@ -811,11 +812,11 @@ void FlightSync_BufferWorldMessagePacket(uint8_t* packet) {
 					}
 					packet += 2;
 					packetSize += 2;
-					--entryCount;
-				} while (entryCount != 0);
+					--frameCount;
+				} while (frameCount != 0);
 			}
-			--groupCount;
-		} while (groupCount != 0);
+			--playerBlockCount;
+		} while (playerBlockCount != 0);
 	}
 
 	if (g_worldMessageBufferBytesFree < packetSize) {

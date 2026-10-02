@@ -7,9 +7,10 @@ extern "C" {
  * FrontendNet_JoinGameScreen and of its list, roster and mission-briefing draws. Rooms, selection,
  * scroll offset and mission preview are held by the network task. */
 
-/* Frontend screen update; first_frame receives the frame counter. When it is 0, sets up: clears
- * the entry-movie skip, host latch and single-player session flags, draws the static background
- * and opens the directory browser; an unconfigured directory shows a confirm dialog and returns 0.
+/* Frontend screen update; frame_counter is the screen's frame counter. When it is 0, sets up: clears
+ * the screen-entry setup skip, the connection-type-editable flag and the game-session-in-progress
+ * flag, draws the static background and opens the directory browser; an unconfigured directory
+ * shows a confirm dialog and returns 0.
  * Otherwise, each frame draws the selected room's name, the list (a clicked row becomes the
  * selection), the roster, the briefing, a status line, the pilot line when a pilot is loaded and
  * the sidebars. Returns 1 when the shared frontend controls act, otherwise 0; with a dialog open,
@@ -18,7 +19,7 @@ extern "C" {
 int XvtNetworkBrowser_Screen(int frame_counter);
 /* Draws the rooms six rows at a time under a heading, with a scrollbar past six rooms, and keeps
  * the task's scroll offset within range. Row color: gray when incompatible, red when not
- * joinable, light blue when full, green otherwise; the selected row is shaded and a password room
+ * joinable, yellow when full, green otherwise; the selected row is shaded and a password room
  * shows a key. Each row shows name, free slots and the age of the whole snapshot, the same on
  * every row. Returns the index of the row clicked with either button this frame, or -1. */
 int XvtNetworkBrowser_DrawList(void);

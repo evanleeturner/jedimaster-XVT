@@ -208,7 +208,7 @@ static void XvtCrashNote_WriteFrame(int n, uintptr_t address) {
 }
 
 /* Writes the frames of the stack context belongs to, the faulting instruction first, by the unwind data
- * x86-64 code carries; other processors get the faulting instruction alone. */
+ * x86-64 code carries; other processors get no frame lines. */
 static void XvtCrashNote_WriteFrames(const CONTEXT* start) {
 #if defined(_M_X64) || defined(__x86_64__)
 	CONTEXT context = *start;

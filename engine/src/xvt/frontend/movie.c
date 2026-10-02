@@ -602,6 +602,7 @@ void Movie_DecodeAndPresentFrame(void) {
 			} while (mergedCount-- != 0);
 		}
 		g_moviePlaybackParams->primarySurface->lpVtbl->Flip(g_moviePlaybackParams->primarySurface, NULL, 1);
+		/* mergedRects is reused as the temporary for swapping the previous and current dirty lists. */
 		mergedRects = g_moviePreviousDirtyRects;
 		g_moviePreviousDirtyRects = g_movieCurrentDirtyRects;
 		g_movieCurrentDirtyRects = mergedRects;

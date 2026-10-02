@@ -156,8 +156,9 @@ static void XvtFlightFrame_UpdateLagIndicator(void) {
 	}
 }
 
-/* Sets the ping indicator (0 to 3). It stays 0 until a host drop count has been recorded; after
- * that a drop score rises with each new host packet drop and falls by one per frame. */
+/* Sets the packet drop indicator (0 to 3). A drop score would rise with each new host packet drop and
+ * fall by one per frame, but only once a previous host drop count is recorded, and only that branch
+ * records one; Begin clears the count, so the indicator stays 0, as in the original. */
 static void XvtFlightFrame_UpdatePacketDropIndicator(void) {
 	if (g_flightPrevHostPacketDropCount == 0) {
 		g_packetDropIndicator = 0;
@@ -274,6 +275,7 @@ static void XvtFlightFrame_Render(void) {
 		int playerProjectileCount;
 		int objectIndex;
 
+		/* The overlay's sampling window is 944 ticks, the second lag level's value, not a lag level. */
 		if (g_flightTickOverlayWindowTicks > LAG_LEVEL_2_TICKS) {
 			g_flightTickOverlaySampleCount = 0;
 			g_flightTickOverlayWindowTicks = 0;
@@ -281,6 +283,7 @@ static void XvtFlightFrame_Render(void) {
 		g_flightTickOverlayLastLoopTicks = loopTicks;
 		g_flightTickOverlayWindowTicks += loopTicks;
 		++g_flightTickOverlaySampleCount;
+		/* The original formats this tick-counter line too and never shows it; nothing reads overlayLine. */
 		sprintf(
 			overlayLine, "R:%-2d U:%-2d N:%-2d O:%-2d T:%-2d FR:%-2d NOW:%-7dL:%-7dS:%-7dW:%-3dD:%-3dA%d\n",
 			renderTicks, updateTicks, 0, loopTicks - updateTicks - renderTicks, loopTicks,
@@ -350,6 +353,7 @@ static void XvtFlightFrame_AdjustClock(void) {
 	}
 
 	if (g_serverTickTime > g_inputTimestamp) {
+		/* Formatted as in the original, never printed: the event logged is network.fell_behind below. */
 		sprintf(fellBehindLogLine, "Fell Behind! tickcounter:%-7d serverticks:%-7d adjustment:%-4d\n",
 				g_inputTimestamp, g_serverTickTime,
 				g_serverTickTime + g_flightNetClockLeadTicks - g_inputTimestamp);

@@ -22,9 +22,10 @@ typedef struct XvtPreparedObject {
 /* view, previous_view: main views from the current and previous cameras, about the current camera's
  * position; equal after a reset. cockpit_layout: the fit of the original screen into the window;
  * frontend_layout: the fit of 640 x 480. content_rect: the whole window, or the centered fitted original
- * frame in map mode and in cockpit views. tick_index, flight_frame_serial: the snapshot prepared.
- * delta_seconds: the view-time advance since the previous snapshot, at 236 ticks a second, 0 after a
- * reset. reset_history: motion history restarts. regenerate_motion: the poses advanced this frame.
+ * frame in map mode and in cockpit views. snapshot_serial, flight_frame_serial: the snapshot prepared.
+ * delta_sim_seconds: the view-time advance since the previous snapshot, in units of 236 ticks (the
+ * original's assumed rate; real ticks run 250 a second), 0 after a reset; nothing reads it.
+ * reset_history: motion history restarts. regenerate_motion: the poses advanced this frame.
  * render_needed: the frame must be drawn again. */
 typedef struct XvtPreparedFlight {
 	XvtRenderView view, previous_view;
@@ -33,7 +34,7 @@ typedef struct XvtPreparedFlight {
 	XvtPreparedObject objects[XVT_SNAP_OBJECTS];
 	uint32_t object_count;
 	uint64_t snapshot_serial, flight_frame_serial;
-	float delta_seconds;
+	float delta_sim_seconds;
 	/* Host span between changed poses, matching XWA's held-velocity timing. */
 	uint64_t velocity_span_us;
 	int valid, reset_history, regenerate_motion, render_needed;
@@ -44,10 +45,10 @@ typedef struct XvtPreparedFlight {
 /* Builds the frame for current at width x height. Returns 1 with the frame invalidated when current is
  * NULL or has no valid flight or camera. A size change within 150 ms of the last size request keeps the
  * old size (an interactive resize). previous counts only when valid with the same mission and world. A
- * reset restarts motion history: no frame yet, a new tick without a usable previous, a size, mission,
+ * reset restarts motion history: no frame yet, a new snapshot without a usable previous, a size, mission,
  * world, asset or config change, a backwards view time, a view discontinuity (player, focus, external,
  * replay, map, HUD or hyperspace state, projection or screen size), or crossing the hyperspace streak
- * end. The frame advances on a reset or on a new tick whose pose changed or whose view time moved;
+ * end. The frame advances on a reset or on a new snapshot whose pose changed or whose view time moved;
  * otherwise the previous poses stand. render_needed is set by an advance, a scene change (lighting, sky,
  * types, fuselage sequence, hyperspace, or the map in map mode), any temporal mode, an HDR or headroom
  * change, a pause change, or a change of the advance flag unless pause_keep_blur. Returns 0 with the

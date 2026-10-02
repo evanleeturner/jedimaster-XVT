@@ -345,13 +345,13 @@ int16_t Mfd_DrawMissionGoalsPage(void) {
 		scrollTop = g_mfdGoalsCurrentScrollTop;
 		if (g_mfdActivePage == MFD_PAGE_GOALS) {
 			switch (g_currentActionKey) {
-				case FLIGHT_KEY_MFD_SCROLL_UP:
+				case FLIGHT_KEY_UP:
 					if (scrollTop > 0) {
 						g_mfdGoalsRedrawNeeded = 1;
 						--scrollTop;
 					}
 					break;
-				case FLIGHT_KEY_MFD_SCROLL_DOWN:
+				case FLIGHT_KEY_DOWN:
 					if ((top - bottom) / lineStep + g_mfdGoalsCurrentTotalLines >= scrollTop) {
 						g_mfdGoalsRedrawNeeded = 1;
 						++scrollTop;
@@ -861,7 +861,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 			}
 		}
 	}
-	if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START && g_pilotData.missionSequenceActive == 1) {
+	if (g_missionHeader.missionType == MISSION_TYPE_MELEE && g_pilotData.missionSequenceActive == 1) {
 		paneWidth = (int16_t)(paneWidth + FlightText_MeasureStringWidth("(0)"));
 	}
 	{
@@ -879,7 +879,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 	spaceWidth = FlightText_MeasureStringWidth("  ");
 	scoreColumnX = (int16_t)(paneWidth + spaceWidth);
 	paneWidth = (int16_t)(paneWidth + FlightText_MeasureStringWidth(g_flightTextScratchBuffer));
-	if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
+	if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
 		int fgIdx;
 		int team;
 
@@ -1020,7 +1020,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 #endif
 		FlightText_SetColor(COLOR_ACTIVE_PAGE);
 		FlightText_SetCursor(left, top);
-		if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START &&
+		if (g_missionHeader.missionType == MISSION_TYPE_MELEE &&
 			scratch.playerFgCountByTeam[(uint16_t)g_players[g_localPlayer].team] > 1) {
 			FlightText_DrawString(g_strCockpitOverlayText[COCKPIT_OVERLAY_STR_TEAM]);
 		} else {
@@ -1094,13 +1094,13 @@ void Mfd_DrawMissionScoreboardPage(void) {
 	if (g_flightResolutionMode == FLIGHT_RESOLUTION_320X240 && g_players[g_localPlayer].mapCameraState != 0 &&
 		g_mfdActivePage == MFD_PAGE_SCOREBOARD) {
 		switch (g_currentActionKey) {
-			case FLIGHT_KEY_MFD_SCROLL_UP:
+			case FLIGHT_KEY_UP:
 				if (g_mfdMissionScoreboardFirstVisibleRow > 0) {
 					--g_mfdMissionScoreboardFirstVisibleRow;
 				}
 				break;
-			case FLIGHT_KEY_MFD_SCROLL_DOWN:
-				if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
+			case FLIGHT_KEY_DOWN:
+				if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
 					if ((top - bottomY) / lineStep + teamCount >= g_mfdMissionScoreboardFirstVisibleRow) {
 						++g_mfdMissionScoreboardFirstVisibleRow;
 					}
@@ -1120,7 +1120,7 @@ void Mfd_DrawMissionScoreboardPage(void) {
 	XvtCockpitPages_BeginSection(MFD_PAGE_SCOREBOARD, XVT_COCKPIT_PAGE_BODY);
 #endif
 
-	if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
+	if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
 		if (teamCount > 1) {
 			int16_t swapped;
 
@@ -1723,13 +1723,13 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft) {
 
 			actionKey = g_currentActionKey;
 			switch (actionKey) {
-				case FLIGHT_KEY_MFD_SCROLL_UP:
+				case FLIGHT_KEY_UP:
 					if (g_mfdCraftListTopRowByMode[showHostileCraft] != 0) {
 						--g_mfdCraftListTopRowByMode[showHostileCraft];
 						needsRedraw = 1;
 					}
 					break;
-				case FLIGHT_KEY_MFD_SCROLL_DOWN:
+				case FLIGHT_KEY_DOWN:
 					if (rowCount > 1 && rowCount + (rowY - paneBottom) / lineStep >=
 											(uint16_t)g_mfdCraftListTopRowByMode[showHostileCraft]) {
 						++g_mfdCraftListTopRowByMode[showHostileCraft];
@@ -2080,17 +2080,17 @@ int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex) {
 				disableActive = 1;
 			}
 			if (specialCargoOnly != 0 &&
-				g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->waveNumber) {
+				g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->craftOrdinal) {
 				captureActive = 0;
 				boardActive = 0;
 			}
 		}
 		if (disableActive != 0 && specialCargoOnly != 0 &&
-			g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->waveNumber) {
+			g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->craftOrdinal) {
 			disableActive = 0;
 		}
 		if (destroyActive != 0 && specialCargoOnly != 0 &&
-			g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->waveNumber) {
+			g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft != craft->craftOrdinal) {
 			destroyActive = 0;
 		}
 	}

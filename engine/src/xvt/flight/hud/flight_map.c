@@ -757,6 +757,8 @@ void FlightMap_DrawObjectIconAtViewPos(int objectIdx, int viewX, int viewY, int 
 	screenY = TRANSFM2_ProjectScreenY(viewY, viewZ);
 	screenX += g_flightClipLeft;
 	screenY += g_flightClipTop;
+	/* In each branch below, objectType picks the frame and is then reused as the icon height beside
+	 * iconWidth; the last branch leaves the object type in it. */
 	if (g_flightIconResourcePath == g_flightIcons640x480ResourcePath) {
 		frameIdx = 19;
 		if (objectType <= 105) {
@@ -1039,6 +1041,8 @@ int FlightMap_PickObjectNearestScreenCenter(int playerIdx) {
 	}
 
 	bestScore = (g_screenHeight * g_screenHeight + g_screenWidth * g_screenWidth) >> 3;
+	/* objectIdx and objectSlot always hold the same slot: each loop starts both at the same value and steps
+	 * both once per pass. */
 	objectIdx = 0;
 	for (objectSlot = 0; objectSlot < (int)g_explosionObjectSlotEnd; ++objectSlot) {
 		if (g_objectTable[objectIdx].objectType != 0) {

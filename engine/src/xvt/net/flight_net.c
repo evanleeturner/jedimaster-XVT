@@ -65,9 +65,9 @@ int g_lastSentInputTimestamp = 0;
 // GLOBAL: XVT 0x557348
 int g_lastKeyframeTime = 0;
 // GLOBAL: XVT 0x557148
-FlightNetInputDeltaBatchPacket g_flightNetInputDeltaBatchPacket = { 0 };
+FlightNetInputBatchPacket g_flightNetInputBatchPacket = { 0 };
 // GLOBAL: XVT 0x557354
-int g_flightNetInputDeltaBatchLen = 0;
+int g_flightNetInputBatchLen = 0;
 // GLOBAL: XVT 0x557560
 int g_flightNetLastInputTimestampByPlayer[8] = { 0 };
 // GLOBAL: XVT 0x556EF8
@@ -380,13 +380,13 @@ int FlightNet_WaitForMissionStart(void) {
 	g_lastKeyframeTime = 0;
 	g_flightNetResyncPlayerDplayId = 0;
 	g_flightNetLastInputBatchSendTime = 0;
-	memset(&g_flightNetInputDeltaBatchPacket.frameCount, 0, sizeof(int));
+	memset(&g_flightNetInputBatchPacket.frameCount, 0, sizeof(int));
 	g_flightNetRecoveryUiActive = 0;
 	g_flightNetPendingAckCount = 0;
 	g_flightNetClockAdjustAccumTicks = 0;
 	g_flightNetHostTimeoutElapsedTicks = 0;
-	g_flightNetInputDeltaBatchLen = 5;
-	g_flightNetInputDeltaBatchPacket.packetType = NET_PACKET_INPUT_BATCH;
+	g_flightNetInputBatchLen = 5;
+	g_flightNetInputBatchPacket.packetType = NET_PACKET_INPUT_BATCH;
 	g_flightNetInputBatchIntervalTicks = INPUT_BATCH_INTERVAL_TICKS;
 
 	if (g_activeFlightPlayerCount == 1) {
@@ -648,6 +648,7 @@ void FlightNet_ProcessIncomingPackets(void) {
 	int senderDpid;
 
 	struct {
+		/* Two jobs: a remote-input record's timestamp code byte, or the frames left in an input batch. */
 		int decodeValue;
 		int serverSendElapsed;
 		int worldFrameElapsed;
@@ -827,11 +828,11 @@ void FlightNet_ProcessIncomingPackets(void) {
 					if (inserted != NULL) {
 						int localIsHost = NetSession_IsLocalHost();
 
-						inserted->applied = 1;
+						inserted->awaitingRelay = 1;
 						if (localIsHost == 0) {
-							inserted->applied = 0;
+							inserted->awaitingRelay = 0;
 						}
-						inserted->unconfirmed = 1;
+						inserted->inputSource = 1;
 					}
 				} else {
 					g_flightNetScratchPacket.packetType = NET_PACKET_PLAYER_ABORT;
@@ -992,11 +993,11 @@ void FlightNet_ProcessIncomingPackets(void) {
 							if (inserted != NULL) {
 								int localIsHost = NetSession_IsLocalHost();
 
-								inserted->applied = 1;
+								inserted->awaitingRelay = 1;
 								if (localIsHost == 0) {
-									inserted->applied = 0;
+									inserted->awaitingRelay = 0;
 								}
-								inserted->unconfirmed = 1;
+								inserted->inputSource = 1;
 							}
 						} while (--packetState.decodeValue != 0);
 					}
@@ -1166,8 +1167,8 @@ int32_t FlightNet_SampleLocalInput(void) {
 	XvtFlightControls_SampleThrottle(&g_currentInputFrame);
 	inserted = FlightSync_InsertInputFrame(g_localPlayer, g_inputTimestamp, &g_currentInputFrame);
 	if (inserted != NULL) {
-		inserted->applied = 0;
-		inserted->unconfirmed = 1;
+		inserted->awaitingRelay = 0;
+		inserted->inputSource = 1;
 	}
 	return Flight_PumpWindowMessages();
 #else
@@ -1185,6 +1186,8 @@ int32_t FlightNet_SampleLocalInput(void) {
 	g_flightNetScratchPacket.packetType = NET_PACKET_REMOTE_INPUT;
 	g_inputTimestamp += Time_ConsumeElapsedTicks();
 
+	/* Until the packet bytes are laid out, packetLength holds the 7-bit timestamp code: the low bits of
+	 * g_inputTimestamp, or 127 when a full timestamp is sent. */
 	packetLength = g_inputTimestamp - g_lastSentInputTimestamp;
 	if (packetLength >= 127 || packetLength < 0 || g_lastSentInputTimestamp == 0)
 		packetLength = 127;
@@ -1241,19 +1244,18 @@ int32_t FlightNet_SampleLocalInput(void) {
 			int batchPlayerIndex;
 			uint8_t* batchFrameCount;
 
-			batchFrameCount = &g_flightNetInputDeltaBatchPacket.frameCount;
-			g_flightNetInputDeltaBatchPacket.packetType = NET_PACKET_INPUT_BATCH;
+			batchFrameCount = &g_flightNetInputBatchPacket.frameCount;
+			g_flightNetInputBatchPacket.packetType = NET_PACKET_INPUT_BATCH;
 			++*batchFrameCount;
-			memcpy(&((uint8_t*)&g_flightNetInputDeltaBatchPacket)[g_flightNetInputDeltaBatchLen],
+			memcpy(&((uint8_t*)&g_flightNetInputBatchPacket)[g_flightNetInputBatchLen],
 				   g_flightNetScratchPacket.payloadDwords, (size_t)(packetLength - 4));
-			g_flightNetInputDeltaBatchLen += packetLength - 4;
+			g_flightNetInputBatchLen += packetLength - 4;
 			if ((unsigned int)(g_inputTimestamp - g_flightNetLastInputBatchSendTime) >
 				(unsigned int)g_flightNetInputBatchIntervalTicks) {
 				g_flightNetLastInputBatchSendTime = g_inputTimestamp;
 
 				NetSession_SendPacket(NetSession_GetHostDplayId(),
-									  (unsigned int*)&g_flightNetInputDeltaBatchPacket,
-									  g_flightNetInputDeltaBatchLen);
+									  (unsigned int*)&g_flightNetInputBatchPacket, g_flightNetInputBatchLen);
 				if (g_flightNetSmallSessionPlayerThreshold > g_activeFlightPlayerCount) {
 					for (batchPlayerIndex = 0; batchPlayerIndex < 8; ++batchPlayerIndex) {
 						if (g_players[batchPlayerIndex].participationState != 0 &&
@@ -1262,22 +1264,22 @@ int32_t FlightNet_SampleLocalInput(void) {
 							g_playerConnected[batchPlayerIndex] != 0) {
 
 							NetSession_SendPacket(g_players[batchPlayerIndex].network.directPlayId,
-												  (unsigned int*)&g_flightNetInputDeltaBatchPacket,
-												  g_flightNetInputDeltaBatchLen);
+												  (unsigned int*)&g_flightNetInputBatchPacket,
+												  g_flightNetInputBatchLen);
 						}
 					}
 				}
-				g_flightNetInputDeltaBatchLen = 5;
-				g_flightNetInputDeltaBatchPacket.packetType = NET_PACKET_INPUT_BATCH;
-				g_flightNetInputDeltaBatchPacket.frameCount = 0;
+				g_flightNetInputBatchLen = 5;
+				g_flightNetInputBatchPacket.packetType = NET_PACKET_INPUT_BATCH;
+				g_flightNetInputBatchPacket.frameCount = 0;
 			}
 		}
 	}
 
 	inserted = FlightSync_InsertInputFrame(g_localPlayer, g_inputTimestamp, &g_currentInputFrame);
 	if (inserted != NULL) {
-		inserted->applied = 0;
-		inserted->unconfirmed = 1;
+		inserted->awaitingRelay = 0;
+		inserted->inputSource = 1;
 	}
 	return Flight_PumpWindowMessages();
 #endif
@@ -1332,7 +1334,7 @@ int FlightNet_TakeWorldMessageTurn(int inputTimestamp) {
 		if (*participationStatePtr != 0) {
 			InputFrame* inputFrame;
 
-			inputFrame = FlightSync_FindLastAppliedInputFrame(playerIdx);
+			inputFrame = FlightSync_FindLastUnrelayedInputFrame(playerIdx);
 			if (inputFrame == NULL) {
 				oldestInputTimestamp = 0;
 				break;
@@ -1366,7 +1368,6 @@ void FlightNet_BroadcastWorldMessage(int inputTimestamp) {
 		PACKET_PLAYER_COUNT_OFFSET = 8,
 		PACKET_HEADER_SIZE = 9,
 		BANDWIDTH_BYTES_PER_SECOND = 3000,
-		BANDWIDTH_WINDOW_MS = 236,
 		MAX_PACKET_PAYLOAD = 508,
 		MAX_ENCODED_INPUT_RECORD_SIZE = 8,
 		PACKET_STREAM_LIMIT = 504,
@@ -1415,7 +1416,7 @@ void FlightNet_BroadcastWorldMessage(int inputTimestamp) {
 
 	packetBytes = (uint8_t*)&g_flightNetScratchPacket;
 	packetBytes[PACKET_PLAYER_COUNT_OFFSET] = 0;
-	bandwidthBudget = g_netUpdateIntervalTicks * BANDWIDTH_BYTES_PER_SECOND / BANDWIDTH_WINDOW_MS;
+	bandwidthBudget = g_netUpdateIntervalTicks * BANDWIDTH_BYTES_PER_SECOND / SIMULATION_TICKS_PER_SECOND;
 	if (bandwidthBudget > MAX_PACKET_PAYLOAD)
 		bandwidthBudget = MAX_PACKET_PAYLOAD;
 	bytesPerPlayer =
@@ -1434,7 +1435,7 @@ void FlightNet_BroadcastWorldMessage(int inputTimestamp) {
 		++packetLength;
 		for (frameIndex = 0; frameIndex < g_inputFrameCount[playerIndex]; ++frameIndex) {
 			frame = &g_inputHistory[playerIndex][frameIndex];
-			if (frame->applied == 0 || frame->timestamp > currentTick)
+			if (frame->awaitingRelay == 0 || frame->timestamp > currentTick)
 				continue;
 			if ((int)(dest - packetBytes) + MAX_ENCODED_INPUT_RECORD_SIZE >
 				PACKET_STREAM_LIMIT - g_activeFlightPlayerCount)
@@ -1475,7 +1476,7 @@ void FlightNet_BroadcastWorldMessage(int inputTimestamp) {
 			dest[1] |= (frame->input.keyMods & 2u) >> 1;
 			dest += 2;
 			packetLength += 2;
-			frame->applied = 0;
+			frame->awaitingRelay = 0;
 		}
 	}
 
@@ -1646,6 +1647,7 @@ int FlightNet_SendWorldStateResyncToPlayer(int directPlayId, uint8_t* worldState
 	int segmentIndex;
 	int worldOffset;
 	int packetFreeBytes;
+	/* Holds in turn: ticks consumed on entry, presence map byte size, segment checksum count. */
 	int buildResult;
 	int segmentSize;
 	int result;
@@ -1943,6 +1945,7 @@ void FlightNet_HandleWorldStateResyncPacket(const int* packet) {
 	};
 
 	FlightInputFrameRecord input;
+	/* Two jobs: the low 7-bit timestamp code of an input record, or the frames left in an input batch. */
 	int decodeValue;
 	int senderDpid;
 	int countdownValue;
@@ -1960,6 +1963,7 @@ void FlightNet_HandleWorldStateResyncPacket(const int* packet) {
 	FlightAlert_DrawBox(1, g_strDiskIoMessages[DISK_IO_STR_COM_FAILURE_RECEIVING], ALERT_BACKGROUND_COLOR);
 	Flight_ApplyWorldStateObjectPresenceMap((const uint8_t*)packet + 2 * sizeof(int));
 	g_flightNetScratchPacket.packetType = NET_PACKET_RESYNC_CHECKSUMS;
+	/* Before any packet is received, this holds the byte size of the outgoing checksum payload. */
 	receivedPayloadSize =
 		(int)(sizeof(int) * Flight_BuildWorldStateResyncSegmentChecksums(
 								g_flightNetScratchPacket.payloadDwords, Flight_GetDuplicateWorldStateBuffer(),
@@ -2069,11 +2073,11 @@ void FlightNet_HandleWorldStateResyncPacket(const int* packet) {
 						if (inserted != NULL) {
 							int localIsHost = NetSession_IsLocalHost();
 
-							inserted->applied = 1;
+							inserted->awaitingRelay = 1;
 							if (localIsHost == 0) {
-								inserted->applied = 0;
+								inserted->awaitingRelay = 0;
 							}
-							inserted->unconfirmed = 1;
+							inserted->inputSource = 1;
 						}
 					} else {
 						g_flightNetScratchPacket.packetType = NET_PACKET_PLAYER_ABORT;
@@ -2170,11 +2174,11 @@ void FlightNet_HandleWorldStateResyncPacket(const int* packet) {
 							if (inserted != NULL) {
 								int localIsHost = NetSession_IsLocalHost();
 
-								inserted->applied = 1;
+								inserted->awaitingRelay = 1;
 								if (localIsHost == 0) {
-									inserted->applied = 0;
+									inserted->awaitingRelay = 0;
 								}
-								inserted->unconfirmed = 1;
+								inserted->inputSource = 1;
 							}
 							--decodeValue;
 						}

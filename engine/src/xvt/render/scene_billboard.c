@@ -247,6 +247,8 @@ int SceneBillboard_ComputeProjectedSize(int depthZ, uint16_t modelMaxExtent, uin
 #endif
 		depthZ = -depthZ;
 	depthZ >>= 8;
+	/* From here depthZ holds the model's extent over that depth, a scale, and then that scale times
+	 * baseScreenSize over 256: the projected size returned. */
 	if (depthZ != 0)
 		depthZ = modelMaxExtent / depthZ;
 #ifdef XVT_MODERN

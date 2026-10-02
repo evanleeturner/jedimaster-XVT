@@ -763,6 +763,8 @@ void FrontImage_BlitRLE8(ImageResource* image, int destX, int destY, int srcLeft
 
 		for (;;) {
 			token = rowStart[tokenOffset++];
+			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
+			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
 			if (!started) {
 				if (token == 0x80)
 					break;
@@ -962,6 +964,8 @@ void FrontImage_BlitRLE16(ImageResource* image, int destX, int destY, int srcLef
 
 		for (;;) {
 			token = rowStart[tokenOffset++];
+			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
+			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
 			if (!started) {
 				if (token == 0x80)
 					break;
@@ -1263,6 +1267,8 @@ void FrontImage_BlitRLE8Opaque(ImageResource* image, int destX, int destY, int s
 
 		for (;;) {
 			token = rowStart[tokenOffset++];
+			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
+			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
 			if (!started) {
 				if (token == 0x80)
 					break;
@@ -1486,6 +1492,8 @@ void FrontImage_BlitRLE16Opaque(ImageResource* image, int destX, int destY, int 
 
 		for (;;) {
 			token = rowStart[tokenOffset++];
+			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
+			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
 			if (started == 0) {
 				if (token == 0x80)
 					break;
@@ -1805,6 +1813,9 @@ void FrontImage_BlitGlyphRLE_8bpp(ImageResource* glyph, int destX, int destY, in
 #endif
 		for (;;) {
 			token = row[tokenOffset++];
+			/* Until started is set, destinationOffset counts the source pixels skipped toward
+			 * clipLeftSkip; when the row reaches clipLeftSkip it is reset to 0 and from then on it is the
+			 * destination column. */
 			if (started == 0) {
 				if (token == 0x80)
 					break;
@@ -2004,6 +2015,9 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource* glyph, int destX, int destY, i
 #endif
 			for (;;) {
 				token = row[tokenOffset++];
+				/* Until started is set, destinationOffset counts the source pixels skipped toward
+				 * clipLeftSkip; when the row reaches clipLeftSkip it is reset to 0 and from then on it is
+				 * the destination column. */
 				if (started == 0) {
 					if (token == 0x80)
 						break;
@@ -3027,6 +3041,8 @@ unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16) {
 	}
 
 	blue = color;
+	/* From here color holds only the red channel: masked and shifted down, faded, then shifted back into
+	 * place for packing. */
 	if (g_frontState.pixelFormat555 != 0) {
 		blue &= 0x1F;
 		green = color;

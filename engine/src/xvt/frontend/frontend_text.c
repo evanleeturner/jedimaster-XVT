@@ -123,6 +123,8 @@ int FrontendText_HandleEditableField(RECT* rect, char* text, int maxChars, int f
 
 	textWidth = FrontendText_MeasureWidth(text, fontSize);
 	rectWidth = rect->right - rect->left;
+	/* From here mouseX holds the text's horizontal scroll: 0, or the negative shift that keeps the end of
+	 * text wider than the field in view. */
 	mouseX = 0;
 	if (rectWidth + 1 < textWidth) {
 		mouseX = rectWidth;
@@ -144,6 +146,7 @@ int FrontendText_HandleEditableField(RECT* rect, char* text, int maxChars, int f
 		caretOffsetX = FrontendText_MeasureWidth(text, fontSize);
 		text[g_textFieldCursorCharIndex] = savedChar;
 		if (FrontendDisplay_GetFrameCounter() % 10 < 5) {
+			/* previousClipRect is reused here as the caret's rectangle. */
 			FrontendDraw_RectCopy(&previousClipRect, rect);
 			previousClipRect.left += mouseX + caretOffsetX + 1;
 			previousClipRect.right = previousClipRect.left + 1;
@@ -721,9 +724,9 @@ int FrontendText_DrawWrapped(int fontSize, const char* str, RECT* rect, int colo
 			word[wordLength++] = (char)currentChar;
 		} else {
 			int i;
-			int* charIndex;
+			int* charIndexPtr;
 
-			charIndex = &i;
+			charIndexPtr = &i;
 			if (atLineStart == 1 && currentChar == ' ') {
 				++index;
 				continue;
@@ -742,14 +745,14 @@ int FrontendText_DrawWrapped(int fontSize, const char* str, RECT* rect, int colo
 				x = rect->left;
 			}
 
-			for (*charIndex = 0; *charIndex < wordLength; ++*charIndex) {
+			for (*charIndexPtr = 0; *charIndexPtr < wordLength; ++*charIndexPtr) {
 				if (lineIndex < firstVisibleLine) {
-					x += font->glyphWidth[(uint8_t)word[*charIndex]] + font->charSpacing;
+					x += font->glyphWidth[(uint8_t)word[*charIndexPtr]] + font->charSpacing;
 					if (x <= rect->right) {
 						continue;
 					}
 				} else {
-					glyphChar = (uint8_t)word[*charIndex];
+					glyphChar = (uint8_t)word[*charIndexPtr];
 					glyph.width = font->glyphWidth[glyphChar];
 					glyph.height = font->glyphHeight[glyphChar];
 					glyph.pixelDataBytes = 0;

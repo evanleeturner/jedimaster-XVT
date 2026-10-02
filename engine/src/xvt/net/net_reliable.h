@@ -13,11 +13,11 @@ extern "C" {
 
 struct NetReliablePeerSlot {
 	DPID directPlayId;
-	int prevRecvSeqDefault;
+	int lastDeliveredSeqDefault;
 	int recvSeqDefault;
-	int prevRecvSeqChannelA;
+	int lastDeliveredSeqChannelA;
 	int recvSeqChannelA;
-	int prevRecvSeqChannelB;
+	int lastDeliveredSeqChannelB;
 	int recvSeqChannelB;
 	int sendSeq;
 	uint8_t lastPiggybackType;
@@ -65,7 +65,7 @@ struct NetPiggybackPayload {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetPendingPayload[(sizeof(NetPiggybackPayload) == 520) ? 1 : -1];
+typedef char xvt_size_NetPiggybackPayload[(sizeof(NetPiggybackPayload) == 520) ? 1 : -1];
 
 extern int g_netRecvQueueReadIndex;
 extern int g_netRecvQueueWriteIndex;

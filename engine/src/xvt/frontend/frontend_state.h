@@ -153,8 +153,8 @@ struct FrontendGlobalState {
 	int netRuntimeRecvQueueWriteIndex;
 	int netRuntimeRecvQueueReadIndex;
 	int netRuntimeRecvQueueCount;
-	NetQueuedPacket netRuntimeRecvHistory[128];
-	int netRuntimeRecvHistoryCount;
+	NetQueuedPacket netRuntimeSentHistory[128];
+	int netRuntimeSentHistoryWriteIndex;
 	NetQueuedPacket netRuntimeRecvScratchPacket;
 	NetReliablePeerSlot netRuntimeReliablePeerSlots[40];
 	uint8_t unknownNetState_C2B51[0x238];

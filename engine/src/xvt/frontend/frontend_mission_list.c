@@ -16,9 +16,9 @@ int FrontendMissionList_FreeScreenResources(int frameCounter) {
 		free(g_missionList);
 		g_missionList = NULL;
 	}
-	if (g_briefingText != NULL) {
-		free(g_briefingText);
-		g_briefingText = NULL;
+	if (g_missionText != NULL) {
+		free(g_missionText);
+		g_missionText = NULL;
 	}
 	Frontend_ResetScrollableControls();
 	FrontImage_FreeResourceByName("background");
@@ -31,9 +31,9 @@ int FrontendMissionList_FreeScreenResourcesAndClearInputGate(void) {
 		free(g_missionList);
 		g_missionList = NULL;
 	}
-	if (g_briefingText != NULL) {
-		free(g_briefingText);
-		g_briefingText = NULL;
+	if (g_missionText != NULL) {
+		free(g_missionText);
+		g_missionText = NULL;
 	}
 	FrontImage_FreeResourceByName("background");
 	Frontend_ResetScrollableControls();

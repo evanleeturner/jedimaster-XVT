@@ -51,7 +51,9 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 		OBJECT_TYPE_NONE = 0,
 		WEAPON_BANK_COUNT = 2,
 		LASER_LINK_DEFAULT = 1,
-		WARHEAD_LINK_PRESERVE_MASK = 0x81,
+		/* WARHEAD_LINK_DEFAULT sets bit 0 again right after this mask, so 0x81 keeps only the side-select
+		 * bit, as the 0x80 mask of the same name does later in this file. */
+		WARHEAD_KEEP_SIDE_SELECT_MASK = 0x81,
 		WARHEAD_SAVED_STATE_PRESERVE_MASK = 0x80,
 		WARHEAD_LINK_DEFAULT = 1,
 		GUNNER_LASER_MOUNT_TYPE = 2,
@@ -146,7 +148,7 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx, int p
 
 		for (launcherIndex = 0; launcherIndex < WEAPON_BANK_COUNT; ++launcherIndex) {
 			craft->warheadLauncherFlags[launcherIndex] =
-				(int8_t)((craft->warheadLauncherFlags[launcherIndex] & WARHEAD_LINK_PRESERVE_MASK) |
+				(int8_t)((craft->warheadLauncherFlags[launcherIndex] & WARHEAD_KEEP_SIDE_SELECT_MASK) |
 						 WARHEAD_LINK_DEFAULT);
 			craft->warheadLauncherCooldownTicks[launcherIndex] = 0;
 		}
@@ -1278,8 +1280,6 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 	enum {
 		FLIGHT_GROUP_GOAL_COUNT = 8,
 		GOAL_STATE_PENDING = 4,
-		TRIGGER_CONDITION_NONE = 0,
-		TRIGGER_CONDITION_ALWAYS = 10,
 	};
 
 	unsigned int objectIdx;
@@ -1327,14 +1327,14 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 			}
 		}
 		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].condition;
-		if (triggerCondition != TRIGGER_CONDITION_ALWAYS && triggerCondition != TRIGGER_CONDITION_NONE &&
+		if (triggerCondition != MISSION_COND_NEVER && triggerCondition != MISSION_COND_ALWAYS_TRUE &&
 			Mission_ObjectMatchesTriggerVariable(
 				objectIdx,
 				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variableType,
 				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variable) != 0)
 			objective = 1;
 		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[1].condition;
-		if (triggerCondition != TRIGGER_CONDITION_ALWAYS && triggerCondition != TRIGGER_CONDITION_NONE &&
+		if (triggerCondition != MISSION_COND_NEVER && triggerCondition != MISSION_COND_ALWAYS_TRUE &&
 			Mission_ObjectMatchesTriggerVariable(
 				objectIdx,
 				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[1].variableType,
@@ -1342,14 +1342,14 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx) {
 			objective = 1;
 		/* The original reads the second pair's condition but the first pair's variable. */
 		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[0].condition;
-		if (triggerCondition != TRIGGER_CONDITION_ALWAYS && triggerCondition != TRIGGER_CONDITION_NONE &&
+		if (triggerCondition != MISSION_COND_NEVER && triggerCondition != MISSION_COND_ALWAYS_TRUE &&
 			Mission_ObjectMatchesTriggerVariable(
 				objectIdx,
 				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variableType,
 				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[0].triggers[0].variable) != 0)
 			objective = 1;
 		triggerCondition = g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[1].condition;
-		if (triggerCondition != TRIGGER_CONDITION_ALWAYS && triggerCondition != TRIGGER_CONDITION_NONE &&
+		if (triggerCondition != MISSION_COND_NEVER && triggerCondition != MISSION_COND_ALWAYS_TRUE &&
 			Mission_ObjectMatchesTriggerVariable(
 				objectIdx,
 				g_missionGlobalGoals[playerTeam][goalType].triggerPairs[1].triggers[1].variableType,
@@ -1538,6 +1538,7 @@ uint16_t Player_PickTargetInSight(int playerIdx) {
 	return bestTarget;
 }
 
+/* Besides picking the next target, this leaves g_curCraft pointing at the last craft it examined. */
 // FUNCTION: XVT 0x4822C0
 uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction, int playerIdx) {
 	int16_t remainingObjects;
@@ -1586,6 +1587,7 @@ uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction, int
 	return currentObjIdx;
 }
 
+/* Besides picking the next target, this leaves g_curCraft pointing at the last craft it examined. */
 // FUNCTION: XVT 0x4823E0
 uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playerIdx, int iffFilter,
 							int targetFlags) {
@@ -1596,7 +1598,7 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 	int objectCount;
 	uint8_t objectKind;
 	ObjectTypeId objectType;
-	int objectIff;
+	int objectTeam;
 	uint16_t playerTeam;
 
 	objectIndex = currentObjIdx;
@@ -1623,32 +1625,33 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction, int playe
 			objectType = object->objectType;
 			if (objectType != 0 && (g_objectTypeTable[objectType].behaviorFlags & 1) != 0 &&
 				((targetFlags & 1) == 0 || object->genusId != CRAFT_GENUS_MINE)) {
-				objectIff = object->mobj == NULL ? g_missionFlightGroups[object->flightGroupIdx].fg.team
-												 : object->mobj->team;
+				objectTeam = object->mobj == NULL ? g_missionFlightGroups[object->flightGroupIdx].fg.team
+												  : object->mobj->team;
 
+				/* Cases 2 and 3 overwrite the object's team with a 0/1 flag: 1 when hostile to the player. */
 				switch (iffFilter) {
 					case 1:
-						if ((uint16_t)g_players[playerIdx].team != objectIff)
+						if ((uint16_t)g_players[playerIdx].team != objectTeam)
 							continue;
 						break;
 
 					case 2:
 						playerTeam = (uint16_t)g_players[playerIdx].team;
-						if (playerTeam == objectIff)
-							objectIff = 0;
+						if (playerTeam == objectTeam)
+							objectTeam = 0;
 						else
-							objectIff = g_missionTeams[playerTeam].allies[objectIff] == 0;
-						if (objectIff == 1)
+							objectTeam = g_missionTeams[playerTeam].allies[objectTeam] == 0;
+						if (objectTeam == 1)
 							continue;
 						break;
 
 					case 3:
 						playerTeam = (uint16_t)g_players[playerIdx].team;
-						if (playerTeam == objectIff)
-							objectIff = 0;
+						if (playerTeam == objectTeam)
+							objectTeam = 0;
 						else
-							objectIff = g_missionTeams[playerTeam].allies[objectIff] == 0;
-						if (objectIff == 0)
+							objectTeam = g_missionTeams[playerTeam].allies[objectTeam] == 0;
+						if (objectTeam == 0)
 							continue;
 						break;
 
@@ -2227,7 +2230,7 @@ void Player_AppendKillMessageActorName(int slot, char* text, int objectIndex) {
 			isEnemy = g_missionTeams[playerTeam].allies[team] == 0;
 	}
 	if (isEnemy == 1) {
-		if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
+		if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
 			Hud_AppendObjectDisplayName((uint16_t)objectIndex, 1);
 			playerName = g_flightTextScratchBuffer;
 		} else {
@@ -2270,7 +2273,7 @@ void Player_ComputePolarToObjectRef(int playerIdx, unsigned int objectRef) {
 void Player_EndFlightParticipation(int playerIdx) {
 	enum {
 		PLAYER_CONNECTED = 1,
-		PLAYER_DISCONNECTED = 2,
+		PLAYER_OUT_OF_MISSION = 2,
 		EXTERNAL_CAMERA_INITIAL_DISTANCE = 0x40000,
 		CAMERA_TARGET_EXTENT_SCALE = 16,
 	};
@@ -2278,7 +2281,7 @@ void Player_EndFlightParticipation(int playerIdx) {
 	unsigned int activePlayerCount;
 	unsigned int playerIndex;
 
-	g_players[playerIdx].participationState = PLAYER_DISCONNECTED;
+	g_players[playerIdx].participationState = PLAYER_OUT_OF_MISSION;
 	activePlayerCount = 0;
 	for (playerIndex = 0; playerIndex < sizeof(g_players) / sizeof(g_players[0]); ++playerIndex) {
 		if (g_players[playerIndex].participationState == PLAYER_CONNECTED)
@@ -2439,7 +2442,7 @@ int Player_HasAvailableOwnedCraft(int playerIdx) {
 // FUNCTION: XVT 0x485490
 void Player_UpdateParticipationState(void) {
 	enum {
-		PLAYER_DISCONNECTED_PENDING_DEPARTURE = 2,
+		PLAYER_OUT_OF_MISSION = 2,
 	};
 
 	unsigned int playerIdx;
@@ -2465,8 +2468,7 @@ void Player_UpdateParticipationState(void) {
 						}
 					}
 				}
-			} else if (player->mapCameraState != 0 &&
-					   player->participationState != PLAYER_DISCONNECTED_PENDING_DEPARTURE &&
+			} else if (player->mapCameraState != 0 && player->participationState != PLAYER_OUT_OF_MISSION &&
 					   g_flightSimSideEffectsSuppressed == 0 &&
 					   Player_HasAvailableOwnedCraft((int)playerIdx) == 0) {
 				Mission_ProcessFlightGroupWaveCompletion(player->boundFlightGroupIdx);
@@ -2510,7 +2512,7 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx) {
 	uint16_t staticObjectIdx;
 	ObjectRecord* staticObject;
 	int staticObjectTeam;
-	int localPlayerIff;
+	int staticPlayerTeam;
 	int isEnemy;
 	uint32_t nearestDistance;
 	ObjectRecord* object;
@@ -2560,11 +2562,11 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx) {
 		if (staticObject->objectType != 0 && staticObject->genusId == CRAFT_GENUS_MINE &&
 			excludedObjectIdx != (int16_t)staticObjectIdx && staticObject->typeSpecificWord != 0) {
 			staticObjectTeam = g_missionFlightGroups[g_objectTable[staticObjectIdx].flightGroupIdx].fg.team;
-			localPlayerIff = (uint16_t)g_players[playerIdx].team;
-			if (localPlayerIff == staticObjectTeam)
+			staticPlayerTeam = (uint16_t)g_players[playerIdx].team;
+			if (staticPlayerTeam == staticObjectTeam)
 				isEnemy = 0;
 			else
-				isEnemy = g_missionTeams[localPlayerIff].allies[staticObjectTeam] == 0;
+				isEnemy = g_missionTeams[staticPlayerTeam].allies[staticObjectTeam] == 0;
 			if (isEnemy == 1) {
 				Player_ComputePolarToObjectRef(playerIdx, (int16_t)staticObjectIdx);
 				if ((uint32_t)trig2_polardistance < nearestDistance) {
@@ -2580,7 +2582,7 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx) {
 // FUNCTION: XVT 0x485900
 void Player_HandleHyperspaceCommand(struct CraftData* craft, unsigned int playerIdx) {
 	enum {
-		PLAYER_CONNECTED_PENDING_DEPARTURE = 2,
+		PLAYER_OUT_OF_MISSION = 2,
 		S_FOIL_CLOSING_MASK = 1,
 		S_FOIL_CLOSED_MASK = 2,
 		HYPERDRIVE_SYSTEM_NAME_MESSAGE_ARG = 99,
@@ -2591,7 +2593,7 @@ void Player_HandleHyperspaceCommand(struct CraftData* craft, unsigned int player
 		if ((craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0) {
 			if (g_flightMissionState.provingGroundsModeActive != 0) {
 				g_flightMissionState.missionEndPending = 1;
-				g_players[playerIdx].participationState = PLAYER_CONNECTED_PENDING_DEPARTURE;
+				g_players[playerIdx].participationState = PLAYER_OUT_OF_MISSION;
 			} else if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0) {
 				int16_t scanObjectIdx;
 				int16_t interdictorPresent;

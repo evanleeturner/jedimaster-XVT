@@ -70,8 +70,8 @@ void XvtKeyboardMapping_BeginFrame(const AeronInputSnapshot* input);
 void XvtKeyboardMapping_Event(const AeronKeyEvent* event, bool suppressed);
 /* The next queued flight key code, or 0 when the queue is empty. */
 uint16_t XvtKeyboardMapping_ReadKey(void);
-/* Bit 1 fire, bit 2 target/roll modifier: set while held, or when pressed since the last BeginFrame, so
- * a tap between two reads is not lost. */
+/* Value 1 (bit 0) fire, value 2 (bit 1) target/roll modifier: set while held, or when pressed since the last
+ * BeginFrame, so a tap between two reads is not lost. */
 uint16_t XvtKeyboardMapping_ReadButtons(void);
 
 #endif

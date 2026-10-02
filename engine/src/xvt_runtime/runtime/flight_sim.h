@@ -53,15 +53,15 @@ void XvtFlightHistory_RestoreCheckpoint(void);
  * player's non-predicted frames after the current game time. */
 void XvtFlightHistory_Recover(void);
 /* Replays each connected player's history frames due by targetGameTime: brings the player's craft
- * from its last lockstep save to the frame's tick, saves it, and runs UpdateEntity with the frame's
+ * from its last lockstep save to the frame's tick, saves it, and runs UpdatePlayerStep with the frame's
  * input. With side effects suppressed, frames at or before the starting game time replay without
  * keys, modifiers or throttle; with them on (network125 confirmation), only authoritative frames
  * replay, each confirming the prediction fallback. Unapplied frames at or before a player's lockstep
- * tick are dropped, except while network125 predicts. Returns 0 when UpdateEntity paused, resuming
+ * tick are dropped, except while network125 predicts. Returns 0 when UpdatePlayerStep paused, resuming
  * at that frame on the next call; otherwise 1. */
 int XvtFlightSim_Advance(int targetGameTime);
 /* One player's input step: with side effects on, repairs a camera or map aim left on a destroyed
- * object and, for the local player, handles the in-flight hotkeys. A player with a region session
+ * object and, for the local player, handles the in-flight hotkeys. A player awaiting a new craft
  * then only rebinds a destroyed craft (side effects on) and returns 1. Otherwise fires, taps or
  * holds the target modifier, runs actions or chat, updates controls and camera, and applies the
  * recorded throttle unless the craft changed. Alt-P in a single-player flight without network

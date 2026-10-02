@@ -514,6 +514,7 @@ void Backdrop_GenerateDefaultRecords(void) {
 		g_backdropPackedDirections[directionRecordIdx++] = (uint8_t)highCoord;
 	}
 
+	/* lowCoord is reused here as the record index for the model types. */
 	for (lowCoord = 0; lowCoord < 22; lowCoord++) {
 		modelTypeRoll = (uint16_t)(GameRand() & 31);
 		if (modelTypeRoll < 3) {

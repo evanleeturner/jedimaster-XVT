@@ -1887,7 +1887,6 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 													   int16_t target1OrTarget2, int16_t target2Type,
 													   uint16_t target2, int candidateSetIdx) {
 	enum {
-		EXPANDED_PROBE_OBJECT_TYPE = 54,
 		TARGETABLE_STATIC_MODEL_FLAG = 2,
 		MISSION_VERSION_WITH_GUNNER_OBSTRUCTION_CHECK = 14,
 	};
@@ -1898,7 +1897,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(int16_t target1Type, uint
 	uint16_t objectIndex;
 
 	bestObjectIndex = UINT16_MAX;
-	expandedProbe = g_objectTable[g_paiContext.objectIndex].objectType == EXPANDED_PROBE_OBJECT_TYPE;
+	expandedProbe = g_objectTable[g_paiContext.objectIndex].objectType == CRAFT_SPECIES_SUPER_STAR_DESTROYER;
 	bestRangeScore = AI_TARGET_RANGE_MAX;
 	if (expandedProbe) {
 		bestRangeScore +=
@@ -2339,7 +2338,7 @@ int16_t paifight_followleadatkorder(void) {
 			uint16_t candidateIndex;
 			uint16_t objectIndex;
 			flightGroupIdx = target->flightGroupIdx;
-			candidateIndex = (uint16_t)(g_curCraft->waveNumber + targetObjIdx);
+			candidateIndex = (uint16_t)(g_curCraft->craftOrdinal + targetObjIdx);
 			if ((int)candidateIndex >= g_activeRegionCraftObjectSlotEnd)
 				candidateIndex = (uint16_t)g_activeRegionObjectSlotStart;
 

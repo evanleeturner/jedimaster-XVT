@@ -168,7 +168,7 @@ int XvtCampaignTask_EnterDebrief(void) {
 	if (g_campaign.phase == XVT_CAMPAIGN_DEBRIEF_ROSTER) {
 		if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES &&
 			g_pilotData.missionSequenceActive == 1)
-			g_briefingText = malloc(4096);
+			g_missionText = malloc(4096);
 		g_frontendChatTeamOnly = 0;
 		g_debriefDisconnectedFromNetGame = 0;
 		g_frontendFirstVisibleLine = 0;

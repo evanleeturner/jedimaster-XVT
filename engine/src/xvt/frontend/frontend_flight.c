@@ -75,7 +75,7 @@ int FlightLoading_UpdateReadyScreen(int frameCounter) {
 	if (g_missionSetupIsHost != 0) {
 		g_flightLoadingReadyScreenNowMs = GetTickCount();
 		if (g_flightLoadingReadyScreenStartMs + 2000 < g_flightLoadingReadyScreenNowMs) {
-			MissionSetup_BroadcastStatePacket(0);
+			MissionSetup_SendLobbyState(0);
 			g_unusedFlightLoadingReadyScreenFlag = 1;
 			FrontImage_FreeResourceByName("background");
 			FrontendScreen_SetCallbacks(FrontendFlight_LaunchSession, FrontendFlight_NoOpExit);
@@ -130,6 +130,9 @@ int FrontendFlight_LaunchSession(int frameCounter) {
 				break;
 			}
 			CDAudio_Initialize();
+			/* launchSucceeded first holds the answer to this dialog (nonzero means try again). It holds
+			 * the flight's result only once the mission list loads, so with no mission list a retry answer
+			 * is later read as a successful launch. */
 			launchSucceeded = FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_706_FAILED_TO_DETECT_RETAIL_XVT_CD),
 				FrontendString_Get(FRONTSTR_707_PLEASE_INSERT_THE_X_WING_VS_TIE_FIGHTER_CD),

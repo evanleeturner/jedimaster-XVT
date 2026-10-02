@@ -122,8 +122,6 @@ int Cutscene_PlayForCurrentMissionPhase(int phase) {
 	return XvtCutsceneTask_Play(phase);
 #else
 	enum {
-		MISSION_INDEX_SLOT = 5,
-		MISSION_DESCRIPTION_SLOT = 0,
 		MISSION_SEQUENCE_ACTIVE = 1,
 		SYNCHRONIZE_MULTIPLAYER = 1,
 	};
@@ -139,10 +137,11 @@ int Cutscene_PlayForCurrentMissionPhase(int phase) {
 		return 0;
 
 	for (entryIndex = 0; entryIndex < (unsigned int)g_cutsceneCount; ++entryIndex) {
-		if (g_cutsceneTable[entryIndex].campaignId == g_pilotData.missionDescriptionIds[MISSION_INDEX_SLOT] &&
+		if (g_cutsceneTable[entryIndex].campaignId ==
+				g_pilotData.missionDescriptionIds[MISSION_DIRECTORY_CAMPAIGNS] &&
 			g_cutsceneTable[entryIndex].playAfterDebriefing == phase &&
 			g_cutsceneTable[entryIndex].campaignMissionId ==
-				g_pilotData.missionDescriptionIds[MISSION_DESCRIPTION_SLOT]) {
+				g_pilotData.missionDescriptionIds[MISSION_DIRECTORY_TRAINING_EXERCISES]) {
 			CDAudio_SuspendPlayback();
 			FrontendDisplay_DisableOffscreenRestore();
 			FrontendDisplay_UnlockBackBuffer();

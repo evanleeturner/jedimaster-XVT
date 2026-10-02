@@ -108,8 +108,8 @@ static FlightInputFrameRecord Controls(int8_t axis) {
 static void AddFrame(unsigned player, int tick, int valid, int applied) {
 	InputFrame* frame = &g_inputHistory[player][g_inputFrameCount[player]++];
 	frame->timestamp = tick;
-	frame->unconfirmed = valid;
-	frame->applied = applied;
+	frame->inputSource = valid;
+	frame->awaitingRelay = applied;
 	frame->input = Controls(10);
 }
 
@@ -301,8 +301,8 @@ static void CheckInsertWorld(void) {
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 2);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[2], 1);
 	const InputFrame* frame = FrameAt(1, 6);
-	XVT_ASSERT_INT_EQ(frame->unconfirmed, XVT_INPUT_AUTHORITATIVE);
-	XVT_ASSERT_INT_EQ(frame->applied, 0);
+	XVT_ASSERT_INT_EQ(frame->inputSource, XVT_INPUT_AUTHORITATIVE);
+	XVT_ASSERT_INT_EQ(frame->awaitingRelay, 0);
 	XVT_ASSERT_INT_EQ(frame->input.axisX, 20);
 	XVT_ASSERT_INT_EQ(FrameAt(2, 4)->input.axisX, 30);
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 0);
@@ -384,7 +384,7 @@ static void CheckReceiveBatch(void) {
 	for (int i = 0; i < 2; ++i) {
 		const InputFrame* frame = FrameAt(1, ticks[i]);
 		XVT_ASSERT_TRUE(frame != NULL);
-		XVT_ASSERT_INT_EQ(frame->unconfirmed, XVT_INPUT_REAL);
+		XVT_ASSERT_INT_EQ(frame->inputSource, XVT_INPUT_REAL);
 		XVT_ASSERT_INT_EQ(frame->input.axisX, 2 * i + 40);
 	}
 
@@ -642,9 +642,9 @@ static void CheckSendWorld(void) {
 	XVT_ASSERT_INT_EQ(tick, 18);
 	XVT_ASSERT_INT_EQ(XvtFlightWire_DecodeInput(&g_out.records[1].input, &tick, &input), 1);
 	XVT_ASSERT_INT_EQ(tick, 24);
-	XVT_ASSERT_INT_EQ(FrameAt(0, 18)->applied, 0);
-	XVT_ASSERT_INT_EQ(FrameAt(0, 24)->applied, 0);
-	XVT_ASSERT_INT_EQ(FrameAt(0, 26)->applied, 1);
+	XVT_ASSERT_INT_EQ(FrameAt(0, 18)->awaitingRelay, 0);
+	XVT_ASSERT_INT_EQ(FrameAt(0, 24)->awaitingRelay, 0);
+	XVT_ASSERT_INT_EQ(FrameAt(0, 26)->awaitingRelay, 1);
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_PENDING), 0);
 
 	/* The next message is XVT_WORLD_MESSAGE_TICKS after that one. */

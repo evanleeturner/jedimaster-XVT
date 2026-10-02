@@ -58,7 +58,7 @@ int XvtFlightMessages_ValidateBatch(const uint8_t* bytes, size_t size, uint32_t 
  * of range or a message over XVT_WORLD_RECORDS records. */
 size_t XvtFlightMessages_EncodePart(uint8_t* out, const XvtFlightMessage* message, uint32_t cookie,
 									unsigned part);
-/* Returns 1 for a complete message, 0 for pending/old, -1 for invalid or a gap. */
+/* Returns 1 for a complete message, 0 for pending/old, -1 for invalid. */
 /* Assembles one world message at a time; on 1, copies it to out and remembers it as the last
  * assembled. Returns 0 for a tick at or before confirmed or before the last assembled, an exact
  * resend of a part already held, or a part still short of the whole. Returns -1 for a malformed

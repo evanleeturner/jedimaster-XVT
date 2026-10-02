@@ -332,6 +332,9 @@ void collide_collisions(void) {
 		SMALL_DISTANCE_SQUARED = 50,
 		BOUNCE_DIRECTION_SCALE = 100,
 		BOUNCE_IMPULSE_SCALE = 1000,
+		/* Besides a half turn, 0x8000 is used in this function as the 16-bit sign bit: a GameRand() coin
+		 * flip, a sign-change test on move components, the int16 bound of a roll impulse, and the sign of a
+		 * dot product. */
 		ANGLE_HALF_TURN = 0x8000,
 		ANGLE_QUARTER_TURN = 0x4000,
 		MAX_ROLL_IMPULSE = 0x7FFF,
@@ -448,7 +451,7 @@ void collide_collisions(void) {
 							++g_missionFgStats[flightGroupIdx].outcomeCount[FLIGHT_GROUP_OUTCOME_INSPECTED];
 							++g_missionFgStats[flightGroupIdx].teamInspected[playerTeam];
 							if (g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft ==
-								targetCraft->waveNumber) {
+								targetCraft->craftOrdinal) {
 								g_missionFgStats[flightGroupIdx]
 									.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_INSPECTED] = 1;
 								++g_players[playerIdx].perMissionKills.numSpecialInspected;
@@ -494,7 +497,7 @@ void collide_collisions(void) {
 								playerIdx == g_localPlayer) {
 								msg_emitCraftMessage(targetObjIdx, targetCraft, CRAFT_MESSAGE_INSPECTED);
 								if (playerScored != 0 && g_flightPlayerCount > 1 &&
-									g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
+									g_missionHeader.missionType == MISSION_TYPE_MELEE) {
 									g_msgArgTable[0] =
 										(uint16_t)(inspectionOrder + INSPECTION_PLAYER_ARG_BASE);
 									msg_emitInFlightMessage(IFMSG_308_YOU_ARE_THE_ARG_TO_INSPECT_THIS_CRAFT,
@@ -1524,15 +1527,15 @@ int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx, uint16_t targetObj
 				sourceObjectType = source->objectType;
 				if (g_projectileTypeData.warheadClass[sourceObjectType - PROJECTILE_OBJECT_TYPE_FIRST] == 0) {
 					switch (targetObjectType) {
-						case MODEL_002_A_WING:
-						case MODEL_004_TIE_FIGHTER:
+						case CRAFT_SPECIES_Y_WING:
+						case CRAFT_SPECIES_B_WING:
 							break;
-						case MODEL_003_B_WING:
-						case MODEL_006_TIE_BOMBER:
-						case MODEL_008_TIE_DEFENDER:
+						case CRAFT_SPECIES_A_WING:
+						case CRAFT_SPECIES_TIE_INTERCEPTOR:
+						case CRAFT_SPECIES_TIE_ADVANCED:
 							maxExtent *= 2;
 							break;
-						case MODEL_005_TIE_INTERCEPTOR:
+						case CRAFT_SPECIES_TIE_FIGHTER:
 							maxExtent += maxExtent / 4 + maxExtent / 2;
 							break;
 						default:
@@ -1548,7 +1551,7 @@ int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx, uint16_t targetObj
 								 (unsigned int)(maxExtent + dz)) < targetDistance)
 		return 0;
 	if ((useDetailedCollision != 0 && maxExtent >= LARGE_MODEL_EXTENT) ||
-		target->objectType == MODEL_058_CONTAINER_I) {
+		target->objectType == CRAFT_SPECIES_CONTAINER_CLASS_H) {
 		if (g_collisionIsAimPrediction != 0) {
 			g_collisionIsAimPrediction = 0;
 			if (target->mobj->speed < 40)
@@ -2036,7 +2039,7 @@ void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx, int1
 		++g_missionFgStats[g_objectTable[craftObjIdx].flightGroupIdx]
 			  .outcomeCount[FLIGHT_GROUP_OUTCOME_ATTACKED];
 		if (g_missionFlightGroups[g_objectTable[craftObjIdx].flightGroupIdx].fg.specialCargoCraft ==
-			craft->waveNumber)
+			craft->craftOrdinal)
 			g_missionFgStats[g_objectTable[craftObjIdx].flightGroupIdx]
 				.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_ATTACKED] = 1;
 
@@ -2087,7 +2090,7 @@ void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx, int1
 			if (((uint8_t)*attackedByTeam & ATTACKED_GOAL_SCORED_MASK) == 0) {
 				uint16_t specialCargoFlag =
 					g_missionFlightGroups[g_objectTable[craftObjIdx].flightGroupIdx].fg.specialCargoCraft ==
-					craft->waveNumber;
+					craft->craftOrdinal;
 				uint16_t sourceTeam = (uint16_t)g_players[sourcePlayerIdx].team;
 
 				Mission_ApplyFlightGroupGoalScore(GOAL_EVENT_ATTACKED,
@@ -2273,11 +2276,6 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 		SYNTHETIC_STARSHIP_SOURCE = UINT16_MAX - 1,
 		DEFAULT_COLLISION_OBJECT_TYPE = 53,
 		CONTAINER_CLASS_H_OBJECT_TYPE = 58,
-		MISSION_V14_DAMAGE_REDUCTION_TYPE_1 = 37,
-		MISSION_V14_DAMAGE_REDUCTION_TYPE_2 = 38,
-		ION_OBJECT_TYPE_1 = 141,
-		ION_OBJECT_TYPE_2 = 142,
-		ION_OBJECT_TYPE_3 = 147,
 		MAX_MODEL_BOUNDS_EXTENT = 0x8000,
 		DEFAULT_COLLISION_DAMAGE = 0x20000,
 		STARSHIP_DAMAGE_SCALE = 16,
@@ -2370,8 +2368,8 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 	if (g_objectTable[victimObjIdx].genusId == CRAFT_GENUS_FREIGHTER)
 		damageAmount /= FREIGHTER_DAMAGE_SCALE;
 	if (g_missionFileVersion == 14 &&
-		(g_objectTable[victimObjIdx].objectType == MISSION_V14_DAMAGE_REDUCTION_TYPE_1 ||
-		 g_objectTable[victimObjIdx].objectType == MISSION_V14_DAMAGE_REDUCTION_TYPE_2))
+		(g_objectTable[victimObjIdx].objectType == CRAFT_SPECIES_MUURIAN_TRANSPORT ||
+		 g_objectTable[victimObjIdx].objectType == CRAFT_SPECIES_CORELLIAN_TRANSPORT))
 		damageAmount /= FREIGHTER_DAMAGE_SCALE;
 
 	damage = (int)damageAmount;
@@ -2482,16 +2480,17 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 		}
 
 		if (damage != 0) {
-			if (damageObjectType == ION_OBJECT_TYPE_1 || damageObjectType == ION_OBJECT_TYPE_2 ||
-				damageObjectType == ION_OBJECT_TYPE_3) {
+			if (damageObjectType == PROJECTILE_OBJECT_TYPE_ION_LASER ||
+				damageObjectType == PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER ||
+				damageObjectType == PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER_2) {
 				int16_t systemStrengthRemaining;
 
 				if ((uint16_t)craft->subsystemDamage < SYSTEM_DAMAGE_LIMIT) {
-					if (damageObjectType == ION_OBJECT_TYPE_1)
+					if (damageObjectType == PROJECTILE_OBJECT_TYPE_ION_LASER)
 						craft->subsystemDamage += 1;
-					if (damageObjectType == ION_OBJECT_TYPE_2)
+					if (damageObjectType == PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER)
 						craft->subsystemDamage += 2;
-					if (damageObjectType == ION_OBJECT_TYPE_3)
+					if (damageObjectType == PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER_2)
 						craft->subsystemDamage += 4;
 				}
 				systemStrengthRemaining =
@@ -2586,7 +2585,7 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex, uint16_
 								++g_missionFgStats[victimFlightGroupIdx]
 									  .outcomeCount[FLIGHT_GROUP_OUTCOME_DISABLED];
 								if (g_missionFlightGroups[victimFlightGroupIdx].fg.specialCargoCraft ==
-									craft->waveNumber)
+									craft->craftOrdinal)
 									g_missionFgStats[victimFlightGroupIdx]
 										.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DISABLED] = 1;
 							}
@@ -3485,6 +3484,9 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx, uint16_t targetObjId
 	return g_collideSweepHitMeshOrdinal;
 }
 
+/* Walks the model tree under node for the sweep segment. Hits are reported only through
+ * g_collideSweepHitMeshOrdinal and g_collideSweepHitFraction. The return value is not a hit: it is 1 when the
+ * segment misses a mesh's bounding box, and that 1 passes up through every parent to stop the walk. */
 // FUNCTION: XVT 0x4A6080
 int collide_TestSweepAgainstOptNode(OptimizedPolyObject* object, OptNode* node) {
 	int childSelection;
@@ -4031,6 +4033,7 @@ void collide_ApplyHostileProximityWeaponDisruption(int ownerObjIdx, int hostileO
 				int meshCount;
 				int meshIndex;
 
+				/* Here and below, CRAFT_SPECIES_SAT_4 (73) stands for the size of g_objectTypeMeshCache. */
 				if (objectType < CRAFT_SPECIES_SAT_4)
 					meshCount = g_objectTypeMeshCache[objectType].meshCount;
 				else

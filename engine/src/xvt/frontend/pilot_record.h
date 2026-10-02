@@ -59,7 +59,7 @@ struct PilotTeam {
 	int missionTime;
 	int kills;
 	int killsShared;
-	int killsAssist;
+	int losses;
 };
 
 #pragma pack(pop)
@@ -75,7 +75,7 @@ struct PilotMission {
 	int bestTime;
 	int bestPlacement;
 	int awardLevel;
-	unsigned int bestBonus;
+	unsigned int bestMargin;
 	int field20;
 };
 
@@ -95,7 +95,7 @@ struct PilotMultiplayerMission {
 	int bestTime;
 	int bestPlacement;
 	int awardLevel;
-	unsigned int bestBonus;
+	unsigned int bestMargin;
 	int field2C;
 };
 
@@ -331,7 +331,7 @@ struct PilotData {
 	int killsFullFromFlightGroup[48];
 	int killsSharedFromFlightGroup[48];
 	int flightGroupRating[48];
-	PilotStats objectStats;               ///< Object-level combat statistics.
+	PilotStats lastMissionStats;          ///< Statistics of the most recent mission, shown on the debriefing.
 	PilotNetworkPlayer networkPlayers[8]; ///< Persisted network-player results (8).
 	PilotTeam teams[10];                  ///< Persisted team results (10).
 	int currentFactionId;                 ///< Selected faction-statistics record.

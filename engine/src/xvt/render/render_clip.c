@@ -202,6 +202,8 @@ void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex, RenderClipVe
 			deltaV = currentV - previousV;
 			deltaScaledInverseDepth = currentScaledInverseDepth - previousScaledInverseDepth;
 
+			/* From here previousY and currentY hold each vertex's distance from the bottom edge; whichever
+			 * is divided by deltaY below then holds the fraction along the edge where it is clipped. */
 			previousY = previousY - boundary;
 			currentY = boundary - currentY;
 			if (currentY > previousY) {
@@ -271,6 +273,8 @@ void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex, RenderClipVe
 		deltaV = currentV - previousV;
 		deltaZ = currentZ - previousZ;
 
+		/* From here previousY and currentY hold each vertex's distance from the bottom edge; whichever is
+		 * divided by deltaY below then holds the fraction along the edge where it is clipped. */
 		currentY = currentY - boundary;
 		previousY = boundary - previousY;
 		if (currentY > previousY) {
@@ -359,6 +363,8 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex, RenderClipVerte
 			deltaV = currentV - previousV;
 			deltaScaledInverseDepth = currentScaledInverseDepth - previousScaledInverseDepth;
 
+			/* From here previousX and currentX hold each vertex's distance from the left edge; whichever
+			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
 			previousX = -previousX;
 			if (previousX < currentX) {
 				previousX = previousX / deltaX;
@@ -438,6 +444,8 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex, RenderClipVerte
 			deltaV = currentV - previousV;
 			deltaZ = currentZ - previousZ;
 
+			/* From here previousX and currentX hold each vertex's distance from the left edge; whichever
+			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
 			currentX = -currentX;
 			if (currentX > previousX) {
 				previousX = previousX / deltaX;
@@ -533,6 +541,8 @@ void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex, RenderClipVer
 			deltaV = currentV - previousV;
 			deltaScaledInverseDepth = currentScaledInverseDepth - previousScaledInverseDepth;
 
+			/* From here previousX and currentX hold each vertex's distance from the right edge; whichever
+			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
 			previousX = previousX - boundary;
 			currentX = boundary - currentX;
 			if (currentX > previousX) {
@@ -602,6 +612,8 @@ void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex, RenderClipVer
 		deltaV = currentV - previousV;
 		deltaZ = currentZ - previousZ;
 
+		/* From here previousX and currentX hold each vertex's distance from the right edge; whichever is
+		 * divided by deltaX below then holds the fraction along the edge where it is clipped. */
 		previousX = boundary - previousX;
 		currentX = currentX - boundary;
 		if (currentX > previousX) {
@@ -681,8 +693,10 @@ void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex, RenderClipVert
 		currentDepth = (float)(unsigned int)g_projScaleInt / currentScaledInverseDepth;
 		previousV = previous->v;
 		currentX = (current->x - (float)(g_flightVpWidth >> 1)) * currentDepth;
+		/* From here currentX is the edge's x difference (current vertex minus previous). */
 		currentX = currentX * g_invProjScale - previousX;
 		currentY = (current->y - (float)(g_projOffsetY + (g_flightVpHeight >> 1))) * currentDepth;
+		/* From here currentY is the edge's y difference (current vertex minus previous). */
 		currentY = currentY * g_invProjScale - previousY;
 		deltaU = current->u - previousU;
 		deltaV = current->v - previousV;
@@ -724,8 +738,10 @@ void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex, RenderClipVert
 		currentU = current->u;
 		currentV = current->v;
 		previousX = (previous->x - (float)(g_flightVpWidth >> 1)) * previousDepth;
+		/* From here previousX is the edge's x difference (current vertex minus previous). */
 		previousX = currentX - previousX * g_invProjScale;
 		previousY = (previous->y - (float)(g_projOffsetY + (g_flightVpHeight >> 1))) * previousDepth;
+		/* From here previousY is the edge's y difference (current vertex minus previous). */
 		previousY = currentY - previousY * g_invProjScale;
 		deltaU = currentU - previous->u;
 		deltaV = currentV - previous->v;

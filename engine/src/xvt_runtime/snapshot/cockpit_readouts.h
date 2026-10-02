@@ -25,8 +25,8 @@ void XvtCockpitReadouts_RecordCachedNumber(unsigned binding, unsigned value, uns
 /* Starts the target panel for the local player's current target, in command mode when cmd is
  * set. A change of target or mode first clears the target, its numbers from TARGET_SYSTEMS
  * through ORDER_SECONDS and its text fields; with cmd set, such a change also resets HUD cache
- * entries 102 and 103 so the threat values are drawn again. The panel is then marked visible
- * and updated. */
+ * entries 102 and 103 so the command-mode target shield and hull percentages are drawn again. The
+ * panel is then marked visible and updated. */
 void XvtCockpitReadouts_BeginTarget(int cmd);
 /* Hides the target panel unless it shows a cover, and clears the target text fields. */
 void XvtCockpitReadouts_HideTarget(void);

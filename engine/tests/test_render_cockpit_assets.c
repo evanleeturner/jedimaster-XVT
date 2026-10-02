@@ -96,7 +96,7 @@ static void Fresh(void) {
 	g_flightFontSmallSw = g_smallFont;
 	g_flightFontMediumSw = g_mediumFont;
 	g_flightMicroFontHandle = 41;
-	g_flightTinyFontHandle = 42;
+	g_flightSmallFontHandle = 42;
 	g_flightMediumFontHandle = 43;
 	g_flightScratchScreenBufferHandle = 66;
 	g_hudPanelSpriteDataHandle = 70;

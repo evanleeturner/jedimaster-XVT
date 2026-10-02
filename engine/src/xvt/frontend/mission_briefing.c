@@ -67,9 +67,9 @@ int MissionBriefing_Exit(int frameCounter) {
 		free(g_missionList);
 		g_missionList = NULL;
 	}
-	if (g_briefingText != NULL) {
-		free(g_briefingText);
-		g_briefingText = NULL;
+	if (g_missionText != NULL) {
+		free(g_missionText);
+		g_missionText = NULL;
 	}
 	if (g_shipList != NULL) {
 		free(g_shipList);
@@ -88,7 +88,6 @@ int MissionBriefing_Update(int frameCounter) {
 	enum {
 		MAX_PLAYERS = 8,
 		LAUNCH_COUNTDOWN_MS = 60000,
-		PACKET_COUNTDOWN = 'd',
 	};
 
 	int teamIndex;
@@ -379,7 +378,7 @@ int MissionBriefing_Update(int frameCounter) {
 				ModelPreview_LoadModel(g_shipList[g_shipTypeToShipListIndex[craftType]].modelFileName);
 				ModelPreview_SetLightDirection(-1, 0, 1);
 			}
-		} else if (packetType == PACKET_COUNTDOWN) {
+		} else if (packetType == NET_PACKET_BRIEFING_COUNTDOWN) {
 			packetCountdownMs = g_frontendNetPacketArg0;
 			if (packetCountdownMs < g_missionBriefingLaunchCountdownMs) {
 				g_missionBriefingLaunchCountdownMs = packetCountdownMs;

@@ -192,7 +192,11 @@ void BriefingMap_AnimateViewState(void) {
 	if (centerDifference < axisDifference) {
 		centerDifference = axisDifference;
 	}
+	/* axisDifference now holds the center distance in screen pixels (map units over map units per pixel),
+	 * which picks the faster center step below. */
 	axisDifference = centerDifference / (int16_t)scaleDivisor;
+	/* From here scaleDivisor is the step for moving the map center: twice the map units per pixel, and
+	 * twice that again when the center is 16 or more screen pixels away. */
 	scaleDivisor *= 2;
 	if (axisDifference >= 16) {
 		scaleDivisor *= 2;

@@ -82,8 +82,8 @@ int XvtRemasterShip_AssetsNeedSync(const XvtRenderSnapshot* snapshot);
 /* Loads the snapshot's OPT models not yet pending: reusing committed meshes when the policy is
  * unchanged, else building them; stops with MORE once the staged bytes or copies reach a nonzero
  * budget while models remain. Returns COMPLETE when nothing is needed or every model is pending;
- * FAILED, marking cmd, for a NULL argument, an open batch, more unique paths than XVT_SNAP_ASSETS, or a
- * build failure. */
+ * FAILED for a NULL argument (cmd unmarked); FAILED, marking cmd, for an open batch, more unique paths
+ * than XVT_SNAP_ASSETS, a build failure or a failed upload-usage query. */
 XvtAssetSyncResult XvtRemasterShip_SyncAssets(AeronCommandBuffer* cmd, const XvtRenderSnapshot* snapshot,
 											  uint64_t byte_budget, uint32_t copy_budget);
 /* Ends the batch. When it completed, the pending set replaces the committed one (meshes no longer used

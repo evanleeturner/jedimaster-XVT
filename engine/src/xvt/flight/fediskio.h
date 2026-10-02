@@ -65,7 +65,7 @@ extern uint16_t g_objectTableHandle;
 extern uint16_t g_stringDataHandle;
 extern uint16_t g_renderObjectListHandle;
 extern uint16_t g_flightScratchScreenBufferHandle;
-extern uint16_t g_flightTinyFontHandle;
+extern uint16_t g_flightSmallFontHandle;
 extern uint16_t g_flightOffscreenBufferHandle;
 extern uint16_t g_flightMicroFontHandle;
 extern uint16_t g_flightMediumFontHandle;

@@ -164,7 +164,7 @@ void Targeting_DrawSceneObjectBoxes(void) {
 	int objectIdx;
 
 	leadingTeam = NO_LEADING_TEAM;
-	if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
+	if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
 		leadingScore = 0;
 		for (teamIndex = 0; teamIndex < PLAYABLE_TEAM_COUNT; ++teamIndex) {
 			int teamScore;
@@ -194,12 +194,12 @@ void Targeting_DrawSceneObjectBoxes(void) {
 		team = object->mobj->team;
 		teamScore = g_flightMissionState.runtime.teamScores[TEAM_SCORE_MISSION][team];
 		teamScore += g_flightMissionState.runtime.teamScores[TEAM_SCORE_BONUS][team];
-		if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START &&
+		if (g_missionHeader.missionType == MISSION_TYPE_MELEE &&
 			(uint16_t)g_players[g_localPlayer].team == team && object->genusId == CRAFT_GENUS_STARFIGHTER) {
 			colorIndex = COLOR_LOCAL_QUICK_START_CRAFT;
 		} else if (leadingTeam == NO_LEADING_TEAM || teamScore != leadingScore) {
 			if (object->playerOwnerIdx != -1 && object->playerOwnerIdx != g_localPlayer) {
-				if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
+				if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
 					int craftTeam;
 					int playerTeam;
 					int isHostile;

@@ -34,7 +34,8 @@ const XvtControllerOptions* XvtControllerMapping_Options(void);
  * gamepad's pitch flipped once more, since its Y axis points down. 0 for throttle, an unbound axis, or while
  * suspended. */
 int XvtControllerMapping_Axis(XvtInputAxis axis);
-/* Bit 1 while fire is held, bit 2 while the target/roll modifier is held, on any controller. */
+/* Value 1 (bit 0) while fire is held, value 2 (bit 1) while the target/roll modifier is held, on any
+ * controller. */
 uint16_t XvtControllerMapping_Modifiers(void);
 /* The next queued flight key code, or 0 when the queue is empty. A full queue of 255 keys drops the key
  * with a warning. */
@@ -62,9 +63,9 @@ bool XvtControllerMapping_ThrottleSample(uint16_t* position, uint32_t* generatio
 int XvtControllerMapping_IsModelConnected(void);
 /* As Axis, with only the configured inversion: gamepad pitch is not flipped. */
 int XvtControllerMapping_MenuAxis(XvtInputAxis axis);
-/* Bit 1 for a gamepad's south button or a joystick's button 0, bit 2 for east or button 1, on any
- * matched controller this frame; a button held since its controller appeared stays hidden until
- * released. */
+/* Value 1 (bit 0) for a gamepad's south button or a joystick's button 0, value 2 (bit 1) for east or
+ * button 1, on any matched controller this frame; a button held since its controller appeared stays
+ * hidden until released. */
 uint8_t XvtControllerMapping_MenuButtons(void);
 /* The direction of the first matched controller that has one this frame: 1 up, 2 right, 4 down, 8 left,
  * from a gamepad's d-pad or a joystick's first hat, with the same hiding as MenuButtons. */

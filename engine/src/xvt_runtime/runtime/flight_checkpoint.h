@@ -39,8 +39,8 @@ typedef struct XvtFlightCheckpointView {
 int XvtFlightCheckpoint_Read(const uint8_t* image, size_t size, XvtFlightCheckpointView* view);
 /* Install only a view validated with Read and the recovered world prefix. */
 /* Replaces every shared motion, integration and player timing record and the paired records,
- * applies the confirmed mask through SetMask, and sets the game time and network tick to the
- * view's tick. */
+ * applies the confirmed mask through ApplyConfirmedMask (raising the abort flag of each dropped
+ * player), and sets the game time and network tick to the view's tick. */
 void XvtFlightCheckpoint_Restore(const XvtFlightCheckpointView* view);
 /* Network125 only: replaces player's paired record with the motion of the player's object, and of
  * the object it carries when that is another live shared slot, tagged with tick. The record stays

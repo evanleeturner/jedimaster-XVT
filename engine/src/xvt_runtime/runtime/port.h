@@ -20,7 +20,7 @@ int XvtPort_Init(void);
 void XvtPort_SetSkipIntro(int skip_intro);
 /* 1 between a successful Init and Shutdown. */
 int XvtPort_IsInitialized(void);
-/* Runs one host frame. Does nothing once ShouldQuit is 1; while quitting, only updates DirectPlay
+/* Runs one host frame. Does nothing once ServiceQuit returns 1; while quitting, only updates DirectPlay
  * and services the network session. Runs a paused frame instead when the settings menu is open,
  * or the window lacks focus and no movie or campaign wait continues without it, unless the network
  * requires progress. The first frame after Init, a pause, or a flight's start or end does not

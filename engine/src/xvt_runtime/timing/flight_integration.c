@@ -160,7 +160,8 @@ void XvtFlightIntegration_Move(unsigned slot) {
 
 void XvtFlightIntegration_Push(unsigned slot, unsigned axis, int* accum, int cap, int* output) {
 	int rate = *accum < -cap ? -cap : *accum > cap ? cap : *accum;
-	int step = XvtFlightIntegration_Rate(slot, XVT_INTEGRATE_PUSH_X + axis, rate, g_elapsedTicks, 236);
+	int step = XvtFlightIntegration_Rate(slot, XVT_INTEGRATE_PUSH_X + axis, rate, g_elapsedTicks,
+										 SIMULATION_TICKS_PER_SECOND);
 	if ((*accum > 0 && step > *accum) || (*accum < 0 && step < *accum))
 		step = *accum;
 	*accum -= step;

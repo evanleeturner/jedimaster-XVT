@@ -109,9 +109,9 @@ int MissionDebrief_Exit(int frameCounter) {
 		free(g_missionList);
 		g_missionList = NULL;
 	}
-	if (g_briefingText != NULL) {
-		free(g_briefingText);
-		g_briefingText = NULL;
+	if (g_missionText != NULL) {
+		free(g_missionText);
+		g_missionText = NULL;
 	}
 	FrontImage_FreeResourceByName("background");
 	Frontend_ResetScrollableControls();
@@ -163,7 +163,7 @@ int MissionDebrief_Update(int frameCounter) {
 					return 0;
 				}
 			}
-			g_briefingText = malloc(MISSION_TEXT_BUFFER_SIZE);
+			g_missionText = malloc(MISSION_TEXT_BUFFER_SIZE);
 		}
 
 		g_frontendChatTeamOnly = 0;
@@ -435,9 +435,11 @@ int MissionDebrief_Update(int frameCounter) {
 		}
 		if (g_pilotData.missionDirectoryId == MISSION_DIRECTORY_TRAINING_EXERCISES &&
 			g_pilotData.missionSequenceActive == 1) {
-			MissionDebrief_BuildText(g_briefingText, g_pilotData.campaignSequenceState.lastMissionCompleted);
+			MissionDebrief_BuildText(g_missionText, g_pilotData.campaignSequenceState.lastMissionCompleted);
 		}
 		MissionDebrief_MarkNetworkPlayersReady();
+		/* Only here does localNetworkPlayerIndex hold the local player's slot; the other loops in this
+		 * function use it to walk all eight network players. */
 		localNetworkPlayerIndex = 0;
 		if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 			for (; localNetworkPlayerIndex < PLAYER_COUNT; ++localNetworkPlayerIndex) {
@@ -614,7 +616,7 @@ int MissionDebrief_Update(int frameCounter) {
 		}
 
 		if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER)
-			MissionSetup_BroadcastStatePacket(0);
+			MissionSetup_SendLobbyState(0);
 		FrontendDisplay_LockOffscreenSurface();
 		FrontImage_DrawSpriteOpaque("background", 0, 0);
 		FrontImage_DrawSprite("frame", 0, 0);
@@ -754,7 +756,7 @@ int MissionDebrief_Update(int frameCounter) {
 				memset(g_pilotData.killsFullFromFlightGroup, 0, sizeof(g_pilotData.killsFullFromFlightGroup));
 				memset(g_pilotData.killsSharedFromFlightGroup, 0,
 					   sizeof(g_pilotData.killsSharedFromFlightGroup));
-				memset(&g_pilotData.objectStats, 0, sizeof(g_pilotData.objectStats));
+				memset(&g_pilotData.lastMissionStats, 0, sizeof(g_pilotData.lastMissionStats));
 				memset(g_pilotData.teams, 0, sizeof(g_pilotData.teams));
 				for (localNetworkPlayerIndex = 0; localNetworkPlayerIndex < PLAYER_COUNT;
 					 ++localNetworkPlayerIndex) {
@@ -1405,7 +1407,7 @@ int MissionDebrief_Update(int frameCounter) {
 							   sizeof(g_pilotData.killsFullFromFlightGroup));
 						memset(g_pilotData.killsSharedFromFlightGroup, 0,
 							   sizeof(g_pilotData.killsSharedFromFlightGroup));
-						memset(&g_pilotData.objectStats, 0, sizeof(g_pilotData.objectStats));
+						memset(&g_pilotData.lastMissionStats, 0, sizeof(g_pilotData.lastMissionStats));
 						memset(g_pilotData.teams, 0, sizeof(g_pilotData.teams));
 						for (localNetworkPlayerIndex = 0; localNetworkPlayerIndex < PLAYER_COUNT;
 							 ++localNetworkPlayerIndex) {
@@ -1627,7 +1629,7 @@ int MissionDebrief_DrawMissionOverviewPage(int frameCounter) {
 							g_pilotData.teams[g_debriefSortedTeamIds[teamPosition]].killsShared);
 					FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, KILLS_X, textY, WHITE_COLOR);
 					sprintf(g_frontendScratchBuffer, "%d",
-							g_pilotData.teams[g_debriefSortedTeamIds[teamPosition]].killsAssist);
+							g_pilotData.teams[g_debriefSortedTeamIds[teamPosition]].losses);
 					FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, DEATHS_X, textY, WHITE_COLOR);
 					textX = PLAYER_NAME_X;
 					textY += ROW_HEIGHT;
@@ -1644,7 +1646,7 @@ int MissionDebrief_DrawMissionOverviewPage(int frameCounter) {
 							g_pilotData.teams[g_debriefSortedTeamIds[teamPosition]].killsShared);
 					FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, KILLS_X, textY, WHITE_COLOR);
 					sprintf(g_frontendScratchBuffer, "%d",
-							g_pilotData.teams[g_debriefSortedTeamIds[teamPosition]].killsAssist);
+							g_pilotData.teams[g_debriefSortedTeamIds[teamPosition]].losses);
 					FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, DEATHS_X, textY, WHITE_COLOR);
 					textY += ROW_HEIGHT;
 					textX = PLAYER_NAME_X;
@@ -1682,7 +1684,7 @@ int MissionDebrief_DrawMissionOverviewPage(int frameCounter) {
 										  WHITE_COLOR);
 						textX = DEATHS_X;
 						sprintf(g_frontendScratchBuffer, "%d",
-								g_pilotData.teams[g_debriefSortedTeamIds[teamPosition]].killsAssist);
+								g_pilotData.teams[g_debriefSortedTeamIds[teamPosition]].losses);
 						FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, textX, textY, WHITE_COLOR);
 						textY += ROW_HEIGHT;
 					}
@@ -1771,7 +1773,7 @@ int MissionDebrief_DrawMissionOverviewPage(int frameCounter) {
 						FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, KILLS_X, textY,
 										  WHITE_COLOR);
 						sprintf(g_frontendScratchBuffer, "%d",
-								g_pilotData.teams[g_debriefSortedTeamIds[teamPosition]].killsAssist);
+								g_pilotData.teams[g_debriefSortedTeamIds[teamPosition]].losses);
 					} else {
 						sprintf(g_frontendScratchBuffer, "%d (%d)",
 								g_pilotData.networkPlayers[playerIndex].kills,
@@ -1899,6 +1901,9 @@ int MissionDebrief_DrawMissionOverviewPage(int frameCounter) {
 		killedByRowY = killedHeaderY + ROW_HEIGHT;
 		for (killIndex = 0; killIndex < PLAYER_COUNT; ++killIndex) {
 
+			/* Like the Killed list, this walks the list sorted by kills made, as the original does.
+			 * g_debriefKillsFromCombatantIds, sorted by kills taken, is built in MissionDebrief_Prepare
+			 * but never read. */
 			combatantId = g_debriefKillsOnCombatantIds[killIndex];
 			if (combatantId == -1) {
 				break;
@@ -2059,8 +2064,8 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 		for (craftType = 0; craftType < CRAFT_TYPE_COUNT; ++craftType) {
 			g_debriefCraftKillRowHasData = 0;
 			for (missionType = 0; missionType < MISSION_TYPE_COUNT; ++missionType) {
-				if (g_pilotData.objectStats.killsPerCraftPerMT[missionType][craftType] != 0 ||
-					g_pilotData.objectStats.killsSharedPerCraftPerMT[missionType][craftType] != 0) {
+				if (g_pilotData.lastMissionStats.killsPerCraftPerMT[missionType][craftType] != 0 ||
+					g_pilotData.lastMissionStats.killsSharedPerCraftPerMT[missionType][craftType] != 0) {
 					g_debriefCraftKillRowHasData = 1;
 					g_debriefHasCraftKillsByTypeSection = 1;
 				}
@@ -2108,8 +2113,9 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 				int assistCount;
 				int sharedKillCount;
 
-				assistCount = g_pilotData.objectStats.killsAssistsPerCraftPerMT[missionType][craftType];
-				sharedKillCount = g_pilotData.objectStats.killsSharedPerCraftPerMT[missionType][craftType];
+				assistCount = g_pilotData.lastMissionStats.killsAssistsPerCraftPerMT[missionType][craftType];
+				sharedKillCount =
+					g_pilotData.lastMissionStats.killsSharedPerCraftPerMT[missionType][craftType];
 				g_debriefAssistTotalByMissionType[missionType] += assistCount;
 				g_debriefTotalKillsSharedByMissionType[missionType] += sharedKillCount;
 			}
@@ -2119,8 +2125,10 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 				int fullKillCount;
 				int sharedKillCount;
 
-				fullKillCount = g_pilotData.objectStats.killsFullOnPlayerRatingPerMT[missionType][rating];
-				sharedKillCount = g_pilotData.objectStats.killsSharedOnPlayerRatingPerMT[missionType][rating];
+				fullKillCount =
+					g_pilotData.lastMissionStats.killsFullOnPlayerRatingPerMT[missionType][rating];
+				sharedKillCount =
+					g_pilotData.lastMissionStats.killsSharedOnPlayerRatingPerMT[missionType][rating];
 				g_debriefPlayerKillsByMissionType[missionType] += fullKillCount;
 				g_debriefPlayerKillsSharedTotal[missionType] += sharedKillCount;
 			}
@@ -2130,8 +2138,9 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 				int fullKillCount;
 				int sharedKillCount;
 
-				fullKillCount = g_pilotData.objectStats.killsFullOnAIRatingPerMT[missionType][rating];
-				sharedKillCount = g_pilotData.objectStats.killsSharedOnAIRatingPerMT[missionType][rating];
+				fullKillCount = g_pilotData.lastMissionStats.killsFullOnAIRatingPerMT[missionType][rating];
+				sharedKillCount =
+					g_pilotData.lastMissionStats.killsSharedOnAIRatingPerMT[missionType][rating];
 				g_debriefNonPlayerKillsByMissionType[missionType] += fullKillCount;
 				g_debriefNonPlayerKillsSharedTotal[missionType] += sharedKillCount;
 			}
@@ -2139,13 +2148,13 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 		for (missionType = 0; missionType < MISSION_TYPE_COUNT; ++missionType) {
 			for (rating = 0; rating < PLAYER_RATING_COUNT; ++rating) {
 				g_debriefLossesToPlayerPilotsTotal[missionType] +=
-					g_pilotData.objectStats.killedByPlayerRatingPerMT[missionType][rating];
+					g_pilotData.lastMissionStats.killedByPlayerRatingPerMT[missionType][rating];
 			}
 		}
 		for (missionType = 0; missionType < MISSION_TYPE_COUNT; ++missionType) {
 			for (rating = 0; rating < AI_RATING_COUNT; ++rating) {
 				g_debriefLossesToNonPlayerPilotsTotal[missionType] +=
-					g_pilotData.objectStats.killedByAIRatingPerMT[missionType][rating];
+					g_pilotData.lastMissionStats.killedByAIRatingPerMT[missionType][rating];
 			}
 		}
 	}
@@ -2246,6 +2255,7 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 		++row;
 	}
 
+	/* g_debriefCraftKillRowHasData is reused here to record whether the Award label has been drawn. */
 	g_debriefCraftKillRowHasData = 0;
 	for (awardIndex = 0; awardIndex < AWARD_COUNT; ++awardIndex) {
 		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId].missionAwards[awardIndex] == 0) {
@@ -2310,7 +2320,8 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 	if (row >= g_debriefPlayerStatsScrollRow && row - g_debriefPlayerStatsScrollRow < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_297_TOTAL_KILLS), TEXT_X, textY,
 						  g_colorYellow);
-		sprintf(g_frontendScratchBuffer, "%d (%d)", g_pilotData.objectStats.totalKillsPerMT[MISSION_TYPE],
+		sprintf(g_frontendScratchBuffer, "%d (%d)",
+				g_pilotData.lastMissionStats.totalKillsPerMT[MISSION_TYPE],
 				g_debriefTotalKillsSharedByMissionType[MISSION_TYPE]);
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, VALUE_X, textY, WHITE_COLOR);
 		textY += ROW_HEIGHT;
@@ -2354,7 +2365,7 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_354_HIDDEN_CARGO_FOUND), TEXT_X, textY,
 						  g_colorYellow);
 		sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotData.objectStats.numSpecialInspectedPerMT[MISSION_TYPE]);
+				g_pilotData.lastMissionStats.numSpecialInspectedPerMT[MISSION_TYPE]);
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, VALUE_X, textY, WHITE_COLOR);
 		textY += ROW_HEIGHT;
 	}
@@ -2365,9 +2376,9 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_355_LASER_ACCURACY), TEXT_X, textY,
 						  g_colorYellow);
 		accuracy = 0;
-		if (g_pilotData.objectStats.energyFiredPerMT[MISSION_TYPE] != 0) {
-			accuracy = (unsigned int)(100 * g_pilotData.objectStats.energyHitsPerMT[MISSION_TYPE]) /
-					   (unsigned int)g_pilotData.objectStats.energyFiredPerMT[MISSION_TYPE];
+		if (g_pilotData.lastMissionStats.energyFiredPerMT[MISSION_TYPE] != 0) {
+			accuracy = (unsigned int)(100 * g_pilotData.lastMissionStats.energyHitsPerMT[MISSION_TYPE]) /
+					   (unsigned int)g_pilotData.lastMissionStats.energyFiredPerMT[MISSION_TYPE];
 		}
 		sprintf(g_frontendScratchBuffer, "%d%%", accuracy);
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, VALUE_X, textY, WHITE_COLOR);
@@ -2380,9 +2391,9 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_356_WARHEAD_ACCURACY), TEXT_X, textY,
 						  g_colorYellow);
 		accuracy = 0;
-		if (g_pilotData.objectStats.warheadsFiredPerMT[MISSION_TYPE] != 0) {
-			accuracy = (unsigned int)(100 * g_pilotData.objectStats.warheadsHitsPerMT[MISSION_TYPE]) /
-					   (unsigned int)g_pilotData.objectStats.warheadsFiredPerMT[MISSION_TYPE];
+		if (g_pilotData.lastMissionStats.warheadsFiredPerMT[MISSION_TYPE] != 0) {
+			accuracy = (unsigned int)(100 * g_pilotData.lastMissionStats.warheadsHitsPerMT[MISSION_TYPE]) /
+					   (unsigned int)g_pilotData.lastMissionStats.warheadsFiredPerMT[MISSION_TYPE];
 		}
 		sprintf(g_frontendScratchBuffer, "%d%%", accuracy);
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, VALUE_X, textY, WHITE_COLOR);
@@ -2439,8 +2450,8 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 	for (craftType = 0; craftType < CRAFT_TYPE_COUNT; ++craftType) {
 		g_debriefCraftKillRowHasData = 0;
 		for (missionType = 0; missionType < MISSION_TYPE_COUNT; ++missionType) {
-			if (g_pilotData.objectStats.killsPerCraftPerMT[missionType][craftType] != 0 ||
-				g_pilotData.objectStats.killsSharedPerCraftPerMT[missionType][craftType] != 0) {
+			if (g_pilotData.lastMissionStats.killsPerCraftPerMT[missionType][craftType] != 0 ||
+				g_pilotData.lastMissionStats.killsSharedPerCraftPerMT[missionType][craftType] != 0) {
 				g_debriefCraftKillRowHasData = 1;
 			}
 		}
@@ -2451,8 +2462,8 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 			FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get((FrontendStringId)(21 + craftType)), TEXT_X,
 							  textY, g_colorRed);
 			sprintf(g_frontendScratchBuffer, "%d (%d)",
-					g_pilotData.objectStats.killsPerCraftPerMT[MISSION_TYPE][craftType],
-					g_pilotData.objectStats.killsSharedPerCraftPerMT[MISSION_TYPE][craftType]);
+					g_pilotData.lastMissionStats.killsPerCraftPerMT[MISSION_TYPE][craftType],
+					g_pilotData.lastMissionStats.killsSharedPerCraftPerMT[MISSION_TYPE][craftType]);
 			FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, VALUE_X, textY, WHITE_COLOR);
 			textY += ROW_HEIGHT;
 		}
@@ -2472,7 +2483,8 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 	if (row >= g_debriefPlayerStatsScrollRow && row - g_debriefPlayerStatsScrollRow < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_361_TOTAL_CRAFT_LOSSES), TEXT_X, textY,
 						  g_colorYellow);
-		sprintf(g_frontendScratchBuffer, "%d", g_pilotData.objectStats.totalCraftLossesPerMT[MISSION_TYPE]);
+		sprintf(g_frontendScratchBuffer, "%d",
+				g_pilotData.lastMissionStats.totalCraftLossesPerMT[MISSION_TYPE]);
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, VALUE_X, textY, WHITE_COLOR);
 		textY += ROW_HEIGHT;
 	}
@@ -2500,7 +2512,8 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 	if (row >= g_debriefPlayerStatsScrollRow && row - g_debriefPlayerStatsScrollRow < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_364_TO_STARSHIPS), TEXT_X, textY,
 						  g_colorYellow);
-		sprintf(g_frontendScratchBuffer, "%d", g_pilotData.objectStats.lossesByStarshipsPerMT[MISSION_TYPE]);
+		sprintf(g_frontendScratchBuffer, "%d",
+				g_pilotData.lastMissionStats.lossesByStarshipsPerMT[MISSION_TYPE]);
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, VALUE_X, textY, WHITE_COLOR);
 		textY += ROW_HEIGHT;
 	}
@@ -2508,7 +2521,7 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 	if (row >= g_debriefPlayerStatsScrollRow && row - g_debriefPlayerStatsScrollRow < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_365_TO_MINES), TEXT_X, textY,
 						  g_colorYellow);
-		sprintf(g_frontendScratchBuffer, "%d", g_pilotData.objectStats.lossesByMinesPerMT[MISSION_TYPE]);
+		sprintf(g_frontendScratchBuffer, "%d", g_pilotData.lastMissionStats.lossesByMinesPerMT[MISSION_TYPE]);
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, VALUE_X, textY, WHITE_COLOR);
 		textY += ROW_HEIGHT;
 	}
@@ -2516,7 +2529,8 @@ int MissionDebrief_DrawPlayerStatisticsPage(void) {
 	if (row >= g_debriefPlayerStatsScrollRow && row - g_debriefPlayerStatsScrollRow < VISIBLE_ROW_COUNT) {
 		FrontendText_Draw(TEXT_FONT_SIZE, FrontendString_Get(FRONTSTR_366_FROM_COLLISIONS), TEXT_X, textY,
 						  g_colorYellow);
-		sprintf(g_frontendScratchBuffer, "%d", g_pilotData.objectStats.lossesByCollisionsPerMT[MISSION_TYPE]);
+		sprintf(g_frontendScratchBuffer, "%d",
+				g_pilotData.lastMissionStats.lossesByCollisionsPerMT[MISSION_TYPE]);
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer, VALUE_X, textY, WHITE_COLOR);
 		textY += ROW_HEIGHT;
 	}
@@ -2828,13 +2842,15 @@ int MissionDebrief_DrawTournamentSummaryPage(int frameCounter) {
 						}
 					}
 					if (playerIndex != PLAYER_COUNT) {
-						int ratingPlayerIndex = g_debriefStandingsTeamIds[0];
+						/* The rating shown is that of the network player whose slot number equals the
+						 * leading team's id, as in the original; the winner's name comes from playerIndex. */
+						int leadingTeamId = g_debriefStandingsTeamIds[0];
 
 						sprintf(g_frontendScratchBuffer, "%c%s: %c%s %c%s", TEXT_CODE_WINNER,
 								FrontendString_Get(FRONTSTR_686_TOURNAMENT_WINNER), TEXT_CODE_RATING,
 								FrontendString_Get(
 									(FrontendStringId)(FRONTSTR_154_DRONE +
-													   g_pilotData.networkPlayers[ratingPlayerIndex].rating)),
+													   g_pilotData.networkPlayers[leadingTeamId].rating)),
 								TEXT_CODE_VALUE, g_pilotData.networkPlayers[playerIndex].friendlyName);
 					}
 					if (playerIndex == PLAYER_COUNT) {
@@ -2993,6 +3009,8 @@ int MissionDebrief_DrawTournamentSummaryPage(int frameCounter) {
 		if (g_debriefStandingsTeamIds[standingIndex] == -1) {
 			break;
 		}
+		/* g_debriefTeamInStandings is filled by team id but read here by standing position, as in the
+		 * original. */
 		if (g_debriefTeamInStandings[standingIndex] != 0) {
 			if (g_pilotData.meleeTournamentSequenceState
 					.teamStandings[g_debriefStandingsTeamIds[standingIndex]]
@@ -3209,6 +3227,8 @@ int MissionDebrief_DrawTournamentSummaryPage(int frameCounter) {
 				}
 			}
 
+			/* g_debriefTeamHasPlayer is filled by team id but read here by standing position, as in the
+			 * original. */
 			if (g_debriefTeamHasPlayer[standingIndex] != 0 && g_debriefRankByPilot == 0) {
 				int flightGroupIndex;
 
@@ -3341,6 +3361,8 @@ int MissionDebrief_MarkNetworkPlayersReady(void) {
 int MissionDebrief_Prepare(void) {
 	int humanPlayerCount;
 	int activeTeamCount;
+	/* teamIndex walks three kinds of slot in this function: network players (networkPlayers), flight
+	 * groups (flightGroups, ranked as teamIndex + 8), and teams. */
 	unsigned int teamIndex;
 	int sortIndex;
 	int existing;
@@ -3428,6 +3450,8 @@ int MissionDebrief_Prepare(void) {
 		(void)inserted;
 	}
 	for (sortIndex = 0; sortIndex < 10; ++sortIndex) {
+		/* g_debriefTeamHasPlayer is filled by team id but read here by sorted position, as in the
+		 * original. */
 		if (g_debriefTeamHasPlayer[sortIndex] != 0 && g_debriefSortedTeamIds[sortIndex] == g_pilotData.team) {
 			g_debriefLocalTeamRankIndex = sortIndex;
 			break;
@@ -3714,7 +3738,7 @@ int MissionDebrief_DrawNarrativeTextPage(void) {
 	RECT rect;
 	int lineCount;
 
-	if (g_briefingText == NULL)
+	if (g_missionText == NULL)
 		return 0;
 
 	FrontendDraw_RectAssign(&rect, 88, 90, 430, 106);
@@ -3732,7 +3756,7 @@ int MissionDebrief_DrawNarrativeTextPage(void) {
 	}
 
 	FrontendDraw_RectAssign(&rect, 88, 111, 420, 431);
-	lineCount = FrontendText_DrawWrapped(12, g_briefingText, &rect, 0xFFFF, 4, 4096) + 1;
+	lineCount = FrontendText_DrawWrapped(12, g_missionText, &rect, 0xFFFF, 4, 4096) + 1;
 	if (lineCount > 20) {
 		FrontendDraw_RectAssign(&rect, 421, 111, 430, 431);
 		g_frontendFirstVisibleLine = FrontendScrollbar_Draw(&rect, g_frontendFirstVisibleLine, lineCount, 0,
@@ -3741,6 +3765,6 @@ int MissionDebrief_DrawNarrativeTextPage(void) {
 	} else {
 		FrontendDraw_RectAssign(&rect, 88, 111, 430, 431);
 	}
-	FrontendText_DrawWrapped(12, g_briefingText, &rect, 0xFFFF, 4, g_frontendFirstVisibleLine);
+	FrontendText_DrawWrapped(12, g_missionText, &rect, 0xFFFF, 4, g_frontendFirstVisibleLine);
 	return 1;
 }

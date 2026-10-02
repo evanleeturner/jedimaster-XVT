@@ -253,6 +253,7 @@ int ModelPreview_LoadModel(const char* modelFileName) {
 	if (g_modelPreviewModelData->selfMarker != g_modelPreviewModelData) {
 		OptModel_AdjustOptimizedPolyObjectPointers(g_modelPreviewModelData);
 	}
+	/* The second argument is an axis, not a slot: MODEL_PREVIEW_SLOT passes 0, the largest extent. */
 	g_modelPreviewBoundsExtent =
 		ModelPreview_ComputeOptBoundsExtent(g_modelPreviewModelData, MODEL_PREVIEW_SLOT);
 	g_modelPreviewScale = g_modelPreviewTargetBoundsExtent / g_modelPreviewBoundsExtent;
@@ -691,6 +692,8 @@ void ModelPreview_AccumulateOptNodeBounds(OptNode* node, OptimizedPolyObject* ob
 	}
 }
 
+/* Returns the extent (max - min) of the object's vertices and the origin on one axis: axis 1 is X,
+ * 2 is Y and 3 is Z, while axis 0 returns the largest of the three extents. */
 // FUNCTION: XVT 0x42AE30
 double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject* object, int axis) {
 	int rootNodeIndex;
@@ -706,6 +709,7 @@ double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject* object, int axis
 		ModelPreview_AccumulateOptNodeBounds(object->rootNodes[rootNodeIndex], object);
 	}
 
+	/* From here the Max globals hold the extents (max - min), not the maxima. */
 	g_modelPreviewBoundsMaxX -= g_modelPreviewBoundsMinX;
 	g_modelPreviewBoundsMaxY -= g_modelPreviewBoundsMinY;
 	g_modelPreviewBoundsMaxZ -= g_modelPreviewBoundsMinZ;

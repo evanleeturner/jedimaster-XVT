@@ -169,9 +169,9 @@ unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId) {
 	if (g_netSession.reliablePeerSlotCount == slot && slot < 40) {
 		g_netSession.reliablePeerSlots[slot].directPlayId = directPlayId;
 		initializeSlot = slot;
-		g_netSession.reliablePeerSlots[initializeSlot].prevRecvSeqDefault = 127;
-		g_netSession.reliablePeerSlots[initializeSlot].prevRecvSeqChannelA = 127;
-		g_netSession.reliablePeerSlots[initializeSlot].prevRecvSeqChannelB = 127;
+		g_netSession.reliablePeerSlots[initializeSlot].lastDeliveredSeqDefault = 127;
+		g_netSession.reliablePeerSlots[initializeSlot].lastDeliveredSeqChannelA = 127;
+		g_netSession.reliablePeerSlots[initializeSlot].lastDeliveredSeqChannelB = 127;
 		g_netSession.reliablePeerSlots[initializeSlot].recvSeqDefault = 127;
 		g_netSession.reliablePeerSlots[initializeSlot].recvSeqChannelA = 127;
 		g_netSession.reliablePeerSlots[initializeSlot].recvSeqChannelB = 127;
@@ -196,11 +196,11 @@ void NetReliable_ResetRecvQueueState(void) {
 	g_netRecvQueueCount = 0;
 
 	for (slot = 0; slot < g_netSession.reliablePeerSlotCount; ++slot) {
-		g_netSession.reliablePeerSlots[slot].prevRecvSeqDefault =
+		g_netSession.reliablePeerSlots[slot].lastDeliveredSeqDefault =
 			g_netSession.reliablePeerSlots[slot].recvSeqDefault;
-		g_netSession.reliablePeerSlots[slot].prevRecvSeqChannelA =
+		g_netSession.reliablePeerSlots[slot].lastDeliveredSeqChannelA =
 			g_netSession.reliablePeerSlots[slot].recvSeqChannelA;
-		g_netSession.reliablePeerSlots[slot].prevRecvSeqChannelB =
+		g_netSession.reliablePeerSlots[slot].lastDeliveredSeqChannelB =
 			g_netSession.reliablePeerSlots[slot].recvSeqChannelB;
 		g_netSession.reliablePeerSlots[slot].lastActivityMs = timeGetTime();
 	}
@@ -267,9 +267,9 @@ int NetReliable_KeepOnlyHostReceivedPackets(void) {
 		peer = g_netSession.reliablePeerSlots;
 		do {
 			if (peer->directPlayId != (DPID)g_netSession.hostDplayId) {
-				peer->prevRecvSeqDefault = peer->recvSeqDefault;
-				peer->prevRecvSeqChannelA = peer->recvSeqChannelA;
-				peer->prevRecvSeqChannelB = peer->recvSeqChannelB;
+				peer->lastDeliveredSeqDefault = peer->recvSeqDefault;
+				peer->lastDeliveredSeqChannelA = peer->recvSeqChannelA;
+				peer->lastDeliveredSeqChannelB = peer->recvSeqChannelB;
 				peer->lastActivityMs = timeGetTime();
 			}
 			++peer;

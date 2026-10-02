@@ -611,7 +611,7 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx) {
 			flightGroupIdx = playerObject->flightGroupIdx;
 			Mission_RecordCraftOutcome((uint16_t)objectIdx, (uint16_t)flightGroupIdx,
 									   FLIGHT_GROUP_OUTCOME_LEFT_REGION);
-			if (g_missionHeader.missionType != MISSION_TYPE_QUICK_START &&
+			if (g_missionHeader.missionType != MISSION_TYPE_MELEE &&
 				g_flightMissionState.playerFlightGroupWaveMode == PLAYER_WAVE_MODE_PRESERVE &&
 				g_missionFlightGroups[flightGroupIdx].fg.numberOfWaves != UNLIMITED_WAVES) {
 				ModelIndex modelIndex;

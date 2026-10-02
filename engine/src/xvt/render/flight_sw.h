@@ -145,6 +145,8 @@ extern int16_t g_flightSwRotSpriteClipMaxX;
 extern FlightSwRotSpriteCoeffState* g_flightSwRotSpriteCoeffs;
 extern int g_flightSwRotSpriteSpanRunCountdown;
 
+/* SpritePayload describes the same 44-byte image header as TexLevelImageHeader, under different field
+ * names; some code reads one image through both. */
 typedef struct SpritePayload {
 	uint32_t payloadSize;
 	uint32_t colorTable24Offset;

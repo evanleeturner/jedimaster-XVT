@@ -101,7 +101,8 @@ uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx, uint16_t staticO
 		sourceToStaticDistance)
 		return 0;
 
-	if (hitRadius >= LARGE_MODEL_EXTENT || g_objectTable[staticObjIdx].objectType == MODEL_058_CONTAINER_I)
+	if (hitRadius >= LARGE_MODEL_EXTENT ||
+		g_objectTable[staticObjIdx].objectType == CRAFT_SPECIES_CONTAINER_CLASS_H)
 		return (uint16_t)collide_CheckSweptModelCollision(sourceObjIdx, staticObjIdx);
 	hitRadius >>= 2;
 	return (uint16_t)collide_checkboxcollision(hitRadius + (hitRadius >> 1));
@@ -113,7 +114,6 @@ void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx) {
 		EFFECT_TYPE_DEFAULT = 0x81,
 		EFFECT_TYPE_LASER_IMPACT = 0x83,
 		EFFECT_TYPE_ION_IMPACT = 0x84,
-		STATIC_LAUNCHER_OBJECT_TYPE = 77,
 		TEMPORARY_PROJECTILE_OBJECT_TYPE = PROJECTILE_OBJECT_TYPE_REBEL_LASER,
 		RANDOM_IMPACT_SOUND_COUNT = 4,
 		EXPLOSION_FAMILY = 5,
@@ -147,7 +147,7 @@ void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx) {
 			++g_missionFgStats[g_objectTable[victimIndex].flightGroupIdx]
 				  .outcomeCount[FLIGHT_GROUP_OUTCOME_DESTROYED];
 			effectType = EFFECT_TYPE_DEFAULT;
-			if (g_objectTable[victimIndex].objectType == STATIC_LAUNCHER_OBJECT_TYPE) {
+			if (g_objectTable[victimIndex].objectType == CRAFT_SPECIES_MINE_TYPE_C) {
 				laser_createprojectilefromstatic(victimObjIdx,
 												 g_objectTable[sourceObjIdx].mobj->sourceObjIdx);
 			}

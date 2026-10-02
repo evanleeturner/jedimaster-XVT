@@ -95,8 +95,8 @@ struct AiFlightState {
 	uint8_t boardedAccountingDone;
 	uint8_t timesBoarded;
 	uint8_t dockingAccountingDone;
-	uint8_t objSignatureCount;
-	uint16_t objSignatures[10];
+	uint8_t dockedTargetCount;
+	uint16_t dockedTargetSignatures[10];
 	int16_t maxSpeedCache;
 	int16_t motionScale;
 	uint8_t climbState;

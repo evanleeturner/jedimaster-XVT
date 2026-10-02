@@ -726,17 +726,17 @@ void FlightView_Render(void) {
 // FUNCTION: XVT 0x44FE40
 int FlightView_ComputeObjectViewPosition(uint16_t objectIdx) {
 	ObjectRecord* object;
-	int savedTargetX;
-	int savedTargetY;
-	int savedTargetZ;
+	int cameraWorldX;
+	int cameraWorldY;
+	int cameraWorldZ;
 
 	object = &g_objectTable[objectIdx];
-	savedTargetX = g_players[g_localPlayer].viewState.cameraWorldX;
-	savedTargetY = g_players[g_localPlayer].viewState.cameraWorldY;
-	g_camRelWorldX = object->world_x - savedTargetX;
-	savedTargetZ = g_players[g_localPlayer].viewState.cameraWorldZ;
-	g_camRelWorldY = object->world_y - savedTargetY;
-	g_camRelWorldZ = object->world_z - savedTargetZ;
+	cameraWorldX = g_players[g_localPlayer].viewState.cameraWorldX;
+	cameraWorldY = g_players[g_localPlayer].viewState.cameraWorldY;
+	g_camRelWorldX = object->world_x - cameraWorldX;
+	cameraWorldZ = g_players[g_localPlayer].viewState.cameraWorldZ;
+	g_camRelWorldY = object->world_y - cameraWorldY;
+	g_camRelWorldZ = object->world_z - cameraWorldZ;
 	g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 	g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
@@ -787,18 +787,18 @@ int FlightView_ProjectAndTestSphereVisible(int objectIdx, unsigned int sphereRad
 
 // FUNCTION: XVT 0x450020
 int FlightView_CullWorldSphereToViewport(int worldX, int worldY, int worldZ, int sphereRadius) {
-	int savedTargetY;
-	int savedTargetZ;
+	int cameraWorldY;
+	int cameraWorldZ;
 	int depthWithRadius;
 	int transformedX;
 	int transformedY;
 	int absoluteY;
 
-	savedTargetY = g_players[g_localPlayer].viewState.cameraWorldY;
+	cameraWorldY = g_players[g_localPlayer].viewState.cameraWorldY;
 	g_camRelWorldX = worldX - g_players[g_localPlayer].viewState.cameraWorldX;
-	savedTargetZ = g_players[g_localPlayer].viewState.cameraWorldZ;
-	g_camRelWorldY = worldY - savedTargetY;
-	g_camRelWorldZ = worldZ - savedTargetZ;
+	cameraWorldZ = g_players[g_localPlayer].viewState.cameraWorldZ;
+	g_camRelWorldY = worldY - cameraWorldY;
+	g_camRelWorldZ = worldZ - cameraWorldZ;
 	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
 	depthWithRadius = g_viewSpaceDepth + sphereRadius;
 	if (depthWithRadius < 0) {

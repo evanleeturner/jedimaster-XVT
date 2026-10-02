@@ -559,8 +559,8 @@ void Flight_UpdateTimers(void) {
 	if ((unsigned int)g_flightMissionState.maxConnectedPlayerCountThisMission > 1 &&
 		g_flightMissionState.teamVictoryTimeLimitMinutes != 0 &&
 		g_flightMissionState.teamVictoryTimeLimitStarted == 0) {
-		if ((g_missionHeader.missionType == MISSION_TYPE_QUICK_START ||
-			 g_missionHeader.missionType == MISSION_TYPE_SKIRMISH) &&
+		if ((g_missionHeader.missionType == MISSION_TYPE_MELEE ||
+			 g_missionHeader.missionType == MISSION_TYPE_COMBAT) &&
 			(g_missionCountdownClock.minutes > g_flightMissionState.teamVictoryTimeLimitMinutes ||
 			 (g_missionCountdownClock.minutes == 0 && g_missionCountdownClock.seconds == 0))) {
 			uint8_t teamActive[10];
@@ -574,7 +574,7 @@ void Flight_UpdateTimers(void) {
 				if (g_players[playerIndex].participationState == 1)
 					teamActive[(uint16_t)g_players[playerIndex].team] = activeFlag;
 			}
-			if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START) {
+			if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
 				for (objectIndex = g_activeRegionObjectSlotStart;
 					 objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 					if (g_objectTable[objectIndex].objectType != 0 &&
@@ -590,7 +590,7 @@ void Flight_UpdateTimers(void) {
 					activeTeam = index;
 				}
 			}
-			if (activeTeamCount == 1 && (g_missionHeader.missionType == MISSION_TYPE_QUICK_START ||
+			if (activeTeamCount == 1 && (g_missionHeader.missionType == MISSION_TYPE_MELEE ||
 										 g_flightMissionState.runtime.teamGoalStatus[activeTeam][0] == 1 ||
 										 g_flightMissionState.runtime.teamGoalStatus[activeTeam][0] == 2 ||
 										 g_flightMissionState.runtime.teamGoalStatus[activeTeam][1] == 1)) {
@@ -602,7 +602,7 @@ void Flight_UpdateTimers(void) {
 			}
 		}
 		if (g_flightMissionState.teamVictoryTimeLimitStarted == 0 &&
-			g_missionHeader.missionType == MISSION_TYPE_SKIRMISH &&
+			g_missionHeader.missionType == MISSION_TYPE_COMBAT &&
 			(g_flightMissionState.runtime.teamGoalStatus[0][0] == 1 ||
 			 g_flightMissionState.runtime.teamGoalStatus[1][0] == 1)) {
 			g_missionCountdownClock.seconds = 0;
@@ -679,8 +679,8 @@ void Flight_UpdateDynamicMusicState(void) {
 		primaryGoalStatus = g_flightMissionState.runtime.teamGoalStatus[playerTeam][0];
 		if (primaryGoalStatus == 2 || g_flightMissionState.runtime.teamGoalStatus[playerTeam][1] == 1) {
 			trackNumber = 7;
-		} else if (primaryGoalStatus == 1 && g_missionHeader.missionType != MISSION_TYPE_QUICK_START) {
-			if (g_missionHeader.missionType == MISSION_TYPE_SKIRMISH) {
+		} else if (primaryGoalStatus == 1 && g_missionHeader.missionType != MISSION_TYPE_MELEE) {
+			if (g_missionHeader.missionType == MISSION_TYPE_COMBAT) {
 				trackNumber = g_players[g_localPlayer].iff == 1 ? 6 : 4;
 			} else {
 				trackNumber = g_players[g_localPlayer].iff == 1 ? 5 : 3;
@@ -1786,6 +1786,7 @@ void Flight_StepSimToTime(int targetGameTime) {
 		if ((int)(uint16_t)g_elapsedTicks > g_netUpdateIntervalTicks)
 			g_elapsedTicks = (uint16_t)g_netUpdateIntervalTicks;
 		g_simStepsPerSecond = (uint16_t)(SIMULATION_TICKS_PER_SECOND / (int)(uint16_t)g_elapsedTicks);
+		/* MINIMUM_SIM_STEP_TICKS is reused below as a rate: at least one step per second. */
 		if (g_simStepsPerSecond == 0)
 			g_simStepsPerSecond = MINIMUM_SIM_STEP_TICKS;
 		g_gameTime = gameTime;
@@ -1866,12 +1867,12 @@ void Flight_AdvanceOneStep(int targetGameTime) {
 			uint8_t participationState;
 
 			if (!((suppressSideEffects != 0 && g_flightPlayerCount != 1) ||
-				  frame->timestamp > g_players[playerIdx].lockstepTimestamp || frame->applied != 0)) {
+				  frame->timestamp > g_players[playerIdx].lockstepTimestamp || frame->awaitingRelay != 0)) {
 				FlightSync_RemoveInputHistoryFrame(playerIdx, frame);
 				--frame;
 				continue;
 			}
-			if (frame->timestamp > targetGameTime || (suppressSideEffects == 0 && frame->unconfirmed != 0))
+			if (frame->timestamp > targetGameTime || (suppressSideEffects == 0 && frame->inputSource != 0))
 				continue;
 			if (g_players[playerIdx].lockstepTimestamp >= frame->timestamp)
 				continue;
@@ -2163,6 +2164,8 @@ void Flight_MainLoop(int unused) {
 	FlightDisplay_Flip();
 	FlightRender_ConfigureCallbacksForResolution(3);
 	FeDiskIo_ReadAllBytesOrFatal(g_flightPaletteResourceFileName, resourceScratch);
+	/* Inside this loop MISSION_EXTENSION_FIRST, _SECOND and _THIRD are reused as the red, green and blue
+	 * offsets in a palette triplet. */
 	for (paletteByteOffset = 0; paletteByteOffset < PALETTE_HALF_BYTES;
 		 paletteByteOffset += sizeof(RgbTriplet)) {
 		uint8_t channel;
@@ -4486,7 +4489,7 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 									msg_emitInFlightMessage(IFMSG_380_ARG_HAS_QUIT_THE_MISSION,
 															g_localPlayer);
 								}
-								if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START &&
+								if (g_missionHeader.missionType == MISSION_TYPE_MELEE &&
 									g_pilotData.numHumanPlayersLastMission == 1 &&
 									g_flightMissionState.runtime
 											.teamGoalStatus[(uint16_t)g_players[playerIdx].team][0] != 1) {
@@ -4514,7 +4517,7 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 								(uint16_t)(mothership == (uint16_t)departureObjectIndex
 											   ? FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT
 											   : FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT));
-							if (g_missionHeader.missionType != MISSION_TYPE_QUICK_START &&
+							if (g_missionHeader.missionType != MISSION_TYPE_MELEE &&
 								g_flightMissionState.playerFlightGroupWaveMode == 1 &&
 								g_missionFlightGroups[flightGroupIdx].fg.numberOfWaves != 99)
 								g_players[playerIdx].missionStats.missionScore +=
@@ -4893,7 +4896,7 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 					if (g_curCraft->aiFlight.missionAbortedFlag == 0) {
 						++g_missionFgStats[target->flightGroupIdx].outcomeCount[FLIGHT_GROUP_OUTCOME_ABORTED];
 						if (g_missionFlightGroups[target->flightGroupIdx].fg.specialCargoCraft ==
-							g_curCraft->waveNumber)
+							g_curCraft->craftOrdinal)
 							g_missionFgStats[target->flightGroupIdx]
 								.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_ABORTED] = 1;
 					}
@@ -5335,8 +5338,7 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 						targetIndex = (int16_t)g_players[playerIdx].objectIndex;
 					Player_UnbindFromCurrentCraft(playerIdx, 0,
 												  g_currentActionKey != FLIGHT_KEY_M &&
-													  g_missionHeader.missionType !=
-														  MISSION_TYPE_QUICK_START);
+													  g_missionHeader.missionType != MISSION_TYPE_MELEE);
 					g_players[playerIdx].mapCameraState = UINT8_MAX;
 					Hud_SetHudViewState(HUD_VIEW_CRAFT_LIST, playerIdx);
 					g_players[playerIdx].viewState.playerInputBlocked = 1;
@@ -5418,7 +5420,7 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 			if (g_players[playerIdx].participationState == 1) {
 				fsfx_PlaySound(FLIGHT_SOUND_CONFIRM_BEEP, -1, playerIdx);
 				fsfx_PlaySound(FLIGHT_SOUND_CONFIRM_BEEP, -1, playerIdx);
-				if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START &&
+				if (g_missionHeader.missionType == MISSION_TYPE_MELEE &&
 					g_pilotData.numHumanPlayersLastMission == 1 &&
 					g_flightMissionState.runtime.teamGoalStatus[(uint16_t)g_players[playerIdx].team][0] !=
 						1) {
@@ -5575,8 +5577,8 @@ void Flight_ProcessPlayerActions(int playerIdx) {
 				fsfx_PlaySound(FLIGHT_SOUND_TARGET_SELECTED, -1, playerIdx);
 			}
 			return;
-		case FLIGHT_KEY_MFD_CYCLE_1:
-		case FLIGHT_KEY_MFD_CYCLE_2: {
+		case FLIGHT_KEY_LEFT:
+		case FLIGHT_KEY_RIGHT: {
 			int16_t page;
 			int16_t pageFound = 0;
 			if (playerIdx != g_localPlayer || g_flightSimSideEffectsSuppressed != 0)

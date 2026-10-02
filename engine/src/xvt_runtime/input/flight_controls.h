@@ -37,9 +37,9 @@ void XvtFlightControls_ApplyThrottle(unsigned player, const FlightInputFrameReco
  * releases, clears the action key and drops the throttle baseline. */
 void XvtFlightControls_Recover(void);
 /* Reads local input through FlightInput_Read, which runs ReadLocal in the modern build, and records it:
- * the key's low byte, each axis made even, fire and target/roll as bits 1 and 2 of keyMods, and the
- * throttle. With g_flightMouseEnabled, a nonzero classic mouse delta replaces yaw (times 128/120) and pitch
- * (times 64/50), clamped to -128..126. */
+ * the key's low byte, each axis made even, fire and target/roll as values 1 and 2 (bits 0 and 1) of keyMods,
+ * and the throttle. With g_flightMouseEnabled, a nonzero classic mouse delta replaces yaw (times 128/120) and
+ * pitch (times 64/50), clamped to -128..126. */
 void XvtFlightControls_SampleRecorded(FlightInputFrameRecord* input);
 /* Packs three axes into XVT_FLIGHT_AXIS_BYTES bytes: the low bit of the yaw byte carries fire and of
  * the pitch byte the target/roll modifier. */

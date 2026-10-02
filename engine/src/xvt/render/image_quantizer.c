@@ -33,6 +33,8 @@ typedef struct ImageQuantizerImageLayout {
 	uint32_t compressionType;
 	uint32_t width;
 	uint32_t height;
+	/* Not all reserved: the palette pointer at offset 0x104C and the palette color count at 0x1054 sit in
+	 * these bytes, and this file reads and writes them by raw offset. */
 	uint8_t reserved1038[0x4E];
 	ImageQuantizerPixelRun* pixels;
 	uint8_t reservedAfterPixels[4];
@@ -1190,6 +1192,7 @@ void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t* encodedImage, co
 					runLengthMinusOne = g_flightSwRleRunLengthMaskByPackingMode[packingMode];
 					runLengthMinusOne &= command;
 				}
+				/* From here paletteIndex is a byte offset into paletteRgba, four bytes per entry. */
 				paletteIndex *= 4;
 				do {
 					sample->red = paletteRgba[paletteIndex];

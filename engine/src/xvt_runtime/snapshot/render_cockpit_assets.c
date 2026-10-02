@@ -207,7 +207,7 @@ void XvtRenderAssets_RegisterIcons(const char* path, uint8_t** frames, uint16_t 
 void XvtRenderAssets_RegisterFlightFonts(void) {
 	XvtRenderAssets_RegisterImage(g_flightFontMicroSw, g_flightMicroFontHandle, "MICRO32.FNT",
 								  XVT_IMAGE_MICRO_FNT, 0, 224, 0, 4, 0);
-	XvtRenderAssets_RegisterImage(g_flightFontSmallSw, g_flightTinyFontHandle, "MICRO48.FNT",
+	XvtRenderAssets_RegisterImage(g_flightFontSmallSw, g_flightSmallFontHandle, "MICRO48.FNT",
 								  XVT_IMAGE_MICRO_FNT, 0, 224, 0, 4, 0);
 	if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240)
 		XvtRenderAssets_RegisterImage(g_flightFontMediumSw, g_flightMediumFontHandle, "MICRO64.FNT",

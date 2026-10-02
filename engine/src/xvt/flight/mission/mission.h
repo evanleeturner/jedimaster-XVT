@@ -174,11 +174,11 @@ extern Team g_missionTeams[10];
 typedef int8_t MissionType;
 
 enum {
-	MISSION_TYPE_JUNKYARD = 0x0,
+	MISSION_TYPE_TRAINING = 0x0,
 	MISSION_TYPE_SIMULATOR_1 = 0x1,
-	MISSION_TYPE_QUICK_START = 0x2,
+	MISSION_TYPE_MELEE = 0x2,
 	MISSION_TYPE_SIMULATOR_2 = 0x3,
-	MISSION_TYPE_SKIRMISH = 0x4,
+	MISSION_TYPE_COMBAT = 0x4,
 };
 
 #pragma pack(push, 1)
@@ -228,7 +228,7 @@ struct MissionMessage {
 	MissionTriggerPair triggerPairs[2]; ///< Two trigger pairs evaluated before the message becomes active.
 	char voice[16]; ///< Voice resource name stored by the mission file format; not consumed by XVT's runtime
 					///< message path.
-	uint8_t rawDelay;                   ///< Raw per-message delay copied to the runtime countdown.
+	uint8_t delay5s;                    ///< Raw per-message delay copied to the runtime countdown.
 	uint8_t triggerPair1OrTriggerPair2; ///< Value 1 combines the trigger-pair results with OR; other values
 										///< use AND.
 };
@@ -394,7 +394,7 @@ struct EFGStruct {
 	uint8_t special_flag;
 	CraftSpecies species; ///< CraftSpecies stored in the legacy EFG mission record.
 	uint8_t count;
-	uint8_t version;
+	uint8_t status;
 	uint8_t warhead;
 	uint8_t beam;
 	uint8_t side;
@@ -489,7 +489,7 @@ struct TieRadioMessage {
 	char message[64];
 	ECondStruct conditions[2];
 	char voice[16];
-	uint8_t rawDelay;
+	uint8_t delay5s;
 	uint8_t condition1OrCondition2;
 };
 
@@ -520,7 +520,7 @@ typedef char xvt_size_XvtV10MissionHeader[(sizeof(XvtV10MissionHeader) == 130) ?
 
 uint16_t Mission_GetSpecialCargoInspectedCount(unsigned int flightGroupIdx, uint16_t specialCargoCraft);
 void Mission_UpdateLogic(void);
-int Mission_EvaluateTriggerPair(const MissionTriggerPair* triggerPair, int16_t flightGroupIdx);
+int Mission_EvaluateTriggerPair(const MissionTriggerPair* triggerPair, int16_t includeDepartedAsDestroyed);
 int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType, uint16_t variable,
 								  int16_t amountType, int16_t includeDepartedAsDestroyed,
 								  uint16_t teamFilter);

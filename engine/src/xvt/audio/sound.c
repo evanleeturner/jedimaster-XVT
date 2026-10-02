@@ -447,6 +447,7 @@ int Sound_GetPrimaryBufferVolume(void) {
 		return 0;
 	if (g_soundPrimaryBuffer->lpVtbl->GetVolume(g_soundPrimaryBuffer, &volumeMillibels) != 0)
 		return 0;
+	/* From here volumeMillibels holds the game's volume scale: 127 at full volume, 0 at -20 dB. */
 	volumeMillibels = 127 * volumeMillibels / 2000 + 127;
 	return volumeMillibels;
 }
@@ -530,6 +531,7 @@ int Sound_GetLatestInstanceVolume(const char* name) {
 	if (g_activeSoundInstances[newestIndex].buffer->lpVtbl->GetVolume(
 			g_activeSoundInstances[newestIndex].buffer, &volumeMillibels) != 0)
 		return 0;
+	/* From here volumeMillibels holds the game's volume scale: 127 at full volume, 0 at -20 dB. */
 	volumeMillibels = 127 * volumeMillibels / 2000 + 127;
 	return volumeMillibels;
 }
@@ -614,6 +616,7 @@ int Sound_GetLatestInstancePan(const char* name) {
 	if (g_activeSoundInstances[newestIndex].buffer->lpVtbl->GetPan(g_activeSoundInstances[newestIndex].buffer,
 																   &panMillibels) != 0)
 		return 0;
+	/* From here panMillibels holds the game's pan: 0 full left, 63 centered, 126 full right. */
 	panMillibels = 63 * panMillibels / 10000 + 63;
 	return panMillibels;
 }
@@ -837,12 +840,14 @@ int Sound_FindEffectByName(const SoundEffectDef* records, int lastIndex, const c
 	}
 }
 
+/* paramCode selects what to set: 0x500 the effect's priority, 0x600 the latest instance's volume,
+ * 0x700 its pan and 0x777 its frequency. Any other code, or a sound id outside 4..837, returns 0. */
 // FUNCTION: XVT 0x4A9180
-int Sound_SetParam(int flightSoundId, int param, int value) {
+int Sound_SetParam(int flightSoundId, int paramCode, int value) {
 	if (flightSoundId < 4 || flightSoundId > 837) {
 		return 0;
 	}
-	switch (param) {
+	switch (paramCode) {
 		case 0x500:
 			return Sound_SetEffectCurrentPriority(g_fsfxSfxNameTable[flightSoundId], value);
 		case 0x600:
@@ -856,12 +861,14 @@ int Sound_SetParam(int flightSoundId, int param, int value) {
 	}
 }
 
+/* paramCode selects what to read: 0x100 the number of playing instances, 0x500 the effect's
+ * priority. Any other code, or a sound id outside 4..837, returns 0. */
 // FUNCTION: XVT 0x4A9300
-int Sound_GetParam(int flightSoundId, int param) {
+int Sound_GetParam(int flightSoundId, int paramCode) {
 	if (flightSoundId < 4 || flightSoundId > 837) {
 		return 0;
 	}
-	switch (param) {
+	switch (paramCode) {
 		case 0x100:
 			return Sound_CountPlayingInstances(g_fsfxSfxNameTable[flightSoundId]);
 		case 0x500:

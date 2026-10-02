@@ -292,8 +292,7 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 
 			if (writePtr != NULL) {
 				entryIndex = 0;
-				while (entryIndex <
-					   (int)(sizeof(g_strGoalFamilyNames0To6) / sizeof(g_strGoalFamilyNames0To6[0]))) {
+				while (entryIndex < (int)(sizeof(g_strGoalFamilyNames) / sizeof(g_strGoalFamilyNames[0]))) {
 					if (File_Gets(line, sizeof(line), stream) == NULL) {
 						writePtr = NULL;
 						break;
@@ -307,7 +306,7 @@ void StringTable_LoadGameStrings(int loadFromDisk) {
 						line[--lineLength] = '\0';
 					}
 					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalFamilyNames0To6[entryIndex] = writePtr;
+					g_strGoalFamilyNames[entryIndex] = writePtr;
 					writePtr += lineLength + 1;
 					++entryIndex;
 				}

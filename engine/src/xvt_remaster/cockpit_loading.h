@@ -9,8 +9,8 @@
  * doing nothing more for invalid cockpit resources, or when nothing changed since the last
  * preparation. Otherwise prepares everything in one command buffer, submits it, commits the HUD assets
  * and images, marks the cockpit resources prepared for their generation and logs the time at DEBUG.
- * Returns 0, aborting the pending HUD and image assets, when no command buffer can be acquired, a
- * preparation fails (the buffer cancelled), or submission fails. */
+ * Returns 0 without aborting when no command buffer can be acquired; returns 0, aborting the pending
+ * HUD and image assets, when a preparation fails (the buffer cancelled) or submission fails. */
 int XvtCockpitLoading_Prepare(const XvtRenderSnapshot* snapshot, int width, int height);
 /* Forgets what was prepared, so the next Prepare does it all again. */
 void XvtCockpitLoading_Reset(void);

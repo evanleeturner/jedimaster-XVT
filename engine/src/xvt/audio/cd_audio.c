@@ -68,6 +68,8 @@ int CDAudio_Initialize(void) {
 	}
 
 	g_frontState.cdAudioTrackCount = (int)statusParameters.dwReturn;
+	/* From here deviceCount is no longer a device count: it is the 1-based track number of the loop
+	 * that caches each track's length. */
 	deviceCount = 1;
 	if (g_frontState.cdAudioTrackCount < deviceCount) {
 		return 1;

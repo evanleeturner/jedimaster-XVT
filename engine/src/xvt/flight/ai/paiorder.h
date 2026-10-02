@@ -15,8 +15,8 @@ struct AiOrderProgress {
 
 typedef int16_t (*PaiOrderFunc)(void);
 
-extern uint8_t g_aiUnderAttackFrontManeuverChoices[4];
-extern uint8_t g_aiUnderAttackSideRearManeuverChoices[8];
+extern uint8_t g_aiUnderAttackFrontSideManeuverChoices[4];
+extern uint8_t g_aiUnderAttackRearManeuverChoices[8];
 extern int g_aiWarheadThreatRangeBySkill[4];
 extern PaiOrderFunc g_orderTable[48];
 

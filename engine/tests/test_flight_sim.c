@@ -53,8 +53,8 @@ static FlightInputFrameRecord Controls(int8_t axis) {
 static void AddFrame(unsigned player, int tick, int valid, int applied, int8_t axis) {
 	InputFrame* frame = &g_inputHistory[player][g_inputFrameCount[player]++];
 	frame->timestamp = tick;
-	frame->unconfirmed = valid;
-	frame->applied = applied;
+	frame->inputSource = valid;
+	frame->awaitingRelay = applied;
 	frame->input = Controls(axis);
 }
 
@@ -127,8 +127,8 @@ static void CheckInsert(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_Insert(1, 10, &input, &out), XVT_INPUT_INSERTED);
 	XVT_ASSERT_TRUE(out == &g_inputHistory[1][0]);
 	XVT_ASSERT_INT_EQ(out->timestamp, 10);
-	XVT_ASSERT_INT_EQ(out->unconfirmed, XVT_INPUT_REAL);
-	XVT_ASSERT_INT_EQ(out->applied, 0);
+	XVT_ASSERT_INT_EQ(out->inputSource, XVT_INPUT_REAL);
+	XVT_ASSERT_INT_EQ(out->awaitingRelay, 0);
 	XVT_ASSERT_TRUE(SameInput(&out->input, &input));
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_Insert(1, 4, &input, &out), XVT_INPUT_INSERTED);
 	XVT_ASSERT_TRUE(out == &g_inputHistory[1][0]);
@@ -144,21 +144,21 @@ static void CheckInsert(void) {
 	XVT_ASSERT_TRUE(SameInput(&g_inputHistory[1][1].input, &other));
 
 	/* So is a predicted unapplied frame, which becomes real. */
-	g_inputHistory[1][1].unconfirmed = XVT_INPUT_PREDICTED;
+	g_inputHistory[1][1].inputSource = XVT_INPUT_PREDICTED;
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_Insert(1, 8, &input, &out), XVT_INPUT_INSERTED);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].unconfirmed, XVT_INPUT_REAL);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].inputSource, XVT_INPUT_REAL);
 	XVT_ASSERT_TRUE(SameInput(&g_inputHistory[1][1].input, &input));
 
 	/* An authoritative frame, or an applied one, at the tick is a duplicate and stays as it was. */
-	g_inputHistory[1][1].unconfirmed = XVT_INPUT_AUTHORITATIVE;
+	g_inputHistory[1][1].inputSource = XVT_INPUT_AUTHORITATIVE;
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_Insert(1, 8, &other, &out), XVT_INPUT_DUPLICATE);
 	XVT_ASSERT_TRUE(out == NULL);
 	XVT_ASSERT_TRUE(SameInput(&g_inputHistory[1][1].input, &input));
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].unconfirmed, XVT_INPUT_AUTHORITATIVE);
-	g_inputHistory[1][2].applied = 1;
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].inputSource, XVT_INPUT_AUTHORITATIVE);
+	g_inputHistory[1][2].awaitingRelay = 1;
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_Insert(1, 10, &other, &out), XVT_INPUT_DUPLICATE);
 	XVT_ASSERT_TRUE(SameInput(&g_inputHistory[1][2].input, &input));
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][2].applied, 1);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][2].awaitingRelay, 1);
 	AssertTicks(1, ticks, 3);
 }
 
@@ -183,19 +183,19 @@ static void CheckInsertReal(void) {
 	/* New frames: authoritative ones are unapplied; real ones are unapplied on a client... */
 	World();
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, 4, &input, 1), XVT_INPUT_INSERTED);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].unconfirmed, XVT_INPUT_AUTHORITATIVE);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].applied, 0);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].inputSource, XVT_INPUT_AUTHORITATIVE);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].awaitingRelay, 0);
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, 6, &input, 0), XVT_INPUT_INSERTED);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].unconfirmed, XVT_INPUT_REAL);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].applied, 0);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].inputSource, XVT_INPUT_REAL);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].awaitingRelay, 0);
 	/* ...and applied on the host. */
 	g_netSession.localIsHost = 1;
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, 8, &input, 0), XVT_INPUT_INSERTED);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][2].unconfirmed, XVT_INPUT_REAL);
-	XVT_ASSERT_TRUE(g_inputHistory[1][2].applied != 0);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][2].inputSource, XVT_INPUT_REAL);
+	XVT_ASSERT_TRUE(g_inputHistory[1][2].awaitingRelay != 0);
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, 10, &input, 1), XVT_INPUT_INSERTED);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][3].unconfirmed, XVT_INPUT_AUTHORITATIVE);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][3].applied, 0);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][3].inputSource, XVT_INPUT_AUTHORITATIVE);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][3].awaitingRelay, 0);
 
 	/* Otherwise Insert's status: an invalid tick, or a real duplicate left as it was. */
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, 0, &input, 1), XVT_INPUT_INVALID);
@@ -213,15 +213,15 @@ static void CheckAuthoritativeDuplicate(void) {
 	AddFrame(1, 8, XVT_INPUT_REAL, 1, 10);
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, 8, &input, 1), XVT_INPUT_DUPLICATE);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 1);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].unconfirmed, XVT_INPUT_AUTHORITATIVE);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].applied, 0);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].inputSource, XVT_INPUT_AUTHORITATIVE);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].awaitingRelay, 0);
 
 	/* One that differs is a conflict, and the frame stays as it was. */
 	World();
 	AddFrame(1, 8, XVT_INPUT_REAL, 1, 10);
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, 8, &other, 1), XVT_INPUT_CONFLICT);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].unconfirmed, XVT_INPUT_REAL);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].applied, 1);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].inputSource, XVT_INPUT_REAL);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].awaitingRelay, 1);
 	XVT_ASSERT_TRUE(SameInput(&g_inputHistory[1][0].input, &input));
 	/* Any field counts: the throttle alone. */
 	other = input;
@@ -240,7 +240,7 @@ static void CheckInsertRealFull(void) {
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, tick, &input, 0), XVT_INPUT_INSERTED);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], XVT_INPUT_HISTORY_CAPACITY - XVT_INPUT_HISTORY_CAPACITY / 3 + 1);
 	for (int i = 0; i < g_inputFrameCount[1]; ++i)
-		XVT_ASSERT_TRUE(g_inputHistory[1][i].unconfirmed != XVT_INPUT_PREDICTED);
+		XVT_ASSERT_TRUE(g_inputHistory[1][i].inputSource != XVT_INPUT_PREDICTED);
 	XVT_ASSERT_INT_EQ(g_inputHistory[1][g_inputFrameCount[1] - 1].timestamp, tick);
 
 	/* With nothing predicted to drop, it is still full. */
@@ -269,7 +269,7 @@ static void CheckRestoreCheckpoint(void) {
 	const int kept1[] = { 14, 16 };
 	AssertTicks(1, kept1, 2);
 	XVT_ASSERT_INT_EQ(g_inputHistory[1][0].input.axisX, 4);
-	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].unconfirmed, XVT_INPUT_AUTHORITATIVE);
+	XVT_ASSERT_INT_EQ(g_inputHistory[1][1].inputSource, XVT_INPUT_AUTHORITATIVE);
 	const int kept0[] = { 2 };
 	AssertTicks(0, kept0, 1);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[3], 0);

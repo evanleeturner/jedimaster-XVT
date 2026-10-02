@@ -21,6 +21,7 @@ static void SinCos(uint16_t angle, int64_t* sine, int64_t* cosine) {
 	if (phase >= (INT64_C(1) << 31))
 		phase -= INT64_C(1) << 32;
 	int sign = 1;
+	/* unit doubles as a quarter turn here: phase is a Q32 angle, one turn being 2^32. */
 	if (phase > unit) {
 		phase -= INT64_C(1) << 31;
 		sign = -1;

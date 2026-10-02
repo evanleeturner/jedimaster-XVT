@@ -106,6 +106,8 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace* face, int screen
 	intensity = 0.0f;
 
 	if (g_specularEnabled != 0) {
+		/* vector is reused here for the direction from the sample point to the eye, normalized by an
+		 * estimated length, for the specular half vector. */
 		vector.x = -sampleX;
 		componentX = vector.x;
 		vector.y = -sampleY;

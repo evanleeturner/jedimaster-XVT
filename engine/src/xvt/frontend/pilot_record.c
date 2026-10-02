@@ -215,7 +215,10 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 		}
 
 		FrontendDraw_RectAssign(&rect, 461, 117, 595, 320);
+		/* selectedIndex holds the clicked pilot row plus one here, or 0. */
 		selectedIndex = PilotRecord_DrawPilotList(&rect, g_pilotListScrollOffset);
+		/* accepted holds a name comparison in this block: nonzero means the clicked pilot is not the
+		 * current one. */
 		if (selectedIndex != 0) {
 #ifdef XVT_MODERN
 			accepted = strncasecmp(g_pilotData.name, g_pilotListDisplayNames[selectedIndex - 1],
@@ -283,6 +286,8 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 #ifdef XVT_MODERN
 	}
 #endif
+	/* selectedIndex says here whether the name entry was finished; it is then reused to say whether the
+	 * name matched an existing pilot, which only the modern build sets. */
 	if (selectedIndex != 0 && g_pilotRecordNameInput[0] != '\0') {
 		selectedIndex = 0;
 		g_pilotRecordPagesNeedRebuild = 1;
@@ -290,6 +295,8 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 			pilotIndex = 0;
 			node = g_pilotFileList->head;
 			if (g_pilotListDisplayNames != NULL && g_pilotFileList->count > 0) {
+				/* accepted holds a name comparison in this loop: 0 means the typed name matches this
+				 * pilot. */
 				for (; pilotIndex < g_pilotFileList->count; ++pilotIndex) {
 #ifdef XVT_MODERN
 					accepted = strcasecmp(g_pilotListDisplayNames[pilotIndex], g_pilotRecordNameInput);
@@ -354,6 +361,7 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter) {
 	}
 
 	FrontendDraw_RectAssign(&rect, 451, 358, 605, 378);
+	/* selectedIndex now holds the Delete Pilot button's result. */
 	selectedIndex = FrontendButton_HandleTextButton(&rect, FrontendString_Get(FRONTSTR_464_DELETE_PILOT), 15,
 													0xFFFF, 20, "buttonsound");
 	if ((selectedIndex != 0 || Keyboard_IsKeyDown(PILOT_DELETE_VIRTUAL_KEY)) && g_pilotData.name[0] != '\0') {
@@ -1555,6 +1563,8 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 		g_pilotRecordSingleplayerTrainingMissionCount = g_missionCount;
 		g_missionList = NULL;
 		for (listIndex = 0; listIndex < g_pilotRecordSingleplayerTrainingMissionCount; ++listIndex) {
+			/* awardId is a character position in these trim loops: each mission description is cut at its
+			 * last '('. */
 			awardId = (int)strlen(g_pilotRecordSingleplayerTrainingMissionList[listIndex].description) - 1;
 			for (; awardId > 0; --awardId) {
 				if (g_pilotRecordSingleplayerTrainingMissionList[listIndex].description[awardId] == '(') {
@@ -2359,6 +2369,7 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 				++row;
 				for (childListIndex = 0; childListIndex < g_pilotRecordSingleplayerTrainingMissionCount;
 					 ++childListIndex) {
+					/* awardId holds a mission id here, used to index the pilot's campaign mission records. */
 					awardId = g_pilotRecordSingleplayerTrainingMissionList[childListIndex].missionIdx;
 					if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 								.spCampaignMissions[awardId - 1]
@@ -3178,6 +3189,8 @@ int PilotRecord_DrawMissionAchievementsPage(void) {
 							g_pilotRecordSingleplayerCampaignMissionList[listIndex].missionIdx) {
 						if (g_pilotAchievementsScrollOffset <= row &&
 							row - g_pilotAchievementsScrollOffset < MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
+							/* This statement turns awardId from the mission id into that mission's award
+							 * level. */
 							awardId = g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 										  .spCampaignMissions[awardId - 1]
 										  .awardLevel;
@@ -4454,6 +4467,9 @@ int PilotRecord_LoadCampaignAwardSpriteTable(const char* fileName) {
 			spriteNameByteOffset += 32;
 		}
 
+		/* From here recordCountOrIndex counts the single-player sprite names read, so in the original
+		 * build the record loop stops at 15 records instead of the file's count; the modern build keeps
+		 * the count in recordCapacity. */
 		recordCountOrIndex = 0;
 		spriteNameByteOffset = 0;
 		while (spriteNameByteOffset < 15 * 32) {

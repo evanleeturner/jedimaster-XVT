@@ -127,6 +127,7 @@ void XvtRemaster_Frame(int32_t delta_us) {
 		} while (!assets_ready && snapshot->preview_count);
 	}
 	int resources_ready = assets_ready;
+	/* From here assets_ready also requires the flight world: it means the flight view may be prepared. */
 	assets_ready = assets_ready && world_needed;
 	if (assets_ready && !XvtRemasterFlight_Prepare(snapshot, XvtRenderSnapshot_Previous(), width, height)) {
 		Aeron_RequestFatalRendererError("flight view preparation");

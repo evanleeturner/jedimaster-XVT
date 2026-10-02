@@ -95,6 +95,8 @@ static uint16_t g_flightSwTangent91Pct[140] = {
 	48895, 49509, 50131, 50758, 51392, 52033, 52681, 53336, 53999, 54668, 55345, 56030, 56723, 57424,
 	58134, 58852, 59578, 60314, 61059, 61813, 62577, 63351, 64135, 64929, 65535, 0,     0,     0,
 };
+/* Only the first 8 entries of g_flightSwTangent100Pct are 100% values; from entry 8 on it repeats
+ * g_flightSwTangent91Pct, as the original data does. */
 // GLOBAL: XVT 0x51C130
 static uint16_t g_flightSwTangent100Pct[140] = {
 	0,     402,   804,   1206,  1608,  2011,  2414,  2817,  2927,  3293,  3660,  4027,  4395,  4762,
@@ -483,6 +485,8 @@ void FlightSw_BlitSpriteRleImpl8bpp(uint8_t* rleData, int x, int y, int transpar
 			} else {
 				if (token > 0xFB) {
 					if (token == 0xFC) {
+						/* In this two-color dither run, runLength holds the second color, written to every
+						 * other pixel. */
 						color = source[0];
 						if (isFaded != 0) {
 							if (fadeAmount > 0) {
@@ -4338,6 +4342,8 @@ void FlightSw_BlitSpriteRleImpl16bpp(uint8_t* rleData, int16_t x, int16_t y, int
 			} else {
 				if (token > 0xFB) {
 					if (token == 0xFC) {
+						/* In this two-color dither run, runLength holds the second color's palette index,
+						 * drawn on every other pixel. */
 						color = source[0];
 						if (isFaded != 0) {
 							if (fadeAmount > 0) {

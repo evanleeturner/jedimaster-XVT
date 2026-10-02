@@ -51,7 +51,7 @@ typedef struct FlightGroupGoal FlightGroupGoal;
 typedef struct FlightInputFrameRecord FlightInputFrameRecord;
 typedef struct FlightLaunchArgs FlightLaunchArgs;
 typedef struct FlightMissionState FlightMissionState;
-typedef struct FlightNetInputDeltaBatchPacket FlightNetInputDeltaBatchPacket;
+typedef struct FlightNetInputBatchPacket FlightNetInputBatchPacket;
 typedef struct FlightNetScratchPacket FlightNetScratchPacket;
 typedef struct FlightNetWorldStateChunkPacket FlightNetWorldStateChunkPacket;
 typedef struct FlightSwMarkerOffset FlightSwMarkerOffset;

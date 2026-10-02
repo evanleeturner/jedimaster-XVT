@@ -10,7 +10,7 @@ extern "C" {
  * with side effects suppressed, and renders once caught up. Confirmation and prediction share a
  * budget of XVT_SIM_STEPS_PER_ITERATION steps or XVT_SIM_BUDGET_US per host iteration. */
 
-/* Clears the frame and confirmation state, the step target, the ping score and the update
+/* Clears the frame and confirmation state, the step target, the packet drop score and the update
  * histogram; network125 starts with a predicted frame delta of XVT_NETWORK_STEP_TICKS. */
 void XvtFlightFrame_Begin(void);
 
@@ -36,8 +36,8 @@ void XvtFlightFrame_ResetReplay(void);
  * requests a resync on recovery; confirms pending messages, then predicts at most
  * XVT_PREDICTION_LEAD_TICKS past the last confirmed tick. It returns 1 on mission end, a lost
  * local player, a host abort, a client whose host timeout (reset by the network code) passes
- * 7080 input-clock ticks, or an input clock near INT32_MAX (announcing that the local player
- * left). */
+ * 7080 input-clock ticks, or an input clock near INT32_MAX (broadcasting a session abort, which
+ * ends the flight for every player). */
 int XvtFlightFrame_Update(void);
 /* Microseconds until Update has work. Network125: 0 while confirmation or prediction work remains,
  * else the sooner of the network's next event and the next simulation step. Native: UINT64_MAX

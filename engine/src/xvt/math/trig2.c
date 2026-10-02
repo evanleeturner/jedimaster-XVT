@@ -271,6 +271,7 @@ int16_t trig2_arcsin(int16_t sinQ15) {
 
 	tableOffset = tableIndex;
 	--remainingSteps;
+	/* From here tableIndex holds a table value, the interpolation base below target, not an index. */
 	tableIndex = 0;
 	span = 0;
 	if (tableOffset >= 2) {
@@ -299,6 +300,7 @@ unsigned int trig2_sinewordmult(int16_t value, int16_t angle) {
 	uint16_t signDifference;
 	uint32_t product;
 
+	/* sine first holds value's sign bit (0x8000 or 0); it takes the table sine below. */
 	sine = (uint16_t)value & 0x8000u;
 	if (sine != 0) {
 		value = (int16_t)-value;
@@ -342,18 +344,19 @@ int16_t trig2_getsignedcos(int16_t angleQ16) {
 
 // FUNCTION: XVT 0x46A700
 unsigned int trig2_cosinewordmult(uint16_t value, int16_t angle) {
-	uint16_t sine;
+	uint16_t cosine;
 	uint16_t signDifference;
 	uint32_t product;
 
-	sine = value & 0x8000u;
-	if (sine != 0) {
+	/* cosine first holds value's sign bit (0x8000 or 0); it takes the table cosine below. */
+	cosine = value & 0x8000u;
+	if (cosine != 0) {
 		value = (uint16_t)(0u - value);
 	}
 	angle = (int16_t)(angle + 0x4000);
-	signDifference = sine ^ ((uint16_t)angle & 0x8000u);
-	sine = g_sinTable[((uint16_t)angle >> 6) & 0x1FFu];
-	product = (uint32_t)sine * value + 0x8000u;
+	signDifference = cosine ^ ((uint16_t)angle & 0x8000u);
+	cosine = g_sinTable[((uint16_t)angle >> 6) & 0x1FFu];
+	product = (uint32_t)cosine * value + 0x8000u;
 	if (signDifference != 0) {
 		product = 0u - product;
 	}

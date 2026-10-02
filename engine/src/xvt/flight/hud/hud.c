@@ -1918,7 +1918,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 				left + g_hudElementLayouts[g_hudInstrumentSetBaseIndex + TARGET_NAME_ELEMENT].clipWidth,
 				top + g_flightFontLineHeight + 1);
 			g_flightFillClipRectFn();
-			if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START && g_flightPlayerCount > 1) {
+			if (g_missionHeader.missionType == MISSION_TYPE_MELEE && g_flightPlayerCount > 1) {
 				int16_t displayFlags = NORMAL_TARGET_DISPLAY_FLAGS;
 				if (g_objectTable[currentTargetObjectIndex].mobj != NULL && targetCraft != NULL &&
 					g_flightMissionState.locatePlayersEnabled == 0) {
@@ -2040,7 +2040,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 		left, top, left + g_hudElementLayouts[g_hudInstrumentSetBaseIndex + TARGET_NAME_ELEMENT].clipWidth,
 		top + g_flightFontLineHeight + 1);
 	g_flightFillClipRectFn();
-	if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START && g_flightPlayerCount > 1) {
+	if (g_missionHeader.missionType == MISSION_TYPE_MELEE && g_flightPlayerCount > 1) {
 		int16_t displayFlags = NORMAL_TARGET_DISPLAY_FLAGS;
 		if (g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx].mobj != NULL &&
 			g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx].mobj->pCraft != NULL &&
@@ -2328,7 +2328,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 			ownershipDisplayMode = 0;
 		} else if (targetObject->playerOwnerIdx == -1) {
 			ownershipDisplayMode = 1;
-			if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START && g_flightPlayerCount > 1 &&
+			if (g_missionHeader.missionType == MISSION_TYPE_MELEE && g_flightPlayerCount > 1 &&
 				targetCraft != NULL && g_flightMissionState.locatePlayersEnabled == 0) {
 				int playerTeam;
 
@@ -2346,7 +2346,7 @@ void Hud_UpdateTargetingComputerDisplay(void) {
 				}
 			}
 		} else {
-			ownershipDisplayMode = g_missionHeader.missionType == MISSION_TYPE_SKIRMISH ? -1 : 0;
+			ownershipDisplayMode = g_missionHeader.missionType == MISSION_TYPE_COMBAT ? -1 : 0;
 		}
 
 		if (ownershipDisplayMode == 1) {
@@ -2963,6 +2963,8 @@ void Hud_DrawReticle3D(void) {
 			}
 		}
 
+		/* lockState first holds this cannon's fire-ready state, drawn on the ready indicator; after that draw
+		 * it becomes the target lock state. */
 		lockState = 0;
 		if (charge > 0 && (craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0) {
 			if (g_players[g_localPlayer].selectedWeaponMode == 0 &&
@@ -4299,7 +4301,7 @@ void Hud_DrawCmdTargetDetails(void) {
 			targetObject = &g_objectTable[currentTargetObjectIdx];
 			targetMobileObject = targetObject->mobj;
 			targetCraft = targetMobileObject != NULL ? targetMobileObject->pCraft : NULL;
-			if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START && g_flightPlayerCount > 1) {
+			if (g_missionHeader.missionType == MISSION_TYPE_MELEE && g_flightPlayerCount > 1) {
 				int16_t displayFlags;
 
 				displayFlags = NORMAL_TARGET_DISPLAY_FLAGS;
@@ -4435,7 +4437,7 @@ void Hud_DrawCmdTargetDetails(void) {
 		targetMobileObject = g_objectTable[currentTargetObjectIdx].mobj;
 		targetCraft = targetMobileObject->pCraft;
 		controller = &targetCraft->aiController;
-		if (g_missionHeader.missionType == MISSION_TYPE_QUICK_START && g_flightPlayerCount > 1 &&
+		if (g_missionHeader.missionType == MISSION_TYPE_MELEE && g_flightPlayerCount > 1 &&
 			targetMobileObject != NULL && targetCraft != NULL &&
 			g_flightMissionState.locatePlayersEnabled == 0) {
 			int playerTeam;

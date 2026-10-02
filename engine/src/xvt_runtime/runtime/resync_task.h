@@ -15,7 +15,7 @@ extern "C" {
 /* Network125 only. A client sends the host a checksum report flagged as a state request and gives
  * it a peer-timeout deadline; with a request already out, it aborts the local player and ends the
  * mission once that deadline passes. The host cannot receive an image, so it ends the mission and
- * announces that it left. */
+ * broadcasts a session abort, ending every player's flight. */
 void XvtResync_ServiceRecovery(void);
 /* 1 when a deferred checksum report carries a state request. */
 int XvtResync_HasStateRequest(void);

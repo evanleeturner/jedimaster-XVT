@@ -188,7 +188,7 @@ static int XvtNetworkSession_Factory(void) {
 	HRESULT result;
 	if (!provider)
 		return 0;
-	g_frontState.netRuntimeRecvHistoryCount = 0;
+	g_frontState.netRuntimeSentHistoryWriteIndex = 0;
 	g_frontState.netRuntimeBroadcastSeqCounter = g_frontState.netRuntimeGroupSeqCounter = 0;
 	g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty = 1;
 	g_frontState.netRuntimeBroadcastPendingPayload.payload[0] = NET_PACKET_NOP;
@@ -204,7 +204,7 @@ static int XvtNetworkSession_Factory(void) {
 	g_frontState.netExportRecvQueueHighWater = 0;
 	for (int i = 0; i < 40; ++i) {
 		NetReliablePeerSlot* peer = &g_frontState.netRuntimeReliablePeerSlots[i];
-		peer->prevRecvSeqDefault = peer->prevRecvSeqChannelA = peer->prevRecvSeqChannelB = 127;
+		peer->lastDeliveredSeqDefault = peer->lastDeliveredSeqChannelA = peer->lastDeliveredSeqChannelB = 127;
 		peer->recvSeqDefault = peer->recvSeqChannelA = peer->recvSeqChannelB = 127;
 		peer->sendSeq = 0;
 		peer->directPlayId = 0;
@@ -213,7 +213,7 @@ static int XvtNetworkSession_Factory(void) {
 		peer->lastActivityMs = peer->lastHeardMs = 0;
 		peer->packetCount = peer->packetDropCount = peer->packetRetryCount = 0;
 	}
-	memset(g_frontState.netRuntimeRecvHistory, 0, sizeof(g_frontState.netRuntimeRecvHistory));
+	memset(g_frontState.netRuntimeSentHistory, 0, sizeof(g_frontState.netRuntimeSentHistory));
 	memset(g_netPlayerConnectionStats, 0, sizeof(g_netPlayerConnectionStats));
 	/* A new session owns fresh admission state; browsing never resets this roster. */
 	memset(g_frontState.netPlayers, 0, sizeof(g_frontState.netPlayers));
@@ -256,17 +256,17 @@ static int XvtNetworkSession_Handshake(void) {
 			NetReliablePeerSlot* peer = &g_frontState.netRuntimeReliablePeerSlots[i];
 			const uint8_t* row = (const uint8_t*)packet + 16 + 8 * i;
 			memcpy(&peer->directPlayId, row, 4);
-			peer->prevRecvSeqChannelA = row[4];
-			peer->prevRecvSeqChannelB = row[5];
+			peer->lastDeliveredSeqChannelA = row[4];
+			peer->lastDeliveredSeqChannelB = row[5];
 			peer->recvSeqChannelA = row[6];
 			peer->recvSeqChannelB = row[7];
-			peer->prevRecvSeqDefault = peer->recvSeqDefault = 127;
+			peer->lastDeliveredSeqDefault = peer->recvSeqDefault = 127;
 			peer->sendSeq = 0;
 			peer->lastPiggybackType = NET_PACKET_NOP;
 			peer->piggybackLength = 1;
 			peer->lastActivityMs = peer->lastHeardMs = GetTickCount();
 			if (saved.directPlayId && peer->directPlayId == saved.directPlayId) {
-				peer->prevRecvSeqDefault = saved.prevRecvSeqDefault;
+				peer->lastDeliveredSeqDefault = saved.lastDeliveredSeqDefault;
 				peer->recvSeqDefault = saved.recvSeqDefault;
 				peer->sendSeq = saved.sendSeq;
 				memcpy(&peer->lastPiggybackType, &saved.lastPiggybackType, saved.piggybackLength);

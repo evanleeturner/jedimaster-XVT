@@ -670,7 +670,7 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 		 ++objectIdx) {
 		int16_t firstMatch;
 		int16_t secondMatch;
-		int16_t count;
+		int16_t craftReservedCount;
 		CraftData* craft;
 		ObjectRecord* object;
 		AiController* controller;
@@ -687,31 +687,33 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 		if (firstMatch == 0)
 			continue;
 
-		count = 0;
+		/* Until the reset that starts the count, this local is a 0/1 flag: 1 when the craft can be boarded
+		 * now (parked, a platform, disabled, stopped, or waiting to be boarded). */
+		craftReservedCount = 0;
 		object = &g_objectTable[objectIdx];
 		craft = g_objectTable[objectIdx].mobj->pCraft;
 		controller = &craft->aiController;
 		planName = g_planTable[controller->currentPlanId].name;
 		if (strcmp(planName, "nullpln") == 0 || strcmp(planName, "stationaryldrpln") == 0 ||
 			strcmp(planName, "stationaryflwpln") == 0 || object->genusId == CRAFT_GENUS_PLATFORM) {
-			count = 1;
+			craftReservedCount = 1;
 		} else if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "boardtocapturepln") ==
 					   0 ||
 				   strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "boardtodestroypln") ==
 					   0) {
 			if (craft->workingSubsystems == 0)
-				count = 1;
+				craftReservedCount = 1;
 		} else if (craft->workingSubsystems == 0 ||
 				   controller->maneuverMode == AI_MANEUVER_MODE_AWAIT_BOARD ||
 				   controller->maneuverMode == AI_MANEUVER_MODE_STOP) {
-			count = 1;
+			craftReservedCount = 1;
 		}
 
-		if (count != 0) {
+		if (craftReservedCount != 0) {
 			uint16_t otherIdx;
 			uint16_t sigIdx;
 
-			count = 0;
+			craftReservedCount = 0;
 			for (otherIdx = (uint16_t)g_activeRegionObjectSlotStart;
 				 otherIdx < g_activeRegionCraftObjectSlotEnd; ++otherIdx) {
 				ObjectRecord* other = &g_objectTable[otherIdx];
@@ -732,16 +734,16 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 						strcmp(g_planTable[currentPlanId].name, "boardtocontactpln") == 0 ||
 						strcmp(g_planTable[currentPlanId].name, "boardtorepairpln") == 0) {
 						if (otherController->targetObjIdx == objectIdx)
-							++count;
+							++craftReservedCount;
 						else if (otherCraft->carriedObjectIndex == objectIdx)
-							++count;
+							++craftReservedCount;
 					}
 				}
 			}
-			for (sigIdx = 0; sigIdx < g_curCraft->aiFlight.objSignatureCount; ++sigIdx)
-				if (g_curCraft->aiFlight.objSignatures[sigIdx] == object->objectSignature)
-					++count;
-			if (count == 0) {
+			for (sigIdx = 0; sigIdx < g_curCraft->aiFlight.dockedTargetCount; ++sigIdx)
+				if (g_curCraft->aiFlight.dockedTargetSignatures[sigIdx] == object->objectSignature)
+					++craftReservedCount;
+			if (craftReservedCount == 0) {
 				pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIdx);
 				if ((unsigned int)g_lastRoughDistance >= nearestRange)
 					continue;
@@ -796,10 +798,10 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1, in
 					uint8_t signatureCount;
 
 					sigIdx = 0;
-					signatureCount = g_curCraft->aiFlight.objSignatureCount;
+					signatureCount = g_curCraft->aiFlight.dockedTargetCount;
 					if (signatureCount != 0) {
 						do {
-							if (g_curCraft->aiFlight.objSignatures[sigIdx] ==
+							if (g_curCraft->aiFlight.dockedTargetSignatures[sigIdx] ==
 								g_objectTable[objectIdx].objectSignature)
 								++reservedCount;
 							++sigIdx;
@@ -1119,7 +1121,7 @@ int pai_CompilePlansFromText(const char* baseName) {
 	char token[256];
 	XvtFile* stream;
 	uint8_t* cursor;
-	int buffer;
+	int planIndex;
 
 	strcpy(fileName, baseName);
 	strcat(fileName, ".pln");
@@ -1140,25 +1142,25 @@ int pai_CompilePlansFromText(const char* baseName) {
 		if (token[0] == '*')
 			break;
 
-		buffer = pai_FindPlanTableIndexByName(token);
-		if (buffer != 256) {
-			if (g_planTable[buffer].isDefined == 1) {
+		planIndex = pai_FindPlanTableIndexByName(token);
+		if (planIndex != 256) {
+			if (g_planTable[planIndex].isDefined == 1) {
 				File_RawClose(stream);
 				return 0;
 			}
 		} else {
-			buffer = pai_FindFreePlanTableIndex();
-			if (buffer == 256) {
+			planIndex = pai_FindFreePlanTableIndex();
+			if (planIndex == 256) {
 				File_RawClose(stream);
 				return 0;
 			}
 		}
 
-		strncpy(g_planTable[buffer].name, token, sizeof(g_planTable[buffer].name));
-		g_planTable[buffer].name[79] = '\0';
-		g_planTable[buffer].isDefined = 1;
-		g_planTable[buffer].dataOffset = (uint32_t)(cursor - g_planOrderData);
-		g_planDataPtrs[buffer] = cursor;
+		strncpy(g_planTable[planIndex].name, token, sizeof(g_planTable[planIndex].name));
+		g_planTable[planIndex].name[79] = '\0';
+		g_planTable[planIndex].isDefined = 1;
+		g_planTable[planIndex].dataOffset = (uint32_t)(cursor - g_planOrderData);
+		g_planDataPtrs[planIndex] = cursor;
 
 		if (pai_ReadPlanTextToken(token, stream) == 0) {
 			File_RawClose(stream);
@@ -1226,8 +1228,8 @@ int pai_CompilePlansFromText(const char* baseName) {
 	}
 
 	File_RawClose(stream);
-	for (buffer = 0; buffer < 256; ++buffer) {
-		if (g_planTable[buffer].name[0] != '\0' && g_planTable[buffer].isDefined != 1)
+	for (planIndex = 0; planIndex < 256; ++planIndex) {
+		if (g_planTable[planIndex].name[0] != '\0' && g_planTable[planIndex].isDefined != 1)
 			return 0;
 	}
 
@@ -1236,12 +1238,14 @@ int pai_CompilePlansFromText(const char* baseName) {
 	FeDiskIo_OpenGlobalStream(fileName, "wb", 0, 1);
 	stream = (XvtFile*)g_stream;
 	if (stream != NULL) {
-		buffer = (int)sizeof(g_planTable);
-		File_RawWrite(&buffer, sizeof(buffer), 1, stream);
-		File_RawWrite(g_planTable, (size_t)buffer, 1, stream);
-		buffer = 0xFFFF;
-		File_RawWrite(&buffer, sizeof(buffer), 1, stream);
-		File_RawWrite(g_planOrderData, (size_t)buffer, 1, stream);
+		/* From here the same local holds the byte size of each section of the .plo file; each size is written
+		 * just before its section. */
+		planIndex = (int)sizeof(g_planTable);
+		File_RawWrite(&planIndex, sizeof(planIndex), 1, stream);
+		File_RawWrite(g_planTable, (size_t)planIndex, 1, stream);
+		planIndex = 0xFFFF;
+		File_RawWrite(&planIndex, sizeof(planIndex), 1, stream);
+		File_RawWrite(g_planOrderData, (size_t)planIndex, 1, stream);
 		File_RawClose(stream);
 	}
 

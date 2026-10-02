@@ -129,7 +129,7 @@ struct CraftData {
 	uint16_t lastAttackerObjIdx;
 	uint16_t lastHitMissionSecond;
 	AiFlightState aiFlight;
-	uint8_t waveNumber;
+	uint8_t craftOrdinal;
 	int pushAccumX;
 	int pushAccumY;
 	int pushAccumZ;

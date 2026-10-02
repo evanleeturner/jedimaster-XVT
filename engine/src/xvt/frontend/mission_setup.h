@@ -233,7 +233,7 @@ void MissionSetup_LoadMissionDescText(char* outText4096);
 int MissionSetup_DrawMissionDescription(void);
 int MissionSetup_DrawPlayerRoster(int frameCounter);
 int MissionSetup_BroadcastLobbySelection(void);
-int MissionSetup_BroadcastStatePacket(int toPlayerId);
+int MissionSetup_SendLobbyState(int toPlayerId);
 int MissionSetup_BroadcastReadyRoster(int toPlayerId);
 int MissionSetup_DrawMissionList(int frameCounter);
 int MissionSetup_SelectFirstSequenceMission(void);

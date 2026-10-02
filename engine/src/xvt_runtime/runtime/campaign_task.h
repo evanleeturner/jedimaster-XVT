@@ -13,8 +13,8 @@ enum { XVT_CAMPAIGN_PENDING = -1 };
 
 /* Entry prefixes return pending, cancelled (0), or ready for the screen tail (1). */
 /* Team-assignment prefix. Checks the installation (a missing one ends the program). Returns 1 at
- * once unless a mission sequence is active in the training or combat directory, the entry movie
- * is not skipped, and the debrief did not choose to enter the current mission. Otherwise continues
+ * once unless a mission sequence is active in the training or combat directory, the screen's entry
+ * setup is not skipped, and the debrief did not choose to enter the current mission. Otherwise continues
  * the campaign or battle sequence, clearing the remote battle state when that returns 0; training
  * then plays the phase-0 cutscenes. In a network session a cutscene result of 0 (a movie's
  * nonzero result, or no cutscene table) leaves the game: it tells the host, shuts down the

@@ -172,12 +172,12 @@ char* g_configKeywords[] = { "lastpilot",
 // FUNCTION: XVT 0x4B7F30
 int Config_OptionsDatapadUpdate(int frameCounter) {
 	enum {
-		CONFIG_SCREEN_NETWORK = 0,
-		CONFIG_SCREEN_SINGLEPLAYER_VIDEO = 1,
-		CONFIG_SCREEN_MULTIPLAYER_VIDEO = 2,
-		CONFIG_SCREEN_SOUND = 3,
-		CONFIG_SCREEN_JOYSTICK = 4,
-		CONFIG_SCREEN_TAUNTS = 5,
+		CONFIG_PAGE_NETWORK = 0,
+		CONFIG_PAGE_SINGLEPLAYER_VIDEO = 1,
+		CONFIG_PAGE_MULTIPLAYER_VIDEO = 2,
+		CONFIG_PAGE_SOUND = 3,
+		CONFIG_PAGE_JOYSTICK = 4,
+		CONFIG_PAGE_TAUNTS = 5,
 		CONFIG_SCREEN_CONTEXT = 2,
 		CONFIG_PACKET_SIZE = 19 * sizeof(int),
 		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
@@ -194,7 +194,7 @@ int Config_OptionsDatapadUpdate(int frameCounter) {
 		Frontend_ResetScrollableControls();
 		g_configJoystickActionScrollOffset = 0;
 		g_configJoystickButtonScrollOffset = 0;
-		g_configCurrentPage = CONFIG_SCREEN_NETWORK;
+		g_configCurrentPage = CONFIG_PAGE_NETWORK;
 		g_configSelectedJoystickButtonIndex = 0;
 		g_configDrawStaticControlBackground = 1;
 		Keyboard_FlushCharBuffer();
@@ -217,38 +217,38 @@ int Config_OptionsDatapadUpdate(int frameCounter) {
 	}
 
 	switch (g_configCurrentPage) {
-		case CONFIG_SCREEN_NETWORK:
+		case CONFIG_PAGE_NETWORK:
 			Config_NetworkOptionsScreen();
 			if (g_configDrawStaticControlBackground != 0) {
 				FrontendDisplay_LockOffscreenSurface();
 				FrontendDisplay_UnlockOffscreenSurface(1);
 			}
 			break;
-		case CONFIG_SCREEN_SINGLEPLAYER_VIDEO:
+		case CONFIG_PAGE_SINGLEPLAYER_VIDEO:
 			Config_DrawVideoOptionRows();
 			if (g_configDrawStaticControlBackground != 0) {
 				FrontendDisplay_LockOffscreenSurface();
 				FrontendDisplay_UnlockOffscreenSurface(1);
 			}
 			break;
-		case CONFIG_SCREEN_MULTIPLAYER_VIDEO:
+		case CONFIG_PAGE_MULTIPLAYER_VIDEO:
 			Config_DrawVideoOptionRows();
 			if (g_configDrawStaticControlBackground != 0) {
 				FrontendDisplay_LockOffscreenSurface();
 				FrontendDisplay_UnlockOffscreenSurface(1);
 			}
 			break;
-		case CONFIG_SCREEN_SOUND:
+		case CONFIG_PAGE_SOUND:
 			Config_SoundOptionsScreen();
 			if (g_configDrawStaticControlBackground != 0) {
 				FrontendDisplay_LockOffscreenSurface();
 				FrontendDisplay_UnlockOffscreenSurface(1);
 			}
 			break;
-		case CONFIG_SCREEN_JOYSTICK:
+		case CONFIG_PAGE_JOYSTICK:
 			Config_JoystickRemapScreen();
 			break;
-		case CONFIG_SCREEN_TAUNTS:
+		case CONFIG_PAGE_TAUNTS:
 			Config_DrawCustomTauntsPage();
 			if (g_configDrawStaticControlBackground != 0) {
 				FrontendDisplay_LockOffscreenSurface();
@@ -870,6 +870,8 @@ void Config_Load(void) {
 	g_gameConfig.missionTimeLimit = UINT8_MAX;
 	g_gameConfig.serverUpdateRate = 8;
 
+	/* configIndex counted the single-player and multiplayer settings sets above; from here it is a
+	 * joystick button index, here and in the legacy button conversion at the end. */
 	buttonCount = Joystick_GetButtonCount(0);
 	for (configIndex = 0; configIndex < buttonCount && configIndex < 16; ++configIndex) {
 		switch (configIndex) {
@@ -1381,9 +1383,11 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 		CONFIG_NETWORK_HOVER_SLOT = 11,
 		CONFIG_DEFAULT_SERVER_UPDATE_RATE = 8,
 		CONFIG_DEFAULT_DISABLED = 0,
+		CONFIG_DEFAULT_256_COLORS = 0,
 		CONFIG_DEFAULT_ENABLED = 1,
 		CONFIG_DEFAULT_THREE_CHOICE_MIDDLE = 1,
 		CONFIG_DEFAULT_THREE_CHOICE_HIGH = 2,
+		CONFIG_DEFAULT_BRIGHTNESS = 2,
 		CONFIG_DEFAULT_VIDEO_DENSITY = 2,
 		CONFIG_DEFAULT_VIDEO_QUALITY = 10,
 		CONFIG_DEFAULT_SOUND_VOLUME = 9,
@@ -1474,8 +1478,8 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 						g_gameConfig.networkType = NET_TRANSPORT_TCPIP;
 						g_gameConfig.internetPlay = CONFIG_DEFAULT_ENABLED;
 #else
-					g_gameConfig.networkType = CONFIG_DEFAULT_DISABLED;
-					g_gameConfig.internetPlay = CONFIG_DEFAULT_DISABLED;
+						g_gameConfig.networkType = NET_TRANSPORT_IPX;
+						g_gameConfig.internetPlay = CONFIG_DEFAULT_DISABLED;
 #endif
 						break;
 					case CONFIG_PAGE_SINGLEPLAYER_VIDEO:
@@ -1486,13 +1490,13 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 						g_gameConfig.specular[0] = CONFIG_DEFAULT_ENABLED;
 						g_gameConfig.diffuse[0] = CONFIG_DEFAULT_ENABLED;
 						g_gameConfig.dither[0] = CONFIG_DEFAULT_ENABLED;
-						g_gameConfig.textureRes[0] = CONFIG_DEFAULT_VIDEO_DENSITY;
+						g_gameConfig.textureRes[0] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
 						g_gameConfig.mipmap[0] = CONFIG_DEFAULT_VIDEO_QUALITY;
 						g_gameConfig.lod[0] = CONFIG_DEFAULT_VIDEO_QUALITY;
 						g_gameConfig.screenRes[0] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
 						g_gameConfig.windowSize[0] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-						g_gameConfig.brightness[0] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-						g_gameConfig.colorDepthChoice[0] = CONFIG_DEFAULT_DISABLED;
+						g_gameConfig.brightness[0] = CONFIG_DEFAULT_BRIGHTNESS;
+						g_gameConfig.colorDepthChoice[0] = CONFIG_DEFAULT_256_COLORS;
 						g_gameConfig.use3dHardware[0] = FrontendDisplay_IsSecondaryDirectDrawActive();
 						g_gameConfig.bilinear[0] = CONFIG_DEFAULT_ENABLED;
 						break;
@@ -1504,13 +1508,13 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 						g_gameConfig.specular[1] = CONFIG_DEFAULT_ENABLED;
 						g_gameConfig.diffuse[1] = CONFIG_DEFAULT_ENABLED;
 						g_gameConfig.dither[1] = CONFIG_DEFAULT_ENABLED;
-						g_gameConfig.textureRes[1] = CONFIG_DEFAULT_VIDEO_DENSITY;
+						g_gameConfig.textureRes[1] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
 						g_gameConfig.mipmap[1] = CONFIG_DEFAULT_VIDEO_QUALITY;
 						g_gameConfig.lod[1] = CONFIG_DEFAULT_VIDEO_QUALITY;
 						g_gameConfig.screenRes[1] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
 						g_gameConfig.windowSize[1] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-						g_gameConfig.colorDepthChoice[1] = CONFIG_DEFAULT_DISABLED;
-						g_gameConfig.brightness[1] = CONFIG_DEFAULT_THREE_CHOICE_HIGH;
+						g_gameConfig.colorDepthChoice[1] = CONFIG_DEFAULT_256_COLORS;
+						g_gameConfig.brightness[1] = CONFIG_DEFAULT_BRIGHTNESS;
 						g_gameConfig.use3dHardware[1] = CONFIG_DEFAULT_DISABLED;
 						g_gameConfig.bilinear[1] = CONFIG_DEFAULT_ENABLED;
 						break;

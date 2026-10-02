@@ -824,7 +824,7 @@ int16_t paiman_attackmaneuver(void) {
 				} else {
 					paiman_setpower(g_paiContext.objectIndex, 0xC000);
 				}
-				if (g_curCraft->waveNumber != 0) {
+				if (g_curCraft->craftOrdinal != 0) {
 					CraftData* wingman;
 					unsigned int objectIndex;
 					int nearestWingman = -1;
@@ -836,11 +836,11 @@ int16_t paiman_attackmaneuver(void) {
 							g_objectTable[objectIndex].objectType != 0 &&
 							g_objectTable[objectIndex].flightGroupIdx == g_paiContext.orderFlightGroupIndex) {
 							wingman = g_objectTable[objectIndex].mobj->pCraft;
-							if (g_curCraft->waveNumber > wingman->waveNumber) {
+							if (g_curCraft->craftOrdinal > wingman->craftOrdinal) {
 								pai_ObjectRefUpdateRoughDistance(g_paiContext.objectIndex, objectIndex);
-								if (g_lastRoughDistance < 1000 && nearestWave > wingman->waveNumber) {
+								if (g_lastRoughDistance < 1000 && nearestWave > wingman->craftOrdinal) {
 									nearestWingman = objectIndex;
-									nearestWave = wingman->waveNumber;
+									nearestWave = wingman->craftOrdinal;
 								}
 							}
 						}
@@ -911,10 +911,10 @@ int16_t paiman_attackmaneuver(void) {
 					pitchDifference = (uint16_t)-pitchDifference;
 				if (yawDifference >= 0x3000 || pitchDifference >= 0x3000) {
 					g_paiContext.controller->maneuverMode =
-						g_aiUnderAttackFrontManeuverChoices[GameRand() & 3];
+						g_aiUnderAttackFrontSideManeuverChoices[GameRand() & 3];
 				} else {
 					g_paiContext.controller->maneuverMode =
-						g_aiUnderAttackSideRearManeuverChoices[GameRand() & 7];
+						g_aiUnderAttackRearManeuverChoices[GameRand() & 7];
 					if (g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_FLARE && g_curCraft->cmAmmoCount != 0 &&
 						g_curCraft->cmFireCooldownTimer == 0)
 						laser_createcountermeasureprojectile(g_paiContext.objectIndex, 155);
@@ -1082,7 +1082,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 			flightGroupIdx = g_paiContext.orderFlightGroupIndex;
 			++g_missionFgStats[flightGroupIdx].outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED];
 			specialCargo = 0;
-			if (g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft == g_curCraft->waveNumber) {
+			if (g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft == g_curCraft->craftOrdinal) {
 				specialCargo = 1;
 				g_missionFgStats[flightGroupIdx].specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DEPARTED] = 1;
 			}
@@ -1093,7 +1093,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 			flightGroupIdx = g_paiContext.orderFlightGroupIndex;
 			++g_missionFgStats[flightGroupIdx]
 				  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE];
-			if (g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft == g_curCraft->waveNumber)
+			if (g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft == g_curCraft->craftOrdinal)
 				g_missionFgStats[flightGroupIdx]
 					.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE] = 1;
 		}
@@ -1102,7 +1102,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 			++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamCapturedDepartedCount[team];
 			specialCargo = 0;
 			if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
-				g_curCraft->waveNumber) {
+				g_curCraft->craftOrdinal) {
 				++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamSpecialCargoCapturedDeparted[team];
 				specialCargo = 1;
 			}
@@ -1113,7 +1113,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 					g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.team != otherTeam) {
 					++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamUncapturedLost[otherTeam];
 					if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
-						g_curCraft->waveNumber)
+						g_curCraft->craftOrdinal)
 						g_missionFgStats[g_paiContext.orderFlightGroupIndex]
 							.teamSpecialCargoUncapturedLost[otherTeam] = 1;
 				}
@@ -1138,7 +1138,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 						++g_missionFgStats[carriedGroupIdx].teamCapturedDepartedCount[team];
 						specialCargo = 0;
 						if (g_missionFlightGroups[carriedGroupIdx].fg.specialCargoCraft ==
-							carriedCraft->waveNumber) {
+							carriedCraft->craftOrdinal) {
 							++g_missionFgStats[carriedGroupIdx].teamSpecialCargoCapturedDeparted[team];
 							specialCargo = 1;
 						}
@@ -1153,7 +1153,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 								++otherTeamCount;
 								g_missionFgStats[carriedGroupIdx].teamUncapturedLost[otherTeam] =
 									otherTeamCount;
-								if (specialCargoCraft == carriedCraft->waveNumber)
+								if (specialCargoCraft == carriedCraft->craftOrdinal)
 									g_missionFgStats[carriedGroupIdx]
 										.teamSpecialCargoUncapturedLost[otherTeam] = 1;
 							}
@@ -1161,7 +1161,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 						specialCargoCraft = g_missionFlightGroups[carriedGroupIdx].fg.specialCargoCraft;
 						++g_missionFgStats[carriedGroupIdx]
 							  .outcomeCount[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION];
-						if (specialCargoCraft == carriedCraft->waveNumber)
+						if (specialCargoCraft == carriedCraft->craftOrdinal)
 							g_missionFgStats[carriedGroupIdx]
 								.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION] = 1;
 					} else {
@@ -1169,7 +1169,7 @@ int16_t paiman_intohyperspacemaneuver(void) {
 							  .outcomeCount[FLIGHT_GROUP_OUTCOME_CAPTURED_BY_DESTINATION];
 						specialCargo = 0;
 						if (g_missionFlightGroups[carriedGroupIdx].fg.specialCargoCraft ==
-							carriedCraft->waveNumber) {
+							carriedCraft->craftOrdinal) {
 							specialCargo = 1;
 							g_missionFgStats[carriedGroupIdx]
 								.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_CAPTURED_BY_DESTINATION] = 1;
@@ -1196,7 +1196,9 @@ void paiman_initoutofhyperspacemaneuver(void) {
 	g_paiContext.controller->hasLiveTarget = 0;
 	pai_UpdateAimPointFromOrderTarget();
 	g_paiContext.controller->maneuverTimer = 2596;
-	g_curCraft->aiFlight.objSignatures[0] = (uint16_t)g_paiContext.controller->thinkInterval;
+	/* While the craft arrives from hyperspace, the first slot of the docked-target signature list keeps its
+	 * think interval; the arrival maneuver puts it back when it ends. */
+	g_curCraft->aiFlight.dockedTargetSignatures[0] = (uint16_t)g_paiContext.controller->thinkInterval;
 	g_paiContext.controller->thinkInterval = 59;
 }
 
@@ -1238,7 +1240,7 @@ int16_t paiman_outofhyperspacemaneuver(void) {
 
 		outOfHyperspacePlan = pai_getplandataptrbyname("outofhyperspacepln");
 		outOfHyperspacePlan[3] = planId;
-		g_paiContext.controller->thinkInterval = g_curCraft->aiFlight.objSignatures[0];
+		g_paiContext.controller->thinkInterval = g_curCraft->aiFlight.dockedTargetSignatures[0];
 		g_curCraft->objectKind = CRAFT_OBJECT_KIND_ACTIVE;
 		g_paiContext.controller->targetObjIdx = UINT16_MAX;
 		g_paiContext.controller->targetSignature = 0;
@@ -1617,7 +1619,7 @@ int16_t paiman_boardmaneuver(void) {
 
 				g_curCraft->aiFlight.dockingAccountingDone = 1;
 				++g_missionFgStats[flightGroupIndex].outcomeCount[FLIGHT_GROUP_OUTCOME_FAILED_MISSION];
-				if (g_missionFlightGroups[flightGroupIndex].fg.specialCargoCraft == g_curCraft->waveNumber)
+				if (g_missionFlightGroups[flightGroupIndex].fg.specialCargoCraft == g_curCraft->craftOrdinal)
 					g_missionFgStats[flightGroupIndex]
 						.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_FAILED_MISSION] = 1;
 			}
@@ -1626,7 +1628,7 @@ int16_t paiman_boardmaneuver(void) {
 				++g_missionFgStats[targetFlightGroupIndex]
 					  .outcomeCount[FLIGHT_GROUP_OUTCOME_COMPLETED_MISSION];
 				if (g_missionFlightGroups[targetFlightGroupIndex].fg.specialCargoCraft ==
-					targetCraft->waveNumber)
+					targetCraft->craftOrdinal)
 					g_missionFgStats[targetFlightGroupIndex]
 						.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_COMPLETED_MISSION] = 1;
 			}
@@ -1924,7 +1926,7 @@ int16_t paiman_boardmaneuver(void) {
 						++g_missionFgStats[*targetFlightGroupIndexPtr]
 							  .outcomeCount[FLIGHT_GROUP_OUTCOME_INSPECTED];
 						if (g_missionFlightGroups[*targetFlightGroupIndexPtr].fg.specialCargoCraft ==
-							targetCraft->waveNumber)
+							targetCraft->craftOrdinal)
 							g_missionFgStats[*targetFlightGroupIndexPtr]
 								.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_INSPECTED] = 1;
 					}
@@ -1933,21 +1935,22 @@ int16_t paiman_boardmaneuver(void) {
 				}
 			}
 			++g_paiContext.controller->orderProgress.goalProgress[g_paiContext.controller->currentOrderSlot];
-			g_curCraft->aiFlight.objSignatures[g_curCraft->aiFlight.objSignatureCount++] = targetSignature;
-			if (g_curCraft->aiFlight.objSignatureCount >= MAX_OBJECT_SIGNATURE_COUNT)
-				--g_curCraft->aiFlight.objSignatureCount;
-			if (g_curCraft->aiFlight.objSignatureCount == 1) {
+			g_curCraft->aiFlight.dockedTargetSignatures[g_curCraft->aiFlight.dockedTargetCount++] =
+				targetSignature;
+			if (g_curCraft->aiFlight.dockedTargetCount >= MAX_OBJECT_SIGNATURE_COUNT)
+				--g_curCraft->aiFlight.dockedTargetCount;
+			if (g_curCraft->aiFlight.dockedTargetCount == 1) {
 				uint16_t flightGroupIndex = g_paiContext.orderFlightGroupIndex;
 
 				++g_missionFgStats[flightGroupIndex].outcomeCount[FLIGHT_GROUP_OUTCOME_DOCKED];
-				if (g_missionFlightGroups[flightGroupIndex].fg.specialCargoCraft == g_curCraft->waveNumber)
+				if (g_missionFlightGroups[flightGroupIndex].fg.specialCargoCraft == g_curCraft->craftOrdinal)
 					g_missionFgStats[flightGroupIndex].specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DOCKED] = 1;
 			}
 			if (targetMobileObject != NULL) {
 				++targetCraft->aiFlight.timesBoarded;
 				++g_missionFgStats[targetFlightGroupIndex].outcomeCount[FLIGHT_GROUP_OUTCOME_BOARDED];
 				if (g_missionFlightGroups[targetFlightGroupIndex].fg.specialCargoCraft ==
-					targetCraft->waveNumber)
+					targetCraft->craftOrdinal)
 					g_missionFgStats[targetFlightGroupIndex]
 						.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_BOARDED] = 1;
 			}
@@ -2003,14 +2006,14 @@ void paiman_TransferObjectToAiTeam(unsigned int objectIdx, CraftData* craft, uin
 		missionTeam = g_missionFlightGroups[flightGroupIdx].fg.team;
 		if ((*currentMobileObjectPtr)->team == missionTeam) {
 			g_missionFgStats[flightGroupIdx].outcomeCount[FLIGHT_GROUP_OUTCOME_CAPTURED]--;
-			if (g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft == craft->waveNumber) {
+			if (g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft == craft->craftOrdinal) {
 				g_missionFgStats[flightGroupIdx].specialCargoOutcome[FLIGHT_GROUP_OUTCOME_CAPTURED] = 0;
 			}
 			craft->capturedByFlightGroup = 0;
 		} else {
 			if (objectTeam == missionTeam) {
 				g_missionFgStats[flightGroupIdx].outcomeCount[FLIGHT_GROUP_OUTCOME_CAPTURED]++;
-				if (g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft == craft->waveNumber) {
+				if (g_missionFlightGroups[flightGroupIdx].fg.specialCargoCraft == craft->craftOrdinal) {
 					g_missionFgStats[flightGroupIdx].specialCargoOutcome[FLIGHT_GROUP_OUTCOME_CAPTURED] = 1;
 				}
 			} else {
@@ -2377,7 +2380,7 @@ void paiman_setflighttotarget(uint16_t yawOffset, int steerPitch) {
 	int worldZ;
 	uint16_t pitch;
 	unsigned int turnStep;
-	int updateHeading;
+	int updatePitch;
 
 	aimX = g_paiContext.controller->aimPointX;
 	aimY = g_paiContext.controller->aimPointY;
@@ -2395,8 +2398,8 @@ void paiman_setflighttotarget(uint16_t yawOffset, int steerPitch) {
 	turnStep = effectiveSkill;
 	turnStep += 0x4000;
 	paiman_setturn(turnStep);
-	updateHeading = steerPitch;
-	if (updateHeading != 0) {
+	updatePitch = steerPitch;
+	if (updatePitch != 0) {
 		g_paiContext.controller->targetZAngle = (uint16_t)trig2_pitch;
 		g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
 		g_curCraft->aiFlight.pitchThroughLoop = 0;
@@ -2594,7 +2597,7 @@ void paiman_calcformation(void) {
 	formationType = g_curCraft->aiFlight.formationType;
 	boundSizeZ = g_modelDefs[modelIndex].boundSizeZ;
 	separation = g_paiContext.leaderOrSelfCraft->aiFlight.separation + 1;
-	formationIndex = g_curCraft->waveNumber;
+	formationIndex = g_curCraft->craftOrdinal;
 	offsetX = g_formPosX[formationType][formationIndex] - g_formPosX[formationType][0];
 	offsetY = g_formPosY[formationType][formationIndex] - g_formPosY[formationType][0];
 	offsetZ = g_formPosZ[formationType][formationIndex] - g_formPosZ[formationType][0];

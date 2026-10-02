@@ -375,6 +375,8 @@ int fsfx_triggerweaponsfx(unsigned int projectileObjectIndex, int playerIdx) {
 	if (g_gameConfig.sfxExteriorVolume == 0)
 		return 0;
 
+	/* result first holds the projectile's object type, from which the sound ids below are computed;
+	 * a played sound replaces it with fsfx_PlaySound's return, and an unlisted type returns the type. */
 	result = g_objectTable[projectileObjectIndex].objectType;
 	switch (g_objectTable[projectileObjectIndex].objectType) {
 		case 0x89:
@@ -481,7 +483,7 @@ int fsfx_ComputeSourcePan(int emitterObjIdx, int* volume) {
 	int dx;
 	int dy;
 	int dz;
-	int16_t angleY;
+	int16_t sideOffset;
 	int16_t forwardOffset;
 	int16_t panAngle;
 
@@ -500,11 +502,11 @@ int fsfx_ComputeSourcePan(int emitterObjIdx, int* volume) {
 		dy = g_worldLocY - g_players[g_localPlayer].viewState.cameraWorldY;
 	}
 
-	angleY = (int16_t)Math_Dot3Q15Wrapped((int16_t)dx, (int16_t)dy, (int16_t)dz, g_camMatR0_X, g_camMatR0_Y,
-										  g_camMatR0_Z);
+	sideOffset = (int16_t)Math_Dot3Q15Wrapped((int16_t)dx, (int16_t)dy, (int16_t)dz, g_camMatR0_X,
+											  g_camMatR0_Y, g_camMatR0_Z);
 	forwardOffset = (int16_t)Math_Dot3Q15Wrapped((int16_t)dx, (int16_t)dy, (int16_t)dz, g_camMatR2_X,
 												 g_camMatR2_Y, g_camMatR2_Z);
-	panAngle = trig2_arctan(angleY, forwardOffset);
+	panAngle = trig2_arctan(sideOffset, forwardOffset);
 
 	if (panAngle >= 0x4000 || panAngle <= -0x4000) {
 		int16_t verticalAngle;
@@ -512,9 +514,10 @@ int fsfx_ComputeSourcePan(int emitterObjIdx, int* volume) {
 		int16_t rearScale;
 		int16_t reduction;
 
-		angleY = (int16_t)Math_Dot3Q15Wrapped((int16_t)dx, (int16_t)dy, (int16_t)dz, g_camMatR1_X,
-											  g_camMatR1_Y, g_camMatR1_Z);
-		verticalAngle = (int16_t)(0x8000 - trig2_arctan(angleY, forwardOffset));
+		/* From here sideOffset holds the offset along the camera's up axis, for the vertical angle. */
+		sideOffset = (int16_t)Math_Dot3Q15Wrapped((int16_t)dx, (int16_t)dy, (int16_t)dz, g_camMatR1_X,
+												  g_camMatR1_Y, g_camMatR1_Z);
+		verticalAngle = (int16_t)(0x8000 - trig2_arctan(sideOffset, forwardOffset));
 		rearAngle = (int16_t)(0x8000 - panAngle);
 		panAngle = (int16_t)(0x8000 - panAngle);
 		if (verticalAngle < 0)
@@ -1137,7 +1140,7 @@ int fsfx_SpeakWingmanEvent(int playerIdx, int speakerObjIdx, int voiceCategory, 
 	}
 
 	craft = g_objectTable[speakerObjIdx].mobj->pCraft;
-	craftOrdinal = craft->waveNumber;
+	craftOrdinal = craft->craftOrdinal;
 	craftIndexInGroup = craft->craftIndexInGroup;
 	if (craftIndexInGroup > 6) {
 		craftIndexInGroup = 0;
@@ -1148,7 +1151,7 @@ int fsfx_SpeakWingmanEvent(int playerIdx, int speakerObjIdx, int voiceCategory, 
 		objectSignature = UINT16_MAX;
 	} else {
 		objectSignature = g_objectTable[targetObjIdx].objectSignature;
-		targetCraftOrdinal = g_objectTable[targetObjIdx].mobj->pCraft->waveNumber;
+		targetCraftOrdinal = g_objectTable[targetObjIdx].mobj->pCraft->craftOrdinal;
 	}
 	baseOffset = g_fsfxVoiceCategoryBaseOffset[voiceCategory];
 
@@ -1595,6 +1598,7 @@ void fsfx_RemoveVoiceQueueEntryChain(unsigned int queueIndex) {
 		}
 	}
 
+	/* From here chainFlag holds the shrunken queue count, which also ends the copy loop below. */
 	chainFlag = g_fsfxVoiceQueueCount;
 	chainFlag -= (uint8_t)removedCount;
 	g_fsfxVoiceQueueCount = chainFlag;

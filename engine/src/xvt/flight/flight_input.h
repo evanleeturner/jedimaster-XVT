@@ -104,10 +104,10 @@ typedef enum FlightActionKey {
 	FLIGHT_KEY_ALT_1 = 0x09B,
 	FLIGHT_KEY_ALT_2 = 0x09C,
 	FLIGHT_KEY_ALT_3 = 0x09D,
-	FLIGHT_KEY_MFD_CYCLE_1 = 0x0A4,
-	FLIGHT_KEY_MFD_CYCLE_2 = 0x0A5,
-	FLIGHT_KEY_MFD_SCROLL_UP = 0x0A6,
-	FLIGHT_KEY_MFD_SCROLL_DOWN = 0x0A7,
+	FLIGHT_KEY_LEFT = 0x0A4,
+	FLIGHT_KEY_RIGHT = 0x0A5,
+	FLIGHT_KEY_UP = 0x0A6,
+	FLIGHT_KEY_DOWN = 0x0A7,
 	FLIGHT_KEY_INSERT = 0x0A8,
 	FLIGHT_KEY_DELETE = 0x0A9,
 	FLIGHT_KEY_HOME = 0x0AA,
@@ -189,8 +189,8 @@ struct FlightInputFrameRecord {
 };
 
 struct InputFrame {
-	int applied;
-	int unconfirmed;
+	int awaitingRelay;
+	int inputSource;
 	int timestamp;
 	FlightInputFrameRecord input;
 };

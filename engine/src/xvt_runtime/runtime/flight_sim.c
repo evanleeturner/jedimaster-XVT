@@ -41,7 +41,7 @@ int XvtFlightSim_Resume(void) {
  * 1. unless the update is resuming after a pause: return at once if the mission is ending; repair a
  *    camera focus whose object is gone; read the input; for the local player, act on a function key
  *    (Alt-P pauses, leaves the update pending and returns 0);
- * 2. stop when the dormant-region flag is set; for a player in a region session, rebind or retire a
+ * 2. stop when the dormant-region flag is set; for a player awaiting a new craft, rebind or retire a
  *    destroyed craft, then stop;
  * 3. outside hyperspace, fire while the fire modifier is held, and pick a target when the target
  *    modifier is tapped;
@@ -307,13 +307,14 @@ int XvtFlightSim_Advance(int targetGameTime) {
 
 			if (!g_sim.replayPending) {
 				if (!((suppressSideEffects != 0 && XvtFlightTiming_IsNetwork125()) ||
-					  frame->timestamp > g_players[playerIdx].lockstepTimestamp || frame->applied != 0)) {
+					  frame->timestamp > g_players[playerIdx].lockstepTimestamp ||
+					  frame->awaitingRelay != 0)) {
 					FlightSync_RemoveInputHistoryFrame(playerIdx, frame);
 					--frame;
 					continue;
 				}
 				if (frame->timestamp > targetGameTime ||
-					(suppressSideEffects == 0 && frame->unconfirmed != 0))
+					(suppressSideEffects == 0 && frame->inputSource != XVT_INPUT_AUTHORITATIVE))
 					continue;
 				if (g_players[playerIdx].lockstepTimestamp >= frame->timestamp)
 					continue;
@@ -446,7 +447,7 @@ int XvtFlightSim_Advance(int targetGameTime) {
 			}
 			g_sim.replayPending = 0;
 			if (XvtFlightTiming_IsNetwork125() && !suppressSideEffects &&
-				frame->unconfirmed == XVT_INPUT_AUTHORITATIVE)
+				frame->inputSource == XVT_INPUT_AUTHORITATIVE)
 				XvtFlightPrediction_Confirm(playerIdx, frame->timestamp, &frame->input);
 			savedElapsedTicks = g_sim.savedElapsed;
 			savedSimStepsPerSecond = g_sim.savedSimStepsPerSecond;
@@ -574,7 +575,7 @@ void XvtFlightHistory_RestoreCheckpoint(void) {
 		int retained = 0;
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
 			const InputFrame* frame = &g_inputHistory[player][i];
-			if (!g_players[player].participationState || frame->unconfirmed == XVT_INPUT_PREDICTED ||
+			if (!g_players[player].participationState || frame->inputSource == XVT_INPUT_PREDICTED ||
 				frame->timestamp <= g_players[player].lockstepTimestamp)
 				continue;
 			g_inputHistory[player][retained++] = *frame;
@@ -596,7 +597,7 @@ XvtInputInsertStatus XvtFlightHistory_Insert(unsigned player, int tick, const Fl
 	while (index < count && frames[index].timestamp < tick)
 		++index;
 	if (index < count && frames[index].timestamp == tick) {
-		if (!frames[index].unconfirmed || frames[index].applied == 1)
+		if (frames[index].inputSource == XVT_INPUT_AUTHORITATIVE || frames[index].awaitingRelay == 1)
 			return XVT_INPUT_DUPLICATE;
 	} else {
 		if (count == XVT_INPUT_HISTORY_CAPACITY)
@@ -606,8 +607,8 @@ XvtInputInsertStatus XvtFlightHistory_Insert(unsigned player, int tick, const Fl
 	}
 	InputFrame* frame = frames + index;
 	frame->timestamp = tick;
-	frame->unconfirmed = XVT_INPUT_REAL;
-	frame->applied = 0;
+	frame->inputSource = XVT_INPUT_REAL;
+	frame->awaitingRelay = 0;
 	frame->input = *input;
 	*out = frame;
 	return XVT_INPUT_INSERTED;
@@ -625,8 +626,8 @@ XvtInputInsertStatus XvtFlightHistory_InsertReal(unsigned player, int tick,
 		return status;
 	}
 	if (frame) {
-		frame->unconfirmed = authoritative ? XVT_INPUT_AUTHORITATIVE : XVT_INPUT_REAL;
-		frame->applied = !authoritative && NetSession_IsLocalHost();
+		frame->inputSource = authoritative ? XVT_INPUT_AUTHORITATIVE : XVT_INPUT_REAL;
+		frame->awaitingRelay = !authoritative && NetSession_IsLocalHost();
 	} else if (authoritative) {
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
 			InputFrame* old = &g_inputHistory[player][i];
@@ -639,7 +640,7 @@ XvtInputInsertStatus XvtFlightHistory_InsertReal(unsigned player, int tick,
 				XVT_LOG_ERROR("network.input_conflict player=%u tick=%d", player, tick);
 				return XVT_INPUT_CONFLICT;
 			}
-			old->unconfirmed = old->applied = 0;
+			old->inputSource = old->awaitingRelay = 0;
 		}
 	}
 	return status;
@@ -653,7 +654,7 @@ void XvtFlightHistory_Recover(void) {
 			const InputFrame* frame = &g_inputHistory[player][i];
 			/* Host records will reconstruct peer input; preserve only future local samples. */
 			if (player != (unsigned)g_localPlayer || !g_players[player].participationState ||
-				frame->timestamp <= g_gameTime || frame->unconfirmed == XVT_INPUT_PREDICTED)
+				frame->timestamp <= g_gameTime || frame->inputSource == XVT_INPUT_PREDICTED)
 				continue;
 			g_inputHistory[player][retained++] = *frame;
 		}
