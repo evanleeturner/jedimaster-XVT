@@ -73,31 +73,32 @@ static int XvtStorage_Found(void* context, const AeronVfsEntry* entry) {
  * listing lets setup and USER-file callers distinguish the two. */
 int XvtStorage_Probe(AeronVfsRoot root, const char* path) {
 	AeronFileInfo info;
-	char parent[XVT_PATH_CAPACITY];
+	char normalized[XVT_PATH_CAPACITY];
 	char* slash;
 	const char* name;
+	const char* folder = "";
 	int found = 0;
-	if (!g_vfs || !XvtStorage_Normalize(path, parent, sizeof(parent)))
+	if (!g_vfs || !XvtStorage_Normalize(path, normalized, sizeof(normalized)))
 		return -1;
-	if (AeronVfs_Stat(g_vfs, root, parent, &info) && info.exists)
+	if (AeronVfs_Stat(g_vfs, root, normalized, &info) && info.exists)
 		return info.is_directory ? -1 : 1;
-	slash = strrchr(parent, '/');
+	slash = strrchr(normalized, '/');
 	name = path;
 	if (slash) {
 		*slash = 0;
+		folder = normalized;
 		name = slash + 1;
-		if (!AeronVfs_Stat(g_vfs, root, parent, &info) || !info.exists) {
+		if (!AeronVfs_Stat(g_vfs, root, folder, &info) || !info.exists) {
 			/* Only a confirmed missing ancestor proves this path is absent. */
-			int status = XvtStorage_Probe(root, parent);
+			int status = XvtStorage_Probe(root, folder);
 			return status == 0 ? 0 : -1;
 		}
 		if (!info.is_directory)
 			return -1;
 	} else {
-		name = parent;
+		name = normalized;
 	}
-	if (!AeronVfs_Glob(g_vfs, root, slash ? parent : "", name, AERON_VFS_GLOB_CASE_INSENSITIVE,
-					   XvtStorage_Found, &found))
+	if (!AeronVfs_Glob(g_vfs, root, folder, name, AERON_VFS_GLOB_CASE_INSENSITIVE, XvtStorage_Found, &found))
 		return -1;
 	return found ? -1 : 0;
 }
