@@ -299,6 +299,11 @@ static void CrtProjectiles(AeronScene3D *scene, const XvtRenderSnapshot *s,
 	}
 }
 
+/* Renders one model preview into its scene: a frontend preview, tone-mapped
+ * into its slot's target, or the cockpit CRT's target with its projectiles and
+ * effects. Both kinds run the same steps on one size, scene, camera and mesh
+ * instance, with the kind deciding a small part of most steps, so keeping them
+ * in one function keeps each step's two cases side by side. */
 static int RenderOne(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 		     const XvtSnapPreview *p, unsigned slot, int tw, int th,
 		     int crt)
