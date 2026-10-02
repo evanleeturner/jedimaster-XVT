@@ -193,6 +193,34 @@ static void Icon(XvtSnapMap *map, XvtSnapMapObject *m, const uint8_t *frames,
 	}
 }
 
+/* Sets an object's range to the camera's focus object, capped at 9999, when
+ * the focus is a valid slot; the range shows only with the object's overlay
+ * and never for a projectile. */
+static void Range(XvtSnapMapObject *m, const PlayerData *p,
+		  const ObjectRecord *o, unsigned genus)
+{
+	unsigned focus = p->viewState.cameraFocusObjIdx;
+	if (focus < (unsigned)(g_regionMainObjectSlotEnd +
+			       g_regionStaticObjectSlotCount)) {
+		uint32_t dx = Magnitude((int32_t)((uint32_t)o->world_x -
+						  (uint32_t)g_objectTable[focus]
+							  .world_x)),
+			 dy = Magnitude((int32_t)((uint32_t)o->world_y -
+						  (uint32_t)g_objectTable[focus]
+							  .world_y)),
+			 dz = Magnitude((int32_t)((uint32_t)o->world_z -
+						  (uint32_t)g_objectTable[focus]
+							  .world_z));
+		uint32_t range =
+			(PlanarDistance(PlanarDistance(dx, dy), dz) * 161) >>
+			16;
+		m->range_value = (uint16_t)(range > 9999 ? 9999 : range);
+		m->range_visible = m->overlay_visible &&
+				   genus != CRAFT_GENUS_PLAYER_PROJECTILE &&
+				   genus != CRAFT_GENUS_OTHER_PROJECTILE;
+	}
+}
+
 void XvtRenderMap_Capture(XvtSnapMap *map, const XvtSnapObject *objects,
 			  unsigned count)
 {
@@ -296,32 +324,7 @@ void XvtRenderMap_Capture(XvtSnapMap *map, const XvtSnapObject *objects,
 		if (m->overlay_visible) {
 			Label(map, m, o);
 		}
-		unsigned focus = p->viewState.cameraFocusObjIdx;
-		if (focus < (unsigned)(g_regionMainObjectSlotEnd +
-				       g_regionStaticObjectSlotCount)) {
-			uint32_t dx = Magnitude((
-					 int32_t)((uint32_t)o->world_x -
-						  (uint32_t)g_objectTable[focus]
-							  .world_x)),
-				 dy = Magnitude((
-					 int32_t)((uint32_t)o->world_y -
-						  (uint32_t)g_objectTable[focus]
-							  .world_y)),
-				 dz = Magnitude((
-					 int32_t)((uint32_t)o->world_z -
-						  (uint32_t)g_objectTable[focus]
-							  .world_z));
-			uint32_t range =
-				(PlanarDistance(PlanarDistance(dx, dy), dz) *
-				 161) >>
-				16;
-			m->range_value =
-				(uint16_t)(range > 9999 ? 9999 : range);
-			m->range_visible =
-				m->overlay_visible &&
-				genus != CRAFT_GENUS_PLAYER_PROJECTILE &&
-				genus != CRAFT_GENUS_OTHER_PROJECTILE;
-		}
+		Range(m, p, o, genus);
 		if (slot == (unsigned)p->currentTargetObjectIdx) {
 			map->target = snap->id;
 			Endpoint(map, slot);
