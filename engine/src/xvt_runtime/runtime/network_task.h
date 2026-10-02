@@ -68,7 +68,7 @@ int XvtNetworkTask_Resume(int* result);
 /* Cancels the attempt and returns to the host or join screen by the attempt's action; call only
  * during an attempt, since an idle task reads as a host. */
 void XvtNetworkTask_Cancel(void);
-/* Resets the network session and forgets the attempt and the browser state. */
+/* Leaves the network session and forgets the attempt and the browser state. */
 void XvtNetworkTask_Shutdown(void);
 #ifdef __cplusplus
 }

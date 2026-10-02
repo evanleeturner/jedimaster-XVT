@@ -202,13 +202,13 @@ static void CheckClose(void) {
 	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_IDLE);
 }
 
-static void CheckResetKeepsShutdownClears(void) {
+static void CheckLeaveKeepsShutdownClears(void) {
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost(NULL, "Luke", "", 0), 0);
 	XVT_ASSERT_INT_EQ(Error(), AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
 
-	/* Reset leaves the session but keeps its state: the last failure's error stays. */
-	XvtNetworkSession_Reset();
+	/* Leave keeps the session state: the last failure's error stays. */
+	XvtNetworkSession_Leave();
 	FinishClose();
 	XVT_ASSERT_INT_EQ(Error(), AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
 
@@ -236,7 +236,7 @@ int main(void) {
 	CheckTick();
 	CheckLost();
 	CheckClose();
-	CheckResetKeepsShutdownClears();
+	CheckLeaveKeepsShutdownClears();
 	CheckAdmissionOutsideAdmission();
 	XvtNetworkSession_Shutdown();
 	return 0;

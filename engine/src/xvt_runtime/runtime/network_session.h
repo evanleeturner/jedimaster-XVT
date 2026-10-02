@@ -81,8 +81,6 @@ void XvtNetworkSession_EndFlight(void);
 /* Advances setup; returns -1 while pending, 1 in admission or established, and 0 once failed or
  * idle. A lost session outside flight fails. */
 int XvtNetworkSession_Update(void);
-/* Leave; it keeps the session state, which Shutdown clears. */
-void XvtNetworkSession_Reset(void);
 /* Forgets the session state and the configured lobby URL, without closing DirectPlay. */
 void XvtNetworkSession_Shutdown(void);
 /* Splits message's short and long names, each NUL-terminated, into the outputs, truncated to fit.

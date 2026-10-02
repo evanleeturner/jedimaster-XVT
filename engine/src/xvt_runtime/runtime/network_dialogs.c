@@ -65,7 +65,7 @@ static int XvtNetworkDialogs_AfterFailure(int result, int host) {
 
 void XvtNetworkDialogs_ShowFailure(AeronDplayDirectoryError error, int host) {
 	const char* message;
-	XvtNetworkSession_Reset();
+	XvtNetworkSession_Leave();
 	switch (error) {
 		case AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED:
 			message = "The multiplayer directory is not configured.";

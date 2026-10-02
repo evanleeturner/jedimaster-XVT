@@ -535,8 +535,6 @@ void XvtNetworkSession_EndFlight(void) {
 	Net_RefreshPlayerRoster();
 }
 
-void XvtNetworkSession_Reset(void) { XvtNetworkSession_Cancel(); }
-
 void XvtNetworkSession_Shutdown(void) {
 	memset(&g_session, 0, sizeof(g_session));
 	g_origin[0] = 0;

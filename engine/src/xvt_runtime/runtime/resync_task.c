@@ -21,7 +21,7 @@ enum {
 };
 
 static struct {
-	int phase, peer_dpid, image_size, elapsed, pulse, retries, blink;
+	int phase, peer_dpid, image_size, checksum_elapsed, apply_sent_tick, pulse, retries, blink;
 	int offset, chunk_index, free_bytes, payload_offset;
 	int ack_count, ack_previous, ack_retries, ack_elapsed, final_batch, owns_alert;
 	uint8_t* world;
@@ -189,17 +189,17 @@ static void XvtResync_Checksums(void) {
 	int saved = g_inputTimestamp;
 	if (XvtResync_TakeEscapeKey()) {
 		g_resync.retries = 1;
-		g_resync.elapsed = XVT_RESYNC_RETRY_TICKS;
+		g_resync.checksum_elapsed = XVT_RESYNC_RETRY_TICKS;
 	} else {
 		FlightNet_ProcessIncomingPackets();
 		if (g_resync.restart_requested)
 			return;
 		g_inputTimestamp += Time_ConsumeElapsedTicks();
-		g_resync.elapsed += g_inputTimestamp - saved;
+		g_resync.checksum_elapsed += g_inputTimestamp - saved;
 		g_inputTimestamp = saved;
 	}
-	if (g_flightNetRemoteResyncChecksumsReceivedFlag || g_resync.elapsed >= XVT_RESYNC_RETRY_TICKS) {
-		g_resync.pulse += g_resync.elapsed;
+	if (g_flightNetRemoteResyncChecksumsReceivedFlag || g_resync.checksum_elapsed >= XVT_RESYNC_RETRY_TICKS) {
+		g_resync.pulse += g_resync.checksum_elapsed;
 		if (g_resync.pulse >= XVT_RESYNC_RETRY_TICKS) {
 			g_resync.pulse = 0;
 			g_flightNetScratchPacket.packetType = NET_PACKET_STILL_LOADING;
@@ -216,7 +216,7 @@ static void XvtResync_Checksums(void) {
 			XvtResync_EndSend(0);
 		} else {
 			XVT_LOG_DEBUG("resync.retry stage=\"checksums\" left=%d", g_resync.retries);
-			g_resync.elapsed = 0;
+			g_resync.checksum_elapsed = 0;
 			g_flightNetRemoteResyncChecksumsReceivedFlag = 0;
 			XvtResync_SendRequest();
 		}
@@ -314,8 +314,7 @@ void XvtResync_BeginApply(int peer_dpid, int size) {
 	g_resync.image_size = size;
 	g_resync.retries = XVT_RESYNC_RETRIES;
 	g_resync.pulse = 0;
-	/* In the apply phase elapsed holds the input tick the apply was sent at, not a duration. */
-	g_resync.elapsed = g_inputTimestamp;
+	g_resync.apply_sent_tick = g_inputTimestamp;
 	g_flightNetScratchPacket.packetType = NET_PACKET_RESYNC_APPLY;
 	g_flightNetScratchPacket.payloadDwords[0] = (int)g_resync.epoch;
 	g_flightNetScratchPacket.payloadDwords[1] = size;
@@ -336,13 +335,13 @@ static void XvtResync_Apply(void) {
 		g_inputTimestamp += Time_ConsumeElapsedTicks();
 		if (g_flightNetWorldStateAckReceivedFlag) {
 			g_flightNetWorldStateAckReceivedFlag = 0;
-			g_inputTimestamp = g_resync.elapsed;
+			g_inputTimestamp = g_resync.apply_sent_tick;
 		}
 	}
 	if (g_flightNetPendingAckCount &&
-		(unsigned)(g_inputTimestamp - g_resync.elapsed) < XVT_RESYNC_RETRY_TICKS)
+		(unsigned)(g_inputTimestamp - g_resync.apply_sent_tick) < XVT_RESYNC_RETRY_TICKS)
 		return;
-	g_resync.pulse += g_inputTimestamp - g_resync.elapsed;
+	g_resync.pulse += g_inputTimestamp - g_resync.apply_sent_tick;
 	if (g_resync.pulse >= XVT_RESYNC_RETRY_TICKS) {
 		g_resync.pulse = 0;
 		g_flightNetScratchPacket.packetType = NET_PACKET_STILL_LOADING;
@@ -350,7 +349,7 @@ static void XvtResync_Apply(void) {
 	}
 	if (g_flightNetPendingAckCount && --g_resync.retries) {
 		XVT_LOG_DEBUG("resync.retry stage=\"apply\" left=%d", g_resync.retries);
-		g_resync.elapsed = g_inputTimestamp;
+		g_resync.apply_sent_tick = g_inputTimestamp;
 		g_flightNetPendingAckCount = 1;
 		XvtFlightResyncApplyWire apply;
 		XvtWire_Set32(apply.opcode, NET_PACKET_RESYNC_APPLY);
@@ -536,8 +535,8 @@ uint64_t XvtResync_NextWakeDelayUs(void) {
 		return g_receive.deadline > now ? g_receive.deadline - now : 0;
 	}
 	int elapsed = g_resync.phase == RESYNC_ACKS    ? g_resync.ack_elapsed
-				  : g_resync.phase == RESYNC_APPLY ? g_inputTimestamp - g_resync.elapsed
-												   : g_resync.elapsed;
+				  : g_resync.phase == RESYNC_APPLY ? g_inputTimestamp - g_resync.apply_sent_tick
+												   : g_resync.checksum_elapsed;
 	if (g_resync.phase == RESYNC_IDLE)
 		return UINT64_MAX;
 	unsigned remaining = elapsed < XVT_RESYNC_RETRY_TICKS ? XVT_RESYNC_RETRY_TICKS - elapsed : 0;

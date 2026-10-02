@@ -319,7 +319,7 @@ void XvtNetworkTask_Cancel(void) {
 }
 
 void XvtNetworkTask_Shutdown(void) {
-	XvtNetworkSession_Reset();
+	XvtNetworkSession_Leave();
 	memset(&g_network, 0, sizeof(g_network));
 	memset(&g_browser, 0, sizeof(g_browser));
 	g_browser.selected_index = -1;
