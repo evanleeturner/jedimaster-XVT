@@ -75,7 +75,7 @@ int TechLibrary_Update(int frameCounter) {
 		PILOT_BANNER_REBEL_X = 204,
 		PILOT_BANNER_IMPERIAL_X = 420,
 		PILOT_BANNER_ICON_Y = 453,
-		PILOT_BANNER_ANIMATION_FRAMES = 32,
+		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 		DEFAULT_CURSOR_X = 32,
 		DEFAULT_CURSOR_Y = 319,
 		DEFAULT_PREVIEW_PITCH_DEGREES = 110,
@@ -147,7 +147,7 @@ int TechLibrary_Update(int frameCounter) {
 	if (g_pilotData.name[0] != '\0') {
 		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
 		FrontendText_DrawCentered(BUTTON_FONT_SIZE, g_frontendScratchBuffer, &rect, g_colorYellow);
-		animationFrame = frameCounter % PILOT_BANNER_ANIMATION_FRAMES;
+		animationFrame = frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES;
 		animationFrame >>= 1;
 		sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, PILOT_BANNER_REBEL_X, PILOT_BANNER_ICON_Y);

@@ -6436,7 +6436,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 		MAX_PLAYERS = 8,
 		MAX_TEAMS = 10,
 		BRIEFING_TEXT_CAPACITY = 4096,
-		PILOT_BANNER_ANIMATION_FRAMES = 32,
+		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 		DRAG_INPUT_GATE = 2,
 	};
 
@@ -6948,17 +6948,17 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 					 ++flightGroupIndex) {
 					if (g_frontendMission.flightGroups[flightGroupIndex].playerNumber != 0) {
 						if (g_frontendMission.flightGroups[flightGroupIndex].iff == 0) {
-							animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+							animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1;
 							sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 							FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 							FrontImage_DrawSprite(g_frontendScratchBuffer, 420, 453);
 						} else if (g_frontendMission.flightGroups[flightGroupIndex].iff == 1) {
-							animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+							animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1;
 							sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);
 							FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 							FrontImage_DrawSprite(g_frontendScratchBuffer, 420, 453);
 						} else {
-							animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+							animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1;
 							sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 							FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 							sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);
@@ -6982,10 +6982,10 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 				}
 				if (teamIndex != g_teamCount) {
 					if (teamIndex == 0) {
-						animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+						animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1;
 						sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);
 					} else {
-						animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+						animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1;
 						sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 					}
 					FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
@@ -6993,7 +6993,7 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter) {
 				}
 			}
 		} else {
-			animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+			animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1;
 			sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 			FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 			sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);
@@ -9909,7 +9909,7 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 		MILLISECONDS_PER_SECOND = 1000,
 		BATTLE_CHOICE_DURATION_SECONDS = BATTLE_CHOICE_DURATION_MS / MILLISECONDS_PER_SECOND,
 		BRIEFING_TEXT_CAPACITY = 4096,
-		PILOT_BANNER_ANIMATION_FRAMES = 32,
+		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 		BASIC_PACKET_SIZE = sizeof(int),
 		TIMER_PACKET_SIZE = 2 * sizeof(int),
 	};
@@ -10049,21 +10049,21 @@ int MissionSetup_BattleChoice_Update(int frameCounter) {
 				g_pilotData.missionDirectoryId != MISSION_DIRECTORY_TOURNAMENTS) {
 				if (g_pilotData.currentFactionId == 0) {
 					sprintf(g_frontendScratchBuffer, "rebtiny%d",
-							(frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1);
+							(frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1);
 					FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 				} else {
 					sprintf(g_frontendScratchBuffer, "imptiny%d",
-							(frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1);
+							(frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1);
 					FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 				}
 			} else {
-				animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+				animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1;
 				sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 				FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 				sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);
 			}
 		} else {
-			animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+			animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1;
 			sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 			FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 			sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);

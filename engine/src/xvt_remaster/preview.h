@@ -8,7 +8,7 @@ extern "C" {
  * previews into fixed 2048 x 1536 tonemapped targets, one per snapshot preview slot; the CRT into a
  * scene sized to its mask at the current fit, rendered again only when a dependency changes. */
 
-/* texture: the rendered image. tick_index: the snapshot it came from. draw, destination, mask_index: the
+/* texture: the rendered image. snapshot_serial: the snapshot it came from. draw, destination, mask_index: the
  * preview's placement. width, height: the texture size. */
 typedef struct XvtPreviewOutput {
 	AeronTexture* texture;

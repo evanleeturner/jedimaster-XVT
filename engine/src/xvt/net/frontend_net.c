@@ -181,7 +181,7 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 		SESSION_REFRESH_INTERVAL_FRAMES = 160,
 		BRIEFING_TEXT_CAPACITY = 4096,
 		JOIN_REQUEST_PACKET_SIZE = 6 * sizeof(int),
-		PILOT_BANNER_ANIMATION_FRAMES = 32,
+		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 	};
 
 	int packetType;
@@ -413,7 +413,7 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 		if (g_pilotData.name[0] != '\0') {
 			sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
 			FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
-			animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+			animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1;
 			sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 			FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 			sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);
@@ -468,7 +468,7 @@ int FrontendNet_JoinGameScreen(int frameCounter) {
 int FrontendNet_AwaitJoinAdmissionScreen(int frameCounter) {
 	enum {
 		ACCESS_TIMEOUT_FRAME = 480,
-		PILOT_BANNER_ANIMATION_FRAMES = 32,
+		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 	};
 
 	int networkResult;
@@ -579,7 +579,7 @@ int FrontendNet_AwaitJoinAdmissionScreen(int frameCounter) {
 	if (g_pilotData.name[0] != '\0') {
 		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6, g_pilotData.ratingName, 1, g_pilotData.name);
 		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, g_colorYellow);
-		animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_FRAMES) >> 1;
+		animationFrame = (frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >> 1;
 		sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
 		sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);

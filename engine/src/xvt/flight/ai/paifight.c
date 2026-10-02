@@ -616,6 +616,9 @@ int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx, uint16_t candida
 	return attackerCount < attackerLimit;
 }
 
+/* Besides answering, this sets g_paiContext's requireUndisabledTarget and targetSearchFlags for the
+ * search, and for an escort-leader order (capescortersldr1pln) makes the nearest escort leader the AI's
+ * target. */
 // FUNCTION: XVT 0x45DD00
 int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot) {
 	PaiPlanRecord* plan;
@@ -642,6 +645,9 @@ int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot) {
 	return targetObject != -1;
 }
 
+/* Besides answering, this sets g_paiContext's requireUndisabledTarget and targetSearchFlags for the
+ * search, and for an escort-leader order (capescortersldr1pln) makes the nearest escort leader the AI's
+ * target. */
 // FUNCTION: XVT 0x45DDF0
 int16_t paifight_SearchOrderSlotRemainingTargets(uint16_t orderSlot) {
 	PaiPlanRecord* plan;
