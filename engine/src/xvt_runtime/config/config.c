@@ -171,6 +171,7 @@ static const XvtConfigField g_fields[] = {
 	  sizeof(((GameConfig*)0)->craftJumping), 0, 1 },
 	{ "random_setup", "game.random_setup", offsetof(GameConfig, randomSetup),
 	  sizeof(((GameConfig*)0)->randomSetup), 0, 1 },
+	/* Battle length, 0 to 2 for two to four wins; the YAML path still calls it handicapping. */
 	{ "handicapping", "game.handicapping", offsetof(GameConfig, battleLengthIndex),
 	  sizeof(((GameConfig*)0)->battleLengthIndex), 0, 2 },
 	{ "require_password", "game.require_password", offsetof(GameConfig, requirePassword),

@@ -56,7 +56,7 @@ int sw3d_SetupEdge(SceneEdge* edge, const ProjVertex* first, const ProjVertex* s
 void sw3d_DrawVisibleFacesToSurface(void);
 void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW);
 void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face);
-int sw3d_DrawTexturedShadeSpanGeneric(void);
+int sw3d_DrawTexturedShadeSpanGeneric16bpp(void);
 void sw3d_BlitOccludedSpan(const uint8_t* pSrcRaster, int startX, int endX, int scanY, float spriteW);
 void sw3d_CopySpanToFramebuffer(const uint8_t* pSrcRasterBase, int startX, int pixelCount);
 

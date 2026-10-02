@@ -218,7 +218,7 @@ void XvtMovieTask_Stop(void) {
 	/* Skipping finishes local playback successfully; multiplayer still waits for peers. */
 	Aeron_VideoStop(g_movie.player);
 	if (g_movie.synchronize)
-		XvtMovieSync_Wait();
+		XvtMovieSync_ReportFinished();
 }
 
 void XvtMovieTask_Update(void) {
@@ -256,7 +256,7 @@ void XvtMovieTask_Update(void) {
 		XvtMovieTask_Submit();
 	}
 	if (g_movie.synchronize && (state == AERON_VIDEO_ENDED || state == AERON_VIDEO_ERROR))
-		XvtMovieSync_Wait();
+		XvtMovieSync_ReportFinished();
 	if ((!g_movie.synchronize && (state == AERON_VIDEO_ENDED || state == AERON_VIDEO_ERROR)) ||
 		(g_movie.synchronize && (synchronized || g_movieSkipRequested == -1))) {
 		if (g_movieSkipRequested == -1)

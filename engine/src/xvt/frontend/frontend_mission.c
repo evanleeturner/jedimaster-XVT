@@ -65,7 +65,7 @@ void FrontendMission_InitForBriefing(void) {
 	for (index = 0; index < 8; ++index) {
 		g_briefingMapLabelActive[index] = 0;
 	}
-	FrontendDraw_RectAssign(&g_briefingMapSourceRect, 0, 0, 360, 236);
+	FrontendDraw_RectAssign(&g_briefingMapPanelRect, 0, 0, 360, 236);
 }
 
 // FUNCTION: XVT 0x4F6B80

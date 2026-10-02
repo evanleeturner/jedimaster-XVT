@@ -186,6 +186,7 @@ typedef struct XvtCockpitPowerGauge {
 } XvtCockpitPowerGauge;
 
 typedef struct XvtCockpitIndicator {
+	/* No code reads color; every indicator is built with 0 in it. */
 	uint8_t visible, state, color, phase;
 } XvtCockpitIndicator;
 
@@ -269,7 +270,7 @@ typedef struct XvtCockpitSystems {
 
 typedef struct XvtCockpitWeaponSlot {
 	uint8_t visible, bank, hud_slot, charge_band, segments;
-	uint8_t selection_state, ready, locked, color;
+	uint8_t selection_state, ready_state, locked, unused;
 	uint8_t charge_visible, selection_visible, lock_visible, empty_band;
 	XvtCockpitNumber charge_percent;
 } XvtCockpitWeaponSlot;

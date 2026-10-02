@@ -337,7 +337,7 @@ void DInput_UpdateKeyboardModifierState(void) {
 }
 
 // FUNCTION: XVT 0x4437F0
-HRESULT DInput_ReadKeyboardState(void) {
+HRESULT DInput_ProbeKeyboardState(void) {
 	uint8_t keyboardState[256];
 
 	return g_dinputKeyboardDevice->lpVtbl->GetDeviceState(g_dinputKeyboardDevice, sizeof(keyboardState),

@@ -46,7 +46,7 @@ int g_currentObjectBoundsExtent = 0;
 // GLOBAL: XVT 0x9CD264
 uint16_t g_flightInitialTextureCacheFlushPending = 0;
 // GLOBAL: XVT 0x9A7BA8
-uint16_t g_flightRenderDurationTicks = 0;
+uint16_t g_flightPostSceneDurationTicks = 0;
 // GLOBAL: XVT 0x9E9660
 uint16_t g_flightRenderScratchWord = 0;
 
@@ -655,7 +655,7 @@ void FlightView_Render(void) {
 						FVIEW_SetObjectTransform(
 							g_objectTable[objectTableIndex].roll, g_objectTable[objectTableIndex].pitch,
 							g_objectTable[objectTableIndex].yaw, 0, &g_objectTable[objectTableIndex]);
-						RenderBillboard_DrawRollAlignedObjectModel(renderObjectIndex);
+						SceneBillboard_DrawRollAlignedObjectModel(renderObjectIndex);
 						break;
 					case CRAFT_GENUS_SMALL_DEBRIS:
 						FlightView_ComputeObjectViewPosition(renderObjectIndex);
@@ -703,10 +703,10 @@ void FlightView_Render(void) {
 		SceneBillboard_RenderQueuedTextured(1);
 		Targeting_DrawSceneObjectBoxes();
 	}
-	g_flightRenderDurationTicks = 0;
+	g_flightPostSceneDurationTicks = 0;
 	g_flightRenderScratchWord = 0;
 	g_inputTimestamp += (int)Time_ConsumeElapsedTicks();
-	g_flightRenderDurationTicks = (uint16_t)g_inputTimestamp;
+	g_flightPostSceneDurationTicks = (uint16_t)g_inputTimestamp;
 	RenderScene_UnlockBuffers();
 	if (g_useHardware3D != 0) {
 		FlightView_CompositeMaskedSoftwareSurface();
@@ -715,7 +715,7 @@ void FlightView_Render(void) {
 	g_flightBackgroundColorIndex = 0;
 	g_inputTimestamp += (int)Time_ConsumeElapsedTicks();
 	g_flightBackgroundColorIndex = g_flightTransparentColorIndex;
-	g_flightRenderDurationTicks = (uint16_t)(g_inputTimestamp - g_flightRenderDurationTicks);
+	g_flightPostSceneDurationTicks = (uint16_t)(g_inputTimestamp - g_flightPostSceneDurationTicks);
 	FlightSurface_Lock();
 	Hud_BlitSoftwareHudTextPanes();
 	Hud_BlitSoftwareMfdPages();
@@ -883,7 +883,7 @@ void FlightView_RenderFrame(void) {
 	FlightView_UpdatePlayerCamera(g_localPlayer);
 	FlightView_Render();
 	FlightInput_Read(g_localPlayer);
-	FlightInput_ScaleAxesForFlight();
+	FlightInput_LatchFlightControls();
 	FlightSurface_Lock();
 	Hud_RenderHud(g_localPlayer);
 	FlightSurface_Unlock();

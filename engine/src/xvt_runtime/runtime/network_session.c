@@ -182,6 +182,9 @@ int XvtNetworkSession_BeginJoin(const char* rating_text, const char* player_name
 	return XvtNetworkSession_Start(rating_text, player_name, "", 0, 1, room);
 }
 
+/* Clears the reliable-transport counters, peer slots, send history and connection stats, the player lists
+ * and the roster; copies in this session's application GUID, host flag and names; then creates the
+ * DirectPlay interface. Returns 0 without a TCP/IP provider or when the interface cannot be made. */
 static int XvtNetworkSession_Factory(void) {
 	const GUID* provider = Net_GetDirectPlayServiceProviderGuid(NET_TRANSPORT_TCPIP);
 	IDirectPlay* temporary = NULL;

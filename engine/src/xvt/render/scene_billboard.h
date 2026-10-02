@@ -27,7 +27,7 @@ void SceneBillboard_DrawOrQueueObject(int objectIndex);
 void SceneBillboard_QueueProjectedTextured(int objectOrTypeIndex, int frame, int screenSize, int screenX,
 										   int screenY, int depthZ, int rotationAngle);
 void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers);
-void RenderBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex);
+void SceneBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex);
 int SceneBillboard_ComputeProjectedSize(int depthZ, uint16_t modelMaxExtent, uint16_t baseScreenSize);
 
 #ifdef __cplusplus

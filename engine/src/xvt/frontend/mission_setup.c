@@ -5017,11 +5017,11 @@ int MissionSetup_UpdateCraftLoadout(void) {
 		COUNTERMEASURE_SLOT = 4,
 		BUTTON_SPACING = 28,
 		BUTTON_FONT_SIZE = 12,
-		NEXT_CRAFT_HOVER_SLOT = 11,
-		PREVIOUS_CRAFT_HOVER_SLOT = 12,
-		WARHEAD_HOVER_SLOT = 13,
-		BEAM_HOVER_SLOT = 14,
-		COUNTERMEASURE_HOVER_SLOT = 15,
+		NEXT_CRAFT_HELD_SLOT = 11,
+		PREVIOUS_CRAFT_HELD_SLOT = 12,
+		WARHEAD_HELD_SLOT = 13,
+		BEAM_HELD_SLOT = 14,
+		COUNTERMEASURE_HELD_SLOT = 15,
 		PILOT_FACTION_REBEL = 0,
 		PILOT_FACTION_IMPERIAL = 1,
 		PACKET_PRESET_CRAFT_OFFSET = 4,
@@ -5120,9 +5120,9 @@ int MissionSetup_UpdateCraftLoadout(void) {
 
 	FrontendDraw_RectAssign(&rect, 22, 226, 42, 250);
 	if (slotStates[COUNTERMEASURE_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE &&
-		FrontendButton_HandleSpriteButton(
-			&rect, "craft5u", "craft5d", FrontendString_Get(FRONTSTR_271_NEXT_COUNTERMEASURE_CHOICE),
-			BUTTON_FONT_SIZE, 0, COUNTERMEASURE_HOVER_SLOT, "jewelsound") != 0) {
+		FrontendButton_HandleSpriteButton(&rect, "craft5u", "craft5d",
+										  FrontendString_Get(FRONTSTR_271_NEXT_COUNTERMEASURE_CHOICE),
+										  BUTTON_FONT_SIZE, 0, COUNTERMEASURE_HELD_SLOT, "jewelsound") != 0) {
 		leftClick = FrontendMouse_GetLeftClick();
 		selectedOptionIndex = g_missionSetupSelectedCountermeasureOptionIndex;
 		if (leftClick != 0) {
@@ -5146,7 +5146,7 @@ int MissionSetup_UpdateCraftLoadout(void) {
 	if (slotStates[BEAM_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE &&
 		FrontendButton_HandleSpriteButton(&rect, "craft4u", "craft4d",
 										  FrontendString_Get(FRONTSTR_272_NEXT_BEAM_WEAPON_CHOICE),
-										  BUTTON_FONT_SIZE, 0, BEAM_HOVER_SLOT, "jewelsound") != 0) {
+										  BUTTON_FONT_SIZE, 0, BEAM_HELD_SLOT, "jewelsound") != 0) {
 		leftClick = FrontendMouse_GetLeftClick();
 		selectedOptionIndex = g_missionSetupSelectedBeamOptionIndex;
 		if (leftClick != 0) {
@@ -5170,7 +5170,7 @@ int MissionSetup_UpdateCraftLoadout(void) {
 	if (slotStates[WARHEAD_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE &&
 		FrontendButton_HandleSpriteButton(&rect, "craft3u", "craft3d",
 										  FrontendString_Get(FRONTSTR_270_NEXT_WARHEAD_CHOICE),
-										  BUTTON_FONT_SIZE, 0, WARHEAD_HOVER_SLOT, "jewelsound") != 0) {
+										  BUTTON_FONT_SIZE, 0, WARHEAD_HELD_SLOT, "jewelsound") != 0) {
 		leftClick = FrontendMouse_GetLeftClick();
 		selectedOptionIndex = g_missionSetupSelectedWarheadOptionIndex;
 		if (leftClick != 0) {
@@ -5192,9 +5192,9 @@ int MissionSetup_UpdateCraftLoadout(void) {
 
 	FrontendDraw_RectOffsetXY(&rect, 0, -BUTTON_SPACING);
 	if (slotStates[PREVIOUS_CRAFT_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE &&
-		FrontendButton_HandleSpriteButton(
-			&rect, "craft2u", "craft2d", FrontendString_Get(FRONTSTR_269_PREVIOUS_CRAFT_CHOICE),
-			BUTTON_FONT_SIZE, 0, PREVIOUS_CRAFT_HOVER_SLOT, "jewelsound") != 0) {
+		FrontendButton_HandleSpriteButton(&rect, "craft2u", "craft2d",
+										  FrontendString_Get(FRONTSTR_269_PREVIOUS_CRAFT_CHOICE),
+										  BUTTON_FONT_SIZE, 0, PREVIOUS_CRAFT_HELD_SLOT, "jewelsound") != 0) {
 		loadoutChanged = 1;
 		selectedPresetCraftOptionIndex = g_missionSetupSelectedPresetCraftOptionIndex;
 		selectedFlightGroupCraftOptionIndex = g_missionSetupSelectedFlightGroupCraftOptionIndex;
@@ -5311,7 +5311,7 @@ int MissionSetup_UpdateCraftLoadout(void) {
 	if (slotStates[NEXT_CRAFT_SLOT] != FRONTEND_NAVIGATION_SLOT_INACTIVE &&
 		FrontendButton_HandleSpriteButton(&rect, "craft1u", "craft1d",
 										  FrontendString_Get(FRONTSTR_268_NEXT_CRAFT_CHOICE),
-										  BUTTON_FONT_SIZE, 0, NEXT_CRAFT_HOVER_SLOT, "jewelsound") != 0) {
+										  BUTTON_FONT_SIZE, 0, NEXT_CRAFT_HELD_SLOT, "jewelsound") != 0) {
 		loadoutChanged = 1;
 		selectedPresetCraftOptionIndex = g_missionSetupSelectedPresetCraftOptionIndex;
 		selectedFlightGroupCraftOptionIndex = g_missionSetupSelectedFlightGroupCraftOptionIndex;
@@ -8426,7 +8426,7 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter) {
 				FrontImage_DrawSpriteTranslucent("chatbox", 0, 0);
 			}
 			FrontImage_DrawSpriteTranslucent("mapoverlay", 0, 0);
-			FrontendDraw_RectCopy(&rect, &g_briefingMapSourceRect);
+			FrontendDraw_RectCopy(&rect, &g_briefingMapPanelRect);
 			FrontendDraw_RectOffsetXY(&rect, 84, 96);
 			rect.top = rect.bottom - 27;
 			FrontendDraw_FillRectTranslucent(&rect, 0, 0, g_colorBlue);
@@ -9035,7 +9035,7 @@ int MissionSetup_DrawAssignmentControls(void) {
 				if (g_frontendMissionSessionMode != FRONTEND_MISSION_SESSION_SINGLEPLAYER)
 					FrontImage_DrawSpriteTranslucent("chatbox", 0, 0);
 				FrontImage_DrawSpriteTranslucent("mapoverlay", 0, 0);
-				FrontendDraw_RectCopy(&rect, &g_briefingMapSourceRect);
+				FrontendDraw_RectCopy(&rect, &g_briefingMapPanelRect);
 				FrontendDraw_RectOffsetXY(&rect, BRIEFING_MAP_OFFSET_X, BRIEFING_MAP_OFFSET_Y);
 				rect.top = rect.bottom - BRIEFING_NARRATION_HEIGHT;
 				FrontendDraw_FillRectTranslucent(&rect, 0, 0, (unsigned int)g_colorBlue);

@@ -383,9 +383,9 @@ void pai_setupcraftcontext(uint16_t objectIdx) {
 		leaderOrSelfCraft = g_objectTable[g_paiContext.leaderObjectIndex].mobj->pCraft;
 	}
 	g_paiContext.leaderOrSelfCraft = leaderOrSelfCraft;
-	g_paiContext.orderFlightGroupIndex = object->flightGroupIdx;
+	g_paiContext.craftFlightGroupIndex = object->flightGroupIdx;
 	g_paiContext.orderSlot = controller->currentOrderSlot;
-	Mission_ResolveObjectOrMissionPointWorldLoc(objectIdx, g_paiContext.orderFlightGroupIndex);
+	Mission_ResolveObjectOrMissionPointWorldLoc(objectIdx, g_paiContext.craftFlightGroupIndex);
 	g_paiContext.craftPositionX = g_worldLocX;
 	g_paiContext.craftPositionY = g_worldLocY;
 	g_paiContext.craftPositionZ = g_worldLocZ;
@@ -468,24 +468,24 @@ int16_t pai_FindBoardingTargetFromOrder(uint16_t orderSlot) {
 	int16_t result;
 
 	result = pai_FindNearestBoardingTarget(
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target1Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target1,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target1OrTarget2,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target2Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target2);
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1OrTarget2,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target2Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target2);
 	if (result == -1)
 		result = pai_FindNearestBoardingTarget(
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargetTypes[0],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargets[0],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target3OrTarget4,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target3OrTarget4,
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargetTypes[1],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargets[1]);
 	return result;
@@ -832,7 +832,7 @@ int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot) {
 		strcmp(g_planTable[planId].name, "rendezvous1pln") == 0 ||
 		strcmp(g_planTable[planId].name, "disabledpln") == 0 ||
 		strcmp(g_planTable[planId].name, "waitforboardpln") == 0) {
-		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].variable1 <=
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].variable1 <=
 			g_paiContext.controller->orderProgress.goalProgress[orderSlot]) {
 			result = 1;
 		}
@@ -856,13 +856,13 @@ int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot) {
 			   strcmp(g_planTable[planId].name, "boardtopickuppln") == 0 ||
 			   strcmp(g_planTable[planId].name, "boardtocontactpln") == 0 ||
 			   strcmp(g_planTable[planId].name, "boardtorepairpln") == 0) {
-		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].variable2 <=
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].variable2 <=
 			g_paiContext.controller->orderProgress.goalProgress[orderSlot]) {
 			result = 1;
 		}
 	} else if (strcmp(g_planTable[planId].name, "dropoffldr1pln") == 0) {
 		if ((unsigned int)
-				g_missionFgStats[(uint16_t)(g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+				g_missionFgStats[(uint16_t)(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 												.fg.orders[orderSlot]
 												.variable2 -
 											1)]
@@ -911,17 +911,17 @@ int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx) {
 
 	primaryMatch = Mission_ObjectMatchesTriggerVariable(
 		objectIdx,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 			.fg.orders[g_paiContext.orderSlot]
 			.target1Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[g_paiContext.orderSlot].target1);
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[g_paiContext.orderSlot].target1);
 	match = Mission_ObjectMatchesTriggerVariable(
 		objectIdx,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 			.fg.orders[g_paiContext.orderSlot]
 			.target2Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[g_paiContext.orderSlot].target2);
-	if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[g_paiContext.orderSlot].target2);
+	if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 			.fg.orders[g_paiContext.orderSlot]
 			.target1OrTarget2 == 1)
 		primaryMatch |= match;
@@ -930,20 +930,20 @@ int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx) {
 
 	secondaryMatch =
 		Mission_ObjectMatchesTriggerVariable(objectIdx,
-											 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+											 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 												 .fg.orders[g_paiContext.orderSlot]
 												 .secondaryTargetTypes[0],
-											 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+											 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 												 .fg.orders[g_paiContext.orderSlot]
 												 .secondaryTargets[0]);
 	match = Mission_ObjectMatchesTriggerVariable(objectIdx,
-												 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+												 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													 .fg.orders[g_paiContext.orderSlot]
 													 .secondaryTargetTypes[1],
-												 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+												 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													 .fg.orders[g_paiContext.orderSlot]
 													 .secondaryTargets[1]);
-	if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+	if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 			.fg.orders[g_paiContext.orderSlot]
 			.target3OrTarget4 == 1)
 		secondaryMatch |= match;

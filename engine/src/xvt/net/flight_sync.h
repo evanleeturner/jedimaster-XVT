@@ -29,12 +29,12 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t* packet);
 void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int* packet);
 void FlightSync_HandleServerChecksumPacket(uint8_t* packet);
 void FlightSync_CopyWorldStateResyncChunk(const void* src, int offset, unsigned int size);
-void FlightSync_ReplayResyncMessages(unsigned int worldStateBytes, int serverTickTime);
+void FlightSync_ApplyResyncAndReplayWorldMessages(unsigned int worldStateBytes, int serverTickTime);
 void FlightSync_SnapshotWorldStateForReplay(void);
 #ifndef XVT_MODERN
 void FlightSync_BufferWorldMessagePacket(uint8_t* packet);
 #endif
-void FlightSync_ResetWorldMessageBufferCursor(void);
+void FlightSync_ClearBufferedWorldMessages(void);
 #ifndef XVT_MODERN
 void FlightSync_ReplayBufferedWorldMessages(void);
 #endif

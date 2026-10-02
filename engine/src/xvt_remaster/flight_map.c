@@ -263,13 +263,13 @@ int XvtFlightMap_Render(AeronCommandBuffer* cmd, const XvtRenderSnapshot* s, con
 										 view->view_proj[14] * local[2] + view->view_proj[15] };
 	}
 	qsort(g_order, s->map.object_count, sizeof g_order[0], Compare);
-	int first = s->camera.world_pos[2] < s->map.grid_z;
-	if (!Objects(cmd, s, view, first) || !Composite(cmd, 1))
+	int camera_below_grid = s->camera.world_pos[2] < s->map.grid_z;
+	if (!Objects(cmd, s, view, camera_below_grid) || !Composite(cmd, 1))
 		return 0;
 	AeronDrawList_Begin(g_list, g_composite, g_width, g_height, AERON_DRAWLIST2D_LOAD, NULL);
 	Grid(s, view);
 	AeronDrawList_Render(g_list, cmd);
-	if (!Objects(cmd, s, view, !first) || !Composite(cmd, 0))
+	if (!Objects(cmd, s, view, !camera_below_grid) || !Composite(cmd, 0))
 		return 0;
 	AeronRenderPass* pass =
 		Aeron_BeginRenderPass(&(AeronRenderPassDesc) { .command_buffer = cmd, .color_target = g_composite });

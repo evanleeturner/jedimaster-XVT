@@ -48,6 +48,8 @@ uint16_t g_creditsTextColors[2][32] = { 0 };
 // GLOBAL: XVT 0x52D0C8
 int g_creditsExitPending = 0;
 
+/* Besides loading the credits images, font and sound list, this sets the display options for the screen,
+ * hides the cursor and starts CD track 4 playing on a loop. */
 // FUNCTION: XVT 0x4FB4F0
 int Credits_LoadScreenResources(void) {
 	FrontendDisplay_DisableEscapeClose();

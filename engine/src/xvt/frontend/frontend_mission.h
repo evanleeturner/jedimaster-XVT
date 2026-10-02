@@ -42,7 +42,7 @@ struct FrontendMission {
 	Team teams[10];
 	uint16_t flightGroupCount;
 	uint16_t messageCount;
-	uint16_t field_13DF0;
+	uint16_t unused13DF0;
 	uint16_t formatVersion;
 };
 

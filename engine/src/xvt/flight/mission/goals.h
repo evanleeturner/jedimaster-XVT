@@ -23,6 +23,8 @@ enum {
 	GOAL_AMT_ALL_NON_SPECIAL = 0x7,
 	GOAL_AMT_ALL_EXCEPT_PLAYER = 0x8,
 	GOAL_AMT_PLAYER_FG = 0x9,
+	/* The _OF_SUBSET amounts measure against the craft counted as arrived so far instead of the flight
+	 * groups' totals, and they never report failure. */
 	GOAL_AMT_100_OF_SUBSET = 0xA,
 	GOAL_AMT_75_OF_SUBSET = 0xB,
 	GOAL_AMT_50_OF_SUBSET = 0xC,

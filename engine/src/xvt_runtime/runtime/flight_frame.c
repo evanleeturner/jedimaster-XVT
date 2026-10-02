@@ -425,7 +425,7 @@ static void XvtFlightFrame_Checksum(void) {
 									  16);
 	g_flightNetBufferWorldMessagesUntilChecksum = 1;
 	FlightSync_SnapshotWorldStateForReplay();
-	FlightSync_ResetWorldMessageBufferCursor();
+	FlightSync_ClearBufferedWorldMessages();
 }
 
 static XvtFlightReplayResult XvtFlightFrame_Confirm(XvtFlightQueue queue) {

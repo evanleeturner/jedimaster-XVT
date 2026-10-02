@@ -1397,6 +1397,7 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace* face) {
 				if (currentLeftWidth < 0) {
 					currentLeftWidth = 0;
 				}
+				/* Here currentLeftWidth holds an x coordinate, the new span's new end, not a width. */
 				currentLeftWidth += startX;
 				if (currentLeftWidth > endX) {
 					currentLeftWidth = endX;
@@ -2007,7 +2008,7 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 		}
 
 		if (g_flightBytesPerPixel == 2 && !useSpecializedTextureWrap) {
-			sw3d_DrawTexturedShadeSpanGeneric();
+			sw3d_DrawTexturedShadeSpanGeneric16bpp();
 		} else {
 			for (pixelIndex = 0; pixelIndex < g_sw3dSpanLength; ++pixelIndex) {
 				unsigned int shadeAccum;
@@ -2118,7 +2119,7 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW) {
 }
 
 // FUNCTION: XVT 0x497850
-int sw3d_DrawTexturedShadeSpanGeneric(void) {
+int sw3d_DrawTexturedShadeSpanGeneric16bpp(void) {
 	uint8_t* pixel;
 	uint8_t* pixelEnd;
 	uint8_t* shadeTable;

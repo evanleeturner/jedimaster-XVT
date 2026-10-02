@@ -14,7 +14,7 @@ float Math3D_RotateVec3X(const float* vec, const float* matrix3x3);
 float Math3D_RotateVec3Y(const float* vec, const float* matrix3x3);
 float Math3D_RotateVec3Z(const float* vec, const float* matrix3x3);
 void Math3D_MulMatrix3x3(float* lhsInOut, const float* rhs);
-void Math3D_MulMatrix3x3T(float* lhsInOut, const float* rhs);
+void Math3D_PreMulTransposedMatrix3x3(float* lhsInOut, const float* rhs);
 void Math3D_BuildAxisAngleMatrix(float* matrix3x3Out, const float* axisAngle);
 
 #ifdef __cplusplus

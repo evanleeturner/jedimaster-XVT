@@ -116,13 +116,13 @@ typedef struct XvtSnapLighting {
 
 typedef struct XvtSnapOptAsset {
 	uint64_t id;
-	uint16_t public_handle;
+	uint16_t classic_handle;
 	char path[XVT_SNAP_PATH];
 } XvtSnapOptAsset;
 
 typedef struct XvtSnapTextureAsset {
 	uint64_t id;
-	uint16_t public_handle, model_type;
+	uint16_t classic_handle, model_type;
 	char path[XVT_SNAP_PATH];
 } XvtSnapTextureAsset;
 

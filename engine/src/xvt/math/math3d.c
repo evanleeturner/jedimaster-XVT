@@ -77,7 +77,7 @@ void Math3D_MulMatrix3x3(float* lhsInOut, const float* rhs) {
 /* Multiplies the transposed `rhs` into `lhsInOut` in place:
  * new[r][c] = sum_k lhs[k][c] * rhs[k][r]. */
 // FUNCTION: XVT 0x4211D0
-void Math3D_MulMatrix3x3T(float* lhsInOut, const float* rhs) {
+void Math3D_PreMulTransposedMatrix3x3(float* lhsInOut, const float* rhs) {
 	float r00;
 	float r01;
 	float r02;

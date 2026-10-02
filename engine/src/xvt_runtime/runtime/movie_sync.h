@@ -14,11 +14,11 @@ extern "C" {
 void XvtMovieSync_Begin(void);
 /* The first call after Begin marks the local player waiting, sends a movie-sync packet and sets a
  * deadline 5 seconds out for the host and 20 for a client; later calls do nothing. */
-void XvtMovieSync_Wait(void);
-/* Processes frontend network packets, and marks the deadline passed once Wait's deadline expires.
+void XvtMovieSync_ReportFinished(void);
+/* Processes frontend network packets, and marks the deadline passed once ReportFinished's deadline expires.
  * Returns 1 when every listed player is waiting, otherwise 0. */
 int XvtMovieSync_Update(void);
-/* After Wait, draws each listed player's name with watching or waiting, four per row in the top
+/* After ReportFinished, draws each listed player's name with watching or waiting, four per row in the top
  * margin; a listed player missing from the roster draws an empty label. Once the deadline has
  * passed and bottom_margin is positive, draws the still-waiting prompt in the bottom margin: the
  * host's offers C to continue, a client's offers E to exit. */

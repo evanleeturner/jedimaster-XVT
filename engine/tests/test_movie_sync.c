@@ -1,8 +1,8 @@
-/* Checks multiplayer movie sync (xvt_runtime/runtime/movie_sync.h) against the promises in its header:
- * the players Begin lists and what it clears, Wait marking the local player and setting the host's and the
- * client's deadline once, and Update's answer and the moment it marks the deadline passed. The test sets the
- * network roster and players itself; there is no DirectPlay session, so the packets sent go nowhere and no
- * packet arrives. The host clock, which answers GetTickCount, moves only when the test advances it. Every
+/* Checks multiplayer movie sync (xvt_runtime/runtime/movie_sync.h) against the promises in its header: the
+ * players Begin lists and what it clears, ReportFinished marking the local player and setting the host's and
+ * the client's deadline once, and Update's answer and the moment it marks the deadline passed. The test sets
+ * the network roster and players itself; there is no DirectPlay session, so the packets sent go nowhere and
+ * no packet arrives. The host clock, which answers GetTickCount, moves only when the test advances it. Every
  * case starts from a cleared frontend, an empty roster and the clock at 0.
  *
  * Not checked here: remote players marked waiting or dropped by their packets, which need a DirectPlay
@@ -69,14 +69,14 @@ static void CheckBegin(void) {
 		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[i].playerId, g_mpRoster[i].playerId);
 }
 
-static void CheckWait(void) {
+static void CheckReportFinished(void) {
 	for (int host = 0; host < 2; ++host) {
 		Fresh();
 		Players(3);
 		g_frontState.netIsHost = host;
 		XvtMovieSync_Begin();
 		XvtTime_AdvanceHostClock(2000 * 1000);
-		XvtMovieSync_Wait();
+		XvtMovieSync_ReportFinished();
 
 		/* The local player waits; the others still watch. */
 		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[0].isWaiting, 1);
@@ -88,7 +88,7 @@ static void CheckWait(void) {
 		/* Later calls do nothing, even with the local player's mark cleared. */
 		g_movieMultiplayerSyncPlayers[0].isWaiting = 0;
 		XvtTime_AdvanceHostClock(1000 * 1000);
-		XvtMovieSync_Wait();
+		XvtMovieSync_ReportFinished();
 		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[0].isWaiting, 0);
 		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncDeadlineMs, 2000 + (host ? 5000 : 20000));
 	}
@@ -99,18 +99,18 @@ static void CheckTickAnswer(void) {
 	Players(2);
 	XvtMovieSync_Begin();
 	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 0);
-	XvtMovieSync_Wait();
+	XvtMovieSync_ReportFinished();
 	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 0);
 	/* Every listed player waiting. */
 	g_movieMultiplayerSyncPlayers[1].isWaiting = 1;
 	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 1);
 
-	/* With only the local player listed, its own Wait completes the sync. */
+	/* With only the local player listed, its own ReportFinished completes the sync. */
 	Fresh();
 	Players(1);
 	XvtMovieSync_Begin();
 	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 0);
-	XvtMovieSync_Wait();
+	XvtMovieSync_ReportFinished();
 	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 1);
 
 	/* No listed players: nothing to wait for. */
@@ -124,7 +124,7 @@ static void CheckDeadlinePassed(void) {
 	Players(2);
 	g_frontState.netIsHost = 1;
 	XvtMovieSync_Begin();
-	XvtMovieSync_Wait();
+	XvtMovieSync_ReportFinished();
 	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 0);
 	int waiting = g_moviePlaybackCompletionState;
 	XVT_ASSERT_TRUE(waiting != 0);
@@ -138,7 +138,7 @@ static void CheckDeadlinePassed(void) {
 	XVT_ASSERT_TRUE(g_moviePlaybackCompletionState != waiting);
 	XVT_ASSERT_TRUE(g_moviePlaybackCompletionState != 0);
 
-	/* Before Wait there is no deadline to pass. */
+	/* Before ReportFinished there is no deadline to pass. */
 	Fresh();
 	Players(2);
 	XvtMovieSync_Begin();
@@ -149,7 +149,7 @@ static void CheckDeadlinePassed(void) {
 
 int main(void) {
 	CheckBegin();
-	CheckWait();
+	CheckReportFinished();
 	CheckTickAnswer();
 	CheckDeadlinePassed();
 	return 0;

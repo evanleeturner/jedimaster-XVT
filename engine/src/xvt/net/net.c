@@ -542,10 +542,10 @@ void Net_ShutdownDirectPlaySessionForQuit(void) { Net_ShutdownDirectPlaySessionE
 void Net_ShutdownDirectPlaySession(void) { Net_ShutdownDirectPlaySessionEx(0, 1); }
 
 // FUNCTION: XVT 0x4CD9E0
-void Net_ShutdownDirectPlaySessionNoJoinAbort(void) { Net_ShutdownDirectPlaySessionEx(0, 0); }
+void Net_ShutdownDirectPlaySessionNoHandshake(void) { Net_ShutdownDirectPlaySessionEx(0, 0); }
 
 // FUNCTION: XVT 0x4CD9F0
-int Net_ShutdownDirectPlaySessionEx(int suppressRestart, int allowJoinAbortExit) {
+int Net_ShutdownDirectPlaySessionEx(int suppressRestart, int waitForHandshakeAcks) {
 	enum {
 		NET_DESTROY_PLAYER_TIMEOUT_MS = 20000,
 		NET_RELIABLE_PEER_CAPACITY = sizeof(g_frontState.netRuntimeReliablePeerSlots) /
@@ -567,7 +567,7 @@ int Net_ShutdownDirectPlaySessionEx(int suppressRestart, int allowJoinAbortExit)
 #endif
 	if (g_frontState.netDirectPlay != NULL) {
 #ifndef XVT_MODERN
-		if (g_netActiveTransportType == NET_TRANSPORT_TCPIP && allowJoinAbortExit != 0) {
+		if (g_netActiveTransportType == NET_TRANSPORT_TCPIP && waitForHandshakeAcks != 0) {
 			if (Net_WaitForShutdownHandshakeAcks() == 0) {
 				if (suppressRestart != 0) {
 					Frontend_SavePersistentState();
@@ -588,7 +588,7 @@ int Net_ShutdownDirectPlaySessionEx(int suppressRestart, int allowJoinAbortExit)
 		}
 #else
 		(void)suppressRestart;
-		(void)allowJoinAbortExit;
+		(void)waitForHandshakeAcks;
 #endif
 		g_netActiveTransportType = NET_TRANSPORT_IPX;
 #ifndef XVT_MODERN
@@ -925,6 +925,8 @@ void Net_PumpIncomingPackets(void) {
 			groupChannel = (wirePacket.header & 0x80) != 0;
 			broadcastChannel = (wirePacket.header & 0x8000) == 0;
 			sequence = (wirePacket.header >> 8) & 0x7F;
+			/* Outside the resync types (60-63) every packet carries a piggyback trailer after its payload,
+			 * and a type with no fixed size also starts with a length word; hasLength stands for both. */
 			hasLength = packetType < NET_PACKET_RESYNC_CHECKSUMS || packetType >= NET_PACKET_RESYNC_CHUNK + 1;
 			if (hasLength) {
 				payloadSize = (uint32_t)NetSession_GetFixedPayloadSize((int)packetType);
@@ -3127,14 +3129,14 @@ int Net_CompactReliablePeerSlotsForRoster(void) {
 
 // FUNCTION: XVT 0x4D1EA0
 int Net_SendSequenceKeepalives(void) {
-	int outCount;
+	int playerCount;
 	int packet[128];
 	NetPlayerInfo* playerRoster;
 	unsigned int playerIndex;
 
 	playerIndex = 0;
-	playerRoster = Net_GetPlayerRoster(&outCount);
-	if ((unsigned int)outCount > 0) {
+	playerRoster = Net_GetPlayerRoster(&playerCount);
+	if ((unsigned int)playerCount > 0) {
 		do {
 			unsigned int nowMs;
 
@@ -3170,7 +3172,7 @@ int Net_SendSequenceKeepalives(void) {
 				}
 			}
 			++playerIndex;
-		} while (playerIndex < (unsigned int)outCount);
+		} while (playerIndex < (unsigned int)playerCount);
 	}
 	return 1;
 }

@@ -51,12 +51,12 @@ extern int16_t g_flightSwRotSpriteDestYMode;
 extern int g_flightSwRotSpriteDestPitchBytes;
 extern uint16_t g_flightSwRotSpriteSavedPrimaryEdgeY;
 extern uint16_t g_flightSwRotSpriteSavedPrimaryEdgeX;
-extern uint16_t g_flightFillRectBottom;
-extern uint16_t g_flightFillRectRight;
-extern uint16_t g_flightFillRectLeft;
-extern uint16_t g_flightFillRectTop;
-extern int g_flightFillRectCurrentY;
-extern int g_flightFillRectRemainingRows;
+extern uint16_t g_flightFillRectBottom16bpp;
+extern uint16_t g_flightFillRectRight16bpp;
+extern uint16_t g_flightFillRectLeft16bpp;
+extern uint16_t g_flightFillRectTop16bpp;
+extern int g_flightFillRectCurrentY16bpp;
+extern int g_flightFillRectRemainingRows16bpp;
 extern int32_t g_flightFillRectCurrentY8bpp;
 extern uint16_t g_flightFillRectTop8bpp;
 extern uint16_t g_flightFillRectBottom8bpp;
@@ -127,7 +127,7 @@ struct FlightSwRotSpriteScaleState {
 
 struct FlightSwRotSpriteSpanRun {
 	int startX;
-	int pixelLowByte;
+	int colorIndex;
 	int length;
 };
 

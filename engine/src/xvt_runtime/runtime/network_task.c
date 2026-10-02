@@ -35,8 +35,8 @@ static struct {
 } g_browser = { .selected_index = -1 };
 
 /* Read mission setup's list/description formats into browser-owned storage. */
-static int XvtNetworkTask_MissionFile(const AeronDplayDirectoryMission* mission, char* path,
-									  size_t capacity) {
+static int XvtNetworkTask_FindMissionFileAndTitle(const AeronDplayDirectoryMission* mission, char* path,
+												  size_t capacity) {
 	char list[256], line[256], filename[256], title[256];
 	if (!mission->present || mission->directory >= 6)
 		return 0;
@@ -88,7 +88,7 @@ static void XvtNetworkTask_LoadPreview(void) {
 		return;
 	char path[512];
 	strcpy(g_browser.preview.text, "Description unavailable");
-	if (!XvtNetworkTask_MissionFile(&room->metadata.mission, path, sizeof(path)))
+	if (!XvtNetworkTask_FindMissionFileAndTitle(&room->metadata.mission, path, sizeof(path)))
 		return;
 	XvtFile* file = File_Open(path, "rb");
 	if (!file)

@@ -17,7 +17,7 @@ typedef struct Source {
 	XvtFrontendImageColors frontend_colors;
 	const void* owner;
 	uint16_t handle;
-	uint8_t dead;
+	uint8_t retired;
 } Source;
 
 static Source g_sources[SOURCE_CAPACITY];
@@ -36,9 +36,9 @@ static void Changed(uint32_t kind) {
 }
 
 static void Retire(Source* source) {
-	if (!source->image.id || source->dead)
+	if (!source->image.id || source->retired)
 		return;
-	source->dead = 1;
+	source->retired = 1;
 	Changed(source->image.kind);
 	for (unsigned i = 0; i < XVT_SNAP_TYPES; ++i)
 		if (g_bindings[i] == source->image.id)
@@ -103,7 +103,7 @@ void XvtRenderAssets_BeginFrame(void) {
 	/* A held presentation can still reference an original source after its
 	 * classic handle is freed. Keep its descriptor until both snapshots retire it. */
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		if (g_sources[i].dead &&
+		if (g_sources[i].retired &&
 			!SnapshotReferencesSource(XvtRenderSnapshot_Current(), g_sources[i].image.id) &&
 			!SnapshotReferencesSource(XvtRenderSnapshot_Previous(), g_sources[i].image.id)) {
 			Changed(g_sources[i].image.kind);
@@ -133,7 +133,7 @@ static uint64_t Register(const void* owner, uint16_t handle, const char* path, u
 			resolved[i] += 'a' - 'A';
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
 		Source* s = &g_sources[i];
-		if (!s->image.id || s->dead)
+		if (!s->image.id || s->retired)
 			continue;
 		if (owner ? s->owner == owner : (!s->owner && s->handle == handle)) {
 			if (s->handle == handle && s->image.kind == kind && strcmp(s->image.path, resolved) == 0 &&
@@ -223,7 +223,7 @@ uint64_t XvtRenderAssets_HandleId(uint16_t handle) {
 	if (!handle)
 		return 0;
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i)
-		if (g_sources[i].image.id && !g_sources[i].dead && !g_sources[i].owner &&
+		if (g_sources[i].image.id && !g_sources[i].retired && !g_sources[i].owner &&
 			g_sources[i].handle == handle)
 			return g_sources[i].image.id;
 	return 0;
@@ -254,7 +254,7 @@ uint64_t XvtRenderAssets_ImageId(const void* owner) {
 	if (!owner)
 		return 0;
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i)
-		if (!g_sources[i].dead && g_sources[i].owner == owner)
+		if (!g_sources[i].retired && g_sources[i].owner == owner)
 			return g_sources[i].image.id;
 	return 0;
 }
@@ -282,12 +282,12 @@ void XvtRenderAssets_Export(XvtRenderSnapshot* snapshot) {
 		if (s->image.kind == SOURCE_OPT && snapshot->opt_asset_count < XVT_SNAP_ASSETS) {
 			XvtSnapOptAsset* out = &snapshot->opt_assets[snapshot->opt_asset_count++];
 			out->id = s->image.id;
-			out->public_handle = s->handle;
+			out->classic_handle = s->handle;
 			memcpy(out->path, s->image.path, sizeof out->path);
 		} else if (s->image.kind == SOURCE_ACT && snapshot->texture_asset_count < XVT_SNAP_TYPES) {
 			XvtSnapTextureAsset* out = &snapshot->texture_assets[snapshot->texture_asset_count++];
 			out->id = s->image.id;
-			out->public_handle = s->handle;
+			out->classic_handle = s->handle;
 			out->model_type = UINT16_MAX;
 			memcpy(out->path, s->image.path, sizeof out->path);
 			for (unsigned t = 0; t < XVT_SNAP_TYPES; ++t)

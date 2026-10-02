@@ -170,7 +170,7 @@ struct Std3DErrorStringEntry {
 	const char* message;
 };
 
-struct Std3DZBufferTargetScratch {
+struct Std3DZBufferTarget {
 	int storageType;
 	int lockCount;
 	int bVideoMemory;

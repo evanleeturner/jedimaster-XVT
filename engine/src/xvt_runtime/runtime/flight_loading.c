@@ -109,14 +109,14 @@ void XvtFlightLoading_Globals(void) {
 	}
 
 	g_flightSimSideEffectsSuppressed = 0;
-	g_flightSessionResetState = 0;
-	g_flightTransientResetState = 0;
+	g_unusedFlightSessionResetState = 0;
+	g_unusedFlightTransientResetState = 0;
 	g_localPlayer = NetSession_FindPlayerSlotByDpid(NetSession_GetLocalDplayId());
 	g_activeFlightPlayerCount = NetSession_GetPlayerCount();
 	g_flightPlayerCount = g_activeFlightPlayerCount;
 	memset(g_replayInputs, 0, sizeof(g_replayInputs));
-	memset(g_flightNetworkRuntimeScratch, 0, sizeof(g_flightNetworkRuntimeScratch));
-	memset(g_flightRuntimeScratch, 0, sizeof(g_flightRuntimeScratch));
+	memset(g_unusedFlightNetworkBlock, 0, sizeof(g_unusedFlightNetworkBlock));
+	memset(g_unusedFlightRuntimeBlock, 0, sizeof(g_unusedFlightRuntimeBlock));
 	memset(&g_currentInputFrame, 0, sizeof(g_currentInputFrame));
 	g_remotePlayerRenderSmoothingEnabled = g_internetPlayEnabled;
 	g_flightMissionState.connectedPlayerCount = g_activeFlightPlayerCount;
@@ -171,7 +171,7 @@ void XvtFlightLoading_Globals(void) {
 	pai_cacheBuiltinPlanIds();
 	g_hudCockpitResourcesLoaded = 0;
 	g_flightSwRotSpriteCoeffCacheValid = 0;
-	g_flightStartupObjectPassState = 0;
+	g_unusedFlightStartupObjectPassState = 0;
 	g_unusedFlightDebugLogFile = NULL;
 	g_flightSwRotSpriteSpanRunsEnabled = 1;
 }
@@ -266,7 +266,7 @@ void XvtFlightLoading_MissionSetup(void) {
 	}
 
 	g_messageLogTotalCount = 0;
-	g_flightMessageRuntimeState = 0;
+	g_unusedFlightMessageRuntimeState = 0;
 	g_worldLightDirectionX = DEFAULT_MODEL_LIGHT_DIRECTION;
 	g_worldLightDirectionY = DEFAULT_MODEL_LIGHT_DIRECTION;
 	g_worldLightDirectionZ = DEFAULT_MODEL_LIGHT_DIRECTION;

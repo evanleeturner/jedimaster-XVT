@@ -112,8 +112,8 @@ static void XvtFlightTask_ReleaseMission(int quitting) {
 	if (g_flight.missionEntered && !quitting && g_preFlightResolutionMode != g_flightResolutionMode)
 		FlightDisplay_ApplyResolutionMode(g_preFlightResolutionMode);
 	if (g_flight.optionsFailed)
-		memcpy(&g_localPlayerSnapshotOnFlightExit, &g_players[g_localPlayer],
-			   sizeof(g_localPlayerSnapshotOnFlightExit));
+		memcpy(&g_localPlayerSnapshotOnOptionsSyncFailure, &g_players[g_localPlayer],
+			   sizeof(g_localPlayerSnapshotOnOptionsSyncFailure));
 	else if (g_flight.result)
 		Pilot_Save(0);
 	XvtFlightSim_Reset();
@@ -154,14 +154,14 @@ static int XvtFlightTask_StartWorld(void) {
 		if (g_players[i].participationState)
 			mask |= 1u << i;
 	XvtFlightCheckpoint_Begin((uint8_t)mask);
-	g_flightStartupObjectPassState = 0;
+	g_unusedFlightStartupObjectPassState = 0;
 	for (int i = 0; i < g_regionMainObjectSlotEnd; ++i)
 		if (g_objectTable[i].mobj)
 			g_objectTable[i].mobj->simStateTimestamp = 0;
 	Flight_AllocWorldStateBuffers();
 	if (!g_worldStateBuffer || !g_worldStateDupBuffer)
 		return 0;
-	FlightSync_ResetWorldMessageBufferCursor();
+	FlightSync_ClearBufferedWorldMessages();
 	Flight_SaveWorldState();
 	if (!g_worldStateSize)
 		return 0;

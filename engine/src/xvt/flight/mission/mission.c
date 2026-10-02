@@ -3238,7 +3238,7 @@ uint16_t Mission_Init(char* fileName) {
 		MODEL_ASSET_REQUIRED = 0x10,
 		MODEL_FLAG_BACKDROP = 0x20,
 		AI_FIGHTER_OBJECT_TYPE_FIRST = 1,
-		AI_FIGHTER_OBJECT_TYPE_LIMIT = 4,
+		AI_FIGHTER_OBJECT_TYPE_LAST = 4,
 		AI_HEADHUNTER_OBJECT_TYPE = 14,
 		MAX_GROUP_AI = 5,
 		RANDOM_OPTIONAL_CRAFT_CATEGORY = 4,
@@ -3619,7 +3619,7 @@ uint16_t Mission_Init(char* fileName) {
 																		.fg.craftType];
 
 										if (objectType >= AI_FIGHTER_OBJECT_TYPE_FIRST &&
-											(objectType <= AI_FIGHTER_OBJECT_TYPE_LIMIT ||
+											(objectType <= AI_FIGHTER_OBJECT_TYPE_LAST ||
 											 objectType == AI_HEADHUNTER_OBJECT_TYPE)) {
 											if ((sourceTeamAndType & INT32_MIN) == 0)
 												replaceCraftType = 1;
@@ -3674,7 +3674,7 @@ uint16_t Mission_Init(char* fileName) {
 								int sourceObjectType = g_craftTypeToObjectType[sourceCraftType];
 
 								if (sourceObjectType >= AI_FIGHTER_OBJECT_TYPE_FIRST &&
-									(sourceObjectType <= AI_FIGHTER_OBJECT_TYPE_LIMIT ||
+									(sourceObjectType <= AI_FIGHTER_OBJECT_TYPE_LAST ||
 									 sourceObjectType == AI_HEADHUNTER_OBJECT_TYPE)) {
 									g_pilotData.meleeTournamentSequenceState.teamStandings[slot]
 										.aiOpponentSourceTeamAndTypeFlag = sourceTeam | INT32_MIN;
@@ -4152,9 +4152,9 @@ void Mission_InitFlightRuntimeState(void) {
 		FLIGHT_GROUP_GOAL_STATE_COUNT = 80,
 		TEAM_GOAL_COUNT = 3,
 		GLOBAL_GOAL_TRIGGER_COUNT = 4,
-		ARRIVAL_STATE_COMPLETE = 1,
-		ARRIVAL_STATE_FAILED = 2,
-		ARRIVAL_STATE_PENDING = 4,
+		CONDITION_STATE_COMPLETE = 1,
+		CONDITION_STATE_FAILED = 2,
+		CONDITION_STATE_PENDING = 4,
 		ANY_TEAM = 10,
 		MODEL_FLAG_BACKDROP = 0x20,
 		DEFAULT_CAMERA_DISTANCE = 1024,
@@ -4183,8 +4183,8 @@ void Mission_InitFlightRuntimeState(void) {
 		if (g_missionFgStats[g_currentFlightGroupIdx].arrivalEnabled == 0)
 			continue;
 
-		firstPairState = ARRIVAL_STATE_PENDING;
-		secondPairState = ARRIVAL_STATE_PENDING;
+		firstPairState = CONDITION_STATE_PENDING;
+		secondPairState = CONDITION_STATE_PENDING;
 		condition1 =
 			g_missionFlightGroups[g_currentFlightGroupIdx].fg.arrivalTriggers[0].triggers[0].condition;
 		condition2 =
@@ -4214,11 +4214,11 @@ void Mission_InitFlightRuntimeState(void) {
 					.triggers[1]
 					.amount,
 				0, ANY_TEAM);
-			if ((result1 & result2 & ARRIVAL_STATE_COMPLETE) != 0)
-				firstPairState = ARRIVAL_STATE_COMPLETE;
+			if ((result1 & result2 & CONDITION_STATE_COMPLETE) != 0)
+				firstPairState = CONDITION_STATE_COMPLETE;
 			else
-				firstPairState = ((result1 | result2) & ARRIVAL_STATE_FAILED) == 0 ? ARRIVAL_STATE_PENDING
-																				   : ARRIVAL_STATE_FAILED;
+				firstPairState = ((result1 | result2) & CONDITION_STATE_FAILED) == 0 ? CONDITION_STATE_PENDING
+																					 : CONDITION_STATE_FAILED;
 		}
 
 		condition1 =
@@ -4250,29 +4250,30 @@ void Mission_InitFlightRuntimeState(void) {
 					.triggers[1]
 					.amount,
 				0, ANY_TEAM);
-			if ((result1 & result2 & ARRIVAL_STATE_COMPLETE) != 0)
-				secondPairState = ARRIVAL_STATE_COMPLETE;
+			if ((result1 & result2 & CONDITION_STATE_COMPLETE) != 0)
+				secondPairState = CONDITION_STATE_COMPLETE;
 			else
-				secondPairState = ((result1 | result2) & ARRIVAL_STATE_FAILED) == 0 ? ARRIVAL_STATE_PENDING
-																					: ARRIVAL_STATE_FAILED;
+				secondPairState = ((result1 | result2) & CONDITION_STATE_FAILED) == 0
+									  ? CONDITION_STATE_PENDING
+									  : CONDITION_STATE_FAILED;
 		}
 
 		if (g_missionFlightGroups[g_currentFlightGroupIdx].fg.arrivals12OrArrivals34 == 1) {
-			if ((((uint8_t)firstPairState | (uint8_t)secondPairState) & ARRIVAL_STATE_COMPLETE) != 0)
-				arrivalState = ARRIVAL_STATE_COMPLETE;
+			if ((((uint8_t)firstPairState | (uint8_t)secondPairState) & CONDITION_STATE_COMPLETE) != 0)
+				arrivalState = CONDITION_STATE_COMPLETE;
 			else
-				arrivalState = ((firstPairState & secondPairState) & ARRIVAL_STATE_FAILED) == 0
-								   ? ARRIVAL_STATE_PENDING
-								   : ARRIVAL_STATE_FAILED;
+				arrivalState = ((firstPairState & secondPairState) & CONDITION_STATE_FAILED) == 0
+								   ? CONDITION_STATE_PENDING
+								   : CONDITION_STATE_FAILED;
 		} else {
-			if ((((uint8_t)firstPairState & (uint8_t)secondPairState) & ARRIVAL_STATE_COMPLETE) != 0)
-				arrivalState = ARRIVAL_STATE_COMPLETE;
+			if ((((uint8_t)firstPairState & (uint8_t)secondPairState) & CONDITION_STATE_COMPLETE) != 0)
+				arrivalState = CONDITION_STATE_COMPLETE;
 			else
-				arrivalState = ((firstPairState | secondPairState) & ARRIVAL_STATE_FAILED) == 0
-								   ? ARRIVAL_STATE_PENDING
-								   : ARRIVAL_STATE_FAILED;
+				arrivalState = ((firstPairState | secondPairState) & CONDITION_STATE_FAILED) == 0
+								   ? CONDITION_STATE_PENDING
+								   : CONDITION_STATE_FAILED;
 		}
-		if ((arrivalState & ARRIVAL_STATE_FAILED) != 0)
+		if ((arrivalState & CONDITION_STATE_FAILED) != 0)
 			g_missionFgStats[g_currentFlightGroupIdx].arrivalEnabled = 0;
 	}
 
@@ -4329,14 +4330,14 @@ void Mission_InitFlightRuntimeState(void) {
 		}
 		for (goalStateIndex = 0; goalStateIndex < FLIGHT_GROUP_GOAL_STATE_COUNT;
 			 goalStateIndex += GOAL_STATE_BATCH_SIZE) {
-			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex] = ARRIVAL_STATE_PENDING;
-			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 1] = ARRIVAL_STATE_PENDING;
-			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 2] = ARRIVAL_STATE_PENDING;
-			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 3] = ARRIVAL_STATE_PENDING;
-			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 4] = ARRIVAL_STATE_PENDING;
-			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 5] = ARRIVAL_STATE_PENDING;
-			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 6] = ARRIVAL_STATE_PENDING;
-			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 7] = ARRIVAL_STATE_PENDING;
+			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex] = CONDITION_STATE_PENDING;
+			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 1] = CONDITION_STATE_PENDING;
+			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 2] = CONDITION_STATE_PENDING;
+			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 3] = CONDITION_STATE_PENDING;
+			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 4] = CONDITION_STATE_PENDING;
+			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 5] = CONDITION_STATE_PENDING;
+			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 6] = CONDITION_STATE_PENDING;
+			g_missionFgStats[g_currentFlightGroupIdx].goalState[goalStateIndex + 7] = CONDITION_STATE_PENDING;
 		}
 
 		if (g_missionFlightGroups[g_currentFlightGroupIdx].fg.craftType != CRAFT_SPECIES_UNKNOWN &&
@@ -4373,7 +4374,7 @@ void Mission_InitFlightRuntimeState(void) {
 		for (goalIndex = 0; goalIndex < TEAM_GOAL_COUNT; ++goalIndex) {
 			int triggerIndex;
 
-			g_flightMissionState.runtime.teamGlobalGoalState[teamIndex][goalIndex] = ARRIVAL_STATE_PENDING;
+			g_flightMissionState.runtime.teamGlobalGoalState[teamIndex][goalIndex] = CONDITION_STATE_PENDING;
 			g_flightMissionState.runtime.teamGoalStatus[teamIndex][goalIndex] = 0;
 			for (triggerIndex = 0; triggerIndex < GLOBAL_GOAL_TRIGGER_COUNT; ++triggerIndex) {
 				g_flightMissionState.runtime.globalGoalTriggerCounts[0][teamIndex][goalIndex][triggerIndex] =

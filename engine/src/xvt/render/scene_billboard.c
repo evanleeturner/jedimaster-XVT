@@ -72,13 +72,14 @@ void SceneBillboard_DrawOrQueueObject(int objectIndex) {
 	}
 	if (frame < BILLBOARD_MODEL_FRAME_LIMIT) {
 		if (sourceObjectType == COMPONENT_OBJECT_TYPE) {
+			/* From here sourceObjectType holds mobj->sourceObjectType, not the object's own type. */
 			sourceObjectType = object->mobj->sourceObjectType;
 		}
 		g_billboardModelNodeSwitchIndex = frame;
 		RenderScene_DrawSelectedRootNode(object, frame);
 		if (sourceObjectType == COMPONENT_OBJECT_TYPE) {
 			g_billboardTextureSequenceIndex = g_objectTable[objectIndex].typeSpecificByte[1];
-			frame = g_modelType132TextureFrameSequence[g_billboardTextureSequenceIndex];
+			frame = g_objectType132TextureFrameSequence[g_billboardTextureSequenceIndex];
 		}
 	}
 
@@ -210,7 +211,7 @@ void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers) {
 }
 
 // FUNCTION: XVT 0x41FF70
-void RenderBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex) {
+void SceneBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex) {
 	ObjectRecord* object;
 	int deltaX;
 	int deltaY;

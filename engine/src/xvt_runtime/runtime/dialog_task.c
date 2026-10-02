@@ -158,7 +158,7 @@ int XvtDialog_Confirm(const char* line1, const char* line2, const char* line3, c
 	if (g_dialog.active)
 		return XVT_DIALOG_PENDING;
 	snprintf(g_frontDialogLine1OrEdit, sizeof(g_frontDialogLine1OrEdit), "%s", line1 ? line1 : "");
-	snprintf(g_frontDialogText1, sizeof(g_frontDialogText1), "%s", line2 ? line2 : "");
+	snprintf(g_frontDialogLine2, sizeof(g_frontDialogLine2), "%s", line2 ? line2 : "");
 	snprintf(g_frontDialogLine3, sizeof(g_frontDialogLine3), "%s", line3 ? line3 : "");
 	snprintf(g_frontDialogOkayLabel, sizeof(g_frontDialogOkayLabel), "%s", okay_label ? okay_label : "");
 	snprintf(g_frontDialogCancelLabel, sizeof(g_frontDialogCancelLabel), "%s",

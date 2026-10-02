@@ -872,21 +872,21 @@ void FlightText_ClearRemainingLineBackground(void) {
 
 	cursorY = g_flightCursorY;
 	clippedTop = cursorY;
-	g_flightFillRectRight = g_flightClipRight;
-	g_flightFillRectLeft = cursorX;
+	g_flightFillRectRight16bpp = g_flightClipRight;
+	g_flightFillRectLeft16bpp = cursorX;
 	clippedBottom = g_flightFontLineHeight + cursorY;
 	if (g_flightClipLeft > (int)(uint16_t)cursorX)
-		g_flightFillRectLeft = g_flightClipLeft;
+		g_flightFillRectLeft16bpp = g_flightClipLeft;
 
-	g_flightFillRectTop = cursorY;
-	if (g_flightClipTop > (int)g_flightFillRectTop)
+	g_flightFillRectTop16bpp = cursorY;
+	if (g_flightClipTop > (int)g_flightFillRectTop16bpp)
 		clippedTop = g_flightClipTop;
 
-	g_flightFillRectBottom = g_flightFontLineHeight + cursorY;
-	if (g_flightClipBottom < (int)g_flightFillRectBottom)
+	g_flightFillRectBottom16bpp = g_flightFontLineHeight + cursorY;
+	if (g_flightClipBottom < (int)g_flightFillRectBottom16bpp)
 		clippedBottom = g_flightClipBottom;
-	g_flightFillRectBottom = clippedBottom;
-	g_flightFillRectTop = clippedTop;
+	g_flightFillRectBottom16bpp = clippedBottom;
+	g_flightFillRectTop16bpp = clippedTop;
 	if (clippedBottom > clippedTop)
 		FlightSw_FillRectOrBorder16bpp(0);
 }

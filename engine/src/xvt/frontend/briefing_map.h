@@ -22,7 +22,7 @@ extern BriefingMapS16Pair g_briefingMapTargetScale;
 extern int16_t g_briefingMapCenterDirty;
 extern int16_t g_briefingMapScaleDirty;
 extern int g_activeBriefingIndex;
-extern RECT g_briefingMapSourceRect;
+extern RECT g_briefingMapPanelRect;
 extern int g_mapIconByCraftType[106];
 extern RECT g_mapIconRects[70];
 extern int16_t g_briefingMapFgMarkerActive[8];

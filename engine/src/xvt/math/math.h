@@ -49,6 +49,8 @@ static __inline int Math_Dot3Q15(int leftX, int leftY, int leftZ, int rightX, in
 #endif
 }
 
+/* Unlike Math_Dot3Q15, the products and their sum are 32-bit and may wrap; the sum is then clamped to
+ * [-0x3FFF0000, 0x3FFFFFFF] before the shift, so the result stays within -32766..32767. */
 static __inline int Math_Dot3Q15Wrapped(int leftX, int leftY, int leftZ, int rightX, int rightY, int rightZ) {
 #ifdef XVT_MODERN
 	int32_t value = (int32_t)((uint32_t)leftX * (uint32_t)rightX + (uint32_t)leftY * (uint32_t)rightY +
@@ -84,6 +86,7 @@ static __inline int Math_Dot3Q15Wrapped(int leftX, int leftY, int leftZ, int rig
 #endif
 }
 
+/* Two-term form of Math_Dot3Q15Wrapped: 32-bit products and sum, clamped the same way before the shift. */
 static __inline int Math_Dot2Q15Wrapped(int leftX, int leftY, int rightX, int rightY) {
 #ifdef XVT_MODERN
 	int32_t value = (int32_t)((uint32_t)leftX * (uint32_t)rightX + (uint32_t)leftY * (uint32_t)rightY);

@@ -222,7 +222,7 @@ extern int g_flightInputNonBlockingMsgPump;
 extern uint8_t g_lastKeyCode;
 extern int g_keyReady;
 
-void FlightInput_ScaleAxesForFlight(void);
+void FlightInput_LatchFlightControls(void);
 void FlightInput_ApplyDeadzone(void);
 void FlightInput_ReadAndApplyFlightDeadzone(int playerIdxOrSentinel);
 void FlightInput_WaitForActionKeyRelease(void);

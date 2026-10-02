@@ -87,24 +87,24 @@ int16_t paifight_FindAttackOrderTargetFromOrder(uint16_t orderSlot) {
 
 	orderIndex = orderSlot;
 	result = paifight_FindNearestAttackOrderTarget(
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target2Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target2);
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2);
 	if (result == -1) {
 		result = paifight_FindNearestAttackOrderTarget(
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[0],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[0],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target3OrTarget4,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target3OrTarget4,
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[1],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[1]);
 	}
@@ -141,7 +141,7 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 
 			objectArrayIndex = objectIndex;
 			if (g_objectTable[objectArrayIndex].objectType == 0 ||
-				g_objectTable[objectArrayIndex].flightGroupIdx == g_paiContext.orderFlightGroupIndex)
+				g_objectTable[objectArrayIndex].flightGroupIdx == g_paiContext.craftFlightGroupIndex)
 				continue;
 			trigger1Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
 			trigger2Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
@@ -212,7 +212,7 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type, uint16_t targ
 
 			objectArrayIndex = objectIndex;
 			if (g_objectTable[objectArrayIndex].objectType == 0 ||
-				g_objectTable[objectArrayIndex].flightGroupIdx == g_paiContext.orderFlightGroupIndex)
+				g_objectTable[objectArrayIndex].flightGroupIdx == g_paiContext.craftFlightGroupIndex)
 				continue;
 			trigger1Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target1Type, target1);
 			trigger2Matches = Mission_ObjectMatchesTriggerVariable(objectIndex, target2Type, target2);
@@ -301,24 +301,24 @@ int16_t paifight_TargetEscortLeaderFromOrder(uint16_t orderSlot) {
 
 	orderIndex = orderSlot;
 	result = paifight_TargetNearestEscortLeader(
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target2Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target2);
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2);
 	if (result == -1) {
 		result = paifight_TargetNearestEscortLeader(
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[0],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[0],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target3OrTarget4,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target3OrTarget4,
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[1],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[1]);
 	}
@@ -393,24 +393,24 @@ int16_t paifight_FindAttackerOfOrderTargetFromOrder(uint16_t orderSlot) {
 	int16_t result;
 
 	result = paifight_FindNearestAttackerOfMatchingTarget(
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target1Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target1,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target1OrTarget2,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target2Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target2);
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target1OrTarget2,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target2Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target2);
 	if (result == -1)
 		result = paifight_FindNearestAttackerOfMatchingTarget(
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargetTypes[0],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargets[0],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].target3OrTarget4,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].target3OrTarget4,
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargetTypes[1],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderSlot]
 				.secondaryTargets[1]);
 	return result;
@@ -623,7 +623,7 @@ int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot) {
 
 	plan =
 		&g_planTable[g_builtinPlanIdByNameIndex[g_orderLeaderBuiltinPlanNameIndex
-													[g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+													[g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 														 .fg.orders[orderSlot]
 														 .order]]];
 	if (strcmp(plan->name, "disableldr1pln") == 0)
@@ -649,7 +649,7 @@ int16_t paifight_SearchOrderSlotRemainingTargets(uint16_t orderSlot) {
 
 	plan =
 		&g_planTable[g_builtinPlanIdByNameIndex[g_orderLeaderBuiltinPlanNameIndex
-													[g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+													[g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 														 .fg.orders[orderSlot]
 														 .order]]];
 	if (strcmp(plan->name, "disableldr1pln") == 0)
@@ -671,24 +671,24 @@ int16_t paifight_CountRemainingOrderTargetsFromOrderSlot(uint16_t orderSlot) {
 
 	orderIndex = orderSlot;
 	result = paifight_CountRemainingOrderTargets(
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target2Type,
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target2);
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2Type,
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2);
 	if (result == -1) {
 		result = paifight_CountRemainingOrderTargets(
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[0],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[0],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target3OrTarget4,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target3OrTarget4,
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargetTypes[1],
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[orderIndex]
 				.secondaryTargets[1]);
 	}
@@ -716,7 +716,7 @@ int16_t paifight_CountRemainingOrderTargets(int16_t target1Type, uint16_t target
 		objectArrayIndex = objectIndex;
 		if (g_objectTable[objectArrayIndex].objectType != 0) {
 			flightGroupIdx = g_objectTable[objectArrayIndex].flightGroupIdx;
-			if (g_paiContext.orderFlightGroupIndex != flightGroupIdx) {
+			if (g_paiContext.craftFlightGroupIndex != flightGroupIdx) {
 				matchesTarget1 =
 					Mission_FlightGroupMatchesTriggerVariable(flightGroupIdx, target1Type, target1);
 				matchesTarget2 =
@@ -1149,7 +1149,7 @@ int16_t paifight_fightershootorder(void) {
 										}
 										g_paiContext.controller->targetComponent =
 											paifight_SelectTargetComponentMesh(targetIndex);
-										laser_firerocketsystem(g_paiContext.objectIndex, launcherIndex);
+										laser_firewarheadsystem(g_paiContext.objectIndex, launcherIndex);
 										++g_curCraft->aiFlight.warheadsFiredThisManeuver;
 										if (g_objectTable[targetIndex].genusId == CRAFT_GENUS_STARFIGHTER ||
 											g_objectTable[targetIndex].genusId == CRAFT_GENUS_TRANSPORT)
@@ -1660,9 +1660,9 @@ int16_t paifight_gunnerselfdefenseorder(void) {
 					if (g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF) {
 						if (g_curCraft->chaffActiveSeconds == 0) {
 							g_curCraft->chaffActiveSeconds += CHAFF_ACTIVE_SECONDS;
-							if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.status1 !=
+							if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.status1 !=
 									UNLIMITED_AMMO_STATUS &&
-								g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.status2 !=
+								g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.status2 !=
 									UNLIMITED_AMMO_STATUS)
 								--g_curCraft->cmAmmoCount;
 						}
@@ -1754,35 +1754,35 @@ int16_t paifight_gunneroffenseorder(void) {
 
 		turretState->retargetCooldownTimer += SIMULATION_TICKS_PER_SECOND;
 		if (candidateSetsNeedBuild == 1) {
-			paifight_BuildGunnerTargetCandidateSet(g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			paifight_BuildGunnerTargetCandidateSet(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													   .fg.orders[g_paiContext.orderSlot]
 													   .target1Type,
-												   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													   .fg.orders[g_paiContext.orderSlot]
 													   .target1,
-												   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													   .fg.orders[g_paiContext.orderSlot]
 													   .target1OrTarget2,
-												   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													   .fg.orders[g_paiContext.orderSlot]
 													   .target2Type,
-												   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													   .fg.orders[g_paiContext.orderSlot]
 													   .target2,
 												   0);
-			paifight_BuildGunnerTargetCandidateSet(g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			paifight_BuildGunnerTargetCandidateSet(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													   .fg.orders[g_paiContext.orderSlot]
 													   .secondaryTargetTypes[0],
-												   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													   .fg.orders[g_paiContext.orderSlot]
 													   .secondaryTargets[0],
-												   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													   .fg.orders[g_paiContext.orderSlot]
 													   .target3OrTarget4,
-												   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													   .fg.orders[g_paiContext.orderSlot]
 													   .secondaryTargetTypes[1],
-												   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+												   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 													   .fg.orders[g_paiContext.orderSlot]
 													   .secondaryTargets[1],
 												   1);
@@ -1828,19 +1828,19 @@ int16_t paifight_gunneroffenseorder(void) {
 		}
 
 		targetObjectIndex = paifight_FindNearestGunnerTargetInCandidateSet(
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[g_paiContext.orderSlot]
 				.target1Type,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[g_paiContext.orderSlot]
 				.target1,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[g_paiContext.orderSlot]
 				.target1OrTarget2,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[g_paiContext.orderSlot]
 				.target2Type,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[g_paiContext.orderSlot]
 				.target2,
 			0);
@@ -1852,19 +1852,19 @@ int16_t paifight_gunneroffenseorder(void) {
 				g_curCraft->weaponSlots[weaponSlotIndex].ammoCount = 1;
 		} else {
 			targetObjectIndex = paifight_FindNearestGunnerTargetInCandidateSet(
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 					.fg.orders[g_paiContext.orderSlot]
 					.secondaryTargetTypes[0],
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 					.fg.orders[g_paiContext.orderSlot]
 					.secondaryTargets[0],
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 					.fg.orders[g_paiContext.orderSlot]
 					.target3OrTarget4,
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 					.fg.orders[g_paiContext.orderSlot]
 					.secondaryTargetTypes[1],
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 					.fg.orders[g_paiContext.orderSlot]
 					.secondaryTargets[1],
 				1);
@@ -2228,7 +2228,7 @@ int16_t paifight_coverleaderorder(void) {
 
 					candidateObject = &g_objectTable[objectIndex];
 					if (candidateObject->objectType != 0 &&
-						candidateObject->flightGroupIdx == g_paiContext.orderFlightGroupIndex) {
+						candidateObject->flightGroupIdx == g_paiContext.craftFlightGroupIndex) {
 						CraftData* candidateCraft;
 
 						candidateCraft = candidateObject->mobj->pCraft;
@@ -2412,38 +2412,38 @@ int16_t paifight_followleadatkorder(void) {
 // FUNCTION: XVT 0x462550
 int16_t paifight_checkescortorder(void) {
 	g_paiContext.controller->escortTargetFG = -1;
-	if (paifight_searchforclosestingroup(g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+	if (paifight_searchforclosestingroup(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 											 .fg.orders[g_paiContext.orderSlot]
 											 .target1Type,
-										 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 											 .fg.orders[g_paiContext.orderSlot]
 											 .target1,
-										 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 											 .fg.orders[g_paiContext.orderSlot]
 											 .target1OrTarget2,
-										 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 											 .fg.orders[g_paiContext.orderSlot]
 											 .target2Type,
-										 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 											 .fg.orders[g_paiContext.orderSlot]
 											 .target2) != -1) {
 		g_paiContext.controller->escortTargetFG = g_aiEscortCandidateFgIdx;
 		return 0;
 	}
 
-	if (paifight_searchforclosestingroup(g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+	if (paifight_searchforclosestingroup(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 											 .fg.orders[g_paiContext.orderSlot]
 											 .secondaryTargetTypes[0],
-										 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 											 .fg.orders[g_paiContext.orderSlot]
 											 .secondaryTargets[0],
-										 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 											 .fg.orders[g_paiContext.orderSlot]
 											 .target3OrTarget4,
-										 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 											 .fg.orders[g_paiContext.orderSlot]
 											 .secondaryTargetTypes[1],
-										 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+										 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 											 .fg.orders[g_paiContext.orderSlot]
 											 .secondaryTargets[1]) != -1) {
 		g_paiContext.controller->escortTargetFG = g_aiEscortCandidateFgIdx;
@@ -2514,26 +2514,26 @@ int16_t paifight_OrderSlotHasFutureTargets(uint16_t orderSlot) {
 
 	orderIndex = orderSlot;
 	if (paifight_HasFutureFgTargets(
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1Type,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target2Type,
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderIndex].target2) != 0)
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1Type,
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1,
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target1OrTarget2,
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2Type,
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderIndex].target2) != 0)
 		return 1;
 
-	return paifight_HasFutureFgTargets(g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+	return paifight_HasFutureFgTargets(g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 										   .fg.orders[orderIndex]
 										   .secondaryTargetTypes[0],
-									   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+									   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 										   .fg.orders[orderIndex]
 										   .secondaryTargets[0],
-									   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+									   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 										   .fg.orders[orderIndex]
 										   .target3OrTarget4,
-									   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+									   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 										   .fg.orders[orderIndex]
 										   .secondaryTargetTypes[1],
-									   g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+									   g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 										   .fg.orders[orderIndex]
 										   .secondaryTargets[1]) != 0;
 }

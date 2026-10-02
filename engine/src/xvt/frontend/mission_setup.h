@@ -135,7 +135,7 @@ struct BattleSequenceState {
 };
 
 struct CampaignSequenceState {
-	int32_t field00; ///< Unresolved campaign-sequence field; cleared and persisted with the full state.
+	int32_t unused00; ///< Unresolved campaign-sequence field; cleared and persisted with the full state.
 	int32_t currentMissionIndex;  ///< Zero-based position of the current campaign mission.
 	int32_t missionCount;         ///< Mission count read from the selected campaign descriptor.
 	int32_t lastMissionCompleted; ///< Whether the just-finished campaign mission completed successfully.
@@ -144,7 +144,7 @@ struct CampaignSequenceState {
 };
 
 struct BattleContinuation {
-	int32_t field00;           ///< Unresolved persisted battle-continuation field.
+	int32_t unused00;          ///< Unresolved persisted battle-continuation field.
 	uint32_t randomSeed;       ///< Random seed used to reproduce mission selection.
 	int32_t isActive;          ///< Continuation slot contains an unfinished battle.
 	int32_t battleLengthIndex; ///< Configured battle-length selector.
@@ -153,7 +153,7 @@ struct BattleContinuation {
 };
 
 struct CampaignContinuation {
-	int32_t field00;             ///< Unresolved persisted campaign-continuation field.
+	int32_t unused00;            ///< Unresolved persisted campaign-continuation field.
 	uint32_t randomSeed;         ///< Random seed used to reproduce mission selection.
 	int32_t isActive;            ///< Continuation slot contains an unfinished campaign.
 	int32_t randomSetup;         ///< Configured sequential, random, or player-choice selection mode.

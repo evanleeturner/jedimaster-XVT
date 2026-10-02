@@ -12,7 +12,7 @@
 #include <math.h>
 #include <stdint.h>
 
-#define MOUSE_FLIGHT_MAX_FRAME_US 100000
+#define MOUSE_FLIGHT_MAX_SAMPLE_GAP_US 100000
 /* Virtual stick: axis units per pixel of mouse travel at the default
  * sensitivity notch (full deflection after ~256 px). */
 #define MOUSE_FLIGHT_STICK_GAIN (127.0f / 256.0f)
@@ -217,7 +217,7 @@ int XvtMouseFlight_Sample(void) {
 	interval_us = now - g_mouseFlight.drain_time_us;
 	/* Discard transition motion on first sampling or after a stall, preserving
 	 * the held stick deflection. */
-	if (g_mouseFlight.drain_time_us == 0 || interval_us > MOUSE_FLIGHT_MAX_FRAME_US) {
+	if (g_mouseFlight.drain_time_us == 0 || interval_us > MOUSE_FLIGHT_MAX_SAMPLE_GAP_US) {
 		g_mouseFlight.drain_time_us = now;
 		g_mouseFlight.pending_x = 0.0f;
 		g_mouseFlight.pending_y = 0.0f;

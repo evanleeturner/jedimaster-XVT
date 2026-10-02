@@ -16,7 +16,7 @@
 
 static AeronBlendRamp g_blend;
 static int g_waitClassic, g_consumedTab, g_worldReady;
-static uint64_t g_classicSerial, g_readyFlightFrameSerial, g_mission;
+static uint64_t g_classicSerial, g_readyFlightFrameSerial, g_readyMissionGeneration;
 static int g_width, g_height;
 
 enum { DISPLAY_NONE, DISPLAY_FRONTEND, DISPLAY_FLIGHT, DISPLAY_LOADING };
@@ -27,7 +27,7 @@ void XvtRemasterView_Init(void) {
 	Aeron_BlendRampInit(&g_blend);
 	g_blend.alpha = 0;
 	g_waitClassic = g_consumedTab = g_worldReady = 0;
-	g_readyFlightFrameSerial = g_mission = g_classicSerial = 0;
+	g_readyFlightFrameSerial = g_readyMissionGeneration = g_classicSerial = 0;
 	g_width = g_height = 0;
 	g_display = DISPLAY_NONE;
 	XvtInput_SuppressRendererTab(0);
@@ -36,7 +36,8 @@ void XvtRemasterView_Init(void) {
 static int FlightReady(const XvtRenderSnapshot* s) {
 	return s && s->flight_valid && s->scene_kind == XVT_SCENE_FLIGHT &&
 		   s->presented_target == XVT_TARGET_FLIGHT_MAIN && g_worldReady &&
-		   s->flight_frame_serial == g_readyFlightFrameSerial && s->mission_generation == g_mission;
+		   s->flight_frame_serial == g_readyFlightFrameSerial &&
+		   s->mission_generation == g_readyMissionGeneration;
 }
 
 void XvtRemasterView_BeginFrame(const AeronInputSnapshot* in) {
@@ -78,15 +79,16 @@ int XvtRemasterView_NeedsWorld(const XvtRenderSnapshot* s) {
 
 int XvtRemasterView_TryEnableDirect(const XvtRenderSnapshot* s, int width, int height) {
 	return s->flight_valid && s->scene_kind == XVT_SCENE_FLIGHT && g_worldReady &&
-		   s->mission_generation == g_mission && g_blend.target > 0 && g_blend.alpha >= 1 && !g_waitClassic &&
-		   AeronDx5_IsClassicFlightRenderingSuppressed() && XvtFlightPipeline_SetDirect(1, width, height);
+		   s->mission_generation == g_readyMissionGeneration && g_blend.target > 0 && g_blend.alpha >= 1 &&
+		   !g_waitClassic && AeronDx5_IsClassicFlightRenderingSuppressed() &&
+		   XvtFlightPipeline_SetDirect(1, width, height);
 }
 
 void XvtRemasterView_Present(const XvtRenderSnapshot* s, int32_t delta_us, int world_ready, int direct) {
 	if (world_ready && s->flight_valid) {
 		g_worldReady = 1;
 		g_readyFlightFrameSerial = s->flight_frame_serial;
-		g_mission = s->mission_generation;
+		g_readyMissionGeneration = s->mission_generation;
 		const XvtPreparedFlight* frame = XvtRemasterFlight_Current();
 		if (frame) {
 			g_width = frame->view.camera.viewport.width;

@@ -234,7 +234,7 @@ Std3DTexCacheNode g_std3DColorOverlayTexNode = { 0 };
 // GLOBAL: XVT 0xA91A34
 Std3DZBufferSurfaceBlock g_std3DZBufferSurfaceBlock = { 0 };
 // GLOBAL: XVT 0xA919D0
-Std3DZBufferTargetScratch g_std3DZBufferTargetScratch = { 0 };
+Std3DZBufferTarget g_std3DZBufferTarget = { 0 };
 // GLOBAL: XVT 0x528C70
 int g_std3DMinTextureWidth;
 // GLOBAL: XVT 0x528C74
@@ -1325,6 +1325,7 @@ int std3D_AddToTextureCache(Std3DVBuffer* source, Std3DTexCacheNode* node, int c
 		destinationY = 0;
 		while (verticalCopies != 0) {
 			destinationX = 0;
+			/* From here targetWidth counts down the copies left in this row, not a width. */
 			for (targetWidth = horizontalCopies; targetWidth != 0; --targetWidth) {
 				std3D_BlitVBuffer(temporaryBuffer, source, (int)destinationX, (int)destinationY, 0, 1);
 				destinationX += width;
@@ -2225,13 +2226,12 @@ int std3D_CreateZBuffer(int width, int height) {
 	unsigned int zBufferBitDepth;
 	HRESULT result;
 
-	g_std3DZBufferTargetScratch.storageType = 1;
-	g_std3DZBufferTargetScratch.bVideoMemory = 0;
-	memcpy(&g_std3DZBufferTargetScratch.raster, g_pStd3DRenderTarget,
-		   sizeof(g_std3DZBufferTargetScratch.raster));
-	g_std3DZBufferTargetScratch.unk58 = 0;
+	g_std3DZBufferTarget.storageType = 1;
+	g_std3DZBufferTarget.bVideoMemory = 0;
+	memcpy(&g_std3DZBufferTarget.raster, g_pStd3DRenderTarget, sizeof(g_std3DZBufferTarget.raster));
+	g_std3DZBufferTarget.unk58 = 0;
 	g_pStd3DZBufferState = &g_std3DZBufferSurfaceBlock;
-	g_std3DZBufferTargetScratch.pixels = NULL;
+	g_std3DZBufferTarget.pixels = NULL;
 
 	memset(&g_pStd3DZBufferState->desc, 0, sizeof(g_pStd3DZBufferState->desc));
 	g_pStd3DZBufferState->desc.dwSize = sizeof(g_pStd3DZBufferState->desc);
@@ -2283,10 +2283,10 @@ int std3D_CreateZBuffer(int width, int height) {
 	}
 
 	if ((g_pStd3DZBufferState->desc.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) != 0) {
-		g_std3DZBufferTargetScratch.bVideoMemory = 1;
+		g_std3DZBufferTarget.bVideoMemory = 1;
 	}
-	DebugPrintf("ZBuffer in %s memory.\n", g_std3DZBufferTargetScratch.bVideoMemory != 0 ? "VIDEO" : "SYSTEM",
-				0, 0, 0);
+	DebugPrintf("ZBuffer in %s memory.\n", g_std3DZBufferTarget.bVideoMemory != 0 ? "VIDEO" : "SYSTEM", 0, 0,
+				0);
 	DebugPrintf("ZBuffer created successfully.\n", 0, 0, 0, 0);
 	return 1;
 }
@@ -2355,6 +2355,8 @@ HRESULT AERON_DXAPI std3D_EnumDevicesCallback(DxGuid* guid, char* deviceDescript
 // FUNCTION: XVT 0x4B4490
 int AERON_DXAPI std3D_EnumTextureFormats(DDSURFACEDESC* surfaceDesc, void* context) {
 	Std3DTexFmt* format;
+	/* Each of these four first counts its mask's trailing zeros (the channel's position), then is reset
+	 * to count the mask's set bits (the channel's width, stored as its BPP). */
 	int redShift;
 	int greenShift;
 	int blueShift;

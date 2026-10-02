@@ -613,7 +613,7 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t* packet) {
 										  (const int*)g_worldChecksumRegionLengths, checksumDwordCount);
 		g_flightNetBufferWorldMessagesUntilChecksum = 1;
 		FlightSync_SnapshotWorldStateForReplay();
-		FlightSync_ResetWorldMessageBufferCursor();
+		FlightSync_ClearBufferedWorldMessages();
 	}
 }
 #endif
@@ -735,7 +735,7 @@ void FlightSync_HandleServerChecksumPacket(uint8_t* packet) {
 
 	if (checksumMismatch == 0) {
 		g_flightNetBufferWorldMessagesUntilChecksum = 0;
-		FlightSync_ResetWorldMessageBufferCursor();
+		FlightSync_ClearBufferedWorldMessages();
 	}
 }
 
@@ -750,7 +750,7 @@ void FlightSync_CopyWorldStateResyncChunk(const void* src, int offset, unsigned 
 
 #ifndef XVT_MODERN
 // FUNCTION: XVT 0x4195A0
-void FlightSync_ReplayResyncMessages(unsigned int worldStateBytes, int serverTickTime) {
+void FlightSync_ApplyResyncAndReplayWorldMessages(unsigned int worldStateBytes, int serverTickTime) {
 	int checksumDwordCount;
 
 	g_worldStateDupSize = (int)worldStateBytes;
@@ -850,7 +850,7 @@ void FlightSync_BufferWorldMessagePacket(uint8_t* packet) {
 #endif
 
 // FUNCTION: XVT 0x4197B0
-void FlightSync_ResetWorldMessageBufferCursor(void) {
+void FlightSync_ClearBufferedWorldMessages(void) {
 #ifdef XVT_MODERN
 	XvtFlightMessages_Clear(XVT_QUEUE_REPLAY);
 #else

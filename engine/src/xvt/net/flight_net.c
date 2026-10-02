@@ -2232,7 +2232,8 @@ void FlightNet_HandleWorldStateResyncPacket(const int* packet) {
 				FlightNet_MarkPilotNetworkPlayerLeft(g_localPlayer);
 			} else {
 				Time_ConsumeElapsedTicks();
-				FlightSync_ReplayResyncMessages((unsigned int)receivedPacket[2], receivedPacket[1]);
+				FlightSync_ApplyResyncAndReplayWorldMessages((unsigned int)receivedPacket[2],
+															 receivedPacket[1]);
 				g_flightNetScratchPacket.packetType = NET_PACKET_ACK;
 
 				NetSession_SendPacket(NetSession_GetHostDplayId(), (unsigned int*)&g_flightNetScratchPacket,

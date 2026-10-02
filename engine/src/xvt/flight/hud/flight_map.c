@@ -379,7 +379,7 @@ void FlightMap_DrawObjectPass(int drawAboveGridPlane) {
 				case CRAFT_GENUS_OTHER_PROJECTILE:
 					FVIEW_SetObjectTransform(g_objectTable[objectIdx].roll, g_objectTable[objectIdx].pitch,
 											 g_objectTable[objectIdx].yaw, 0, &g_objectTable[objectIdx]);
-					RenderBillboard_DrawRollAlignedObjectModel(objectIdx);
+					SceneBillboard_DrawRollAlignedObjectModel(objectIdx);
 					sw3d_DrawVisibleFacesToSurface();
 					break;
 

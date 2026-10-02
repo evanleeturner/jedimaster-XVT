@@ -209,13 +209,13 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 		BUTTON_FONT_SIZE = 12,
 		UI_SOUND_PRIORITY = 255,
 		UI_SOUND_PAN_CENTER = 63,
-		EXIT_HOVER_SLOT = 6,
-		CONFIG_HOVER_SLOT = 5,
-		HOST_HOVER_SLOT = 4,
-		JOIN_HOVER_SLOT = 3,
-		SOLO_HOVER_SLOT = 2,
-		CRAFT_HOVER_SLOT = 1,
-		PILOT_HOVER_SLOT = 0,
+		EXIT_HELD_SLOT = 6,
+		CONFIG_HELD_SLOT = 5,
+		HOST_HELD_SLOT = 4,
+		JOIN_HELD_SLOT = 3,
+		SOLO_HELD_SLOT = 2,
+		CRAFT_HELD_SLOT = 1,
+		PILOT_HELD_SLOT = 0,
 		CONFIG_PACKET_SIZE = 19 * sizeof(int),
 	};
 
@@ -254,12 +254,12 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 		if (screenContext != SCREEN_CONTEXT_DEBRIEF) {
 			actionTriggered = FrontendButton_HandleSpriteButton(
 				&rect, NULL, "exitdown", FrontendString_Get(FRONTSTR_006_EXIT_TO_WINDOWS), BUTTON_FONT_SIZE,
-				0, EXIT_HOVER_SLOT, "buttonsound");
+				0, EXIT_HELD_SLOT, "buttonsound");
 		} else {
 			FrontImage_DrawSprite("configup", 0, 0);
 			actionTriggered = FrontendButton_HandleSpriteButton(
 				&rect, "exitup", "exitdown", FrontendString_Get(FRONTSTR_006_EXIT_TO_WINDOWS),
-				BUTTON_FONT_SIZE, 0, EXIT_HOVER_SLOT, "buttonsound");
+				BUTTON_FONT_SIZE, 0, EXIT_HELD_SLOT, "buttonsound");
 		}
 		if (Keyboard_PeekChar() == 27) {
 			actionTriggered = 1;
@@ -445,7 +445,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 	} else if (screenContext < SCREEN_CONTEXT_TECH_LIBRARY || screenContext > SCREEN_CONTEXT_TECH_LIBRARY) {
 		if (FrontendButton_HandleSpriteButton(&rect, NULL, "configdown",
 											  FrontendString_Get(FRONTSTR_005_CONFIGURATION),
-											  BUTTON_FONT_SIZE, 0, CONFIG_HOVER_SLOT, "buttonsound") != 0 &&
+											  BUTTON_FONT_SIZE, 0, CONFIG_HELD_SLOT, "buttonsound") != 0 &&
 			(screenContext >= 0 &&
 			 (screenContext <= SCREEN_CONTEXT_MISSION || screenContext == SCREEN_CONTEXT_DEBRIEF))) {
 			FrontendDraw_RectAssign(&screenRect, 0, 0, 640, 480);
@@ -489,7 +489,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 		} else {
 			actionTriggered =
 				FrontendButton_HandleSpriteButton(&rect, NULL, "joinindown", g_frontendScratchBuffer,
-												  BUTTON_FONT_SIZE, 0, JOIN_HOVER_SLOT, "buttonsound");
+												  BUTTON_FONT_SIZE, 0, JOIN_HELD_SLOT, "buttonsound");
 #ifdef XVT_MODERN
 			actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 2, actionTriggered);
 #endif
@@ -621,7 +621,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 			} else {
 				actionTriggered =
 					FrontendButton_HandleSpriteButton(&rect, NULL, "creategamedown", g_frontendScratchBuffer,
-													  BUTTON_FONT_SIZE, 0, HOST_HOVER_SLOT, "buttonsound");
+													  BUTTON_FONT_SIZE, 0, HOST_HELD_SLOT, "buttonsound");
 #ifdef XVT_MODERN
 				actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 3, actionTriggered);
 #endif
@@ -725,7 +725,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 			} else {
 				actionTriggered = FrontendButton_HandleSpriteButton(
 					&rect, "NULL", "flysolodown", FrontendString_Get(FRONTSTR_002_FLY_SOLO), BUTTON_FONT_SIZE,
-					0, SOLO_HOVER_SLOT, "buttonsound");
+					0, SOLO_HELD_SLOT, "buttonsound");
 #ifdef XVT_MODERN
 				actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 4, actionTriggered);
 #endif
@@ -821,7 +821,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 	} else if (screenContext < SCREEN_CONTEXT_CONFIG &&
 			   FrontendButton_HandleSpriteButton(&rect, NULL, "reviewcraftdown",
 												 FrontendString_Get(FRONTSTR_001_CRAFT_DATABASE),
-												 BUTTON_FONT_SIZE, 0, CRAFT_HOVER_SLOT, "buttonsound") != 0) {
+												 BUTTON_FONT_SIZE, 0, CRAFT_HELD_SLOT, "buttonsound") != 0) {
 		FrontendDraw_RectAssign(&screenRect, 0, 0, 640, 480);
 		FrontendScreen_QueuePush(TechLibrary_Update, &screenRect);
 	}
@@ -836,7 +836,7 @@ int Frontend_HandleCommonScreenControls(int screenContext) {
 		} else {
 			actionTriggered = FrontendButton_HandleSpriteButton(
 				&rect, NULL, "pilotregdown", FrontendString_Get(FRONTSTR_000_PILOT_RECORDS), BUTTON_FONT_SIZE,
-				0, PILOT_HOVER_SLOT, "buttonsound");
+				0, PILOT_HELD_SLOT, "buttonsound");
 #ifdef XVT_MODERN
 			actionTriggered = XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, 5, actionTriggered);
 #endif

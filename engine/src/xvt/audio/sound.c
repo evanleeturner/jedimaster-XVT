@@ -238,7 +238,7 @@ int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loo
 	int instanceIndex;
 	int scanIndex;
 	int activeEffectIndex;
-	int currentPriority;
+	int lowestPriority;
 	int clampedVolume;
 	int clampedPan;
 	uint32_t bufferStatus;
@@ -283,14 +283,14 @@ int Sound_PlayEffectNow(const char* soundName, int allowRestartExisting, int loo
 		}
 
 		if (instanceIndex == 8) {
-			currentPriority = priority;
+			lowestPriority = priority;
 			instanceIndex = 8;
 			scanIndex = 0;
 			do {
 				activeEffectIndex = g_activeSoundInstances[scanIndex].effectIndex;
-				if (currentPriority > g_soundDefs[activeEffectIndex].currentPriority) {
+				if (lowestPriority > g_soundDefs[activeEffectIndex].currentPriority) {
 					instanceIndex = scanIndex;
-					currentPriority = g_soundDefs[activeEffectIndex].currentPriority;
+					lowestPriority = g_soundDefs[activeEffectIndex].currentPriority;
 				}
 				++scanIndex;
 			} while (scanIndex < 8);
@@ -495,6 +495,7 @@ int Sound_SetLatestInstanceVolume(const char* name, int volume) {
 		clampedVolume = 0;
 	}
 
+	/* From here clampedVolume holds the DirectSound attenuation, in hundredths of a decibel (-2000 to 0). */
 	clampedVolume = 400 * (5 * clampedVolume - 635) / 127;
 	return g_activeSoundInstances[newestIndex].buffer->lpVtbl->SetVolume(
 			   g_activeSoundInstances[newestIndex].buffer, clampedVolume) == 0;
@@ -580,6 +581,7 @@ int Sound_SetLatestInstancePan(const char* name, int pan) {
 		clampedPan = 0;
 	}
 
+	/* From here clampedPan holds the DirectSound pan, in hundredths of a decibel (0 is center). */
 	clampedPan = 400 * (5 * clampedPan - 315) / 63;
 	return g_activeSoundInstances[newestIndex].buffer->lpVtbl->SetPan(
 			   g_activeSoundInstances[newestIndex].buffer, clampedPan) == 0;

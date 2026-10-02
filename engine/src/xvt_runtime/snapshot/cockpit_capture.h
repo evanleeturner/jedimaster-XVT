@@ -26,7 +26,7 @@ void XvtCockpit_RefreshInstruments(int player);
  * composition selected and unseals. Does nothing while working is invalid. */
 void XvtCockpit_LatchComposition(void);
 /* Places every open MFD page except the message log in pending and latches the visible ones;
- * the damage page is skipped on the map and the command page off it. */
+ * the damage page is skipped on the map and the map help page off it. */
 void XvtCockpit_LatchPages(void);
 /* Places launcher count 0 to 3 in pending at this rectangle, drawn after the CRT and keyed on the
  * bypass color, and shows the launcher. Other launchers are ignored. */

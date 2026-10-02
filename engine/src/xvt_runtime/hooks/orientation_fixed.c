@@ -101,17 +101,17 @@ static void RotateLocal(int64_t matrix[3][3], unsigned axis, uint16_t angle) {
 	}
 }
 
-XvtOrientationAngles XvtOrientation_ApplyPitchYawFixed(XvtOrientationAngles current, int pitch_delta,
-													   int neg_yaw_delta) {
-	if (!(uint16_t)pitch_delta && !(uint16_t)neg_yaw_delta)
+XvtOrientationAngles XvtOrientation_ApplyPitchYawFixed(XvtOrientationAngles current, int pitch_delta_q16,
+													   int neg_yaw_delta_q16) {
+	if (!(uint16_t)pitch_delta_q16 && !(uint16_t)neg_yaw_delta_q16)
 		return current;
 	const int64_t unit = INT64_C(1) << 30;
 	int64_t matrix[3][3] = { { unit, 0, 0 }, { 0, unit, 0 }, { 0, 0, unit } };
 	RotateLocal(matrix, 1, (uint16_t)(0u - current.yaw));
 	RotateLocal(matrix, 0, (uint16_t)(0xc000u - current.pitch));
 	RotateLocal(matrix, 2, (uint16_t)(0u - current.roll));
-	RotateLocal(matrix, 1, (uint16_t)(0u - (uint16_t)neg_yaw_delta));
-	RotateLocal(matrix, 0, (uint16_t)pitch_delta);
+	RotateLocal(matrix, 1, (uint16_t)(0u - (uint16_t)neg_yaw_delta_q16));
+	RotateLocal(matrix, 0, (uint16_t)pitch_delta_q16);
 	/* Extract the same Y-X-Z Euler convention directly from the body axes.
 	 * A quaternion round trip adds no rotation and is unnecessary here. */
 	int64_t horizontal = (int64_t)IntegerSqrt((uint64_t)(matrix[2][2] * matrix[2][2]) +

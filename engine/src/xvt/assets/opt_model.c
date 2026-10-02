@@ -782,6 +782,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 	int itemCount;
 	int childCount;
 	int parsedSize;
+	/* Besides holding each parsed integer, integerValue counts the floats of a matrix or rotation item
+	 * and indexes an enum's name table while a name is looked up. */
 	int integerValue;
 	int compareResult;
 	long rewindPosition;
@@ -1135,6 +1137,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile* stream, char* nodeStorage, OptNode*
 							printf("READ NODE ERROR!\n");
 							return totalSize;
 						}
+						/* Here character holds the parsed truth value, 1 or 0, not a character. */
 						if (_strcmpi(g_optModelLoadScratchBuffer, "true") == 0 ||
 							_strcmpi(g_optModelLoadScratchBuffer, "1") == 0) {
 							character = 1;
@@ -3763,7 +3766,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 		RGB565_GREEN_SHIFT = 5,
 		RGB565_GREEN_BITS = 6,
 		RGB565_GREEN_MASK = 0x3f,
-		RGB565_BLUE_MASK = 0x1f,
+		RGB565_RED_BLUE_MASK = 0x1f,
 	};
 
 	unsigned int totalSize;
@@ -4021,29 +4024,29 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode* srcNode, SceneMesh* meshSt
 								bottomTexel = mipBottomRow;
 								for (mipX = 0; mipX < width; ++mipX) {
 									packedColor = sourcePalette16[topTexel[0]];
-									blue = packedColor & RGB565_BLUE_MASK;
+									blue = packedColor & RGB565_RED_BLUE_MASK;
 									packedColor >>= RGB565_GREEN_SHIFT;
 									green = packedColor & RGB565_GREEN_MASK;
 									packedColor >>= RGB565_GREEN_BITS;
-									red = packedColor & RGB565_BLUE_MASK;
+									red = packedColor & RGB565_RED_BLUE_MASK;
 									packedColor = sourcePalette16[topTexel[1]];
-									blue += packedColor & RGB565_BLUE_MASK;
+									blue += packedColor & RGB565_RED_BLUE_MASK;
 									packedColor >>= RGB565_GREEN_SHIFT;
 									green += packedColor & RGB565_GREEN_MASK;
 									packedColor >>= RGB565_GREEN_BITS;
-									red += packedColor & RGB565_BLUE_MASK;
+									red += packedColor & RGB565_RED_BLUE_MASK;
 									packedColor = sourcePalette16[bottomTexel[0]];
-									blue += packedColor & RGB565_BLUE_MASK;
+									blue += packedColor & RGB565_RED_BLUE_MASK;
 									packedColor >>= RGB565_GREEN_SHIFT;
 									green += packedColor & RGB565_GREEN_MASK;
 									packedColor >>= RGB565_GREEN_BITS;
-									red += packedColor & RGB565_BLUE_MASK;
+									red += packedColor & RGB565_RED_BLUE_MASK;
 									packedColor = sourcePalette16[bottomTexel[1]];
-									blue += packedColor & RGB565_BLUE_MASK;
+									blue += packedColor & RGB565_RED_BLUE_MASK;
 									packedColor >>= RGB565_GREEN_SHIFT;
 									green += packedColor & RGB565_GREEN_MASK;
 									packedColor >>= RGB565_GREEN_BITS;
-									red += packedColor & RGB565_BLUE_MASK;
+									red += packedColor & RGB565_RED_BLUE_MASK;
 									blue >>= 2;
 									green >>= 2;
 									red >>= 2;

@@ -28,6 +28,7 @@ int g_debugConsoleFileDumpEnabled;
 // FUNCTION: XVT 0x4079E0
 void DebugPrintf(const char* format, ...) { (void)format; }
 
+/* Also turns off the mpDump.txt file dump. */
 // FUNCTION: XVT 0x4ACBF0
 void DebugConsole_SetInitialized(int initialized) {
 	g_debugConsoleFileDumpEnabled = 0;

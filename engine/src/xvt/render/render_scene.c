@@ -1330,7 +1330,7 @@ void RenderScene_ApplyBwingBridgeRotation(OptimizedPolyObject* unusedModel, Obje
 	Math3D_BuildAxisAngleMatrix(rotationMatrix, axisAngle);
 	Math3D_MulMatrix3x3(mesh->viewToModelOrient, rotationMatrix);
 	Math3D_RotateVec3(&mesh->eyeModelSpaceX, rotationMatrix);
-	Math3D_MulMatrix3x3T(mesh->viewOrient, rotationMatrix);
+	Math3D_PreMulTransposedMatrix3x3(mesh->viewOrient, rotationMatrix);
 }
 
 // FUNCTION: XVT 0x472400
@@ -1694,7 +1694,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 				mesh->viewPosX += parameters->x;
 				mesh->viewPosY += parameters->y;
 				mesh->viewPosZ += parameters->z;
-				Math3D_MulMatrix3x3T(mesh->viewToModelOrient, &parameters[1].x);
+				Math3D_PreMulTransposedMatrix3x3(mesh->viewToModelOrient, &parameters[1].x);
 				mesh->eyeModelSpaceX -= Math3D_RotateVec3X(&parameters->x, mesh->viewToModelOrient);
 				mesh->eyeModelSpaceY -= Math3D_RotateVec3Y(&parameters->x, mesh->viewToModelOrient);
 				mesh->eyeModelSpaceZ -= Math3D_RotateVec3Z(&parameters->x, mesh->viewToModelOrient);
@@ -1714,7 +1714,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 			case OPT_ROTATION:
 				Math3D_MulMatrix3x3(mesh->viewOrient, (const float*)nodeData);
 				Math3D_RotateVec3(&mesh->viewPosX, (const float*)nodeData);
-				Math3D_MulMatrix3x3T(mesh->viewToModelOrient, (const float*)nodeData);
+				Math3D_PreMulTransposedMatrix3x3(mesh->viewToModelOrient, (const float*)nodeData);
 				break;
 			case OPT_SCALE: {
 				float* scaleX;
@@ -1841,7 +1841,7 @@ void RenderScene_DrawModelNode(OptimizedPolyObject* model, OptNode* node, SceneM
 					Math3D_BuildAxisAngleMatrix(rotationMatrix, axisAngle);
 					Math3D_MulMatrix3x3(mesh->viewToModelOrient, rotationMatrix);
 					Math3D_RotateVec3(&mesh->eyeModelSpaceX, rotationMatrix);
-					Math3D_MulMatrix3x3T(mesh->viewOrient, rotationMatrix);
+					Math3D_PreMulTransposedMatrix3x3(mesh->viewOrient, rotationMatrix);
 					mesh->eyeModelSpaceX += pivot->x;
 					mesh->eyeModelSpaceY += *pivotY;
 					mesh->eyeModelSpaceZ += *pivotZ;
@@ -2051,7 +2051,7 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 				mesh->viewPosX = RenderScene_AddTranslation(mesh->viewPosX, nodePayload->x);
 				mesh->viewPosY += nodePayload->y;
 				mesh->viewPosZ += nodePayload->z;
-				Math3D_MulMatrix3x3T(mesh->viewToModelOrient, &nodePayload[1].x);
+				Math3D_PreMulTransposedMatrix3x3(mesh->viewToModelOrient, &nodePayload[1].x);
 				mesh->eyeModelSpaceX -= Math3D_RotateVec3X(&nodePayload->x, mesh->viewToModelOrient);
 				mesh->eyeModelSpaceY -= Math3D_RotateVec3Y(&nodePayload->x, mesh->viewToModelOrient);
 				mesh->eyeModelSpaceZ -= Math3D_RotateVec3Z(&nodePayload->x, mesh->viewToModelOrient);
@@ -2071,7 +2071,7 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject* model, OptNode*
 			case OPT_ROTATION:
 				Math3D_MulMatrix3x3(mesh->viewOrient, (const float*)nodePayload);
 				Math3D_RotateVec3(&mesh->viewPosX, &nodePayload->x);
-				Math3D_MulMatrix3x3T(mesh->viewToModelOrient, &nodePayload->x);
+				Math3D_PreMulTransposedMatrix3x3(mesh->viewToModelOrient, &nodePayload->x);
 				break;
 			case OPT_SCALE: {
 				float* scaleX = &nodePayload->x;
@@ -2356,6 +2356,7 @@ void RenderScene_AllocateBuffers(void) {
 #else
 	savedEdgeMax = edgeMax;
 	g_sceneEdgeMax = edgeMax;
+	/* From here edgeMax holds the list's size in bytes, 28 per edge, not a count. */
 	edgeMax <<= 3;
 	edgeMax -= savedEdgeMax;
 	edgeMax <<= 2;

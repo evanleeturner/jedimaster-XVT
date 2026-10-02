@@ -509,7 +509,7 @@ int FrontendNet_AwaitJoinAdmissionScreen(int frameCounter) {
 #ifdef XVT_MODERN
 		XvtNetworkSession_Reject();
 #else
-		Net_ShutdownDirectPlaySessionNoJoinAbort();
+		Net_ShutdownDirectPlaySessionNoHandshake();
 #endif
 		switch (networkResult - NET_PACKET_FRONTEND_GAME_STARTED) {
 			case NET_PACKET_FRONTEND_GAME_STARTED - NET_PACKET_FRONTEND_GAME_STARTED:
@@ -605,7 +605,7 @@ int FrontendNet_AwaitJoinAdmissionScreen(int frameCounter) {
 		XvtNetworkSession_Cancel();
 #else
 	if (cancelPressed != 0 || frameCounter == ACCESS_TIMEOUT_FRAME) {
-		Net_ShutdownDirectPlaySessionNoJoinAbort();
+		Net_ShutdownDirectPlaySessionNoHandshake();
 #endif
 		g_frontendSkipScreenEntrySetup = 1;
 		FrontendScreen_SetCallbacks(FrontendNet_JoinGameScreen, FrontendMissionList_FreeScreenResources);
@@ -1017,7 +1017,7 @@ int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void) {
 		QUERY_BUTTON_RIGHT = 42,
 		QUERY_BUTTON_BOTTOM = 138,
 		QUERY_BUTTON_FONT_SIZE = 12,
-		QUERY_BUTTON_HOVER_SLOT = 11,
+		QUERY_BUTTON_HELD_SLOT = 11,
 	};
 
 	int cursorX;
@@ -1050,7 +1050,7 @@ int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void) {
 #else
 										  FrontendString_Get(FRONTSTR_734_QUERY_ALL_GAMES),
 #endif
-										  QUERY_BUTTON_FONT_SIZE, 0, QUERY_BUTTON_HOVER_SLOT,
+										  QUERY_BUTTON_FONT_SIZE, 0, QUERY_BUTTON_HELD_SLOT,
 										  "jewelsound") != 0) {
 #ifdef XVT_MODERN
 		XvtNetworkTask_Refresh();
@@ -1405,7 +1405,7 @@ int FrontendNet_HostGameScreen(int frameCounter) {
 	enum {
 		HOST_NAME_MAX_CHARS = 22,
 		HOST_TEXT_FIELD_ID = 0,
-		HOST_BUTTON_HOVER_SLOT = 20,
+		HOST_BUTTON_HELD_SLOT = 20,
 	};
 
 	int hostRequested;
@@ -1452,7 +1452,7 @@ int FrontendNet_HostGameScreen(int frameCounter) {
 														 HOST_NAME_MAX_CHARS, HOST_TEXT_FIELD_ID, 12, NULL);
 		FrontendDraw_RectAssign(&rect, 250, 275, 440, 295);
 		hostRequested |= FrontendButton_HandleTextButton(&rect, FrontendString_Get(FRONTSTR_004_HOST_GAME),
-														 15, 0xFFFF, HOST_BUTTON_HOVER_SLOT, "buttonsound");
+														 15, 0xFFFF, HOST_BUTTON_HELD_SLOT, "buttonsound");
 		if (hostRequested != 0) {
 			if (g_pilotData.multiplayerGameName[0] == '\0') {
 				sprintf(g_pilotData.multiplayerGameName, "%s%s", g_pilotData.name,

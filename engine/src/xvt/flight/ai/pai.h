@@ -143,7 +143,7 @@ struct PaiContext {
 	AiController* controller;
 	uint16_t leaderObjectIndex;
 	CraftData* leaderOrSelfCraft;
-	uint16_t orderFlightGroupIndex;
+	uint16_t craftFlightGroupIndex;
 	uint16_t orderSlot;
 	int32_t craftPositionX;
 	int32_t craftPositionY;

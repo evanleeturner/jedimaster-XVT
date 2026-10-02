@@ -211,7 +211,7 @@ static void CheckConfirm(void) {
 	Fresh();
 	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("one", NULL, "three", "Okay", NULL, 0), XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine1OrEdit, "one"), 0);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogText1, ""), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine2, ""), 0);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine3, "three"), 0);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogOkayLabel, "Okay"), 0);
 	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogCancelLabel, ""), 0);

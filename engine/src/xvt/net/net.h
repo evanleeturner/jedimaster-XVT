@@ -174,8 +174,8 @@ extern const GUID g_netDirectPlayInetAddressTypeGuid;
 
 void Net_ShutdownDirectPlaySessionForQuit(void);
 void Net_ShutdownDirectPlaySession(void);
-void Net_ShutdownDirectPlaySessionNoJoinAbort(void);
-int Net_ShutdownDirectPlaySessionEx(int suppressRestart, int allowJoinAbortExit);
+void Net_ShutdownDirectPlaySessionNoHandshake(void);
+int Net_ShutdownDirectPlaySessionEx(int suppressRestart, int waitForHandshakeAcks);
 int Net_RefreshPlayerRoster(void);
 int AERON_DXAPI Net_EnumPlayersCallback(DPID playerId, uint32_t playerType, const DPNAME* nameDesc,
 										uint32_t flags, void* context);

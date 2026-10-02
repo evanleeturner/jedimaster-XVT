@@ -1374,13 +1374,13 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 		CONFIG_JOYSTICK_SHADE_BOTTOM = 415,
 		CONFIG_JOYSTICK_SHADE_BLUE = 0x40,
 		CONFIG_BUTTON_FONT_SIZE = 12,
-		CONFIG_RESTORE_HOVER_SLOT = 16,
-		CONFIG_TAUNTS_HOVER_SLOT = 18,
-		CONFIG_JOYSTICK_HOVER_SLOT = 15,
-		CONFIG_SOUND_HOVER_SLOT = 14,
-		CONFIG_MULTIPLAYER_VIDEO_HOVER_SLOT = 13,
-		CONFIG_SINGLEPLAYER_VIDEO_HOVER_SLOT = 12,
-		CONFIG_NETWORK_HOVER_SLOT = 11,
+		CONFIG_RESTORE_HELD_SLOT = 16,
+		CONFIG_TAUNTS_HELD_SLOT = 18,
+		CONFIG_JOYSTICK_HELD_SLOT = 15,
+		CONFIG_SOUND_HELD_SLOT = 14,
+		CONFIG_MULTIPLAYER_VIDEO_HELD_SLOT = 13,
+		CONFIG_SINGLEPLAYER_VIDEO_HELD_SLOT = 12,
+		CONFIG_NETWORK_HELD_SLOT = 11,
 		CONFIG_DEFAULT_SERVER_UPDATE_RATE = 8,
 		CONFIG_DEFAULT_DISABLED = 0,
 		CONFIG_DEFAULT_256_COLORS = 0,
@@ -1451,7 +1451,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 				XVT_ACTION_OWNER_CONFIG, 1,
 				FrontendButton_HandleSpriteButton(
 					&ui.rect, "config6u", "config6d", FrontendString_Get(FRONTSTR_420_RESTORE_DEFAULTS),
-					CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_RESTORE_HOVER_SLOT, "jewelsound"))) {
+					CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_RESTORE_HELD_SLOT, "jewelsound"))) {
 			int result = FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_672_RESTORING_DEFAULTS_WILL_ERASE_ANY_CHANGES),
 				FrontendString_Get(FRONTSTR_673_YOU_HAVE_MADE_TO_THESE_SETTINGS),
@@ -1464,7 +1464,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 #else
 		if (FrontendButton_HandleSpriteButton(
 				&ui.rect, "config6u", "config6d", FrontendString_Get(FRONTSTR_420_RESTORE_DEFAULTS),
-				CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_RESTORE_HOVER_SLOT, "jewelsound") != 0 &&
+				CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_RESTORE_HELD_SLOT, "jewelsound") != 0 &&
 			FrontendDialog_ShowConfirmDialog(
 				FrontendString_Get(FRONTSTR_672_RESTORING_DEFAULTS_WILL_ERASE_ANY_CHANGES),
 				FrontendString_Get(FRONTSTR_673_YOU_HAVE_MADE_TO_THESE_SETTINGS),
@@ -1614,7 +1614,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 			&ui.rect, "config8d", FrontendString_Get(FRONTSTR_794_CUSTOM_TAUNTS), CONFIG_BUTTON_FONT_SIZE, 0);
 	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config8u", "config8u", FrontendString_Get(FRONTSTR_794_CUSTOM_TAUNTS),
-				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_TAUNTS_HOVER_SLOT, "jewelsound") != 0) {
+				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_TAUNTS_HELD_SLOT, "jewelsound") != 0) {
 		g_configDrawStaticControlBackground = 1;
 		g_configCurrentPage = CONFIG_PAGE_TAUNTS;
 		g_activeTextFieldId = 0;
@@ -1632,7 +1632,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 							CONFIG_JOYSTICK_BUTTON_BOTTOM);
 #ifdef XVT_MODERN
 	if (FrontendButton_HandleSpriteButton(&ui.rect, "config5u", "config5u", "OpenXvT Settings",
-										  CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_JOYSTICK_HOVER_SLOT,
+										  CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_JOYSTICK_HELD_SLOT,
 										  "jewelsound"))
 		XvtPort_RequestSettings();
 #else
@@ -1642,7 +1642,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 											CONFIG_BUTTON_FONT_SIZE, 0);
 	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config5u", "config5u", FrontendString_Get(FRONTSTR_415_JOYSTICK_OPTIONS),
-				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_JOYSTICK_HOVER_SLOT, "jewelsound") != 0) {
+				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_JOYSTICK_HELD_SLOT, "jewelsound") != 0) {
 		g_configDrawStaticControlBackground = 1;
 		g_configCurrentPage = CONFIG_PAGE_JOYSTICK;
 		FrontendDisplay_LockOffscreenSurface();
@@ -1666,7 +1666,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 			&ui.rect, "config4d", FrontendString_Get(FRONTSTR_310_SOUND_OPTIONS), CONFIG_BUTTON_FONT_SIZE, 0);
 	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config4u", "config4u", FrontendString_Get(FRONTSTR_310_SOUND_OPTIONS),
-				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_SOUND_HOVER_SLOT, "jewelsound") != 0) {
+				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_SOUND_HELD_SLOT, "jewelsound") != 0) {
 		g_configDrawStaticControlBackground = 1;
 		g_configCurrentPage = CONFIG_PAGE_SOUND;
 		FrontendDisplay_LockOffscreenSurface();
@@ -1687,7 +1687,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config3u", "config3u",
 				   FrontendString_Get(FRONTSTR_641_MULTIPLAYER_FLIGHT_ENGINE_OPTIONS),
-				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_MULTIPLAYER_VIDEO_HOVER_SLOT, "jewelsound") != 0) {
+				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_MULTIPLAYER_VIDEO_HELD_SLOT, "jewelsound") != 0) {
 		g_configDrawStaticControlBackground = 1;
 		g_configCurrentPage = CONFIG_PAGE_MULTIPLAYER_VIDEO;
 		FrontendDisplay_LockOffscreenSurface();
@@ -1708,7 +1708,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config2u", "config2u",
 				   FrontendString_Get(FRONTSTR_219_SINGLE_PLAYER_FLIGHT_ENGINE_OPTIONS),
-				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_SINGLEPLAYER_VIDEO_HOVER_SLOT, "jewelsound") != 0) {
+				   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_SINGLEPLAYER_VIDEO_HELD_SLOT, "jewelsound") != 0) {
 		g_configDrawStaticControlBackground = 1;
 		g_configCurrentPage = CONFIG_PAGE_SINGLEPLAYER_VIDEO;
 		FrontendDisplay_LockOffscreenSurface();
@@ -1729,7 +1729,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void) {
 	} else if (FrontendButton_HandleSpriteButton(
 				   &ui.rect, "config1u", "config1u",
 				   FrontendString_Get(FRONTSTR_304_MULTIPLAYER_CONNECTION_OPTIONS), CONFIG_BUTTON_FONT_SIZE,
-				   0, CONFIG_NETWORK_HOVER_SLOT, "jewelsound") != 0) {
+				   0, CONFIG_NETWORK_HELD_SLOT, "jewelsound") != 0) {
 		Keyboard_FlushCharBuffer();
 		g_configCurrentPage = CONFIG_PAGE_NETWORK;
 		g_activeTextFieldId = 0;
@@ -1912,6 +1912,7 @@ void Config_NetworkOptionsScreen(void) {
 	FrontendDraw_RectOffsetXY(&sourceRect, 0, 25);
 	sourceRect.right = sourceRect.left + 127;
 	FrontendDraw_RectCopy(&rect, &sourceRect);
+	/* From here buttonWidth holds the serial slot's right edge, not a width. */
 	buttonWidth += rect.left;
 	rect.right = buttonWidth;
 	if (g_configDrawStaticControlBackground != 0 &&

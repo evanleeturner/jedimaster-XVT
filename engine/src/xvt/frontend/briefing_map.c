@@ -57,7 +57,7 @@ RECT g_mapIconRects[70] = {
 	{ 98, 95, 111, 108 },  { 120, 94, 128, 108 },
 };
 // GLOBAL: XVT 0x669220
-RECT g_briefingMapSourceRect = { 0, 0, 0, 0 };
+RECT g_briefingMapPanelRect = { 0, 0, 0, 0 };
 // GLOBAL: XVT 0x6696D6
 int16_t g_briefingMapCenterDirty = 0;
 // GLOBAL: XVT 0x6696D8
@@ -241,7 +241,7 @@ int16_t BriefingMap_SelectFlightGroupAtCursor(RECT* viewportRect, RECT* clipRect
 	(void)leftDown;
 	(void)rightDown;
 
-	FrontendDraw_RectCopy(&dst, &g_briefingMapSourceRect);
+	FrontendDraw_RectCopy(&dst, &g_briefingMapPanelRect);
 	BriefingMap_SelectNearestMissionPoint14FlightGroup(&dst, mouseX, mouseY);
 	return 1;
 }
@@ -255,11 +255,11 @@ int16_t BriefingMap_DrawViewportAndSelection(RECT* viewportRect, RECT* clipRect,
 
 	(void)highlightPhase;
 
-	FrontendDraw_RectCopy(&titleRect, &g_briefingMapSourceRect);
+	FrontendDraw_RectCopy(&titleRect, &g_briefingMapPanelRect);
 	FrontendDraw_RectOffsetXY(&titleRect, viewportRect->left, viewportRect->top);
 	titleRect.bottom = titleRect.top + 12;
 
-	FrontendDraw_RectCopy(&narrationRect, &g_briefingMapSourceRect);
+	FrontendDraw_RectCopy(&narrationRect, &g_briefingMapPanelRect);
 	FrontendDraw_RectOffsetXY(&narrationRect, viewportRect->left, viewportRect->top);
 	narrationRect.top = narrationRect.bottom - 27;
 	if (g_briefingTextSlotActive[1] != 0) {
@@ -271,7 +271,7 @@ int16_t BriefingMap_DrawViewportAndSelection(RECT* viewportRect, RECT* clipRect,
 		}
 	}
 
-	FrontendDraw_RectCopy(&mapViewportRect, &g_briefingMapSourceRect);
+	FrontendDraw_RectCopy(&mapViewportRect, &g_briefingMapPanelRect);
 	FrontendDraw_RectOffsetXY(&mapViewportRect, viewportRect->left, viewportRect->top);
 	mapViewportRect.bottom -= 28;
 	FrontendDraw_RectCopy(&clippedRect, clipRect);

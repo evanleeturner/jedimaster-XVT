@@ -168,17 +168,17 @@ static uint16_t g_flightSwCrossMarkerSavedPixels16bpp[7] = { 0 };
 // GLOBAL: XVT 0x556998
 uint16_t g_radarTargetMarkerSavedPixels16bpp[10];
 // GLOBAL: XVT 0x556988
-uint16_t g_flightFillRectBottom = 0;
+uint16_t g_flightFillRectBottom16bpp = 0;
 // GLOBAL: XVT 0x55698C
-uint16_t g_flightFillRectRight = 0;
+uint16_t g_flightFillRectRight16bpp = 0;
 // GLOBAL: XVT 0x556990
-uint16_t g_flightFillRectLeft = 0;
+uint16_t g_flightFillRectLeft16bpp = 0;
 // GLOBAL: XVT 0x556994
-uint16_t g_flightFillRectTop = 0;
+uint16_t g_flightFillRectTop16bpp = 0;
 // GLOBAL: XVT 0x5569B8
-int g_flightFillRectCurrentY = 0;
+int g_flightFillRectCurrentY16bpp = 0;
 // GLOBAL: XVT 0x5569D0
-int g_flightFillRectRemainingRows = 0;
+int g_flightFillRectRemainingRows16bpp = 0;
 // GLOBAL: XVT 0x54F9D0
 int32_t g_flightFillRectCurrentY8bpp = 0;
 // GLOBAL: XVT 0x54F9B8
@@ -1063,7 +1063,7 @@ void FlightSw_DrawPointArray8bpp(uint16_t* points, int16_t count) {
 	struct FlightSwPointRecord {
 		uint16_t x;
 		uint16_t y;
-		uint8_t payloadLow;
+		uint8_t drawnMask;
 		uint8_t payloadHigh;
 	};
 
@@ -1116,7 +1116,7 @@ void FlightSw_DrawPointArray8bpp(uint16_t* points, int16_t count) {
 				points[2] &= 1;
 			} else {
 				*destination = color;
-				((struct FlightSwPointRecord*)points)->payloadLow |= 2;
+				((struct FlightSwPointRecord*)points)->drawnMask |= 2;
 			}
 		}
 		--count;
@@ -1831,14 +1831,14 @@ void FlightSw_DrawLine8bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx) {
 // FUNCTION: XVT 0x4213E0
 void FlightSw_DrawRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun* runs, uint8_t* destBase,
 									 const int* spanOffsets) {
-	int pixelLowByte;
+	int colorIndex;
 	int destOffset;
 	int spanX;
 	int length;
 	const int* runOffsets;
 
 	for (;;) {
-		pixelLowByte = runs->pixelLowByte;
+		colorIndex = runs->colorIndex;
 		spanX = g_flightSwRotSpriteSpanBaseX;
 		spanX += runs->startX;
 		length = runs->length;
@@ -1847,7 +1847,7 @@ void FlightSw_DrawRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun* runs, uint8
 		do {
 			destOffset = *runOffsets++;
 			destBase += destOffset;
-			*destBase = (uint8_t)pixelLowByte;
+			*destBase = (uint8_t)colorIndex;
 			destBase -= destOffset;
 			length--;
 		} while (length != 0);
@@ -1864,7 +1864,7 @@ void FlightSw_DrawClippedRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun* runs
 	int length;
 	int spanStart;
 	int spanEnd;
-	int pixelLowByte;
+	int colorIndex;
 	const FlightSwRotSpriteSpanRun* drawRun;
 	const int* runOffsets;
 	int destOffset;
@@ -1883,11 +1883,11 @@ void FlightSw_DrawClippedRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun* runs
 			}
 			length = spanEnd - spanStart;
 			if (length != 0) {
-				pixelLowByte = drawRun->pixelLowByte;
+				colorIndex = drawRun->colorIndex;
 				runOffsets = &spanOffsets[spanStart];
 				do {
 					destOffset = *runOffsets++;
-					destBase[destOffset] = (uint8_t)pixelLowByte;
+					destBase[destOffset] = (uint8_t)colorIndex;
 					length--;
 				} while (length != 0);
 			}
@@ -1899,7 +1899,7 @@ void FlightSw_DrawClippedRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun* runs
 // FUNCTION: XVT 0x4214A0
 void FlightSw_DrawRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun* runs, uint8_t* destBase,
 									  const int* spanOffsets) {
-	int pixelLowByte;
+	int colorIndex;
 	int length;
 	int spanX;
 	const int* runOffsets;
@@ -1907,14 +1907,14 @@ void FlightSw_DrawRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun* runs, uint
 
 	do {
 		spanX = g_flightSwRotSpriteSpanBaseX;
-		pixelLowByte = runs->pixelLowByte;
+		colorIndex = runs->colorIndex;
 		spanX += runs->startX;
 		length = runs->length;
 		runs++;
 		runOffsets = &spanOffsets[spanX];
 		do {
 			destOffset = *runOffsets++;
-			destBase[destOffset] = (uint8_t)pixelLowByte;
+			destBase[destOffset] = (uint8_t)colorIndex;
 			destBase[destOffset + 1] = 0x80;
 			length--;
 		} while (length != 0);
@@ -1928,7 +1928,7 @@ void FlightSw_DrawClippedRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun* run
 	const FlightSwRotSpriteSpanRun* drawRun;
 	int clipMinX;
 	int length;
-	int pixelLowByte;
+	int colorIndex;
 	int destOffset;
 	int clipMaxX;
 	int spanStart;
@@ -1950,10 +1950,10 @@ void FlightSw_DrawClippedRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun* run
 			}
 			length = spanEnd - spanStart;
 			if (length != 0) {
-				pixelLowByte = drawRun->pixelLowByte;
+				colorIndex = drawRun->colorIndex;
 				do {
 					destOffset = spanOffsets[spanStart];
-					destBase[destOffset] = (uint8_t)pixelLowByte;
+					destBase[destOffset] = (uint8_t)colorIndex;
 					destBase[destOffset + 1] = 0x80;
 					spanStart++;
 					length--;
@@ -2634,7 +2634,7 @@ void FlightSw_RasterizePreparedRotatedSprite(uint8_t* spriteData, int packingMod
 					if (scaledFraction < previousFraction)
 						++scaledX;
 					g_flightSwRotSpriteSpanRuns[spanRunCount].startX = previousScaledX;
-					g_flightSwRotSpriteSpanRuns[spanRunCount].pixelLowByte = colorIndex;
+					g_flightSwRotSpriteSpanRuns[spanRunCount].colorIndex = colorIndex;
 					g_flightSwRotSpriteSpanRuns[spanRunCount].length = scaledX - previousScaledX + 1;
 					++spanRunCount;
 				}
@@ -3151,6 +3151,8 @@ int FlightSw_InitRotSpriteOctant2(void) {
 			}
 		}
 	}
+	/* minPointIndex is an edge point index only during the search above; here it holds the clip minimum
+	 * x: 0, -1, or the found point's x. */
 	g_flightSwRotSpriteClipMinX = minPointIndex;
 
 	if (g_flightSwRotSpriteSecondaryEdgeY < 0) {
@@ -3177,6 +3179,8 @@ int FlightSw_InitRotSpriteOctant2(void) {
 			maxPointIndex = -1;
 		}
 	}
+	/* maxPointIndex is an edge point index only during the search above; here it holds the clip maximum
+	 * x: scanCount - 1, -1, or the found point's x. */
 	g_flightSwRotSpriteClipMaxX = maxPointIndex;
 	g_flightSwRotSpriteSpanBaseX = viewportRightDelta + spanBaseOffset;
 	return 1;
@@ -4290,12 +4294,12 @@ void FlightSw_BlitSpriteRle16bpp(uint8_t* rleData, int x, int y, int transparent
 // FUNCTION: XVT 0x449930
 void FlightSw_BlitSpriteRleFaded16bpp(uint8_t* rleData, int x, int y, int transparentColorIndex,
 									  int8_t paletteShift, int16_t fadeAmount) {
-	unsigned int normalizedFadeAmount;
+	unsigned int zeroExtendedFadeAmount;
 
 	g_flightSwRlePaletteShift = paletteShift;
-	normalizedFadeAmount = (uint16_t)fadeAmount;
+	zeroExtendedFadeAmount = (uint16_t)fadeAmount;
 	FlightSw_BlitSpriteRleImpl16bpp(rleData, x, y, transparentColorIndex, 0, 1,
-									(int16_t)normalizedFadeAmount);
+									(int16_t)zeroExtendedFadeAmount);
 }
 
 // FUNCTION: XVT 0x449970
@@ -4587,10 +4591,10 @@ void FlightSw_DrawPixel16bpp(uint16_t x, uint16_t y, int8_t colorIndex) {
 
 // FUNCTION: XVT 0x44A570
 void FlightSw_FillClipRect16bpp(void) {
-	g_flightFillRectBottom = g_flightClipBottom;
-	g_flightFillRectTop = g_flightClipTop;
-	g_flightFillRectLeft = g_flightClipLeft;
-	g_flightFillRectRight = g_flightClipRight;
+	g_flightFillRectBottom16bpp = g_flightClipBottom;
+	g_flightFillRectTop16bpp = g_flightClipTop;
+	g_flightFillRectLeft16bpp = g_flightClipLeft;
+	g_flightFillRectRight16bpp = g_flightClipRight;
 	FlightSw_FillRectOrBorder16bpp(0);
 }
 
@@ -4604,14 +4608,15 @@ void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness) {
 	unsigned int page;
 #endif
 
-	g_flightFillRectCurrentY = g_flightFillRectTop;
-	g_flightFillRectRemainingRows = g_flightFillRectBottom - g_flightFillRectTop;
-	if ((int16_t)(g_flightFillRectRight - g_flightFillRectLeft) <= 0)
+	g_flightFillRectCurrentY16bpp = g_flightFillRectTop16bpp;
+	g_flightFillRectRemainingRows16bpp = g_flightFillRectBottom16bpp - g_flightFillRectTop16bpp;
+	if ((int16_t)(g_flightFillRectRight16bpp - g_flightFillRectLeft16bpp) <= 0)
 		return;
 
 	if (borderThickness != 0) {
 		for (row = 0; row < borderThickness; ++row) {
-			pixelOffset = FlightSw_GetLineOffset(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
+			pixelOffset =
+				FlightSw_GetLineOffset(g_flightFillRectCurrentY16bpp) + 2 * g_flightFillRectLeft16bpp;
 #ifndef XVT_MODERN
 			if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 				g_flightSwFramebufferBase == g_swFramebufferBase) {
@@ -4621,22 +4626,23 @@ void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness) {
 			}
 #endif
 			destination = &((uint16_t*)g_flightSwFramebufferBase)[pixelOffset / 2];
-			pixelsRemaining = g_flightFillRectRight - g_flightFillRectLeft;
+			pixelsRemaining = g_flightFillRectRight16bpp - g_flightFillRectLeft16bpp;
 			if (pixelsRemaining-- != 0) {
 				do {
 					*destination++ = g_flightPalette16Bpp[g_flightTextBgColor];
 				} while (pixelsRemaining-- != 0);
 			}
-			--g_flightFillRectRemainingRows;
-			++g_flightFillRectCurrentY;
+			--g_flightFillRectRemainingRows16bpp;
+			++g_flightFillRectCurrentY16bpp;
 		}
 
-		while ((unsigned int)g_flightFillRectRemainingRows > borderThickness) {
+		while ((unsigned int)g_flightFillRectRemainingRows16bpp > borderThickness) {
 			int16_t centerWidth;
 			int16_t leftPixelsRemaining;
 			int16_t rightPixelsRemaining;
 
-			pixelOffset = FlightSw_GetLineOffset(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
+			pixelOffset =
+				FlightSw_GetLineOffset(g_flightFillRectCurrentY16bpp) + 2 * g_flightFillRectLeft16bpp;
 #ifndef XVT_MODERN
 			if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 				g_flightSwFramebufferBase == g_swFramebufferBase) {
@@ -4648,7 +4654,7 @@ void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness) {
 			destination = &((uint16_t*)g_flightSwFramebufferBase)[pixelOffset / 2];
 			leftPixelsRemaining = borderThickness;
 			rightPixelsRemaining = borderThickness;
-			centerWidth = g_flightFillRectRight - 2 * borderThickness - g_flightFillRectLeft;
+			centerWidth = g_flightFillRectRight16bpp - 2 * borderThickness - g_flightFillRectLeft16bpp;
 			while (leftPixelsRemaining-- != 0) {
 				*destination++ = g_flightPalette16Bpp[g_flightTextBgColor];
 			}
@@ -4656,12 +4662,13 @@ void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness) {
 			while (rightPixelsRemaining-- != 0) {
 				*destination++ = g_flightPalette16Bpp[g_flightTextBgColor];
 			}
-			--g_flightFillRectRemainingRows;
-			++g_flightFillRectCurrentY;
+			--g_flightFillRectRemainingRows16bpp;
+			++g_flightFillRectCurrentY16bpp;
 		}
 
 		for (row = 0; row < borderThickness; ++row) {
-			pixelOffset = FlightSw_GetLineOffset(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
+			pixelOffset =
+				FlightSw_GetLineOffset(g_flightFillRectCurrentY16bpp) + 2 * g_flightFillRectLeft16bpp;
 #ifndef XVT_MODERN
 			if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 				g_flightSwFramebufferBase == g_swFramebufferBase) {
@@ -4671,20 +4678,20 @@ void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness) {
 			}
 #endif
 			destination = &((uint16_t*)g_flightSwFramebufferBase)[pixelOffset / 2];
-			pixelsRemaining = g_flightFillRectRight - g_flightFillRectLeft;
+			pixelsRemaining = g_flightFillRectRight16bpp - g_flightFillRectLeft16bpp;
 			if (pixelsRemaining-- != 0) {
 				do {
 					*destination++ = g_flightPalette16Bpp[g_flightTextBgColor];
 				} while (pixelsRemaining-- != 0);
 			}
-			--g_flightFillRectRemainingRows;
-			++g_flightFillRectCurrentY;
+			--g_flightFillRectRemainingRows16bpp;
+			++g_flightFillRectCurrentY16bpp;
 		}
 		return;
 	}
 
-	while (g_flightFillRectRemainingRows != 0) {
-		pixelOffset = FlightSw_GetLineOffset(g_flightFillRectCurrentY) + 2 * g_flightFillRectLeft;
+	while (g_flightFillRectRemainingRows16bpp != 0) {
+		pixelOffset = FlightSw_GetLineOffset(g_flightFillRectCurrentY16bpp) + 2 * g_flightFillRectLeft16bpp;
 #ifndef XVT_MODERN
 		if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
 			g_flightSwFramebufferBase == g_swFramebufferBase) {
@@ -4694,7 +4701,7 @@ void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness) {
 		}
 #endif
 		destination = &((uint16_t*)g_flightSwFramebufferBase)[pixelOffset / 2];
-		pixelsRemaining = g_flightFillRectRight - g_flightFillRectLeft;
+		pixelsRemaining = g_flightFillRectRight16bpp - g_flightFillRectLeft16bpp;
 		if (pixelsRemaining <= 0)
 			return;
 		if (pixelsRemaining-- != 0) {
@@ -4702,8 +4709,8 @@ void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness) {
 				*destination++ = g_flightPalette16Bpp[g_flightTextBgColor];
 			} while (pixelsRemaining-- != 0);
 		}
-		--g_flightFillRectRemainingRows;
-		++g_flightFillRectCurrentY;
+		--g_flightFillRectRemainingRows16bpp;
+		++g_flightFillRectCurrentY16bpp;
 	}
 }
 
@@ -4713,24 +4720,24 @@ void FlightSw_FillRectClipped16bpp(uint16_t x1, uint16_t y1, uint16_t x2, uint16
 	uint16_t clippedTop;
 	uint16_t clippedBottom;
 
-	g_flightFillRectLeft = x1;
-	g_flightFillRectRight = x2;
+	g_flightFillRectLeft16bpp = x1;
+	g_flightFillRectRight16bpp = x2;
 	clippedTop = y1;
 	clippedBottom = y2;
 	if (x1 < g_flightClipLeft)
-		g_flightFillRectLeft = g_flightClipLeft;
+		g_flightFillRectLeft16bpp = g_flightClipLeft;
 	if (x2 > g_flightClipRight)
-		g_flightFillRectRight = g_flightClipRight;
+		g_flightFillRectRight16bpp = g_flightClipRight;
 
-	g_flightFillRectTop = y1;
-	if (g_flightFillRectTop < g_flightClipTop)
+	g_flightFillRectTop16bpp = y1;
+	if (g_flightFillRectTop16bpp < g_flightClipTop)
 		clippedTop = g_flightClipTop;
-	g_flightFillRectBottom = y2;
-	if (g_flightFillRectBottom > g_flightClipBottom)
+	g_flightFillRectBottom16bpp = y2;
+	if (g_flightFillRectBottom16bpp > g_flightClipBottom)
 		clippedBottom = g_flightClipBottom;
-	g_flightFillRectBottom = clippedBottom;
-	g_flightFillRectTop = clippedTop;
-	if (clippedBottom > clippedTop && g_flightFillRectLeft < g_flightFillRectRight)
+	g_flightFillRectBottom16bpp = clippedBottom;
+	g_flightFillRectTop16bpp = clippedTop;
+	if (clippedBottom > clippedTop && g_flightFillRectLeft16bpp < g_flightFillRectRight16bpp)
 		FlightSw_FillRectOrBorder16bpp(borderThickness);
 }
 

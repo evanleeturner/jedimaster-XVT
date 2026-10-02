@@ -87,7 +87,7 @@ void laser_weaponsfire(void);
 uint16_t laser_GetProjectileLifetimeTicks(int projectileObjectType);
 void laser_fireplayerweapon(int playerIdx);
 void laser_firelasersystem(int objectIndex, int laserSystemIndex);
-void laser_firerocketsystem(int objectIndex, unsigned int launcherIndex);
+void laser_firewarheadsystem(int objectIndex, unsigned int launcherIndex);
 int laser_firemissile(int objectIndex, int weaponSlotIndex, int projectileTypeId, unsigned int launcherIndex);
 int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex, int projectileObjectType);
 uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx, uint16_t targetObjIdx);

@@ -87,7 +87,7 @@ int16_t g_scaledInputPitch;
 
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x411540
-void FlightInput_ScaleAxesForFlight(void) {
+void FlightInput_LatchFlightControls(void) {
 	int16_t pitch;
 	int16_t yaw;
 	uint16_t mouseButtons;
@@ -139,7 +139,7 @@ void FlightInput_ReadAndApplyFlightDeadzone(int playerIdxOrSentinel) {
 	int16_t magnitude;
 
 	FlightInput_Read(playerIdxOrSentinel);
-	FlightInput_ScaleAxesForFlight();
+	FlightInput_LatchFlightControls();
 	magnitude = g_scaledInputYaw;
 	if ((uint16_t)g_scaledInputYaw >= 0x8000u) {
 		magnitude = -g_scaledInputYaw;

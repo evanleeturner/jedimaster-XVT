@@ -204,7 +204,7 @@ uint8_t g_flightConfMusicEnabled = 0;
 // GLOBAL: XVT 0x9C8E40
 int g_flightConfNoPilot = 0;
 // GLOBAL: XVT 0x9C8E50
-uint8_t g_flightRuntimeScratch[768] = { 0 };
+uint8_t g_unusedFlightRuntimeBlock[768] = { 0 };
 // GLOBAL: XVT 0x9CD060
 uint8_t g_flightNoiseTable[512] = { 0 };
 // GLOBAL: XVT 0x9A8E24
@@ -224,7 +224,7 @@ uint16_t g_graphicsDetailDistanceThreshold = 0;
 // GLOBAL: XVT 0x9E8F54
 int g_generateMissionPalette = 0;
 // GLOBAL: XVT 0x9E964C
-int g_flightStartupObjectPassState = 0;
+int g_unusedFlightStartupObjectPassState = 0;
 // GLOBAL: XVT 0x9EC476
 uint8_t g_transformLightDirectionToObjectSpace = 0;
 // GLOBAL: XVT 0x9EC468
@@ -240,7 +240,7 @@ FlightGlobalCountdownTimers g_flightGlobalCountdownTimers = { 0 };
 // GLOBAL: XVT 0x9FD394
 int g_activeFlightPlayerCount;
 // GLOBAL: XVT 0x9FD390
-uint8_t g_flightMessageRuntimeState = 0;
+uint8_t g_unusedFlightMessageRuntimeState = 0;
 // GLOBAL: XVT 0xA080F8
 int g_flightPlayerCount = 0;
 // GLOBAL: XVT 0xA0085C
@@ -264,7 +264,7 @@ uint8_t g_dynamicMusicOutcomeLatched = 0;
 // GLOBAL: XVT 0xA080FC
 uint8_t g_backdropsEnabled = 0;
 // GLOBAL: XVT 0xA081F0
-int g_flightSessionResetState = 0;
+int g_unusedFlightSessionResetState = 0;
 // GLOBAL: XVT 0xA08210
 XvtFile* g_unusedFlightDebugLogFile = NULL;
 // GLOBAL: XVT 0x9D8C20
@@ -282,11 +282,11 @@ uint8_t g_dormantFlightRegionSessionEarlyReturnFlag = 0;
 // GLOBAL: XVT 0xA07CCE
 uint8_t g_flightAltMToggle = 0;
 // GLOBAL: XVT 0x9FE734
-int g_flightTransientResetState = 0;
+int g_unusedFlightTransientResetState = 0;
 // GLOBAL: XVT 0x9FE7A0
-uint8_t g_flightNetworkRuntimeScratch[48] = { 0 };
+uint8_t g_unusedFlightNetworkBlock[48] = { 0 };
 // GLOBAL: XVT 0x9ECC60
-PlayerData g_localPlayerSnapshotOnFlightExit = { 0 };
+PlayerData g_localPlayerSnapshotOnOptionsSyncFailure = { 0 };
 // GLOBAL: XVT 0x523640
 int g_flightInProgressLaunch = 0;
 // GLOBAL: XVT 0x622CC0
@@ -2059,14 +2059,14 @@ void Flight_MainLoop(int unused) {
 	}
 
 	g_flightSimSideEffectsSuppressed = 0;
-	g_flightSessionResetState = 0;
-	g_flightTransientResetState = 0;
+	g_unusedFlightSessionResetState = 0;
+	g_unusedFlightTransientResetState = 0;
 	g_localPlayer = NetSession_FindPlayerSlotByDpid(NetSession_GetLocalDplayId());
 	g_activeFlightPlayerCount = NetSession_GetPlayerCount();
 	g_flightPlayerCount = g_activeFlightPlayerCount;
 	memset(g_replayInputs, 0, sizeof(g_replayInputs));
-	memset(g_flightNetworkRuntimeScratch, 0, sizeof(g_flightNetworkRuntimeScratch));
-	memset(g_flightRuntimeScratch, 0, sizeof(g_flightRuntimeScratch));
+	memset(g_unusedFlightNetworkBlock, 0, sizeof(g_unusedFlightNetworkBlock));
+	memset(g_unusedFlightRuntimeBlock, 0, sizeof(g_unusedFlightRuntimeBlock));
 	memset(&g_currentInputFrame, 0, sizeof(g_currentInputFrame));
 	g_remotePlayerRenderSmoothingEnabled = g_internetPlayEnabled;
 	g_flightMissionState.connectedPlayerCount = g_activeFlightPlayerCount;
@@ -2149,7 +2149,7 @@ void Flight_MainLoop(int unused) {
 	pai_cacheBuiltinPlanIds();
 	g_hudCockpitResourcesLoaded = 0;
 	g_flightSwRotSpriteCoeffCacheValid = 0;
-	g_flightStartupObjectPassState = 0;
+	g_unusedFlightStartupObjectPassState = 0;
 	g_unusedFlightDebugLogFile = NULL;
 	g_flightSwRotSpriteSpanRunsEnabled = 1;
 
@@ -2238,7 +2238,7 @@ void Flight_MainLoop(int unused) {
 	}
 
 	g_messageLogTotalCount = 0;
-	g_flightMessageRuntimeState = 0;
+	g_unusedFlightMessageRuntimeState = 0;
 	g_worldLightDirectionX = DEFAULT_MODEL_LIGHT_DIRECTION;
 	g_worldLightDirectionY = DEFAULT_MODEL_LIGHT_DIRECTION;
 	g_worldLightDirectionZ = DEFAULT_MODEL_LIGHT_DIRECTION;
@@ -2332,8 +2332,8 @@ void Flight_MainLoop(int unused) {
 		if (g_preFlightResolutionMode != g_flightResolutionMode) {
 			FlightDisplay_ApplyResolutionMode(g_preFlightResolutionMode);
 		}
-		memcpy(&g_localPlayerSnapshotOnFlightExit, &g_players[g_localPlayer],
-			   sizeof(g_localPlayerSnapshotOnFlightExit));
+		memcpy(&g_localPlayerSnapshotOnOptionsSyncFailure, &g_players[g_localPlayer],
+			   sizeof(g_localPlayerSnapshotOnOptionsSyncFailure));
 		if (g_gameConfig.musicEnabled != 0 && g_gameConfig.musicVolume != 0) {
 			uint16_t musicVolume;
 
@@ -2347,7 +2347,7 @@ void Flight_MainLoop(int unused) {
 	{
 		int16_t objectIndex;
 
-		g_flightStartupObjectPassState = 0;
+		g_unusedFlightStartupObjectPassState = 0;
 		for (objectIndex = 0; objectIndex < g_regionMainObjectSlotEnd; ++objectIndex) {
 			if (g_objectTable[objectIndex].mobj != NULL) {
 				g_objectTable[objectIndex].mobj->simStateTimestamp = 0;
@@ -2355,7 +2355,7 @@ void Flight_MainLoop(int unused) {
 		}
 	}
 	Flight_AllocWorldStateBuffers();
-	FlightSync_ResetWorldMessageBufferCursor();
+	FlightSync_ClearBufferedWorldMessages();
 	Flight_SaveWorldState();
 	FlightView_RenderStartupFrame();
 	NetSession_StubReturnTrue();
@@ -3182,7 +3182,7 @@ void Flight_UpdatePlayerStep(int playerIdx) {
 	}
 
 	FlightInput_Read(playerIdx);
-	FlightInput_ScaleAxesForFlight();
+	FlightInput_LatchFlightControls();
 	if (playerIdx == g_localPlayer) {
 		if (g_flightSimSideEffectsSuppressed == 0) {
 			switch (g_currentActionKey) {

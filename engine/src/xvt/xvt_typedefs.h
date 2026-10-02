@@ -200,7 +200,7 @@ typedef struct Std3DTexFmt Std3DTexFmt;
 typedef struct Std3DVBuffer Std3DVBuffer;
 typedef struct Std3DViewportRect Std3DViewportRect;
 typedef struct Std3DZBufferSurfaceBlock Std3DZBufferSurfaceBlock;
-typedef struct Std3DZBufferTargetScratch Std3DZBufferTargetScratch;
+typedef struct Std3DZBufferTarget Std3DZBufferTarget;
 typedef struct Team Team;
 typedef struct TechLibrarySpecText TechLibrarySpecText;
 typedef struct TieRadioMessage TieRadioMessage;

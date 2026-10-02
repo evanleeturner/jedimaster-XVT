@@ -251,7 +251,7 @@ static void BuildLaserSlots(XvtCockpitState* state, const CraftData* craft, int 
 	state->weapons.slot_count = (uint8_t)count;
 	state->weapons.selected_bank = player->selectedWeaponBank;
 	unsigned base = state->view.instrument_base;
-	int cannons = (craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0;
+	int cannons_working = (craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0;
 	int charge_visible = state->view.hud_state == HUD_VIEW_FORWARD &&
 						 (craft->damageStats.activeHudFeatureMask & XVT_COCKPIT_FEATURE_LASER_CHARGE) &&
 						 (craft->damageStats.activeHudFeatureMask & XVT_COCKPIT_FEATURE_LASER_SELECTION);
@@ -265,7 +265,7 @@ static void BuildLaserSlots(XvtCockpitState* state, const CraftData* craft, int 
 		slot->hud_slot = (uint8_t)index;
 		slot->charge_visible = charge_visible;
 		int charge = craft->weaponSlots[index].laserCharge;
-		if (charge_visible && charge > 0 && cannons) {
+		if (charge_visible && charge > 0 && cannons_working) {
 			++charge;
 			slot->charge_band = charge <= 64 ? 1 : 2;
 			slot->empty_band = charge <= 64 ? 0 : 1;
@@ -277,7 +277,7 @@ static void BuildLaserSlots(XvtCockpitState* state, const CraftData* craft, int 
 			charge_visible && base != HUD_COCKPIT_INSTRUMENT_BASE_INDEX && layout->selector;
 
 		unsigned ready = 0, selected = 0;
-		if (charge > 0 && cannons) {
+		if (charge > 0 && cannons_working) {
 			if (player->selectedWeaponMode == 0 && player->selectedWeaponBank == slot->bank) {
 				unsigned next = craft->laserState.nextSlot[slot->bank];
 				switch (craft->laserState.linkMode[slot->bank]) {
@@ -303,7 +303,7 @@ static void BuildLaserSlots(XvtCockpitState* state, const CraftData* craft, int 
 		}
 		if (slot->charge_band == 2)
 			++selected;
-		slot->ready = (uint8_t)ready;
+		slot->ready_state = (uint8_t)ready;
 		slot->selection_state = (uint8_t)selected;
 		const HudElementLayout* selection = &g_hudElementLayouts[base + index + 11];
 		slot->selection_visible = rebel_fighter && charge_visible && selection->x + selection->y != 0;

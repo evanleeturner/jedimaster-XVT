@@ -1249,7 +1249,7 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 	struct {
 		int wantChannelA;
 		int wantChannelB;
-		unsigned int remaining;
+		unsigned int remainingQueueEntries;
 	} channels;
 
 	int nextSequence;
@@ -1305,8 +1305,8 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 	}
 
 	queueIndex = g_netRecvQueueReadIndex;
-	channels.remaining = g_netRecvQueueCount;
-	while ((int)channels.remaining > 0) {
+	channels.remainingQueueEntries = g_netRecvQueueCount;
+	while ((int)channels.remainingQueueEntries > 0) {
 		directPlayId = g_netSessionRecvQueue[queueIndex].directPlayId;
 		packet = &g_netSessionRecvQueue[queueIndex];
 		if (directPlayId == 0) {
@@ -1324,7 +1324,7 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 			++queueIndex;
 			if (queueIndex >= 1024)
 				queueIndex = 0;
-			--channels.remaining;
+			--channels.remainingQueueEntries;
 			continue;
 		}
 		sequence = g_netSessionRecvQueue[queueIndex].sequenceByte;
@@ -1342,7 +1342,7 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 				++queueIndex;
 				if (queueIndex >= 1024)
 					queueIndex = 0;
-				--channels.remaining;
+				--channels.remainingQueueEntries;
 				continue;
 			}
 			if (g_netSessionRecvQueue[queueIndex].isResentCopy == 0)
@@ -1392,7 +1392,7 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 				if (queueIndex >= 1024)
 					queueIndex = 0;
 			}
-			--channels.remaining;
+			--channels.remainingQueueEntries;
 			continue;
 		}
 
@@ -1451,7 +1451,7 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 				++queueIndex;
 				if (queueIndex >= 1024)
 					queueIndex = 0;
-				--channels.remaining;
+				--channels.remainingQueueEntries;
 				continue;
 			}
 
@@ -1633,20 +1633,20 @@ void* NetSession_ReceivePacket(int* outSenderDpid, int* outPayloadSize) {
 		} else {
 			if (g_netRecvQueueReadIndex == queueIndex) {
 				if (NetReliable_RemoveQueuedPacket(queueIndex) == 0) {
-					--channels.remaining;
+					--channels.remainingQueueEntries;
 					continue;
 				}
 			}
 			++queueIndex;
 			if (queueIndex >= 1024)
 				queueIndex = 0;
-			--channels.remaining;
+			--channels.remainingQueueEntries;
 			continue;
 		}
 		++queueIndex;
 		if (queueIndex >= 1024)
 			queueIndex = 0;
-		--channels.remaining;
+		--channels.remainingQueueEntries;
 	}
 
 	if ((int)g_netRecvQueueCount < 1023)

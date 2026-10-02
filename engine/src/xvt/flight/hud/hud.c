@@ -5912,7 +5912,7 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 				FVIEW_SetObjectTransform(
 					targetObject->roll, targetObject->pitch, targetObject->yaw, 0,
 					&g_objectTable[(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx]);
-				RenderBillboard_DrawRollAlignedObjectModel(g_players[g_localPlayer].currentTargetObjectIdx);
+				SceneBillboard_DrawRollAlignedObjectModel(g_players[g_localPlayer].currentTargetObjectIdx);
 				break;
 			default:
 				break;
@@ -5964,7 +5964,7 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width, uint16_
 						FVIEW_SetObjectTransform(
 							g_objectTable[objectTableIndex].roll, g_objectTable[objectTableIndex].pitch,
 							g_objectTable[objectTableIndex].yaw, 0, &g_objectTable[objectTableIndex]);
-						RenderBillboard_DrawRollAlignedObjectModel(objectIndex);
+						SceneBillboard_DrawRollAlignedObjectModel(objectIndex);
 					} else if (genusId == CRAFT_GENUS_EXPLOSION &&
 							   FlightView_ProjectAndTestSphereVisible(objectIndex,
 																	  g_currentObjectBoundsExtent) != 0) {
@@ -6589,6 +6589,7 @@ void Hud_UpdateFlightMessagePanes(void) {
 		g_flightMessagePanesForceExpire = 0;
 }
 
+/* Also zeroes the system pane's timer, so the next Hud_UpdateFlightMessagePanes clears any system message. */
 // FUNCTION: XVT 0x451560
 void Hud_ClearReadyMessageQueue(void) {
 	g_readyMessageQueueCount = 0;

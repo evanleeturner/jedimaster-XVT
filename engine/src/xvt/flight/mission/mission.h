@@ -468,6 +468,7 @@ struct EMissionGoal {
 	ECondStruct subcond[2];
 	uint8_t editor_name[17];
 	uint8_t or_joined;
+	/* The TIE-format loader copies _pad[0] into GlobalGoal.rawDelay; nothing reads _pad[1]. */
 	uint8_t _pad[2];
 };
 

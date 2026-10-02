@@ -442,6 +442,7 @@ int FrontendSound_GetPrimaryVolume(void) {
 																   &directSoundVolume) != 0)
 		return 0;
 
+	/* Convert the DirectSound attenuation back to the game's volume scale, where 127 is full volume. */
 	directSoundVolume = 127 * directSoundVolume / 2000 + 127;
 	if (wasBackBufferLocked != 0)
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
@@ -547,6 +548,7 @@ int FrontendSound_GetNewestVoiceVolumeByName(const char* name) {
 			g_frontState.frontendSoundVoices[newestVoiceIndex].buffer, &directSoundVolume) != 0) {
 		return 0;
 	}
+	/* Convert the DirectSound attenuation back to the game's volume scale, where 127 is full volume. */
 	directSoundVolume = 127 * directSoundVolume / 2000 + 127;
 	if (wasBackBufferLocked != 0) {
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
@@ -655,6 +657,7 @@ int FrontendSound_GetNewestVoicePanByName(const char* name) {
 		}
 		return 0;
 	}
+	/* Convert the DirectSound pan back to the game's pan scale, where 63 is center. */
 	directSoundPan = 63 * directSoundPan / 10000 + 63;
 	if (wasBackBufferLocked != 0) {
 		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();

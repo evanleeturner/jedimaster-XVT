@@ -19,38 +19,38 @@ uint8_t g_craftTypeToObjectType[96] = {
 };
 
 // GLOBAL: XVT 0x51A030
-int16_t g_modelType127TextureFrameSequence[13] = {
+int16_t g_objectType127TextureFrameSequence[13] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xBF80, (int16_t)0xBF81, (int16_t)0xBF82,
 	(int16_t)0xBF83, (int16_t)0xBF84, (int16_t)0xBF85, (int16_t)0xBF86, (int16_t)0xBF86,
 	(int16_t)0xBF87, (int16_t)0xBF88, (int16_t)0xFFFF,
 };
 
 // GLOBAL: XVT 0x51A050
-int16_t g_modelType131TextureFrameSequence[7] = {
+int16_t g_objectType131TextureFrameSequence[7] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC180, (int16_t)0xC181,
 	(int16_t)0xC182, (int16_t)0xC183, (int16_t)0xFFFF,
 };
 
 // GLOBAL: XVT 0x51A060
-int16_t g_modelType132TextureFrameSequence[8] = {
+int16_t g_objectType132TextureFrameSequence[8] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC200, (int16_t)0xC201,
 	(int16_t)0xC202, (int16_t)0xC203, (int16_t)0xC204, (int16_t)0xFFFF,
 };
 
 // GLOBAL: XVT 0x51A070
-int16_t g_modelType133TextureFrameSequence[2] = {
+int16_t g_objectType133TextureFrameSequence[2] = {
 	(int16_t)0xC280,
 	(int16_t)0xFF00,
 };
 
 // GLOBAL: XVT 0x51A074
-int16_t g_modelType134TextureFrameSequence[2] = {
+int16_t g_objectType134TextureFrameSequence[2] = {
 	(int16_t)0xC300,
 	(int16_t)0xFF00,
 };
 
 // GLOBAL: XVT 0x51A078
-int16_t g_modelType157TextureFrameSequence[11] = {
+int16_t g_objectType157TextureFrameSequence[11] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xCE80, (int16_t)0xCE81, (int16_t)0xCE82, (int16_t)0xCE83,
 	(int16_t)0xCE84, (int16_t)0xCE85, (int16_t)0xCE86, (int16_t)0xCE87, (int16_t)0xFF02,
 };
@@ -65,52 +65,52 @@ int16_t g_fuselageDamageTextureFrameSequence[25] = {
 };
 
 // GLOBAL: XVT 0x51A0E8
-int16_t g_modelType110TextureFrameSequence[9] = {
+int16_t g_objectType110TextureFrameSequence[9] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xB700, (int16_t)0xB701, (int16_t)0xB702,
 	(int16_t)0xB703, (int16_t)0xB704, (int16_t)0xB705, (int16_t)0xFF02,
 };
 
 // GLOBAL: XVT 0x51A100
-int16_t g_modelType111TextureFrameSequence[11] = {
+int16_t g_objectType111TextureFrameSequence[11] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xB780, (int16_t)0xB781, (int16_t)0xB782, (int16_t)0xB783,
 	(int16_t)0xB784, (int16_t)0xB785, (int16_t)0xB786, (int16_t)0xB787, (int16_t)0xFF02,
 };
 
 // GLOBAL: XVT 0x51A118
-int16_t g_modelType112TextureFrameSequence[11] = {
+int16_t g_objectType112TextureFrameSequence[11] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xB800, (int16_t)0xB801, (int16_t)0xB802, (int16_t)0xB803,
 	(int16_t)0xB804, (int16_t)0xB805, (int16_t)0xB806, (int16_t)0xB807, (int16_t)0xFF02,
 };
 
 // GLOBAL: XVT 0x51A130
-int16_t g_modelType113TextureFrameSequence[9] = {
+int16_t g_objectType113TextureFrameSequence[9] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xB880, (int16_t)0xB881, (int16_t)0xB882,
 	(int16_t)0xB883, (int16_t)0xB884, (int16_t)0xB885, (int16_t)0xFF02,
 };
 
 // GLOBAL: XVT 0x51A148
-int16_t g_modelType128TextureFrameSequence[13] = {
+int16_t g_objectType128TextureFrameSequence[13] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC000, (int16_t)0xC001, (int16_t)0xC002,
 	(int16_t)0xC003, (int16_t)0xC004, (int16_t)0xC005, (int16_t)0xC006, (int16_t)0xC007,
 	(int16_t)0xC008, (int16_t)0xC009, (int16_t)0xFFFF,
 };
 
 // GLOBAL: XVT 0x51A168
-int16_t g_modelType129TextureFrameSequence[16] = {
+int16_t g_objectType129TextureFrameSequence[16] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC080, (int16_t)0xC081, (int16_t)0xC082, (int16_t)0xC083,
 	(int16_t)0xC084, (int16_t)0xC085, (int16_t)0xC086, (int16_t)0xC087, (int16_t)0xC088, (int16_t)0xC089,
 	(int16_t)0xC08A, (int16_t)0xC08B, (int16_t)0xC08C, (int16_t)0xFFFF,
 };
 
 // GLOBAL: XVT 0x51A188
-int16_t g_modelType130TextureFrameSequence[15] = {
+int16_t g_objectType130TextureFrameSequence[15] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC100, (int16_t)0xC101, (int16_t)0xC102,
 	(int16_t)0xC103, (int16_t)0xC104, (int16_t)0xC105, (int16_t)0xC106, (int16_t)0xC107,
 	(int16_t)0xC108, (int16_t)0xC109, (int16_t)0xC10A, (int16_t)0xC10B, (int16_t)0xFFFF,
 };
 
 // GLOBAL: XVT 0x521D78
-uint8_t g_modelTypePaletteRemaps[17][16] = {
+uint8_t g_objectTypePaletteRemaps[17][16] = {
 	{ 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5 },
 	{ 0x00, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xD6, 0xD7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
 	{ 0x00, 0xD9, 0xDB, 0xDD, 0xDF, 0xE1, 0xE3, 0xD6, 0xD7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
@@ -132,31 +132,31 @@ uint8_t g_modelTypePaletteRemaps[17][16] = {
 
 // GLOBAL: XVT 0x521E88
 uint8_t* g_backdropPaletteRemapByFlightGroupStatus[17] = {
-	g_modelTypePaletteRemaps[9],  g_modelTypePaletteRemaps[10], g_modelTypePaletteRemaps[11],
-	g_modelTypePaletteRemaps[12], g_modelTypePaletteRemaps[13], g_modelTypePaletteRemaps[14],
-	g_modelTypePaletteRemaps[15], g_modelTypePaletteRemaps[16], g_modelTypePaletteRemaps[13],
-	g_modelTypePaletteRemaps[14], g_modelTypePaletteRemaps[15], g_modelTypePaletteRemaps[16],
-	g_modelTypePaletteRemaps[13], g_modelTypePaletteRemaps[14], g_modelTypePaletteRemaps[15],
-	g_modelTypePaletteRemaps[16], g_modelTypePaletteRemaps[16],
+	g_objectTypePaletteRemaps[9],  g_objectTypePaletteRemaps[10], g_objectTypePaletteRemaps[11],
+	g_objectTypePaletteRemaps[12], g_objectTypePaletteRemaps[13], g_objectTypePaletteRemaps[14],
+	g_objectTypePaletteRemaps[15], g_objectTypePaletteRemaps[16], g_objectTypePaletteRemaps[13],
+	g_objectTypePaletteRemaps[14], g_objectTypePaletteRemaps[15], g_objectTypePaletteRemaps[16],
+	g_objectTypePaletteRemaps[13], g_objectTypePaletteRemaps[14], g_objectTypePaletteRemaps[15],
+	g_objectTypePaletteRemaps[16], g_objectTypePaletteRemaps[16],
 };
 
 // GLOBAL: XVT 0x521ED0
-uint8_t g_modelType110Palette[16] = {
+uint8_t g_objectType110Palette[16] = {
 	0x00, 0x5C, 0x4C, 0xB5, 0x8F, 0x8C, 0xB8, 0xFB, 0xE5, 0x63, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
 // GLOBAL: XVT 0x521EE0
-uint8_t g_modelType111Palette[16] = {
+uint8_t g_objectType111Palette[16] = {
 	0x00, 0x8E, 0x89, 0x8B, 0x88, 0xB8, 0x5A, 0x5B, 0x64, 0x86, 0x5D, 0xFB, 0x00, 0x00, 0x00, 0x00,
 };
 
 // GLOBAL: XVT 0x521EF0
-uint8_t g_modelType112Palette[16] = {
+uint8_t g_objectType112Palette[16] = {
 	0x00, 0x8E, 0xAE, 0x62, 0xB8, 0x77, 0x71, 0xFB, 0x5A, 0x6A, 0x66, 0x5C, 0xB1, 0x59, 0x00, 0x00,
 };
 
 // GLOBAL: XVT 0x521F00
-uint8_t g_modelType113Palette[16] = {
+uint8_t g_objectType113Palette[16] = {
 	0x00, 0xB8, 0x7B, 0x60, 0x5A, 0x5C, 0x5E, 0x53, 0x8C, 0x89, 0x64, 0xFB, 0xB1, 0x00, 0x00, 0x00,
 };
 
@@ -273,71 +273,71 @@ ObjectTypeInfo g_objectTypeTable[201] = {
 	/* 108 */ { 0x00, 0x00, 3, 10, 480, 240, 0, NULL, NULL, 0x80, MODEL_INDEX_NONE, 2, 0 },
 	/* 109 */ { 0x00, 0x00, 3, 10, 480, 240, 0, NULL, NULL, 0x80, MODEL_INDEX_NONE, 2, 0 },
 	/* 110 */
-	{ 0x03, 0x0A, 3, 11, 512, 256, 0, g_modelType110TextureFrameSequence, g_modelType110Palette, 0x80,
+	{ 0x03, 0x0A, 3, 11, 512, 256, 0, g_objectType110TextureFrameSequence, g_objectType110Palette, 0x80,
 	  MODEL_INDEX_NONE, 0, 43 },
 	/* 111 */
-	{ 0x03, 0x0A, 3, 11, 512, 256, 0, g_modelType111TextureFrameSequence, g_modelType111Palette, 0x80,
+	{ 0x03, 0x0A, 3, 11, 512, 256, 0, g_objectType111TextureFrameSequence, g_objectType111Palette, 0x80,
 	  MODEL_INDEX_NONE, 0, 44 },
 	/* 112 */
-	{ 0x03, 0x0A, 3, 11, 512, 256, 0, g_modelType112TextureFrameSequence, g_modelType112Palette, 0x80,
+	{ 0x03, 0x0A, 3, 11, 512, 256, 0, g_objectType112TextureFrameSequence, g_objectType112Palette, 0x80,
 	  MODEL_INDEX_NONE, 0, 45 },
 	/* 113 */
-	{ 0x03, 0x0A, 3, 11, 512, 256, 0, g_modelType113TextureFrameSequence, g_modelType113Palette, 0x80,
+	{ 0x03, 0x0A, 3, 11, 512, 256, 0, g_objectType113TextureFrameSequence, g_objectType113Palette, 0x80,
 	  MODEL_INDEX_NONE, 0, 46 },
 	/* 114 */
-	{ 0x03, 0x02, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[9], 0x20, MODEL_INDEX_NONE, 0, 47 },
+	{ 0x03, 0x02, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[9], 0x20, MODEL_INDEX_NONE, 0, 47 },
 	/* 115 */
-	{ 0x03, 0x02, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[10], 0x20, MODEL_INDEX_NONE, 0, 48 },
+	{ 0x03, 0x02, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[10], 0x20, MODEL_INDEX_NONE, 0, 48 },
 	/* 116 */
-	{ 0x03, 0x02, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[11], 0x20, MODEL_INDEX_NONE, 0, 49 },
+	{ 0x03, 0x02, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[11], 0x20, MODEL_INDEX_NONE, 0, 49 },
 	/* 117 */
-	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[3], 0x20, MODEL_INDEX_NONE, 0, 55 },
+	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[3], 0x20, MODEL_INDEX_NONE, 0, 55 },
 	/* 118 */
-	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[4], 0x20, MODEL_INDEX_NONE, 0, 56 },
+	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[4], 0x20, MODEL_INDEX_NONE, 0, 56 },
 	/* 119 */
-	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[5], 0x20, MODEL_INDEX_NONE, 0, 57 },
+	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[5], 0x20, MODEL_INDEX_NONE, 0, 57 },
 	/* 120 */
-	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[6], 0x20, MODEL_INDEX_NONE, 0, 58 },
+	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[6], 0x20, MODEL_INDEX_NONE, 0, 58 },
 	/* 121 */
-	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[7], 0x20, MODEL_INDEX_NONE, 0, 55 },
+	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[7], 0x20, MODEL_INDEX_NONE, 0, 55 },
 	/* 122 */
-	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[8], 0x20, MODEL_INDEX_NONE, 0, 56 },
+	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[8], 0x20, MODEL_INDEX_NONE, 0, 56 },
 	/* 123 */
-	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[8], 0x20, MODEL_INDEX_NONE, 0, 57 },
+	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[8], 0x20, MODEL_INDEX_NONE, 0, 57 },
 	/* 124 */
-	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[8], 0x20, MODEL_INDEX_NONE, 0, 58 },
+	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[8], 0x20, MODEL_INDEX_NONE, 0, 58 },
 	/* 125 */
-	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[8], 0x20, MODEL_INDEX_NONE, 0, 59 },
+	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[8], 0x20, MODEL_INDEX_NONE, 0, 59 },
 	/* 126 */
-	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_modelTypePaletteRemaps[8], 0x20, MODEL_INDEX_NONE, 0, 60 },
+	{ 0x03, 0x0A, 4, 12, 480, 240, 0, NULL, g_objectTypePaletteRemaps[8], 0x20, MODEL_INDEX_NONE, 0, 60 },
 	/* 127 */
-	{ 0x03, 0x0A, 5, 13, 3328, 240, 0, g_modelType127TextureFrameSequence, g_modelTypePaletteRemaps[0], 0x40,
-	  MODEL_INDEX_NONE, 0, 62 },
+	{ 0x03, 0x0A, 5, 13, 3328, 240, 0, g_objectType127TextureFrameSequence, g_objectTypePaletteRemaps[0],
+	  0x40, MODEL_INDEX_NONE, 0, 62 },
 	/* 128 */
-	{ 0x03, 0x0A, 5, 13, 3328, 240, 0, g_modelType128TextureFrameSequence, g_modelTypePaletteRemaps[0], 0x40,
-	  MODEL_INDEX_NONE, 0, 63 },
+	{ 0x03, 0x0A, 5, 13, 3328, 240, 0, g_objectType128TextureFrameSequence, g_objectTypePaletteRemaps[0],
+	  0x40, MODEL_INDEX_NONE, 0, 63 },
 	/* 129 */
-	{ 0x03, 0x0A, 5, 13, 3328, 240, 0, g_modelType129TextureFrameSequence, g_modelTypePaletteRemaps[0], 0x40,
-	  MODEL_INDEX_NONE, 0, 61 },
+	{ 0x03, 0x0A, 5, 13, 3328, 240, 0, g_objectType129TextureFrameSequence, g_objectTypePaletteRemaps[0],
+	  0x40, MODEL_INDEX_NONE, 0, 61 },
 	/* 130 */
-	{ 0x03, 0x0A, 5, 13, 3328, 240, 0, g_modelType130TextureFrameSequence, g_modelTypePaletteRemaps[0], 0x40,
-	  MODEL_INDEX_NONE, 0, 85 },
+	{ 0x03, 0x0A, 5, 13, 3328, 240, 0, g_objectType130TextureFrameSequence, g_objectTypePaletteRemaps[0],
+	  0x40, MODEL_INDEX_NONE, 0, 85 },
 	/* 131 */
-	{ 0x03, 0x0A, 5, 13, 1664, 240, 0, g_modelType131TextureFrameSequence, g_modelTypePaletteRemaps[0], 0x40,
-	  MODEL_INDEX_NONE, 0, 64 },
+	{ 0x03, 0x0A, 5, 13, 1664, 240, 0, g_objectType131TextureFrameSequence, g_objectTypePaletteRemaps[0],
+	  0x40, MODEL_INDEX_NONE, 0, 64 },
 	/* 132 */
-	{ 0x03, 0x0A, 5, 13, 1664, 240, 0, g_modelType132TextureFrameSequence, g_modelTypePaletteRemaps[1], 0x40,
-	  MODEL_INDEX_NONE, 0, 65 },
+	{ 0x03, 0x0A, 5, 13, 1664, 240, 0, g_objectType132TextureFrameSequence, g_objectTypePaletteRemaps[1],
+	  0x40, MODEL_INDEX_NONE, 0, 65 },
 	/* 133 */
-	{ 0x03, 0x0A, 5, 13, 1280, 240, 0, g_modelType133TextureFrameSequence, g_modelTypePaletteRemaps[1], 0x40,
-	  MODEL_INDEX_NONE, 0, 86 },
+	{ 0x03, 0x0A, 5, 13, 1280, 240, 0, g_objectType133TextureFrameSequence, g_objectTypePaletteRemaps[1],
+	  0x40, MODEL_INDEX_NONE, 0, 86 },
 	/* 134 */
-	{ 0x03, 0x0A, 5, 13, 1280, 240, 0, g_modelType134TextureFrameSequence, g_modelTypePaletteRemaps[2], 0x40,
-	  MODEL_INDEX_NONE, 0, 66 },
+	{ 0x03, 0x0A, 5, 13, 1280, 240, 0, g_objectType134TextureFrameSequence, g_objectTypePaletteRemaps[2],
+	  0x40, MODEL_INDEX_NONE, 0, 66 },
 	/* 135 */
-	{ 0x03, 0x0A, 5, 13, 1664, 240, 0, NULL, g_modelTypePaletteRemaps[0], 0x40, MODEL_INDEX_NONE, 0, 67 },
+	{ 0x03, 0x0A, 5, 13, 1664, 240, 0, NULL, g_objectTypePaletteRemaps[0], 0x40, MODEL_INDEX_NONE, 0, 67 },
 	/* 136 */
-	{ 0x03, 0x0A, 5, 13, 1664, 240, 0, g_fuselageDamageTextureFrameSequence, g_modelTypePaletteRemaps[1],
+	{ 0x03, 0x0A, 5, 13, 1664, 240, 0, g_fuselageDamageTextureFrameSequence, g_objectTypePaletteRemaps[1],
 	  0x40, MODEL_INDEX_NONE, 0, 68 },
 	/* 137 */ { 0x03, 0x09, 1, 7, 2048, 1024, 0, NULL, NULL, 0x40, MODEL_INDEX_NONE, 2, 3 },
 	/* 138 */ { 0x03, 0x09, 1, 7, 2048, 1024, 0, NULL, NULL, 0x40, MODEL_INDEX_NONE, 2, 6 },
@@ -359,11 +359,11 @@ ObjectTypeInfo g_objectTypeTable[201] = {
 	/* 154 */ { 0x03, 0x09, 1, 7, 2048, 256, 0, NULL, NULL, 0x43, MODEL_INDEX_NONE, 2, 12 },
 	/* 155 */ { 0x03, 0x09, 1, 7, 597, 256, 0, NULL, NULL, 0x43, MODEL_INDEX_NONE, 2, 13 },
 	/* 156 */
-	{ 0x03, 0x0A, 1, 7, 2048, 256, 0, g_modelType133TextureFrameSequence, g_modelTypePaletteRemaps[1], 0x40,
+	{ 0x03, 0x0A, 1, 7, 2048, 256, 0, g_objectType133TextureFrameSequence, g_objectTypePaletteRemaps[1], 0x40,
 	  MODEL_INDEX_NONE, 0, 86 },
 	/* 157 */
-	{ 0x03, 0x0A, 5, 13, 1280, 240, 0, g_modelType157TextureFrameSequence, g_modelTypePaletteRemaps[1], 0x40,
-	  MODEL_INDEX_NONE, 2, 14 },
+	{ 0x03, 0x0A, 5, 13, 1280, 240, 0, g_objectType157TextureFrameSequence, g_objectTypePaletteRemaps[1],
+	  0x40, MODEL_INDEX_NONE, 2, 14 },
 	/* 158 */ { 0x01, 0x00, 1, 7, 2048, 256, 0, NULL, NULL, 0x00, MODEL_INDEX_NONE, 2, 0 },
 	/* 159 */ { 0x01, 0x00, 1, 7, 2048, 256, 0, NULL, NULL, 0x00, MODEL_INDEX_NONE, 2, 0 },
 	/* 160 */ { 0x01, 0x00, 1, 7, 2048, 256, 0, NULL, NULL, 0x00, MODEL_INDEX_NONE, 2, 0 },

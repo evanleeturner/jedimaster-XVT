@@ -44,8 +44,9 @@
 int g_debriefStatsPageNeedsRebuild = 0;
 // GLOBAL: XVT 0x52D1C8
 int g_debriefDisconnectedFromNetGame = 0;
+/* Nothing in this build reads this flag. */
 // GLOBAL: XVT 0x66D9B8
-int g_debriefSkipMissionConfirmPending = -1;
+int g_debriefSessionCancelOrTeamsReadyReceived = -1;
 // GLOBAL: XVT 0x66D9E0
 int g_debriefTab = 0;
 // GLOBAL: XVT 0xA91B90
@@ -273,8 +274,9 @@ int MissionDebrief_Update(int frameCounter) {
 				break;
 		}
 		memset(g_mpRosterReadyFlags, 0, sizeof(g_mpRosterReadyFlags));
+		/* Only element 0 of this array is summed and drawn; element 3, cleared here, is not read anywhere. */
 		g_debriefAssistTotalByMissionType[3] = 0;
-		g_debriefSkipMissionConfirmPending = 0;
+		g_debriefSessionCancelOrTeamsReadyReceived = 0;
 		g_debriefStatsPageNeedsRebuild = 1;
 		g_missionSequenceDescription[0] = 0;
 
@@ -775,9 +777,9 @@ int MissionDebrief_Update(int frameCounter) {
 				FrontendScreen_SetCallbacks(FlightLoading_UpdateReadyScreen, NULL);
 				return 0;
 			} else if (networkEvent == NET_PACKET_SESSION_CANCELLED) {
-				g_debriefSkipMissionConfirmPending = 1;
+				g_debriefSessionCancelOrTeamsReadyReceived = 1;
 			} else if (networkEvent == NET_PACKET_TEAM_ASSIGNMENTS_READY) {
-				g_debriefSkipMissionConfirmPending = 1;
+				g_debriefSessionCancelOrTeamsReadyReceived = 1;
 			} else if (networkEvent == NET_PACKET_PLAYER_READY) {
 				for (localNetworkPlayerIndex = 0; localNetworkPlayerIndex < PLAYER_COUNT;
 					 ++localNetworkPlayerIndex) {

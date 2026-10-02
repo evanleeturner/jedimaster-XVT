@@ -177,6 +177,7 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY, uint16_t 
 	maxU = (float)sourceWidth;
 	maxV = (float)sourceHeight;
 
+	/* Until the clip loops below, vertexIndex counts the doubling steps of these two loops, not vertices. */
 	powerOfTwoWidth = 1;
 	vertexIndex = 0;
 	do {

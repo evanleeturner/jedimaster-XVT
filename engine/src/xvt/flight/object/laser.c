@@ -808,7 +808,7 @@ void laser_fireplayerweapon(int playerIdx) {
 	if (craft->warheadLauncherCooldownTicks[g_players[playerIdx].selectedWeaponBank] <
 		(int16_t)(g_elapsedTicks + (g_elapsedTicks >> 1))) {
 		if ((craft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_WARHEAD_LAUNCHER) != 0) {
-			laser_firerocketsystem(objectIndex, g_players[playerIdx].selectedWeaponBank);
+			laser_firewarheadsystem(objectIndex, g_players[playerIdx].selectedWeaponBank);
 			craft = g_objectTable[objectIndex].mobj->pCraft;
 			{
 				int firstSlot = g_modelDefs[craft->modelIndex]
@@ -988,7 +988,7 @@ void laser_firelasersystem(int objectIndex, int laserSystemIndex) {
 }
 
 // FUNCTION: XVT 0x406030
-void laser_firerocketsystem(int objectIndex, unsigned int launcherIndex) {
+void laser_firewarheadsystem(int objectIndex, unsigned int launcherIndex) {
 	int16_t shotsFired;
 	int16_t incomplete;
 

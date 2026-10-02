@@ -11,7 +11,7 @@ enum { TARGETS = XVT_TARGET_FRONT_SAVED_FIRST + XVT_TARGET_FRONT_SAVED_COUNT };
 
 static AeronRenderTarget* g_targets[TARGETS];
 static AeronDrawList2D* g_list;
-static int g_width, g_height, g_presented, g_movie;
+static int g_width, g_height, g_presented, g_moviePresented;
 static float g_scale;
 static int g_releasePresented;
 static uint64_t g_replayedSnapshotSerial = UINT64_MAX;
@@ -249,7 +249,7 @@ static int ApplySurfaceEvent(AeronCommandBuffer* cmd, const XvtSnapSurfaceEvent*
 		return 1;
 	if (e->kind == XVT_SURFACE_PRESENT) {
 		if (e->target == XVT_TARGET_FRONT_MOVIE) {
-			g_movie = 1;
+			g_moviePresented = 1;
 			return 1;
 		}
 		AeronDrawList_Begin(g_list, g_targets[XVT_TARGET_FRONT_PRESENTED], g_width, g_height,
@@ -415,7 +415,7 @@ AeronTexture* XvtFrontend_Output(void) {
 }
 
 AeronTexture* XvtFrontend_MovieOverlay(void) {
-	return g_movie ? Aeron_RenderTargetGetTexture(g_targets[XVT_TARGET_FRONT_MOVIE]) : NULL;
+	return g_moviePresented ? Aeron_RenderTargetGetTexture(g_targets[XVT_TARGET_FRONT_MOVIE]) : NULL;
 }
 
 void XvtFrontend_PresentCursor(float opacity) {
@@ -455,7 +455,7 @@ void XvtFrontend_Shutdown(void) {
 	AeronDrawList_Destroy(g_list);
 	g_list = NULL;
 	g_replayedSnapshotSerial = UINT64_MAX;
-	g_width = g_height = g_presented = g_movie = 0;
+	g_width = g_height = g_presented = g_moviePresented = 0;
 	g_releasePresented = 0;
 	Aeron_DestroyRenderTarget(g_cursorTarget);
 	g_cursorTarget = NULL;
@@ -473,7 +473,7 @@ void XvtFrontend_ReleaseForFlight(void) {
 	}
 	AeronDrawList_Destroy(g_list);
 	g_list = NULL;
-	g_movie = 0;
+	g_moviePresented = 0;
 	g_releasePresented = 1;
 }
 

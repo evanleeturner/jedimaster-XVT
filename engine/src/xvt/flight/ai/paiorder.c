@@ -142,9 +142,9 @@ int16_t paiorder_underattackorder(void) {
 							if (g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_CHAFF &&
 								(g_curCraft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_COUNTERMEASURES) != 0) {
 								g_curCraft->chaffActiveSeconds += 10;
-								if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.status1 !=
+								if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.status1 !=
 										21 &&
-									g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.status2 !=
+									g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.status2 !=
 										21)
 									--g_curCraft->cmAmmoCount;
 							} else if (g_curCraft->cmFireCooldownTimer == 0) {
@@ -273,19 +273,19 @@ int16_t paiorder_flyhomeorder(void) {
 	g_curCraft->aiFlight.separation = 1;
 	mothershipObject = UINT16_MAX;
 	if (g_curCraft->capturedByFlightGroup != 0) {
-		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.capturedDepartViaMothership != 0) {
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.capturedDepartViaMothership != 0) {
 			mothershipFlightGroup =
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.capturedDepartureMothership;
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.capturedDepartureMothership;
 			mothershipObject = pai_FindMothershipObject(mothershipFlightGroup);
 		}
 	} else {
-		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureMethod != 0)
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureMethod != 0)
 			mothershipObject = pai_FindMothershipObject(
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureMothership);
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureMothership);
 		if (mothershipObject == UINT16_MAX &&
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.alternateMothershipUsed != 0)
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.alternateMothershipUsed != 0)
 			mothershipObject = pai_FindMothershipObject(
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.alternateMothership);
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.alternateMothership);
 	}
 	if (mothershipObject != UINT16_MAX &&
 		g_missionFlightGroups[g_objectTable[mothershipObject].flightGroupIdx].playerOwnerIdx != -1)
@@ -312,7 +312,7 @@ int16_t paiorder_flyhomeorder(void) {
 		return trig2_polardistance < 2048;
 	}
 
-	if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.missionPointEnabled[13] != 0)
+	if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.missionPointEnabled[13] != 0)
 		g_paiContext.controller->targetObjIdx = 0x800D;
 	else
 		g_paiContext.controller->targetObjIdx = 0x8000;
@@ -325,7 +325,7 @@ int16_t paiorder_flyhomeorder(void) {
 // FUNCTION: XVT 0x46A140
 int16_t paiorder_dropoffdestorder(void) {
 	MissionOrder* order =
-		&g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[g_paiContext.orderSlot];
+		&g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[g_paiContext.orderSlot];
 	uint16_t destinationFlightGroup = (uint16_t)(order->variable2 - 1);
 
 	if (g_missionFgStats[destinationFlightGroup].outcomeCount[FLIGHT_GROUP_OUTCOME_ARRIVED] != 0)
@@ -363,16 +363,16 @@ int16_t paiorder_enterhangarorder(void) {
 	g_paiContext.controller->thinkInterval = 29;
 	if (g_curCraft->capturedByFlightGroup != 0) {
 		mothershipObject = pai_FindMothershipObject(
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.capturedDepartureMothership);
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.capturedDepartureMothership);
 		outcomeId = FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT;
 	} else {
 		mothershipObject = pai_FindMothershipObject(
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureMothership);
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureMothership);
 		outcomeId = FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT;
 		if (mothershipObject == UINT16_MAX &&
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.alternateMothershipUsed != 0) {
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.alternateMothershipUsed != 0) {
 			mothershipObject = pai_FindMothershipObject(
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.alternateMothership);
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.alternateMothership);
 			outcomeId = FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT;
 		}
 	}
@@ -409,7 +409,7 @@ int16_t paiorder_enterhangarorder(void) {
 
 				tableIndex = objectIndex;
 				object = &g_objectTable[tableIndex];
-				if (object->objectType == 0 || object->flightGroupIdx != g_paiContext.orderFlightGroupIndex)
+				if (object->objectType == 0 || object->flightGroupIdx != g_paiContext.craftFlightGroupIndex)
 					continue;
 				otherCraft = object->mobj->pCraft;
 				otherController = &otherCraft->aiController;
@@ -423,30 +423,30 @@ int16_t paiorder_enterhangarorder(void) {
 						 (otherCraft->aiFlight.missionAbortedFlag == 0 &&
 						  otherCraft->aiFlight.departTimerFlag == 0))) {
 						specialCargo = 0;
-						++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+						++g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 							  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED];
-						if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
+						if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.specialCargoCraft ==
 							otherCraft->craftOrdinal) {
-							g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+							g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 								.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DEPARTED] = 1;
 							specialCargo = 1;
 						}
-						Mission_ApplyTeamGoalScoreAllEnabledTeams(12, g_paiContext.orderFlightGroupIndex,
+						Mission_ApplyTeamGoalScoreAllEnabledTeams(12, g_paiContext.craftFlightGroupIndex,
 																  specialCargo);
 					}
 					if (otherCraft->capturedByFlightGroup == 0 && otherController->skippedToOrder4 == 1 &&
 						otherCraft->aiFlight.missionAbortedFlag == 0 &&
 						otherCraft->aiFlight.departTimerFlag == 0) {
-						++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+						++g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 							  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE];
-						if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
+						if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.specialCargoCraft ==
 							otherCraft->craftOrdinal)
-							g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+							g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 								.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE] = 1;
 					}
 				}
 				msg_emitCraftMessage(objectIndex, otherCraft, 141);
-				Mission_RecordCraftOutcome(objectIndex, g_paiContext.orderFlightGroupIndex, outcomeId);
+				Mission_RecordCraftOutcome(objectIndex, g_paiContext.craftFlightGroupIndex, outcomeId);
 				g_objectTable[tableIndex].objectType = 0;
 				Craft_FreeLinkedObjects(otherCraft);
 			}
@@ -454,52 +454,52 @@ int16_t paiorder_enterhangarorder(void) {
 			if (g_curCraft->capturedByFlightGroup == 0 && g_paiContext.controller->skippedToOrder4 == 0 &&
 				(g_curCraft->aiFlight.goHomeFlag != 0 || (g_curCraft->aiFlight.missionAbortedFlag == 0 &&
 														  g_curCraft->aiFlight.departTimerFlag == 0))) {
-				++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+				++g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 					  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED];
 				specialCargo = 0;
-				if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
+				if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.specialCargoCraft ==
 					g_curCraft->craftOrdinal) {
-					g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+					g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 						.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DEPARTED] = 1;
 					specialCargo = 1;
 				}
-				Mission_ApplyTeamGoalScoreAllEnabledTeams(12, g_paiContext.orderFlightGroupIndex,
+				Mission_ApplyTeamGoalScoreAllEnabledTeams(12, g_paiContext.craftFlightGroupIndex,
 														  specialCargo);
 			}
 			if (g_curCraft->capturedByFlightGroup == 0 && g_paiContext.controller->skippedToOrder4 == 1 &&
 				g_curCraft->aiFlight.missionAbortedFlag == 0 && g_curCraft->aiFlight.departTimerFlag == 0) {
-				++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+				++g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 					  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE];
-				if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
+				if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.specialCargoCraft ==
 					g_curCraft->craftOrdinal)
-					g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+					g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 						.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE] = 1;
 			}
 			if (g_curCraft->capturedByFlightGroup != 0) {
 				team = g_objectTable[g_paiContext.objectIndex].mobj->team;
-				++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamCapturedDepartedCount[team];
+				++g_missionFgStats[g_paiContext.craftFlightGroupIndex].teamCapturedDepartedCount[team];
 				specialCargo = 0;
-				if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
+				if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.specialCargoCraft ==
 					g_curCraft->craftOrdinal) {
-					++g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+					++g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 						  .teamSpecialCargoCapturedDeparted[team];
 					specialCargo = 1;
 				}
-				Mission_ApplyTeamGoalScoreForTeam(44, g_paiContext.orderFlightGroupIndex, specialCargo,
+				Mission_ApplyTeamGoalScoreForTeam(44, g_paiContext.craftFlightGroupIndex, specialCargo,
 												  (uint8_t)team);
 				for (otherTeam = 0; otherTeam < 10; ++otherTeam) {
 					if (otherTeam != team &&
-						g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.team != otherTeam) {
-						++g_missionFgStats[g_paiContext.orderFlightGroupIndex].teamUncapturedLost[otherTeam];
-						if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft ==
+						g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.team != otherTeam) {
+						++g_missionFgStats[g_paiContext.craftFlightGroupIndex].teamUncapturedLost[otherTeam];
+						if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.specialCargoCraft ==
 							g_curCraft->craftOrdinal)
-							g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+							g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 								.teamSpecialCargoUncapturedLost[otherTeam] = 1;
 					}
 				}
 			}
 			msg_emitCraftMessage(g_paiContext.objectIndex, g_curCraft, 141);
-			Mission_RecordCraftOutcome(g_paiContext.objectIndex, g_paiContext.orderFlightGroupIndex,
+			Mission_RecordCraftOutcome(g_paiContext.objectIndex, g_paiContext.craftFlightGroupIndex,
 									   outcomeId);
 			g_objectTable[g_paiContext.objectIndex].objectType = 0;
 			Craft_FreeLinkedObjects(g_curCraft);
@@ -575,7 +575,7 @@ int16_t paiorder_waitrunorder(void) {
 int16_t paiorder_breakofforder(void) {
 	uint16_t targetObjIdx = g_paiContext.controller->targetObjIdx;
 	int targetValid;
-	uint16_t typeSpecificWord;
+	uint16_t targetWorkingSubsystems;
 
 	if (g_curCraft->playerCommandAvoidTargetObjIdx == targetObjIdx) {
 		g_paiContext.controller->targetObjIdx = UINT16_MAX;
@@ -626,10 +626,10 @@ int16_t paiorder_breakofforder(void) {
 	}
 
 	if (g_missionFileVersion == 14) {
-		typeSpecificWord = g_objectTable[targetObjIdx].typeSpecificWord;
+		targetWorkingSubsystems = g_objectTable[targetObjIdx].typeSpecificWord;
 		if (g_objectTable[targetObjIdx].mobj != NULL && g_objectTable[targetObjIdx].mobj->pCraft != NULL)
-			typeSpecificWord = g_objectTable[targetObjIdx].mobj->pCraft->workingSubsystems;
-		if (typeSpecificWord == 0 && g_paiContext.controller->candidateTargetIdx != targetObjIdx &&
+			targetWorkingSubsystems = g_objectTable[targetObjIdx].mobj->pCraft->workingSubsystems;
+		if (targetWorkingSubsystems == 0 && g_paiContext.controller->candidateTargetIdx != targetObjIdx &&
 			pai_CurrentOrderTargetsMatchObject(targetObjIdx) == 0) {
 			g_paiContext.controller->targetObjIdx = UINT16_MAX;
 			g_paiContext.controller->targetSignature = 0;
@@ -656,7 +656,7 @@ int16_t paiorder_abortmissionorder(void) {
 	}
 
 	abortMission = 0;
-	switch (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.abortTrigger) {
+	switch (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.abortTrigger) {
 		case 1:
 			if ((g_curCraft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_SHIELDS) == 0) {
 				abortMission = 1;
@@ -756,18 +756,18 @@ int16_t paiorder_abortmissionorder(void) {
 
 	if (abortMission != 0) {
 		if (g_curCraft->aiFlight.missionAbortedFlag == 0) {
-			++g_missionFgStats[g_paiContext.orderFlightGroupIndex].outcomeCount[FLIGHT_GROUP_OUTCOME_ABORTED];
+			++g_missionFgStats[g_paiContext.craftFlightGroupIndex].outcomeCount[FLIGHT_GROUP_OUTCOME_ABORTED];
 			if (g_curCraft->craftOrdinal ==
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft) {
-				g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.specialCargoCraft) {
+				g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 					.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_ABORTED] = 1;
 			}
 			if (g_curCraft->aiFlight.departTimerFlag != 0) {
-				--g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+				--g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 					  .outcomeCount[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED];
 				if (g_curCraft->craftOrdinal ==
-					g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.specialCargoCraft) {
-					g_missionFgStats[g_paiContext.orderFlightGroupIndex]
+					g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.specialCargoCraft) {
+					g_missionFgStats[g_paiContext.craftFlightGroupIndex]
 						.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED] = 0;
 				}
 				g_curCraft->aiFlight.departTimerFlag = 0;
@@ -775,20 +775,20 @@ int16_t paiorder_abortmissionorder(void) {
 
 			fsfx_SpeakTacticalOfficerEvent(TACTICAL_VOICE_STATUS, TACTICAL_MSG_WITHDRAWING,
 										   g_paiContext.objectIndex, UINT16_MAX);
-			if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].playerOwnerIdx != -1) {
+			if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].playerOwnerIdx != -1) {
 				g_msgSenderIff = (uint8_t)g_objectTable[g_paiContext.objectIndex].mobj->iff;
-				msg_addMessagePtr(0, g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.name);
+				msg_addMessagePtr(0, g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.name);
 				g_msgArgTable[1] = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
-					g_paiContext.orderFlightGroupIndex, g_curCraft);
+					g_paiContext.craftFlightGroupIndex, g_curCraft);
 				g_msgArgTable[2] = (uint16_t)abortReasonMessage;
 				msg_emitInFlightMessage(
 					IFMSG_387_WINGMAN_ARG_ARG_ABORTING_MISSION_ARG,
-					g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].playerOwnerIdx);
+					g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].playerOwnerIdx);
 			}
 
 			if (strcmp(g_planTable[g_builtinPlanIdByNameIndex
 									   [g_orderLeaderBuiltinPlanNameIndex
-											[g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+											[g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 												 .fg.orders[g_paiContext.orderSlot]
 												 .order]]]
 						   .name,
@@ -847,7 +847,7 @@ int16_t paiorder_leaderdeadorder(void) {
 			 objectIndex < (int)g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 			object = &g_objectTable[objectIndex];
 			craft = object->mobj->pCraft;
-			if (object->objectType != 0 && object->flightGroupIdx == g_paiContext.orderFlightGroupIndex) {
+			if (object->objectType != 0 && object->flightGroupIdx == g_paiContext.craftFlightGroupIndex) {
 				controller = &craft->aiController;
 				if (g_paiContext.objectIndex == objectIndex) {
 					craft->leader_obj_idx = UINT8_MAX;
@@ -922,10 +922,10 @@ int16_t paiorder_hyperspaceorder(void) {
 		canEnterHyperspace = 0;
 		if (g_modelDefs[g_curCraft->modelIndex].hasHyperdrive != 0) {
 			if (g_curCraft->capturedByFlightGroup == 0) {
-				if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureMethod == 0) {
+				if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureMethod == 0) {
 					canEnterHyperspace = 1;
 				}
-			} else if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			} else if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 						   .fg.capturedDepartViaMothership == 0) {
 				canEnterHyperspace = 1;
 			}
@@ -948,10 +948,10 @@ int16_t paiorder_hyperspaceorder(void) {
 		}
 	} else if (g_modelDefs[g_curCraft->modelIndex].hasHyperdrive != 0) {
 		if (g_curCraft->capturedByFlightGroup == 0) {
-			if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureMethod == 0) {
+			if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureMethod == 0) {
 				return 1;
 			}
-		} else if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.capturedDepartViaMothership ==
+		} else if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.capturedDepartViaMothership ==
 				   0) {
 			return 1;
 		}
@@ -1057,12 +1057,12 @@ int16_t paiorder_awaitboardorder(void) {
 	boardingState = g_curCraft->boardingState;
 	if (boardingState == 2 || boardingState == 3) {
 		++g_paiContext.controller->orderProgress.goalProgress[g_paiContext.orderSlot];
-		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[g_paiContext.orderSlot]
 				.variable1 <= g_curCraft->aiFlight.timesBoarded) {
 			g_curCraft->workingSubsystems = g_curCraft->systemFlags;
 			g_curCraft->subsystemDamage = 0;
-			if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 						.fg.orders[g_paiContext.orderSlot]
 						.variable1 == g_curCraft->aiFlight.timesBoarded &&
 				strcmp(g_planTable[g_paiContext.controller->currentPlanId].name, "disabledpln") == 0) {
@@ -1184,9 +1184,9 @@ int16_t paiorder_avoidhitorder(void) {
 								(g_curCraft->workingSubsystems & CRAFT_SUBSYSTEM_FLAG_COUNTERMEASURES) != 0) {
 								if (g_curCraft->chaffActiveSeconds == 0) {
 									g_curCraft->chaffActiveSeconds += 10;
-									if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+									if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 												.fg.status1 != 21 &&
-										g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+										g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 												.fg.status2 != 21)
 										--g_curCraft->cmAmmoCount;
 								}
@@ -1263,10 +1263,10 @@ int16_t paiorder_waitforallreturnorder(void) {
 		do {
 			if (!((g_missionFgStats[flightGroupIndex].arrivalEnabled == 0 &&
 				   g_missionFlightGroups[flightGroupIndex].playerOwnerIdx == -1) ||
-				  g_paiContext.orderFlightGroupIndex == flightGroupIndex ||
+				  g_paiContext.craftFlightGroupIndex == flightGroupIndex ||
 				  g_missionFlightGroups[flightGroupIndex].fg.departureMethod == 0 ||
 				  g_missionFlightGroups[flightGroupIndex].fg.departureMothership !=
-					  g_paiContext.orderFlightGroupIndex)) {
+					  g_paiContext.craftFlightGroupIndex)) {
 				if (g_missionFgStats[flightGroupIndex].hasArrived == 0 ||
 					g_missionFgStats[flightGroupIndex].wavesRemaining != 0) {
 					return 0;
@@ -1294,10 +1294,10 @@ int16_t paiorder_waitforallcreateorder(void) {
 		do {
 			if (!((g_missionFgStats[flightGroupIndex].arrivalEnabled == 0 &&
 				   g_missionFlightGroups[flightGroupIndex].playerOwnerIdx == -1) ||
-				  g_paiContext.orderFlightGroupIndex == flightGroupIndex ||
+				  g_paiContext.craftFlightGroupIndex == flightGroupIndex ||
 				  g_missionFlightGroups[flightGroupIndex].fg.arrivalMethod == 0 ||
 				  g_missionFlightGroups[flightGroupIndex].fg.arrivalMothership !=
-					  g_paiContext.orderFlightGroupIndex ||
+					  g_paiContext.craftFlightGroupIndex ||
 				  (g_missionFgStats[flightGroupIndex].hasArrived != 0 &&
 				   g_missionFgStats[flightGroupIndex].wavesRemaining == 0))) {
 				return 0;
@@ -1414,7 +1414,7 @@ int16_t paiorder_avoidstarshiporder(void) {
 
 // FUNCTION: XVT 0x469310
 int16_t paiorder_checkhyperorder(void) {
-	return g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureMethod != 0;
+	return g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureMethod != 0;
 }
 
 // FUNCTION: XVT 0x469340
@@ -1435,8 +1435,8 @@ int16_t paiorder_stopgohomeorder(void) {
 		return 0;
 
 	departNow = 0;
-	departureClockSeconds = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureClockSec;
-	departureClockMinutes = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureClockMin;
+	departureClockSeconds = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureClockSec;
+	departureClockMinutes = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureClockMin;
 	if (departureClockSeconds + departureClockMinutes != 0) {
 		if (g_missionElapsedClock.minutes > departureClockMinutes) {
 			departNow = 1;
@@ -1447,14 +1447,14 @@ int16_t paiorder_stopgohomeorder(void) {
 	}
 
 	if (g_curCraft->aiFlight.departTimerFlag == 0) {
-		if ((g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+		if ((g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 					 .fg.departureTrigger.triggers[0]
 					 .condition != 0 ||
-			 g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			 g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 					 .fg.departureTrigger.triggers[1]
 					 .condition != 0) &&
 			(Mission_EvaluateTriggerPair(
-				 &g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureTrigger, 0) &
+				 &g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureTrigger, 0) &
 			 1) != 0) {
 			departNow = 1;
 		}
@@ -1467,7 +1467,7 @@ int16_t paiorder_stopgohomeorder(void) {
 			g_curCraft->aiFlight.departClockSeconds = g_missionElapsedClock.seconds;
 			departTimerFlag = &g_curCraft->aiFlight.departTimerFlag;
 			if (*departTimerFlag == 0) {
-				flightGroupIndex = g_paiContext.orderFlightGroupIndex;
+				flightGroupIndex = g_paiContext.craftFlightGroupIndex;
 				++g_missionFgStats[flightGroupIndex].outcomeCount[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED];
 				if (g_missionFlightGroups[flightGroupIndex].fg.specialCargoCraft ==
 					g_curCraft->craftOrdinal) {
@@ -1487,8 +1487,8 @@ int16_t paiorder_stopgohomeorder(void) {
 
 		departureDelaySeconds =
 			SECONDS_PER_MINUTE *
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureDelayMinutes +
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureDelaySeconds;
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureDelayMinutes +
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureDelaySeconds;
 		elapsedSeconds =
 			SECONDS_PER_MINUTE *
 				(g_missionElapsedClock.minutes +
@@ -1501,15 +1501,15 @@ int16_t paiorder_stopgohomeorder(void) {
 			g_msgSenderIff = (uint8_t)g_objectTable[g_paiContext.objectIndex].mobj->iff;
 			msg_addMessagePtr(MESSAGE_MODEL_SLOT, &g_modelDefs[g_curCraft->modelIndex]);
 			msg_addMessagePtr(MESSAGE_FLIGHT_GROUP_SLOT,
-							  &g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]);
-			if (Hud_MissionFG_GetCraftNumberIfShown(g_paiContext.orderFlightGroupIndex, g_curCraft) == 0) {
+							  &g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]);
+			if (Hud_MissionFG_GetCraftNumberIfShown(g_paiContext.craftFlightGroupIndex, g_curCraft) == 0) {
 				msg_emitInFlightMessage(IFMSG_385_ARG_ARG_WITHDRAWING_FROM_COMBAT_AREA, g_localPlayer);
 			} else {
 				msg_emitInFlightMessage(IFMSG_386_FLIGHT_GROUP_ARG_ARG_WITHDRAWING_FROM_COMBAT_AREA,
 										g_localPlayer);
 			}
 
-			order = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+			order = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 						.fg.orders[g_paiContext.orderSlot]
 						.order;
 			planId = g_builtinPlanIdByNameIndex[g_orderLeaderBuiltinPlanNameIndex[order]];
@@ -1555,7 +1555,7 @@ int16_t paiorder_completegohomeorder(void) {
 
 	orderSlot = 0;
 	activeOrderCount = 0;
-	flightGroupIdx = g_paiContext.orderFlightGroupIndex;
+	flightGroupIdx = g_paiContext.craftFlightGroupIndex;
 	completedOrderCount = 0;
 	completedBoardingOrderCount = 0;
 	do {
@@ -1593,17 +1593,17 @@ int16_t paiorder_completegootherorder(void) {
 		return 0;
 	}
 	if (g_paiSkipToOrder4Checked == 0) {
-		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.skipToOrder4.triggers[0].condition !=
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.skipToOrder4.triggers[0].condition !=
 				MISSION_COND_ALWAYS_TRUE ||
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.skipToOrder4.triggers[1].condition !=
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.skipToOrder4.triggers[1].condition !=
 				MISSION_COND_ALWAYS_TRUE) {
 			if ((Mission_EvaluateTriggerPair(
-					 &g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.skipToOrder4, 0) &
+					 &g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.skipToOrder4, 0) &
 				 1) != 0) {
 				g_paiContext.controller->skippedToOrder4 = ORDER_STATE_SKIPPED_TO_ORDER4;
 				g_paiContext.orderSlot = FOURTH_ORDER_SLOT;
 				g_paiContext.controller->currentOrderSlot = FOURTH_ORDER_SLOT;
-				order = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+				order = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 							.fg.orders[g_paiContext.orderSlot]
 							.order;
 				g_paiContext.controller->currentPlanId =
@@ -1624,7 +1624,7 @@ int16_t paiorder_completegootherorder(void) {
 	if (g_paiContext.controller->orderProgress.completionState[g_paiContext.orderSlot] !=
 			ORDER_COMPLETION_COMPLETE ||
 		g_paiContext.orderSlot == THIRD_ORDER_SLOT ||
-		g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 				.fg.orders[g_paiContext.orderSlot + 1]
 				.order == ORDER_NONE) {
 		return 0;
@@ -1632,7 +1632,7 @@ int16_t paiorder_completegootherorder(void) {
 
 	++g_paiContext.orderSlot;
 	g_paiContext.controller->currentOrderSlot = (uint8_t)g_paiContext.orderSlot;
-	order = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[g_paiContext.orderSlot].order;
+	order = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[g_paiContext.orderSlot].order;
 	g_paiContext.controller->currentPlanId =
 		g_builtinPlanIdByNameIndex[g_orderLeaderBuiltinPlanNameIndex[order]];
 	if (g_curCraft->leader_obj_idx == UINT8_MAX) {
@@ -1654,7 +1654,7 @@ int16_t paiorder_waitgootherorder(void) {
 	}
 	orderSlot = g_paiContext.orderSlot + 1;
 	while (orderSlot < 3) {
-		order = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].order;
+		order = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].order;
 		planName = g_planTable[order].name;
 		if (strcmp(planName, "capldr1pln") == 0 || strcmp(planName, "capescortersldr1pln") == 0 ||
 			strcmp(planName, "caprespondldr1pln") == 0 || strcmp(planName, "capldr2pln") == 0 ||
@@ -1697,17 +1697,17 @@ int16_t paiorder_orderswitchorder(void) {
 	if (g_paiSkipToOrder4Checked == 0) {
 		int flightGroupIndex;
 
-		flightGroupIndex = g_paiContext.orderFlightGroupIndex;
+		flightGroupIndex = g_paiContext.craftFlightGroupIndex;
 		if (g_missionFlightGroups[flightGroupIndex].fg.skipToOrder4.triggers[0].condition !=
 				MISSION_COND_ALWAYS_TRUE ||
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.skipToOrder4.triggers[1].condition !=
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.skipToOrder4.triggers[1].condition !=
 				MISSION_COND_ALWAYS_TRUE) {
 			if ((Mission_EvaluateTriggerPair(&g_missionFlightGroups[flightGroupIndex].fg.skipToOrder4, 0) &
 				 1) != 0) {
 				g_paiContext.controller->skippedToOrder4 = ORDER_STATE_SKIPPED_TO_ORDER4;
 				g_paiContext.orderSlot = FOURTH_ORDER_SLOT;
 				g_paiContext.controller->currentOrderSlot = FOURTH_ORDER_SLOT;
-				order = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+				order = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 							.fg.orders[g_paiContext.orderSlot]
 							.order;
 				g_paiContext.controller->currentPlanId =
@@ -1736,7 +1736,7 @@ int16_t paiorder_orderswitchorder(void) {
 		if (foundOrder != 0)
 			break;
 		if (g_paiContext.controller->orderProgress.completionState[orderSlot] != ORDER_COMPLETION_COMPLETE) {
-			order = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].order;
+			order = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].order;
 			planName = g_planTable[g_builtinPlanIdByNameIndex[g_orderLeaderBuiltinPlanNameIndex[order]]].name;
 			if (strcmp(planName, "capfreeldr1pln") == 0 || strcmp(planName, "caprespondldr1pln") == 0 ||
 				strcmp(planName, "capescortersldr1pln") == 0 || strcmp(planName, "disableldr1pln") == 0) {
@@ -1758,7 +1758,7 @@ int16_t paiorder_orderswitchorder(void) {
 	if (foundOrder != 0) {
 		--orderSlot;
 		g_paiContext.controller->currentOrderSlot = (uint8_t)orderSlot;
-		order = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[orderSlot].order;
+		order = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[orderSlot].order;
 		g_paiContext.controller->currentPlanId =
 			g_builtinPlanIdByNameIndex[g_orderLeaderBuiltinPlanNameIndex[order]];
 		if (g_curCraft->leader_obj_idx == UINT8_MAX) {
@@ -1788,8 +1788,8 @@ int16_t paiorder_completefolloworder(void) {
 		if (g_paiContext.leaderOrSelfCraft->aiFlight.departTimerFlag == 1 &&
 			g_curCraft->aiFlight.departTimerFlag == 0) {
 			g_curCraft->aiFlight.departTimerFlag = 1;
-			flightGroupIndex = g_paiContext.orderFlightGroupIndex;
-			runtimeFlightGroupIndex = g_paiContext.orderFlightGroupIndex;
+			flightGroupIndex = g_paiContext.craftFlightGroupIndex;
+			runtimeFlightGroupIndex = g_paiContext.craftFlightGroupIndex;
 			++g_missionFgStats[runtimeFlightGroupIndex].outcomeCount[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED];
 			if (g_missionFlightGroups[flightGroupIndex].fg.specialCargoCraft == g_curCraft->craftOrdinal) {
 				g_missionFgStats[runtimeFlightGroupIndex]
@@ -1805,7 +1805,7 @@ int16_t paiorder_completefolloworder(void) {
 		g_paiContext.orderSlot = currentOrderSlot;
 		g_paiContext.controller->currentOrderSlot = (uint8_t)currentOrderSlot;
 		order =
-			g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.orders[g_paiContext.orderSlot].order;
+			g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.orders[g_paiContext.orderSlot].order;
 		{
 			AiController* currentController;
 			int planNameIndex;
@@ -1829,7 +1829,7 @@ int16_t paiorder_killselforder(void) {
 	uint16_t delayFiveSecondUnits;
 
 	if (g_objectTable[g_paiContext.objectIndex].mobj->lifetimeTimer == 0) {
-		delayFiveSecondUnits = g_missionFlightGroups[g_paiContext.orderFlightGroupIndex]
+		delayFiveSecondUnits = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 								   .fg.orders[g_paiContext.orderSlot]
 								   .variable1;
 		if (delayFiveSecondUnits == 0)
@@ -1854,11 +1854,11 @@ int16_t paiorder_abortmotherwaitorder(void) {
 
 	result = 0;
 	if (g_curCraft->capturedByFlightGroup != 0) {
-		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.capturedDepartViaMothership != 0) {
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.capturedDepartViaMothership != 0) {
 			uint16_t mothershipFlightGroup;
 
 			mothershipFlightGroup =
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.capturedDepartureMothership;
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.capturedDepartureMothership;
 			if (g_missionFgStats[mothershipFlightGroup].outcomeCount[FLIGHT_GROUP_OUTCOME_TOTAL] ==
 				g_missionFgStats[mothershipFlightGroup].outcomeCount[FLIGHT_GROUP_OUTCOME_ARRIVED]) {
 				result = 1;
@@ -1870,21 +1870,21 @@ int16_t paiorder_abortmotherwaitorder(void) {
 
 		departureMothershipReady = 1;
 		alternateMothershipReady = 1;
-		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureMethod != 0) {
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureMethod != 0) {
 			uint16_t mothershipFlightGroup;
 
 			mothershipFlightGroup =
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.departureMothership;
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.departureMothership;
 			if (g_missionFgStats[mothershipFlightGroup].outcomeCount[FLIGHT_GROUP_OUTCOME_TOTAL] !=
 				g_missionFgStats[mothershipFlightGroup].outcomeCount[FLIGHT_GROUP_OUTCOME_ARRIVED]) {
 				departureMothershipReady = 0;
 			}
 		}
-		if (g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.alternateMothershipUsed != 0) {
+		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.alternateMothershipUsed != 0) {
 			uint16_t mothershipFlightGroup;
 
 			mothershipFlightGroup =
-				g_missionFlightGroups[g_paiContext.orderFlightGroupIndex].fg.alternateMothership;
+				g_missionFlightGroups[g_paiContext.craftFlightGroupIndex].fg.alternateMothership;
 			if (g_missionFgStats[mothershipFlightGroup].outcomeCount[FLIGHT_GROUP_OUTCOME_TOTAL] !=
 				g_missionFgStats[mothershipFlightGroup].outcomeCount[FLIGHT_GROUP_OUTCOME_ARRIVED]) {
 				alternateMothershipReady = 0;

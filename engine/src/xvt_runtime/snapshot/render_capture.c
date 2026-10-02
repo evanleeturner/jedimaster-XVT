@@ -52,7 +52,7 @@ static struct {
 typedef struct XvtAuthoritativePose {
 	int32_t position[3];
 	uint16_t signature, yaw, pitch, roll;
-	uint8_t type, mesh[50];
+	uint8_t type, mesh_rotation[50];
 } XvtAuthoritativePose;
 
 static XvtAuthoritativePose g_authoritativePoses[XVT_SNAP_OBJECTS], g_candidatePoses[XVT_SNAP_OBJECTS];
@@ -242,20 +242,20 @@ typedef struct Sequence {
 } Sequence;
 
 static const Sequence g_sequences[] = {
-	{ g_modelType127TextureFrameSequence, sizeof g_modelType127TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType131TextureFrameSequence, sizeof g_modelType131TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType132TextureFrameSequence, sizeof g_modelType132TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType133TextureFrameSequence, sizeof g_modelType133TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType134TextureFrameSequence, sizeof g_modelType134TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType157TextureFrameSequence, sizeof g_modelType157TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType127TextureFrameSequence, sizeof g_objectType127TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType131TextureFrameSequence, sizeof g_objectType131TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType132TextureFrameSequence, sizeof g_objectType132TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType133TextureFrameSequence, sizeof g_objectType133TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType134TextureFrameSequence, sizeof g_objectType134TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType157TextureFrameSequence, sizeof g_objectType157TextureFrameSequence / sizeof(int16_t) },
 	{ g_fuselageDamageTextureFrameSequence, sizeof g_fuselageDamageTextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType110TextureFrameSequence, sizeof g_modelType110TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType111TextureFrameSequence, sizeof g_modelType111TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType112TextureFrameSequence, sizeof g_modelType112TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType113TextureFrameSequence, sizeof g_modelType113TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType128TextureFrameSequence, sizeof g_modelType128TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType129TextureFrameSequence, sizeof g_modelType129TextureFrameSequence / sizeof(int16_t) },
-	{ g_modelType130TextureFrameSequence, sizeof g_modelType130TextureFrameSequence / sizeof(int16_t) }
+	{ g_objectType110TextureFrameSequence, sizeof g_objectType110TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType111TextureFrameSequence, sizeof g_objectType111TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType112TextureFrameSequence, sizeof g_objectType112TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType113TextureFrameSequence, sizeof g_objectType113TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType128TextureFrameSequence, sizeof g_objectType128TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType129TextureFrameSequence, sizeof g_objectType129TextureFrameSequence / sizeof(int16_t) },
+	{ g_objectType130TextureFrameSequence, sizeof g_objectType130TextureFrameSequence / sizeof(int16_t) }
 };
 
 static void CaptureTypes(void) {
@@ -286,10 +286,10 @@ static void CaptureTypes(void) {
 			break;
 		}
 		for (unsigned j = 0; j < 17; ++j)
-			if (t->palette == g_modelTypePaletteRemaps[j])
+			if (t->palette == g_objectTypePaletteRemaps[j])
 				out->remap_count = 16;
-		if (t->palette == g_modelType110Palette || t->palette == g_modelType111Palette ||
-			t->palette == g_modelType112Palette || t->palette == g_modelType113Palette)
+		if (t->palette == g_objectType110Palette || t->palette == g_objectType111Palette ||
+			t->palette == g_objectType112Palette || t->palette == g_objectType113Palette)
 			out->remap_count = 16;
 		if (out->remap_count)
 			memcpy(out->remap, t->palette, out->remap_count);
@@ -536,7 +536,7 @@ static XvtAuthoritativePose XvtRenderCapture_CaptureLivePose(unsigned slot) {
 	pose.pitch = o->pitch;
 	pose.roll = o->roll;
 	if (o->mobj && o->mobj->pCraft)
-		memcpy(pose.mesh, o->mobj->pCraft->meshRotation, sizeof pose.mesh);
+		memcpy(pose.mesh_rotation, o->mobj->pCraft->meshRotation, sizeof pose.mesh_rotation);
 	return pose;
 }
 
@@ -554,7 +554,7 @@ void XvtRenderCapture_CheckNetworkCorrection(void) {
 		if (pose.type != previous->type || pose.signature != previous->signature ||
 			pose.yaw != previous->yaw || pose.pitch != previous->pitch || pose.roll != previous->roll ||
 			memcmp(pose.position, previous->position, sizeof pose.position) ||
-			memcmp(pose.mesh, previous->mesh, sizeof pose.mesh)) {
+			memcmp(pose.mesh_rotation, previous->mesh_rotation, sizeof pose.mesh_rotation)) {
 			g_networkCorrection = 1;
 			return;
 		}

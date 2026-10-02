@@ -78,6 +78,8 @@ unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int* texLevel) {
 	return result;
 }
 
+/* While a mission palette is being collected (g_generateMissionPalette), this also hands each 24-bit image
+ * to ImageQuantizer_ClassifyEncodedTexLevelImage, which counts its colors into the palette being built. */
 // FUNCTION: XVT 0x40E7F0
 unsigned int TexLevel_Convert24BppPalettesTo8Bpp(unsigned int* texLevel) {
 	TexLevelHeader* header;

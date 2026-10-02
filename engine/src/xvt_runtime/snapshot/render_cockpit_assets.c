@@ -54,7 +54,7 @@ void XvtRenderCockpit_Forget(uint64_t id) {
 		g_layout.panel_asset_id = 0;
 }
 
-static void RefreshLayoutBindings(void) {
+static void RefreshLayoutElements(void) {
 	/* Layout selectors may be assigned during a panel-set rebuild. */
 	if (g_layout.valid) {
 		for (unsigned i = 0; i < XVT_SNAP_INSTRUMENTS; ++i) {
@@ -71,7 +71,7 @@ static void RefreshLayoutBindings(void) {
 }
 
 void XvtRenderCockpit_CaptureDefinition(XvtCockpitDefinition* definition) {
-	RefreshLayoutBindings();
+	RefreshLayoutElements();
 	memset(definition, 0, sizeof *definition);
 	definition->resource_generation = g_resourceGeneration;
 	definition->layout = g_layout;

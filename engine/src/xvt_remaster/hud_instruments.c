@@ -48,7 +48,7 @@ static void DrawWeapons(const XvtHudDraw* draw) {
 		if (slot->selection_visible)
 			XvtHudDraw_Part(draw, XVT_HUD_LASER_SELECTION + index, slot->selection_state, 0, 0,
 							XVT_COCKPIT_BEFORE_CRT);
-		XvtHudDraw_Part(draw, XVT_HUD_LASER_READY + index, slot->ready, 0, 0, XVT_COCKPIT_BEFORE_CRT);
+		XvtHudDraw_Part(draw, XVT_HUD_LASER_READY + index, slot->ready_state, 0, 0, XVT_COCKPIT_BEFORE_CRT);
 		if (slot->lock_visible)
 			XvtHudDraw_Part(draw, XVT_HUD_LASER_LOCK + index, slot->locked, 0, 0, XVT_COCKPIT_BEFORE_CRT);
 	}

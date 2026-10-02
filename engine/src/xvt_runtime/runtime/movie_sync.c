@@ -23,7 +23,7 @@ void XvtMovieSync_Begin(void) {
 	g_movieMultiplayerSyncDeadlineMs = 0;
 }
 
-void XvtMovieSync_Wait(void) {
+void XvtMovieSync_ReportFinished(void) {
 	int packet[2] = { NET_PACKET_MOVIE_SYNC, 0 };
 	int index;
 	if (g_moviePlaybackCompletionState)

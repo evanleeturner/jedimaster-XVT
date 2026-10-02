@@ -96,7 +96,7 @@ int XvtFlightSim_UpdatePlayerStep(int playerIdx) {
 		}
 
 		FlightInput_Read(playerIdx);
-		FlightInput_ScaleAxesForFlight();
+		FlightInput_LatchFlightControls();
 		if (playerIdx == g_localPlayer) {
 			if (g_flightSimSideEffectsSuppressed == 0) {
 				switch (g_currentActionKey) {

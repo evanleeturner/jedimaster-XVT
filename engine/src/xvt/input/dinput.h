@@ -20,7 +20,7 @@ int DInput_Init(void);
 int DInput_SkipToPendingKeyPress(void);
 uint8_t DInput_GetKey(void);
 void DInput_UpdateKeyboardModifierState(void);
-HRESULT DInput_ReadKeyboardState(void);
+HRESULT DInput_ProbeKeyboardState(void);
 void DInput_Shutdown(void);
 int DInput_ReacquireKeyboard(void);
 
