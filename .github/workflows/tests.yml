@@ -1,14 +1,15 @@
 name: Tests
 
-# Builds the unit tests in tests/ and runs them with ctest, inside the
-# xvt-build stage of packaging/linux/Dockerfile, the image the Linux package
-# is built in. tests/CMakeLists.txt builds every test program with
-# AddressSanitizer and UndefinedBehaviorSanitizer.
+# Builds the engine's unit tests (engine/tests/) and runs them with ctest,
+# inside the xvt-build stage of engine/packaging/linux/Dockerfile, the image
+# the Linux package is built in. engine/tests/CMakeLists.txt builds every test
+# program with AddressSanitizer and UndefinedBehaviorSanitizer.
 #
 # The crash note's test also runs on Windows, where the crash note has code of
-# its own: it is compiled with the MinGW compiler of packaging/windows/
-# Dockerfile, the one the Windows package is built with, and run on a Windows
-# runner, where it crashes child processes on purpose.
+# its own: it is compiled with the MinGW compiler of
+# engine/packaging/windows/Dockerfile, the one the Windows package is built
+# with, and run on a Windows runner, where it crashes child processes on
+# purpose.
 
 on:
   workflow_dispatch:
@@ -41,7 +42,6 @@ jobs:
       - name: Check out sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          submodules: recursive
           persist-credentials: false
 
       - name: Limit address randomization for the sanitizers
@@ -65,8 +65,8 @@ jobs:
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
-          context: .
-          file: packaging/linux/Dockerfile
+          context: engine
+          file: engine/packaging/linux/Dockerfile
           platforms: linux/amd64
           target: xvt-build
           load: true
@@ -102,7 +102,7 @@ jobs:
           docker run --rm \
             --user "$(id -u):$(id -g)" \
             --env HOME=/tmp \
-            --volume "${GITHUB_WORKSPACE}:/work/src:ro" \
+            --volume "${GITHUB_WORKSPACE}/engine:/work/src:ro" \
             --volume "${RUNNER_TEMP}/tests-build:/work/build" \
             openxvt-tests:ci \
             bash -euo pipefail -c "${TEST_SCRIPT}"
@@ -125,8 +125,8 @@ jobs:
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
-          context: .
-          file: packaging/windows/Dockerfile
+          context: engine
+          file: engine/packaging/windows/Dockerfile
           platforms: linux/amd64
           target: build-base
           load: true
@@ -145,7 +145,7 @@ jobs:
           mkdir -p "${RUNNER_TEMP}/windows-tests"
           docker run --rm \
             --user "$(id -u):$(id -g)" \
-            --volume "${GITHUB_WORKSPACE}:/work/src:ro" \
+            --volume "${GITHUB_WORKSPACE}/engine:/work/src:ro" \
             --volume "${RUNNER_TEMP}/windows-tests:/work/out" \
             --workdir /work/src \
             openxvt-mingw:ci \

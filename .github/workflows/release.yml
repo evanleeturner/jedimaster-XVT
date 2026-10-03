@@ -18,8 +18,6 @@ jobs:
     steps:
       - name: Check out sources
         uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - name: Determine release version
         id: version
@@ -33,8 +31,8 @@ jobs:
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
-          context: .
-          file: packaging/linux/Dockerfile
+          context: engine
+          file: engine/packaging/linux/Dockerfile
           platforms: linux/amd64
           target: artifact
           build-args: |
@@ -60,8 +58,6 @@ jobs:
     steps:
       - name: Check out sources
         uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - name: Determine release version
         id: version
@@ -75,8 +71,8 @@ jobs:
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
-          context: .
-          file: packaging/windows/Dockerfile
+          context: engine
+          file: engine/packaging/windows/Dockerfile
           platforms: linux/amd64
           target: artifact
           build-args: |
@@ -102,8 +98,6 @@ jobs:
     steps:
       - name: Check out sources
         uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - name: Install build tools
         run: brew install cmake ninja pkg-config
@@ -112,31 +106,31 @@ jobs:
         id: runner-image
         run: echo "version=${ImageVersion}" >> "$GITHUB_OUTPUT"
 
-      - name: XvtKeyboardSettings_RestoreModal dependency caches
+      - name: Restore dependency caches
         uses: actions/cache@v6
         with:
           path: |
-            build/cache/macos-arm64/sources
-            build/cache/macos-arm64/dependencies
-            build/cache/macos-arm64/tools
-            build/cache/macos-arm64/build/sdl
-            build/cache/macos-arm64/build/zstd
-            build/cache/macos-arm64/build/ffmpeg
-            build/cache/macos-arm64/build/shadercross
-          key: macos-arm64-${{ steps.runner-image.outputs.version }}-deps-${{ hashFiles('packaging/macos/build-package.sh', 'packaging/common/shadercross-fsr3.patch') }}
+            engine/build/cache/macos-arm64/sources
+            engine/build/cache/macos-arm64/dependencies
+            engine/build/cache/macos-arm64/tools
+            engine/build/cache/macos-arm64/build/sdl
+            engine/build/cache/macos-arm64/build/zstd
+            engine/build/cache/macos-arm64/build/ffmpeg
+            engine/build/cache/macos-arm64/build/shadercross
+          key: macos-arm64-${{ steps.runner-image.outputs.version }}-deps-${{ hashFiles('engine/packaging/macos/build-package.sh', 'engine/packaging/common/shadercross-fsr3.patch') }}
 
       - name: Build package
         env:
           XVT_BUILD_TYPE: ${{ matrix.build-type }}
           XVT_MACOS_BUILD_VERSION: ${{ github.run_number }}
         run: |
-          XVT_VERSION="${GITHUB_REF_NAME#v}" ./packaging/macos/build-package.sh
+          XVT_VERSION="${GITHUB_REF_NAME#v}" ./engine/packaging/macos/build-package.sh
 
       - name: Upload package
         uses: actions/upload-artifact@v7
         with:
           name: openxvt-macos-arm64-${{ matrix.build-type == 'Debug' && 'debug' || 'release' }}
-          path: build/artifacts/*.dmg
+          path: engine/build/artifacts/*.dmg
           if-no-files-found: error
 
   publish:
