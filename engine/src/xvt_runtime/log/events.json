@@ -1,0 +1,642 @@
+{
+  "program": "OpenXvT",
+  "grammar": 1,
+  "line": "HH:MM:SS.mmm L event key=value ...",
+  "events": {
+    "app.crash_exception": {
+      "level": "C",
+      "fields": ["code", "addr"],
+      "text": "The program crashed on Windows exception {code} at address {addr}; the stack's frames follow"
+    },
+    "app.crash_frame": {
+      "level": "C",
+      "fields": ["n", "module", "offset"],
+      "text": "Frame {n} of the crashed stack is at offset {offset} in {module}"
+    },
+    "app.crash_signal": {
+      "level": "C",
+      "fields": ["signal", "code", "addr"],
+      "text": "The program crashed on {signal} (si_code {code}, address {addr}); the stack's frames follow"
+    },
+    "app.log_file": {
+      "level": "I",
+      "fields": ["path"],
+      "text": "Log lines also go to the file {path}"
+    },
+    "app.log_file_failed": {
+      "level": "W",
+      "fields": ["path", "error"],
+      "text": "Cannot write the log file {path} ({error}); log lines go to stderr only"
+    },
+    "app.previous_run": {
+      "level": "W",
+      "fields": ["ended", "last", "file"],
+      "text": "The previous run's log {file} shows it did not end the normal way: it ended {ended}, last writing {last}"
+    },
+    "app.ready": {
+      "level": "I",
+      "fields": [],
+      "text": "The host is ready and the frame loop starts"
+    },
+    "app.start": {
+      "level": "I",
+      "fields": ["version"],
+      "text": "OpenXvT {version} is starting"
+    },
+    "app.stop": {
+      "level": "I",
+      "fields": ["exit"],
+      "text": "The program stops with exit code {exit}; written at every level, as a run's last line"
+    },
+    "campaign.packet_timeout": {
+      "level": "W",
+      "fields": ["type"],
+      "text": "Timed out waiting for continuation packet type {type}"
+    },
+    "config.override_ignored": {
+      "level": "W",
+      "fields": ["key"],
+      "text": "The user override of {key} is ignored; only the shipped value applies"
+    },
+    "dialog.closed": {
+      "level": "I",
+      "fields": ["result"],
+      "text": "The dialog closed with result {result}"
+    },
+    "dialog.opened": {
+      "level": "I",
+      "fields": [],
+      "text": "A dialog opened"
+    },
+    "files.fatal": {
+      "level": "E",
+      "fields": ["message", "path"],
+      "text": "A file operation failed and the program exits: {message} ({path})"
+    },
+    "files.remove_failed": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "Cannot remove the failed output {path}"
+    },
+    "files.save_failed": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "Cannot save {path}"
+    },
+    "files.write_failed": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "Cannot write {path}"
+    },
+    "flight.end": {
+      "level": "I",
+      "fields": ["result", "reason"],
+      "text": "The flight ends ({reason}); result {result}, where 1 commits the mission results"
+    },
+    "flight.frames_end": {
+      "level": "I",
+      "fields": ["reason", "tick"],
+      "text": "The frame loop ended at game tick {tick}: {reason}"
+    },
+    "flight.launch": {
+      "level": "I",
+      "fields": [],
+      "text": "The flight launch started"
+    },
+    "flight.mission": {
+      "level": "I",
+      "fields": ["file"],
+      "text": "The mission file {file} loads"
+    },
+    "flight.options": {
+      "level": "I",
+      "fields": ["players", "cookie"],
+      "text": "Options and taunts are agreed for {players} players under mission cookie {cookie}"
+    },
+    "flight.phase": {
+      "level": "I",
+      "fields": ["from", "to"],
+      "text": "The flight task moved from phase {from} to phase {to}"
+    },
+    "flight.start": {
+      "level": "I",
+      "fields": ["local", "players"],
+      "text": "The frame loop starts with the local player in slot {local} of {players}"
+    },
+    "flight.sync_ack": {
+      "level": "D",
+      "fields": ["phase", "slot", "count"],
+      "text": "Slot {slot} answered in pre-flight phase {phase}; {count} answers so far"
+    },
+    "flight.sync_timeout": {
+      "level": "W",
+      "fields": ["stage", "phase", "count", "expected"],
+      "text": "The pre-flight {stage} wait ran out in phase {phase} with {count} of {expected} answers; the flight does not start"
+    },
+    "flight.world": {
+      "level": "I",
+      "fields": ["players", "mask", "slots", "bytes"],
+      "text": "The flight world started: {players} players, slot mask {mask} (hex), {slots} object slots, {bytes} bytes of saved state"
+    },
+    "frontend.ready": {
+      "level": "I",
+      "fields": [],
+      "text": "The frontend is initialized"
+    },
+    "input.capture_failed": {
+      "level": "E",
+      "fields": ["device"],
+      "text": "Cannot capture the flight {device}; the player retries with Ctrl+Alt+M"
+    },
+    "input.controller_rejected": {
+      "level": "W",
+      "fields": ["error"],
+      "text": "The controller options were rejected: {error}"
+    },
+    "input.controls_missing": {
+      "level": "W",
+      "fields": ["controller", "missing", "truncated"],
+      "text": "Controller {controller} lacks {missing} configured controls (hardware list cut: {truncated})"
+    },
+    "input.discovery_failed": {
+      "level": "W",
+      "fields": ["error"],
+      "text": "Adding newly connected controllers, or saving the updated controller list, failed: {error}"
+    },
+    "input.queue_full": {
+      "level": "W",
+      "fields": ["queue"],
+      "text": "The {queue} command queue is full; the command is dropped"
+    },
+    "launch.command": {
+      "level": "D",
+      "fields": ["command"],
+      "text": "The queued launch command is {command}"
+    },
+    "launch.queued": {
+      "level": "I",
+      "fields": [],
+      "text": "A flight launch is queued"
+    },
+    "models.opt_invalid": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "The OPT model {path} is invalid or unreadable"
+    },
+    "movie.failed": {
+      "level": "E",
+      "fields": ["path", "error"],
+      "text": "Playing the movie {path} failed: {error}"
+    },
+    "movie.open_failed": {
+      "level": "W",
+      "fields": ["name"],
+      "text": "Cannot open the movie {name}"
+    },
+    "movie.start": {
+      "level": "I",
+      "fields": ["path"],
+      "text": "The movie {path} starts playing"
+    },
+    "movie.stop": {
+      "level": "I",
+      "fields": ["name", "result"],
+      "text": "The movie {name} finished with result {result}"
+    },
+    "network.batch_dropped": {
+      "level": "D",
+      "fields": ["slot", "reason"],
+      "text": "An input batch from slot {slot} was dropped: {reason}"
+    },
+    "network.batch_received": {
+      "level": "D",
+      "fields": ["slot", "records", "first", "last"],
+      "text": "An input batch from slot {slot} holds {records} records, ticks {first} to {last}"
+    },
+    "network.batch_sent": {
+      "level": "D",
+      "fields": ["records", "left"],
+      "text": "An input batch of {records} records was sent; {left} records wait"
+    },
+    "network.checksum": {
+      "level": "D",
+      "fields": ["tick", "host", "sums", "lengths"],
+      "text": "World checksum at tick {tick} (host {host}): region sums {sums}, region lengths {lengths}"
+    },
+    "network.checksum_queue_full": {
+      "level": "E",
+      "fields": [],
+      "text": "The checksum continuation queue is exhausted; the mission ends"
+    },
+    "network.confirm": {
+      "level": "D",
+      "fields": ["tick", "queue", "mask", "records", "checksum"],
+      "text": "A world message from the {queue} queue is confirmed at tick {tick}: slot mask {mask} (hex), {records} input records, checksum flag {checksum}"
+    },
+    "network.confirm_gap": {
+      "level": "D",
+      "fields": ["target", "confirmed"],
+      "text": "A world message targets tick {target}, not one message after the confirmed tick {confirmed}; recovery is needed"
+    },
+    "network.directory_retry": {
+      "level": "W",
+      "fields": [],
+      "text": "The directory listing failed; hosting registers again"
+    },
+    "network.fell_behind": {
+      "level": "D",
+      "fields": ["input", "server", "adjust"],
+      "text": "The input clock {input} fell behind the server tick {server}; it jumps {adjust} ticks"
+    },
+    "network.handshake": {
+      "level": "D",
+      "fields": ["peers"],
+      "text": "The host's sequence status named {peers} peers; the join request was sent"
+    },
+    "network.host_lost": {
+      "level": "W",
+      "fields": ["flight"],
+      "text": "The host left the session; in flight {flight}"
+    },
+    "network.host_timeout": {
+      "level": "W",
+      "fields": ["ticks"],
+      "text": "Nothing came from the host for {ticks} ticks; the local player leaves"
+    },
+    "network.input": {
+      "level": "D",
+      "fields": ["tick", "key", "flags", "x", "y", "r", "mods", "throttle"],
+      "text": "Local input for tick {tick}: key {key}, flags {flags}, axes {x} {y} {r}, modifiers {mods}, throttle {throttle}"
+    },
+    "network.input_conflict": {
+      "level": "E",
+      "fields": ["player", "tick"],
+      "text": "Conflicting authoritative input for player slot {player} at tick {tick}"
+    },
+    "network.input_rejected": {
+      "level": "D",
+      "fields": ["slot", "tick", "result", "authoritative"],
+      "text": "Input for slot {slot} at tick {tick} was refused ({result}; authoritative {authoritative}); recovery is needed"
+    },
+    "network.join_rejected": {
+      "level": "W",
+      "fields": [],
+      "text": "The host refused the join; the frontend shows the reason"
+    },
+    "network.player_left": {
+      "level": "I",
+      "fields": ["slot", "local"],
+      "text": "The player in slot {slot} left the flight; local player {local}"
+    },
+    "network.player_silent": {
+      "level": "W",
+      "fields": ["slot", "ticks"],
+      "text": "The player in slot {slot} sent nothing for {ticks} ticks; the host drops them"
+    },
+    "network.recovery_needed": {
+      "level": "W",
+      "fields": [],
+      "text": "Flight history or message capacity or continuity was exceeded; state recovery is needed"
+    },
+    "network.session_begin": {
+      "level": "I",
+      "fields": ["role", "online"],
+      "text": "A network session started as {role}; online {online}"
+    },
+    "network.session_closed": {
+      "level": "I",
+      "fields": ["phase"],
+      "text": "The network session closed from setup phase {phase}"
+    },
+    "network.session_failed": {
+      "level": "W",
+      "fields": ["phase", "error"],
+      "text": "The network session failed in phase {phase} with error {error}"
+    },
+    "network.session_names": {
+      "level": "D",
+      "fields": ["pilot", "game", "rating"],
+      "text": "The session uses pilot name {pilot}, game name {game} and rating {rating}"
+    },
+    "network.session_ready": {
+      "level": "I",
+      "fields": ["role", "online"],
+      "text": "The network session is established as {role}; online {online}"
+    },
+    "network.world_received": {
+      "level": "D",
+      "fields": ["tick", "mask", "records", "queue"],
+      "text": "The world message for tick {tick} arrived: slot mask {mask} (hex), {records} input records, into the {queue} queue"
+    },
+    "network.world_rejected": {
+      "level": "D",
+      "fields": ["reason"],
+      "text": "A world message was refused ({reason}); recovery is needed"
+    },
+    "network.world_sent": {
+      "level": "D",
+      "fields": ["tick", "mask", "records", "checksum"],
+      "text": "The host sent the world message for tick {tick}: slot mask {mask} (hex), {records} input records, checksum flag {checksum}"
+    },
+    "port.host_invalid": {
+      "level": "E",
+      "fields": [],
+      "text": "The runtime needs an initialized 640x480 Aeron host"
+    },
+    "port.paused": {
+      "level": "I",
+      "fields": [],
+      "text": "The runtime paused"
+    },
+    "port.ready": {
+      "level": "I",
+      "fields": [],
+      "text": "The runtime is initialized"
+    },
+    "port.resumed": {
+      "level": "I",
+      "fields": [],
+      "text": "The runtime resumed"
+    },
+    "port.stopped": {
+      "level": "I",
+      "fields": [],
+      "text": "The runtime shut down"
+    },
+    "remaster.alpha_override": {
+      "level": "D",
+      "fields": ["model", "texture", "mode", "cutoff"],
+      "text": "OPT alpha override for {model} {texture}: mode {mode}, cutoff {cutoff}"
+    },
+    "remaster.asset_failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "Loading an original image or texture asset failed: {error}"
+    },
+    "remaster.cockpit_art_missing": {
+      "level": "E",
+      "fields": ["view"],
+      "text": "Cockpit view {view} has no prepared resident artwork"
+    },
+    "remaster.cockpit_bitmap_failed": {
+      "level": "E",
+      "fields": ["frame", "error"],
+      "text": "Cockpit bitmap {frame} failed: {error}"
+    },
+    "remaster.cockpit_prepared": {
+      "level": "D",
+      "fields": ["ms", "width", "height"],
+      "text": "Resident cockpit resources were prepared in {ms} ms at {width}x{height}"
+    },
+    "remaster.config_failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "The remaster configuration could not be applied: {error}"
+    },
+    "remaster.host_missing": {
+      "level": "E",
+      "fields": [],
+      "text": "The modern renderer needs an initialized Aeron host"
+    },
+    "remaster.mesh_assets": {
+      "level": "D",
+      "fields": ["generation", "unique"],
+      "text": "Mesh assets: generation {generation}, {unique} unique"
+    },
+    "remaster.opt_failed": {
+      "level": "E",
+      "fields": ["path", "error"],
+      "text": "OPT {path} failed: {error}"
+    },
+    "remaster.opt_gpu_failed": {
+      "level": "E",
+      "fields": ["path", "status"],
+      "text": "OPT {path}: GPU creation failed with status {status}"
+    },
+    "remaster.opt_init_failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "The OPT mesh loader could not be initialized: {error}"
+    },
+    "remaster.ready": {
+      "level": "I",
+      "fields": [],
+      "text": "The modern renderer is initialized and modern presentation is requested"
+    },
+    "remaster.renderer": {
+      "level": "I",
+      "fields": ["mode"],
+      "text": "The {mode} renderer is requested"
+    },
+    "remaster.scene": {
+      "level": "D",
+      "fields": ["kind"],
+      "text": "Scene kind {kind}"
+    },
+    "remaster.stars_gpu_failed": {
+      "level": "E",
+      "fields": [],
+      "text": "The starfield's GPU resources could not be created"
+    },
+    "remaster.stopped": {
+      "level": "I",
+      "fields": [],
+      "text": "The modern renderer shut down"
+    },
+    "resync.batch_sent": {
+      "level": "D",
+      "fields": ["chunks", "offset", "bytes", "final"],
+      "text": "A batch of {chunks} chunks is sent, through byte {offset} of {bytes}; final {final}"
+    },
+    "resync.chunk": {
+      "level": "D",
+      "fields": ["index", "bytes"],
+      "text": "World chunk {index} ({bytes} bytes) is stored and acknowledged"
+    },
+    "resync.decode_failed": {
+      "level": "W",
+      "fields": ["bytes"],
+      "text": "The received world of {bytes} bytes does not decode; the receive restarts"
+    },
+    "resync.done": {
+      "level": "I",
+      "fields": ["terminal"],
+      "text": "The replay after a world restore finished; the mission ended during it: {terminal}"
+    },
+    "resync.gave_up": {
+      "level": "E",
+      "fields": ["restarts"],
+      "text": "Receiving the host's world failed after {restarts} restarts; the local player leaves and the mission ends"
+    },
+    "resync.host_desync": {
+      "level": "E",
+      "fields": [],
+      "text": "The host's own world is out of step and no player can supply one; the mission ends"
+    },
+    "resync.image_mismatch": {
+      "level": "W",
+      "fields": [],
+      "text": "The received world's checksums differ from the host's table; the receive restarts"
+    },
+    "resync.peer_dropped": {
+      "level": "W",
+      "fields": ["slot", "stage"],
+      "text": "The player in slot {slot} stopped answering the world send at the {stage} step, or Escape was pressed; the player is dropped"
+    },
+    "resync.receive_begin": {
+      "level": "I",
+      "fields": ["bytes", "tick"],
+      "text": "This client starts receiving the host's world: {bytes} bytes saved at tick {tick}"
+    },
+    "resync.receive_timeout": {
+      "level": "E",
+      "fields": [],
+      "text": "The host's world stopped arriving; the mission ends"
+    },
+    "resync.request_ignored": {
+      "level": "D",
+      "fields": ["epoch", "expected", "bytes", "sum", "tick"],
+      "text": "A world-send request was ignored: epoch {epoch} or tick {tick} against {expected}, {bytes} bytes against a table sum of {sum}"
+    },
+    "resync.request_timeout": {
+      "level": "E",
+      "fields": [],
+      "text": "The host did not answer the request for its world in time; the mission ends"
+    },
+    "resync.requested": {
+      "level": "I",
+      "fields": ["epoch"],
+      "text": "This client asked the host for its world, holding checksum epoch {epoch}"
+    },
+    "resync.restart": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "Receiving the host's world starts over, restart {count}"
+    },
+    "resync.restored": {
+      "level": "I",
+      "fields": ["tick", "bytes", "epoch"],
+      "text": "The host's world is installed at tick {tick} ({bytes} bytes, epoch {epoch}); buffered messages replay next"
+    },
+    "resync.retry": {
+      "level": "D",
+      "fields": ["stage", "left"],
+      "text": "The {stage} step of a world send is retried; {left} tries left"
+    },
+    "resync.send_begin": {
+      "level": "I",
+      "fields": ["slot", "bytes", "tick"],
+      "text": "The host starts sending its world to slot {slot}: {bytes} bytes saved at tick {tick}"
+    },
+    "resync.send_done": {
+      "level": "I",
+      "fields": ["slot"],
+      "text": "Slot {slot} acknowledged the world the host sent"
+    },
+    "resync.send_failed": {
+      "level": "W",
+      "fields": ["slot", "reason"],
+      "text": "The host cannot send its world to slot {slot}: {reason}"
+    },
+    "resync.send_restart": {
+      "level": "D",
+      "fields": ["slot"],
+      "text": "Slot {slot} asked for the world again during the send; the send starts over"
+    },
+    "settings.init_failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "The settings menu could not start: {error}"
+    },
+    "settings.save_failed": {
+      "level": "E",
+      "fields": ["part", "error"],
+      "text": "Saving the {part} settings at exit failed: {error}"
+    },
+    "setup.failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "Setup failed: {error}"
+    },
+    "setup.installed": {
+      "level": "I",
+      "fields": ["root"],
+      "text": "The XvT installation at {root} is validated"
+    },
+    "setup.music_failed": {
+      "level": "E",
+      "fields": [],
+      "text": "The installed CD music tracks cannot be configured"
+    },
+    "snapshot.alert_overflow": {
+      "level": "E",
+      "fields": ["line"],
+      "text": "Alert line {line} exceeds the glyph capacity; the capture fails"
+    },
+    "snapshot.asset_unresolved": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "Cannot resolve the loaded asset {path}"
+    },
+    "snapshot.icon_frames_overflow": {
+      "level": "E",
+      "fields": ["path", "count", "limit"],
+      "text": "{path} has {count} icon frames, over the original allocation of {limit}"
+    },
+    "snapshot.page_rows_overflow": {
+      "level": "E",
+      "fields": ["page"],
+      "text": "Cockpit page {page} exceeds the visible row capacity"
+    },
+    "snapshot.page_text_overflow": {
+      "level": "E",
+      "fields": ["page"],
+      "text": "Cockpit page {page} exceeds the snapshot text capacity"
+    },
+    "snapshot.pane_overflow": {
+      "level": "E",
+      "fields": ["pane"],
+      "text": "Message pane {pane} exceeds the glyph capacity; the capture fails"
+    },
+    "snapshot.records_dropped": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "The main-view capture dropped {count} records or unsupported type arrays"
+    },
+    "snapshot.section_nested": {
+      "level": "E",
+      "fields": ["page", "section"],
+      "text": "Cockpit page {page} section {section} opened inside another section"
+    },
+    "snapshot.section_overflow": {
+      "level": "E",
+      "fields": ["page", "section"],
+      "text": "Cockpit page {page} section {section} exceeds the glyph capacity or its allocation failed"
+    },
+    "snapshot.section_retain_failed": {
+      "level": "E",
+      "fields": ["page", "section"],
+      "text": "Cannot retain cockpit page {page} section {section}"
+    },
+    "snapshot.text_overflow": {
+      "level": "E",
+      "fields": ["field", "limit"],
+      "text": "Cockpit text field {field} exceeds {limit} bytes"
+    },
+    "timing.alloc_failed": {
+      "level": "W",
+      "fields": ["outcome"],
+      "text": "Flight timing allocation failed; outcome: {outcome}"
+    },
+    "timing.periods_dropped": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "{count} overdue reference periods were dropped"
+    },
+    "timing.profile": {
+      "level": "I",
+      "fields": ["mode"],
+      "text": "Flight timing runs the {mode} profile"
+    }
+  }
+}
