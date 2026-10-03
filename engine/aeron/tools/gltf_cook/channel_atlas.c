@@ -1,0 +1,249 @@
+#include "channel_atlas.h"
+
+#include "aeron/atlas_pack.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void channel_atlas_init(ChannelAtlas* ca, int channel) {
+	if (!ca)
+		return;
+	memset(ca, 0, sizeof *ca);
+	ca->channel = channel;
+}
+
+void channel_atlas_free(ChannelAtlas* ca) {
+	if (!ca)
+		return;
+	free(ca->rects);
+	free(ca->rgba);
+	memset(ca, 0, sizeof *ca);
+}
+
+bool channel_atlas_add_rect(ChannelAtlas* ca, uint32_t mat_idx, int src_w, int src_h,
+							const uint8_t* src_rgba) {
+	if (!ca || src_w <= 0 || src_h <= 0 || !src_rgba)
+		return false;
+	if (ca->rect_count == ca->rect_capacity) {
+		int          cap   = ca->rect_capacity ? ca->rect_capacity * 2 : 8;
+		ChannelRect* grown = (ChannelRect*)realloc(ca->rects, (size_t)cap * sizeof *grown);
+		if (!grown)
+			return false;
+		ca->rects         = grown;
+		ca->rect_capacity = cap;
+	}
+	ChannelRect* r = &ca->rects[ca->rect_count++];
+	r->mat_idx     = mat_idx;
+	r->src_w       = src_w;
+	r->src_h       = src_h;
+	r->src_rgba    = src_rgba;
+	r->x = r->y = 0;
+	return true;
+}
+
+/* Round up to the next power of 2 (positive ints). */
+static int next_pow2(int v, int limit) {
+	int p = 1;
+	while (p < v && p <= limit / 2)
+		p <<= 1;
+	return p >= v && p <= limit ? p : 0;
+}
+
+static int mip_count_for_pad(int pad) {
+	int count = 1;
+	while (pad > 1) {
+		pad /= 2;
+		count++;
+	}
+	return count;
+}
+
+/* Sort rects by max(w,h) desc, tiebreak by area desc — matches the
+ * AnimImage adapter's pre-sort. The skyline packer is sensitive to
+ * input order; this gives a deterministic, tight pack. */
+static void sort_rects_largest_first(ChannelRect* r, int n) {
+	for (int i = 1; i < n; i++) {
+		ChannelRect key   = r[i];
+		int         kmax  = key.src_w > key.src_h ? key.src_w : key.src_h;
+		long        karea = (long)key.src_w * (long)key.src_h;
+		int         j     = i - 1;
+		while (j >= 0) {
+			int  jmax       = r[j].src_w > r[j].src_h ? r[j].src_w : r[j].src_h;
+			long jarea      = (long)r[j].src_w * (long)r[j].src_h;
+			bool key_bigger = (kmax > jmax) || (kmax == jmax && karea > jarea);
+			if (!key_bigger)
+				break;
+			r[j + 1] = r[j];
+			j--;
+		}
+		r[j + 1] = key;
+	}
+}
+
+bool channel_atlas_pack(ChannelAtlas* ca, int max_atlas_size, int pad) {
+	if (!ca || max_atlas_size < 4 || pad < 0)
+		return false;
+	if (ca->rect_count == 0) {
+		/* Empty channel — still allocate a 1×1 placeholder atlas so the
+		 * texture binding has somewhere to point. */
+		ca->width     = 4; /* BC7 4×4 block minimum */
+		ca->height    = 4;
+		ca->mip_count = mip_count_for_pad(pad);
+		ca->pad       = pad;
+		return true;
+	}
+
+	/* Find the largest source rect; the atlas must fit it (plus pad).
+	 * If even that exceeds max_atlas_size, fail loud — there's no
+	 * point degrading silently. */
+	int max_w = 0, max_h = 0;
+	for (int i = 0; i < ca->rect_count; i++) {
+		if (ca->rects[i].src_w > max_w)
+			max_w = ca->rects[i].src_w;
+		if (ca->rects[i].src_h > max_h)
+			max_h = ca->rects[i].src_h;
+	}
+	int min_dim = max_w > max_h ? max_w : max_h;
+	if (min_dim > max_atlas_size || pad > (max_atlas_size - min_dim) / 2) {
+		fprintf(stderr,
+				"[aeron_gltf_cook] channel %d: source rect %dx%d larger than "
+				"max atlas %d (+%d pad)\n",
+				ca->channel, max_w, max_h, max_atlas_size, pad);
+		return false;
+	}
+	min_dim += 2 * pad;
+
+	/* Sort once; the skyline packer is destructive to position order,
+	 * so we work on a temp copy per width trial. */
+	sort_rects_largest_first(ca->rects, ca->rect_count);
+
+	AeronAtlasRect* trial = (AeronAtlasRect*)calloc((size_t)ca->rect_count, sizeof *trial);
+	if (!trial)
+		return false;
+
+	int             best_w = 0, best_h = 0;
+	long            best_area = 0;
+	AeronAtlasRect* best      = (AeronAtlasRect*)calloc((size_t)ca->rect_count, sizeof *best);
+	if (!best) {
+		free(trial);
+		return false;
+	}
+
+	/* Exact halving through the generated levels keeps normalized UVs aligned
+	 * with the downsampled texels. Retain base-level BC block alignment too. */
+	const int mip_count = mip_count_for_pad(pad);
+	const int alignment = mip_count > 3 ? 1 << (mip_count - 1) : 4;
+	int       try_w     = next_pow2(min_dim, max_atlas_size);
+	if (try_w && try_w < 4)
+		try_w = 4;
+	for (; try_w; try_w = try_w <= max_atlas_size / 2 ? try_w * 2 : 0) {
+		for (int i = 0; i < ca->rect_count; i++) {
+			trial[i].w   = ca->rects[i].src_w;
+			trial[i].h   = ca->rects[i].src_h;
+			trial[i].x   = 0;
+			trial[i].y   = 0;
+			trial[i].key = (uint32_t)i;
+		}
+		int h = Aeron_AtlasPackRects(trial, ca->rect_count, try_w, pad);
+		if (h < 0)
+			continue;
+		const int64_t aligned_height = ((int64_t)h + alignment - 1) & -(int64_t)alignment;
+		if (aligned_height > max_atlas_size)
+			continue;
+		const int try_h = (int)aligned_height;
+		/* Validate placement and measure the rightmost private gutter. */
+		bool fits       = true;
+		int  used_width = 0;
+		for (int i = 0; i < ca->rect_count; i++) {
+			if (trial[i].x < pad || trial[i].y < pad || trial[i].x + trial[i].w + pad > try_w ||
+				trial[i].y + trial[i].h + pad > try_h) {
+				fits = false;
+				break;
+			}
+			const int right = trial[i].x + trial[i].w + pad;
+			if (right > used_width)
+				used_width = right;
+		}
+		if (!fits)
+			continue;
+		const int64_t aligned_width = ((int64_t)used_width + alignment - 1) & -(int64_t)alignment;
+		if (aligned_width > max_atlas_size)
+			continue;
+		long area = (long)aligned_width * (long)try_h;
+		if (best_area == 0 || area < best_area) {
+			best_area = area;
+			best_w    = (int)aligned_width;
+			best_h    = try_h;
+			memcpy(best, trial, (size_t)ca->rect_count * sizeof *trial);
+			/* Keep the first fitting layout, with only its occupied bounds allocated. */
+			break;
+		}
+	}
+
+	if (best_area == 0) {
+		free(trial);
+		free(best);
+		fprintf(stderr,
+				"[aeron_gltf_cook] channel %d: cannot fit %d sub-rects "
+				"into %d×%d atlas\n",
+				ca->channel, ca->rect_count, max_atlas_size, max_atlas_size);
+		return false;
+	}
+
+	/* Scatter positions back into the original (sorted) rect order. */
+	for (int i = 0; i < ca->rect_count; i++) {
+		int idx          = (int)best[i].key;
+		ca->rects[idx].x = best[i].x;
+		ca->rects[idx].y = best[i].y;
+	}
+	ca->width     = best_w;
+	ca->height    = best_h;
+	ca->mip_count = mip_count;
+	ca->pad       = pad;
+
+	free(trial);
+	free(best);
+	return true;
+}
+
+bool channel_atlas_materialize(ChannelAtlas* ca) {
+	if (!ca || ca->width <= 0 || ca->height <= 0)
+		return false;
+	size_t n_bytes = (size_t)ca->width * (size_t)ca->height * 4u;
+	ca->rgba       = (uint8_t*)calloc(1, n_bytes);
+	if (!ca->rgba)
+		return false;
+
+	for (int i = 0; i < ca->rect_count; i++) {
+		const ChannelRect* r = &ca->rects[i];
+		if (!Aeron_AtlasBlitRgba8(ca->rgba, ca->width, ca->height, r->src_rgba, r->src_w, r->src_h, r->x,
+								  r->y, ca->pad, AERON_ATLAS_ADDRESS_REPEAT)) {
+			free(ca->rgba);
+			ca->rgba = NULL;
+			return false;
+		}
+	}
+	return true;
+}
+
+void channel_atlas_rect_uv_transform(const ChannelAtlas* ca, const ChannelRect* r, float out_offset[2],
+									 float out_scale[2]) {
+	if (!ca || !r || ca->width <= 0 || ca->height <= 0) {
+		if (out_offset)
+			out_offset[0] = out_offset[1] = 0.0f;
+		if (out_scale)
+			out_scale[0] = out_scale[1] = 0.0f;
+		return;
+	}
+	float aw = (float)ca->width;
+	float ah = (float)ca->height;
+	if (out_offset) {
+		out_offset[0] = (float)r->x / aw;
+		out_offset[1] = (float)r->y / ah;
+	}
+	if (out_scale) {
+		out_scale[0] = (float)r->src_w / aw;
+		out_scale[1] = (float)r->src_h / ah;
+	}
+}

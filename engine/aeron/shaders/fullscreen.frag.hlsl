@@ -1,0 +1,67 @@
+#include "srgb.hlsli"
+
+Texture2D<float4> g_frameTexture : register(t0, space2);
+SamplerState      g_frameSampler : register(s0, space2);
+
+cbuffer FragmentUniform : register(b0, space3) {
+	float4 params; /* x: decode sRGB source to linear; y: sharp sampling; z: output RGB scale;
+					  w: decode gamma (0 = piecewise sRGB curve, >0 = pow(rgb, w)) */
+	float4 tint;   /* RGBA multiplier applied after decode (1,1,1,1 = untinted) */
+	float4 bias;   /* additive RGB weighted by sample alpha (fade-to-color) */
+};
+
+float2 AeronSharpBilinearTexcoord(float2 texcoord) {
+	uint texWidth;
+	uint texHeight;
+	g_frameTexture.GetDimensions(texWidth, texHeight);
+
+	float2 texSize           = float2((float)texWidth, (float)texHeight);
+	float2 texelsPerDstPixel = abs(float2(ddx(texcoord.x), ddy(texcoord.y))) * texSize;
+	float2 dstPixelsPerTexel = 1.0 / max(texelsPerDstPixel, float2(0.000001, 0.000001));
+	float2 integerScale      = round(dstPixelsPerTexel);
+	float2 integerScaleError = abs(dstPixelsPerTexel - integerScale);
+	float2 texelCoord        = texcoord * texSize;
+	float2 texelBase         = floor(texelCoord);
+	float2 texelFract        = frac(texelCoord);
+	float2 blendRegion       = max(float2(0.0, 0.0), 0.5 - 0.5 / max(dstPixelsPerTexel, float2(1.0, 1.0)));
+	float2 centerDistance    = texelFract - 0.5;
+	float2 sharpenedFract    = (centerDistance - clamp(centerDistance, -blendRegion, blendRegion)) *
+								   max(dstPixelsPerTexel, float2(1.0, 1.0)) +
+							   0.5;
+
+	if (integerScale.x >= 1.0 && integerScale.y >= 1.0 && integerScaleError.x < 0.001 &&
+		integerScaleError.y < 0.001) {
+		return (texelBase + 0.5) / texSize;
+	}
+
+	return dstPixelsPerTexel.x > 1.0 && dstPixelsPerTexel.y > 1.0 ? (texelBase + sharpenedFract) / texSize
+																  : texcoord;
+}
+
+float4 main(float4 position : SV_Position, float2 texcoord : TEXCOORD0) : SV_Target0 {
+	float  unusedValue    = position.x * 0.0;
+	float2 sampleTexcoord = params.y != 0.0 ? AeronSharpBilinearTexcoord(texcoord) : texcoord;
+	float4 color          = g_frameTexture.Sample(g_frameSampler, sampleTexcoord);
+
+	if (params.x == 1.0) {
+		/* Decode the sRGB-encoded (display-space) source to linear. params.w = 0
+		 * selects the exact piecewise sRGB curve — the precise inverse of the sRGB
+		 * swapchain's hardware encode, keeping SDR compositions byte-exact through
+		 * the round trip. A positive params.w selects a pow(rgb, w) decode for the
+		 * HDR extended-linear composition: the compositor displays linear light
+		 * faithfully there, and display-referred art authored for ~2.2-power SDR
+		 * monitors renders with lifted darks if decoded with the piecewise toe. */
+		color.rgb =
+			params.w > 0.0 ? pow(saturate(color.rgb), params.w) : AeronSrgbToLinear(saturate(color.rgb));
+	} else if (params.x == 2.0 && params.w > 0.0) {
+		/* Display-referred source that arrives linear (hardware _SRGB decode).
+		 * Undo the piecewise decode and reapply the display gamma so the net
+		 * transform matches the mode-1 pow decode. With params.w = 0 the
+		 * piecewise decode already is the intended result — nothing to do. */
+		color.rgb = pow(AeronLinearToSrgb(saturate(color.rgb)), params.w);
+	}
+
+	float4 outputColor = color * tint + float4(bias.rgb * color.a, 0.0);
+	outputColor.rgb *= params.z;
+	return outputColor + float4(unusedValue, 0.0, 0.0, 0.0);
+}
