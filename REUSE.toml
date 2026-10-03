@@ -1,0 +1,102 @@
+# REUSE.toml — the license of every file in this repository.
+#
+# Read by the REUSE tool (specification 3.3, https://reuse.software/spec-3.3/):
+# `reuse lint` refuses a file that names no license, `reuse spdx` prints what
+# each file resolved to. A file's own SPDX-License-Identifier header outranks
+# these rules (precedence "closest", the tool's default), and of the rules
+# below the last one that matches a path wins, so the general rules come first
+# and the specific ones after them.
+#
+# The program as a whole is GPLv3: engine/ is the GPL-licensed game engine, and
+# anything compiled or linked with it ships under the GPL. Everything outside
+# engine/ is this project's own: separate programs that start the engine and
+# talk to it across a process boundary, under MIT (code) or CC BY 4.0 (prose).
+# tools/license_boundary.py keeps that boundary.
+version = 1
+
+# This project's own files: code is MIT, prose at the root is CC BY 4.0.
+[[annotations]]
+path = ["**"]
+SPDX-FileCopyrightText = "2026 Evan Lee Turner"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["*.md"]
+SPDX-FileCopyrightText = "2026 Evan Lee Turner"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# Two workflow files written by Adrien Moulin ("elyosh") for OpenXvT, imported
+# with the engine and pointed at engine/ here.
+[[annotations]]
+path = [".github/workflows/ci.yml", ".github/workflows/release.yml"]
+SPDX-FileCopyrightText = ["Adrien Moulin", "2026 Evan Lee Turner"]
+SPDX-License-Identifier = "GPL-3.0-only"
+
+# The engine: OpenXvT and Aeron by Adrien Moulin ("elyosh"), imported with
+# their history and modified in this project since October 2026. Their
+# LICENSE files carry the GPLv3 text with no "or later" notice.
+[[annotations]]
+path = ["engine/**"]
+SPDX-FileCopyrightText = ["Adrien Moulin", "2026 Evan Lee Turner"]
+SPDX-License-Identifier = "GPL-3.0-only"
+
+# undither, adapted from Kornel Lesinski's undither 1.0.8; the header of
+# undither.c declares GPL-3.0-or-later, and its .h and license copy follow it.
+[[annotations]]
+path = [
+  "engine/src/xvt_remaster/undither.c",
+  "engine/src/xvt_remaster/undither.h",
+  "engine/licenses/undither.txt",
+]
+SPDX-FileCopyrightText = ["Kornel Lesinski", "Adrien Moulin"]
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# Libraries Aeron bundles under engine/aeron/third_party/, each under the
+# license its own LICENSE file states.
+[[annotations]]
+path = ["engine/aeron/third_party/bc7enc/**"]
+SPDX-FileCopyrightText = "2020-2021 Richard Geldreich, Jr."
+SPDX-License-Identifier = "MIT OR Unlicense"
+
+[[annotations]]
+path = ["engine/aeron/third_party/cgltf/**"]
+SPDX-FileCopyrightText = "2018-2021 Johannes Kuhlmann"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["engine/aeron/third_party/cjson/**"]
+SPDX-FileCopyrightText = "2009-2017 Dave Gamble and cJSON contributors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = [
+  "engine/aeron/third_party/dxmath/**",
+  "engine/aeron/third_party/dxtex/**",
+]
+SPDX-FileCopyrightText = "Microsoft Corporation"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["engine/aeron/third_party/fidelityfx-fsr3/**"]
+SPDX-FileCopyrightText = "2024 Advanced Micro Devices, Inc."
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["engine/aeron/third_party/imgui/**"]
+SPDX-FileCopyrightText = "2014-2026 Omar Cornut"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["engine/aeron/third_party/libjuice/**"]
+SPDX-FileCopyrightText = "2020-2022 Paul-Louis Ageneau"
+SPDX-License-Identifier = "MPL-2.0"
+
+[[annotations]]
+path = ["engine/aeron/third_party/libyaml/**"]
+SPDX-FileCopyrightText = ["2017-2020 Ingy döt Net", "2006-2016 Kirill Simonov"]
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["engine/aeron/third_party/stb/**"]
+SPDX-FileCopyrightText = "2017 Sean Barrett"
+SPDX-License-Identifier = "MIT OR Unlicense"
